@@ -5,7 +5,7 @@
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
         Width="Auto" Height="Auto"
-        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}"
+        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=ShokoServer}"
         Name="aboutWindow" Icon="/ShokoServer;component/db.ico">
     <Grid>
         <Grid.Resources>
@@ -39,7 +39,7 @@
                 <Image Height="24" Width="24" Source="/Images/db.ico" Margin="0,0,5,0" />
 
                 <TextBlock Margin="5,0,0,0" FontWeight="DemiBold"
-                           Text="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}" FontSize="20"
+                           Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ShokoServer}" FontSize="20"
                            VerticalAlignment="Center" />
                 <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="20" Foreground="DarkGray"
                            Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersion}"

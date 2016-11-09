@@ -163,9 +163,6 @@
   <data name="plex_webclips" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\plex_webclips.bin;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="JMMServer" xml:space="preserve">
-    <value>JMM Server</value>
-  </data>
   <data name="Actions_RunImport" xml:space="preserve">
     <value>Run Import</value>
   </data>
@@ -272,19 +269,19 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/setup/sqlserver/</value>
+    <value>http://shokoanime.com/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/setup/mysql/</value>
+    <value>http://shokoanime.com/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fastest performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we've created.</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes.</value>
+    <value>MySQL is the mid-tier and recommended database type for Shoko users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using Shoko . It is easy to setup and using our guide you’ll be up and running in a matter of minutes.</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
-    <value>While SQLite is the easiest of the three database types to setup with it's one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it's simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which overall increase your wait time when accessing your collection.</value>
+    <value>While SQLite is the easiest of the three database types to setup with it's one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when Shoko attempts to access your collection via your SQLite database. In regards to how Shoko uses the database, it's simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which overall increase your wait time when accessing your collection.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Fill out the form below to add an import folder. Select the folder's location and import type and then click Save to add the import folder.</value>
@@ -296,7 +293,7 @@
     <value>Switch Language</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>JMM Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart.</value>
+    <value>Shoko Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
     <value>Default</value>
@@ -344,10 +341,10 @@
     <value>What does this mean?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
+    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>JMM Server is already running. Please check your system tray (notification area).</value>
+    <value>Shoko Server is already running. Please check your system tray (notification area).</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Error</value>
@@ -434,7 +431,7 @@
     <value>Show</value>
   </data>
   <data name="Server_MinimizeInfo" xml:space="preserve">
-    <value>JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray.</value>
+    <value>Shoko Server has been minimized to the system tray. To open the application, double-click the icon in the system tray.</value>
   </data>
   <data name="About_Home" xml:space="preserve">
     <value>Home Page</value>
@@ -443,16 +440,16 @@
     <value>Project Page</value>
   </data>
   <data name="About_Blog" xml:space="preserve">
-    <value>JMM Blog</value>
+    <value>Shoko Blog</value>
   </data>
   <data name="Link_Home" xml:space="preserve">
-    <value>http://jmediamanager.org/</value>
+    <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_GitHub" xml:space="preserve">
     <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
-    <value>http://jmediamanager.org/blog</value>
+    <value>http://shokoanime.com/blog</value>
   </data>
   <data name="Admin_AdminMessages" xml:space="preserve">
     <value>Admin Messages</value>
@@ -461,29 +458,29 @@
     <value>More Information</value>
   </data>
   <data name="Tooltip_DropSource" xml:space="preserve">
-    <value>JMM Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally JMM Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
+    <value>Shoko Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally Shoko Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
 
 You can have as many Drop Sources as you want, however you must setup a Drop Destination to use Drop Source.</value>
   </data>
   <data name="Tooltip_DropDestination" xml:space="preserve">
-    <value>Used in conjunction with Drop Source, JMM Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
+    <value>Used in conjunction with Drop Source, Shoko Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
 
 You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>An Import Folder is the physical location of your anime collection, you'll need at least one Import Folder to use JMM Server to start building your collection.</value>
+    <value>An Import Folder is the physical location of your anime collection, you'll need at least one Import Folder to use Shoko Server to start building your collection.</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Fix for using</value>
   </data>
   <data name="ImportFolders_Shared" xml:space="preserve">
-    <value>JMM Server with shared drives</value>
+    <value>Shoko Server with shared drives</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
+    <value>http://shokoanime.com/faq/#Shoko-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Detailed explanation of options</value>
@@ -593,17 +590,17 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Update_AvailableVersion" xml:space="preserve">
     <value>Available Version</value>
   </data>
-  <data name="Update_JMMServer" xml:space="preserve">
-    <value>Update JMM Server</value>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Update Shoko Server</value>
   </data>
   <data name="Update_UpdateAvailable" xml:space="preserve">
     <value>Update Available</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
-    <value>http://jmediamanager.org/downloads</value>
+    <value>http://shokoanime.com/downloads</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://jmediamanager.org/changelog</value>
+    <value>http://shokoanime.com/changelog</value>
   </data>
   <data name="Command_Paused" xml:space="preserve">
     <value>Paused</value>
@@ -723,7 +720,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Help Make Shoko Better!</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
-    <value>http://jmediamanager.org/contribute/</value>
+    <value>http://shokoanime.com/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Getting release group info from UDP API: {0}</value>
@@ -1041,7 +1038,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Creating Year</value>
   </data>
   <data name="Tooltip_Watch" xml:space="preserve">
-    <value>JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. </value>
+    <value>Shoko Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. </value>
   </data>
   <data name="ImportFolders_ImportFolders" xml:space="preserve">
     <value>Import Folders</value>
@@ -1056,13 +1053,13 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>New Version detected. Database Backup in progress...</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
-    <value>The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer.</value>
+    <value>The Database Version is bigger than the supported version by Shoko Server. You should upgrade Shoko Server.</value>
   </data>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Add Account</value>
   </data>
   <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Select your Cloud Provider and follow the instructions to add your Cloud account for use with JMM Server.</value>
+    <value>Select your Cloud Provider and follow the instructions to add your Cloud account for use with Shoko Server.</value>
   </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Remove</value>
@@ -1071,7 +1068,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Cloud Accounts</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Add Cloud Account</value>
@@ -1113,19 +1110,19 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Migration Status</value>
   </data>
   <data name="Migration_AdminFail" xml:space="preserve">
-    <value>JMM Server is unable to migrate your settings using the current user access. Run JMM Server as an Administrator to start the migration.</value>
+    <value>Shoko Server is unable to migrate your settings using the current user access. Run Shoko Server as an Administrator to start the migration.</value>
   </data>
   <data name="Migration_AdminPass1" xml:space="preserve">
-    <value>JMM Server will now start migrating your settings from this location to</value>
+    <value>Shoko Server will now start migrating your settings from this location to</value>
   </data>
   <data name="Migration_AdminPass2" xml:space="preserve">
-    <value>once this process is complete JMM Server will restart and no longer need Administrative Privileges to run.</value>
+    <value>once this process is complete Shoko Server will restart and no longer need Administrative Privileges to run.</value>
   </data>
   <data name="Migration_InProgress1" xml:space="preserve">
     <value>Migration is in progress, this window will automatically close once completed.</value>
   </data>
   <data name="Migration_InProgress2" xml:space="preserve">
-    <value>Afterwards JMM Server will restart itself if successful.</value>
+    <value>Afterwards Shoko Server will restart itself if successful.</value>
   </data>
   <data name="Actions_UpdateImages" xml:space="preserve">
     <value>Update Images</value>
@@ -1173,13 +1170,13 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Integrity</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check</value>
   </data>
   <data name="Settings_SetDefault" xml:space="preserve">
     <value>Set Default</value>
   </data>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
-    <value>Administrative Privileges are required to change the Server Port used by JMM Server. Please restart JMM Server as an Administrator to continue.</value>
+    <value>Administrative Privileges are required to change the Server Port used by Shoko Server. Please restart Shoko Server as an Administrator to continue.</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Error Loading Settings:</value>

@@ -2060,15 +2060,6 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server.
-        /// </summary>
-        public static string JMMServer {
-            get {
-                return ResourceManager.GetString("JMMServer", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to JMM Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
         /// </summary>
         public static string Language_Info {

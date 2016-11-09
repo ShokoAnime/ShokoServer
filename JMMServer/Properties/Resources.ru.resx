@@ -117,9 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="JMMServer" xml:space="preserve">
-    <value>JMM Server</value>
-  </data>
   <data name="Actions_RunImport" xml:space="preserve">
     <value>Выполнить импорт</value>
   </data>
@@ -220,13 +217,13 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/setup/sqlserver/</value>
+    <value>http://shokoanime.com/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/setup/mysql/</value>
+    <value>http://shokoanime.com/setup/mysql/</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
-    <value>SQLite является самой простой и настраивается одним нажатием. Если коллекция содержит более 200 сериалов возникнет множество проблем, включая медленную реакцию и зависания программы при попытке получить доступ к коллекции. JMM не оптимизирован для этой базы данных поэтому SQLite не предназначен для больших коллекций. SQLite также испытывает трудности с одновременной обработкой нескольких операций что увеличивает время ожидания между операциями, что в свою очередь увеличиваеи время ожидания при доступе к коллекции.</value>
+    <value>SQLite является самой простой и настраивается одним нажатием. Если коллекция содержит более 200 сериалов возникнет множество проблем, включая медленную реакцию и зависания программы при попытке получить доступ к коллекции. Shoko не оптимизирован для этой базы данных поэтому SQLite не предназначен для больших коллекций. SQLite также испытывает трудности с одновременной обработкой нескольких операций что увеличивает время ожидания между операциями, что в свою очередь увеличиваеи время ожидания при доступе к коллекции.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server может использовать большой объем памяти</value>
@@ -235,7 +232,7 @@
     <value>Переключение языка</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>Чтобы изменить язык JMM сервер необходимо перезапустить, нажмите кнопку ОК, чтобы перезагрузить сервер JMM или кнопку Отменить чтобы перезапустить вручную.</value>
+    <value>Чтобы изменить язык Shoko сервер необходимо перезапустить, нажмите кнопку ОК, чтобы перезагрузить сервер Shoko или кнопку Отменить чтобы перезапустить вручную.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
     <value>По умолчанию</value>
@@ -283,10 +280,10 @@
     <value>Что это значит?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
+    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>JMM сервер уже запущен. Пожалуйста, проверьте область уведомлений.</value>
+    <value>Shoko сервер уже запущен. Пожалуйста, проверьте область уведомлений.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Ошибка</value>
@@ -364,7 +361,7 @@
     <value>Показать</value>
   </data>
   <data name="Server_MinimizeInfo" xml:space="preserve">
-    <value>JMM сервер был свернут в область уведомлений. Чтобы открыть приложение, дважды щелкните значок в области уведомлений.</value>
+    <value>Shoko сервер был свернут в область уведомлений. Чтобы открыть приложение, дважды щелкните значок в области уведомлений.</value>
   </data>
   <data name="About_Home" xml:space="preserve">
     <value>Домашняя страница</value>
@@ -373,16 +370,16 @@
     <value>Страница проекта</value>
   </data>
   <data name="About_Blog" xml:space="preserve">
-    <value>JMM блог</value>
+    <value>Shoko блог</value>
   </data>
   <data name="Link_Home" xml:space="preserve">
-    <value>http://jmediamanager.org/</value>
+    <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_GitHub" xml:space="preserve">
     <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
-    <value>http://jmediamanager.org/blog</value>
+    <value>http://shokoanime.com/blog</value>
   </data>
   <data name="Admin_AdminMessages" xml:space="preserve">
     <value>Сообщения администрации</value>
@@ -391,26 +388,26 @@
     <value>Дополнительная информация</value>
   </data>
   <data name="Tooltip_DropSource" xml:space="preserve">
-    <value>JMM сервер будет контролировать эту папку и перемещать все файлы, которые он обнаруживает в папку, выбранную в качестве папки назначения. Кроме того JMM сервер будет автоматически группировать файлы которые принадлежат к одному сериалу и автоматически создаст новую папку для них если она не существует.
+    <value>Shoko сервер будет контролировать эту папку и перемещать все файлы, которые он обнаруживает в папку, выбранную в качестве папки назначения. Кроме того Shoko сервер будет автоматически группировать файлы которые принадлежат к одному сериалу и автоматически создаст новую папку для них если она не существует.
 
 Количество папок источников неограничено, однако для использования источников необходимо выбрать папку назначения.</value>
   </data>
   <data name="Tooltip_DropDestination" xml:space="preserve">
-    <value>Используется в сочетании с папкой источником, JMM сервер будет перемещать все файлы из источников в папку назначения.
+    <value>Используется в сочетании с папкой источником, Shoko сервер будет перемещать все файлы из источников в папку назначения.
 
 Вы можете иметь только одну папку назначения.</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Исправление с помощью</value>
   </data>
   <data name="ImportFolders_Shared" xml:space="preserve">
-    <value>JMM сервер с общими дисками</value>
+    <value>Shoko сервер с общими дисками</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
+    <value>http://shokoanime.com/faq/#Shoko-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Подробное объяснение параметров</value>
@@ -499,17 +496,17 @@
   <data name="Update_AvailableVersion" xml:space="preserve">
     <value>Доступные версии</value>
   </data>
-  <data name="Update_JMMServer" xml:space="preserve">
-    <value>Обновление сервера JMM</value>
+  <data name="Update_ShokoServer" xml:space="preserve">
+    <value>Обновление сервера Shoko</value>
   </data>
   <data name="Update_UpdateAvailable" xml:space="preserve">
     <value>Доступно обновление</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
-    <value>http://jmediamanager.org/downloads</value>
+    <value>http://shokoanime.com/downloads</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://jmediamanager.org/changelog</value>
+    <value>http://shokoanime.com/changelog</value>
   </data>
   <data name="Command_Paused" xml:space="preserve">
     <value>Приостановлено</value>
@@ -617,10 +614,10 @@
     <value>Получение эпизодов TvDB : {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL является типом базы данных промежуточного уровня и рекомендуется для пользователей JMM с большой коллекцией либо тем кто планирует создать большую коллекцию или просто хочет улучшения  производительности при использовании JMM. Простой в установке, также при использовании нашего руководства сможете начать работу в считанные минуты.</value>
+    <value>MySQL является типом базы данных промежуточного уровня и рекомендуется для пользователей Shoko с большой коллекцией либо тем кто планирует создать большую коллекцию или просто хочет улучшения  производительности при использовании Shoko. Простой в установке, также при использовании нашего руководства сможете начать работу в считанные минуты.</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
-    <value>http://jmediamanager.org/contribute/</value>
+    <value>http://shokoanime.com/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Получать информацию о группе выпуска от UDP API: {0}</value>
@@ -971,7 +968,7 @@
     <value>Создание год</value>
   </data>
   <data name="Tooltip_Watch" xml:space="preserve">
-    <value>Модель памяти JMM сервер будет отслеживать эту папку и добавить любые файлы, которые он обнаруживает в вашей коллекции. Может использоваться в сочетании с Drop источник и/или Drop назначения проверяются. </value>
+    <value>Модель памяти Shoko сервер будет отслеживать эту папку и добавить любые файлы, которые он обнаруживает в вашей коллекции. Может использоваться в сочетании с Drop источник и/или Drop назначения проверяются. </value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Узнайте больше о</value>
@@ -989,10 +986,10 @@
     <value>Обнаружена новая версия. Резервное копирование базы данных в ходе...</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
-    <value>Версия базы данных больше, чем поддерживаемые версии модели памяти JMM сервером. Вы должны обновить JMMServer.</value>
+    <value>Версия базы данных больше, чем поддерживаемые версии модели памяти Shoko сервером. Вы должны обновить ShokoServer.</value>
   </data>
   <data name="Toolbar_Contribute" xml:space="preserve">
-    <value>Помогите сделать JMM лучше!</value>
+    <value>Помогите сделать Shoko лучше!</value>
   </data>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Добавить учетную запись</value>
@@ -1040,13 +1037,13 @@
     <value>Состояние миграции</value>
   </data>
   <data name="Migration_AdminFail" xml:space="preserve">
-    <value>JMM сервер не удается перенести параметры с помощью доступа текущего пользователя. Запустите JMM сервер в качестве администратора начать процесс миграции.</value>
+    <value>Shoko сервер не удается перенести параметры с помощью доступа текущего пользователя. Запустите Shoko сервер в качестве администратора начать процесс миграции.</value>
   </data>
   <data name="Migration_AdminPass1" xml:space="preserve">
-    <value>JMM сервер начнет перенос параметров из этого местоположения в</value>
+    <value>Shoko сервер начнет перенос параметров из этого местоположения в</value>
   </data>
   <data name="Migration_AdminPass2" xml:space="preserve">
-    <value>После завершения этого процесса завершения JMM сервер перезапустится и больше не нужны привилегии администратора для запуска.</value>
+    <value>После завершения этого процесса завершения Shoko сервер перезапустится и больше не нужны привилегии администратора для запуска.</value>
   </data>
   <data name="Actions_UpdateImages" xml:space="preserve">
     <value>Обновление изображения</value>
@@ -1055,19 +1052,19 @@
     <value>Обновление TVDB информации и запроса новых изображений.</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Папка импорта является физическое местоположение вашей коллекции аниме, вам понадобится хотя бы одна папка импорта для использования сервера JMM для начала сборки вашей коллекции.</value>
+    <value>Папка импорта является физическое местоположение вашей коллекции аниме, вам понадобится хотя бы одна папка импорта для использования сервера Shoko для начала сборки вашей коллекции.</value>
   </data>
   <data name="ImportFolders_ImportFolders" xml:space="preserve">
     <value>Импорт папки</value>
   </data>
   <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Выберите поставщика облака и следуйте инструкциям, чтобы добавить свою учетную запись Cloud для использования с сервером JMM.</value>
+    <value>Выберите поставщика облака и следуйте инструкциям, чтобы добавить свою учетную запись Cloud для использования с сервером Shoko.</value>
   </data>
   <data name="CloudAccounts_Service" xml:space="preserve">
     <value>Поставщик услуг</value>
@@ -1115,13 +1112,13 @@
     <value>Миграция, это окно будет автоматически закрыто после завершения.</value>
   </data>
   <data name="Migration_InProgress2" xml:space="preserve">
-    <value>После этого JMM сервер будет перезапускает себя в случае успеха.</value>
+    <value>После этого Shoko сервер будет перезапускает себя в случае успеха.</value>
   </data>
   <data name="Settings_SetDefault" xml:space="preserve">
     <value>Установить по умолчанию</value>
   </data>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
-    <value>Чтобы изменить порт сервера, используемого сервером JMM требуются административные привилегии. Пожалуйста, перезапустите JMM сервер в качестве администратора продолжить.</value>
+    <value>Чтобы изменить порт сервера, используемого сервером Shoko требуются административные привилегии. Пожалуйста, перезапустите Shoko сервер в качестве администратора продолжить.</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Ошибка загрузки настройки:</value>

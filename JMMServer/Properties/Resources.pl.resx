@@ -117,9 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="JMMServer" xml:space="preserve">
-    <value>JMM Server</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Usuń brakujące pliki</value>
   </data>
@@ -217,13 +214,13 @@
     <value>MySQL/MariaDB</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/setup/sqlserver/</value>
+    <value>http://shokoanime.com/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/setup/mysql/</value>
+    <value>http://shokoanime.com/setup/mysql/</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
-    <value>Podczas gdy SQLite jest najprostszą z trzech dostępnych baz danych do instalacji, gdyż odbywa się poprzez jedno kliknięcie. Jeśli kolekcja zawiera 200 lub więcej serii możesz zacząć odczuwać spowolnienia w działaniu, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy JMM próbuje uzyskać dostęp do bazy danych SQLite. Korzystanie z tego typu bazy danych nie jest zalecane w przypadku posiadania dużych kolekcji.</value>
+    <value>Podczas gdy SQLite jest najprostszą z trzech dostępnych baz danych do instalacji, gdyż odbywa się poprzez jedno kliknięcie. Jeśli kolekcja zawiera 200 lub więcej serii możesz zacząć odczuwać spowolnienia w działaniu, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy Shoko próbuje uzyskać dostęp do bazy danych SQLite. Korzystanie z tego typu bazy danych nie jest zalecane w przypadku posiadania dużych kolekcji.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>Microsoft SQL Server można wykorzystywać dużo pamięci podręcznej</value>
@@ -232,7 +229,7 @@
     <value>Zmień język</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>Aby zmienić język Serwer JMM musi zostać ponownie uruchomiony. Kliknij przycisk OK, aby ponownie uruchomić Serwer JMM.</value>
+    <value>Aby zmienić język Serwer Shoko musi zostać ponownie uruchomiony. Kliknij przycisk OK, aby ponownie uruchomić Serwer Shoko.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
     <value>Domyślny</value>
@@ -280,10 +277,10 @@
     <value>Co to oznacza?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
+    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>Serwer JMM jest już uruchomiony. Sprawdź czy serwer nie ukrywa się w obszarze powiadomień.</value>
+    <value>Serwer Shoko jest już uruchomiony. Sprawdź czy serwer nie ukrywa się w obszarze powiadomień.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Błąd</value>
@@ -361,7 +358,7 @@
     <value>Pokaż</value>
   </data>
   <data name="Server_MinimizeInfo" xml:space="preserve">
-    <value>Serwer JMM został zminimalizowany do obszaru powiadomień. Aby otworzyć aplikację, kliknij dwukrotnie ikonę w zasobniku systemowym.</value>
+    <value>Serwer Shoko został zminimalizowany do obszaru powiadomień. Aby otworzyć aplikację, kliknij dwukrotnie ikonę w zasobniku systemowym.</value>
   </data>
   <data name="About_Home" xml:space="preserve">
     <value>Strona główna</value>
@@ -370,16 +367,16 @@
     <value>Strona projektu</value>
   </data>
   <data name="About_Blog" xml:space="preserve">
-    <value>Blog JMM</value>
+    <value>Blog Shoko</value>
   </data>
   <data name="Link_Home" xml:space="preserve">
-    <value>http://jmediamanager.org/</value>
+    <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_GitHub" xml:space="preserve">
     <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
-    <value>http://jmediamanager.org/blog</value>
+    <value>http://shokoanime.com/blog</value>
   </data>
   <data name="Admin_AdminMessages" xml:space="preserve">
     <value>Admin wiadomości</value>
@@ -388,26 +385,26 @@
     <value>Więcej informacji</value>
   </data>
   <data name="Tooltip_DropSource" xml:space="preserve">
-    <value>Serwer JMM będzie monitorować ten folder i przenieść wszystkie pliki, które w nim się znajdą do wybranego folderu docelowego. Dodatkowo serwer JMM będzie automatycznie grupować pliki należące do wspólnej serii i tworzyć katalog w folderze docelowym jeżeli takowy się w nim nie znajduje.
+    <value>Serwer Shoko będzie monitorować ten folder i przenieść wszystkie pliki, które w nim się znajdą do wybranego folderu docelowego. Dodatkowo serwer Shoko będzie automatycznie grupować pliki należące do wspólnej serii i tworzyć katalog w folderze docelowym jeżeli takowy się w nim nie znajduje.
 
 Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać folder docelowy, aby mechanizm działał poprawnie.</value>
   </data>
   <data name="Tooltip_DropDestination" xml:space="preserve">
-    <value>Używany w połączeniu z folderem źródłowym. Serwer JMM będzie przenieść wszystkie pliki z folderów źródłowych do tego katalogu. 
+    <value>Używany w połączeniu z folderem źródłowym. Serwer Shoko będzie przenieść wszystkie pliki z folderów źródłowych do tego katalogu. 
 
 Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>W przypadku problem z </value>
   </data>
   <data name="ImportFolders_Shared" xml:space="preserve">
-    <value>Serwerem JMM i dyskami sieciowymi</value>
+    <value>Serwerem Shoko i dyskami sieciowymi</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
+    <value>http://shokoanime.com/faq/#Shoko-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Szczegółowe wyjaśnienie</value>
@@ -496,17 +493,17 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Update_AvailableVersion" xml:space="preserve">
     <value>Dostępna wersja</value>
   </data>
-  <data name="Update_JMMServer" xml:space="preserve">
-    <value>Aktualizacja Serwera JMM</value>
+  <data name="Update_ShokoServer" xml:space="preserve">
+    <value>Aktualizacja Serwera Shoko</value>
   </data>
   <data name="Update_UpdateAvailable" xml:space="preserve">
     <value>Aktualizacja dostępna</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
-    <value>http://jmediamanager.org/downloads</value>
+    <value>http://shokoanime.com/downloads</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://jmediamanager.org/changelog</value>
+    <value>http://shokoanime.com/changelog</value>
   </data>
   <data name="Command_Paused" xml:space="preserve">
     <value>Wstrzymana</value>
@@ -614,10 +611,10 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Pobieranie informacji o odcinkach z The TvDB: {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL/MariaDB jest typ bazy danych średniej klasy, a jego użycie zaleca się użytkownikom JMM z dużą kolekcją. Operacje na dużych kolekcjach wykonywane są dużo szybciej i wydajniej niżeli na SQLite. Instalacja jest łatwa szczególnie dzięki korzystaniu z naszego poradnika.</value>
+    <value>MySQL/MariaDB jest typ bazy danych średniej klasy, a jego użycie zaleca się użytkownikom Shoko z dużą kolekcją. Operacje na dużych kolekcjach wykonywane są dużo szybciej i wydajniej niżeli na SQLite. Instalacja jest łatwa szczególnie dzięki korzystaniu z naszego poradnika.</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
-    <value>http://jmediamanager.org/contribute/</value>
+    <value>http://shokoanime.com/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Pobieranie informacji o grupie poprzez UDP API: {0}</value>
@@ -971,7 +968,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Tworzenie rok</value>
   </data>
   <data name="Tooltip_Watch" xml:space="preserve">
-    <value>JMM serwer monitorowania tego folderu i dodać wszystkie pliki, które wykrywa do swojej kolekcji. Może służyć w połączeniu z źródło Drop lub upuść przeznaczenia sprawdzane. </value>
+    <value>Shoko serwer monitorowania tego folderu i dodać wszystkie pliki, które wykrywa do swojej kolekcji. Może służyć w połączeniu z źródło Drop lub upuść przeznaczenia sprawdzane. </value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Dowiedz się więcej o</value>
@@ -989,10 +986,10 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Wykryto nową wersję. Kopia zapasowa bazy danych w toku...</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
-    <value>Wersja bazy danych jest większa niż wersja obsługiwanych przez serwer JMM. Należy uaktualnić JMMServer.</value>
+    <value>Wersja bazy danych jest większa niż wersja obsługiwanych przez serwer Shoko. Należy uaktualnić ShokoServer.</value>
   </data>
   <data name="Toolbar_Contribute" xml:space="preserve">
-    <value>Pomóc w ulepszeniu JMM!</value>
+    <value>Pomóc w ulepszeniu Shoko!</value>
   </data>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Dodaj konto</value>
@@ -1040,13 +1037,13 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Stan migracji</value>
   </data>
   <data name="Migration_AdminFail" xml:space="preserve">
-    <value>JMM serwera jest w stanie przeprowadzić migrację ustawień przy użyciu bieżącego dostępu użytkownika. JMM serwera należy uruchomić jako Administrator do rozpocząć migrację.</value>
+    <value>Shoko serwera jest w stanie przeprowadzić migrację ustawień przy użyciu bieżącego dostępu użytkownika. Shoko serwera należy uruchomić jako Administrator do rozpocząć migrację.</value>
   </data>
   <data name="Migration_AdminPass1" xml:space="preserve">
-    <value>JMM serwer będzie teraz rozpocząć migrację ustawień z tej lokalizacji, aby</value>
+    <value>Shoko serwer będzie teraz rozpocząć migrację ustawień z tej lokalizacji, aby</value>
   </data>
   <data name="Migration_AdminPass2" xml:space="preserve">
-    <value>gdy proces ten jest kompletny JMM serwera uruchomi się nie są już potrzebne uprawnienia administracyjne, aby uruchomić.</value>
+    <value>gdy proces ten jest kompletny Shoko serwera uruchomi się nie są już potrzebne uprawnienia administracyjne, aby uruchomić.</value>
   </data>
   <data name="Actions_UpdateImages" xml:space="preserve">
     <value>Aktualizacja Images</value>
@@ -1055,19 +1052,19 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Aktualizacja informacji TVDb i prosząc o nowe zdjęcia.</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Folder importu jest fizyczną lokalizację swojej kolekcji anime, musisz mieć co najmniej jeden Folder importu do używania serwera JMM rozpocząć budowę swojej kolekcji.</value>
+    <value>Folder importu jest fizyczną lokalizację swojej kolekcji anime, musisz mieć co najmniej jeden Folder importu do używania serwera Shoko rozpocząć budowę swojej kolekcji.</value>
   </data>
   <data name="ImportFolders_ImportFolders" xml:space="preserve">
     <value>Import folderów</value>
   </data>
   <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Wybierz dostawcę chmury i postępuj zgodnie z instrukcjami, aby dodać konta usługi Cloud za pomocą serwera JMM.</value>
+    <value>Wybierz dostawcę chmury i postępuj zgodnie z instrukcjami, aby dodać konta usługi Cloud za pomocą serwera Shoko.</value>
   </data>
   <data name="CloudAccounts_Service" xml:space="preserve">
     <value>Dostawcy usług</value>
@@ -1115,13 +1112,13 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Migracja jest w toku, ten okno zostanie automatycznie zamknięte po wypełnieniu.</value>
   </data>
   <data name="Migration_InProgress2" xml:space="preserve">
-    <value>Potem JMM Server będzie restartuje sam jeśli kończy się pomyślnie.</value>
+    <value>Potem Shoko Server będzie restartuje sam jeśli kończy się pomyślnie.</value>
   </data>
   <data name="Settings_SetDefault" xml:space="preserve">
     <value>Ustaw domyślne</value>
   </data>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
-    <value>Aby zmienić Port serwera używany przez serwer JMM wymagane są uprawnienia administracyjne. Uruchom ponownie serwer JMM jako Administrator, aby kontynuować.</value>
+    <value>Aby zmienić Port serwera używany przez serwer Shoko wymagane są uprawnienia administracyjne. Uruchom ponownie serwer Shoko jako Administrator, aby kontynuować.</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Błąd ładowania ustawień:</value>
