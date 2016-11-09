@@ -180,9 +180,6 @@ namespace JMMServer.API.Module.apiv2
         }
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
-        JMMServiceImplementation _binary = new JMMServiceImplementation();
-
-
 
         #region 1.Import Folders
 
@@ -401,39 +398,67 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Rescan given location ID (folder id) to recognize new episodes
         /// </summary>
-        /// <param name="vlid"></param>
+        /// <param name="Vlid"></param>
         /// <returns></returns>
-        private object RescanVideoLocal(string vlid)
+        private object RescanVideoLocal(string VLid)
         {
-            int videoLocalID = -1;
-            int.TryParse(vlid, out videoLocalID);
-            if (videoLocalID == -1)
+            int vlid = -1;
+            if (int.TryParse(VLid, out vlid))
             {
-                return APIStatus.badRequest("videolocalid is negative");
+                try
+                {
+                    VideoLocal vid = RepoFactory.VideoLocal.GetByID(vlid);
+                    if (vid == null) { return APIStatus.notFound404(); }
+                    if (string.IsNullOrEmpty(vid.Hash)) { return APIStatus.badRequest("Could not Update a cloud file without hash, hash it locally first"); }
+                    Commands.CommandRequest_ProcessFile cmd = new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                    cmd.Save();
+                }
+                catch (Exception ex)
+                {
+                    return APIStatus.internalError(ex.Message);
+                }
+
+                return APIStatus.statusOK();
             }
-
-            string output = _binary.RescanFile(videoLocalID);
-
-            if (!string.IsNullOrEmpty(output))
+            else
             {
-                return APIStatus.badRequest(output);
+                return APIStatus.badRequest("missing 'id'");
             }
-
-            return APIStatus.statusOK();
         }
 
-        private object RehashVideoLocal(string vlid)
+        /// <summary>
+        /// Rehash given files in given VideoLocal
+        /// </summary>
+        /// <param name="VLid"></param>
+        /// <returns></returns>
+        private object RehashVideoLocal(string VLid)
         {
-            int videoLocalID = -1;
-            int.TryParse(vlid, out videoLocalID);
-            if (videoLocalID == -1)
+            int vlid = -1;
+            if (int.TryParse(VLid, out vlid))
             {
-                return APIStatus.badRequest("videolocalid is negative");
+                VideoLocal vl = RepoFactory.VideoLocal.GetByID(vlid);
+
+                if (vl != null)
+                {
+                    VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                    if (pl == null)
+                    {
+                        return APIStatus.notFound404("videolocal_place not found");
+                    }
+                    Commands.CommandRequest_HashFile cr_hashfile = new Commands.CommandRequest_HashFile(pl.FullServerPath, true);
+                    cr_hashfile.Save();
+
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.notFound404();
+                }
             }
-
-            _binary.RehashFile(videoLocalID);
-
-            return APIStatus.statusOK();
+            else
+            {
+                return APIStatus.badRequest("missing 'id'");
+            }
         }
 
         #endregion
