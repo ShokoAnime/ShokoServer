@@ -148,7 +148,6 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 11. Filters
-            Get["/filters/get"] = _ => { return GetFilters_old(); };
             Get["/filter/list"] = _ => { return GetFilters(); };
             Get["/filter/{id}"] = x => { return GetFilter((int)x.id); };
             #endregion
@@ -1461,24 +1460,6 @@ namespace JMMServer.API.Module.apiv2
         #endregion
 
         #region 11. Filters
-
-        /// <summary>
-        /// GetFilters as MediaContainer (Legacy)
-        /// </summary>
-        /// <returns></returns>
-        private object GetFilters_old()
-        {
-            Legacy.request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return _impl.GetFilters(_prov_kodi, user.JMMUserID.ToString());
-            }
-            else
-            {
-                return new APIMessage(500, "Unable to get User");
-            }
-        }
 
         /// <summary>
         /// Return Filters as List

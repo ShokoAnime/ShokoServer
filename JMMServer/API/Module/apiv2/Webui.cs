@@ -1,11 +1,9 @@
 ﻿using JMMServer.API.Model.core;
-using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using Newtonsoft.Json;
 using Pri.LongPath;
 using System;
-using System.Collections.Generic;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -15,12 +13,22 @@ namespace JMMServer.API.Module.apiv2
         {
             this.RequiresAuthentication();
 
+            Get["/install"] = _ => { return InstallWebUI(); };
             Get["/update/stable"] = _ => { return WebUIStableUpdate(); };
             Get["/latest/stable"] = _ => { return WebUILatestStableVersion(); };
             Get["/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
             Get["/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
             Get["/config"] = _ => { return GetWebUIConfig(); };
             Post["/config"] = _ => { return SetWebUIConfig(); };
+        }
+
+        /// <summary>
+        /// Download and install latest stable version of WebUI
+        /// </summary>
+        /// <returns></returns>
+        private object InstallWebUI()
+        {
+            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version);
         }
 
         /// <summary>
