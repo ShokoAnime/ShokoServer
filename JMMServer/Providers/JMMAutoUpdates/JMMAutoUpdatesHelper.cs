@@ -25,7 +25,7 @@ namespace JMMServer.Providers.JMMAutoUpdates
             try
             {
                 // get the latest version as according to the release
-                string uri = string.Format("http://www.jmediamanager.org/latestdownloads/versions.xml");
+                string uri = string.Format("http://shokoanime.com/files/versions.xml");
                 string xml = AniDBAPI.APIUtils.DownloadWebPage(uri);
 
                 XmlSerializer x = new XmlSerializer(typeof(Providers.JMMAutoUpdates.JMMVersions));

@@ -61,7 +61,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Blog.
+        ///   Looks up a localized string similar to Shoko Blog.
         /// </summary>
         public static string About_Blog {
             get {
@@ -476,7 +476,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select your Cloud Provider and follow the instructions to add your Cloud account for use with JMM Server..
+        ///   Looks up a localized string similar to Select your Cloud Provider and follow the instructions to add your Cloud account for use with Shoko Server..
         /// </summary>
         public static string CloudAccounts_Info {
             get {
@@ -1223,7 +1223,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer..
+        ///   Looks up a localized string similar to The Database Version is bigger than the supported version by Shoko Server. You should upgrade Shoko Server..
         /// </summary>
         public static string Database_NotSupportedVersion {
             get {
@@ -1664,7 +1664,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An Import Folder is the physical location of your anime collection, you&apos;ll need at least one Import Folder to use JMM Server to start building your collection..
+        ///   Looks up a localized string similar to An Import Folder is the physical location of your anime collection, you&apos;ll need at least one Import Folder to use Shoko Server to start building your collection..
         /// </summary>
         public static string ImportFolders_Info {
             get {
@@ -1763,7 +1763,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server with shared drives.
+        ///   Looks up a localized string similar to Shoko Server with shared drives.
         /// </summary>
         public static string ImportFolders_Shared {
             get {
@@ -2060,16 +2060,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server.
-        /// </summary>
-        public static string JMMServer {
-            get {
-                return ResourceManager.GetString("JMMServer", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to JMM Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
+        ///   Looks up a localized string similar to Shoko Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
         /// </summary>
         public static string Language_Info {
             get {
@@ -2105,7 +2096,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/faq/#banned-from-anidb.
+        ///   Looks up a localized string similar to http://shokoanime.com/faq/#banned-from-anidb.
         /// </summary>
         public static string Link_AniDBBan {
             get {
@@ -2114,7 +2105,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/blog.
+        ///   Looks up a localized string similar to http://shokoanime.com/blog.
         /// </summary>
         public static string Link_Blog {
             get {
@@ -2123,7 +2114,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/changelog.
+        ///   Looks up a localized string similar to http://shokoanime.com/changelog.
         /// </summary>
         public static string Link_Changelog {
             get {
@@ -2132,7 +2123,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts.
+        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts.
         /// </summary>
         public static string Link_CloudAccounts {
             get {
@@ -2141,7 +2132,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/contribute/.
+        ///   Looks up a localized string similar to http://shokoanime.com/contribute/.
         /// </summary>
         public static string Link_Contribute {
             get {
@@ -2150,7 +2141,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/downloads.
+        ///   Looks up a localized string similar to http://shokoanime.com/downloads.
         /// </summary>
         public static string Link_Download {
             get {
@@ -2168,7 +2159,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/.
+        ///   Looks up a localized string similar to http://shokoanime.com/.
         /// </summary>
         public static string Link_Home {
             get {
@@ -2177,7 +2168,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders.
+        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders.
         /// </summary>
         public static string Link_ImportFolders {
             get {
@@ -2186,7 +2177,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check.
+        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check.
         /// </summary>
         public static string Link_Integrity {
             get {
@@ -2195,7 +2186,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/setup/mysql/.
+        ///   Looks up a localized string similar to http://shokoanime.com/setup/mysql/.
         /// </summary>
         public static string Link_MySQL {
             get {
@@ -2204,7 +2195,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/faq/#jmm-shared-drive.
+        ///   Looks up a localized string similar to http://shokoanime.com/faq/#Shoko-shared-drive.
         /// </summary>
         public static string Link_SharedDrive {
             get {
@@ -2213,7 +2204,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/setup/sqlserver/.
+        ///   Looks up a localized string similar to http://shokoanime.com/setup/sqlserver/.
         /// </summary>
         public static string Link_SQLServer {
             get {
@@ -2267,7 +2258,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server is unable to migrate your settings using the current user access. Run JMM Server as an Administrator to start the migration..
+        ///   Looks up a localized string similar to Shoko Server is unable to migrate your settings using the current user access. Run Shoko Server as an Administrator to start the migration..
         /// </summary>
         public static string Migration_AdminFail {
             get {
@@ -2276,7 +2267,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server will now start migrating your settings from this location to.
+        ///   Looks up a localized string similar to Shoko Server will now start migrating your settings from this location to.
         /// </summary>
         public static string Migration_AdminPass1 {
             get {
@@ -2285,7 +2276,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to once this process is complete JMM Server will restart and no longer need Administrative Privileges to run..
+        ///   Looks up a localized string similar to once this process is complete Shoko Server will restart and no longer need Administrative Privileges to run..
         /// </summary>
         public static string Migration_AdminPass2 {
             get {
@@ -2312,7 +2303,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Afterwards JMM Server will restart itself if successful..
+        ///   Looks up a localized string similar to Afterwards Shoko Server will restart itself if successful..
         /// </summary>
         public static string Migration_InProgress2 {
             get {
@@ -2348,7 +2339,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes..
+        ///   Looks up a localized string similar to MySQL is the mid-tier and recommended database type for Shoko users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using Shoko . It is easy to setup and using our guide you’ll be up and running in a matter of minutes..
         /// </summary>
         public static string MySQL_Info {
             get {
@@ -2804,7 +2795,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray..
+        ///   Looks up a localized string similar to Shoko Server has been minimized to the system tray. To open the application, double-click the icon in the system tray..
         /// </summary>
         public static string Server_MinimizeInfo {
             get {
@@ -2822,7 +2813,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server is already running. Please check your system tray (notification area)..
+        ///   Looks up a localized string similar to Shoko Server is already running. Please check your system tray (notification area)..
         /// </summary>
         public static string Server_Running {
             get {
@@ -2930,7 +2921,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Administrative Privileges are required to change the Server Port used by JMM Server. Please restart JMM Server as an Administrator to continue..
+        ///   Looks up a localized string similar to Administrative Privileges are required to change the Server Port used by Shoko Server. Please restart Shoko Server as an Administrator to continue..
         /// </summary>
         public static string Settings_ChangeServerPortFail {
             get {
@@ -3083,7 +3074,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to While SQLite is the easiest of the three database types to setup with it&apos;s one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it&apos;s simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which ov [rest of string was truncated]&quot;;.
+        ///   Looks up a localized string similar to While SQLite is the easiest of the three database types to setup with it&apos;s one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when Shoko attempts to access your collection via your SQLite database. In regards to how Shoko uses the database, it&apos;s simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations whic [rest of string was truncated]&quot;;.
         /// </summary>
         public static string SQLite_Info {
             get {
@@ -3236,7 +3227,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Used in conjunction with Drop Source, JMM Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
+        ///   Looks up a localized string similar to Used in conjunction with Drop Source, Shoko Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
         ///
         ///You can only have one folder listed as a Drop Destination..
         /// </summary>
@@ -3247,7 +3238,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally JMM Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
+        ///   Looks up a localized string similar to Shoko Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally Shoko Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
         ///
         ///You can have as many Drop Sources as you want, however you must setup a Drop Destination to use Drop Source..
         /// </summary>
@@ -3267,7 +3258,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. .
+        ///   Looks up a localized string similar to Shoko Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. .
         /// </summary>
         public static string Tooltip_Watch {
             get {
@@ -3303,11 +3294,11 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update JMM Server.
+        ///   Looks up a localized string similar to Update Shoko Server.
         /// </summary>
-        public static string Update_JMMServer {
+        public static string Update_Shoko_Server {
             get {
-                return ResourceManager.GetString("Update_JMMServer", resourceCulture);
+                return ResourceManager.GetString("Update_Shoko Server", resourceCulture);
             }
         }
         

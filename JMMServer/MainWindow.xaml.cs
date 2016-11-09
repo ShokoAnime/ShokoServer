@@ -169,7 +169,7 @@ namespace JMMServer
                 mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance+"Mutex");
                 //since it hasn't thrown an exception, then we already have one copy of the app open.
                 MessageBox.Show(JMMServer.Properties.Resources.Server_Running,
-                    JMMServer.Properties.Resources.JMMServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                    JMMServer.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(0);
             }
             catch (Exception Ex)
@@ -2217,7 +2217,7 @@ namespace JMMServer
         {
             this.Hide();
             TippuTrayNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            TippuTrayNotify.BalloonTipTitle = JMMServer.Properties.Resources.JMMServer;
+            TippuTrayNotify.BalloonTipTitle = JMMServer.Properties.Resources.ShokoServer;
             TippuTrayNotify.BalloonTipText = JMMServer.Properties.Resources.Server_MinimizeInfo;
             //TippuTrayNotify.ShowBalloonTip(400);
         }
