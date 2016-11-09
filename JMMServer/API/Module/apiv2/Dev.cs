@@ -17,6 +17,8 @@ namespace JMMServer.API.Module.apiv2
 {
     public class Dev : Nancy.NancyModule
     {
+        public static int version = 1;
+
         public Dev() : base("/api/dev")
         {
             #if DEBUG

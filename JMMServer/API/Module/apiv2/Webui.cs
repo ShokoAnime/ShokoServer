@@ -9,6 +9,8 @@ namespace JMMServer.API.Module.apiv2
 {
     public class Webui : Nancy.NancyModule
     {
+        public static int version = 1;
+
         public Webui() : base("/api/webui")
         {
             this.RequiresAuthentication();
@@ -28,7 +30,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object InstallWebUI()
         {
-            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version);
+            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version, "stable");
         }
 
         /// <summary>
@@ -37,7 +39,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object WebUIStableUpdate()
         {
-            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version);
+            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version, "stable");
         }
 
         /// <summary>
@@ -46,7 +48,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object WebUIUnstableUpdate()
         {
-            return WebUIGetUrlAndUpdate(WebUILatestUnstableVersion().version);
+            return WebUIGetUrlAndUpdate(WebUILatestUnstableVersion().version, "dev");
         }
 
         /// <summary>
@@ -54,7 +56,7 @@ namespace JMMServer.API.Module.apiv2
         /// </summary>
         /// <param name="tag_name"></param>
         /// <returns></returns>
-        internal object WebUIGetUrlAndUpdate(string tag_name)
+        internal object WebUIGetUrlAndUpdate(string tag_name, string channel)
         {
             try
             {
@@ -77,7 +79,7 @@ namespace JMMServer.API.Module.apiv2
                 //check if tag was parsed corrently as it make the url
                 if (url != "")
                 {
-                    return WebUIUpdate(url);
+                    return WebUIUpdate(url, channel, tag_name);
                 }
                 else
                 {
@@ -95,7 +97,7 @@ namespace JMMServer.API.Module.apiv2
         /// </summary>
         /// <param name="url">direct link to version you want to install</param>
         /// <returns></returns>
-        internal object WebUIUpdate(string url)
+        internal object WebUIUpdate(string url, string channel, string version)
         {
             //list all files from root /webui/ and all directories
             string[] files = Directory.GetFiles("webui");
@@ -105,7 +107,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 //download latest version
                 var client = new System.Net.WebClient();
-                client.Headers.Add("User-Agent", "jmmserver");
+                client.Headers.Add("User-Agent", "shokoserver");
                 client.DownloadFile(url, "webui\\latest.zip");
 
                 //create 'old' dictionary
@@ -138,6 +140,10 @@ namespace JMMServer.API.Module.apiv2
                         //clean because we already have working updated webui
                         Directory.Delete("webui\\old", true);
                         File.Delete("webui\\latest.zip");
+
+                        //save version type>version that was installed successful
+                        if (File.Exists("webui\\index.ver")) { File.Delete("webui\\index.ver"); }
+                        File.AppendAllText("webui\\index.ver", channel + ">" + version);
 
                         return APIStatus.statusOK();
                     }

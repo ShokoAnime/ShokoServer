@@ -8,6 +8,8 @@ namespace JMMServer.API.Module.apiv2
 {
     public class Database : Nancy.NancyModule
     {
+        public static int version = 1;
+
         public Database() : base("/api/db")
         {
             if (!ServerSettings.FirstRun)

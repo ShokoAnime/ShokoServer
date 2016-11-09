@@ -29,7 +29,7 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid)
+        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast)
         {
             Serie sr = new Serie();
 
@@ -37,14 +37,14 @@ namespace JMMServer.API.Model.common
             {
                 foreach (AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid);
+                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast);
                 }
             }
 
             return sr;
         }
 
-        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid)
+        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast)
         {
             Serie sr = new Serie();
 
@@ -66,17 +66,20 @@ namespace JMMServer.API.Model.common
             if (!String.IsNullOrEmpty(nv.Banner)) { sr.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Banner), index = 0 }); }
             if (!String.IsNullOrEmpty(nv.Art)) { sr.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 }); }
 
-            if (nv.Roles != null)
+            if (nocast == 0)
             {
-                foreach (RoleTag rtg in nv.Roles)
+                if (nv.Roles != null)
                 {
-                    Role new_role = new Role();
-                    if (!String.IsNullOrEmpty(rtg.Value)) { new_role.name = rtg.Value; } else { new_role.name = ""; }
-                    if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); } else { new_role.namepic = ""; }
-                    if (!String.IsNullOrEmpty(rtg.Role)) { new_role.role = rtg.Role; } else { rtg.Role = ""; }
-                    if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; } 
-                    if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); } else { new_role.rolepic = ""; }
-                    sr.roles.Add(new_role);
+                    foreach (RoleTag rtg in nv.Roles)
+                    {
+                        Role new_role = new Role();
+                        if (!String.IsNullOrEmpty(rtg.Value)) { new_role.name = rtg.Value; } else { new_role.name = ""; }
+                        if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); } else { new_role.namepic = ""; }
+                        if (!String.IsNullOrEmpty(rtg.Role)) { new_role.role = rtg.Role; } else { rtg.Role = ""; }
+                        if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; }
+                        if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); } else { new_role.rolepic = ""; }
+                        sr.roles.Add(new_role);
+                    }
                 }
             }
 
