@@ -24,19 +24,19 @@ namespace JMMServer.API.Model.common
 
         }
 
-        internal Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid)
+        internal Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid, int level)
         {
             Episode ep = new Episode();
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid);
+                ep = GenerateFromAnimeEpisode(Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid, level);
             }
 
             return ep;
         }
 
-        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid)
+        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid, int level)
         {
             Episode ep = new Episode();
             if (aep != null)
@@ -67,13 +67,16 @@ namespace JMMServer.API.Model.common
                     if (aep.PlexContract?.Thumb != null) { ep.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Thumb), index = 0 }); }
                     if (aep.PlexContract?.Art != null) { ep.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Art), index = 0 }); }
 
-                    List<VideoLocal> vls = aep.GetVideoLocals();
-                    if (vls.Count > 0)
+                    if (level != 1)
                     {
-                        ep.files = new List<RawFile>();
-                        foreach (VideoLocal vl in vls)
+                        List<VideoLocal> vls = aep.GetVideoLocals();
+                        if (vls.Count > 0)
                         {
-                            ep.files.Add(new RawFile(vl));
+                            ep.files = new List<RawFile>();
+                            foreach (VideoLocal vl in vls)
+                            {
+                                ep.files.Add(new RawFile(vl, (level-1)));
+                            }
                         }
                     }
                 }

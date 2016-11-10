@@ -32,7 +32,7 @@ namespace JMMServer.API.Model.common
 
         }
 
-        public RawFile(Entities.VideoLocal vl)
+        public RawFile(Entities.VideoLocal vl, int level)
         {
             if (vl != null)
             {
@@ -54,10 +54,10 @@ namespace JMMServer.API.Model.common
 
                 is_ignored = vl.IsIgnored;
 
-                media = new MediaInfo();
-
-                if (vl.Media != null)
+                if (vl.Media != null && ( level > 1 || level == 0))
                 {
+                    media = new MediaInfo();
+
                     // TODO APIV2: replace 1 with userid or rewrite file server
                     url = APIHelper.ConstructVideoLocalStream(1, vl.Media.Id, "file." + vl.Media.Container, false);
 

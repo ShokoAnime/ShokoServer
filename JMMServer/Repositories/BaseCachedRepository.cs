@@ -96,6 +96,11 @@ namespace JMMServer.Repositories
             return Cache.Values.ToList();
         }
 
+        public virtual IReadOnlyList<T> GetAll(int max_limit)
+        {
+            return Cache.Values.Take(max_limit).ToList();
+        }
+
         public IReadOnlyList<T> GetAll(ISession session)
         {
             return Cache.Values.ToList();

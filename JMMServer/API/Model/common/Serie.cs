@@ -29,7 +29,7 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast)
+        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast, int notag, int level)
         {
             Serie sr = new Serie();
 
@@ -37,14 +37,14 @@ namespace JMMServer.API.Model.common
             {
                 foreach (AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast);
+                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast, notag, level);
                 }
             }
 
             return sr;
         }
 
-        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast)
+        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast, int notag, int level)
         {
             Serie sr = new Serie();
 
@@ -83,23 +83,29 @@ namespace JMMServer.API.Model.common
                 }
             }
 
-            if (nv.Genres != null)
+            if (notag == 0)
             {
-                foreach (JMMContracts.PlexAndKodi.Tag otg in nv.Genres)
+                if (nv.Genres != null)
                 {
-                    Tag new_tag = new Tag();
-                    new_tag.tag = otg.Value;
-                    sr.tags.Add(new_tag);
+                    foreach (JMMContracts.PlexAndKodi.Tag otg in nv.Genres)
+                    {
+                        Tag new_tag = new Tag();
+                        new_tag.tag = otg.Value;
+                        sr.tags.Add(new_tag);
+                    }
                 }
             }
 
-            List<AnimeEpisode> ael = ser.GetAnimeEpisodes();
-            if (ael.Count > 0)
+            if (level != 1)
             {
-                sr.eps = new List<Episode>();
-                foreach (AnimeEpisode ae in ael)
+                List<AnimeEpisode> ael = ser.GetAnimeEpisodes();
+                if (ael.Count > 0)
                 {
-                    sr.eps.Add(new Episode().GenerateFromAnimeEpisode(ae, uid));
+                    sr.eps = new List<Episode>();
+                    foreach (AnimeEpisode ae in ael)
+                    {
+                        sr.eps.Add(new Episode().GenerateFromAnimeEpisode(ae, uid, (level - 1)));
+                    }
                 }
             }
 
