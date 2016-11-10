@@ -129,7 +129,7 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 8. Series - [Obsolete]
-            Get["/serie/list"] = _ => { return GetAllSeries(1); }; // [Obsolete] use /serie
+            Get["/serie/list"] = _ => { return GetAllSeries(1,0); }; // [Obsolete] use /serie
             Get["/serie/{id}"] = x => { return GetSerieById(x.id, 1); }; // [Obsolete] use /serie?id=
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); }; // [Obsolete] use /serie/recent?limit=
             Get["/serie/byfolder/{id}"] = x => { return GetSerieByFolderId(x.id, 10); }; // [Obsolete] use /serie/byfolder/id=
@@ -771,7 +771,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllFiles();
+                return GetAllFiles(para.limit);
             }
             else
             {
@@ -802,18 +802,16 @@ namespace JMMServer.API.Module.apiv2
         /// Get list of all files
         /// </summary>
         /// <returns></returns>
-        internal object GetAllFiles()
+        internal object GetAllFiles(int limit)
         {
-            ObjectList ob = new ObjectList("all files", ObjectList.ListType.FILE);
-            List<object> list = new List<object>();
-            
+            List<RawFile> list = new List<RawFile>();
             foreach (VideoLocal file in RepoFactory.VideoLocal.GetAll())
             {
                 list.Add(new RawFile(file));
+                if (limit != 0) { if (list.Count >= limit) { break; } }
             }
 
-            ob.Add(list);
-            return ob;
+            return limit;
         }
 
         /// <summary>
@@ -901,7 +899,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllEpisodes(user.JMMUserID);
+                return GetAllEpisodes(user.JMMUserID, para.limit);
             }
             else
             {
@@ -913,18 +911,17 @@ namespace JMMServer.API.Module.apiv2
         /// return all known anime series
         /// </summary>
         /// <returns></returns>
-        internal object GetAllEpisodes(int uid)
+        internal object GetAllEpisodes(int uid, int limit)
         {
-            ObjectList ob = new ObjectList("all episodes", ObjectList.ListType.EPISODE);
-            List<object> eps = new List<object>();
+            List<Episode> eps = new List<Episode>();
             List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
             foreach(int id in aepul)
             {
                 eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, uid));
+                if (limit != 0) { if (eps.Count >= limit) { break; } }
             }
-            ob.Add(eps);
-
-            return ob;
+            
+            return eps;
         }
 
         /// <summary>
@@ -1078,7 +1075,7 @@ namespace JMMServer.API.Module.apiv2
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            if (para.id == 0) { return GetAllSeries(para.nocast); }
+            if (para.id == 0) { return GetAllSeries(para.nocast, para.limit); }
             else
             {
                 return GetSerieById(para.id, para.nocast);
@@ -1102,21 +1099,20 @@ namespace JMMServer.API.Module.apiv2
         /// return all series for current user
         /// </summary>
         /// <returns></returns>
-        internal object GetAllSeries(int nocast)
+        internal object GetAllSeries(int nocast, int limit)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
 
-            ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
-            List<object> allseries = new List<object>();
+            List<Serie> allseries = new List<Serie>();          
 
             foreach (AnimeSeries asi in RepoFactory.AnimeSeries.GetAll())
             {
                 allseries.Add(new Serie().GenerateFromAnimeSeries(asi, user.JMMUserID, nocast));
+                if (limit != 0) { if (allseries.Count >= limit) { break; } }
             }
 
-            ob.Add(allseries);
-            return ob;
+            return allseries;
         }
 
         /// <summary>
