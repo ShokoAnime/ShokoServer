@@ -2,6 +2,7 @@
 
 namespace JMMServer.API.Model.common
 {
+    [System.Obsolete]
     public class ObjectList
     {
         public List<object> list { get; private set; }

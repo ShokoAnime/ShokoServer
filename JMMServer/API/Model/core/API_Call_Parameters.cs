@@ -8,5 +8,6 @@
         public int nocast { get; set; }
         public int id { get; set; }
         public int score { get; set; }
+        public int offset { get; set; }
     }
 }
