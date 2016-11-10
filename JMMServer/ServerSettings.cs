@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Forms;
 using AniDBAPI;
 using JMMContracts;
 using JMMServer.Databases;
@@ -17,6 +18,8 @@ using JMMServer.UI;
 using NLog;
 using Newtonsoft.Json;
 using NLog.Targets;
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace JMMServer
 {
@@ -120,8 +123,7 @@ namespace JMMServer
                 }
 	            if (!settingsValid)
 	            {
-		            NameValueCollection col = ConfigurationManager.AppSettings;
-		            appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+	                LoadSettingsManuallyFromFile(true);
 	            }
 
 
@@ -234,7 +236,111 @@ namespace JMMServer
             }           
         }
 
-	    public static bool HasAllNecessaryFields(Dictionary<string, string> settings)
+        public static void LoadSettingsManuallyFromFile(bool locateAutomatically)
+        {
+            try
+            {
+                string configFile = "";
+                if (locateAutomatically)
+                {
+                    // Try to locate old config if we don't have new format one (JSON) in several locations
+                    configFile = @"C:\Program Files (x86)\JMM\JMM Server\JMMServer.exe.config";
+
+                    if (!File.Exists(configFile))
+                        configFile = @"C:\Program Files (x86)\JMM Server\JMMServer.exe.config";
+                    if (!File.Exists(configFile))
+                        configFile = "JMMServer.exe.config";
+                    if (!File.Exists(configFile))
+                        configFile = "old.config";
+                }
+
+                // Ask user if they want to find config manually
+                if (!File.Exists(configFile))
+                    configFile = LocateLegacyConfigFile();
+
+                if (!File.Exists(configFile))
+                    return;
+
+                if (configFile.ToLower().Contains("settings.json"))
+                {
+                    appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(configFile));
+                }
+                else
+                {
+                    var col = GetNameValueCollectionSection("appSettings", configFile);
+
+                    // if old settings found store and replace with new ShokoServer naming if needed
+                    // else fallback on current one we have
+                    if (col.Count > 0)
+                    {
+                        // Store default settings for later use
+                        var colDefault = ConfigurationManager.AppSettings;
+                        var appSettingDefault = colDefault.AllKeys.ToDictionary(a => a, a => colDefault[a]);
+
+                        appSettings.Clear();
+                        Dictionary<string, string> appSettingsBeforeRename = col.AllKeys.ToDictionary(a => a,
+                            a => col[a]);
+
+                        foreach (var setting in appSettingsBeforeRename)
+                        {
+                            if (!string.IsNullOrEmpty(setting.Value))
+                            {
+                                string newKey = setting.Key.Replace("JMMServer", "ShokoServer");
+                                appSettings.Add(newKey, setting.Value);
+                            }
+                        }
+
+                        // Check if we missed any setting keys and re-add from stock one
+                        foreach (var setting in appSettingDefault)
+                        {
+                            if (!string.IsNullOrEmpty(setting.Value))
+                            {
+                                if (!appSettings.ContainsKey(setting.Key))
+                                {
+                                    string newKey = setting.Key.Replace("JMMServer", "ShokoServer");
+                                    appSettings.Add(newKey, setting.Value);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        col = ConfigurationManager.AppSettings;
+                        appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                // Load default settings as otherwise will fail to start entirely
+                var col = ConfigurationManager.AppSettings;
+                appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+                logger.Log(LogLevel.Error, string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", e.Message));
+            }
+        }
+        public static string LocateLegacyConfigFile()
+        {
+            string configPath = "";
+            MessageBoxResult dr = MessageBox.Show(Properties.Resources.LocateSettingsFileQuestion, Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
+            switch (dr)
+            {
+                case MessageBoxResult.Yes:
+                    OpenFileDialog openFileDialog = new OpenFileDialog();
+                    openFileDialog.Filter = "JMM config|JMMServer.exe.config;settings.json";
+
+                    DialogResult browseFile = openFileDialog.ShowDialog();
+                    if (browseFile == DialogResult.OK && !string.IsNullOrEmpty(openFileDialog.FileName.Trim()))
+                    {
+                        configPath = openFileDialog.FileName;
+                    }
+
+                    break;
+            }
+
+            return configPath;
+        }
+
+        public static bool HasAllNecessaryFields(Dictionary<string, string> settings)
 	    {
 	        if (settings == null)
 	            return false;
@@ -2046,6 +2152,32 @@ namespace JMMServer
 
 
             logger.Info("-------------------------------------------------------");
+        }
+        private static NameValueCollection GetNameValueCollectionSection(string section, string filePath)
+        {
+            string file = filePath;
+            System.Xml.XmlDocument xDoc = new System.Xml.XmlDocument();
+            NameValueCollection nameValueColl = new NameValueCollection();
+
+
+            System.Configuration.ExeConfigurationFileMap map = new ExeConfigurationFileMap();
+            map.ExeConfigFilename = file;
+
+            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None);
+            string xml = config.GetSection(section).SectionInformation.GetRawXml();
+            xDoc.LoadXml(xml);
+            System.Xml.XmlNode xList = xDoc.ChildNodes[0];
+            foreach (System.Xml.XmlNode xNodo in xList)
+            {
+                try
+                {
+                    nameValueColl.Add(xNodo.Attributes[0].Value, xNodo.Attributes[1].Value);
+                }
+                catch (Exception){
+                }
+            }
+
+            return nameValueColl;
         }
     }
 }
