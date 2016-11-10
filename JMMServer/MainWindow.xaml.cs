@@ -1892,7 +1892,6 @@ namespace JMMServer
             {
                 btnUploadAzureCache.Visibility = System.Windows.Visibility.Visible;
             }
-
             logger.Info("Clearing Cache...");
 
             Utils.ClearAutoUpdateCache();

@@ -590,6 +590,9 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Update_AvailableVersion" xml:space="preserve">
     <value>Available Version</value>
   </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Update Shoko Server</value>
+  </data>
   <data name="Update_UpdateAvailable" xml:space="preserve">
     <value>Update Available</value>
   </data>
@@ -1207,11 +1210,5 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ShokoServer" xml:space="preserve">
     <value>Shoko Server</value>
-  </data>
-  <data name="LocateSettingsFile" xml:space="preserve">
-    <value>Locate settings file</value>
-  </data>
-  <data name="LocateSettingsFileQuestion" xml:space="preserve">
-    <value>No previous configuration found, do you want to manually locate an existing configuration?</value>
   </data>
 </root>

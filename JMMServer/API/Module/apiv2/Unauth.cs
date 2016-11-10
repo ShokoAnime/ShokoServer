@@ -11,6 +11,7 @@ namespace JMMServer.API.Module.apiv2
         public Unauth()
         {
             Get["/api/version"] = x => { return GetVersion(); };
+
         }
 
         /// <summary>
@@ -77,5 +78,6 @@ namespace JMMServer.API.Module.apiv2
 
             return list;
         }
+
     }
 }
