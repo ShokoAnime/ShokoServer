@@ -2213,6 +2213,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Locate settings file.
+        /// </summary>
+        public static string LocateSettingsFile {
+            get {
+                return ResourceManager.GetString("LocateSettingsFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No previous configuration found, do you want to manually locate an existing configuration?.
+        /// </summary>
+        public static string LocateSettingsFileDialog {
+            get {
+                return ResourceManager.GetString("LocateSettingsFileDialog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
         public static string MessageBox_Cancel {
@@ -3290,15 +3308,6 @@ namespace JMMServer.Properties {
         public static string Update_DownloadPage {
             get {
                 return ResourceManager.GetString("Update_DownloadPage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Update Shoko Server.
-        /// </summary>
-        public static string Update_Shoko_Server {
-            get {
-                return ResourceManager.GetString("Update_Shoko Server", resourceCulture);
             }
         }
         

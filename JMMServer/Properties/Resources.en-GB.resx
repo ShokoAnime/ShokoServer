@@ -1156,13 +1156,16 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="ShokoServer" xml:space="preserve">
     <value>Shoko Server</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Update Shoko Server!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Database timeout:!</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Migration Failed:!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Locate settings file</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>No previous configuration found, do you want to manually locate an existing configuration?</value>
   </data>
 </root>

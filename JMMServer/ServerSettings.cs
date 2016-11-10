@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Forms;
 using AniDBAPI;
 using JMMContracts;
 using JMMServer.Databases;
@@ -17,6 +18,8 @@ using JMMServer.UI;
 using NLog;
 using Newtonsoft.Json;
 using NLog.Targets;
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace JMMServer
 {
@@ -48,12 +51,12 @@ namespace JMMServer
         }
 
 
-       
+
         //in this way, we could host two JMMServers int the same machine
 
         public static string DefaultInstance { get; set; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
-        public static string ApplicationPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
+        public static string ApplicationPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
 
         public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
 
@@ -104,7 +107,7 @@ namespace JMMServer
                 {
                     path = tmp_setting_file;
                 }
-	            bool settingsValid = false;
+                bool settingsValid = false;
                 if (File.Exists(path))
                 {
                     Dictionary<string, string> previousSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
@@ -112,20 +115,19 @@ namespace JMMServer
                     {
                         File.Delete(tmp_setting_file);
                     }
-	                if (HasAllNecessaryFields(previousSettings))
-	                {
-		                appSettings = previousSettings;
-		                settingsValid = true;
-	                }
+                    if (HasAllNecessaryFields(previousSettings))
+                    {
+                        appSettings = previousSettings;
+                        settingsValid = true;
+                    }
                 }
-	            if (!settingsValid)
-	            {
-		            NameValueCollection col = ConfigurationManager.AppSettings;
-		            appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
-	            }
+                if (!settingsValid)
+                {
+                    LoadSettingsManuallyFromFile(true);
+                }
 
 
-	            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
                 if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
                 {
                     migrationdirs.Add(new MigrationDirectory
@@ -231,20 +233,124 @@ namespace JMMServer
                 MessageBox.Show(Properties.Resources.Migration_LoadError + " ", e.ToString());
                 Application.Current.Shutdown();
                 return;
-            }           
+            }
         }
 
-	    public static bool HasAllNecessaryFields(Dictionary<string, string> settings)
-	    {
-	        if (settings == null)
-	            return false;
+        public static void LoadSettingsManuallyFromFile(bool locateAutomatically)
+        {
+            try
+            {
+                string configFile = "";
+                if (locateAutomatically)
+                {
+                    // Try to locate old config if we don't have new format one (JSON) in several locations
+                    configFile = @"C:\Program Files (x86)\JMM\JMM Server\JMMServer.exe.config";
+
+                    if (!File.Exists(configFile))
+                        configFile = @"C:\Program Files (x86)\JMM Server\JMMServer.exe.config";
+                    if (!File.Exists(configFile))
+                        configFile = "JMMServer.exe.config";
+                    if (!File.Exists(configFile))
+                        configFile = "old.config";
+                }
+
+                // Ask user if they want to find config manually
+                if (!File.Exists(configFile))
+                    configFile = LocateLegacyConfigFile();
+
+                if (!File.Exists(configFile))
+                    return;
+
+                if (configFile.ToLower().Contains("settings.json"))
+                {
+                    appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(configFile));
+                }
+                else
+                {
+                    var col = GetNameValueCollectionSection("appSettings", configFile);
+
+                    // if old settings found store and replace with new ShokoServer naming if needed
+                    // else fallback on current one we have
+                    if (col.Count > 0)
+                    {
+                        // Store default settings for later use
+                        var colDefault = ConfigurationManager.AppSettings;
+                        var appSettingDefault = colDefault.AllKeys.ToDictionary(a => a, a => colDefault[a]);
+
+                        appSettings.Clear();
+                        Dictionary<string, string> appSettingsBeforeRename = col.AllKeys.ToDictionary(a => a,
+                            a => col[a]);
+
+                        foreach (var setting in appSettingsBeforeRename)
+                        {
+                            if (!string.IsNullOrEmpty(setting.Value))
+                            {
+                                string newKey = setting.Key.Replace("JMMServer", "ShokoServer");
+                                appSettings.Add(newKey, setting.Value);
+                            }
+                        }
+
+                        // Check if we missed any setting keys and re-add from stock one
+                        foreach (var setting in appSettingDefault)
+                        {
+                            if (!string.IsNullOrEmpty(setting.Value))
+                            {
+                                if (!appSettings.ContainsKey(setting.Key))
+                                {
+                                    string newKey = setting.Key.Replace("JMMServer", "ShokoServer");
+                                    appSettings.Add(newKey, setting.Value);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        col = ConfigurationManager.AppSettings;
+                        appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                // Load default settings as otherwise will fail to start entirely
+                var col = ConfigurationManager.AppSettings;
+                appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+                logger.Log(LogLevel.Error, string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", e.Message));
+            }
+        }
+        public static string LocateLegacyConfigFile()
+        {
+            string configPath = "";
+            MessageBoxResult dr = MessageBox.Show(Properties.Resources.LocateSettingsFileDialog, Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
+            switch (dr)
+            {
+                case MessageBoxResult.Yes:
+                    OpenFileDialog openFileDialog = new OpenFileDialog();
+                    openFileDialog.Filter = "JMM config|JMMServer.exe.config;settings.json";
+
+                    DialogResult browseFile = openFileDialog.ShowDialog();
+                    if (browseFile == DialogResult.OK && !string.IsNullOrEmpty(openFileDialog.FileName.Trim()))
+                    {
+                        configPath = openFileDialog.FileName;
+                    }
+
+                    break;
+            }
+
+            return configPath;
+        }
+
+        public static bool HasAllNecessaryFields(Dictionary<string, string> settings)
+        {
+            if (settings == null)
+                return false;
 
             // More could be added, but in every case I've seen of a wtf, these were missing
             if (settings.ContainsKey("AniDB_Username") && settings.ContainsKey("AniDB_Password"))
-	            return true;
+                return true;
 
             return false;
-	    }
+        }
 
         public static void LoadSettingsFromFile(string setting_file)
         {
@@ -407,7 +513,7 @@ namespace JMMServer
         {
             get
             {
-                
+
 
                 string serverPort = Get("JMMServerFilePort");
                 if (string.IsNullOrEmpty(serverPort))
@@ -424,7 +530,7 @@ namespace JMMServer
         {
             get
             {
-                
+
 
                 string th = Get("PluginAutoWatchThreshold");
                 if (string.IsNullOrEmpty(th))
@@ -441,7 +547,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 string thumbaspect = Get("PlexThumbnailAspects");
                 if (string.IsNullOrEmpty(thumbaspect))
                 {
@@ -458,7 +564,7 @@ namespace JMMServer
         {
             get
             {
-                
+
 
                 string cult = Get("Culture");
                 if (string.IsNullOrEmpty(cult))
@@ -571,7 +677,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("DatabaseType");
             }
             set { Set("DatabaseType", value); }
@@ -581,7 +687,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("SQLServer_DatabaseServer");
             }
             set { Set("SQLServer_DatabaseServer", value); }
@@ -591,7 +697,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("SQLServer_DatabaseName");
             }
             set { Set("SQLServer_DatabaseName", value); }
@@ -601,7 +707,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("SQLServer_Username");
             }
             set { Set("SQLServer_Username", value); }
@@ -611,7 +717,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("SQLServer_Password");
             }
             set { Set("SQLServer_Password", value); }
@@ -621,7 +727,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("SQLite_DatabaseFile");
             }
             set { Set("SQLite_DatabaseFile", value); }
@@ -631,7 +737,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("MySQL_Hostname");
             }
             set { Set("MySQL_Hostname", value); }
@@ -641,7 +747,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("MySQL_SchemaName");
             }
             set { Set("MySQL_SchemaName", value); }
@@ -651,7 +757,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("MySQL_Username");
             }
             set { Set("MySQL_Username", value); }
@@ -661,7 +767,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("MySQL_Password");
             }
             set { Set("MySQL_Password", value); }
@@ -675,7 +781,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_Username");
             }
             set { Set("AniDB_Username", value); }
@@ -685,7 +791,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_Password");
             }
             set { Set("AniDB_Password", value); }
@@ -695,7 +801,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_ServerAddress");
             }
             set { Set("AniDB_ServerAddress", value); }
@@ -705,7 +811,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_ServerPort");
             }
             set { Set("AniDB_ServerPort", value); }
@@ -715,7 +821,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_ClientPort");
             }
             set { Set("AniDB_ClientPort", value); }
@@ -725,7 +831,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_AVDumpKey");
             }
             set { Set("AniDB_AVDumpKey", value); }
@@ -735,7 +841,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("AniDB_AVDumpClientPort");
             }
             set { Set("AniDB_AVDumpClientPort", value); }
@@ -745,7 +851,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadRelatedAnime"), out download);
                 return download;
@@ -757,7 +863,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadSimilarAnime"), out download);
                 return download;
@@ -769,7 +875,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadReviews"), out download);
                 return download;
@@ -781,7 +887,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadReleaseGroups"), out download);
                 return download;
@@ -793,7 +899,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_AddFiles"), out val);
                 return val;
@@ -805,33 +911,33 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 1;
                 int.TryParse(Get("AniDB_MyList_StorageState"), out val);
 
-                return (AniDBFileStatus) val;
+                return (AniDBFileStatus)val;
             }
-            set { Set("AniDB_MyList_StorageState", ((int) value).ToString()); }
+            set { Set("AniDB_MyList_StorageState", ((int)value).ToString()); }
         }
 
         public static AniDBFileDeleteType AniDB_MyList_DeleteType
         {
             get
             {
-                
+
                 int val = 0;
                 int.TryParse(Get("AniDB_MyList_DeleteType"), out val);
 
-                return (AniDBFileDeleteType) val;
+                return (AniDBFileDeleteType)val;
             }
-            set { Set("AniDB_MyList_DeleteType", ((int) value).ToString()); }
+            set { Set("AniDB_MyList_DeleteType", ((int)value).ToString()); }
         }
 
         public static bool AniDB_MyList_ReadUnwatched
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_ReadUnwatched"), out val);
                 return val;
@@ -843,7 +949,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_ReadWatched"), out val);
                 return val;
@@ -855,7 +961,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_SetWatched"), out val);
                 return val;
@@ -867,7 +973,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_SetUnwatched"), out val);
                 return val;
@@ -879,77 +985,77 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("AniDB_MyList_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { Set("AniDB_MyList_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_MyList_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_Calendar_UpdateFrequency
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("AniDB_Calendar_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { Set("AniDB_Calendar_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_Calendar_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_Anime_UpdateFrequency
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("AniDB_Anime_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { Set("AniDB_Anime_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_Anime_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_MyListStats_UpdateFrequency
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("AniDB_MyListStats_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { Set("AniDB_MyListStats_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_MyListStats_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_File_UpdateFrequency
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("AniDB_File_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { Set("AniDB_File_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_File_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static bool AniDB_DownloadCharacters
         {
             get
             {
-                
+
                 bool val = true;
                 if (!bool.TryParse(Get("AniDB_DownloadCharacters"), out val))
                     val = true; // default
@@ -962,7 +1068,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = true;
                 if (!bool.TryParse(Get("AniDB_DownloadCreators"), out val))
                     val = true; // default
@@ -979,7 +1085,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("WebCache_Address");
             }
             set { Set("WebCache_Address", value); }
@@ -989,7 +1095,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("WebCache_Anonymous"), out val);
                 return val;
@@ -1001,7 +1107,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = false;
                 bool.TryParse(Get("WebCache_XRefFileEpisode_Get"), out usecache);
                 return usecache;
@@ -1013,7 +1119,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = false;
                 bool.TryParse(Get("WebCache_XRefFileEpisode_Send"), out usecache);
                 return usecache;
@@ -1025,7 +1131,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_TvDB_Get"), out usecache))
                     return usecache;
@@ -1039,7 +1145,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_TvDB_Send"), out usecache))
                     return usecache;
@@ -1053,7 +1159,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_Trakt_Get"), out usecache))
                     return usecache;
@@ -1067,7 +1173,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_Trakt_Send"), out usecache))
                     return usecache;
@@ -1081,7 +1187,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_MAL_Get"), out usecache))
                     return usecache;
@@ -1095,7 +1201,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_MAL_Send"), out usecache))
                     return usecache;
@@ -1109,7 +1215,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool usecache = false;
                 if (bool.TryParse(Get("WebCache_UserInfo"), out usecache))
                     return usecache;
@@ -1127,7 +1233,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("TvDB_AutoFanart"), out val);
                 return val;
@@ -1139,7 +1245,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 0;
                 int.TryParse(Get("TvDB_AutoFanartAmount"), out val);
                 return val;
@@ -1151,7 +1257,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("TvDB_AutoWideBanners"), out val);
                 return val;
@@ -1163,7 +1269,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 0;
                 if (!int.TryParse(Get("TvDB_AutoWideBannersAmount"), out val))
                     val = 10; // default
@@ -1176,7 +1282,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("TvDB_AutoPosters"), out val);
                 return val;
@@ -1188,7 +1294,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 0;
                 if (!int.TryParse(Get("TvDB_AutoPostersAmount"), out val))
                     val = 10; // default
@@ -1201,21 +1307,21 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("TvDB_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { Set("TvDB_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("TvDB_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static string TvDB_Language
         {
             get
             {
-                
+
                 string language = Get("TvDB_Language");
                 if (string.IsNullOrEmpty(language))
                     return "en";
@@ -1233,7 +1339,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("MovieDB_AutoFanart"), out val);
                 return val;
@@ -1245,7 +1351,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 0;
                 int.TryParse(Get("MovieDB_AutoFanartAmount"), out val);
                 return val;
@@ -1257,7 +1363,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("MovieDB_AutoPosters"), out val);
                 return val;
@@ -1269,7 +1375,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 0;
                 if (!int.TryParse(Get("MovieDB_AutoPostersAmount"), out val))
                     val = 10; // default
@@ -1286,7 +1392,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("VideoExtensions");
             }
             set { Set("VideoExtensions", value); }
@@ -1297,16 +1403,16 @@ namespace JMMServer
             get
             {
                 RenamingLanguage rl = RenamingLanguage.Romaji;
-                
+
 
                 string rls = Get("DefaultSeriesLanguage");
                 if (string.IsNullOrEmpty(rls)) return rl;
 
-                rl = (RenamingLanguage) int.Parse(rls);
+                rl = (RenamingLanguage)int.Parse(rls);
 
                 return rl;
             }
-            set { Set("DefaultSeriesLanguage", ((int) value).ToString()); }
+            set { Set("DefaultSeriesLanguage", ((int)value).ToString()); }
         }
 
         public static RenamingLanguage DefaultEpisodeLanguage
@@ -1314,23 +1420,23 @@ namespace JMMServer
             get
             {
                 RenamingLanguage rl = RenamingLanguage.Romaji;
-                
+
 
                 string rls = Get("DefaultEpisodeLanguage");
                 if (string.IsNullOrEmpty(rls)) return rl;
 
-                rl = (RenamingLanguage) int.Parse(rls);
+                rl = (RenamingLanguage)int.Parse(rls);
 
                 return rl;
             }
-            set { Set("DefaultEpisodeLanguage", ((int) value).ToString()); }
+            set { Set("DefaultEpisodeLanguage", ((int)value).ToString()); }
         }
 
         public static bool RunImportOnStart
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("RunImportOnStart"), out val);
                 return val;
@@ -1342,7 +1448,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("ScanDropFoldersOnStart"), out val);
                 return val;
@@ -1354,7 +1460,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool bval = false;
                 bool.TryParse(Get("Hash_CRC32"), out bval);
                 return bval;
@@ -1366,7 +1472,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool bval = false;
                 bool.TryParse(Get("Hash_MD5"), out bval);
                 return bval;
@@ -1378,7 +1484,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool bval = false;
                 bool.TryParse(Get("ExperimentalUPnP"), out bval);
                 return bval;
@@ -1390,7 +1496,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool bval = false;
                 bool.TryParse(Get("Hash_SHA1"), out bval);
                 return bval;
@@ -1402,7 +1508,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool bval = false;
                 bool.TryParse(Get("Import_UseExistingFileWatchedStatus"), out bval);
                 return bval;
@@ -1416,7 +1522,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("AutoGroupSeries"), out val);
                 return val;
@@ -1428,7 +1534,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 string val = null;
                 try
                 {
@@ -1442,22 +1548,22 @@ namespace JMMServer
             set { Set("AutoGroupSeriesRelationExclusions", value); }
         }
 
-	    public static bool AutoGroupSeriesUseScoreAlgorithm
-	    {
-		    get
-		    {
-
-			    bool val = false;
-			    bool.TryParse(Get("AutoGroupSeriesUseScoreAlgorithm"), out val);
-			    return val;
-		    }
-		    set { Set("AutoGroupSeriesUseScoreAlgorithm", value.ToString()); }
-	    }
-
-	    public static string LanguagePreference
+        public static bool AutoGroupSeriesUseScoreAlgorithm
         {
             get
-            {   
+            {
+
+                bool val = false;
+                bool.TryParse(Get("AutoGroupSeriesUseScoreAlgorithm"), out val);
+                return val;
+            }
+            set { Set("AutoGroupSeriesUseScoreAlgorithm", value.ToString()); }
+        }
+
+        public static string LanguagePreference
+        {
+            get
+            {
                 return Get("LanguagePreference");
             }
             set { Set("LanguagePreference", value); }
@@ -1467,7 +1573,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("LanguageUseSynonyms"), out val);
                 return val;
@@ -1479,7 +1585,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val;
                 int.TryParse(Get("CloudWatcherTime"), out val);
                 if (val == 0)
@@ -1493,30 +1599,30 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 0;
                 int.TryParse(Get("EpisodeTitleSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
-                    return (DataSourceType) val;
+                    return (DataSourceType)val;
             }
-            set { Set("EpisodeTitleSource", ((int) value).ToString()); }
+            set { Set("EpisodeTitleSource", ((int)value).ToString()); }
         }
 
         public static DataSourceType SeriesDescriptionSource
         {
             get
             {
-                
+
                 int val = 0;
                 int.TryParse(Get("SeriesDescriptionSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
-                    return (DataSourceType) val;
+                    return (DataSourceType)val;
             }
-            set { Set("SeriesDescriptionSource", ((int) value).ToString()); }
+            set { Set("SeriesDescriptionSource", ((int)value).ToString()); }
         }
 
         public static DataSourceType SeriesNameSource
@@ -1528,9 +1634,9 @@ namespace JMMServer
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
-                    return (DataSourceType) val;
+                    return (DataSourceType)val;
             }
-            set { Set("SeriesNameSource", ((int) value).ToString()); }
+            set { Set("SeriesNameSource", ((int)value).ToString()); }
         }
 
         public static string ImagesPath
@@ -1555,7 +1661,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 string basePath = Get("BaseImagesPathIsDefault");
                 if (!string.IsNullOrEmpty(basePath))
                 {
@@ -1572,7 +1678,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("VLCLocation");
             }
             set
@@ -1586,7 +1692,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = false;
                 bool.TryParse(Get("MinimizeOnStartup"), out val);
                 return val;
@@ -1600,7 +1706,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_IsEnabled"), out val))
                     val = true;
@@ -1615,7 +1721,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("Trakt_AuthToken");
             }
             set { Set("Trakt_AuthToken", value); }
@@ -1625,7 +1731,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("Trakt_RefreshToken");
             }
             set { Set("Trakt_RefreshToken", value); }
@@ -1635,7 +1741,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("Trakt_TokenExpirationDate");
             }
             set { Set("Trakt_TokenExpirationDate", value); }
@@ -1645,35 +1751,35 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("Trakt_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { Set("Trakt_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("Trakt_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency Trakt_SyncFrequency
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("Trakt_SyncFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { Set("Trakt_SyncFrequency", ((int) value).ToString()); }
+            set { Set("Trakt_SyncFrequency", ((int)value).ToString()); }
         }
 
         public static bool Trakt_DownloadFanart
         {
             get
             {
-                
+
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_DownloadFanart"), out val))
                     val = true; // default
@@ -1686,7 +1792,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_DownloadPosters"), out val))
                     val = true; // default
@@ -1699,7 +1805,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out val))
                     val = true; // default
@@ -1716,7 +1822,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("MAL_Username");
             }
             set { Set("MAL_Username", value); }
@@ -1726,7 +1832,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("MAL_Password");
             }
             set { Set("MAL_Password", value); }
@@ -1736,21 +1842,21 @@ namespace JMMServer
         {
             get
             {
-                
+
                 int val = 1;
                 if (int.TryParse(Get("MAL_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { Set("MAL_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("MAL_UpdateFrequency", ((int)value).ToString()); }
         }
 
         public static bool MAL_NeverDecreaseWatchedNums
         {
             get
             {
-                
+
                 string wtchNum = Get("MAL_NeverDecreaseWatchedNums");
                 if (!string.IsNullOrEmpty(wtchNum))
                 {
@@ -1769,7 +1875,7 @@ namespace JMMServer
         {
             get
             {
-                
+
                 return Get("WebCacheAuthKey");
             }
             set { Set("WebCacheAuthKey", value); }
@@ -1793,18 +1899,18 @@ namespace JMMServer
             contract.AniDB_DownloadReleaseGroups = ServerSettings.AniDB_DownloadReleaseGroups;
 
             contract.AniDB_MyList_AddFiles = ServerSettings.AniDB_MyList_AddFiles;
-            contract.AniDB_MyList_StorageState = (int) ServerSettings.AniDB_MyList_StorageState;
-            contract.AniDB_MyList_DeleteType = (int) ServerSettings.AniDB_MyList_DeleteType;
+            contract.AniDB_MyList_StorageState = (int)ServerSettings.AniDB_MyList_StorageState;
+            contract.AniDB_MyList_DeleteType = (int)ServerSettings.AniDB_MyList_DeleteType;
             contract.AniDB_MyList_ReadWatched = ServerSettings.AniDB_MyList_ReadWatched;
             contract.AniDB_MyList_ReadUnwatched = ServerSettings.AniDB_MyList_ReadUnwatched;
             contract.AniDB_MyList_SetWatched = ServerSettings.AniDB_MyList_SetWatched;
             contract.AniDB_MyList_SetUnwatched = ServerSettings.AniDB_MyList_SetUnwatched;
 
-            contract.AniDB_MyList_UpdateFrequency = (int) ServerSettings.AniDB_MyList_UpdateFrequency;
-            contract.AniDB_Calendar_UpdateFrequency = (int) ServerSettings.AniDB_Calendar_UpdateFrequency;
-            contract.AniDB_Anime_UpdateFrequency = (int) ServerSettings.AniDB_Anime_UpdateFrequency;
-            contract.AniDB_MyListStats_UpdateFrequency = (int) ServerSettings.AniDB_MyListStats_UpdateFrequency;
-            contract.AniDB_File_UpdateFrequency = (int) ServerSettings.AniDB_File_UpdateFrequency;
+            contract.AniDB_MyList_UpdateFrequency = (int)ServerSettings.AniDB_MyList_UpdateFrequency;
+            contract.AniDB_Calendar_UpdateFrequency = (int)ServerSettings.AniDB_Calendar_UpdateFrequency;
+            contract.AniDB_Anime_UpdateFrequency = (int)ServerSettings.AniDB_Anime_UpdateFrequency;
+            contract.AniDB_MyListStats_UpdateFrequency = (int)ServerSettings.AniDB_MyListStats_UpdateFrequency;
+            contract.AniDB_File_UpdateFrequency = (int)ServerSettings.AniDB_File_UpdateFrequency;
 
             contract.AniDB_DownloadCharacters = ServerSettings.AniDB_DownloadCharacters;
             contract.AniDB_DownloadCreators = ServerSettings.AniDB_DownloadCreators;
@@ -1829,7 +1935,7 @@ namespace JMMServer
             contract.TvDB_AutoPostersAmount = ServerSettings.TvDB_AutoPostersAmount;
             contract.TvDB_AutoWideBanners = ServerSettings.TvDB_AutoWideBanners;
             contract.TvDB_AutoWideBannersAmount = ServerSettings.TvDB_AutoWideBannersAmount;
-            contract.TvDB_UpdateFrequency = (int) ServerSettings.TvDB_UpdateFrequency;
+            contract.TvDB_UpdateFrequency = (int)ServerSettings.TvDB_UpdateFrequency;
             contract.TvDB_Language = ServerSettings.TvDB_Language;
 
             // MovieDB
@@ -1841,8 +1947,8 @@ namespace JMMServer
             // Import settings
             contract.VideoExtensions = ServerSettings.VideoExtensions;
             contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
-			contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
-			contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
+            contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
+            contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
             contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
             contract.RunImportOnStart = ServerSettings.RunImportOnStart;
             contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
@@ -1853,17 +1959,17 @@ namespace JMMServer
             // Language
             contract.LanguagePreference = ServerSettings.LanguagePreference;
             contract.LanguageUseSynonyms = ServerSettings.LanguageUseSynonyms;
-            contract.EpisodeTitleSource = (int) ServerSettings.EpisodeTitleSource;
-            contract.SeriesDescriptionSource = (int) ServerSettings.SeriesDescriptionSource;
-            contract.SeriesNameSource = (int) ServerSettings.SeriesNameSource;
+            contract.EpisodeTitleSource = (int)ServerSettings.EpisodeTitleSource;
+            contract.SeriesDescriptionSource = (int)ServerSettings.SeriesDescriptionSource;
+            contract.SeriesNameSource = (int)ServerSettings.SeriesNameSource;
 
             // trakt
             contract.Trakt_IsEnabled = ServerSettings.Trakt_IsEnabled;
             contract.Trakt_AuthToken = ServerSettings.Trakt_AuthToken;
             contract.Trakt_RefreshToken = ServerSettings.Trakt_RefreshToken;
             contract.Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate;
-            contract.Trakt_UpdateFrequency = (int) ServerSettings.Trakt_UpdateFrequency;
-            contract.Trakt_SyncFrequency = (int) ServerSettings.Trakt_SyncFrequency;
+            contract.Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency;
+            contract.Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency;
             contract.Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes;
             contract.Trakt_DownloadFanart = ServerSettings.Trakt_DownloadFanart;
             contract.Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters;
@@ -1871,7 +1977,7 @@ namespace JMMServer
             // MAL
             contract.MAL_Username = ServerSettings.MAL_Username;
             contract.MAL_Password = ServerSettings.MAL_Password;
-            contract.MAL_UpdateFrequency = (int) ServerSettings.MAL_UpdateFrequency;
+            contract.MAL_UpdateFrequency = (int)ServerSettings.MAL_UpdateFrequency;
             contract.MAL_NeverDecreaseWatchedNums = ServerSettings.MAL_NeverDecreaseWatchedNums;
 
             // LogRotator
@@ -2046,6 +2152,33 @@ namespace JMMServer
 
 
             logger.Info("-------------------------------------------------------");
+        }
+        private static NameValueCollection GetNameValueCollectionSection(string section, string filePath)
+        {
+            string file = filePath;
+            System.Xml.XmlDocument xDoc = new System.Xml.XmlDocument();
+            NameValueCollection nameValueColl = new NameValueCollection();
+
+
+            System.Configuration.ExeConfigurationFileMap map = new ExeConfigurationFileMap();
+            map.ExeConfigFilename = file;
+
+            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None);
+            string xml = config.GetSection(section).SectionInformation.GetRawXml();
+            xDoc.LoadXml(xml);
+            System.Xml.XmlNode xList = xDoc.ChildNodes[0];
+            foreach (System.Xml.XmlNode xNodo in xList)
+            {
+                try
+                {
+                    nameValueColl.Add(xNodo.Attributes[0].Value, xNodo.Attributes[1].Value);
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            return nameValueColl;
         }
     }
 }
