@@ -300,7 +300,7 @@ namespace JMMServer.Repositories
                     while (reader.Read())
                     {
                         int animeId = Convert.ToInt32(reader[0]);
-                        string vidQual = reader[0].ToString().Trim();
+                        string vidQual = reader[1].ToString().Trim();
                         HashSet<string> vidQualSet;
 
                         if (!allVidQualPerAnime.TryGetValue(animeId, out vidQualSet))
