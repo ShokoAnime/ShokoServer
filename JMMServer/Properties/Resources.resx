@@ -1214,4 +1214,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
     <value>No previous configuration found, do you want to manually locate an existing configuration?</value>
   </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Duplicate install detected</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>You have both Shoko Server and JMM Server installed. Do you want to uninstall JMM Server?</value>
+  </data>
 </root>

@@ -1259,6 +1259,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Duplicate install detected.
+        /// </summary>
+        public static string DuplicateInstallDetected {
+            get {
+                return ResourceManager.GetString("DuplicateInstallDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You have both Shoko Server and JMM Server installed. Do you want to uninstall JMM Server?.
+        /// </summary>
+        public static string DuplicateInstallDetectedQuestion {
+            get {
+                return ResourceManager.GetString("DuplicateInstallDetectedQuestion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enable Kodi.
         /// </summary>
         public static string EnableKodi {

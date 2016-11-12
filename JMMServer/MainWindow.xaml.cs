@@ -29,6 +29,7 @@ using JMMServer.Repositories;
 using JMMServer.UI;
 using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
+using Microsoft.Win32;
 using NHibernate;
 using NLog;
 using Microsoft.Win32.TaskScheduler;
@@ -158,6 +159,13 @@ namespace JMMServer
 					JMMServer.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
 				Environment.Exit(1);
 			}
+
+            // First check if we have a settings.json in case migration had issues as otherwise might clear out existing old configurations
+            string path = Path.Combine(ServerSettings.ApplicationPath, "settings.json");
+            if (File.Exists(path))
+            {
+                UninstallJMMServer();
+            }
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
 
@@ -360,7 +368,23 @@ namespace JMMServer
             {
                 try
                 {
-                    Directory.Move(oldApplicationPath, newApplicationPath);
+                    List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>()
+                    {
+                        new MigrationDirectory
+                        {
+                            From = oldApplicationPath,
+                            To = newApplicationPath
+                        }
+                    };
+
+                    foreach (MigrationDirectory md in migrationdirs)
+                    {
+                        if (!md.SafeMigrate())
+                        {
+                            break;
+                        }
+                    }
+
                     logger.Log(LogLevel.Info, "Successfully migrated programdata folder.");
                 }
                 catch (Exception e)
@@ -372,6 +396,48 @@ namespace JMMServer
             }
 			return true;
         }
+        void UninstallJMMServer()
+        {
+            // Check in registry if installed
+            string jmmServerUninstallPath =
+                (string)
+                    Registry.GetValue(
+                        @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                        "UninstallString", null);
+
+            if (!string.IsNullOrEmpty(jmmServerUninstallPath))
+            {
+                // Ask if user wants to uninstall first
+                MessageBoxResult dr =
+                    MessageBox.Show(Properties.Resources.DuplicateInstallDetectedQuestion,
+                        Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
+                if (dr == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        ProcessStartInfo startInfo = new ProcessStartInfo();
+                        startInfo.FileName = jmmServerUninstallPath;
+                        startInfo.Arguments = " /SILENT";
+                        startInfo.CreateNoWindow = true;
+
+                        Process p = Process.Start(startInfo);
+                        p?.Start();
+
+                        logger.Log(LogLevel.Info, "JMM Server successfully uninstalled");
+                    }
+                    catch
+                        (Exception e)
+                    {
+                        logger.Log(LogLevel.Error, "Error occured during uninstall of JMM Server");
+                    }
+                }
+                else
+                {
+                    logger.Log(LogLevel.Info, "User cancelled JMM Server uninstall");
+                }
+            }
+        }
+
         public bool NetPermissionWrapper(Action action)
         {
             try
