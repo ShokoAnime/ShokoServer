@@ -5,6 +5,7 @@
 ; https://mitrichsoftware.wordpress.com/inno-setup-tools/inno-download-plugin/
 
 #include <idp.iss>
+#define AppVer GetFileVersion('..\JMMServer\bin\Release\ShokoServer.exe')
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -21,7 +22,7 @@ AppUpdatesURL=https://github.com/japanesemediamanager
 DefaultDirName={pf}\Shoko\Shoko Server
 DefaultGroupName=Shoko Server
 AllowNoIcons=yes
-OutputBaseFilename=Shoko_Server_Setup
+OutputBaseFilename=Shoko_Server_Setup_{#AppVer}
 Compression=lzma2/ultra64
 SolidCompression=yes
 
