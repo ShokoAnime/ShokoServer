@@ -9,9 +9,9 @@ using System.Windows;
 [assembly: AssemblyTitle("ShokoServer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("ShokoServer dewds")]
+[assembly: AssemblyCompany("JMM")]
 [assembly: AssemblyProduct("ShokoServer")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2016")]
+[assembly: AssemblyCopyright("JMM")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -52,5 +52,5 @@ using System.Windows;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("3.7.0.0")]
-[assembly: AssemblyFileVersion("3.7.0.0")]
+[assembly: AssemblyVersion("3.7.0.903")]
+[assembly: AssemblyFileVersion("3.7.0.903")]
