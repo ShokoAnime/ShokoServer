@@ -15,11 +15,13 @@ using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.ImageDownload;
 using JMMServer.UI;
+using Microsoft.Win32;
 using NLog;
 using Newtonsoft.Json;
 using NLog.Targets;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
+using OpenFileDialog = System.Windows.Forms.OpenFileDialog;
 
 namespace JMMServer
 {
@@ -123,7 +125,7 @@ namespace JMMServer
                 }
                 if (!settingsValid)
                 {
-                    LoadSettingsManuallyFromFile(true);
+                    LoadLegacySettingsFromFile(true);
                 }
 
 
@@ -236,16 +238,27 @@ namespace JMMServer
             }
         }
 
-        public static void LoadSettingsManuallyFromFile(bool locateAutomatically)
+        public static void LoadLegacySettingsFromFile(bool locateAutomatically)
         {
             try
             {
                 string configFile = "";
+
+                // Try to locate old config
                 if (locateAutomatically)
                 {
-                    // Try to locate old config if we don't have new format one (JSON) in several locations
-                    configFile = @"C:\Program Files (x86)\JMM\JMM Server\JMMServer.exe.config";
+                    // First try to locate it from old JMM Server installer entry
+                    string jmmServerInstallLocation = (string)Registry.GetValue(
+                        @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                        "InstallLocation", null);
 
+                    if (!string.IsNullOrEmpty(jmmServerInstallLocation))
+                    {
+                        configFile = Path.Combine(jmmServerInstallLocation, "JMMServer.exe.config");
+                    }
+
+                    if (!File.Exists(configFile))
+                        configFile = @"C:\Program Files (x86)\JMM\JMM Server\JMMServer.exe.config";
                     if (!File.Exists(configFile))
                         configFile = @"C:\Program Files (x86)\JMM Server\JMMServer.exe.config";
                     if (!File.Exists(configFile))
