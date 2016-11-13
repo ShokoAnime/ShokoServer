@@ -199,6 +199,7 @@ namespace JMMServer
                     catch (Exception e)
                     {
                         MessageBox.Show(Properties.Resources.Migration_SettingsError + " ", e.ToString());
+	                    logger.Error(e);
                         migrationActive = false;
                         migrationError = true;
 
@@ -239,6 +240,7 @@ namespace JMMServer
                 migrationError = true;
                 migrationActive = false;
                 MessageBox.Show(Properties.Resources.Migration_LoadError + " ", e.ToString());
+	            logger.Error(e);
                 Application.Current.Shutdown();
                 return;
             }
