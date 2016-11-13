@@ -181,6 +181,12 @@ namespace JMMServer
                         }
                         Utils.GrantAccess(ApplicationPath);
                         disabledSave = false;
+	                    // Migrate sqlite db file if necessary
+	                    if (DatabaseFile.Contains(programlocation))
+	                    {
+		                    string dbname = Path.GetFileName(DatabaseFile);
+		                    DatabaseFile = Path.Combine(ApplicationPath, dbname);
+	                    }
                         SaveSettings();
                         foreach (MigrationDirectory md in migrationdirs)
                         {
