@@ -1259,7 +1259,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicate install detected.
+        ///   Looks up a localized string similar to Duplicate Install Detected.
         /// </summary>
         public static string DuplicateInstallDetected {
             get {
@@ -2231,7 +2231,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Locate settings file.
+        ///   Looks up a localized string similar to Locate Settings File.
         /// </summary>
         public static string LocateSettingsFile {
             get {
@@ -2240,7 +2240,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No previous configuration found, do you want to manually locate an existing configuration?.
+        ///   Looks up a localized string similar to Shoko Server was unable to find an existing config file. If this is your first time running Shoko Server, you can ignore this message and click no. If JMM Server was previously installed, click Yes to manually select the config file..
         /// </summary>
         public static string LocateSettingsFileDialog {
             get {
@@ -3326,6 +3326,15 @@ namespace JMMServer.Properties {
         public static string Update_DownloadPage {
             get {
                 return ResourceManager.GetString("Update_DownloadPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update Shoko Server.
+        /// </summary>
+        public static string Update_ShokoServer {
+            get {
+                return ResourceManager.GetString("Update_ShokoServer", resourceCulture);
             }
         }
         

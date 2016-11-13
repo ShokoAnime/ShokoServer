@@ -1153,9 +1153,6 @@
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Проверка файла хэшей: {0}!</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Обновление Шоко сервера!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Тайм-аут базы данных :!</value>
   </data>
@@ -1164,5 +1161,17 @@
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Сбой переноса :!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Найдите файл параметров</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>Сёко серверу не удалось найти существующий конфигурационный файл. Если это ваш первый раз, сервер Шоко, можно проигнорировать это сообщение и нажмите кнопку нет. Если ранее был установлен сервер JMM, нажмите кнопку Да, чтобы вручную выбрать конфигурационный файл.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Обнаружен дубликат установки</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>У вас сервер Шоко и установлен сервер JMM. Вы хотите удалить JMM сервер?</value>
   </data>
 </root>

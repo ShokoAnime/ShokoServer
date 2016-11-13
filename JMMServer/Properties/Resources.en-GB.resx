@@ -1163,9 +1163,15 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Migration Failed:!</value>
   </data>
   <data name="LocateSettingsFile" xml:space="preserve">
-    <value>Locate settings file</value>
+    <value>Locate Settings File</value>
   </data>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
-    <value>No previous configuration found, do you want to manually locate an existing configuration?</value>
+    <value>Shoko Server was unable to find an existing config file. If this is your first time running Shoko Server, you can ignore this message and click no. If JMM Server was previously installed, click Yes to manually select the config file.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Duplicate Install Detected</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>You have both Shoko Server and JMM Server installed. Do you want to uninstall JMM Server?</value>
   </data>
 </root>

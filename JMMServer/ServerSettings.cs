@@ -271,9 +271,6 @@ namespace JMMServer
                 if (!File.Exists(configFile))
                     configFile = LocateLegacyConfigFile();
 
-                if (!File.Exists(configFile))
-                    return;
-
                 if (configFile.ToLower().Contains("settings.json"))
                 {
                     appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(configFile));

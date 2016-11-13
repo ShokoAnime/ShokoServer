@@ -1153,9 +1153,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Sprawdzanie pliku skrótów: {0}!</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Aktualizacja Shoko Server!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Timeout Baza :!</value>
   </data>
@@ -1164,5 +1161,17 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Migracja Failed :!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Zlokalizuj plik ustawień</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>Shoko serwer nie mógł znaleźć istniejący plik config. Jeśli jest to Twój pierwszy raz uruchomiony serwer Shoko, można zignorować ten komunikat i kliknij przycisk nie. Jeśli wcześniej zainstalowano serwer JMM, kliknij przycisk tak, aby ręcznie wybrać plik config.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Duplikowanie instalacji wykrył</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>Masz serwer Shoko i JMM Server zainstalowany. Czy chcesz odinstalować serwer JMM?</value>
   </data>
 </root>

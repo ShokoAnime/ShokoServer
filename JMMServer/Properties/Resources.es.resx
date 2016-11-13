@@ -1153,9 +1153,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Comprobando archivo de Hashes: {0}!</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Shoko actualización del servidor!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Base de datos de tiempo de espera :!</value>
   </data>
@@ -1164,5 +1161,17 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Falló la migración :!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Localice el archivo de configuración</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>Shoko servidor no pudo encontrar un archivo de configuración existente. Si es la primera vez que ejecuta Shoko Server, puede ignorar este mensaje y haga clic en no. Si JMM Server fue instalado previamente, haga clic en sí para seleccionar manualmente el archivo de configuración.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Instalación duplicado detectado</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>Tiene servidor de Shoko y JMM servidor instalado. ¿Desea desinstalar servidor de JMM?</value>
   </data>
 </root>

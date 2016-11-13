@@ -1153,9 +1153,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Hashes Datei gesucht: {0}!</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Update Shoko Server!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Datenbank-Timeout :!</value>
   </data>
@@ -1164,5 +1161,17 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Migration fehlgeschlagen :!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Suchen Sie Einstellungsdatei</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>Shoko-Server war nicht in der Lage, eine vorhandene Config-Datei zu finden. Wenn dies Ihr erstes Mal mit Shoko Server ist, können Sie diese Meldung ignorieren und klicken Sie auf Nein. Wenn JMM Server zuvor installiert wurde, klicken Sie auf Ja, um die Config-Datei manuell auswählen.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Doppelte Installation erkannt</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>Sie haben Shoko Server und JMM Server installiert. Möchten Sie JMM Server deinstallieren?</value>
   </data>
 </root>

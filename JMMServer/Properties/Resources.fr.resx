@@ -1153,9 +1153,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Recherchant les hachages de fichier : {0} !</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Mise à jour du serveur Shoko!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Base de données temporisation :!</value>
   </data>
@@ -1164,5 +1161,17 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>La migration a échoué.</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Localisez le fichier de paramètres</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>Shoko serveur n’a pas pu trouver un fichier de configuration existant. Si c’est votre première fois Shoko Server en cours d’exécution, vous pouvez ignorer ce message et cliquez sur non. Si JMM Server est déjà installé, cliquez sur Oui pour sélectionner manuellement le fichier de configuration.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Installation en double détectée</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>Vous avez Shoko serveur et serveur de JMM installé. Vous voulez désinstaller le serveur de JMM ?</value>
   </data>
 </root>

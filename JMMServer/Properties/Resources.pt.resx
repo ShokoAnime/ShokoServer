@@ -1153,9 +1153,6 @@
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Verificando o arquivo para Hashes: {0}!</value>
   </data>
-  <data name="Update_Shoko Server" xml:space="preserve">
-    <value>Atualização Shoko Servidor!</value>
-  </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>tempo limite de banco de dados :!</value>
   </data>
@@ -1164,5 +1161,17 @@
   </data>
   <data name="Migration_LoadError" xml:space="preserve">
     <value>Migração Falha :!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Localize o arquivo de configurações</value>
+  </data>
+  <data name="LocateSettingsFileDialog" xml:space="preserve">
+    <value>Shoko servidor foi incapaz de encontrar um arquivo de config existente. Se esta é sua primeira vez com Shoko Server, você pode ignorar esta mensagem e clique em não. Se JMM Server foi instalado anteriormente, clique em Sim para selecionar manualmente o arquivo config.</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Duplicar a instalação detectada</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>Você tem tanto servidor Shoko e JMM Server instalado. Você quer desinstalar o servidor JMM?</value>
   </data>
 </root>
