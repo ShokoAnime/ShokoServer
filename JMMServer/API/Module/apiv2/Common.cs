@@ -449,10 +449,9 @@ namespace JMMServer.API.Module.apiv2
         #region 4. Misc
 
         /// <summary>
-        /// return userid as it can be needed in legacy implementation
+        /// Returns current user ID for use in legacy calls
         /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
+        /// <returns>userid = int</returns>
         private object MyID()
         {
             Request request = this.Request;
@@ -506,10 +505,10 @@ namespace JMMServer.API.Module.apiv2
         {
             Dictionary<string, object> dash = new Dictionary<string, object>();
             dash.Add("queue", GetQueue());
-            dash.Add("file", GetRecentFiles_old(10));
+            dash.Add("file", GetRecentFiles(0, 1)); //updated
             dash.Add("folder", GetFolders());
-            dash.Add("file_count", CountFiles());
-            dash.Add("serie_count", CountSerie());
+            dash.Add("file_count", CountFiles()); //updated
+            dash.Add("serie_count", CountSerie()); //updated
             return dash;
         }
 
@@ -779,13 +778,15 @@ namespace JMMServer.API.Module.apiv2
         /// Handle /api/file/recent
         /// </summary>
         /// <returns>List<RawFile></returns>
-        private object GetRecentFiles()
+        private object GetRecentFiles(int limit = 0, int level = 0)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            if (para.limit == 0) { para.limit = 10; }
+            if (limit == 0) { if (para.limit == 0) { para.limit = 10; } }
+            else { para.limit = limit; }
+            if (level != 0) { para.level = level; }
 
             List<RawFile> list = new List<RawFile>();
             foreach (VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
@@ -1978,7 +1979,7 @@ namespace JMMServer.API.Module.apiv2
             foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
             {
                 RecentFile recent = new RecentFile();
-                recent.path = file.FileName;
+                recent.path = "";
                 recent.id = file.VideoLocalID;
                 if (file.EpisodeCrossRefs.Count() == 0)
                 {

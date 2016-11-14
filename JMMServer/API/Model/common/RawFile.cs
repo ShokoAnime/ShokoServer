@@ -27,6 +27,8 @@ namespace JMMServer.API.Model.common
 
         public MediaInfo media { get; set; }
 
+        // x-ref 
+        public bool recognized { get; set; }
         // x-ref with videolocal_places
         public int videolocal_place_id { get; set; }
         public int import_folder_id { get; set; }
@@ -51,14 +53,23 @@ namespace JMMServer.API.Model.common
                 updated = vl.DateTimeUpdated;
                 duration = vl.Duration;
 
-                filename = vl.FileName;
                 size = vl.FileSize;
                 hash = vl.Hash;
                 hash_source = vl.HashSource;
 
                 is_ignored = vl.IsIgnored;
-                videolocal_place_id = vl.Places[0].VideoLocal_Place_ID;
-                import_folder_id = vl.Places[0].ImportFolderID;
+
+                if (vl.Places != null && vl.Places.Count >= 0)
+                {
+                    filename = vl.Places[0].FilePath;
+                    videolocal_place_id = vl.Places[0].VideoLocal_Place_ID;
+                    import_folder_id = vl.Places[0].ImportFolderID;
+                }
+
+                if (vl.EpisodeCrossRefs.Count == 0)
+                { recognized = false; }
+                else
+                { recognized = true; }
 
                 if (vl.Media != null && ( level > 1 || level == 0))
                 {
