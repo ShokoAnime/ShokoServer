@@ -457,12 +457,18 @@ namespace JMMServer.Entities
                             contractGroup.MissingEpisodeCountGroups > 0 == true) return false;
                         break;
                     case GroupFilterConditionType.Tag:
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) &&
-                            !contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter,StringComparer.InvariantCultureIgnoreCase)) return false;
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) &&
-                            contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter, StringComparer.InvariantCultureIgnoreCase)) return false;
-                        break;
-                    case GroupFilterConditionType.Year:
+		                List<string> tags =
+			                gfc.ConditionParameter.Trim()
+				                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+				                .Select(a => a.ToLowerInvariant().Trim())
+				                .ToList();
+		                bool tagsFound =
+			                tags.Any(a => contractGroup.Stat_AllTags.Contains(a,
+				                StringComparer.InvariantCultureIgnoreCase));
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !tagsFound) return false;
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && tagsFound) return false;
+		                break;
+	                case GroupFilterConditionType.Year:
                         if (!contractGroup.Stat_AirDate_Min.HasValue)
                             return false;
                         string year = contractGroup.Stat_AirDate_Min.Value.Year.ToString();
@@ -826,12 +832,18 @@ namespace JMMServer.Entities
                             contractSerie.MissingEpisodeCountGroups > 0 == true) return false;
                         break;
                     case GroupFilterConditionType.Tag:
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) &&
-                            !contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(gfc.ConditionParameter, StringComparer.InvariantCultureIgnoreCase)) return false;
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) &&
-                            contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(gfc.ConditionParameter, StringComparer.InvariantCultureIgnoreCase)) return false;
-                        break;
-                    case GroupFilterConditionType.Year:
+		                List<string> tags =
+			                gfc.ConditionParameter.Trim()
+				                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+				                .Select(a => a.ToLowerInvariant().Trim())
+				                .ToList();
+		                bool tagsFound =
+			                tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(a,
+				                StringComparer.InvariantCultureIgnoreCase));
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !tagsFound) return false;
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && tagsFound) return false;
+		                break;
+	                case GroupFilterConditionType.Year:
                         if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue)
                             return false;
                         string year = contractSerie.AniDBAnime.AniDBAnime.AirDate.Value.Year.ToString();

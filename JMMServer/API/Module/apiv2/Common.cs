@@ -1415,21 +1415,20 @@ namespace JMMServer.API.Module.apiv2
             List<object> list = new List<object>();
 
             IEnumerable<AnimeSeries> series = tag_search
-                ? RepoFactory.AnimeSeries.GetAll()
-                    .Where(
-                        a =>
-                            a.Contract != null && a.Contract.AniDBAnime != null &&
-                            a.Contract.AniDBAnime.AniDBAnime != null &&
-                            (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
-                                StringComparer.InvariantCultureIgnoreCase) ||
-                            a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
-                                .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
-                : RepoFactory.AnimeSeries.GetAll()
-                    .Where(
-                        a =>
-                            a.Contract != null && a.Contract.AniDBAnime != null &&
-                            a.Contract.AniDBAnime.AniDBAnime != null &&
-                            string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles).IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
+	            ? RepoFactory.AnimeSeries.GetAll()
+		            .Where(
+			            a =>
+				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
+				            (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+					             StringComparer.InvariantCultureIgnoreCase) ||
+				             a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
+					             .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
+	            : RepoFactory.AnimeSeries.GetAll()
+		            .Where(
+			            a =>
+				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
+				            string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles)
+					            .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
             foreach (AnimeSeries ser in series)
             {
