@@ -48,14 +48,17 @@ namespace JMMServer.API.Model.common
                                     filter.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Banner), index = filter.art.banner.Count });
                                 }
 
-                                // we want to have same fanart and thumb
-                                if (v.Art != null & v.Thumb != null)
+                                if (v.Thumb != null)
                                 {
-                                    filter.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Art), index = filter.art.fanart.Count });
                                     filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Thumb), index = filter.art.thumb.Count });
                                 }
 
-                                if (filter.art.fanart.Count > 0 && filter.art.thumb.Count > 0)
+                                if (v.Art != null) 
+                                {
+                                    filter.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Art), index = filter.art.fanart.Count });
+                                }
+
+                                if (filter.art.fanart.Count > 0)
                                 {
                                     break;
                                 }
