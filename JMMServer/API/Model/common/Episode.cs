@@ -75,7 +75,7 @@ namespace JMMServer.API.Model.common
                             ep.files = new List<RawFile>();
                             foreach (VideoLocal vl in vls)
                             {
-                                ep.files.Add(new RawFile(vl, (level-1)));
+                                ep.files.Add(new RawFile(vl, (level-1), uid));
                             }
                         }
                     }

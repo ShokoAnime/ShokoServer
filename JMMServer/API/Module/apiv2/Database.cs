@@ -1,5 +1,4 @@
-﻿using JMMServer.API.Model.core;
-using Nancy;
+﻿using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using System;

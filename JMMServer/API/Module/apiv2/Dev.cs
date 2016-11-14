@@ -1,15 +1,6 @@
 ﻿using Nancy;
 using Nancy.Security;
 using System;
-using Nancy.ModelBinding;
-using JMMServer.Entities;
-using JMMContracts;
-using System.Collections.Generic;
-using System.Threading;
-using System.Globalization;
-using JMMServer.Commands;
-using JMMServer.PlexAndKodi;
-using JMMServer.Repositories;
 using JMMServer.Tasks;
 using Nancy.Responses;
 

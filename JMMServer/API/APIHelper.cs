@@ -6,6 +6,7 @@ using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -17,35 +18,40 @@ namespace JMMServer.API
 
         public static string ConstructUnsortUrl(bool short_url = false)
         {
-            return APIHelper.ProperURL("api/metadata/" + (int)JMMType.GroupUnsort + "/0",  short_url);
+            return APIHelper.ProperURL("/api/filter?id=" + (int)JMMType.GroupUnsort,  short_url);
         }
 
+        [Obsolete]
         public static string ConstructGroupIdUrl(string gid, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/metadata/" + (int)JMMType.Group + "/" + gid, short_url);      
+            return APIHelper.ProperURL("__TEST__" + (int)JMMType.Group + "/" + gid, short_url);      
         }
 
+        [Obsolete]
         public static string ConstructSerieIdUrl(string sid, bool short_url = false)
         {
 
-            return APIHelper.ProperURL("/api/metadata/" + (int)JMMType.Serie + "/" + sid,  short_url);
+            return APIHelper.ProperURL("__TEST__" + (int)JMMType.Serie + " / " + sid,  short_url);
         }
 
+        [Obsolete]
         public static string ConstructVideoUrl(string vid, JMMType type, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/metadata/" + (int)type + "/" + vid, short_url);
+            return APIHelper.ProperURL("__TEST__" + (int)type + "/" + vid, short_url);
         }
 
         public static string ConstructFilterIdUrl(int groupfilter_id, bool short_url = false)
         {
-            return APIHelper.ProperURL("api/metadata/" + (int)JMMType.GroupFilter + "/" + groupfilter_id,  short_url);    
+            return APIHelper.ProperURL("/api/filter?id=" + groupfilter_id,  short_url);    
         }
 
+        [Obsolete]
         public static string ConstructFiltersUrl(bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/filters/get", short_url);
+            return APIHelper.ProperURL("__TEST__", short_url);
         }
 
+        [Obsolete]
         public static string ConstructSearchUrl(string limit, string query, bool searchTag, bool short_url = false)
         {
             if (searchTag)
@@ -58,11 +64,13 @@ namespace JMMServer.API
             }
         }
 
+        [Obsolete]
         public static string ConstructPlaylistUrl(bool short_url = false)
         {
             return APIHelper.ProperURL("/api/metadata/" + (int)JMMType.Playlist + "/0", short_url);
         }
 
+        [Obsolete]
         public static string ConstructPlaylistIdUrl(int pid, bool short_url = false)
         {
             return APIHelper.ProperURL("/api/metadata/" + (int)JMMType.Playlist + "/" + pid, short_url);
@@ -70,7 +78,7 @@ namespace JMMServer.API
 
         public static string ConstructSupportImageLink(string name, bool short_url = false)
         {
-            return APIHelper.ProperURL("api/image/support/"+ name, short_url);
+            return APIHelper.ProperURL("/api/image/support/"+ name, short_url);
         }
 
         public static string ConstructImageLinkFromRest(string path, bool short_url = false)
@@ -80,7 +88,7 @@ namespace JMMServer.API
 
         public static string ConstructImageLinkFromTypeAndId(int type, int id, bool short_url = false)
         {
-            return APIHelper.ProperURL("api/image/" + type.ToString() + "/" + id.ToString());
+            return APIHelper.ProperURL("/api/image/" + type.ToString() + "/" + id.ToString());
         }
 
         public static string ConstructVideoLocalStream(int userid, string vid, string name, bool autowatch)
@@ -205,11 +213,11 @@ namespace JMMServer.API
             {
                 if (!short_url)
                 {
-                    return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + port + "/" + path;
+                    return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + port + path;
                 }
                 else
                 {
-                    return "/" + path;
+                    return path;
                 }
             }
             else

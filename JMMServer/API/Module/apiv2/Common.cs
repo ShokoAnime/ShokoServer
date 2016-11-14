@@ -23,7 +23,7 @@ namespace JMMServer.API.Module.apiv2
     {
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
 
-        public static int version = 1;
+        public static int version = 2;
         
         public Common() : base("/api")
         {
@@ -91,7 +91,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/file/unrecognised/{max}"] = x => { return GetUnrecognisedFiles((int)x.max); }; //[Obsolete] use /file/unsort?limit=
             Get["/file/unsort/{max}"] = x => { return GetUnsort((int)x.max); }; // [Obsolete] use /file/unsort?limit=
             Get["/file/list"] = _ => { return GetAllFiles_old(); }; // [Obsolete] use /file
-            Get["/file/{id}"] = x => { return GetFileById(x.id, 0); }; // [Obsolete] use /file?id=
+            Get["/file/{id}"] = x => { return GetFileById(x.id, 0, 1); }; // [Obsolete] use /file?id=
             #endregion
 
             #region 7. Episodes
@@ -756,11 +756,11 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllFiles(para.limit, para.level);
+                return GetAllFiles(para.limit, para.level, user.JMMUserID);
             }
             else
             {
-                return GetFileById(para.id, para.level);
+                return GetFileById(para.id, para.level, user.JMMUserID);
             }
         }
 
@@ -790,7 +790,7 @@ namespace JMMServer.API.Module.apiv2
             List<RawFile> list = new List<RawFile>();
             foreach (VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
             {
-                list.Add(new RawFile(file, para.level));
+                list.Add(new RawFile(file, para.level, user.JMMUserID));
             }
 
             return list;
@@ -814,7 +814,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (para.offset == 0)
                 {
-                    RawFile v = new RawFile(vl, para.level);
+                    RawFile v = new RawFile(vl, para.level, user.JMMUserID);
                     lst.Add(v);
                     if (para.limit != 0) { if (lst.Count >= para.limit) { break; } }
                 }
@@ -831,12 +831,12 @@ namespace JMMServer.API.Module.apiv2
         /// </summary>
         /// <param name="file_id">file id</param>
         /// <returns>RawFile</returns>
-        internal object GetFileById(int file_id, int level)
+        internal object GetFileById(int file_id, int level, int uid)
         {
             VideoLocal vl = RepoFactory.VideoLocal.GetByID(file_id);
             if (vl != null)
             {
-                RawFile rawfile = new RawFile(vl, level);
+                RawFile rawfile = new RawFile(vl, level, uid);
                 return rawfile;
             }
             else
@@ -851,14 +851,14 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="limit">number of return items</param>
         /// <param name="offset">offset to start from</param>
         /// <returns>List<RawFile></returns>
-        internal object GetAllFiles(int limit, int level)
+        internal object GetAllFiles(int limit, int level, int uid)
         {
             List<RawFile> list = new List<RawFile>();
             int limit_x = limit;
             if (limit == 0) { limit_x = 100; }
             foreach (VideoLocal file in RepoFactory.VideoLocal.GetAll(limit_x))
             {
-                list.Add(new RawFile(file, level));
+                list.Add(new RawFile(file, level, uid));
                 if (limit != 0) { if (list.Count >= limit) { break; } }
             }
 
@@ -1928,7 +1928,7 @@ namespace JMMServer.API.Module.apiv2
 
             VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
 
-            RawFile rf = new RawFile(vi, 0);
+            RawFile rf = new RawFile(vi, 0,1 );
 
             return rf;
         }
@@ -2011,7 +2011,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 try
                 {
-                    RawFile v = new RawFile(vl, 0);
+                    RawFile v = new RawFile(vl, 0, 1);
                     lst.Add(v);
                 }
                 catch { }
