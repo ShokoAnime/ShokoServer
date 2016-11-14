@@ -27,6 +27,10 @@ namespace JMMServer.API.Model.common
 
         public MediaInfo media { get; set; }
 
+        // x-ref with videolocal_places
+        public int videolocal_place_id { get; set; }
+        public int import_folder_id { get; set; }
+
         public RawFile()
         {
 
@@ -53,6 +57,8 @@ namespace JMMServer.API.Model.common
                 hash_source = vl.HashSource;
 
                 is_ignored = vl.IsIgnored;
+                videolocal_place_id = vl.Places[0].VideoLocal_Place_ID;
+                import_folder_id = vl.Places[0].ImportFolderID;
 
                 if (vl.Media != null && ( level > 1 || level == 0))
                 {
