@@ -1,7 +1,11 @@
-﻿namespace JMMServer.API.Model.core
+﻿using NLog;
+
+namespace JMMServer.API.Model.core
 {
     public class APIMessage
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public int code { get; set; }
         public string message { get; set; }
 
@@ -9,6 +13,16 @@
         {
             code = _code;
             message = _message;
+            if (_code < 200 && _code > 299)
+            {
+                logger.Warn("Nancy >>> " + _code.ToString() + ":" + _message);
+            }
+            else
+            {
+#if DEBUG
+                logger.Debug("Nancy >>> " + _code.ToString() + ":" + _message);
+#endif
+            }
         }
     }
 
@@ -52,13 +66,11 @@
         public static APIMessage adminNeeded()
         {
             return new APIMessage(403, "Admin rights needed");
-
         }
 
         public static APIMessage accessDenied()
         {
             return new APIMessage(403, "Access Denied");
-
         }
 
         public static APIMessage notFound404(string message="Not Found")
@@ -75,7 +87,5 @@
         {
             return new APIMessage(501, "Not Implemented");
         }
-
-
     }
 }

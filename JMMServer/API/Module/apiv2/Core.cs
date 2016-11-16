@@ -9,13 +9,9 @@ using System.Threading;
 using System.Globalization;
 using JMMServer.Commands;
 using JMMServer.PlexAndKodi;
-using JMMServer.Repositories;
-using System.Linq;
-using Newtonsoft.Json;
 using System.IO;
 using JMMServer.Utilities;
 using JMMServer.API.Model.core;
-using JMMServer.API.Module.apiv1;
 
 namespace JMMServer.API.Module.apiv2
 {

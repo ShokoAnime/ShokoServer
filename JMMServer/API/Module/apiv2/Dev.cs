@@ -1,6 +1,4 @@
 ﻿using Nancy;
-using Nancy.Security;
-using System;
 using JMMServer.Tasks;
 using Nancy.Responses;
 

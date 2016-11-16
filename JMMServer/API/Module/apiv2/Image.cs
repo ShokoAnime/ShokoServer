@@ -1,13 +1,9 @@
-﻿
-
-using JMMServer.API.Model.core;
+﻿using JMMServer.API.Model.core;
 using JMMServer.Entities;
-using JMMServer.PlexAndKodi;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using Nancy;
 using NLog;
-using System.Collections.Generic;
 using System.IO;
 
 namespace JMMServer.API.Module.apiv2
