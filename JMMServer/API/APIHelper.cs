@@ -1,6 +1,4 @@
-﻿using AniDBAPI;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
+﻿using JMMContracts.PlexAndKodi;
 using JMMServer.API.Model.common;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
@@ -8,7 +6,6 @@ using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace JMMServer.API
 {
@@ -113,11 +110,11 @@ namespace JMMServer.API
 
                     if (link.Contains("getimage"))
                     {
-                        link = link.Replace("getimage", "api/image");
+                        link = link.Replace("getimage", "/api/image");
                     }
                     else if (link.Contains("getthumb"))
                     {
-                        link = link.Replace("getthumb", "api/thumb");
+                        link = link.Replace("getthumb", "/api/thumb");
                         if (link.Contains(","))
                         {
                             link = link.Replace(',', '.');

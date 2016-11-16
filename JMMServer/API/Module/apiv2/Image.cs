@@ -4,6 +4,10 @@ using JMMServer.Properties;
 using JMMServer.Repositories;
 using Nancy;
 using NLog;
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 
 namespace JMMServer.API.Module.apiv2
@@ -16,22 +20,22 @@ namespace JMMServer.API.Module.apiv2
 
         public Image() : base("/api")
         {           
-            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type, false); };
+            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type); };
+            Get["/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.id, (int)x.type, x.ratio); };
             Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
         }
 
         /// <summary>
-        /// Return image with given id, type and information if its should be thumb
+        /// Return image with given id, type
         /// </summary>
         /// <param name="id">image id</param>
         /// <param name="type">image type</param>
-        /// <param name="thumb">thumb mode</param>
         /// <returns>image body inside stream</returns>
-        private object GetImage(int id, int type, bool thumb)
+        private object GetImage(int id, int type)
         {
             Nancy.Response response = new Nancy.Response();
             string contentType = "";
-            string path = ReturnImagePath(id, type, thumb);
+            string path = ReturnImagePath(id, type, false);
 
             if (path == "")
             {
@@ -44,6 +48,43 @@ namespace JMMServer.API.Module.apiv2
                 FileStream fs = Pri.LongPath.File.OpenRead(path);
                 contentType = MimeTypes.GetMimeType(path);
                 response = Response.FromStream(fs, contentType);
+            }
+
+            return response;
+        }
+
+        /// <summary>
+        /// Return thumb with given id, type
+        /// </summary>
+        /// <param name="id">image id</param>
+        /// <param name="type">image type</param>
+        /// <param name="ratio">new image ratio</param>
+        /// <returns>resize image body inside stream</returns>
+        private object GetThumb(int id, int type, string ratio)
+        {
+            Nancy.Response response = new Nancy.Response();
+            string contentType = "";
+            ratio = ratio.Replace(',', '.');
+            float newratio = 0F;
+            if (!float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
+            {
+                newratio = 1F;
+            }
+
+            string path = ReturnImagePath(id, type, false);
+
+            if (path == "")
+            {
+                Stream image = MissingImage();
+                contentType = "image/png";
+                response = Response.FromStream(image, contentType);
+            }
+            else
+            {
+                FileStream fs = Pri.LongPath.File.OpenRead(path);
+                contentType = MimeTypes.GetMimeType(path);
+                System.Drawing.Image im = System.Drawing.Image.FromStream(fs);
+                response = Response.FromStream(ResizeToRatio(im, newratio), contentType);
             }
 
             return response;
@@ -189,6 +230,7 @@ namespace JMMServer.API.Module.apiv2
 
                     if (thumb)
                     {
+                        //ratio
                         path = fanart.FullThumbnailPath;
                         if (Pri.LongPath.File.Exists(path))
                         {
@@ -325,5 +367,62 @@ namespace JMMServer.API.Module.apiv2
             return ms;
         }
 
+        internal static System.Drawing.Image ReSize(System.Drawing.Image im, int width, int height)
+        {
+            Bitmap dest = new Bitmap(width, height);
+            using (Graphics g = Graphics.FromImage(dest))
+            {
+                g.InterpolationMode = width >= im.Width ? InterpolationMode.HighQualityBilinear : InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.DrawImage(im, 0, 0, width, height);
+            }
+            return dest;
+        }
+
+        internal System.IO.Stream ResizeToRatio(System.Drawing.Image im, float newratio)
+        {
+            float calcwidth = im.Width;
+            float calcheight = im.Height;
+
+            if (newratio == 0)
+            {
+                MemoryStream stream = new MemoryStream();
+                im.Save(stream, ImageFormat.Jpeg);
+                stream.Seek(0, SeekOrigin.Begin);
+                return stream;
+            }
+
+            float nheight = 0;
+            do
+            {
+                nheight = calcwidth / newratio;
+                if (nheight > (float)im.Height + 0.5F)
+                {
+                    calcwidth = calcwidth * ((float)im.Height / nheight);
+                }
+                else
+                {
+                    calcheight = nheight;
+                }
+            } while (nheight > (float)im.Height + 0.5F);
+
+            int newwidth = (int)Math.Round(calcwidth);
+            int newheight = (int)Math.Round(calcheight);
+            int x = 0;
+            int y = 0;
+            if (newwidth < im.Width)
+                x = (im.Width - newwidth) / 2;
+            if (newheight < im.Height)
+                y = (im.Height - newheight) / 2;
+
+            System.Drawing.Image im2 = ReSize(im, newwidth, newheight);
+            Graphics g = Graphics.FromImage(im2);
+            g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height), new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
+            MemoryStream ms = new MemoryStream();
+            im2.Save(ms, ImageFormat.Jpeg);
+            ms.Seek(0, SeekOrigin.Begin);
+            return ms;
+        }
     }
 }

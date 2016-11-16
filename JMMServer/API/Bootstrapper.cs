@@ -120,7 +120,7 @@
 		{
             // Set to null after request as not to interfere with contract generation
             Module.apiv1.Legacy.request = null;
-            Module.apiv2.Core.request = null;
+            // Module.apiv2.Core.request = null;
 		}
 	}
 
