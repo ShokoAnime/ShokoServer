@@ -65,7 +65,8 @@
             public static readonly string FileVersion = "%ver";
             public static readonly string Source = "%src";
             public static readonly string Resolution = "%res";
-            public static readonly string Year = "%yea";
+	        public static readonly string VideoHeight = "%vdh";
+	        public static readonly string Year = "%yea";
             public static readonly string Episodes = "%eps"; // Total number of episodes
             public static readonly string Type = "%typ"; // Type [unknown, TV, OVA, Movie, TV Special, Other, web]
             public static readonly string FileID = "%fid";

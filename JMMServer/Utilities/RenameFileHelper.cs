@@ -2185,7 +2185,37 @@ namespace JMMServer
 
             #endregion
 
-            #region Year
+	        #region Video Height
+
+	        if (action.Trim().Contains(Constants.FileRenameTag.VideoHeight))
+	        {
+		        string res = "";
+		        bool hasResolution = true;
+		        if (aniFile != null)
+		        {
+			        res = aniFile.File_VideoResolution;
+			        if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
+				        hasResolution = false;
+			        if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown,
+				        StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+		        }
+		        else
+			        hasResolution = false;
+
+		        if (!hasResolution)
+		        {
+			        // try the video info
+			        if (vid != null) res = vid.VideoResolution;
+		        }
+		        res = res.Trim();
+		        if (res.Length > 0) res = res.Split('x')[0];
+
+		        newFileName = newFileName.Replace(Constants.FileRenameTag.VideoHeight, res);
+	        }
+
+	        #endregion
+
+	        #region Year
 
             if (action.Trim().Contains(Constants.FileRenameTag.Year))
             {
