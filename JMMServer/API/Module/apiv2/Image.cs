@@ -138,6 +138,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
                     }
                     break;
@@ -154,6 +155,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find AniDB_Character image: {0}", chr.PosterPath);
                     }
                     break;
@@ -170,6 +172,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find AniDB_Creator image: {0}", creator.PosterPath);
                     }
                     break;
@@ -187,6 +190,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.FullImagePath);
                     }
                     break;
@@ -203,6 +207,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find TvDB_Cover image: {0}", poster.FullImagePath);
                     }
                     break;
@@ -219,6 +224,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find TvDB_Episode image: {0}", ep.FullImagePath);
                     }
                     break;
@@ -238,6 +244,7 @@ namespace JMMServer.API.Module.apiv2
                         }
                         else
                         {
+                            path = "";
                             logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullThumbnailPath);
                         }
                     }
@@ -250,6 +257,7 @@ namespace JMMServer.API.Module.apiv2
                         }
                         else
                         {
+                            path = "";
                             logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
                         }
                     }
@@ -270,6 +278,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.FullImagePath);
                     }
                     break;
@@ -289,6 +298,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.FullImagePath);
                     }
                     break;
@@ -305,6 +315,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.FullImagePath);
                     }
                     break;
@@ -322,6 +333,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.FullImagePath);
                     }
                     break;
@@ -341,6 +353,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
+                        path = "";
                         logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.FullImagePath);
                     }
 
