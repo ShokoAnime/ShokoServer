@@ -452,7 +452,7 @@ namespace JMMServer.Entities
                                 dst = f.Resolve(newSubPath);
                                 if (dst.IsOk && dst.Result is IFile)
                                 {
-                                    FileSystemResult fr2 = src.Result.Delete(true);
+                                    FileSystemResult fr2 = src.Result.Delete(false);
                                     if (!fr2.IsOk)
                                     {
                                         logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,

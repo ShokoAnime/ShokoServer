@@ -28,6 +28,7 @@ using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.UI;
 using JMMServer.WCFCompression;
+using LeanWork.IO.FileSystem;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Win32;
 using NHibernate;
@@ -106,7 +107,7 @@ namespace JMMServer
         internal static System.Timers.Timer LogRotatorTimer = null;
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
-        private static List<AdvFileSystemWatcher> watcherVids = null;
+        private static List<RecoveringFileSystemWatcher> watcherVids = null;
 
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
@@ -2343,7 +2344,7 @@ namespace JMMServer
         {
             StopWatchingFiles();
             StopCloudWatchTimer();
-            watcherVids = new List<AdvFileSystemWatcher>();
+            watcherVids = new List<RecoveringFileSystemWatcher>();
 
             foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
@@ -2355,7 +2356,7 @@ namespace JMMServer
                     }
                     if (share.CloudID==null && Directory.Exists(share.ParsedImportFolderLocation) && share.FolderIsWatched)
                     {
-                        AdvFileSystemWatcher fsw = new AdvFileSystemWatcher();
+                        RecoveringFileSystemWatcher fsw = new RecoveringFileSystemWatcher();
 
                         fsw.Path = share.ParsedImportFolderLocation;
 
@@ -2387,7 +2388,7 @@ namespace JMMServer
         {
             if (watcherVids == null) return;
 
-            foreach (AdvFileSystemWatcher fsw in watcherVids)
+            foreach (RecoveringFileSystemWatcher fsw in watcherVids)
             {
                 fsw.EnableRaisingEvents = false;
             }

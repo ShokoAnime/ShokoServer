@@ -97,6 +97,23 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        public override void Delete(VideoLocal obj)
+        {
+            base.Delete(obj);
+            foreach (AnimeEpisode ep in obj.GetAnimeEpisodes())
+            {
+                RepoFactory.AnimeEpisode.Save(ep);
+            }
+        }
+        //Disable base saves.
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [Obsolete("...", false)]
+        public override void Delete(IReadOnlyCollection<VideoLocal> objs) { throw new NotSupportedException(); }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [Obsolete("...", false)]
+        public override void Delete(int id) { throw new NotSupportedException(); }
+
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]

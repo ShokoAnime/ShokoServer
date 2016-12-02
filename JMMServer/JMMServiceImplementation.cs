@@ -3661,7 +3661,7 @@ namespace JMMServer
                     if (fileNumber == 1) fileName = df.FullServerPath1;
                     if (fileNumber == 2) fileName = df.FullServerPath2;
                     IFile file = VideoLocal.ResolveFile(fileName);
-                    file?.Delete(true);
+                    file?.Delete(false);
                 }
 
                 RepoFactory.DuplicateFile.Delete(duplicateFileID);
@@ -3688,7 +3688,7 @@ namespace JMMServer
                 if ((place==null) || (place.VideoLocal==null))
                     return "Database entry does not exist";
                 VideoLocal vid = place.VideoLocal;
-                logger.Info("Deleting video local record and file: {0}", place.FullServerPath);
+                logger.Info("Deleting video local place record and file: {0}", place.FullServerPath);
 
                 IFileSystem fileSystem = place.ImportFolder.FileSystem;
                 if (fileSystem == null)
@@ -3709,24 +3709,25 @@ namespace JMMServer
                     return $"Seems '{place.FullServerPath}' is a directory";
 
                 }
-                FileSystemResult fs = file.Delete(true);
+                FileSystemResult fs = file.Delete(false);
                 if (fs == null || !fs.IsOk)
                 {
                     logger.Error($"Unable to delete file '{place.FullServerPath}'");
                     return $"Unable to delete file '{place.FullServerPath}'";
                 }
-                if (place.VideoLocal.Places.Count > 1)
+                RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
+
+                if (vid.Places.Count > 0)
                     return "";
                 AnimeSeries ser = null;
                 List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
                 if (animeEpisodes.Count > 0)
+                {
                     ser = animeEpisodes[0].GetAnimeSeries();
-
-
+                }
+                RepoFactory.VideoLocal.Delete(vid.VideoLocalID);
                 CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
                 cmdDel.Save();
-                RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
-                RepoFactory.VideoLocal.Delete(vid.VideoLocalID);
                 if (ser != null)
                 {
                     ser.QueueUpdateStats();
@@ -6657,7 +6658,7 @@ namespace JMMServer
                                     return $"Seems '{place.FullServerPath}' is a directory";
 
                                 }
-                                FileSystemResult fs = file.Delete(true);
+                                FileSystemResult fs = file.Delete(false);
                                 if (fs == null || !fs.IsOk)
                                 {
                                     logger.Error($"Unable to delete file '{place.FullServerPath}'");

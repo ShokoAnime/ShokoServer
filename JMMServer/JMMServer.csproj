@@ -907,12 +907,13 @@
     <Compile Include="UPnPData.cs" />
     <Compile Include="UPnPServerBrowserDialog.cs" />
     <Compile Include="UserCulture.cs" />
-    <Compile Include="Utilities\AdvFileSystemWatcher.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\JsonExtensions.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\EventQueueOverflowException.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\FileWatcherErrorEventArgs.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs" />
     <Compile Include="Utilities\LogReader.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />

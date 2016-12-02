@@ -280,9 +280,13 @@ namespace JMMServer.FileHelper.MediaInfo
                 s.PA = System.Convert.ToSingle(sp2);
             if ((s.PA != 1.0) && !string.IsNullOrEmpty(s.Width))
             {
-                float width = int.Parse(s.Width);
-                width *= s.PA;
-                s.PixelAspectRatio = ((int) Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" + s.Width;
+                int www = 0;
+                if (int.TryParse(s.Width, out www))
+                {
+                    float width = www;
+                    width *= s.PA;
+                    s.PixelAspectRatio = ((int) Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" + s.Width;
+                }
             }
 
             return s;
