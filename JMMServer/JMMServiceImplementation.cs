@@ -6669,7 +6669,8 @@ namespace JMMServer
                         }
                         CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
                         cmdDel.Save();
-                        RepoFactory.VideoLocal.Delete(vid.VideoLocalID);
+                        RepoFactory.VideoLocal.Delete(vid);
+
                     }
                     RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
                 }

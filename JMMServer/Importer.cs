@@ -825,7 +825,7 @@ namespace JMMServer
                         if (v.Places.Count == 1)
                         {
                             RepoFactory.VideoLocalPlace.Delete(vl.VideoLocal_Place_ID);
-                            RepoFactory.VideoLocal.Delete(v.VideoLocalID);
+                            RepoFactory.VideoLocal.Delete(v);
                             CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                             cmdDel.Save();
                         }
@@ -881,7 +881,10 @@ namespace JMMServer
                     if (v.Places.Count == 1)
                     {
                         RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
-                        RepoFactory.VideoLocal.Delete(v.VideoLocalID);
+                        RepoFactory.VideoLocal.Delete(v);
+                        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        cmdDel.Save();
+
                     }
                     else
                         RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);

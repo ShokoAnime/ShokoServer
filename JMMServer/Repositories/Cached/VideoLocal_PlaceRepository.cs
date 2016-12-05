@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using JMMServer.Entities;
 using NutzCode.InMemoryIndex;
@@ -46,7 +47,22 @@ namespace JMMServer.Repositories.Cached
         {
             return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
         }
+        public override void Delete(VideoLocal_Place obj)
+        {
+            base.Delete(obj);
+            foreach (AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
+            {
+                RepoFactory.AnimeEpisode.Save(ep);
+            }
+        }
+        //Disable base saves.
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [Obsolete("...", false)]
+        public override void Delete(IReadOnlyCollection<VideoLocal_Place> objs) { throw new NotSupportedException(); }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [Obsolete("...", false)]
+        public override void Delete(int id) { throw new NotSupportedException(); }
 
 
         public static Tuple<ImportFolder, string> GetFromFullPath(string fullPath)
