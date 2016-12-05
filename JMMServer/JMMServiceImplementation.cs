@@ -3682,68 +3682,81 @@ namespace JMMServer
         /// <returns></returns>
         public string DeleteVideoLocalPlaceAndFile(int videolocalplaceid)
         {
-            try
-            {
-                VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
-                if ((place==null) || (place.VideoLocal==null))
-                    return "Database entry does not exist";
-                VideoLocal vid = place.VideoLocal;
-                logger.Info("Deleting video local place record and file: {0}", place.FullServerPath);
-
-                IFileSystem fileSystem = place.ImportFolder.FileSystem;
-                if (fileSystem == null)
-                {
-                    logger.Error("Unable to delete file, filesystem not found");
-                    return "Unable to delete file, filesystem not found";
-                }
-                FileSystemResult<IObject> fr = fileSystem.Resolve(place.FullServerPath);
-                if (fr == null || !fr.IsOk)
-                {
-                    logger.Error($"Unable to find file '{place.FullServerPath}'");
-                    return $"Unable to find file '{place.FullServerPath}'";
-                }
-                IFile file = fr.Result as IFile;
-                if (file == null)
-                {
-                    logger.Error($"Seems '{place.FullServerPath}' is a directory");
-                    return $"Seems '{place.FullServerPath}' is a directory";
-
-                }
-                FileSystemResult fs = file.Delete(false);
-                if (fs == null || !fs.IsOk)
-                {
-                    logger.Error($"Unable to delete file '{place.FullServerPath}'");
-                    return $"Unable to delete file '{place.FullServerPath}'";
-                }
-                RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
-
-                if (vid.Places.Count > 0)
-                    return "";
-                AnimeSeries ser = null;
-                List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
-                if (animeEpisodes.Count > 0)
-                {
-                    ser = animeEpisodes[0].GetAnimeSeries();
-                }
-                RepoFactory.VideoLocal.Delete(vid);
-                CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
-                cmdDel.Save();
-                if (ser != null)
-                {
-                    ser.QueueUpdateStats();
-                }
-
-                // For deletion of files from Trakt, we will rely on the Daily sync
-
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error( ex,ex.ToString());
-                return ex.Message;
-            }
+	        VideoLocal vl;
+	        string result = DeleteFileAndReferences(videolocalplaceid, out vl);
+	        if (result == "")
+	        {
+		        vl?.GetAnimeEpisodes().Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
+	        }
         }
+
+	    private string DeleteFileAndReferences(int videolocalplaceid, out vl)
+	    {
+		    try
+		    {
+			    VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
+			    if ((place==null) || (place.VideoLocal==null))
+				    return "Database entry does not exist";
+			    VideoLocal vid = place.VideoLocal;
+			    logger.Info("Deleting video local place record and file: {0}", place.FullServerPath);
+
+			    IFileSystem fileSystem = place.ImportFolder.FileSystem;
+			    if (fileSystem == null)
+			    {
+				    logger.Error("Unable to delete file, filesystem not found");
+				    return "Unable to delete file, filesystem not found";
+			    }
+			    FileSystemResult<IObject> fr = fileSystem.Resolve(place.FullServerPath);
+			    if (fr == null || !fr.IsOk)
+			    {
+				    logger.Error($"Unable to find file '{place.FullServerPath}'");
+				    return $"Unable to find file '{place.FullServerPath}'";
+			    }
+			    IFile file = fr.Result as IFile;
+			    if (file == null)
+			    {
+				    logger.Error($"Seems '{place.FullServerPath}' is a directory");
+				    return $"Seems '{place.FullServerPath}' is a directory";
+
+			    }
+			    FileSystemResult fs = file.Delete(false);
+			    if (fs == null || !fs.IsOk)
+			    {
+				    logger.Error($"Unable to delete file '{place.FullServerPath}'");
+				    return $"Unable to delete file '{place.FullServerPath}'";
+			    }
+			    RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
+
+			    if (vid.Places.Count > 0)
+			    {
+				    vl = vid;
+				    return "";
+			    }
+			    AnimeSeries ser = null;
+			    List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
+			    if (animeEpisodes.Count > 0)
+			    {
+				    ser = animeEpisodes[0].GetAnimeSeries();
+			    }
+			    RepoFactory.VideoLocal.Delete(vid);
+			    CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
+			    cmdDel.Save();
+			    if (ser != null)
+			    {
+				    ser.QueueUpdateStats();
+			    }
+
+			    // For deletion of files from Trakt, we will rely on the Daily sync
+
+
+			    return "";
+		    }
+		    catch (Exception ex)
+		    {
+			    logger.Error( ex,ex.ToString());
+			    return ex.Message;
+		    }
+	    }
 
         public List<Contract_VideoLocal> GetAllManuallyLinkedFiles(int userID)
         {
