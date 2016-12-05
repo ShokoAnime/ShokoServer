@@ -817,21 +817,19 @@ namespace JMMServer
                 foreach (VideoLocal_Place vl in filesAll[folder])
                 {
                     FileSystemResult<IObject> obj = fs.Resolve(vl.FullServerPath);
-                    if (!obj.IsOk || obj.Result is IDirectory)
-                    {
-                        VideoLocal v = vl.VideoLocal;
-                        // delete video local record
-                        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
-                        if (v.Places.Count == 1)
-                        {
-                            RepoFactory.VideoLocalPlace.Delete(vl.VideoLocal_Place_ID);
-                            RepoFactory.VideoLocal.Delete(v);
-                            CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                            cmdDel.Save();
-                        }
-                        else
-                            RepoFactory.VideoLocalPlace.Delete(vl.VideoLocal_Place_ID);
-                    }
+	                if (obj.IsOk && !(obj.Result is IDirectory)) continue;
+	                VideoLocal v = vl.VideoLocal;
+	                // delete video local record
+	                logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+	                if (v.Places.Count <= 1)
+	                {
+		                RepoFactory.VideoLocalPlace.Delete(vl);
+		                RepoFactory.VideoLocal.Delete(v);
+		                CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+		                cmdDel.Save();
+	                }
+	                else
+		                RepoFactory.VideoLocalPlace.Delete(vl);
                 }
             }
 
