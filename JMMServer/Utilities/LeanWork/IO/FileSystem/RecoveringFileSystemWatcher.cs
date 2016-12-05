@@ -73,8 +73,6 @@ namespace LeanWork.IO.FileSystem
 
         private void Start()
         {
-            _trace.Debug("");
-
             try
             {
                 _monitorTimer = new System.Threading.Timer(_monitorTimer_Elapsed);
@@ -82,7 +80,6 @@ namespace LeanWork.IO.FileSystem
                 Disposed += (_, __) =>
                 {
                     _monitorTimer.Dispose();
-                    _trace.Info("Obeying cancel request");
                 };
 
                 ReStartIfNeccessary(TimeSpan.Zero);
@@ -96,9 +93,6 @@ namespace LeanWork.IO.FileSystem
 
         private void _monitorTimer_Elapsed(object state)
         {
-            _trace.Debug("!!");
-            _trace.Info($"Watching:{Path}");
-
             try
             {
                 if (!Directory.Exists(Path))
@@ -107,7 +101,6 @@ namespace LeanWork.IO.FileSystem
                 }
                 else
                 {
-                    _trace.Info($"Directory {Path} accessibility is OK.");
                     if (!EnableRaisingEvents)
                     {
                         EnableRaisingEvents = true;
@@ -148,7 +141,6 @@ namespace LeanWork.IO.FileSystem
 
         private void ReStartIfNeccessary(TimeSpan delay)
         {
-            _trace.Debug("");
             try
             {
                 _monitorTimer.Change(delay, Timeout.InfiniteTimeSpan);
@@ -163,7 +155,6 @@ namespace LeanWork.IO.FileSystem
             var NetworkNameNoLongerAvailable = -2147467259; //occurs on network outage
             var AccessIsDenied = -2147467259; //occurs after directory was deleted
 
-            _trace.Debug("");
 
             var ex = e.GetException();
             if (ExceptionWasHandledByCaller(e.GetException()))
