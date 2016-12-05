@@ -6,6 +6,7 @@ using System.Linq;
 using FluentNHibernate.Utils;
 using JMMServer.Entities;
 using NHibernate;
+using NHibernate.Util;
 using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories.Cached
@@ -99,11 +100,9 @@ namespace JMMServer.Repositories.Cached
 
         public override void Delete(VideoLocal obj)
         {
-            base.Delete(obj);
-            foreach (AnimeEpisode ep in obj.GetAnimeEpisodes())
-            {
-                RepoFactory.AnimeEpisode.Save(ep);
-            }
+	        List<AnimeEpisode> list = obj.GetAnimeEpisodes();
+	        base.Delete(obj);
+            list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
         }
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
