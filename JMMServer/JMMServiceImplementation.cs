@@ -3725,7 +3725,7 @@ namespace JMMServer
                 {
                     ser = animeEpisodes[0].GetAnimeSeries();
                 }
-                RepoFactory.VideoLocal.Delete(vid.VideoLocalID);
+                RepoFactory.VideoLocal.Delete(vid);
                 CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
                 cmdDel.Save();
                 if (ser != null)

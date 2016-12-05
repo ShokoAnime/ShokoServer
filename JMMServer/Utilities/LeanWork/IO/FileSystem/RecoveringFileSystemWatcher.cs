@@ -97,7 +97,7 @@ namespace LeanWork.IO.FileSystem
         private void _monitorTimer_Elapsed(object state)
         {
             _trace.Debug("!!");
-            _trace.Info($"Watching:{Path}");
+            _trace.Debug($"Watching:{Path}");
 
             try
             {
@@ -107,7 +107,7 @@ namespace LeanWork.IO.FileSystem
                 }
                 else
                 {
-                    _trace.Info($"Directory {Path} accessibility is OK.");
+                    _trace.Debug($"Directory {Path} accessibility is OK.");
                     if (!EnableRaisingEvents)
                     {
                         EnableRaisingEvents = true;
@@ -126,7 +126,7 @@ namespace LeanWork.IO.FileSystem
 
                 if (_isRecovering)
                 {
-                    _trace.Warn("...retrying");
+                    _trace.Debug("...retrying");
                 }
                 else
                 {
