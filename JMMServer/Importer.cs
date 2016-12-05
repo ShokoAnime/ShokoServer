@@ -833,7 +833,17 @@ namespace JMMServer
                 }
             }
 
-            UpdateAllStats();
+	        IReadOnlyList<VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
+	        foreach (VideoLocal v in videoLocalsAll)
+	        {
+				// delete video local record
+		        if (v.Places.Count > 0) continue;
+		        RepoFactory.VideoLocal.Delete(v);
+		        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+		        cmdDel.Save();
+	        }
+
+	        UpdateAllStats();
         }
 
         public static string DeleteCloudAccount(int cloudaccountID)
