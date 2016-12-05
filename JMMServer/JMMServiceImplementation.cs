@@ -3715,7 +3715,7 @@ namespace JMMServer
                     logger.Error($"Unable to delete file '{place.FullServerPath}'");
                     return $"Unable to delete file '{place.FullServerPath}'";
                 }
-                RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
+                RepoFactory.VideoLocalPlace.Delete(place);
 
                 if (vid.Places.Count > 0)
                     return "";
