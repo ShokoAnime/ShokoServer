@@ -1,53 +1,52 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands
 {
-    public class CommandRequest_RefreshAnime : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation, ICommandRequest
     {
-        public int AnimeID { get; set; }
+        public int GroupFilterID { get; set; }
 
-        public CommandRequest_RefreshAnime(int animeID)
+        public CommandRequest_RefreshGroupFilter(int groupFilterID)
         {
-            AnimeID = animeID;
+            GroupFilterID = groupFilterID;
 
-            this.CommandType = (int) CommandRequestType.Refresh_AnimeStats;
+            this.CommandType = (int) CommandRequestType.Refresh_GroupFilter;
             this.Priority = (int) DefaultPriority;
             GenerateCommandID();
         }
 
-        public CommandRequest_RefreshAnime()
+        public CommandRequest_RefreshGroupFilter()
         {
         }
 
 
         public CommandRequestPriority DefaultPriority
         {
-            get { return CommandRequestPriority.Priority5; }
+            get { return CommandRequestPriority.Priority6; }
         }
 
         public QueueStateStruct PrettyDescription
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.RefreshAnime, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct() { queueState = QueueStateEnum.RefreshGroupFilter, extraParams = new string[] { GroupFilterID.ToString() } };
             }
         }
 
         public override void ProcessCommand()
         {
-            AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            if (ser != null)
-                ser.UpdateStats(true, true, true);
+	        GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
+	        if (gf == null) return;
+	        gf.EvaluateAnimeSeries();
+	        gf.EvaluateAnimeGroups();
+	        RepoFactory.GroupFilter.Save(gf);
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_RefreshAnime_{0}", this.AnimeID);
+            this.CommandID = string.Format("CommandRequest_RefreshGroupFilter_{0}", this.GroupFilterID);
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -58,7 +57,7 @@ namespace JMMServer.Commands
             this.Priority = cq.Priority;
             this.CommandDetails = cq.CommandDetails;
             this.DateTimeUpdated = cq.DateTimeUpdated;
-            AnimeID = int.Parse(cq.CommandDetails);
+            GroupFilterID = int.Parse(cq.CommandDetails);
             return true;
         }
 
@@ -70,7 +69,7 @@ namespace JMMServer.Commands
             cq.CommandID = this.CommandID;
             cq.CommandType = this.CommandType;
             cq.Priority = this.Priority;
-            cq.CommandDetails = AnimeID.ToString();
+            cq.CommandDetails = GroupFilterID.ToString();
             cq.DateTimeUpdated = DateTime.Now;
             return cq;
         }

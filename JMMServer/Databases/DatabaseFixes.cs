@@ -357,5 +357,36 @@ namespace JMMServer.Databases
                 logger.Error( ex,"Could not PopulateTagWeight: " + ex.ToString());
             }
         }
+
+	    public static void FixTagsWithInclude()
+	    {
+		    try
+		    {
+			    foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+			    {
+				    if (gf.FilterType != (int)GroupFilterType.Tag) continue;
+				    foreach (GroupFilterCondition gfc in gf.Conditions)
+				    {
+					    if (gfc.ConditionType != (int) GroupFilterConditionType.Tag) continue;
+					    if (gfc.ConditionOperator == (int) GroupFilterOperator.Include)
+					    {
+						    gfc.ConditionOperator = (int) GroupFilterOperator.In;
+						    RepoFactory.GroupFilterCondition.Save(gfc);
+						    continue;
+					    }
+					    if (gfc.ConditionOperator == (int) GroupFilterOperator.Exclude)
+					    {
+						    gfc.ConditionOperator = (int) GroupFilterOperator.NotIn;
+						    RepoFactory.GroupFilterCondition.Save(gfc);
+						    continue;
+					    }
+				    }
+			    }
+		    }
+		    catch (Exception e)
+		    {
+			    logger.Error(e);
+		    }
+	    }
     }
 }

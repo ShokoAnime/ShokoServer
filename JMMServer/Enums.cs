@@ -180,7 +180,8 @@ namespace JMMServer
         Azure_SendUserInfo = 73,
         AniDB_GetEpisodeUDP = 80,
         Refresh_AnimeStats = 90,
-        LinkAniDBTvDB = 91
+        LinkAniDBTvDB = 91,
+	    Refresh_GroupFilter = 92
     }
 
     public enum CommandRequestPriority

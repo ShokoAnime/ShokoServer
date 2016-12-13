@@ -1174,4 +1174,7 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>Sie haben Shoko Server und JMM Server installiert. Möchten Sie JMM Server deinstallieren?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Erfrischende Gruppenfilter: {0}</value>
+  </data>
 </root>

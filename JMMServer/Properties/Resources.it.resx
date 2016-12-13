@@ -1174,4 +1174,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>Hai sia Server di Shoko JMM Server installato. Si desidera disinstallare JMM Server?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Rinfrescante gruppo filtro: {0}</value>
+  </data>
 </root>

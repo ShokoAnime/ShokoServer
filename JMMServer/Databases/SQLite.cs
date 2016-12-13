@@ -18,7 +18,7 @@ namespace JMMServer.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 49;
+        public int RequiredVersion { get; } = 50;
 
 
 
@@ -337,6 +337,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(49, 1,"CREATE TABLE Scan ( ScanID INTEGER PRIMARY KEY AUTOINCREMENT, CreationTime timestamp NOT NULL, ImportFolders text NOT NULL, Status int NOT NULL )"),
             new DatabaseCommand(49, 2,"CREATE TABLE ScanFile ( ScanFileID INTEGER PRIMARY KEY AUTOINCREMENT, ScanID int NOT NULL, ImportFolderID int NOT NULL, VideoLocal_Place_ID int NOT NULL, FullName text NOT NULL, FileSize bigint NOT NULL, Status int NOT NULL, CheckDate timestamp NULL, Hash text NOT NULL, HashResult text NULL )"),
             new DatabaseCommand(49, 3, "CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
+	        new DatabaseCommand(50, 1, DatabaseFixes.FixTagsWithInclude)
 
         };
 

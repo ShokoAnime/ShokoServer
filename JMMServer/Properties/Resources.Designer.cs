@@ -737,6 +737,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Refreshing Group Filter: (0).
+        /// </summary>
+        public static string Command_RefreshGroupFilter {
+            get {
+                return ResourceManager.GetString("Command_RefreshGroupFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Searching for anime on MAL: {0}.
         /// </summary>
         public static string Command_SearchMal {

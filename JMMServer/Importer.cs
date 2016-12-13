@@ -941,6 +941,11 @@ namespace JMMServer
             {
                 ser.QueueUpdateStats();
             }
+
+	        foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+	        {
+		        gf.QueueUpdate();
+	        }
         }
 
 

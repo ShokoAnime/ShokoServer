@@ -1174,4 +1174,7 @@
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>Você tem tanto servidor Shoko e JMM Server instalado. Você quer desinstalar o servidor JMM?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Atualizando o filtro de Grupo: {0}</value>
+  </data>
 </root>

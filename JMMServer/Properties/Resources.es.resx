@@ -1174,4 +1174,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>Tiene servidor de Shoko y JMM servidor instalado. ¿Desea desinstalar servidor de JMM?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Actualizar filtro de Grupo: {0}</value>
+  </data>
 </root>

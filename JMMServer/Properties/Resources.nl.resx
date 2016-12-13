@@ -1174,4 +1174,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>Je hebt zowel Shoko Server en JMM Server geïnstalleerd. Wilt u JMM Server verwijderen?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Verfrissende groepeerfilter: {0}</value>
+  </data>
 </root>

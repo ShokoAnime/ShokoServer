@@ -338,6 +338,7 @@
     <Compile Include="API\Model\core\RecentFile.cs" />
     <Compile Include="API\Model\core\WebNews.cs" />
     <Compile Include="API\Model\core\UserDatabase.cs" />
+    <Compile Include="Commands\CommandRequest_RefreshGroupFilter.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="Databases\BaseDatabase.cs" />
     <Compile Include="Databases\DatabaseCommandException.cs" />
@@ -910,10 +911,14 @@
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\JsonExtensions.cs" />
-    <Compile Include="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utilities\LeanWork\IO\FileSystem\EventQueueOverflowException.cs" />
     <Compile Include="Utilities\LeanWork\IO\FileSystem\FileWatcherErrorEventArgs.cs" />
-    <Compile Include="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utilities\LogReader.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
@@ -1043,6 +1048,7 @@
     <EmbeddedResource Include="Properties\Resources.es.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.es.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.fr.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
@@ -1051,18 +1057,22 @@
     <EmbeddedResource Include="Properties\Resources.it.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.it.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.nl.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.nl.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.pl.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.pl.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.pt.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.pt.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
@@ -1072,6 +1082,7 @@
     <EmbeddedResource Include="Properties\Resources.ru.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.ru.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="testing.config">
       <SubType>Designer</SubType>
@@ -1304,22 +1315,25 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
-xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
-if $(ConfigurationName) == Debug goto :exit
-cd "$(TargetDir)"
-mkdir Merge
-..\..\..\packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe "$(SolutionDir)Dependencies\AppGlue.dll" JMMContracts.dll Pri.LongPath.dll NutzCode.*.dll /closed
-del ShokoServer.exe
-del JMMServer.pdb
-move Merge\* .
-del JMMContracts.*
-del NutzCode.*.*
-del AppGlue.*
-del Pri.LongPath.*
-rmdir Merge
-:exit</PostBuildEvent>
+      xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
+      xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y
+      xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
+      goto :exit
+      if $(ConfigurationName) == Debug goto :exit
+      cd "$(TargetDir)"
+      mkdir Merge
+      ..\..\..\packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe"
+      ShokoServer.exe "$(SolutionDir)Dependencies\AppGlue.dll" JMMContracts.dll Pri.LongPath.dll NutzCode.*.dll /closed
+      del ShokoServer.exe
+      del JMMServer.pdb
+      move Merge\* .
+      del JMMContracts.*
+      del NutzCode.*.*
+      del AppGlue.*
+      del Pri.LongPath.*
+      rmdir Merge
+      :exit
+    </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>

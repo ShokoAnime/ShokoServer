@@ -1174,4 +1174,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>You have both Shoko Server and JMM Server installed. Do you want to uninstall JMM Server?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Refreshing Group Filter: {0}</value>
+  </data>
 </root>

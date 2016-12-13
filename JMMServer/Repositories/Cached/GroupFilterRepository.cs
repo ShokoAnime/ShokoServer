@@ -261,7 +261,7 @@ namespace JMMServer.Repositories.Cached
                         };
                         GroupFilterCondition gfc = new GroupFilterCondition();
                         gfc.ConditionType = (int) GroupFilterConditionType.Tag;
-                        gfc.ConditionOperator = (int) GroupFilterOperator.Include;
+                        gfc.ConditionOperator = (int) GroupFilterOperator.In;
                         gfc.ConditionParameter = s;
                         gfc.GroupFilterID = yf.GroupFilterID;
                         yf.Conditions.Add(gfc);

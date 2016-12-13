@@ -1174,4 +1174,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>Masz serwer Shoko i JMM Server zainstalowany. Czy chcesz odinstalować serwer JMM?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Odświeżanie filtr grupy: {0}</value>
+  </data>
 </root>

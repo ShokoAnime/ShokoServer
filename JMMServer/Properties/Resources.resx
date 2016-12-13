@@ -1223,4 +1223,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Update_ShokoServer" xml:space="preserve">
     <value>Update Shoko Server</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Refreshing Group Filter: (0)</value>
+  </data>
 </root>

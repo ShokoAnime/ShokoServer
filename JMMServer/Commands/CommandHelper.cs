@@ -9,12 +9,12 @@ namespace JMMServer.Commands
 {
     public enum QueueStateEnum {
         AnimeInfo=1, DeleteError, DownloadImage, DownloadMalWatched, DownloadTvDBImages, FileInfo, GetCalendar, GetEpisodeList, GetFileInfo, GetReleaseGroup,
-        GetReleaseInfo, GetReviewInfo, GettingTvDB, GetUpdatedAnime, HashingFile, Idle, Paused, Queued, ReadingMedia, Refresh, SearchMal, SearchTMDb, SearchTrakt,
+        GetReleaseInfo, GetReviewInfo, GettingTvDB, GetUpdatedAnime, HashingFile, Idle, Paused, Queued, ReadingMedia, RefreshAnime, SearchMal, SearchTMDb, SearchTrakt,
         SearchTvDB, SendAnimeAzure, SendAnimeFull, SendAnimeTitle, SendAnonymousData, StartingGeneral, StartingHasher, StartingImages, SyncMyList, SyncTrakt,
         SyncTraktEpisodes, SyncTraktSeries, SyncVotes, TraktAddHistory, UpdateMALWatched, UpdateMyListInfo, UpdateMyListStats, UpdateTrakt, UpdateTraktData, UploadMALWatched,
         VoteAnime, WebCacheDeleteXRefAniDBMAL, WebCacheDeleteXRefAniDBOther, WebCacheDeleteXRefAniDBTrakt, WebCacheDeleteXRefAniDBTvDB, WebCacheDeleteXRefFileEpisode, WebCacheSendXRefAniDBMAL,
         WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes,
-        LinkAniDBTvDB, CheckingFile
+        LinkAniDBTvDB, CheckingFile, RefreshGroupFilter
     };
 
     public struct QueueStateStruct
@@ -69,7 +69,7 @@ namespace JMMServer.Commands
                     return JMMServer.Properties.Resources.Command_Queued;
                 case QueueStateEnum.ReadingMedia:
                     return JMMServer.Properties.Resources.Command_ReadingMedia;
-                case QueueStateEnum.Refresh:
+                case QueueStateEnum.RefreshAnime:
                     return JMMServer.Properties.Resources.Command_Refresh;
                 case QueueStateEnum.SearchMal:
                     return JMMServer.Properties.Resources.Command_SearchMal;
@@ -149,7 +149,9 @@ namespace JMMServer.Commands
                     return JMMServer.Properties.Resources.Actions_SyncVotes;
                 case QueueStateEnum.LinkAniDBTvDB:
                     return JMMServer.Properties.Resources.Command_LinkAniDBTvDB;
-                default:
+	            case QueueStateEnum.RefreshGroupFilter:
+		            return JMMServer.Properties.Resources.Command_RefreshGroupFilter;
+	            default:
                     throw new System.Exception("Unknown queue state format string"); ;
             }
 
@@ -526,6 +528,11 @@ namespace JMMServer.Commands
                     CommandRequest_LinkAniDBTvDB cr_linkAniDBTvDB = new CommandRequest_LinkAniDBTvDB();
                     cr_linkAniDBTvDB.LoadFromDBCommand(crdb);
                     return cr_linkAniDBTvDB;
+
+	            case CommandRequestType.Refresh_GroupFilter:
+		            CommandRequest_RefreshGroupFilter cr_refreshGroupFilter = new CommandRequest_RefreshGroupFilter();
+		            cr_refreshGroupFilter.LoadFromDBCommand(crdb);
+		            return cr_refreshGroupFilter;
             }
 
             return null;

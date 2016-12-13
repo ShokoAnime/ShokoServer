@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using JMMContracts;
+using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -460,13 +461,12 @@ namespace JMMServer.Entities
 		                List<string> tags =
 			                gfc.ConditionParameter.Trim()
 				                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-				                .Select(a => a.ToLowerInvariant().Trim())
+				                .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
 				                .ToList();
 		                bool tagsFound =
-			                tags.Any(a => contractGroup.Stat_AllTags.Contains(a,
-				                StringComparer.InvariantCultureIgnoreCase));
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !tagsFound) return false;
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && tagsFound) return false;
+			                tags.Any(a => contractGroup.Stat_AllTags.Contains(a, StringComparer.InvariantCultureIgnoreCase));
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
 		                break;
 	                case GroupFilterConditionType.Year:
                         if (!contractGroup.Stat_AirDate_Min.HasValue)
@@ -835,13 +835,13 @@ namespace JMMServer.Entities
 		                List<string> tags =
 			                gfc.ConditionParameter.Trim()
 				                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-				                .Select(a => a.ToLowerInvariant().Trim())
+				                .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
 				                .ToList();
 		                bool tagsFound =
 			                tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(a,
 				                StringComparer.InvariantCultureIgnoreCase));
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !tagsFound) return false;
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && tagsFound) return false;
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
+		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
 		                break;
 	                case GroupFilterConditionType.Year:
                         if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue)
@@ -1210,5 +1210,11 @@ namespace JMMServer.Entities
                 SeriesIdsVersion = SERIEFILTER_VERSION;
             }
         }
+
+	    public void QueueUpdate()
+	    {
+		    CommandRequest_RefreshGroupFilter cmdRefreshGroupFilter = new CommandRequest_RefreshGroupFilter(this.GroupFilterID);
+		    cmdRefreshGroupFilter.Save();
+	    }
     }
 }

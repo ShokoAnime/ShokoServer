@@ -1295,7 +1295,7 @@ namespace JMMServer.Entities
                     }
 
                     contract.Stat_AllTags = animeGroup.Tags
-                        .Select(a => a.TagName)
+                        .Select(a => a.TagName.Trim())
                         .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
                     contract.Stat_AllCustomTags = animeGroup.CustomTags
                         .Select(a => a.TagName)

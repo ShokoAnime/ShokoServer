@@ -1174,4 +1174,7 @@
   <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
     <value>У вас сервер Шоко и установлен сервер JMM. Вы хотите удалить JMM сервер?</value>
   </data>
+  <data name="Command_RefreshGroupFilter" xml:space="preserve">
+    <value>Освежающий фильтр группы: {0}</value>
+  </data>
 </root>
