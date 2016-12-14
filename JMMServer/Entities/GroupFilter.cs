@@ -424,375 +424,379 @@ namespace JMMServer.Entities
                 return false;
             }
 
-            NumberStyles style = NumberStyles.Number;
-            CultureInfo culture = CultureInfo.InvariantCulture;
+            bool exclude = BaseCondition == (int) GroupFilterBaseCondition.Exclude;
 
-            if (BaseCondition == (int) GroupFilterBaseCondition.Exclude) return false;
-
-            // now check other conditions
-
-            foreach (GroupFilterCondition gfc in Conditions)
-            {
-                switch (gfc.ConditionTypeEnum)
-                {
-                    case GroupFilterConditionType.Favourite:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.IsFave == 0)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.IsFave == 1)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.MissingEpisodes:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            (contractGroup.MissingEpisodeCount > 0 || contractGroup.MissingEpisodeCountGroups > 0) ==
-                            false) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            (contractGroup.MissingEpisodeCount > 0 || contractGroup.MissingEpisodeCountGroups > 0) ==
-                            true) return false;
-                        break;
-
-                    case GroupFilterConditionType.MissingEpisodesCollecting:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.MissingEpisodeCountGroups > 0 == false) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.MissingEpisodeCountGroups > 0 == true) return false;
-                        break;
-                    case GroupFilterConditionType.Tag:
-		                List<string> tags =
-			                gfc.ConditionParameter.Trim()
-				                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-				                .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
-				                .ToList();
-		                bool tagsFound =
-			                tags.Any(a => contractGroup.Stat_AllTags.Contains(a, StringComparer.InvariantCultureIgnoreCase));
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
-		                break;
-	                case GroupFilterConditionType.Year:
-                        if (!contractGroup.Stat_AirDate_Min.HasValue)
-                            return false;
-                        string year = contractGroup.Stat_AirDate_Min.Value.Year.ToString();
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year != gfc.ConditionParameter)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year == gfc.ConditionParameter)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.HasWatchedEpisodes:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.WatchedEpisodeCount > 0 == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.WatchedEpisodeCount > 0 == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.HasUnwatchedEpisodes:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.UnwatchedEpisodeCount > 0 == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.UnwatchedEpisodeCount > 0 == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedTvDBInfo:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_HasTvDBLink == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_HasTvDBLink == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedMALInfo:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_HasMALLink == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_HasMALLink == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedMovieDBInfo:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_HasMovieDBLink == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_HasMovieDBLink == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_HasMovieDBOrTvDBLink == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_HasMovieDBOrTvDBLink == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.CompletedSeries:
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_IsComplete == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_IsComplete == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.FinishedAiring:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_HasFinishedAiring == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_IsCurrentlyAiring == false)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.UserVoted:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_UserVotePermanent.HasValue == false) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_UserVotePermanent.HasValue == true) return false;
-                        break;
-
-                    case GroupFilterConditionType.UserVotedAny:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractGroup.Stat_UserVoteOverall.HasValue == false) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_UserVoteOverall.HasValue == true) return false;
-                        break;
-
-                    case GroupFilterConditionType.AirDate:
-                        DateTime filterDate;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDate = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDate = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractGroup.Stat_AirDate_Min.HasValue || !contractGroup.Stat_AirDate_Max.HasValue)
-                                return false;
-                            if (contractGroup.Stat_AirDate_Max.Value < filterDate) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (!contractGroup.Stat_AirDate_Min.HasValue || !contractGroup.Stat_AirDate_Max.HasValue)
-                                return false;
-                            if (contractGroup.Stat_AirDate_Min.Value > filterDate) return false;
-                        }
-                        break;
-                    case GroupFilterConditionType.LatestEpisodeAirDate:
-                        DateTime filterDateEpisodeLastAired;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
-                            if (contractGroup.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
-                            if (contractGroup.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
-                        }
-                        break;
-                    case GroupFilterConditionType.SeriesCreatedDate:
-                        DateTime filterDateSeries;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateSeries = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateSeries = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractGroup.Stat_SeriesCreatedDate.HasValue) return false;
-                            if (contractGroup.Stat_SeriesCreatedDate.Value < filterDateSeries) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (!contractGroup.Stat_SeriesCreatedDate.HasValue) return false;
-                            if (contractGroup.Stat_SeriesCreatedDate.Value > filterDateSeries) return false;
-                        }
-                        break;
-
-                    case GroupFilterConditionType.EpisodeWatchedDate:
-                        DateTime filterDateEpsiodeWatched;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpsiodeWatched = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateEpsiodeWatched = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractGroup.WatchedDate.HasValue) return false;
-                            if (contractGroup.WatchedDate.Value < filterDateEpsiodeWatched) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (contractGroup == null) return false;
-                            if (!contractGroup.WatchedDate.HasValue) return false;
-                            if (contractGroup.WatchedDate.Value > filterDateEpsiodeWatched) return false;
-                        }
-                        break;
-
-                    case GroupFilterConditionType.EpisodeAddedDate:
-                        DateTime filterDateEpisodeAdded;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpisodeAdded = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateEpisodeAdded = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractGroup.EpisodeAddedDate.HasValue) return false;
-                            if (contractGroup.EpisodeAddedDate.Value < filterDateEpisodeAdded) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (!contractGroup.EpisodeAddedDate.HasValue) return false;
-                            if (contractGroup.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
-                        }
-                        break;
-
-                    case GroupFilterConditionType.EpisodeCount:
-
-                        int epCount = -1;
-                        int.TryParse(gfc.ConditionParameter, out epCount);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
-                            contractGroup.Stat_EpisodeCount < epCount)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
-                            contractGroup.Stat_EpisodeCount > epCount)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AniDBRating:
-
-                        decimal dRating = -1;
-                        decimal.TryParse(gfc.ConditionParameter, style, culture, out dRating);
-
-                        decimal thisRating = contractGroup.Stat_AniDBRating/(decimal) 100;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.UserRating:
-
-                        if (!contractGroup.Stat_UserVoteOverall.HasValue) return false;
-
-                        decimal dUserRating = -1;
-                        decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
-                            contractGroup.Stat_UserVoteOverall.Value < dUserRating) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
-                            contractGroup.Stat_UserVoteOverall.Value > dUserRating) return false;
-                        break;
-
-                    case GroupFilterConditionType.CustomTags:
-
-                        List<string> ctags =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundTag = ctags.FindInEnumerable(contractGroup.Stat_AllCustomTags);
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundTag) return false;
-                        break;
-
-                    case GroupFilterConditionType.AnimeType:
-
-                        List<string> ctypes =
-                            gfc.ConditionParameter
-                                .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => ((int)AniDB_Anime.RawToType(a)).ToString())
-                                .ToList();
-                        bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundAnimeType) return false;
-                        break;
-
-                    case GroupFilterConditionType.VideoQuality:
-
-                        List<string> vqs =
-                            gfc.ConditionParameter
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundVid = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality);
-                        bool foundVidAllEps = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality_Episodes);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AudioLanguage:
-                        List<string> als =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundLang = als.FindInEnumerable(contractGroup.Stat_AudioLanguages);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
-                        break;
-
-                    case GroupFilterConditionType.SubtitleLanguage:
-                        List<string> ass =
-                            gfc.ConditionParameter
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundSub = ass.FindInEnumerable(contractGroup.Stat_SubtitleLanguages);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
-                        break;
-                }
-            }
-
-            return true;
+	        return exclude ^ EvaluateConditions(contractGroup, curUser);
         }
+
+	    private bool EvaluateConditions(Contract_AnimeGroup contractGroup, Contract_JMMUser curUser)
+	    {
+		    NumberStyles style = NumberStyles.Number;
+		    CultureInfo culture = CultureInfo.InvariantCulture;
+		    // now check other conditions
+
+		    foreach (GroupFilterCondition gfc in Conditions)
+		    {
+			    switch (gfc.ConditionTypeEnum)
+			    {
+				    case GroupFilterConditionType.Favourite:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.IsFave == 0)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.IsFave == 1)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.MissingEpisodes:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        (contractGroup.MissingEpisodeCount > 0 || contractGroup.MissingEpisodeCountGroups > 0) ==
+					        false) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        (contractGroup.MissingEpisodeCount > 0 || contractGroup.MissingEpisodeCountGroups > 0) ==
+					        true) return false;
+					    break;
+
+				    case GroupFilterConditionType.MissingEpisodesCollecting:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.MissingEpisodeCountGroups > 0 == false) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.MissingEpisodeCountGroups > 0 == true) return false;
+					    break;
+				    case GroupFilterConditionType.Tag:
+					    List<string> tags =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
+							    .ToList();
+					    bool tagsFound =
+						    tags.Any(a => contractGroup.Stat_AllTags.Contains(a, StringComparer.InvariantCultureIgnoreCase));
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
+					    break;
+				    case GroupFilterConditionType.Year:
+					    if (!contractGroup.Stat_AirDate_Min.HasValue)
+						    return false;
+					    string year = contractGroup.Stat_AirDate_Min.Value.Year.ToString();
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year != gfc.ConditionParameter)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year == gfc.ConditionParameter)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.HasWatchedEpisodes:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.WatchedEpisodeCount > 0 == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.WatchedEpisodeCount > 0 == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.HasUnwatchedEpisodes:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.UnwatchedEpisodeCount > 0 == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.UnwatchedEpisodeCount > 0 == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedTvDBInfo:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_HasTvDBLink == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_HasTvDBLink == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedMALInfo:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_HasMALLink == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_HasMALLink == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedMovieDBInfo:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_HasMovieDBLink == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_HasMovieDBLink == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_HasMovieDBOrTvDBLink == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_HasMovieDBOrTvDBLink == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.CompletedSeries:
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_IsComplete == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_IsComplete == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.FinishedAiring:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_HasFinishedAiring == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_IsCurrentlyAiring == false)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.UserVoted:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_UserVotePermanent.HasValue == false) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_UserVotePermanent.HasValue == true) return false;
+					    break;
+
+				    case GroupFilterConditionType.UserVotedAny:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractGroup.Stat_UserVoteOverall.HasValue == false) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractGroup.Stat_UserVoteOverall.HasValue == true) return false;
+					    break;
+
+				    case GroupFilterConditionType.AirDate:
+					    DateTime filterDate;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDate = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDate = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractGroup.Stat_AirDate_Min.HasValue || !contractGroup.Stat_AirDate_Max.HasValue)
+							    return false;
+						    if (contractGroup.Stat_AirDate_Max.Value < filterDate) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (!contractGroup.Stat_AirDate_Min.HasValue || !contractGroup.Stat_AirDate_Max.HasValue)
+							    return false;
+						    if (contractGroup.Stat_AirDate_Min.Value > filterDate) return false;
+					    }
+					    break;
+				    case GroupFilterConditionType.LatestEpisodeAirDate:
+					    DateTime filterDateEpisodeLastAired;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
+						    if (contractGroup.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
+						    if (contractGroup.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
+					    }
+					    break;
+				    case GroupFilterConditionType.SeriesCreatedDate:
+					    DateTime filterDateSeries;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateSeries = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateSeries = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractGroup.Stat_SeriesCreatedDate.HasValue) return false;
+						    if (contractGroup.Stat_SeriesCreatedDate.Value < filterDateSeries) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (!contractGroup.Stat_SeriesCreatedDate.HasValue) return false;
+						    if (contractGroup.Stat_SeriesCreatedDate.Value > filterDateSeries) return false;
+					    }
+					    break;
+
+				    case GroupFilterConditionType.EpisodeWatchedDate:
+					    DateTime filterDateEpsiodeWatched;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateEpsiodeWatched = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateEpsiodeWatched = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractGroup.WatchedDate.HasValue) return false;
+						    if (contractGroup.WatchedDate.Value < filterDateEpsiodeWatched) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (contractGroup == null) return false;
+						    if (!contractGroup.WatchedDate.HasValue) return false;
+						    if (contractGroup.WatchedDate.Value > filterDateEpsiodeWatched) return false;
+					    }
+					    break;
+
+				    case GroupFilterConditionType.EpisodeAddedDate:
+					    DateTime filterDateEpisodeAdded;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateEpisodeAdded = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateEpisodeAdded = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractGroup.EpisodeAddedDate.HasValue) return false;
+						    if (contractGroup.EpisodeAddedDate.Value < filterDateEpisodeAdded) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (!contractGroup.EpisodeAddedDate.HasValue) return false;
+						    if (contractGroup.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
+					    }
+					    break;
+
+				    case GroupFilterConditionType.EpisodeCount:
+
+					    int epCount = -1;
+					    int.TryParse(gfc.ConditionParameter, out epCount);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
+					        contractGroup.Stat_EpisodeCount < epCount)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
+					        contractGroup.Stat_EpisodeCount > epCount)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AniDBRating:
+
+					    decimal dRating = -1;
+					    decimal.TryParse(gfc.ConditionParameter, style, culture, out dRating);
+
+					    decimal thisRating = contractGroup.Stat_AniDBRating/(decimal) 100;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.UserRating:
+
+					    if (!contractGroup.Stat_UserVoteOverall.HasValue) return false;
+
+					    decimal dUserRating = -1;
+					    decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
+					        contractGroup.Stat_UserVoteOverall.Value < dUserRating) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
+					        contractGroup.Stat_UserVoteOverall.Value > dUserRating) return false;
+					    break;
+
+				    case GroupFilterConditionType.CustomTags:
+
+					    List<string> ctags =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundTag = ctags.FindInEnumerable(contractGroup.Stat_AllCustomTags);
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundTag) return false;
+					    break;
+
+				    case GroupFilterConditionType.AnimeType:
+
+					    List<string> ctypes =
+						    gfc.ConditionParameter
+							    .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => ((int)AniDB_Anime.RawToType(a)).ToString())
+							    .ToList();
+					    bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundAnimeType) return false;
+					    break;
+
+				    case GroupFilterConditionType.VideoQuality:
+
+					    List<string> vqs =
+						    gfc.ConditionParameter
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundVid = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality);
+					    bool foundVidAllEps = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality_Episodes);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AudioLanguage:
+					    List<string> als =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundLang = als.FindInEnumerable(contractGroup.Stat_AudioLanguages);
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
+					    break;
+
+				    case GroupFilterConditionType.SubtitleLanguage:
+					    List<string> ass =
+						    gfc.ConditionParameter
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundSub = ass.FindInEnumerable(contractGroup.Stat_SubtitleLanguages);
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
+					    break;
+			    }
+		    }
+
+		    return true;
+	    }
 
         public bool EvaluateGroupFilter(Contract_AnimeSeries contractSerie, Contract_JMMUser curUser)
         {
@@ -806,374 +810,379 @@ namespace JMMServer.Entities
                 curUser.HideCategories.FindInEnumerable(contractSerie.AniDBAnime.AniDBAnime.AllTags))
                 return false;
 
+	        bool exclude = BaseCondition == (int) GroupFilterBaseCondition.Exclude;
 
-            NumberStyles style = NumberStyles.Number;
-            CultureInfo culture = CultureInfo.InvariantCulture;
-
-
-            // now check other conditions
-            foreach (GroupFilterCondition gfc in Conditions)
-            {
-                switch (gfc.ConditionTypeEnum)
-                {
-                    case GroupFilterConditionType.MissingEpisodes:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            (contractSerie.MissingEpisodeCount > 0 || contractSerie.MissingEpisodeCountGroups > 0) ==
-                            false) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            (contractSerie.MissingEpisodeCount > 0 || contractSerie.MissingEpisodeCountGroups > 0) ==
-                            true) return false;
-                        break;
-
-                    case GroupFilterConditionType.MissingEpisodesCollecting:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractSerie.MissingEpisodeCountGroups > 0 == false) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractSerie.MissingEpisodeCountGroups > 0 == true) return false;
-                        break;
-                    case GroupFilterConditionType.Tag:
-		                List<string> tags =
-			                gfc.ConditionParameter.Trim()
-				                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-				                .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
-				                .ToList();
-		                bool tagsFound =
-			                tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(a,
-				                StringComparer.InvariantCultureIgnoreCase));
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
-		                if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
-		                break;
-	                case GroupFilterConditionType.Year:
-                        if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue)
-                            return false;
-                        string year = contractSerie.AniDBAnime.AniDBAnime.AirDate.Value.Year.ToString();
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year != gfc.ConditionParameter)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year == gfc.ConditionParameter)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.HasWatchedEpisodes:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractSerie.WatchedEpisodeCount > 0 == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractSerie.WatchedEpisodeCount > 0 == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.HasUnwatchedEpisodes:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            contractSerie.UnwatchedEpisodeCount > 0 == false)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractSerie.UnwatchedEpisodeCount > 0 == true)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedTvDBInfo:
-                        bool tvDBInfoMissing = contractSerie.CrossRefAniDBTvDBV2 == null ||
-                                               contractSerie.CrossRefAniDBTvDBV2.Count == 0;
-		                bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType != (int) enAnimeType.Movie &&
-		                                              !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
-		                tvDBInfoMissing &= supposedToHaveTvDBLink;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && tvDBInfoMissing) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !tvDBInfoMissing) return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedMALInfo:
-                        bool malMissing = contractSerie.CrossRefAniDBMAL == null ||
-                                          contractSerie.CrossRefAniDBMAL.Count == 0;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && malMissing) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !malMissing) return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedMovieDBInfo:
-                        bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
-		                bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
-		                                               (int) enAnimeType.Movie &&
-		                                               !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
-		                movieMissing &= supposedToHaveMovieLink;
-
-		                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && movieMissing) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !movieMissing) return false;
-                        break;
-
-                    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-
-		                bool isMovie = contractSerie.AniDBAnime.AniDBAnime.AnimeType == (int) enAnimeType.Movie;
-		                bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
-
-		                bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && isMovie && !restricted;
-		                bool tvlinkMissing = (contractSerie.CrossRefAniDBTvDBV2 == null ||
-		                                      contractSerie.CrossRefAniDBTvDBV2.Count == 0) && !isMovie && !restricted;
-		                bool bothMissing = movieLinkMissing && tvlinkMissing;
-
-		                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && bothMissing) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !bothMissing) return false;
-                        break;
-
-                    case GroupFilterConditionType.CompletedSeries:
-                        bool completed = contractSerie.AniDBAnime.AniDBAnime.EndDate.HasValue &&
-                                         contractSerie.AniDBAnime.AniDBAnime.EndDate.Value < DateTime.Now &&
-                                         !(contractSerie.MissingEpisodeCount > 0 ||
-                                           contractSerie.MissingEpisodeCountGroups > 0);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !completed) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && completed) return false;
-                        break;
-
-                    case GroupFilterConditionType.FinishedAiring:
-                        bool finished = contractSerie.AniDBAnime.AniDBAnime.EndDate.HasValue &&
-                                        contractSerie.AniDBAnime.AniDBAnime.EndDate.Value < DateTime.Now;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !finished) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && finished) return false;
-                        break;
-
-                    case GroupFilterConditionType.UserVoted:
-
-                        bool voted = (contractSerie.AniDBAnime.UserVote != null) &&
-                                     (contractSerie.AniDBAnime.UserVote.VoteType == (int) AniDBVoteType.Anime);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !voted) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && voted) return false;
-                        break;
-
-                    case GroupFilterConditionType.UserVotedAny:
-                        bool votedany = contractSerie.AniDBAnime.UserVote != null;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !votedany) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && votedany) return false;
-                        break;
-
-                    case GroupFilterConditionType.AirDate:
-                        DateTime filterDate;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDate = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDate = GroupFilterHelper.GetDateFromString(gfc.ConditionParameter);
-
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                            if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue ||
-                                contractSerie.AniDBAnime.AniDBAnime.AirDate.Value < filterDate) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                            if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue ||
-                                contractSerie.AniDBAnime.AniDBAnime.AirDate.Value > filterDate) return false;
-                        break;
-                    case GroupFilterConditionType.LatestEpisodeAirDate:
-                        DateTime filterDateEpisodeLastAired;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractSerie.LatestEpisodeAirDate.HasValue) return false;
-                            if (contractSerie.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (!contractSerie.LatestEpisodeAirDate.HasValue) return false;
-                            if (contractSerie.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
-                        }
-                        break;
-                    case GroupFilterConditionType.SeriesCreatedDate:
-                        DateTime filterDateSeries;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateSeries = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateSeries = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (contractSerie.DateTimeCreated < filterDateSeries) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (contractSerie.DateTimeCreated > filterDateSeries) return false;
-                        }
-                        break;
-
-                    case GroupFilterConditionType.EpisodeWatchedDate:
-                        DateTime filterDateEpsiodeWatched;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpsiodeWatched = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateEpsiodeWatched = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractSerie.WatchedDate.HasValue) return false;
-                            if (contractSerie.WatchedDate.Value < filterDateEpsiodeWatched) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (contractSerie == null) return false;
-                            if (!contractSerie.WatchedDate.HasValue) return false;
-                            if (contractSerie.WatchedDate.Value > filterDateEpsiodeWatched) return false;
-                        }
-                        break;
-
-                    case GroupFilterConditionType.EpisodeAddedDate:
-                        DateTime filterDateEpisodeAdded;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpisodeAdded = DateTime.Today.AddDays(0 - days);
-                        }
-                        else
-                            filterDateEpisodeAdded = GetDateFromString(gfc.ConditionParameter);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-                            gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
-                        {
-                            if (!contractSerie.EpisodeAddedDate.HasValue) return false;
-                            if (contractSerie.EpisodeAddedDate.Value < filterDateEpisodeAdded) return false;
-                        }
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
-                        {
-                            if (!contractSerie.EpisodeAddedDate.HasValue) return false;
-                            if (contractSerie.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
-                        }
-                        break;
-
-                    case GroupFilterConditionType.EpisodeCount:
-
-                        int epCount = -1;
-                        int.TryParse(gfc.ConditionParameter, out epCount);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
-                            contractSerie.AniDBAnime.AniDBAnime.EpisodeCount < epCount) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
-                            contractSerie.AniDBAnime.AniDBAnime.EpisodeCount > epCount) return false;
-                        break;
-
-                    case GroupFilterConditionType.AniDBRating:
-
-                        decimal dRating = -1;
-                        decimal.TryParse(gfc.ConditionParameter, style, culture, out dRating);
-
-                        int totalVotes = contractSerie.AniDBAnime.AniDBAnime.VoteCount +
-                                         contractSerie.AniDBAnime.AniDBAnime.TempVoteCount;
-                        decimal totalRating = contractSerie.AniDBAnime.AniDBAnime.Rating*
-                                              contractSerie.AniDBAnime.AniDBAnime.VoteCount +
-                                              contractSerie.AniDBAnime.AniDBAnime.TempRating*
-                                              contractSerie.AniDBAnime.AniDBAnime.TempVoteCount;
-                        decimal thisRating = totalVotes == 0 ? 0 : totalRating/totalVotes/100;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.UserRating:
-
-
-                        decimal dUserRating = -1;
-                        decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
-                        decimal val = contractSerie.AniDBAnime.UserVote?.VoteValue ?? 0;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && val < dUserRating)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && val > dUserRating)
-                            return false;
-                        break;
-
-
-
-                    case GroupFilterConditionType.CustomTags:
-
-                        List<string> ctags =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundTag =
-                            ctags.FindInEnumerable(contractSerie.AniDBAnime.CustomTags.Select(a => a.TagName));
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundTag) return false;
-                        break;
-
-                    case GroupFilterConditionType.AnimeType:
-
-                        List<string> ctypes =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => ((int)AniDB_Anime.RawToType(a.ToLowerInvariant())).ToString())
-                                .ToList();
-                        bool foundAnimeType = ctypes.Contains(contractSerie.AniDBAnime.AniDBAnime.AnimeType.ToString());
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
-                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundAnimeType) return false;
-                        break;
-
-                    case GroupFilterConditionType.VideoQuality:
-
-                        List<string> vqs =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundVid = vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality);
-                        bool foundVidAllEps =
-                            vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality_Episodes);
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
-                            return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
-                            return false;
-                        break;
-
-                    case GroupFilterConditionType.AudioLanguage:
-                        List<string> als =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundLang = als.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
-                        break;
-
-                    case GroupFilterConditionType.SubtitleLanguage:
-                        List<string> ass =
-                            gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant().Trim())
-                                .ToList();
-                        bool foundSub = ass.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
-                        break;
-                }
-            }
-
-            return true;
+	        return exclude ^ EvaluateConditions(contractSerie, curUser);
         }
+
+	    private bool EvaluateConditions(Contract_AnimeSeries contractSerie, Contract_JMMUser curUser)
+	    {
+		    NumberStyles style = NumberStyles.Number;
+		    CultureInfo culture = CultureInfo.InvariantCulture;
+
+		    // now check other conditions
+		    foreach (GroupFilterCondition gfc in Conditions)
+		    {
+			    switch (gfc.ConditionTypeEnum)
+			    {
+				    case GroupFilterConditionType.MissingEpisodes:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        (contractSerie.MissingEpisodeCount > 0 || contractSerie.MissingEpisodeCountGroups > 0) ==
+					        false) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        (contractSerie.MissingEpisodeCount > 0 || contractSerie.MissingEpisodeCountGroups > 0) ==
+					        true) return false;
+					    break;
+
+				    case GroupFilterConditionType.MissingEpisodesCollecting:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractSerie.MissingEpisodeCountGroups > 0 == false) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractSerie.MissingEpisodeCountGroups > 0 == true) return false;
+					    break;
+				    case GroupFilterConditionType.Tag:
+					    List<string> tags =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
+							    .ToList();
+					    bool tagsFound =
+						    tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(a,
+							    StringComparer.InvariantCultureIgnoreCase));
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
+					    break;
+				    case GroupFilterConditionType.Year:
+					    if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue)
+						    return false;
+					    string year = contractSerie.AniDBAnime.AniDBAnime.AirDate.Value.Year.ToString();
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year != gfc.ConditionParameter)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year == gfc.ConditionParameter)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.HasWatchedEpisodes:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractSerie.WatchedEpisodeCount > 0 == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractSerie.WatchedEpisodeCount > 0 == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.HasUnwatchedEpisodes:
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					        contractSerie.UnwatchedEpisodeCount > 0 == false)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					        contractSerie.UnwatchedEpisodeCount > 0 == true)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedTvDBInfo:
+					    bool tvDBInfoMissing = contractSerie.CrossRefAniDBTvDBV2 == null ||
+					                           contractSerie.CrossRefAniDBTvDBV2.Count == 0;
+					    bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType != (int) enAnimeType.Movie &&
+					                                  !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
+					    tvDBInfoMissing &= supposedToHaveTvDBLink;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && tvDBInfoMissing) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !tvDBInfoMissing) return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedMALInfo:
+					    bool malMissing = contractSerie.CrossRefAniDBMAL == null ||
+					                      contractSerie.CrossRefAniDBMAL.Count == 0;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && malMissing) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !malMissing) return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedMovieDBInfo:
+					    bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
+					    bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
+					                                   (int) enAnimeType.Movie &&
+					                                   !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
+					    movieMissing &= supposedToHaveMovieLink;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && movieMissing) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !movieMissing) return false;
+					    break;
+
+				    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
+
+					    bool isMovie = contractSerie.AniDBAnime.AniDBAnime.AnimeType == (int) enAnimeType.Movie;
+					    bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
+
+					    bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && isMovie && !restricted;
+					    bool tvlinkMissing = (contractSerie.CrossRefAniDBTvDBV2 == null ||
+					                          contractSerie.CrossRefAniDBTvDBV2.Count == 0) && !isMovie && !restricted;
+					    bool bothMissing = movieLinkMissing && tvlinkMissing;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && bothMissing) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !bothMissing) return false;
+					    break;
+
+				    case GroupFilterConditionType.CompletedSeries:
+					    bool completed = contractSerie.AniDBAnime.AniDBAnime.EndDate.HasValue &&
+					                     contractSerie.AniDBAnime.AniDBAnime.EndDate.Value < DateTime.Now &&
+					                     !(contractSerie.MissingEpisodeCount > 0 ||
+					                       contractSerie.MissingEpisodeCountGroups > 0);
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !completed) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && completed) return false;
+					    break;
+
+				    case GroupFilterConditionType.FinishedAiring:
+					    bool finished = contractSerie.AniDBAnime.AniDBAnime.EndDate.HasValue &&
+					                    contractSerie.AniDBAnime.AniDBAnime.EndDate.Value < DateTime.Now;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !finished) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && finished) return false;
+					    break;
+
+				    case GroupFilterConditionType.UserVoted:
+
+					    bool voted = (contractSerie.AniDBAnime.UserVote != null) &&
+					                 (contractSerie.AniDBAnime.UserVote.VoteType == (int) AniDBVoteType.Anime);
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !voted) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && voted) return false;
+					    break;
+
+				    case GroupFilterConditionType.UserVotedAny:
+					    bool votedany = contractSerie.AniDBAnime.UserVote != null;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !votedany) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && votedany) return false;
+					    break;
+
+				    case GroupFilterConditionType.AirDate:
+					    DateTime filterDate;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDate = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDate = GroupFilterHelper.GetDateFromString(gfc.ConditionParameter);
+
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+						    if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue ||
+						        contractSerie.AniDBAnime.AniDBAnime.AirDate.Value < filterDate) return false;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+						    if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue ||
+						        contractSerie.AniDBAnime.AniDBAnime.AirDate.Value > filterDate) return false;
+					    break;
+				    case GroupFilterConditionType.LatestEpisodeAirDate:
+					    DateTime filterDateEpisodeLastAired;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractSerie.LatestEpisodeAirDate.HasValue) return false;
+						    if (contractSerie.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (!contractSerie.LatestEpisodeAirDate.HasValue) return false;
+						    if (contractSerie.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
+					    }
+					    break;
+				    case GroupFilterConditionType.SeriesCreatedDate:
+					    DateTime filterDateSeries;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateSeries = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateSeries = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (contractSerie.DateTimeCreated < filterDateSeries) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (contractSerie.DateTimeCreated > filterDateSeries) return false;
+					    }
+					    break;
+
+				    case GroupFilterConditionType.EpisodeWatchedDate:
+					    DateTime filterDateEpsiodeWatched;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateEpsiodeWatched = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateEpsiodeWatched = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractSerie.WatchedDate.HasValue) return false;
+						    if (contractSerie.WatchedDate.Value < filterDateEpsiodeWatched) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (contractSerie == null) return false;
+						    if (!contractSerie.WatchedDate.HasValue) return false;
+						    if (contractSerie.WatchedDate.Value > filterDateEpsiodeWatched) return false;
+					    }
+					    break;
+
+				    case GroupFilterConditionType.EpisodeAddedDate:
+					    DateTime filterDateEpisodeAdded;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    int days = 0;
+						    int.TryParse(gfc.ConditionParameter, out days);
+						    filterDateEpisodeAdded = DateTime.Today.AddDays(0 - days);
+					    }
+					    else
+						    filterDateEpisodeAdded = GetDateFromString(gfc.ConditionParameter);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
+					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    {
+						    if (!contractSerie.EpisodeAddedDate.HasValue) return false;
+						    if (contractSerie.EpisodeAddedDate.Value < filterDateEpisodeAdded) return false;
+					    }
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    {
+						    if (!contractSerie.EpisodeAddedDate.HasValue) return false;
+						    if (contractSerie.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
+					    }
+					    break;
+
+				    case GroupFilterConditionType.EpisodeCount:
+
+					    int epCount = -1;
+					    int.TryParse(gfc.ConditionParameter, out epCount);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
+					        contractSerie.AniDBAnime.AniDBAnime.EpisodeCount < epCount) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
+					        contractSerie.AniDBAnime.AniDBAnime.EpisodeCount > epCount) return false;
+					    break;
+
+				    case GroupFilterConditionType.AniDBRating:
+
+					    decimal dRating = -1;
+					    decimal.TryParse(gfc.ConditionParameter, style, culture, out dRating);
+
+					    int totalVotes = contractSerie.AniDBAnime.AniDBAnime.VoteCount +
+					                     contractSerie.AniDBAnime.AniDBAnime.TempVoteCount;
+					    decimal totalRating = contractSerie.AniDBAnime.AniDBAnime.Rating*
+					                          contractSerie.AniDBAnime.AniDBAnime.VoteCount +
+					                          contractSerie.AniDBAnime.AniDBAnime.TempRating*
+					                          contractSerie.AniDBAnime.AniDBAnime.TempVoteCount;
+					    decimal thisRating = totalVotes == 0 ? 0 : totalRating/totalVotes/100;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.UserRating:
+
+
+					    decimal dUserRating = -1;
+					    decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
+					    decimal val = contractSerie.AniDBAnime.UserVote?.VoteValue ?? 0;
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && val < dUserRating)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && val > dUserRating)
+						    return false;
+					    break;
+
+
+
+				    case GroupFilterConditionType.CustomTags:
+
+					    List<string> ctags =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundTag =
+						    ctags.FindInEnumerable(contractSerie.AniDBAnime.CustomTags.Select(a => a.TagName));
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundTag) return false;
+					    break;
+
+				    case GroupFilterConditionType.AnimeType:
+
+					    List<string> ctypes =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => ((int)AniDB_Anime.RawToType(a.ToLowerInvariant())).ToString())
+							    .ToList();
+					    bool foundAnimeType = ctypes.Contains(contractSerie.AniDBAnime.AniDBAnime.AnimeType.ToString());
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
+					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundAnimeType) return false;
+					    break;
+
+				    case GroupFilterConditionType.VideoQuality:
+
+					    List<string> vqs =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundVid = vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality);
+					    bool foundVidAllEps =
+						    vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality_Episodes);
+
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
+						    return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
+						    return false;
+					    break;
+
+				    case GroupFilterConditionType.AudioLanguage:
+					    List<string> als =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundLang = als.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
+					    break;
+
+				    case GroupFilterConditionType.SubtitleLanguage:
+					    List<string> ass =
+						    gfc.ConditionParameter.Trim()
+							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+							    .Select(a => a.ToLowerInvariant().Trim())
+							    .ToList();
+					    bool foundSub = ass.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
+					    break;
+			    }
+		    }
+
+		    return true;
+	    }
 
         public static DateTime GetDateFromString(string sDate)
         {
