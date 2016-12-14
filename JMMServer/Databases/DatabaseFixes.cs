@@ -381,7 +381,30 @@ namespace JMMServer.Databases
 						    continue;
 					    }
 				    }
+				    gf.EvaluateAnimeSeries();
+				    gf.EvaluateAnimeGroups();
+				    RepoFactory.GroupFilter.Save(gf);
 			    }
+		    }
+		    catch (Exception e)
+		    {
+			    logger.Error(e);
+		    }
+	    }
+
+	    public static void MakeYearsApplyToSeries()
+	    {
+		    try
+		    {
+			    foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+			    {
+				    if (gf.FilterType != (int)GroupFilterType.Year) continue;
+				    gf.ApplyToSeries = 1;
+				    gf.EvaluateAnimeSeries();
+				    gf.EvaluateAnimeGroups();
+				    RepoFactory.GroupFilter.Save(gf);
+			    }
+			    RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
 		    }
 		    catch (Exception e)
 		    {

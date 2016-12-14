@@ -15,7 +15,7 @@ namespace JMMServer.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 60;
+        public int RequiredVersion { get; } = 61;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -345,7 +345,8 @@ namespace JMMServer.Databases
             new DatabaseCommand(57, 3, "ALTER TABLE `ScanFile` ADD  INDEX `UIX_ScanFileStatus` (`ScanID` ASC, `Status` ASC, `CheckDate` ASC) ;"),
             new DatabaseCommand(58, 1, DatabaseFixes.FixEmptyVideoInfos),
             new DatabaseCommand(59, 1, "ALTER TABLE `GroupFilter` ADD INDEX `IX_groupfilter_GroupFilterName` (`GroupFilterName`(250));"),
-	        new DatabaseCommand(60, 1, DatabaseFixes.FixTagsWithInclude)
+	        new DatabaseCommand(60, 1, DatabaseFixes.FixTagsWithInclude),
+	        new DatabaseCommand(61, 1, DatabaseFixes.MakeYearsApplyToSeries),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

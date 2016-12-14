@@ -321,7 +321,8 @@ namespace JMMServer.Repositories.Cached
                             BaseCondition = 1,
                             Locked = 1,
                             SortingCriteria = "5;1",
-                            FilterType = (int) GroupFilterType.Year
+                            FilterType = (int) GroupFilterType.Year,
+	                        ApplyToSeries = 1
                         };
                         GroupFilterCondition gfc = new GroupFilterCondition();
                         gfc.ConditionType = (int) GroupFilterConditionType.Year;

@@ -473,12 +473,17 @@ namespace JMMServer.Entities
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
 					    break;
 				    case GroupFilterConditionType.Year:
-					    if (!contractGroup.Stat_AirDate_Min.HasValue)
+					    int BeginYear = contractGroup?.Stat_AirDate_Min?.Year ?? 0;
+					    int EndYear = contractGroup?.Stat_AirDate_Max?.Year ?? 0;
+					    // This shouldn't happen, but shit happens
+					    if (BeginYear == 0) return false;
+					    if (EndYear == 0) EndYear = int.MaxValue;
+					    int year = 0;
+					    int.TryParse(gfc.ConditionParameter.Trim(), out year);
+					    if (year == 0) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && (year < BeginYear || year > EndYear))
 						    return false;
-					    string year = contractGroup.Stat_AirDate_Min.Value.Year.ToString();
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year != gfc.ConditionParameter)
-						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year == gfc.ConditionParameter)
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && (year >= BeginYear && year <= EndYear))
 						    return false;
 					    break;
 
@@ -853,12 +858,15 @@ namespace JMMServer.Entities
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
 					    break;
 				    case GroupFilterConditionType.Year:
-					    if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue)
+					    int BeginYear = contractSerie.AniDBAnime.AniDBAnime.BeginYear;
+					    int EndYear = contractSerie.AniDBAnime.AniDBAnime.EndYear;
+					    if (EndYear == 0) EndYear = int.MaxValue;
+					    int year = 0;
+					    int.TryParse(gfc.ConditionParameter.Trim(), out year);
+					    if (year == 0) return false;
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && (year < BeginYear || year > EndYear))
 						    return false;
-					    string year = contractSerie.AniDBAnime.AniDBAnime.AirDate.Value.Year.ToString();
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year != gfc.ConditionParameter)
-						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year == gfc.ConditionParameter)
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && (year >= BeginYear && year <= EndYear))
 						    return false;
 					    break;
 
