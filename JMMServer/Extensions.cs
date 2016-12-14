@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using NutzCode.CloudFileSystem;
 using FluentNHibernate.Utils;
 using JMMContracts;
+using JMMServer.Collections;
 
 namespace JMMServer
 {
@@ -34,14 +35,15 @@ namespace JMMServer
             ;
         }
 
-        public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
-        {
-            HashSet<string> listhash = list as HashSet<string> ?? new HashSet<string>(list, StringComparer.InvariantCultureIgnoreCase);
-            HashSet<string> itemhash = items as HashSet<string> ?? new HashSet<string>(items, StringComparer.InvariantCultureIgnoreCase);
-            return listhash.Overlaps(itemhash);
-        }
+	    public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
+	    {
+		    // Trim, to lower in both lists, remove null and empty strings
+		    HashSet<string> listhash = list.Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+		    HashSet<string> itemhash = items.Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+		    return listhash.Overlaps(itemhash);
+	    }
 
-        public static bool FindIn(this string item, IEnumerable<string> list)
+	    public static bool FindIn(this string item, IEnumerable<string> list)
         {
             return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
         }
