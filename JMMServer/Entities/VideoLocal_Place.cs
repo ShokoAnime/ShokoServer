@@ -511,7 +511,7 @@ namespace JMMServer.Entities
             FileSystemResult fr = dir.Populate();
             if (fr.IsOk)
             {
-                if (dir.Files.Count > 0)
+                if (dir.Files.Count > 0 && dir.Directories.Count == 0)
                     return;
                 foreach (IDirectory d in dir.Directories)
                     RecursiveDeleteEmptyDirectories(d,false);
