@@ -857,6 +857,7 @@ namespace JMMServer.Entities
 				    case GroupFilterConditionType.Year:
 					    int BeginYear = contractSerie.AniDBAnime.AniDBAnime.BeginYear;
 					    int EndYear = contractSerie.AniDBAnime.AniDBAnime.EndYear;
+					    if (BeginYear == 0) return false;
 					    if (EndYear == 0) EndYear = int.MaxValue;
 					    int year = 0;
 					    int.TryParse(gfc.ConditionParameter.Trim(), out year);

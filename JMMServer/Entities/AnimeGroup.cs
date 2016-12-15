@@ -1299,8 +1299,8 @@ namespace JMMServer.Entities
 
 	                    int endyear = anime.EndYear;
 	                    if (endyear == 0) endyear = DateTime.Today.Year;
-
-	                    allYears.UnionWith(Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1));
+						if (anime.BeginYear != 0)
+	                    	allYears.UnionWith(Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1));
                     }
 
 	                contract.Stat_AllYears = allYears;

@@ -110,7 +110,7 @@ namespace JMMServer.Repositories.Cached
 
 	        // Clean up. This will populate empty conditions and remove duplicate filters
 	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
-		        JMMServer.Properties.Resources.GroupFilter_Cleanup);
+		        " " + JMMServer.Properties.Resources.GroupFilter_Cleanup);
 	        IReadOnlyList<GroupFilter> all = RepoFactory.GroupFilter.GetAll();
 	        HashSet<GroupFilter> set = new HashSet<GroupFilter>(all);
 	        IEnumerable<GroupFilter> notin = all.Except(set);
@@ -271,7 +271,7 @@ namespace JMMServer.Repositories.Cached
                         cnt++;
                         if (frominit)
                             ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
-                                Properties.Resources.Filter_CreatingTag + " " + Properties.Resources.Filter_Filter + cnt + "/" + max + " - " + s);
+                                Properties.Resources.Filter_CreatingTag + " " + Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                         GroupFilter yf = new GroupFilter
                         {
                             ParentGroupFilterID = tagsdirec.GroupFilterID,
@@ -307,10 +307,12 @@ namespace JMMServer.Repositories.Cached
 	                    foreach (Contract_AnimeSeries ser in grps)
 	                    {
 		                    int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
+		                    int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
 		                    if (endyear == 0) endyear = DateTime.Today.Year;
-		                    allyears.UnionWith(Enumerable.Range(ser.AniDBAnime.AniDBAnime.BeginYear,
-				                    endyear - ser.AniDBAnime.AniDBAnime.BeginYear + 1)
-			                    .Select(a => a.ToString()));
+		                    if (startyear != 0)
+		                    	allyears.UnionWith(Enumerable.Range(startyear,
+				                    endyear - startyear + 1)
+			                    	.Select(a => a.ToString()));
 	                    }
 
                     }
@@ -331,7 +333,7 @@ namespace JMMServer.Repositories.Cached
                         cnt++;
                         if (frominit)
 		                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
-			                    Properties.Resources.Filter_CreatingYear + " " + Properties.Resources.Filter_Filter + cnt + "/" + max + " - " + s);
+			                    Properties.Resources.Filter_CreatingYear + " " + Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
 	                    GroupFilter yf = new GroupFilter
                         {
                             ParentGroupFilterID = yearsdirec.GroupFilterID,
