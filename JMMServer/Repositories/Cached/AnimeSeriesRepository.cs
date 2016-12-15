@@ -146,8 +146,12 @@ namespace JMMServer.Repositories.Cached
                 {
 	                int endyear = obj.Contract.AniDBAnime.AniDBAnime.EndYear;
 	                if (endyear == 0) endyear = DateTime.Today.Year;
-	                HashSet<int> allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
-		                endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
+	                HashSet<int> allyears = null;
+	                if (obj.Contract.AniDBAnime.AniDBAnime.BeginYear != 0)
+	                {
+		                allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
+			                endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
+	                }
 	                RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false,
                         obj.Contract?.AniDBAnime?.AniDBAnime?.AllTags, allyears);
                     //This call will create extra years or tags if the Group have a new year or tag
