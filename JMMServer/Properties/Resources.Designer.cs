@@ -737,7 +737,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Refreshing Group Filter: (0).
+        ///   Looks up a localized string similar to Refreshing Group Filter: {0}.
         /// </summary>
         public static string Command_RefreshGroupFilter {
             get {
@@ -1543,6 +1543,15 @@ namespace JMMServer.Properties {
         public static string General_Running {
             get {
                 return ResourceManager.GetString("General_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning Up Group Filters.
+        /// </summary>
+        public static string GroupFilter_Cleanup {
+            get {
+                return ResourceManager.GetString("GroupFilter_Cleanup", resourceCulture);
             }
         }
         

@@ -1177,4 +1177,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
     <value>Verfrissende groepeerfilter: {0}</value>
   </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Schoonmaken Group Filters</value>
+  </data>
 </root>

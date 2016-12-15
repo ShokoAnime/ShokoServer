@@ -1177,4 +1177,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
     <value>Actualizar filtro de Grupo: {0}</value>
   </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Limpiando Grupo Filtros</value>
+  </data>
 </root>

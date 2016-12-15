@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using JMMContracts;
+using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
@@ -97,7 +98,7 @@ namespace JMMServer.Repositories.Cached
             {
                 cnt++;
                 ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
-                    Properties.Resources.Filter_Recalc + " " + gf.GroupFilterName + " - " + cnt + "/" + max);
+                    Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " + gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < GroupFilter.GROUPCONDITIONS_VERSION)
                     gf.EvaluateAnimeGroups();
@@ -106,6 +107,28 @@ namespace JMMServer.Repositories.Cached
                     gf.EvaluateAnimeSeries();
                 Save(gf);
             }
+
+	        // Clean up. This will populate empty conditions and remove duplicate filters
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
+		        JMMServer.Properties.Resources.GroupFilter_Cleanup);
+	        IReadOnlyList<GroupFilter> all = RepoFactory.GroupFilter.GetAll();
+	        HashSet<GroupFilter> set = new HashSet<GroupFilter>(all);
+	        IEnumerable<GroupFilter> notin = all.Except(set);
+	        foreach (GroupFilter gf in notin)
+	        {
+		        RepoFactory.GroupFilter.Delete(gf);
+	        }
+	        // Remove orphaned group filter conditions
+	        List<GroupFilterCondition> toremove = new List<GroupFilterCondition>();
+	        foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll())
+	        {
+		        if (RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null) toremove.Add(condition);
+	        }
+	        foreach (GroupFilterCondition condition in toremove)
+	        {
+		        RepoFactory.GroupFilterCondition.Delete(condition);
+	        }
+
             PostProcessFilters = null;
         }
 
@@ -218,7 +241,7 @@ namespace JMMServer.Repositories.Cached
             }
             CreateOrVerifyTagsAndYearsFilters(true);
         }
-        public void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null, DateTime? airdate = null)
+        public void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null, HashSet<int> airdate = null)
         {
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -248,7 +271,7 @@ namespace JMMServer.Repositories.Cached
                         cnt++;
                         if (frominit)
                             ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
-                                Properties.Resources.Filter_CreatingTag + " '" + s + "'" + Properties.Resources.Filter_Filter + cnt + "/" + max);
+                                Properties.Resources.Filter_CreatingTag + " " + Properties.Resources.Filter_Filter + cnt + "/" + max + " - " + s);
                         GroupFilter yf = new GroupFilter
                         {
                             ParentGroupFilterID = tagsdirec.GroupFilterID,
@@ -275,29 +298,25 @@ namespace JMMServer.Repositories.Cached
                 {
 
                     HashSet<string> allyears;
-                    if (airdate == null)
+                    if (airdate == null || airdate.Count == 0)
                     {
-                        List<Contract_AnimeGroup> grps =
-                            RepoFactory.AnimeGroup.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
-                        if (grps.Any(a => a.Stat_AirDate_Min.HasValue && a.Stat_AirDate_Max.HasValue))
-                        {
-                            DateTime maxtime =
-                                grps.Where(a => a.Stat_AirDate_Max.HasValue).Max(a => a.Stat_AirDate_Max.Value);
-                            DateTime mintime =
-                                grps.Where(a => a.Stat_AirDate_Min.HasValue).Min(a => a.Stat_AirDate_Min.Value);
-                            allyears =
-                                new HashSet<string>(
-                                    Enumerable.Range(mintime.Year, maxtime.Year - mintime.Year + 1)
-                                        .Select(a => a.ToString()), StringComparer.InvariantCultureIgnoreCase);
-                        }
-                        else
-                        {
-                            allyears = new HashSet<string>();
-                        }
+                        List<Contract_AnimeSeries> grps =
+                            RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+
+	                    allyears = new HashSet<string>(StringComparer.Ordinal);
+	                    foreach (Contract_AnimeSeries ser in grps)
+	                    {
+		                    int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
+		                    if (endyear == 0) endyear = DateTime.Today.Year;
+		                    allyears.UnionWith(Enumerable.Range(ser.AniDBAnime.AniDBAnime.BeginYear,
+				                    endyear - ser.AniDBAnime.AniDBAnime.BeginYear + 1)
+			                    .Select(a => a.ToString()));
+	                    }
+
                     }
                     else
                     {
-                        allyears = new HashSet<string>(new string[] {airdate.Value.Year.ToString()});
+                        allyears = new HashSet<string>(airdate.Select(a => a.ToString()), StringComparer.Ordinal);
                     }
                     HashSet<string> notin =
                         new HashSet<string>(
@@ -311,9 +330,9 @@ namespace JMMServer.Repositories.Cached
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
-                                Properties.Resources.Filter_CreatingYear + " '" + s + "'  " + Properties.Resources.Filter_Filter + cnt + "/" + max);
-                        GroupFilter yf = new GroupFilter
+		                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
+			                    Properties.Resources.Filter_CreatingYear + " " + Properties.Resources.Filter_Filter + cnt + "/" + max + " - " + s);
+	                    GroupFilter yf = new GroupFilter
                         {
                             ParentGroupFilterID = yearsdirec.GroupFilterID,
                             InvisibleInClients = 0,

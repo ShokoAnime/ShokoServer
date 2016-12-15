@@ -39,7 +39,7 @@ namespace JMMServer.Entities
 
         #endregion
 
-        public const int CONTRACT_VERSION = 4;
+        public const int CONTRACT_VERSION = 5;
 
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -1023,6 +1023,8 @@ namespace JMMServer.Entities
                 newyear = newcontract.Stat_AirDate_Min.Value.Year;
             if (oldyear != newyear)
                 h.Add(GroupFilterConditionType.Year);
+	        if(oldcontract?.Stat_AllYears == null || !oldcontract.Stat_AllYears.SetEquals(newcontract.Stat_AllYears))
+		        h.Add(GroupFilterConditionType.Year);
 
             //TODO This two should be moved to AnimeGroup_User in the future...
             if (oldcontract == null || oldcontract.Stat_UserVotePermanent != newcontract.Stat_UserVotePermanent)
@@ -1122,6 +1124,8 @@ namespace JMMServer.Entities
                     bool hasMovieDBOrTvDB = true;
                     int seriesCount = 0;
                     int epCount = 0;
+
+	                HashSet<int> allYears = new HashSet<int>();
 
                     foreach (AnimeSeries series in allSeriesForGroup)
                     {
@@ -1292,8 +1296,14 @@ namespace JMMServer.Entities
                         }
 
                         hasMovieDBOrTvDB = hasTvDB || hasMovieDB;
+
+	                    int endyear = anime.EndYear;
+	                    if (endyear == 0) endyear = DateTime.Today.Year;
+
+	                    allYears.UnionWith(Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1));
                     }
 
+	                contract.Stat_AllYears = allYears;
                     contract.Stat_AllTags = animeGroup.Tags
                         .Select(a => a.TagName.Trim())
                         .ToHashSet(StringComparer.InvariantCultureIgnoreCase);

@@ -36,7 +36,8 @@ namespace JMMContracts
         public decimal? Stat_UserVoteTemporary { get; set; }
         public decimal? Stat_UserVoteOverall { get; set; }
         public HashSet<string> Stat_AllTags { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        public HashSet<string> Stat_AllCustomTags { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+	    public HashSet<int> Stat_AllYears { get; set; }=new HashSet<int>();
+	    public HashSet<string> Stat_AllCustomTags { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         public HashSet<string> Stat_AllTitles { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         public HashSet<string> Stat_AnimeTypes { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         public bool Stat_IsComplete { get; set; }

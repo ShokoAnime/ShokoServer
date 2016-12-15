@@ -1175,6 +1175,9 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Vous avez Shoko serveur et serveur de JMM installé. Vous voulez désinstaller le serveur de JMM ?</value>
   </data>
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
-    <value>Rafraîchissant de filtre de groupe : (0) !</value>
+    <value>Rafraîchissant de filtre de groupe : {0}</value>
+  </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Nettoyage des filtres de groupe</value>
   </data>
 </root>

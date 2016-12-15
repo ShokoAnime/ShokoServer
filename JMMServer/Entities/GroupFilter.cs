@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using FluentNHibernate.MappingModel;
 using JMMContracts;
 using JMMServer.Commands;
 using JMMServer.Databases;
@@ -473,17 +474,13 @@ namespace JMMServer.Entities
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
 					    break;
 				    case GroupFilterConditionType.Year:
-					    int BeginYear = contractGroup?.Stat_AirDate_Min?.Year ?? 0;
-					    int EndYear = contractGroup?.Stat_AirDate_Max?.Year ?? 0;
-					    // This shouldn't happen, but shit happens
-					    if (BeginYear == 0) return false;
-					    if (EndYear == 0) EndYear = int.MaxValue;
+
 					    int year = 0;
 					    int.TryParse(gfc.ConditionParameter.Trim(), out year);
 					    if (year == 0) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && (year < BeginYear || year > EndYear))
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !contractGroup.Stat_AllYears.Contains(year))
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && (year >= BeginYear && year <= EndYear))
+					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_AllYears.Contains(year))
 						    return false;
 					    break;
 
@@ -1232,6 +1229,36 @@ namespace JMMServer.Entities
 	    {
 		    CommandRequest_RefreshGroupFilter cmdRefreshGroupFilter = new CommandRequest_RefreshGroupFilter(this.GroupFilterID);
 		    cmdRefreshGroupFilter.Save();
+	    }
+
+	    public override bool Equals(object obj)
+	    {
+		    if (!(obj is GroupFilter)) return false;
+		    GroupFilter other = obj as GroupFilter;
+		    if (other.ApplyToSeries != this.ApplyToSeries) return false;
+		    if (other.BaseCondition != this.BaseCondition) return false;
+		    if (other.FilterType != this.FilterType) return false;
+		    if (other.InvisibleInClients != this.InvisibleInClients) return false;
+		    if (other.Locked != this.Locked) return false;
+		    if (other.ParentGroupFilterID != this.ParentGroupFilterID) return false;
+		    if (other.GroupFilterName != this.GroupFilterName) return false;
+		    if (other.SortingCriteria != this.SortingCriteria) return false;
+		    if (this.Conditions == null || this.Conditions.Count == 0)
+		    {
+			    this.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(this.GroupFilterID);
+			    RepoFactory.GroupFilter.Save(this);
+		    }
+		    if (other.Conditions == null || other.Conditions.Count == 0)
+		    {
+			    other.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
+			    RepoFactory.GroupFilter.Save(other);
+		    }
+		    if (this.Conditions != null && other.Conditions != null)
+		    {
+			    if (!this.Conditions.ContentEquals(other.Conditions)) return false;
+		    }
+
+		    return true;
 	    }
     }
 }

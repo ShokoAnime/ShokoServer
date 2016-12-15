@@ -1177,4 +1177,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
     <value>Odświeżanie filtr grupy: {0}</value>
   </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Czyszczenie filtrów Group</value>
+  </data>
 </root>

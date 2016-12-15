@@ -1177,4 +1177,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
     <value>Rinfrescante gruppo filtro: {0}</value>
   </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Pulizia dei filtri di gruppo</value>
+  </data>
 </root>

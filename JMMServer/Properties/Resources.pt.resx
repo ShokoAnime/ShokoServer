@@ -1177,4 +1177,7 @@
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
     <value>Atualizando o filtro de Grupo: {0}</value>
   </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Limpando Filtros do grupo</value>
+  </data>
 </root>

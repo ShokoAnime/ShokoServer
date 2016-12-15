@@ -1177,4 +1177,7 @@
   <data name="Command_RefreshGroupFilter" xml:space="preserve">
     <value>Освежающий фильтр группы: {0}</value>
   </data>
+  <data name="GroupFilter_Cleanup" xml:space="preserve">
+    <value>Очистка Фильтры групп</value>
+  </data>
 </root>

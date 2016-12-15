@@ -99,7 +99,8 @@ namespace JMMServer
 
             contract.Stat_AllCustomTags = new HashSet<string>(c.Stat_AllCustomTags,StringComparer.InvariantCultureIgnoreCase);
             contract.Stat_AllTags = new HashSet<string>(c.Stat_AllTags, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase);
+	        contract.Stat_AllYears = new HashSet<int>(c.Stat_AllYears);
+	        contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase);
             contract.Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes, StringComparer.InvariantCultureIgnoreCase);
             contract.Stat_AllVideoQuality = new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase);
             contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes, StringComparer.InvariantCultureIgnoreCase);
