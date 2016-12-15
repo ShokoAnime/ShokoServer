@@ -111,30 +111,39 @@ namespace JMMServer.Repositories.Cached
 	        // Clean up. This will populate empty conditions and remove duplicate filters
 	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
 		        " " + JMMServer.Properties.Resources.GroupFilter_Cleanup);
-	        IReadOnlyList<GroupFilter> all = RepoFactory.GroupFilter.GetAll();
+	        IReadOnlyList<GroupFilter> all = GetAll();
 	        HashSet<GroupFilter> set = new HashSet<GroupFilter>(all);
-	        IEnumerable<GroupFilter> notin = all.Except(set);
-	        foreach (GroupFilter gf in notin)
-	        {
-		        RepoFactory.GroupFilter.Delete(gf);
-	        }
+	        List<GroupFilter> notin = all.Except(set)?.ToList();
+		    Delete(notin);
+
 	        // Remove orphaned group filter conditions
 	        List<GroupFilterCondition> toremove = new List<GroupFilterCondition>();
 	        foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll())
 	        {
 		        if (RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null) toremove.Add(condition);
 	        }
-	        foreach (GroupFilterCondition condition in toremove)
-	        {
-		        RepoFactory.GroupFilterCondition.Delete(condition);
-	        }
+		    RepoFactory.GroupFilterCondition.Delete(toremove);
+
+	        CleanUpEmptyTagAndYearFilters();
 
             PostProcessFilters = null;
         }
 
 
         //TODO Cleanup function for Empty Tags and Empty Years
-
+	    public void CleanUpEmptyTagAndYearFilters()
+	    {
+		    List<GroupFilter> toremove = new List<GroupFilter>();
+		    foreach (GroupFilter gf in GetAll())
+		    {
+			    if (gf.GroupsIds.Count == 0 && string.IsNullOrEmpty(gf.GroupsIdsString) && gf.SeriesIds.Count == 0 &&
+			        string.IsNullOrEmpty(gf.SeriesIdsString))
+			    {
+				    toremove.Add(gf);
+			    }
+		    }
+		    Delete(toremove);
+	    }
         
 
         public void CreateOrVerifyLockedFilters()
@@ -356,6 +365,7 @@ namespace JMMServer.Repositories.Cached
                         Save(yf);
                     }
                 }
+	            CleanUpEmptyTagAndYearFilters();
             }
         }
 
