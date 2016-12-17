@@ -49,7 +49,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Character:
 
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(ImageID));
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(int.Parse(ImageID));
                     if (chr == null) return null;
 
 		            path = chr.PosterPath;
@@ -67,7 +67,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Creator:
 
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(ImageID));
+                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(int.Parse(ImageID));
                     if (creator == null) return null;
 
 		            path = creator.PosterPath;
