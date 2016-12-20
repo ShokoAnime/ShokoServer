@@ -836,8 +836,18 @@ namespace JMMServer
 	        IReadOnlyList<VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
 	        foreach (VideoLocal v in videoLocalsAll)
 	        {
-				// delete video local record
+		        if (v.Places.Count > 0)
+		        {
+			        foreach (VideoLocal_Place place in v.Places)
+			        {
+				        if (place.ImportFolder != null) continue;
+				        logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", place.FullServerPath);
+				        RepoFactory.VideoLocalPlace.Delete(place);
+			        }
+		        }
 		        if (v.Places.Count > 0) continue;
+		        // delete video local record
+		        logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
 		        RepoFactory.VideoLocal.Delete(v);
 		        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
 		        cmdDel.Save();
