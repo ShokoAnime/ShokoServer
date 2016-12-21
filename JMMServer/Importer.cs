@@ -841,7 +841,7 @@ namespace JMMServer
 			        foreach (VideoLocal_Place place in v.Places)
 			        {
 				        if (place.ImportFolder != null) continue;
-				        logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", place.FullServerPath);
+				        logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
 				        RepoFactory.VideoLocalPlace.Delete(place);
 			        }
 		        }
