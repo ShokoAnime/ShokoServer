@@ -898,14 +898,14 @@ namespace JMMServer
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v.Places.Count == 1)
                     {
-                        RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
+                        RepoFactory.VideoLocalPlace.Delete(vid);
                         RepoFactory.VideoLocal.Delete(v);
                         CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                         cmdDel.Save();
 
                     }
                     else
-                        RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
+                        RepoFactory.VideoLocalPlace.Delete(vid);
                 }
 
                 // delete any duplicate file records which reference this folder
