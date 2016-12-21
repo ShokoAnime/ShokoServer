@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,7 +9,6 @@ using JMMServer.Commands.Azure;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.FileHelper;
-using JMMServer.PlexAndKodi;
 using JMMServer.Providers.Azure;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.MyAnimeList;
@@ -19,7 +18,6 @@ using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
-using Nancy.Extensions;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
@@ -810,74 +808,49 @@ namespace JMMServer
 
         public static void RemoveRecordsWithoutPhysicalFiles()
         {
-	        List<AnimeEpisode> toUpdate = new List<AnimeEpisode>();
             // get a full list of files
-	        // using open transaction for 2 reasons, 1 speed, and 2 so that it finishes cleaning up before generating contracts repeatedly
-	        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll().Where(a => a.ImportFolder != null).GroupBy(a => a.ImportFolder).ToDictionary(a => a.Key, a => a.ToList());
+            foreach (ImportFolder folder in filesAll.Keys)
+            {
+                IFileSystem fs = folder.FileSystem;
+
+                foreach (VideoLocal_Place vl in filesAll[folder])
+                {
+                    FileSystemResult<IObject> obj = fs.Resolve(vl.FullServerPath);
+	                if (obj.IsOk && !(obj.Result is IDirectory)) continue;
+	                VideoLocal v = vl.VideoLocal;
+	                // delete video local record
+	                logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+	                if (v.Places.Count <= 1)
+	                {
+		                RepoFactory.VideoLocalPlace.Delete(vl);
+		                RepoFactory.VideoLocal.Delete(v);
+		                CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+		                cmdDel.Save();
+	                }
+	                else
+		                RepoFactory.VideoLocalPlace.Delete(vl);
+                }
+            }
+
+	        IReadOnlyList<VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
+	        foreach (VideoLocal v in videoLocalsAll)
 	        {
-		        Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
-			        .GroupBy(a => a.ImportFolder)
-			        .ToDictionary(a => a.Key, a => a.ToList());
-		        foreach (ImportFolder folder in filesAll.Keys)
+		        if (v.Places?.Count > 0)
 		        {
-			        IFileSystem fs = folder.FileSystem;
-
-			        foreach (VideoLocal_Place vl in filesAll[folder])
+			        foreach (VideoLocal_Place place in v.Places)
 			        {
-				        FileSystemResult<IObject> obj = fs.Resolve(vl.FullServerPath);
-				        if (obj.IsOk && !(obj.Result is IDirectory)) continue;
-				        VideoLocal v = vl.VideoLocal;
-				        // delete video local record
-				        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
-				        if (v.Places.Count <= 1)
-				        {
-					        toUpdate.AddRange(v.GetAnimeEpisodes());
-					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, vl);
-					        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-					        CommandRequest_DeleteFileFromMyList cmdDel =
-						        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-					        cmdDel.Save();
-				        }
-				        else
-				        {
-					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, vl);
-				        }
+				        if (place.ImportFolder != null) continue;
+				        logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
+				        RepoFactory.VideoLocalPlace.Delete(place);
 			        }
 		        }
-
-		        IReadOnlyList<VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
-		        foreach (VideoLocal v in videoLocalsAll)
-		        {
-			        // delete video local record
-			        if (v.Places.Count > 0) continue;
-			        toUpdate.AddRange(v.GetAnimeEpisodes());
-			        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-			        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-			        cmdDel.Save();
-		        }
-		        toUpdate = toUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-
-		        if (toUpdate.Count > 0)
-		        {
-			        foreach (AnimeEpisode ep in toUpdate)
-			        {
-				        if (ep.AnimeEpisodeID == 0)
-				        {
-					        ep.PlexContract = null;
-					        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-				        }
-				        // Just in case, continue
-				        try
-				        {
-					        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-					        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-				        }
-				        catch (Exception ex)
-				        {
-					        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-				        }
-			        }
-		        }
+		        if (v.Places?.Count > 0) continue;
+		        // delete video local record
+		        logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
+		        RepoFactory.VideoLocal.Delete(v);
+		        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+		        cmdDel.Save();
 	        }
 
 	        UpdateAllStats();
@@ -925,14 +898,14 @@ namespace JMMServer
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v.Places.Count == 1)
                     {
-                        RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
+                        RepoFactory.VideoLocalPlace.Delete(vid);
                         RepoFactory.VideoLocal.Delete(v);
                         CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                         cmdDel.Save();
 
                     }
                     else
-                        RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
+                        RepoFactory.VideoLocalPlace.Delete(vid);
                 }
 
                 // delete any duplicate file records which reference this folder

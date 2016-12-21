@@ -510,7 +510,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
         private void WorkerSyncMedias_DoWork(object sender, DoWorkEventArgs e)
@@ -521,7 +521,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error(ex, ex.Message);
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -603,7 +603,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.Message);
+                    logger.Error( ex,ex.ToString());
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
                 }
@@ -972,7 +972,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
                 MessageBox.Show(JMMServer.Properties.Resources.Server_FailedToStart + ex.Message,
                     JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -2060,7 +2060,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2077,7 +2077,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2460,7 +2460,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2473,7 +2473,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2485,7 +2485,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2497,7 +2497,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.Message);
+                logger.Error( ex,ex.ToString());
             }
         }
 
