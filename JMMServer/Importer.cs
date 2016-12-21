@@ -809,7 +809,7 @@ namespace JMMServer
         public static void RemoveRecordsWithoutPhysicalFiles()
         {
             // get a full list of files
-            Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll().GroupBy(a => a.ImportFolder).ToDictionary(a => a.Key, a => a.ToList());
+            Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll().Where(a => a.ImportFolder != null).GroupBy(a => a.ImportFolder).ToDictionary(a => a.Key, a => a.ToList());
             foreach (ImportFolder folder in filesAll.Keys)
             {
                 IFileSystem fs = folder.FileSystem;
