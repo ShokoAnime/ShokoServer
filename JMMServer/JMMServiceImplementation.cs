@@ -6665,7 +6665,7 @@ namespace JMMServer
                                     return $"Unable to delete file '{place.FullServerPath}'";
                                 }
                             }
-                            RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
+                            RepoFactory.VideoLocalPlace.Delete(place);
                         }
                         CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
                         cmdDel.Save();
