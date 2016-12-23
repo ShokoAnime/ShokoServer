@@ -463,7 +463,7 @@ namespace JMMServer
 	                }
 	                finally
 	                {
-		                Application.Current.Shutdown();
+	                    ApplicationShutdown();
 	                }
 	                return false;
                 }
@@ -471,7 +471,7 @@ namespace JMMServer
                 {
                     MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
                     logger.Error(e);
-                    Application.Current.Shutdown();
+                    ApplicationShutdown();
                     return false;
                 }
 
@@ -479,6 +479,17 @@ namespace JMMServer
             return true;
         }
 
+        public void ApplicationShutdown()
+        {
+            ThreadStart ts = () =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Application.Current.Shutdown();
+                }));
+            };
+            new Thread(ts).Start();
+        }
 
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
@@ -873,7 +884,7 @@ namespace JMMServer
                     if (result == System.Windows.Forms.DialogResult.OK)
                     {
                         System.Windows.Forms.Application.Restart();
-                        System.Windows.Application.Current.Shutdown();
+                        ApplicationShutdown();
                     }
                 }
 
@@ -2790,7 +2801,7 @@ namespace JMMServer
             {
                 hostNancy.Start();
             }
-            catch (Exception ex)
+            catch (Exception ex)    
             {
                 logger.Error(ex);
             }

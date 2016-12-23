@@ -158,7 +158,7 @@ namespace JMMServer
                     {
                         MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
                             MessageBoxButton.OK, MessageBoxImage.Information);
-                        Application.Current.Shutdown();
+                        MainWindow.Instance.ApplicationShutdown();
                         return;
                     }
 
@@ -217,8 +217,7 @@ namespace JMMServer
                         // Sleep a bit to allow for slow startup
                         Thread.Sleep(2500);
                     }
-
-                    Application.Current.Shutdown();
+                    MainWindow.Instance.ApplicationShutdown();
                     return;
                 }
                 disabledSave = false;
@@ -241,8 +240,7 @@ namespace JMMServer
                 migrationActive = false;
                 MessageBox.Show(Properties.Resources.Migration_LoadError + " ", e.ToString());
 	            logger.Error(e);
-                Application.Current.Shutdown();
-                return;
+                MainWindow.Instance.ApplicationShutdown();
             }
         }
 
