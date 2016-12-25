@@ -1887,6 +1887,25 @@ namespace JMMServer
 
         #endregion
 
+        public static string UpdateChannel
+        {
+            get
+            {
+                string val = Get("UpdateChannel");
+                if (string.IsNullOrEmpty(val))
+                {
+                    // default value
+                    val = "stable";
+                    Set("UpdateChannel", val);
+                }
+                return val;
+            }
+            set
+            {
+                Set("UpdateChannel", value);
+            }
+        }
+
         public static string WebCacheAuthKey
         {
             get

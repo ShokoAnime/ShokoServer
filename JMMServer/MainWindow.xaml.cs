@@ -24,6 +24,7 @@ using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
+using JMMServer.Providers.JMMAutoUpdates;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.UI;
@@ -1999,9 +2000,9 @@ namespace JMMServer
                 // get the latest version as according to the release
                 if (!forceShowForm)
                 {
-                    Providers.JMMAutoUpdates.JMMVersions verInfo =
-                        Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
-                    if (verInfo == null) return;
+                    //Providers.JMMAutoUpdates.JMMVersions verInfo =
+                    //    Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
+                    //if (verInfo == null) return;
 
                     // get the user's version
                     System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
@@ -2012,8 +2013,12 @@ namespace JMMServer
                     }
                     System.Reflection.AssemblyName an = a.GetName();
 
-                    verNew = verInfo.versions.ServerVersionAbs;
+                    //verNew = verInfo.versions.ServerVersionAbs;
 
+                    verNew =
+                        JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
+                            JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.UpdateChannel))
+                            ;
                     verCurrent = an.Version.Revision * 100 +
                                  an.Version.Build * 100 * 100 +
                                  an.Version.Minor * 100 * 100 * 100 +

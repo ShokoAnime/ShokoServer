@@ -23,9 +23,9 @@ namespace JMMServer.UI
             try
             {
                 // get the latest version as according to the release
-                Providers.JMMAutoUpdates.JMMVersions verInfo =
-                    Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
-                if (verInfo == null) return;
+                //Providers.JMMAutoUpdates.JMMVersions verInfo =
+                //    Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
+                //if (verInfo == null) return;
             }
             catch (Exception ex)
             {

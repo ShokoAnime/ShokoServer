@@ -22,5 +22,12 @@ namespace JMMServer.UI
             this.Close();
             mdw.CheckForUpdatesNew(true);
         }
+
+
+        private void cbUpdateChannel_DropDownClosed(object sender, System.EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
+                ServerSettings.UpdateChannel = cbUpdateChannel.Text;
+        }
     }
 }
