@@ -1180,4 +1180,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Pulizia dei filtri di gruppo</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Aggiornamento disponibile per Server di Shoko!</value>
+  </data>
 </root>

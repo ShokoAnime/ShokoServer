@@ -1229,4 +1229,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Cleaning Up Group Filters</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Update Available For Shoko Server!</value>
+  </data>
 </root>

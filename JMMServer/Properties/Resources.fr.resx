@@ -1180,4 +1180,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Nettoyage des filtres de groupe</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Mise à disposition pour serveur Shoko !</value>
+  </data>
 </root>

@@ -1180,4 +1180,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Czyszczenie filtrów Group</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Aktualizacja dla serwera Shoko!</value>
+  </data>
 </root>

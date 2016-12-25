@@ -47,7 +47,7 @@ namespace JMMServer.Providers.JMMAutoUpdates
 
         public static string GetLatestVersionNumber(string channel)
         {
-            string versionNumer = "";
+            string versionNumber = "";
             try
             {
                 // get the latest version as according to the release
@@ -58,14 +58,15 @@ namespace JMMServer.Providers.JMMAutoUpdates
                 xmldoc.LoadXml(xml);
                 // Load something into xmldoc
                 var nodeVersion = xmldoc.SelectSingleNode(string.Format("//versioncheck/shokoserver/{0}/version", channel));
-                versionNumer = nodeVersion.InnerText;
+                versionNumber = nodeVersion.InnerText;
+                ServerState.Instance.ApplicationVersionLatest = versionNumber;
             }
             catch (Exception ex)
             {
                 logger.Error("Error during GetLatestVersionNumber: " + ex.Message);
             }
 
-            return versionNumer;
+            return versionNumber;
         }
     }
 }

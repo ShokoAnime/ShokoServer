@@ -1180,4 +1180,7 @@
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Limpando Filtros do grupo</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Atualização disponível para o servidor de Shoko!</value>
+  </data>
 </root>

@@ -1180,4 +1180,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Schoonmaken Group Filters</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Update beschikbaar voor Shoko Server!</value>
+  </data>
 </root>

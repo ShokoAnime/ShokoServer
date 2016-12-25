@@ -1180,4 +1180,7 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Aufräumen Gruppen Filter</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Update verfügbar für Shoko Server!</value>
+  </data>
 </root>

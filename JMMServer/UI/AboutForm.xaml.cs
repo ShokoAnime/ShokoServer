@@ -12,6 +12,10 @@ namespace JMMServer.UI
             InitializeComponent();
 
             //btnUpdates.Click += new RoutedEventHandler(btnUpdates_Click);
+            cbUpdateChannel.Items.Add("stable");
+            cbUpdateChannel.Items.Add("beta");
+            cbUpdateChannel.Items.Add("alpha");
+            cbUpdateChannel.Text = ServerSettings.UpdateChannel;
         }
 
         void btnUpdates_Click(object sender, RoutedEventArgs e)

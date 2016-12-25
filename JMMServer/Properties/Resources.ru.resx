@@ -1180,4 +1180,7 @@
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Очистка Фильтры групп</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>Доступно обновление для сервера Сёко!</value>
+  </data>
 </root>

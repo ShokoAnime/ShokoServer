@@ -1180,4 +1180,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="GroupFilter_Cleanup" xml:space="preserve">
     <value>Limpiando Grupo Filtros</value>
   </data>
+  <data name="Update_Available" xml:space="preserve">
+    <value>¡Actualización disponible para el servidor de Shoko!</value>
+  </data>
 </root>
