@@ -531,10 +531,10 @@ namespace JMMServer.Entities
 
 				    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
 					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-					        contractGroup.Stat_HasMovieDBOrTvDBLink == false)
+					        !contractGroup.Stat_HasMovieDBOrTvDBLink)
 						    return false;
 					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-					        contractGroup.Stat_HasMovieDBOrTvDBLink == true)
+					        contractGroup.Stat_HasMovieDBOrTvDBLink)
 						    return false;
 					    break;
 
@@ -916,13 +916,11 @@ namespace JMMServer.Entities
 					    break;
 
 				    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-
-					    bool isMovie = contractSerie.AniDBAnime.AniDBAnime.AnimeType == (int) enAnimeType.Movie;
 					    bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
 
-					    bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && isMovie && !restricted;
+					    bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && !restricted;
 					    bool tvlinkMissing = (contractSerie.CrossRefAniDBTvDBV2 == null ||
-					                          contractSerie.CrossRefAniDBTvDBV2.Count == 0) && !isMovie && !restricted;
+					                          contractSerie.CrossRefAniDBTvDBV2.Count == 0) && !restricted;
 					    bool bothMissing = movieLinkMissing && tvlinkMissing;
 
 					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && bothMissing) return false;

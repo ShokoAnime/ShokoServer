@@ -1118,10 +1118,11 @@ namespace JMMServer.Entities
                     HashSet<string> videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
                     HashSet<string> audioLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
                     HashSet<string> subtitleLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-                    bool hasTvDB = true;
-                    bool hasMAL = true;
-                    bool hasMovieDB = true;
-                    bool hasMovieDBOrTvDB = true;
+	                // Even though the contract value says 'has link', it's easier to think about whether it's missing
+                    bool missingTvDBLink = false;
+                    bool missingMALLink = false;
+                    bool missingMovieDBLink = false;
+                    bool missingTvDBAndMovieDBLink = false;
                     int seriesCount = 0;
                     int epCount = 0;
 
@@ -1220,7 +1221,7 @@ namespace JMMServer.Entities
                             subtitleLanguages.UnionWith(langStats.LanguageNames);
                         }
 
-                        // Calculate Air Date 
+                        // Calculate Air Date
                         DateTime seriesAirDate = series.AirDate;
 
                         if (seriesAirDate != DateTime.MinValue)
@@ -1270,7 +1271,7 @@ namespace JMMServer.Entities
                             isComplete = true;
                         }
 
-                        // Calculate Series Created Date 
+                        // Calculate Series Created Date
                         DateTime createdDate = series.DateTimeCreated;
 
                         if (seriesCreatedDate == null || createdDate < seriesCreatedDate.Value)
@@ -1280,22 +1281,25 @@ namespace JMMServer.Entities
 
                         // For the group, if any of the series don't have a tvdb link
                         // we will consider the group as not having a tvdb link
-                        if (!tvDbXrefByAnime.Value[anime.AnimeID].Any())
+	                    bool foundTvDBLink = tvDbXrefByAnime.Value[anime.AnimeID].Any();
+	                    bool foundMovieDBLink = movieDbXRefByAnime.Value[anime.AnimeID].Any();
+	                    bool isMovie = anime.AnimeType == (int) enAnimeType.Movie;
+	                    if (!foundTvDBLink)
                         {
-	                        if(anime.AnimeType != (int) enAnimeType.Movie && !(anime.Restricted > 0))
-	                        	hasTvDB = false;
+	                        if(!isMovie && !(anime.Restricted > 0))
+	                        	missingTvDBLink = true;
                         }
-                        if (!movieDbXRefByAnime.Value[anime.AnimeID].Any())
+                        if (!foundMovieDBLink)
                         {
-	                        if(anime.AnimeType == (int) enAnimeType.Movie && !(anime.Restricted > 0))
-		                        hasMovieDB = false;
+	                        if(isMovie && !(anime.Restricted > 0))
+		                        missingMovieDBLink = true;
                         }
                         if (!malXRefByAnime.Value[anime.AnimeID].Any())
                         {
-                            hasMAL = false;
+                            missingMALLink = true;
                         }
 
-                        hasMovieDBOrTvDB = hasTvDB || hasMovieDB;
+                        missingTvDBAndMovieDBLink |= !(anime.Restricted > 0) && !foundTvDBLink && !foundMovieDBLink;
 
 	                    int endyear = anime.EndYear;
 	                    if (endyear == 0) endyear = DateTime.Today.Year;
@@ -1323,11 +1327,11 @@ namespace JMMServer.Entities
                     contract.Stat_IsComplete = isComplete;
                     contract.Stat_HasFinishedAiring = hasFinishedAiring;
                     contract.Stat_IsCurrentlyAiring = isCurrentlyAiring;
-                    contract.Stat_HasTvDBLink = hasTvDB;
-                    contract.Stat_HasMALLink = hasMAL;
-                    contract.Stat_HasMovieDBLink = hasMovieDB;
-                    contract.Stat_HasMovieDBOrTvDBLink = hasMovieDBOrTvDB;
-                    contract.Stat_SeriesCount = seriesCount;
+                    contract.Stat_HasTvDBLink = !missingTvDBLink; // Has a link if it isn't missing
+                    contract.Stat_HasMALLink = !missingMALLink; // Has a link if it isn't missing
+	                contract.Stat_HasMovieDBLink = !missingMovieDBLink; // Has a link if it isn't missing
+	                contract.Stat_HasMovieDBOrTvDBLink = !missingTvDBAndMovieDBLink; // Has a link if it isn't missing
+	                contract.Stat_SeriesCount = seriesCount;
                     contract.Stat_EpisodeCount = epCount;
                     contract.Stat_AllVideoQuality_Episodes = videoQualityEpisodes;
                     contract.Stat_AirDate_Min = airDateMin;
