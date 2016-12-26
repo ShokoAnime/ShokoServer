@@ -32,5 +32,11 @@ namespace JMMServer.UI
             if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
                 ServerSettings.UpdateChannel = cbUpdateChannel.Text;
         }
+
+        private void cbUpdateChannel_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
+                ServerSettings.UpdateChannel = cbUpdateChannel.Text;
+        }
     }
 }
