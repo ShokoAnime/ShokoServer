@@ -1895,7 +1895,7 @@ namespace JMMServer
                 if (string.IsNullOrEmpty(val))
                 {
                     // default value
-                    val = "stable";
+                    val = "Stable";
                     Set("UpdateChannel", val);
                 }
                 return val;

@@ -14,7 +14,7 @@ namespace JMMServer.UI
         public UpdateForm()
         {
             InitializeComponent();
-
+            tbUpdateAvailable.Visibility = IsNewVersionAvailable() ? Visibility.Visible : Visibility.Hidden;
             this.Loaded += UpdateForm_Loaded;
         }
 
@@ -31,6 +31,14 @@ namespace JMMServer.UI
             {
                 logger.Error( ex,ex.ToString());
             }
+        }
+
+        public bool IsNewVersionAvailable()
+        {
+            if (ServerState.Instance.ApplicationVersion == ServerState.Instance.ApplicationVersionLatest)
+                return false;
+
+            return true;
         }
     }
 }

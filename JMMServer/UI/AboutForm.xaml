@@ -103,7 +103,7 @@
                 </StackPanel>
             </Button>
         </StackPanel>
-        <ComboBox x:Name="cbUpdateChannel" HorizontalAlignment="Left" Margin="403,7,0,0" Grid.Row="2" VerticalAlignment="Top" Width="85" DropDownClosed="cbUpdateChannel_DropDownClosed"/>
+        <ComboBox x:Name="cbUpdateChannel" HorizontalAlignment="Left" Margin="405,7,0,0" Grid.Row="2" VerticalAlignment="Top" Width="85" DropDownClosed="cbUpdateChannel_DropDownClosed"/>
 
     </Grid>
 </Window>
