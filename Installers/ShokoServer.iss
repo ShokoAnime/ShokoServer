@@ -44,9 +44,6 @@ Source: "..\JMMServer\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"
 Source: "..\JMMServer\bin\Release\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\ShokoServer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\ShokoServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
-Source: "..\JMMServer\bin\Release\ShokoServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -83,10 +80,20 @@ Source: "..\JMMServer\bin\Release\NLog.xml"; DestDir: "{app}"; Flags: ignorevers
 Source: "..\JMMServer\bin\Release\protobuf-net.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\RestSharp.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\ShokoServer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\ShokoServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\ShokoServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Diagnostics.DiagnosticSource.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Diagnostics.DiagnosticSource.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
