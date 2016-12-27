@@ -62,8 +62,8 @@ namespace JMMServer
 	        int exitCode = -1;
 	        Process proc = new Process();
 
-	        proc.StartInfo.FileName = "cmd.exe";
-	        proc.StartInfo.Arguments = String.Format(@"/c {0}", BatchFile);
+            proc.StartInfo.FileName = @"C:\windows\system32\cmd.exe";
+            proc.StartInfo.Arguments = String.Format(@"/c {0}", BatchFile);
 	        proc.StartInfo.Verb = "runas";
 	        proc.StartInfo.CreateNoWindow = true;
 	        proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -72,9 +72,10 @@ namespace JMMServer
 	        try
 	        {
 		        StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+	            string cmdOutput = "";
 
-		        //Cleanup previous
-		        try
+                //Cleanup previous
+                try
 		        {
 			        BatchFileStream.WriteLine("icacls\"" + fullPath + "\" /grant *S-1-1-0:(OI)(CI)F /T");
 		        }
@@ -84,20 +85,34 @@ namespace JMMServer
 		        }
 
 		        proc.Start();
-		        proc.WaitForExit();
-		        exitCode = proc.ExitCode;
-		        proc.Close();
+
+                StreamReader reader = proc.StandardOutput;
+                cmdOutput += reader.ReadToEnd();
+
+                proc.WaitForExit();
+
+                exitCode = proc.ExitCode;
+                reader.Close();
+                proc.Close();
+
 		        File.Delete(BatchFile);
-		        if (exitCode != 0)
-		        {
-			        logger.Error("Temporary batch process for granting folder write access returned error code: " + exitCode);
-		        }
-	        }
+
+	            if (exitCode == 0)
+	            {
+	                logger.Info("GrantAccess batch output: " + cmdOutput);
+                    logger.Info("Successfully granted write permissions to " + fullPath);
+	            }
+	            else
+	            {
+                    logger.Info("GrantAccess batch output: " + cmdOutput);
+                    logger.Error("Temporary batch process for granting folder write access returned error code: " +
+	                             exitCode);
+	            }
+            }
 	        catch (Exception ex)
 	        {
 		        logger.Error(ex, ex.ToString());
 	        }
-	        logger.Error("Successfully granted write permissions to " + fullPath);
         }
 
         public static string CalculateSHA1(string text, Encoding enc)
