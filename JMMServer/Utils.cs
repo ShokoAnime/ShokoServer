@@ -52,7 +52,7 @@ namespace JMMServer
             {
                 output.Write(buffer, 0, bytesRead);
             }
-        }
+        }   
 
 
         public static void GrantAccess(string fullPath)
@@ -62,8 +62,8 @@ namespace JMMServer
 	        int exitCode = -1;
 	        Process proc = new Process();
 
-            proc.StartInfo.FileName = @"C:\windows\system32\cmd.exe";
-            proc.StartInfo.Arguments = String.Format(@"/c {0}", BatchFile);
+            proc.StartInfo.FileName = "cmd.exe";
+            proc.StartInfo.Arguments = $@"/c {BatchFile}";
 	        proc.StartInfo.Verb = "runas";
 	        proc.StartInfo.CreateNoWindow = true;
 	        proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -77,7 +77,7 @@ namespace JMMServer
                 //Cleanup previous
                 try
 		        {
-			        BatchFileStream.WriteLine("icacls\"" + fullPath + "\" /grant *S-1-1-0:(OI)(CI)F /T");
+			        BatchFileStream.WriteLine($"{"icacls"} \"{fullPath}\" {"/grant *S-1-1-0:(OI)(CI)F /T"}");
 		        }
 		        finally
 		        {
