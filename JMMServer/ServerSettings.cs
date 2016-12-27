@@ -435,12 +435,12 @@ namespace JMMServer
                     Info.CreateNoWindow = true;
                     Info.FileName = @"C:\windows\system32\cmd.exe";
                     Process.Start(Info);
-                    MainWindow.Instance.ApplicationShutdown();
+                    Environment.Exit(0);
                 }
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Error, string.Format("Error occured during WaitForMigrationThenRestart: {0}", ex.Message));
+                logger.Log(LogLevel.Error, $"Error occured during WaitForMigrationThenRestart: {ex.Message}");
             }
         }
 
