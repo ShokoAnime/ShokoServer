@@ -72,7 +72,6 @@ namespace JMMServer
 	        try
 	        {
 		        StreamWriter BatchFileStream = new StreamWriter(BatchFile);
-	            string cmdOutput = "";
 
                 //Cleanup previous
                 try
@@ -86,25 +85,19 @@ namespace JMMServer
 
 		        proc.Start();
 
-                StreamReader reader = proc.StandardOutput;
-                cmdOutput += reader.ReadToEnd();
-
                 proc.WaitForExit();
 
                 exitCode = proc.ExitCode;
-                reader.Close();
                 proc.Close();
 
 		        File.Delete(BatchFile);
 
 	            if (exitCode == 0)
 	            {
-	                logger.Info("GrantAccess batch output: " + cmdOutput);
                     logger.Info("Successfully granted write permissions to " + fullPath);
 	            }
 	            else
 	            {
-                    logger.Info("GrantAccess batch output: " + cmdOutput);
                     logger.Error("Temporary batch process for granting folder write access returned error code: " +
 	                             exitCode);
 	            }
