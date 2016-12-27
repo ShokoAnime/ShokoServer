@@ -183,12 +183,19 @@ namespace JMMServer
                         Utils.GrantAccess(ApplicationPath);
                         disabledSave = false;
 
-	                    // Migrate sqlite db file if necessary
-	                    if (DatabaseFile.Contains(programlocation))
-	                    {
-		                    string dbname = Path.GetFileName(DatabaseFile);
-		                    DatabaseFile = Path.Combine(ApplicationPath, dbname);
-	                    }
+                        if (!string.IsNullOrEmpty(DatabaseFile))
+                        {
+                            // Migrate sqlite db file if necessary
+                            if (DatabaseFile.Contains(programlocation))
+                            {
+                                string dbname = Path.GetFileName(DatabaseFile);
+                                DatabaseFile = Path.Combine(ApplicationPath, dbname);
+                            }
+                        }
+                        else
+                        {
+                            logger.Error("Error occured during LoadSettingsFromFile() , DatabaseFile is null or empty");
+                        }
 
                         SaveSettings();
 
@@ -217,11 +224,8 @@ namespace JMMServer
                     if (!migrationError)
                     {
                         WaitForMigrationThenRestart();
-
-                        // Sleep a bit to allow for slow startup
-                        Thread.Sleep(2500);
                     }
-                    MainWindow.Instance.ApplicationShutdown();
+
                     return;
                 }
                 disabledSave = false;
@@ -242,7 +246,7 @@ namespace JMMServer
             {
                 migrationError = true;
                 migrationActive = false;
-                MessageBox.Show(Properties.Resources.Migration_LoadError + " ", e.ToString());
+                MessageBox.Show($"{Properties.Resources.Migration_LoadError} {e.Message}", Properties.Resources.Migration_LoadError);
 	            logger.Error(e);
                 MainWindow.Instance.ApplicationShutdown();
             }
@@ -330,12 +334,12 @@ namespace JMMServer
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
                 // Load default settings as otherwise will fail to start entirely
                 var col = ConfigurationManager.AppSettings;
                 appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
-                logger.Log(LogLevel.Error, string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", e.Message));
+                logger.Log(LogLevel.Error, string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", ex.Message));
             }
         }
         public static string LocateLegacyConfigFile()
@@ -414,15 +418,22 @@ namespace JMMServer
         {
             string applicationPath = "ShokoServer.exe";
 
-            if (File.Exists(applicationPath))
+            try
             {
-                ProcessStartInfo Info = new ProcessStartInfo();
-                Info.Arguments = "/C ping 127.0.0.1 -n 2 && \"" + applicationPath + "\"";
-                Info.WindowStyle = ProcessWindowStyle.Hidden;
-                Info.CreateNoWindow = true;
-                Info.FileName = "cmd.exe";
-                Process.Start(Info);
-                Environment.Exit(1);
+                if (File.Exists(applicationPath))
+                {
+                    ProcessStartInfo Info = new ProcessStartInfo();
+                    Info.Arguments = "/C ping 127.0.0.1 -n 3 && \"" + applicationPath + "\"";
+                    Info.WindowStyle = ProcessWindowStyle.Hidden;
+                    Info.CreateNoWindow = true;
+                    Info.FileName = "cmd.exe";
+                    Process.Start(Info);
+                    MainWindow.Instance.ApplicationShutdown();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Log(LogLevel.Error, string.Format("Error occured during WaitForMigrationThenRestart: {0}", ex.Message));
             }
         }
 

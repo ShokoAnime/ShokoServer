@@ -95,7 +95,7 @@ namespace JMMServer
         private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
-        private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
+        private static BackgroundWorker workerSyncHashes = new BackgroundWorker();
         private static BackgroundWorker workerSyncMedias = new BackgroundWorker();
 
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
@@ -153,14 +153,14 @@ namespace JMMServer
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-			// Migrate programdata folder from JMMServer to ShokoServer
-			// this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
-			if(!MigrateProgramDataLocation())
-			{
-				MessageBox.Show(JMMServer.Properties.Resources.Migration_LoadError,
-					JMMServer.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
-				Environment.Exit(1);
-			}
+            // Migrate programdata folder from JMMServer to ShokoServer
+            // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
+            if (!MigrateProgramDataLocation())
+            {
+                MessageBox.Show(JMMServer.Properties.Resources.Migration_LoadError,
+                    JMMServer.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(1);
+            }
 
             // First check if we have a settings.json in case migration had issues as otherwise might clear out existing old configurations
             string path = Path.Combine(ServerSettings.ApplicationPath, "settings.json");
@@ -177,12 +177,12 @@ namespace JMMServer
             }
             catch (Exception e)
             {
-                logger.Log(LogLevel.Error,e);
+                logger.Log(LogLevel.Error, e);
             }
 
             try
             {
-                mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance+"Mutex");
+                mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance + "Mutex");
                 //since it hasn't thrown an exception, then we already have one copy of the app open.
                 MessageBox.Show(JMMServer.Properties.Resources.Server_Running,
                     JMMServer.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -205,7 +205,8 @@ namespace JMMServer
             LogRotatorWorker.WorkerReportsProgress = false;
             LogRotatorWorker.WorkerSupportsCancellation = false;
             LogRotatorWorker.DoWork += new DoWorkEventHandler(LogRotatorWorker_DoWork);
-            LogRotatorWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(LogRotatorWorker_RunWorkerCompleted);
+            LogRotatorWorker.RunWorkerCompleted +=
+                new RunWorkerCompletedEventHandler(LogRotatorWorker_RunWorkerCompleted);
 
             //Create an instance of the NotifyIcon Class
             TippuTrayNotify = new System.Windows.Forms.NotifyIcon();
@@ -252,8 +253,8 @@ namespace JMMServer
             btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
             btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
             btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
-			btnUpdateImages.Click += new RoutedEventHandler(btnUpdateImages_Click);
-			btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
+            btnUpdateImages.Click += new RoutedEventHandler(btnUpdateImages_Click);
+            btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
             btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
 
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
@@ -334,16 +335,16 @@ namespace JMMServer
             btnGeneralClear.Click += new RoutedEventHandler(btnGeneralClear_Click);
             btnImagesClear.Click += new RoutedEventHandler(btnImagesClear_Click);
 
+            //automaticUpdater.MenuItem = mnuCheckForUpdates;
+
+            ServerState.Instance.LoadSettings();
+
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
             Instance = this;
 
-	        //automaticUpdater.MenuItem = mnuCheckForUpdates;
-
-	        ServerState.Instance.LoadSettings();
-
-	        // run rotator once and set 24h delay
+            // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
         }
@@ -358,8 +359,11 @@ namespace JMMServer
 
         public bool MigrateProgramDataLocation()
         {
-            string oldApplicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
-            string newApplicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
+            string oldApplicationPath =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
+            string newApplicationPath =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
             if (Directory.Exists(oldApplicationPath) && !Directory.Exists(newApplicationPath))
             {
                 try
@@ -387,19 +391,20 @@ namespace JMMServer
                 {
                     logger.Log(LogLevel.Error, "Error occured during MigrateProgramDataLocation()");
                     logger.Error(e);
-					return false;
+                    return false;
                 }
             }
-			return true;
+            return true;
         }
+
         void UninstallJMMServer()
         {
             // Check in registry if installed
             string jmmServerUninstallPath =
                 (string)
-                    Registry.GetValue(
-                        @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
-                        "UninstallString", null);
+                Registry.GetValue(
+                    @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                    "UninstallString", null);
 
             if (!string.IsNullOrEmpty(jmmServerUninstallPath))
             {
@@ -445,22 +450,23 @@ namespace JMMServer
                 if (Utils.IsAdministrator())
                 {
                     MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
-                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort, ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
-	                try
-	                {
-		                action();
-	                }
-	                catch (Exception exception)
-	                {
-		                MessageBox.Show("Unable start hosting");
-		                logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
-		                logger.Error(exception);
-	                }
-	                finally
-	                {
-	                    ApplicationShutdown();
-	                }
-	                return false;
+                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort,
+                        ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
+                    try
+                    {
+                        action();
+                    }
+                    catch (Exception exception)
+                    {
+                        MessageBox.Show("Unable start hosting");
+                        logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
+                        logger.Error(exception);
+                    }
+                    finally
+                    {
+                        ApplicationShutdown();
+                    }
+                    return false;
                 }
                 else
                 {
@@ -476,14 +482,21 @@ namespace JMMServer
 
         public void ApplicationShutdown()
         {
-            ThreadStart ts = () =>
+            try
             {
-                Dispatcher.BeginInvoke(new Action(() =>
+                ThreadStart ts = () =>
                 {
-                    Application.Current.Shutdown();
-                }));
-            };
-            new Thread(ts).Start();
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        Application.Current.Shutdown();
+                    }));
+                };
+                new Thread(ts).Start();
+            }
+            catch (Exception ex)
+            {
+                logger.Log(LogLevel.Error, string.Format("Error occured during ApplicationShutdown: {0}", ex.Message));
+            }
         }
 
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)

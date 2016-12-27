@@ -209,12 +209,11 @@ namespace JMMServer
             Process proc = new Process();
 
             proc.StartInfo.FileName = "cmd.exe";
-            proc.StartInfo.Arguments = String.Format(@"/c {0}", BatchFile);
+            proc.StartInfo.Arguments = $@"/c {BatchFile}";
             proc.StartInfo.Verb = "runas";
             proc.StartInfo.CreateNoWindow = true;
             proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             proc.StartInfo.UseShellExecute = true;
-
 
             try
             {
