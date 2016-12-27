@@ -224,7 +224,7 @@ namespace JMMServer
                     // Only restart app upon successfull completion otherwise show error and shut down
                     if (migrationError)
                     {
-                        MessageBox.Show($"{Properties.Resources.Migration_LoadError} failed to migrate succesfully and shutting down application.");
+                        MessageBox.Show($"{Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application.");
                         MainWindow.Instance.ApplicationShutdown();
                     }
                     else
