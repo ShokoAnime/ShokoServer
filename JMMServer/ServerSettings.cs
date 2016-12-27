@@ -182,13 +182,16 @@ namespace JMMServer
                         }
                         Utils.GrantAccess(ApplicationPath);
                         disabledSave = false;
+
 	                    // Migrate sqlite db file if necessary
 	                    if (DatabaseFile.Contains(programlocation))
 	                    {
 		                    string dbname = Path.GetFileName(DatabaseFile);
 		                    DatabaseFile = Path.Combine(ApplicationPath, dbname);
 	                    }
+
                         SaveSettings();
+
                         foreach (MigrationDirectory md in migrationdirs)
                         {
                             if (!md.SafeMigrate())
@@ -413,8 +416,6 @@ namespace JMMServer
 
             if (File.Exists(applicationPath))
             {
-                MessageBox.Show("Application path = " + applicationPath);
-
                 ProcessStartInfo Info = new ProcessStartInfo();
                 Info.Arguments = "/C ping 127.0.0.1 -n 2 && \"" + applicationPath + "\"";
                 Info.WindowStyle = ProcessWindowStyle.Hidden;
