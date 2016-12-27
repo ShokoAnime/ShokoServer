@@ -423,7 +423,7 @@ namespace JMMServer
         private static void WaitForMigrationThenRestart()
         {
             string exePath = System.Windows.Forms.Application.ExecutablePath;
-            logger.Log(LogLevel.Info, string.Format("WaitForMigrationThenRestart executable path: {0}", exePath));
+            logger.Log(LogLevel.Info, $"WaitForMigrationThenRestart executable path: {exePath}");
 
             try
             {
