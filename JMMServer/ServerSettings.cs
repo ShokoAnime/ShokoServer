@@ -422,17 +422,18 @@ namespace JMMServer
         }
         private static void WaitForMigrationThenRestart()
         {
-            string applicationPath = "ShokoServer.exe";
+            string exePath = System.Windows.Forms.Application.ExecutablePath;
+            logger.Log(LogLevel.Info, string.Format("WaitForMigrationThenRestart executable path: {0}", exePath));
 
             try
             {
-                if (File.Exists(applicationPath))
+                if (File.Exists(exePath))
                 {
                     ProcessStartInfo Info = new ProcessStartInfo();
-                    Info.Arguments = "/C ping 127.0.0.1 -n 3 && \"" + applicationPath + "\"";
+                    Info.Arguments = "/C ping 127.0.0.1 -n 3 && \"" + exePath + "\"";
                     Info.WindowStyle = ProcessWindowStyle.Hidden;
                     Info.CreateNoWindow = true;
-                    Info.FileName = "cmd.exe";
+                    Info.FileName = @"C:\windows\system32\cmd.exe";
                     Process.Start(Info);
                     MainWindow.Instance.ApplicationShutdown();
                 }
