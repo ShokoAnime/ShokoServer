@@ -262,8 +262,6 @@ namespace JMMServer
 
             txtServerPort.Text = ServerSettings.JMMServerPort;
 
-
-
             btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
             btnApplyServerPort.Click += new RoutedEventHandler(btnApplyServerPort_Click);
             btnUpdateMediaInfo.Click += new RoutedEventHandler(btnUpdateMediaInfo_Click);
@@ -332,24 +330,20 @@ namespace JMMServer
             btnJMMDisableStartWithWindows.Click += new RoutedEventHandler(btnJMMDisableStartWithWindows_Click);
             btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
-
-
             btnHasherClear.Click += new RoutedEventHandler(btnHasherClear_Click);
             btnGeneralClear.Click += new RoutedEventHandler(btnGeneralClear_Click);
             btnImagesClear.Click += new RoutedEventHandler(btnImagesClear_Click);
-
-
-            //automaticUpdater.MenuItem = mnuCheckForUpdates;
-
-            ServerState.Instance.LoadSettings();
-
 
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
             Instance = this;
 
-            // run rotator once and set 24h delay
+	        //automaticUpdater.MenuItem = mnuCheckForUpdates;
+
+	        ServerState.Instance.LoadSettings();
+
+	        // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
         }

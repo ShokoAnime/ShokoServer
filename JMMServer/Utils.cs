@@ -58,16 +58,48 @@ namespace JMMServer
         public static void GrantAccess(string fullPath)
         {
             //C# version do not work, do not inherit permissions to childs.
-            Process proc = new Process();
+	        string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "GrantAccess.bat");
+	        int exitCode = -1;
+	        Process proc = new Process();
 
-            proc.StartInfo.FileName = "icacls";
-            proc.StartInfo.Arguments = "\"" + fullPath + "\" /grant *S-1-1-0:(OI)(CI)F /T";
-            proc.StartInfo.Verb = "runas";
-            proc.StartInfo.CreateNoWindow = true;
-            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            proc.StartInfo.UseShellExecute = true;
-            proc.Start();
+	        proc.StartInfo.FileName = "cmd.exe";
+	        proc.StartInfo.Arguments = String.Format(@"/c {0}", BatchFile);
+	        proc.StartInfo.Verb = "runas";
+	        proc.StartInfo.CreateNoWindow = true;
+	        proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+	        proc.StartInfo.UseShellExecute = true;
+
+	        try
+	        {
+		        StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+
+		        //Cleanup previous
+		        try
+		        {
+			        BatchFileStream.WriteLine("icacls\"" + fullPath + "\" /grant *S-1-1-0:(OI)(CI)F /T");
+		        }
+		        finally
+		        {
+			        BatchFileStream.Close();
+		        }
+
+		        proc.Start();
+		        proc.WaitForExit();
+		        exitCode = proc.ExitCode;
+		        proc.Close();
+		        File.Delete(BatchFile);
+		        if (exitCode != 0)
+		        {
+			        logger.Error("Temporary batch process for granting folder write access returned error code: " + exitCode);
+		        }
+	        }
+	        catch (Exception ex)
+	        {
+		        logger.Error(ex, ex.ToString());
+	        }
+	        logger.Error("Successfully granted write permissions to " + fullPath);
         }
+
         public static string CalculateSHA1(string text, Encoding enc)
         {
             byte[] buffer = enc.GetBytes(text);
