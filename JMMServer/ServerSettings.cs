@@ -158,7 +158,8 @@ namespace JMMServer
                     {
                         MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
                             MessageBoxButton.OK, MessageBoxImage.Information);
-                        MainWindow.Instance.ApplicationShutdown();
+	                    // This should be okay, since we are still in MainWindow Init
+                        Application.Current.Shutdown();
                         return;
                     }
 
