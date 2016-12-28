@@ -6442,12 +6442,13 @@ namespace JMMServer
                     JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
-                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords);
+	                // We will deal with a large list, don't perform ops on the whole thing!
+                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1);
                     int numEps = 0;
-                    List<string> hashes = vids.Where(a => !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
-                    foreach (string s in hashes)
+                    foreach (VideoLocal vid in vids)
                     {
-                        VideoLocal vid = vids.FirstOrDefault(a => a.Hash == s);
+	                    if (string.IsNullOrEmpty(vid.Hash)) continue;
+
                         foreach (AnimeEpisode ep in vid.GetAnimeEpisodes())
                         {
                             if (user.AllowedSeries(ep.GetAnimeSeries(sessionWrapper)))
@@ -6459,7 +6460,7 @@ namespace JMMServer
                                     numEps++;
 
                                     // Lets only return the specified amount
-                                    if (retEps.Count == maxRecords) return retEps;
+                                    if (retEps.Count >= maxRecords) return retEps;
                                 }
                             }
                         }

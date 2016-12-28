@@ -177,7 +177,9 @@ namespace JMMServer.Repositories.Cached
 
         public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
         {
-            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
+	        if (maxResults == -1)
+		        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList();
+	        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
         }
 
         public List<VideoLocal> GetRandomFiles(int maxResults)
