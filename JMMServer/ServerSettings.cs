@@ -80,29 +80,67 @@ namespace JMMServer
                 disabledSave = true;
 
                 string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>
+
+                List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>();
+                migrationdirs.Add(new MigrationDirectory
                 {
-                    new MigrationDirectory
+                    From = Path.Combine(programlocation, "SQLite"),
+                    To = MySqliteDirectory
+                });
+                migrationdirs.Add(new MigrationDirectory
+                {
+                    From = Path.Combine(programlocation, "DatabaseBackup"),
+                    To = DatabaseBackupDirectory
+                });
+                migrationdirs.Add(new MigrationDirectory
+                {
+                    From = Path.Combine(programlocation, "MyList"),
+                    To = MyListDirectory
+                });
+                migrationdirs.Add(new MigrationDirectory
+                {
+                    From = Path.Combine(programlocation, "Anime_HTTP"),
+                    To = AnimeXmlDirectory
+                });
+                migrationdirs.Add(new MigrationDirectory
+                {
+                    From = Path.Combine(programlocation, "logs"),
+                    To = Path.Combine(ApplicationPath, "logs")
+                });
+
+
+                // Check and see if we have old JMMServer installation and add to migration if needed
+                string jmmServerInstallLocation = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                    "InstallLocation", null);
+
+                if (!string.IsNullOrEmpty(jmmServerInstallLocation))
+                {
+                    migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(programlocation, "SQLite"), To = MySqliteDirectory
-                    },
-                    new MigrationDirectory
+                        From = Path.Combine(jmmServerInstallLocation, "SQLite"),
+                        To = MySqliteDirectory
+                    });
+                    migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(programlocation, "DatabaseBackup"), To = DatabaseBackupDirectory
-                    },
-                    new MigrationDirectory
+                        From = Path.Combine(jmmServerInstallLocation, "DatabaseBackup"),
+                        To = DatabaseBackupDirectory
+                    });
+                    migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(programlocation, "MyList"), To = MyListDirectory
-                    },
-                    new MigrationDirectory
+                        From = Path.Combine(jmmServerInstallLocation, "MyList"),
+                        To = MyListDirectory
+                    });
+                    migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(programlocation, "Anime_HTTP"), To = AnimeXmlDirectory
-                    },
-                    new MigrationDirectory
+                        From = Path.Combine(jmmServerInstallLocation, "Anime_HTTP"),
+                        To = AnimeXmlDirectory
+                    });
+                    migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(programlocation, "logs"), To = Path.Combine(ApplicationPath,"logs")
-                    },
-                };
+                        From = Path.Combine(jmmServerInstallLocation, "logs"),
+                        To = Path.Combine(ApplicationPath, "logs")
+                    });
+                }
 
                 string path = Path.Combine(ApplicationPath, "settings.json");
                 if (tmp_setting_file != "")
@@ -135,8 +173,17 @@ namespace JMMServer
                     migrationdirs.Add(new MigrationDirectory
                     {
                         From = Path.Combine(programlocation, "images"),
-                        To = DefaultImagePath
+                        To = DefaultImagePath,
                     });
+
+                    if (!string.IsNullOrEmpty(jmmServerInstallLocation))
+                    {
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(jmmServerInstallLocation, "images"),
+                            To = DefaultImagePath,
+                        });
+                    }
                 }
                 else if (Directory.Exists(BaseImagesPath))
                 {
@@ -147,9 +194,14 @@ namespace JMMServer
                 {
                     if (m.ShouldMigrate)
                     {
+                        logger.Info($"Will be migrating from: {m.From} to: {m.To}");
                         migrate = true;
-                        break;
+                        continue;
                     }
+
+                    logger.Info($"Can't migrate from: {m.From} to: {m.To}");
+                    logger.Info($"From exists = : {Directory.Exists(m.From)}");
+                    logger.Info($"To exists = : {Directory.Exists(m.To)}");
                 }
                 if (migrate)
                 {
@@ -158,9 +210,12 @@ namespace JMMServer
                     {
                         MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
                             MessageBoxButton.OK, MessageBoxImage.Information);
-	                    // This should be okay, since we are still in MainWindow Init
-                        Application.Current.Shutdown();
-                        return;
+
+                        Environment.Exit(0);
+
+                        // This should be okay, since we are still in MainWindow Init
+                        //Application.Current.Shutdown();
+                        //return;
                     }
 
 
@@ -174,11 +229,18 @@ namespace JMMServer
                         m.Show();*/
 
                         // Show migration indicator
+                        logger.Info("Migration showing indicator form..");
+
                         MigrationIndicatorForm();
+
+                        logger.Info("Migration showed indicator form..");
 
                         if (!Directory.Exists(ApplicationPath))
                         {
+                            logger.Info("Migration creating application path: " + ApplicationPath);
                             Directory.CreateDirectory(ApplicationPath);
+                            logger.Info("Migration created application path: " + ApplicationPath);
+
                         }
                         Utils.GrantAccess(ApplicationPath);
                         disabledSave = false;
@@ -197,7 +259,9 @@ namespace JMMServer
                             logger.Error("Error occured during LoadSettingsFromFile() , DatabaseFile is null or empty");
                         }
 
+                        logger.Info("Migration saving settings..");
                         SaveSettings();
+                        logger.Info("Migration saved settings");
 
                         foreach (MigrationDirectory md in migrationdirs)
                         {
@@ -215,7 +279,10 @@ namespace JMMServer
                         migrationError = true;
 
                     }
+
+                    logger.Info("Migration setting network requirements..");
                     Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
+                    logger.Info("Migration set network requirements");
 
                     //m?.Close();
 

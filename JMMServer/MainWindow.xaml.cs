@@ -399,43 +399,50 @@ namespace JMMServer
 
         void UninstallJMMServer()
         {
-            // Check in registry if installed
-            string jmmServerUninstallPath =
-                (string)
-                Registry.GetValue(
-                    @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
-                    "UninstallString", null);
-
-            if (!string.IsNullOrEmpty(jmmServerUninstallPath))
+            try
             {
-                // Ask if user wants to uninstall first
-                MessageBoxResult dr =
-                    MessageBox.Show(Properties.Resources.DuplicateInstallDetectedQuestion,
-                        Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
-                if (dr == MessageBoxResult.Yes)
+                // Check in registry if installed
+                string jmmServerUninstallPath =
+                    (string)
+                    Registry.GetValue(
+                        @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                        "UninstallString", null);
+
+                if (!string.IsNullOrEmpty(jmmServerUninstallPath))
                 {
-                    try
+                    // Ask if user wants to uninstall first
+                    MessageBoxResult dr =
+                        MessageBox.Show(Properties.Resources.DuplicateInstallDetectedQuestion,
+                            Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
+                    if (dr == MessageBoxResult.Yes)
                     {
-                        ProcessStartInfo startInfo = new ProcessStartInfo();
-                        startInfo.FileName = jmmServerUninstallPath;
-                        startInfo.Arguments = " /SILENT";
-                        startInfo.CreateNoWindow = true;
+                        try
+                        {
+                            ProcessStartInfo startInfo = new ProcessStartInfo();
+                            startInfo.FileName = jmmServerUninstallPath;
+                            startInfo.Arguments = " /SILENT";
+                            startInfo.CreateNoWindow = true;
 
-                        Process p = Process.Start(startInfo);
-                        p?.Start();
+                            Process p = Process.Start(startInfo);
+                            p?.Start();
 
-                        logger.Log(LogLevel.Info, "JMM Server successfully uninstalled");
+                            logger.Log(LogLevel.Info, "JMM Server successfully uninstalled");
+                        }
+                        catch
+                            (Exception e)
+                        {
+                            logger.Log(LogLevel.Error, "Error occured during uninstall of JMM Server");
+                        }
                     }
-                    catch
-                        (Exception e)
+                    else
                     {
-                        logger.Log(LogLevel.Error, "Error occured during uninstall of JMM Server");
+                        logger.Log(LogLevel.Info, "User cancelled JMM Server uninstall");
                     }
                 }
-                else
-                {
-                    logger.Log(LogLevel.Info, "User cancelled JMM Server uninstall");
-                }
+            }
+            catch (Exception ex)
+            {
+                logger.Log(LogLevel.Error, "Error occured during UninstallJMMServer: " + ex);
             }
         }
 
