@@ -208,6 +208,7 @@ namespace JMMServer
                     migrationActive = true;
                     if (!Utils.IsAdministrator())
                     {
+                        logger.Error("Needed to migrate but user wasn't admin, prompting for restart as admin and shutting down afterwards.");
                         MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
                             MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -218,6 +219,7 @@ namespace JMMServer
                         //return;
                     }
 
+                    logger.Info("User is admin so starting migration.");
 
                     Migration m = null;
                     try
