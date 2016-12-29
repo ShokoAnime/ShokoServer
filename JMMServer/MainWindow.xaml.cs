@@ -167,7 +167,9 @@ namespace JMMServer
             string path = Path.Combine(ServerSettings.ApplicationPath, "settings.json");
             if (File.Exists(path))
             {
-                UninstallJMMServer();
+                Thread t = new Thread(UninstallJMMServer);
+                t.IsBackground = true;
+                t.Start();
             }
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
