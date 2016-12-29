@@ -3038,6 +3038,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Launch WebUI.
+        /// </summary>
+        public static string Settings_WebUI {
+            get {
+                return ResourceManager.GetString("Settings_WebUI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Start With Windows.
         /// </summary>
         public static string Settings_Windows {

@@ -1183,4 +1183,7 @@
   <data name="Update_Available" xml:space="preserve">
     <value>Доступно обновление для сервера Сёко!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Запуск WebUI</value>
+  </data>
 </root>

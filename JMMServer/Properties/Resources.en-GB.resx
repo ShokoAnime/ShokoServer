@@ -1183,4 +1183,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Update_Available" xml:space="preserve">
     <value>Update Available For Shoko Server!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Launch WebUI</value>
+  </data>
 </root>

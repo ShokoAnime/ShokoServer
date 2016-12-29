@@ -1183,4 +1183,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Update_Available" xml:space="preserve">
     <value>Aktualizacja dla serwera Shoko!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Uruchom WebUI</value>
+  </data>
 </root>

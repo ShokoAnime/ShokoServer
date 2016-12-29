@@ -1183,4 +1183,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Update_Available" xml:space="preserve">
     <value>Mise à disposition pour serveur Shoko !</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Lancer le WebUI</value>
+  </data>
 </root>

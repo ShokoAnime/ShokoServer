@@ -404,8 +404,15 @@
                             </StackPanel>
                         </Button>
 
-                     
-
+                        <!-- Launch Web UI -->
+                        <Button Margin="2,10,2,2" Style="{DynamicResource FlatButtonStyle}" Name="btnLaunchWebUI"
+                                HorizontalAlignment="Left" IsEnabled="True" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                <TextBlock VerticalAlignment="Center"
+                                           Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Settings_WebUI}"
+                                           Margin="0,0,5,0" />
+                            </StackPanel>
+                        </Button>
 
                     </StackPanel>
                 </TabItem>

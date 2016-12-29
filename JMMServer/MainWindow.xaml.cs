@@ -37,6 +37,7 @@ using NLog;
 using Microsoft.Win32.TaskScheduler;
 using Nancy.Hosting.Self;
 using Action = System.Action;
+using System.Net.NetworkInformation;
 
 namespace JMMServer
 {
@@ -253,6 +254,7 @@ namespace JMMServer
             btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
             btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
             btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
+            btnLaunchWebUI.Click += new RoutedEventHandler(btnLaunchWebUI_Click);
             btnUpdateImages.Click += new RoutedEventHandler(btnUpdateImages_Click);
             btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
             btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
@@ -2075,6 +2077,53 @@ namespace JMMServer
             {
                 Utils.ShowErrorMessage(ex);
             }
+        }
+
+        void btnLaunchWebUI_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string IP = GetLocalIPv4(NetworkInterfaceType.Ethernet);
+                if (string.IsNullOrEmpty(IP))
+                    IP = "127.0.0.1";
+
+                string url = $"http://{IP}:{ServerSettings.JMMServerPort}";
+                Process.Start(url);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
+
+        internal static string GetLocalIPv4(NetworkInterfaceType _type)
+        {
+            string output = "";
+            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
+                {
+                    IPInterfaceProperties adapterProperties = item.GetIPProperties();
+
+                    if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
+                    {
+                        foreach (UnicastIPAddressInformation ip in adapterProperties.UnicastAddresses)
+                        {
+                            if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            {
+                                output = ip.Address.ToString();
+                            }
+                        }
+                    }
+                }
+            }
+
+            return output;
+        }
+
+        private void MsgBox(Func<NetworkInterfaceType, string> getLocalIPv4)
+        {
+            throw new NotImplementedException();
         }
 
         void btnUpdateAniDBInfo_Click(object sender, RoutedEventArgs e)

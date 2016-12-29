@@ -1183,4 +1183,7 @@
   <data name="Update_Available" xml:space="preserve">
     <value>Atualização disponível para o servidor de Shoko!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Lançar o WebUI</value>
+  </data>
 </root>
