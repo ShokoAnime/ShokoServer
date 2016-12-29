@@ -425,10 +425,8 @@ namespace JMMServer
                             ProcessStartInfo startInfo = new ProcessStartInfo();
                             startInfo.FileName = jmmServerUninstallPath;
                             startInfo.Arguments = " /SILENT";
-                            startInfo.CreateNoWindow = true;
 
-                            Process p = Process.Start(startInfo);
-                            p?.Start();
+                            Process.Start(startInfo);
 
                             logger.Log(LogLevel.Info, "JMM Server successfully uninstalled");
                         }
