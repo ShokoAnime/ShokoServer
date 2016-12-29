@@ -1183,4 +1183,7 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Update_Available" xml:space="preserve">
     <value>Update verfügbar für Shoko Server!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Starten Sie WebUI</value>
+  </data>
 </root>

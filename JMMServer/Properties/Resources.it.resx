@@ -1183,4 +1183,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Update_Available" xml:space="preserve">
     <value>Aggiornamento disponibile per Server di Shoko!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Lanciare la WebUI</value>
+  </data>
 </root>

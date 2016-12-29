@@ -1183,4 +1183,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Update_Available" xml:space="preserve">
     <value>¡Actualización disponible para el servidor de Shoko!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Lanzamiento de WebUI</value>
+  </data>
 </root>

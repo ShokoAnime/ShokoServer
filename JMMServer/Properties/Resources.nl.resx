@@ -1183,4 +1183,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Update_Available" xml:space="preserve">
     <value>Update beschikbaar voor Shoko Server!</value>
   </data>
+  <data name="Settings_WebUI" xml:space="preserve">
+    <value>Lancering WebUI</value>
+  </data>
 </root>
