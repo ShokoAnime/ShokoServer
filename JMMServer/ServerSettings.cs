@@ -78,6 +78,7 @@ namespace JMMServer
 
 
                 disabledSave = true;
+                bool startedWithFreshConfig = false;
 
                 string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
@@ -163,6 +164,7 @@ namespace JMMServer
                 }
                 if (!settingsValid)
                 {
+                    startedWithFreshConfig = true;
                     LoadLegacySettingsFromFile(true);
                 }
 
@@ -208,15 +210,11 @@ namespace JMMServer
                     migrationActive = true;
                     if (!Utils.IsAdministrator())
                     {
-                        logger.Error("Needed to migrate but user wasn't admin, prompting for restart as admin and shutting down afterwards.");
-                        MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        logger.Info("Needed to migrate but user wasn't admin, restarting as admin.");
+                        //MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
+                        //    MessageBoxButton.OK, MessageBoxImage.Information);
 
-                        Environment.Exit(0);
-
-                        // This should be okay, since we are still in MainWindow Init
-                        //Application.Current.Shutdown();
-                        //return;
+                        Utils.RestartAsAdmin();
                     }
 
                     logger.Info("User is admin so starting migration.");
@@ -315,7 +313,12 @@ namespace JMMServer
                     ImagesPath = DefaultImagePath;
                 SaveSettings();
 
-
+                // Just in case start once for new configurations as admin to set permissions if needed
+                if (startedWithFreshConfig && !Utils.IsAdministrator())
+                {
+                    logger.Info("User has fresh config, restarting once as admin.");
+                    Utils.RestartAsAdmin();
+                }
             }
             catch (Exception e)
             {

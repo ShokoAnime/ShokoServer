@@ -1330,5 +1330,45 @@ namespace JMMServer
             buffer.CopyTo(0, retVal, lineCount - lastLine - 1, lastLine + 1);
             return retVal;
         }
+
+        public static void RestartAsAdmin()
+        {
+            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "RestartAsAdmin.bat");
+            var exeName = Process.GetCurrentProcess().MainModule.FileName;
+
+            Process proc = new Process();
+
+            proc.StartInfo.FileName = "cmd.exe";
+            proc.StartInfo.Arguments = $@"/c {BatchFile}";
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute = true;
+
+            try
+            {
+                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+
+                try
+                {
+                    // Wait a few seconds to allow shutdown later on, use task kill just in case still running
+                    string batchline = $"timeout 5 && taskkill /F /IM {System.AppDomain.CurrentDomain.FriendlyName} /fi \"memusage gt 2\" && \"{exeName}\"";
+                    logger.Log(LogLevel.Info, "RestartAsAdmin batch line: " + batchline);
+                    BatchFileStream.WriteLine(batchline);
+                }
+                finally
+                {
+                    BatchFileStream.Close();
+                }
+
+                proc.Start();
+                System.Windows.Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                logger.Log(LogLevel.Error, "Error occured during RestartAsAdmin(): " + ex.Message);
+            }
+        }
     }
 }
