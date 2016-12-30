@@ -24,11 +24,13 @@ namespace JMMServer.API.core
         {
             try
             {
+                Users.Clear();
                 foreach (Entities.JMMUser us in RepoFactory.JMMUser.GetAll())
                 {
                     Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
                 }
 
+                ActiveApiKeys.Clear();
                 foreach (Entities.AuthTokens at in RepoFactory.AuthTokens.GetAll())
                 {
                     ActiveApiKeys.Add(new Tuple<int, string, string>(at.UserID, at.DeviceName, at.Token));
@@ -97,6 +99,40 @@ namespace JMMServer.API.core
                 return true;
             }
             catch
+            {
+                return false;
+            }
+        }
+
+        public static bool RemoveApiKeysForUserID(int uid)
+        {
+            if (uid > 0)
+            {
+                // get all keys related to uid
+                List<string> keysToDelete = new List<string>();
+                foreach (Entities.AuthTokens at in RepoFactory.AuthTokens.GetAll())
+                {
+                    if (at.UserID == uid)
+                    {
+                        keysToDelete.Add(at.Token);
+                    }
+                }
+
+                // remove keys from database
+                if (keysToDelete.Count > 0)
+                {
+                    foreach (string key in keysToDelete)
+                    {
+                        RemoveApiKey(key);
+                    }
+
+                    // get new user data
+                    UserDatabase.Refresh();
+                }
+
+                return true;
+            }
+            else
             {
                 return false;
             }
