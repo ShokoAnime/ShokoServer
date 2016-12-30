@@ -6829,12 +6829,17 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return null;
             }
         }
 
         public string ChangePassword(int userID, string newPassword)
+        {
+            return ChangePassword(userID, newPassword, true);
+        }
+
+        public string ChangePassword(int userID, string newPassword, bool revokeapikey)
         {
             try
             {
@@ -6843,6 +6848,7 @@ namespace JMMServer
 
                 jmmUser.Password = Digest.Hash(newPassword);
                 RepoFactory.JMMUser.Save(jmmUser, false);
+                if (revokeapikey) { JMMServer.API.core.UserDatabase.RemoveApiKeysForUserID(userID); }
             }
             catch (Exception ex)
             {
