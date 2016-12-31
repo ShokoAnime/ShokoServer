@@ -201,9 +201,9 @@ namespace JMMServer
                         continue;
                     }
 
-                    logger.Info($"Can't migrate from: {m.From} to: {m.To}");
-                    logger.Info($"From exists = : {Directory.Exists(m.From)}");
-                    logger.Info($"To exists = : {Directory.Exists(m.To)}");
+                    //logger.Info($"Can't migrate from: {m.From} to: {m.To}");
+                    //logger.Info($"From exists = : {Directory.Exists(m.From)}");
+                    //logger.Info($"To exists = : {Directory.Exists(m.To)}");
                 }
                 if (migrate)
                 {
