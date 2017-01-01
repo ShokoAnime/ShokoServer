@@ -71,261 +71,321 @@ namespace JMMServer
         {
             try
             {
-                //Reconfigure log file to applicationpath
-                var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
-                target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
-                LogManager.ReconfigExistingLoggers();
-
-
-                disabledSave = true;
-                bool startedWithFreshConfig = false;
-
-                string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
-                List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>();
-                migrationdirs.Add(new MigrationDirectory
+                try
                 {
-                    From = Path.Combine(programlocation, "SQLite"),
-                    To = MySqliteDirectory
-                });
-                migrationdirs.Add(new MigrationDirectory
-                {
-                    From = Path.Combine(programlocation, "DatabaseBackup"),
-                    To = DatabaseBackupDirectory
-                });
-                migrationdirs.Add(new MigrationDirectory
-                {
-                    From = Path.Combine(programlocation, "MyList"),
-                    To = MyListDirectory
-                });
-                migrationdirs.Add(new MigrationDirectory
-                {
-                    From = Path.Combine(programlocation, "Anime_HTTP"),
-                    To = AnimeXmlDirectory
-                });
-                migrationdirs.Add(new MigrationDirectory
-                {
-                    From = Path.Combine(programlocation, "logs"),
-                    To = Path.Combine(ApplicationPath, "logs")
-                });
+                    //Reconfigure log file to applicationpath
+                    var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
+                    target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
+                    LogManager.ReconfigExistingLoggers();
 
 
-                // Check and see if we have old JMMServer installation and add to migration if needed
-                string jmmServerInstallLocation = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
-                    "InstallLocation", null);
+                    disabledSave = true;
+                    bool startedWithFreshConfig = false;
 
-                if (!string.IsNullOrEmpty(jmmServerInstallLocation))
-                {
+                    string programlocation =
+                        Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+                    List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>();
                     migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(jmmServerInstallLocation, "SQLite"),
+                        From = Path.Combine(programlocation, "SQLite"),
                         To = MySqliteDirectory
                     });
                     migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(jmmServerInstallLocation, "DatabaseBackup"),
+                        From = Path.Combine(programlocation, "DatabaseBackup"),
                         To = DatabaseBackupDirectory
                     });
                     migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(jmmServerInstallLocation, "MyList"),
+                        From = Path.Combine(programlocation, "MyList"),
                         To = MyListDirectory
                     });
                     migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(jmmServerInstallLocation, "Anime_HTTP"),
+                        From = Path.Combine(programlocation, "Anime_HTTP"),
                         To = AnimeXmlDirectory
                     });
                     migrationdirs.Add(new MigrationDirectory
                     {
-                        From = Path.Combine(jmmServerInstallLocation, "logs"),
+                        From = Path.Combine(programlocation, "logs"),
                         To = Path.Combine(ApplicationPath, "logs")
                     });
-                }
 
-                string path = Path.Combine(ApplicationPath, "settings.json");
-                if (tmp_setting_file != "")
-                {
-                    path = tmp_setting_file;
-                }
-                bool settingsValid = false;
-                if (File.Exists(path))
-                {
-                    Dictionary<string, string> previousSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
-                    if (delete_tmp_file)
+                    if (!string.IsNullOrEmpty(ApplicationPath))
                     {
-                        File.Delete(tmp_setting_file);
+                        // Check if programdata is write-able
+                        if (Directory.Exists(ApplicationPath))
+                        {
+                            if (!Utils.IsDirectoryWritable(ApplicationPath))
+                            {
+                                try
+                                {
+                                    Utils.GrantAccess(ApplicationPath);
+                                }
+                                catch (Exception)
+                                {
+                                }
+                            }
+                        }
                     }
-                    if (HasAllNecessaryFields(previousSettings))
-                    {
-                        appSettings = previousSettings;
-                        settingsValid = true;
-                    }
-                }
-                if (!settingsValid)
-                {
-                    startedWithFreshConfig = true;
-                    LoadLegacySettingsFromFile(true);
-                }
-
-
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-                if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
-                {
-                    migrationdirs.Add(new MigrationDirectory
-                    {
-                        From = Path.Combine(programlocation, "images"),
-                        To = DefaultImagePath,
-                    });
+                    // Check and see if we have old JMMServer installation and add to migration if needed
+                    string jmmServerInstallLocation =
+                        (string)
+                        Registry.GetValue(
+                            @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                            "InstallLocation", null);
 
                     if (!string.IsNullOrEmpty(jmmServerInstallLocation))
                     {
                         migrationdirs.Add(new MigrationDirectory
                         {
-                            From = Path.Combine(jmmServerInstallLocation, "images"),
-                            To = DefaultImagePath,
+                            From = Path.Combine(jmmServerInstallLocation, "SQLite"),
+                            To = MySqliteDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(jmmServerInstallLocation, "DatabaseBackup"),
+                            To = DatabaseBackupDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(jmmServerInstallLocation, "MyList"),
+                            To = MyListDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(jmmServerInstallLocation, "Anime_HTTP"),
+                            To = AnimeXmlDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(jmmServerInstallLocation, "logs"),
+                            To = Path.Combine(ApplicationPath, "logs")
                         });
                     }
-                }
-                else if (Directory.Exists(BaseImagesPath))
-                {
-                    ImagesPath = BaseImagesPath;
-                }
-                bool migrate = !Directory.Exists(ApplicationPath);
-                foreach (MigrationDirectory m in migrationdirs)
-                {
-                    if (m.ShouldMigrate)
+
+                    string path = Path.Combine(ApplicationPath, "settings.json");
+                    if (tmp_setting_file != "")
                     {
-                        logger.Info($"Will be migrating from: {m.From} to: {m.To}");
-                        migrate = true;
-                        continue;
+                        path = tmp_setting_file;
                     }
-
-                    //logger.Info($"Can't migrate from: {m.From} to: {m.To}");
-                    //logger.Info($"From exists = : {Directory.Exists(m.From)}");
-                    //logger.Info($"To exists = : {Directory.Exists(m.To)}");
-                }
-                if (migrate)
-                {
-                    migrationActive = true;
-                    if (!Utils.IsAdministrator())
+                    bool settingsValid = false;
+                    if (File.Exists(path))
                     {
-                        logger.Info("Needed to migrate but user wasn't admin, restarting as admin.");
-                        //MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
-                        //    MessageBoxButton.OK, MessageBoxImage.Information);
-
-                        Utils.RestartAsAdmin();
-                    }
-
-                    logger.Info("User is admin so starting migration.");
-
-                    Migration m = null;
-                    try
-                    {
-                        /*
-                        m =
-                            new Migration(
-                                $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
-                        m.Show();*/
-
-                        // Show migration indicator
-                        logger.Info("Migration showing indicator form..");
-
-                        MigrationIndicatorForm();
-
-                        logger.Info("Migration showed indicator form..");
-
-                        if (!Directory.Exists(ApplicationPath))
+                        Dictionary<string, string> previousSettings =
+                            JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
+                        if (delete_tmp_file)
                         {
-                            logger.Info("Migration creating application path: " + ApplicationPath);
-                            Directory.CreateDirectory(ApplicationPath);
-                            logger.Info("Migration created application path: " + ApplicationPath);
+                            File.Delete(tmp_setting_file);
+                        }
+                        if (HasAllNecessaryFields(previousSettings))
+                        {
+                            appSettings = previousSettings;
+                            settingsValid = true;
+                        }
+                    }
+                    if (!settingsValid)
+                    {
+                        startedWithFreshConfig = true;
+                        LoadLegacySettingsFromFile(true);
+                    }
+
+
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                    if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
+                    {
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(programlocation, "images"),
+                            To = DefaultImagePath,
+                        });
+
+                        if (!string.IsNullOrEmpty(jmmServerInstallLocation))
+                        {
+                            migrationdirs.Add(new MigrationDirectory
+                            {
+                                From = Path.Combine(jmmServerInstallLocation, "images"),
+                                To = DefaultImagePath,
+                            });
+                        }
+                    }
+                    else if (Directory.Exists(BaseImagesPath))
+                    {
+                        ImagesPath = BaseImagesPath;
+                    }
+                    bool migrate = !Directory.Exists(ApplicationPath);
+                    foreach (MigrationDirectory m in migrationdirs)
+                    {
+                        if (m.ShouldMigrate)
+                        {
+                            logger.Info($"Will be migrating from: {m.From} to: {m.To}");
+                            migrate = true;
+                            continue;
+                        }
+
+                        //logger.Info($"Can't migrate from: {m.From} to: {m.To}");
+                        //logger.Info($"From exists = : {Directory.Exists(m.From)}");
+                        //logger.Info($"To exists = : {Directory.Exists(m.To)}");
+                    }
+                    if (migrate)
+                    {
+                        migrationActive = true;
+                        if (!Utils.IsAdministrator())
+                        {
+                            logger.Info("Needed to migrate but user wasn't admin, restarting as admin.");
+                            //MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
+                            //    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            Utils.RestartAsAdmin();
+                        }
+
+                        logger.Info("User is admin so starting migration.");
+
+                        Migration m = null;
+                        try
+                        {
+                            /*
+                            m =
+                                new Migration(
+                                    $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
+                            m.Show();*/
+
+                            // Show migration indicator
+                            logger.Info("Migration showing indicator form..");
+
+                            MigrationIndicatorForm();
+
+                            logger.Info("Migration showed indicator form..");
+
+                            if (!Directory.Exists(ApplicationPath))
+                            {
+                                logger.Info("Migration creating application path: " + ApplicationPath);
+                                Directory.CreateDirectory(ApplicationPath);
+                                logger.Info("Migration created application path: " + ApplicationPath);
+
+                            }
+                            Utils.GrantAccess(ApplicationPath);
+                            disabledSave = false;
+
+                            if (!string.IsNullOrEmpty(DatabaseFile))
+                            {
+                                // Migrate sqlite db file if necessary
+                                if (DatabaseFile.Contains(programlocation))
+                                {
+                                    string dbname = Path.GetFileName(DatabaseFile);
+                                    DatabaseFile = Path.Combine(ApplicationPath, dbname);
+                                }
+                            }
+                            else
+                            {
+                                logger.Error(
+                                    "Error occured during LoadSettingsFromFile() , DatabaseFile is null or empty");
+                            }
+
+                            logger.Info("Migration saving settings..");
+                            SaveSettings();
+                            logger.Info("Migration saved settings");
+
+                            foreach (MigrationDirectory md in migrationdirs)
+                            {
+                                if (!md.SafeMigrate())
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            MessageBox.Show(Properties.Resources.Migration_SettingsError + " ", e.ToString());
+                            logger.Error(e);
+                            migrationActive = false;
+                            migrationError = true;
 
                         }
-                        Utils.GrantAccess(ApplicationPath);
-                        disabledSave = false;
 
-                        if (!string.IsNullOrEmpty(DatabaseFile))
+                        logger.Info("Migration setting network requirements..");
+                        Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
+                        logger.Info("Migration set network requirements");
+
+                        //m?.Close();
+
+                        migrationActive = false;
+
+                        // Only restart app upon successfull completion otherwise show error and shut down
+                        if (migrationError)
                         {
-                            // Migrate sqlite db file if necessary
-                            if (DatabaseFile.Contains(programlocation))
-                            {
-                                string dbname = Path.GetFileName(DatabaseFile);
-                                DatabaseFile = Path.Combine(ApplicationPath, dbname);
-                            }
+                            MessageBox.Show(
+                                $"{Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application.");
+                            MainWindow.Instance.ApplicationShutdown();
                         }
                         else
                         {
-                            logger.Error("Error occured during LoadSettingsFromFile() , DatabaseFile is null or empty");
+                            WaitForMigrationThenRestart();
                         }
 
-                        logger.Info("Migration saving settings..");
-                        SaveSettings();
-                        logger.Info("Migration saved settings");
-
-                        foreach (MigrationDirectory md in migrationdirs)
-                        {
-                            if (!md.SafeMigrate())
-                            {
-                                break;
-                            }
-                        }
+                        return;
                     }
-                    catch (Exception e)
+                    disabledSave = false;
+
+                    if (Utils.IsAdministrator())
+                        Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
+                    if (Directory.Exists(BaseImagesPath) && string.IsNullOrEmpty(ImagesPath))
                     {
-                        MessageBox.Show(Properties.Resources.Migration_SettingsError + " ", e.ToString());
-	                    logger.Error(e);
-                        migrationActive = false;
-                        migrationError = true;
-
+                        ImagesPath = BaseImagesPath;
                     }
+                    if (string.IsNullOrEmpty(ImagesPath))
+                        ImagesPath = DefaultImagePath;
+                    SaveSettings();
 
-                    logger.Info("Migration setting network requirements..");
-                    Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
-                    logger.Info("Migration set network requirements");
-
-                    //m?.Close();
-
+                    // Just in case start once for new configurations as admin to set permissions if needed
+                    if (startedWithFreshConfig && !Utils.IsAdministrator())
+                    {
+                        logger.Info("User has fresh config, restarting once as admin.");
+                        Utils.RestartAsAdmin();
+                    }
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    migrationError = true;
                     migrationActive = false;
 
-                    // Only restart app upon successfull completion otherwise show error and shut down
-                    if (migrationError)
+                    logger.Error(ex, $"Error occured during LoadSettings (UnauthorizedAccessException): {ex}");
+                    var message = "Failed to set folder permissions, do you want to automatically retry as admin?";
+
+                    if (!Utils.IsAdministrator())
+                        message = "Failed to set folder permissions, do you want to try and reset folder permissions?";
+
+                    System.Windows.Forms.DialogResult dr =
+                        System.Windows.Forms.MessageBox.Show(message, "Failed to set folder permissions",
+                            MessageBoxButtons.YesNo);
+
+                    switch (dr)
                     {
-                        MessageBox.Show($"{Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application.");
-                        MainWindow.Instance.ApplicationShutdown();
+                        case DialogResult.Yes:
+                            // gonna try grant access again in advance
+                            try
+                            {
+                                Utils.GrantAccess(ApplicationPath);
+                            }
+                            catch (Exception){
+                            }
+                            Utils.RestartAsAdmin();
+                            break;
+                        case DialogResult.No:
+                            System.Windows.Application.Current.Shutdown();
+                            Environment.Exit(0);
+                            break;
                     }
-                    else
-                    {
-                        WaitForMigrationThenRestart();
-                    }
-
-                    return;
-                }
-                disabledSave = false;
-
-                if (Utils.IsAdministrator())
-                    Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
-                if (Directory.Exists(BaseImagesPath) && string.IsNullOrEmpty(ImagesPath))
-                {
-                    ImagesPath = BaseImagesPath;
-                }
-                if (string.IsNullOrEmpty(ImagesPath))
-                    ImagesPath = DefaultImagePath;
-                SaveSettings();
-
-                // Just in case start once for new configurations as admin to set permissions if needed
-                if (startedWithFreshConfig && !Utils.IsAdministrator())
-                {
-                    logger.Info("User has fresh config, restarting once as admin.");
-                    Utils.RestartAsAdmin();
                 }
             }
             catch (Exception e)
             {
                 migrationError = true;
                 migrationActive = false;
-                MessageBox.Show($"{Properties.Resources.Migration_LoadError} {e.Message}", Properties.Resources.Migration_LoadError);
-	            logger.Error(e);
+                MessageBox.Show($"{Properties.Resources.Migration_LoadError} {e.Message}",
+                    Properties.Resources.Migration_LoadError);
+                logger.Error(e);
                 MainWindow.Instance.ApplicationShutdown();
             }
         }
