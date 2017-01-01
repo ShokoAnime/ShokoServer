@@ -84,33 +84,36 @@ namespace JMMServer
 
                     string programlocation =
                         Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
                     List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>();
-                    migrationdirs.Add(new MigrationDirectory
+
+                    if (!string.IsNullOrEmpty(programlocation) && !string.IsNullOrEmpty(ApplicationPath))
                     {
-                        From = Path.Combine(programlocation, "SQLite"),
-                        To = MySqliteDirectory
-                    });
-                    migrationdirs.Add(new MigrationDirectory
-                    {
-                        From = Path.Combine(programlocation, "DatabaseBackup"),
-                        To = DatabaseBackupDirectory
-                    });
-                    migrationdirs.Add(new MigrationDirectory
-                    {
-                        From = Path.Combine(programlocation, "MyList"),
-                        To = MyListDirectory
-                    });
-                    migrationdirs.Add(new MigrationDirectory
-                    {
-                        From = Path.Combine(programlocation, "Anime_HTTP"),
-                        To = AnimeXmlDirectory
-                    });
-                    migrationdirs.Add(new MigrationDirectory
-                    {
-                        From = Path.Combine(programlocation, "logs"),
-                        To = Path.Combine(ApplicationPath, "logs")
-                    });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(programlocation, "SQLite"),
+                            To = MySqliteDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(programlocation, "DatabaseBackup"),
+                            To = DatabaseBackupDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(programlocation, "MyList"),
+                            To = MyListDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(programlocation, "Anime_HTTP"),
+                            To = AnimeXmlDirectory
+                        });
+                        migrationdirs.Add(new MigrationDirectory
+                        {
+                            From = Path.Combine(programlocation, "logs"),
+                            To = Path.Combine(ApplicationPath, "logs")
+                        });
+                    }
 
                     if (!string.IsNullOrEmpty(ApplicationPath))
                     {
@@ -123,8 +126,7 @@ namespace JMMServer
                                 {
                                     Utils.GrantAccess(ApplicationPath);
                                 }
-                                catch (Exception)
-                                {
+                                catch (Exception){
                                 }
                             }
                         }
@@ -158,20 +160,29 @@ namespace JMMServer
                             From = Path.Combine(jmmServerInstallLocation, "Anime_HTTP"),
                             To = AnimeXmlDirectory
                         });
-                        migrationdirs.Add(new MigrationDirectory
+
+                        if (!string.IsNullOrEmpty(ApplicationPath))
                         {
-                            From = Path.Combine(jmmServerInstallLocation, "logs"),
-                            To = Path.Combine(ApplicationPath, "logs")
-                        });
+                            migrationdirs.Add(new MigrationDirectory
+                            {
+                                From = Path.Combine(jmmServerInstallLocation, "logs"),
+                                To = Path.Combine(ApplicationPath, "logs")
+                            });
+                        }
+                    }
+                    string path = "";
+
+                    if (!string.IsNullOrEmpty(ApplicationPath))
+                    {
+                        path = Path.Combine(ApplicationPath, "settings.json");
+                        if (tmp_setting_file != "")
+                        {
+                            path = tmp_setting_file;
+                        }
                     }
 
-                    string path = Path.Combine(ApplicationPath, "settings.json");
-                    if (tmp_setting_file != "")
-                    {
-                        path = tmp_setting_file;
-                    }
                     bool settingsValid = false;
-                    if (File.Exists(path))
+                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
                     {
                         Dictionary<string, string> previousSettings =
                             JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
@@ -195,11 +206,14 @@ namespace JMMServer
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
                     if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
                     {
-                        migrationdirs.Add(new MigrationDirectory
+                        if (!string.IsNullOrEmpty(programlocation))
                         {
-                            From = Path.Combine(programlocation, "images"),
-                            To = DefaultImagePath,
-                        });
+                            migrationdirs.Add(new MigrationDirectory
+                            {
+                                From = Path.Combine(programlocation, "images"),
+                                To = DefaultImagePath,
+                            });
+                        }
 
                         if (!string.IsNullOrEmpty(jmmServerInstallLocation))
                         {
@@ -271,7 +285,7 @@ namespace JMMServer
                             if (!string.IsNullOrEmpty(DatabaseFile))
                             {
                                 // Migrate sqlite db file if necessary
-                                if (DatabaseFile.Contains(programlocation))
+                                if (DatabaseFile.Contains(programlocation) && !string.IsNullOrEmpty(ApplicationPath))
                                 {
                                     string dbname = Path.GetFileName(DatabaseFile);
                                     DatabaseFile = Path.Combine(ApplicationPath, dbname);
