@@ -56,7 +56,6 @@ namespace JMMServer.PlexAndKodi.Plex
         public string ServiceAddress => MainWindow.PathAddressPlex;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
         public bool UseBreadCrumbs => true;
-        public int AddExtraItemForSearchButtonInGroupFilters => 2;
         public bool ConstructFakeIosParent => true;
         public bool AutoWatch => true;
         public bool EnableRolesInLists { get; } = false;
@@ -92,7 +91,12 @@ namespace JMMServer.PlexAndKodi.Plex
             }
             return Encoding.UTF8.GetString(raw);
         }
-    
+
+        public bool AddPlexSearchItem { get; } = true;
+        public bool AddPlexPrefsItem { get; } = true;
+        public bool RemoveFileAttribute { get; } = true;
+        public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = true;
+
         //public void AddResponseHeaders()
         //{
         //    if (WebOperationContext.Current != null)

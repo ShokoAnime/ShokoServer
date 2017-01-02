@@ -63,7 +63,7 @@ namespace JMMServer.PlexAndKodi
                 MediaContainer.ViewMode = null;
             }
             bool removeandroid = false;
-
+            bool addeps = false;
             if (WebOperationContext.Current != null &&
                 WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
             {
@@ -71,12 +71,27 @@ namespace JMMServer.PlexAndKodi
                 string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
                 if (kh.Contains("ANDROID"))
                     removeandroid = true;
+                else if (kh.Contains("IOS"))
+                    addeps = true;
             }
             MediaContainer.Childrens.ForEach(a =>
             {
                 a.Group = null;
                 if (removeandroid)
                     a.Type = null;
+                if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && addeps && a.Type=="episode")
+                    a.Title = a.EpisodeNumber + ". " + a.Title;
+                if (prov.RemoveFileAttribute)
+                {
+                    foreach (Media m in a.Medias)
+                    {
+                        foreach (Part p in m.Parts)
+                        {
+                            foreach (Stream s in p.Streams)
+                                s.File = null;
+                        }
+                    }
+                };
             });
             return MediaContainer;
         }

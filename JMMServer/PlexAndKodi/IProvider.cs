@@ -11,7 +11,6 @@ namespace JMMServer.PlexAndKodi
         string ServiceAddress { get; }
         int ServicePort { get; }
         bool UseBreadCrumbs { get; }
-        int AddExtraItemForSearchButtonInGroupFilters { get; }
         bool ConstructFakeIosParent { get; }
         bool AutoWatch { get; }
         string Proxyfy(string url);
@@ -19,5 +18,9 @@ namespace JMMServer.PlexAndKodi
         bool EnableRolesInLists { get; }
         bool EnableAnimeTitlesInLists { get; } 
         bool EnableGenresInLists { get; }
+        bool AddPlexSearchItem { get;  }
+        bool AddPlexPrefsItem { get;  }
+        bool RemoveFileAttribute { get; } // This will force the transcoder in plex to use the stream instead the file.
+        bool AddEpisodeNumberToTitlesOnUnsupportedClients { get;  }
     }
 }

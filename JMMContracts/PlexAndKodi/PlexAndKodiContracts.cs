@@ -156,6 +156,8 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 20)]
         public string Id { get; set; }
 
+
+
         [DataMember(EmitDefaultValue = false, Order = 21)]
         [XmlAttribute("AnimeType")]
         public string AnimeType { get; set; }
@@ -395,6 +397,18 @@ namespace JMMContracts.PlexAndKodi
 	    [DataMember(EmitDefaultValue = false, Order = 108)]
 	    [XmlElement("Banners")]
 	    public List<Contract_ImageDetails> Banners { get; set; }
+
+        [XmlAttribute("prompt")]
+        [DataMember(EmitDefaultValue = false, Order = 109)]
+        public string Prompt { get; set; }
+
+        [XmlAttribute("search")]
+        [DataMember(EmitDefaultValue = false, Order = 110)]
+        public string Search { get; set; }
+
+        [XmlAttribute("settings")]
+        [DataMember(EmitDefaultValue = false, Order = 111)]
+        public string Settings { get; set; }
     }
 
     [Serializable]

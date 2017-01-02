@@ -14,7 +14,6 @@ namespace JMMServer.PlexAndKodi.Kodi
         public string ServiceAddress => MainWindow.PathAddressKodi;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
         public bool UseBreadCrumbs => false; // turn off breadcrumbs navigation (plex)
-        public int AddExtraItemForSearchButtonInGroupFilters => 0; // dont add item count for search (plex)
         public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
         public bool AutoWatch => false; //turn off marking watched on stream side (plex)
 
@@ -55,5 +54,10 @@ namespace JMMServer.PlexAndKodi.Kodi
             m.Identifier = "plugin.video.nakamori";
             return m;
         }
+
+        public bool AddPlexSearchItem { get; } = false;
+        public bool AddPlexPrefsItem { get; } = false;
+        public bool RemoveFileAttribute { get; } = false;
+        public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = false;
     }
 }

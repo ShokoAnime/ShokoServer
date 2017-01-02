@@ -107,8 +107,26 @@ namespace JMMServer.PlexAndKodi
                     dirs = dirs.OrderBy(a => a.Title).ToList();
                 }
                 ret.MediaContainer.RandomizeArt(dirs);
+                if (prov.AddPlexPrefsItem)
+                {
+                    Directory dir = new Directory();
+                    dir.Prompt = "Search";
+                    dir.Thumb = dir.Art = "/:/plugins/com.plexapp.plugins.myanime/resources/Search.png";
+                    dir.Key = "/video/jmm/search";
+                    dir.Title = "Search";
+                    dir.Search = "1";
+                    dirs.Add(dir);
+                }
+                if (prov.AddPlexSearchItem)
+                {
+                    Directory dir = new Directory();
+                    dir.Thumb = dir.Art = "/:/plugins/com.plexapp.plugins.myanime/resources/Gear.png";
+                    dir.Key = "/:/plugins/com.plexapp.plugins.myanime/prefs";
+                    dir.Title = "Preferences";
+                    dir.Settings = "1";
+                    dirs.Add(dir);
+                }
                 ret.Childrens = dirs;
-                ret.MediaContainer.Size = (int.Parse(ret.MediaContainer.Size) + prov.AddExtraItemForSearchButtonInGroupFilters).ToString();
                 return ret.GetStream(prov);
             }
             catch (Exception ex)
