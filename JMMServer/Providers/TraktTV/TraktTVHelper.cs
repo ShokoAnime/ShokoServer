@@ -511,11 +511,12 @@ namespace JMMServer.Providers.TraktTV
 
         private static int? GetTraktEpisodeIdV2(AnimeEpisode ep, ref string traktID, ref int season, ref int epNumber)
         {
-            AniDB_Episode aniep = ep.AniDB_Episode;
+            AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
 
             AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
-            if (anime == null) return null;
+            if (anime == null)
+                return null;
 
             return GetTraktEpisodeIdV2(anime, aniep, ref traktID, ref season, ref epNumber);
         }
@@ -523,7 +524,11 @@ namespace JMMServer.Providers.TraktTV
         private static int? GetTraktEpisodeIdV2(AniDB_Anime anime, AniDB_Episode ep, ref string traktID, ref int season,
             ref int epNumber)
         {
+            if (anime == null || ep == null)
+                return null;
+
             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
+
             traktSummary.Populate(anime.AnimeID);
 
             return GetTraktEpisodeIdV2(traktSummary, anime, ep, ref traktID, ref season, ref epNumber);
@@ -1071,6 +1076,7 @@ namespace JMMServer.Providers.TraktTV
                 int season = 0;
                 int epNumber = 0;
                 int? traktID = GetTraktEpisodeIdV2(ep, ref slugID, ref season, ref epNumber);
+
                 //2.generate json
                 if (traktID != null && traktID > 0)
                 {
