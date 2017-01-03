@@ -1102,6 +1102,7 @@ namespace JMMServer.PlexAndKodi
 							Helper.AddInformationFromMasterSeries(v, cseries, nv, hasRoles);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
+                            v.GrandparentThumb = v.ParentThumb;
                             if (prov.ConstructFakeIosParent && prov.IsIOS())
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,

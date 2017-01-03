@@ -556,7 +556,6 @@ namespace JMMServer.PlexAndKodi
         public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, Video nv, bool omitExtraData=false)
         {
             bool ret = false;
-            v.Art = nv.Art;
             v.ParentThumb = v.GrandparentThumb = nv.Thumb;
             if (cserie.AniDBAnime.AniDBAnime.Restricted > 0)
                 v.ContentRating = "R";
