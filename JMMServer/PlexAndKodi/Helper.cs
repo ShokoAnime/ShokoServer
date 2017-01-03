@@ -49,7 +49,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructSupportImageLink(this IProvider prov, string name)
         {
-            double relation = prov.GetRelation();
+            string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
         }
 
@@ -60,7 +60,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructThumbLink(this IProvider prov, int type, int id)
         {
-            double relation = prov.GetRelation();
+            string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
         }
 
