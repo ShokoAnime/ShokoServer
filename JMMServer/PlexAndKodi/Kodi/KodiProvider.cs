@@ -4,6 +4,7 @@ using System.Text;
 using System.Xml.Serialization;
 using JMMContracts.PlexAndKodi;
 using System;
+using Nancy;
 
 namespace JMMServer.PlexAndKodi.Kodi
 {
@@ -59,5 +60,7 @@ namespace JMMServer.PlexAndKodi.Kodi
         public bool AddPlexPrefsItem { get; } = false;
         public bool RemoveFileAttribute { get; } = false;
         public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = false;
+        public NancyModule Nancy { get; set; }
+
     }
 }

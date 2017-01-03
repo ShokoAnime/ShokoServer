@@ -1,4 +1,8 @@
-﻿namespace JMMServer.API
+﻿using System.Collections.Generic;
+using JMMServer.PlexAndKodi;
+using JMMServer.PlexAndKodi.Kodi;
+
+namespace JMMServer.API
 {
     using Nancy;
     using Nancy.Authentication.Stateless;
@@ -111,7 +115,6 @@
 		private Response BeforeProcessing(NancyContext ctx)
 		{
             // Request will always be populated!
-            Module.apiv1.Legacy.request = ctx.Request;
             Module.apiv2.Core.request = ctx.Request;
 			return null;
 		}
@@ -119,9 +122,17 @@
 		private void AfterProcessing(NancyContext ctx)
 		{
             // Set to null after request as not to interfere with contract generation
-            Module.apiv1.Legacy.request = null;
             // Module.apiv2.Core.request = null;
-		}
+            CommonImplementation.logger.Info("METHOD: "+ctx.Request.Method);
+            if (ctx.Request.Method.Equals("OPTIONS", StringComparison.Ordinal))
+            {
+                Dictionary<string, string> headers = HttpExtensions.GetOptions();
+                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value)).ToList();
+                ctx.Response.WithHeaders(tps.ToArray());
+                ctx.Response.ContentType = "text/plain";
+            }
+
+        }
 	}
 
     public class StatusCodeHandler : IStatusCodeHandler

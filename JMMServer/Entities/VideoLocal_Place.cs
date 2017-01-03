@@ -10,6 +10,7 @@ using JMMContracts.PlexAndKodi;
 using JMMServer.FileHelper;
 using JMMServer.FileHelper.MediaInfo;
 using JMMServer.FileHelper.Subtitles;
+using JMMServer.PlexAndKodi;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -164,7 +165,7 @@ namespace JMMServer.Entities
 
                     string name = (ImportFolder.CloudID == null)
                         ? FullServerPath.Replace("/", "\\")
-                        : PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(0,
+                        : ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructVideoLocalStream(0,
                             VideoLocalID.ToString(), "file", false));
                     m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
                     if (string.IsNullOrEmpty(m.Duration))

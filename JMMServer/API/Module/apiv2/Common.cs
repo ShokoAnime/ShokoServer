@@ -1629,7 +1629,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
         {
-            Legacy.request = this.Request;
+  
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
@@ -1775,7 +1775,7 @@ namespace JMMServer.API.Module.apiv2
             episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0).ToDictionary(a => a.Key, a => a.Value);
 
             sers.size = (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
-            sers.art.fanart.Add(new Art() { url = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart?.GenArt(), index = 0 });
+            sers.art.fanart.Add(new Art() { url = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart?.GenArt(null), index = 0 });
             sers.viewed = cseries.WatchedEpisodeCount.ToString();
 
             if (eptype.HasValue)
@@ -1904,8 +1904,8 @@ namespace JMMServer.API.Module.apiv2
                         fr.type = "show";
                         fr.url = APIHelper.ConstructGroupIdUrl(gid.ToString());
 
-                        fr.art.fanart.Add(new Art() { url = Helper.GetRandomFanartFromVideo(v) ?? v.Art, index = 0 });
-                        fr.art.banner.Add(new Art() { url = v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner, index = 0 });
+                        fr.art.fanart.Add(new Art() { url = Helper.GetRandomFanartFromVideo(v,null) ?? v.Art, index = 0 });
+                        fr.art.banner.Add(new Art() { url = v.Banner = Helper.GetRandomBannerFromVideo(v,null) ?? v.Banner, index = 0 });
 
                         obl.list.Add(fr);                 
                     }

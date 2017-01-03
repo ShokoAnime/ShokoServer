@@ -1,42 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.ServiceModel.Description;
 using System.ServiceModel.Web;
+using System.Text;
 using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi
 {
     public class BaseObject
     {
-        public static NameValueCollection QueryParameters
-        {
-            get
-            {
-                if (WebOperationContext.Current == null)
-                    return new NameValueCollection();
-                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters;
-            }
-        }
+
 
         public int Start { get; set; }
         public int Size { get; set; }
 
         public MediaContainer MediaContainer { get; private set; }
-
-        public static bool IsExternalRequest
-        {
-            get
-            {
-                if (!FileServer.FileServer.UPnPPortAvailable)
-                    return false;
-                if (QueryParameters.AllKeys.Contains("externalhost"))
-                {
-                    if (QueryParameters["externalhost"] != "0")
-                        return true;
-                }
-                return false;
-            }
-        }
 
         private List<Video> LimitVideos(List<Video> list)
         {
@@ -64,11 +43,11 @@ namespace JMMServer.PlexAndKodi
             }
             bool removeandroid = false;
             bool addeps = false;
-            if (WebOperationContext.Current != null &&
-                WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
+            string product = prov.RequestHeader("X-Plex-Product");
+            if (!string.IsNullOrEmpty(product))
             {
                 //Fix for android hang, if the type is populated
-                string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
+                string kh =product.ToUpper();
                 if (kh.Contains("ANDROID"))
                     removeandroid = true;
                 else if (kh.Contains("IOS"))
@@ -77,18 +56,27 @@ namespace JMMServer.PlexAndKodi
             MediaContainer.Childrens.ForEach(a =>
             {
                 a.Group = null;
+                if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && addeps && a.Type == "episode")
+                    a.Title = a.EpisodeNumber + ". " + a.Title;
                 if (removeandroid)
                     a.Type = null;
-                if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && addeps && a.Type=="episode")
-                    a.Title = a.EpisodeNumber + ". " + a.Title;
                 if (prov.RemoveFileAttribute)
                 {
-                    foreach (Media m in a.Medias)
+                    if (a.Medias != null)
                     {
-                        foreach (Part p in m.Parts)
+                        foreach (Media m in a.Medias)
                         {
-                            foreach (Stream s in p.Streams)
-                                s.File = null;
+                            if (m.Parts != null)
+                            {
+                                foreach (Part p in m.Parts)
+                                {
+                                    if (p.Streams != null)
+                                    {
+                                        foreach (Stream s in p.Streams)
+                                            s.File = null;
+                                    }
+                                }
+                            }
                         }
                     }
                 };
@@ -101,50 +89,36 @@ namespace JMMServer.PlexAndKodi
             MediaContainer = m;
         }
 
-        public bool Init()
+        public bool Init(IProvider prov)
         {
             Start = 0;
             Size = int.MaxValue;
-            if (WebOperationContext.Current != null)
+            if (prov.Nancy == null)
             {
-                WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Origin", "*");
-                if (WebOperationContext.Current.IncomingRequest.Method == "OPTIONS")
+                if (WebOperationContext.Current != null)
                 {
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Methods",
-                        "POST, GET, OPTIONS, DELETE, PUT, HEAD");
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Max-Age", "1209600");
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Headers",
-                        "accept, x-plex-token, x-plex-client-identifier, x-plex-username, x-plex-product, x-plex-device, x-plex-platform, x-plex-platform-version, x-plex-version, x-plex-device-name");
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Connection", "close");
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("X-Plex-Protocol", "1.0");
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Cache-Control", "no-cache");
-                    WebOperationContext.Current.OutgoingResponse.ContentType = "text/plain";
-                    return false;
-                }
-                if ((WebOperationContext.Current.IncomingRequest.UriTemplateMatch != null) &&
-                    (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters != null))
-                {
-                    if (
-                        WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(
-                            "X-Plex-Container-Size"))
+                    if (WebOperationContext.Current.IncomingRequest.Method == "OPTIONS")
                     {
-                        int max =
-                            int.Parse(
-                                WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[
-                                    "X-Plex-Container-Size"]);
-                        if (max < Size)
-                            Size = max;
-                    }
-                    if (
-    WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(
-        "X-Plex-Container-Start"))
-                    {
-                        Start =
-                            int.Parse(
-                                WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[
-                                    "X-Plex-Container-Start"]);
+                        prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
+                        return false;
                     }
                 }
+            }
+            string nsize = prov.RequestHeader("X-Plex-Container-Size");
+            if (nsize != null)
+            {
+                int max;
+                if (int.TryParse(nsize, out max))
+                {
+                    if (max < Size)
+                        Size = max;
+                }
+            }
+            string nstart = prov.RequestHeader("X-Plex-Container-Start");
+            {
+                int start;
+                if (int.TryParse(nstart, out start))
+                    Start = start;
             }
             return true;
         }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Nancy;
 using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
@@ -60,18 +61,16 @@ namespace JMMServer.API.Module.apiv1
             Get["/JMMServerImage2/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
             Get["/JMMServerImage2/GetImage/{id}/{type}"] = parameter => { return GetImageRest(parameter.type, parameter.id); };
             Get["/JMMServerImage2/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
+
         }
 
 
         CommonImplementation _impl = new CommonImplementation();
 		JMMServiceImplementation _binary = new JMMServiceImplementation();
-        IProvider _prov_kodi = new KodiProvider();
-        IProvider _prov_plex = new PlexProvider();
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
 	    JMMServiceImplementationImage _image = new JMMServiceImplementationImage();
 	    Nancy.Response response;
-        public static Nancy.Request request;
-
+        
         //Common
 
         /// <summary>
@@ -137,7 +136,7 @@ namespace JMMServer.API.Module.apiv1
 		/// <returns></returns>
 		private object GetFilters_Kodi(int uid)
         {
-            return _impl.GetFilters(_prov_kodi, uid.ToString());
+            return _impl.GetFilters(new KodiProvider { Nancy =this }, uid.ToString());
         }
 
         /// <summary>
@@ -150,7 +149,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object GetMetadata_Kodi(string uid, string typeid, string id, bool nocast=false)
         {
-            return _impl.GetMetadata(_prov_kodi, uid, typeid, id, null, nocast);
+            return _impl.GetMetadata(new KodiProvider { Nancy = this }, uid, typeid, id, null, nocast);
         }
 
         /// <summary>
@@ -168,7 +167,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private PlexContract_Users GetUsers_Kodi()
         {
-            return _impl.GetUsers(_prov_kodi);
+            return _impl.GetUsers(new KodiProvider { Nancy = this });
         }
 
         /// <summary>
@@ -181,7 +180,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object Search_Kodi(string uid, string limit, string query, bool nocast = false)
         {
-            return _impl.Search(_prov_kodi, uid, limit, query, false, nocast);
+            return _impl.Search(new KodiProvider { Nancy = this }, uid, limit, query, false, nocast);
         }
 
         /// <summary>
@@ -194,7 +193,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object SearchTag(string uid, string limit, string query, bool nocast = false)
         {
-            return _impl.Search(_prov_kodi, uid, limit, query, true, nocast);
+            return _impl.Search(new KodiProvider { Nancy = this }, uid, limit, query, true, nocast);
         }
 
         /// <summary>
@@ -206,7 +205,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object ToggleWatchedStatusOnEpisode_Kodi(string userid, string episodeid, string watchedstatus)
         {
-            return _impl.ToggleWatchedStatusOnEpisode(_prov_kodi, userid, episodeid, watchedstatus);
+            return _impl.ToggleWatchedStatusOnEpisode(new KodiProvider { Nancy = this }, userid, episodeid, watchedstatus);
         }
 
 		/// <summary>
@@ -218,7 +217,7 @@ namespace JMMServer.API.Module.apiv1
 		/// <returns></returns>
 		private object ToggleWatchedStatusOnSeries_Kodi(string userid, string seriesid, string watchedstatus)
 		{
-			return _impl.ToggleWatchedStatusOnSeries(_prov_kodi, userid, seriesid, watchedstatus);
+			return _impl.ToggleWatchedStatusOnSeries(new KodiProvider { Nancy = this }, userid, seriesid, watchedstatus);
 		}
 
 		/// <summary>
@@ -230,7 +229,7 @@ namespace JMMServer.API.Module.apiv1
 		/// <returns></returns>
 		private object ToggleWatchedStatusOnGroup_Kodi(string userid, string groupid, string watchedstatus)
 		{
-			return _impl.ToggleWatchedStatusOnGroup(_prov_kodi, userid, groupid, watchedstatus);
+			return _impl.ToggleWatchedStatusOnGroup(new KodiProvider { Nancy = this }, userid, groupid, watchedstatus);
 		}
 
 		/// <summary>
@@ -243,7 +242,7 @@ namespace JMMServer.API.Module.apiv1
 		/// <returns></returns>
 		private object VoteAnime_Kodi(string uid, string id, string votevalue, string votetype)
         {
-            return _impl.VoteAnime(_prov_kodi, uid, id, votevalue, votetype);
+            return _impl.VoteAnime(new KodiProvider { Nancy = this }, uid, id, votevalue, votetype);
         }
 
         /// <summary>
@@ -256,7 +255,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object TraktScrobble(string animeid, string type, string progress, string status)
         {
-            return _impl.TraktScrobble(_prov_kodi, animeid, type, progress, status);
+            return _impl.TraktScrobble(new KodiProvider { Nancy = this }, animeid, type, progress, status);
         }
 
         #endregion
@@ -270,7 +269,8 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object GetFilters_Plex(string uid)
         {
-            return Response.AsXml<MediaContainer>(_impl.GetFilters(_prov_plex, uid));
+           
+            return Response.AsXml<MediaContainer>(_impl.GetFilters(new PlexProvider { Nancy = this }, uid));
         }
 
         /// <summary>
@@ -283,7 +283,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object GetMetadata_Plex(string uid, string typeid, string id, string historyinfo)
         {
-            return Response.AsXml<MediaContainer>(_impl.GetMetadata(_prov_plex, uid, typeid, id, historyinfo));
+            return Response.AsXml<MediaContainer>(_impl.GetMetadata(new PlexProvider { Nancy = this }, uid, typeid, id, historyinfo));
         }
 
         /// <summary>
@@ -292,7 +292,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object GetUsers_Plex()
         {
-            return Response.AsXml<PlexContract_Users>(_impl.GetUsers(_prov_plex));
+            return Response.AsXml<PlexContract_Users>(_impl.GetUsers(new PlexProvider { Nancy = this }));
         }
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object Search_Plex(string uid, string limit, string query)
         {
-            return Response.AsXml<MediaContainer>(_impl.Search(_prov_plex, uid, limit, query, false));
+            return Response.AsXml<MediaContainer>(_impl.Search(new PlexProvider { Nancy = this }, uid, limit, query, false));
         }
 
         /// <summary>
@@ -317,7 +317,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object ToggleWatchedStatusOnEpisode_Plex(string userid, string episodeid, string watchedstatus)
         {
-            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.ToggleWatchedStatusOnEpisode(_prov_plex, userid, episodeid, watchedstatus));
+            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.ToggleWatchedStatusOnEpisode(new PlexProvider { Nancy = this }, userid, episodeid, watchedstatus));
         }
 
         /// <summary>
@@ -330,7 +330,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object VoteAnime_Plex(string uid, string id, string votevalue, string votetype)
         {
-            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.VoteAnime(_prov_plex, uid, id, votevalue, votetype));
+            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.VoteAnime(new PlexProvider { Nancy = this }, uid, id, votevalue, votetype));
         }
 
         #endregion

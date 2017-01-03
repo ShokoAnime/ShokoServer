@@ -17,34 +17,38 @@ namespace JMMServer.PlexAndKodi
     {
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupUnsort + "/0/");
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupUnsort + "/0/");
         }
 
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" + gid);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" + gid);
         }
 
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid);
         }
 
         public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid);
         }
 
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
         }
 
         public static string ConstructFakeIosThumb(this IProvider prov, int userid, string thumburl, string arturl)
         {
             string r = Helper.Base64EncodeUrl(thumburl + "|" + arturl);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
+/*
+
             try
             {
+
                 if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
                 {
                     return Helper.ServerUrl(prov.ServicePort, "/api/getmetadata/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
@@ -55,84 +59,85 @@ namespace JMMServer.PlexAndKodi
                 }
             }
             catch { return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0"); }
+            */
         }
 
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetFilters/" + userid);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetFilters/" + userid);
         }
 
         public static string ConstructSearchUrl(this IProvider prov, string userid, string limit, string query, bool searchTag)
         {
             if (searchTag)
             {
-                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
+                return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
             }
             else
             {
-                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
+                return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
             }
         }
 
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0");
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0");
         }
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/" + pid);
+            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/" + pid);
         }
 
-        public static string GenPoster(this ImageDetails im, string fallbackimage = "plex_404V.png")
+        public static string GenPoster(this ImageDetails im, IProvider prov, string fallbackimage = "plex_404V.png")
         {
             if ((im == null) || (im.ImageID == 0))
-                return Helper.ConstructSupportImageLink(fallbackimage);
-            return Helper.ConstructThumbLink((int) im.ImageType, im.ImageID);
+                return prov.ConstructSupportImageLink(fallbackimage);
+            return prov.ConstructThumbLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenArt(this ImageDetails im)
+        public static string GenArt(this ImageDetails im, IProvider prov)
         {
             if (im == null)
                 return null;
-            return Helper.ConstructImageLink((int) im.ImageType, im.ImageID);
+            return prov.ConstructImageLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this MetroContract_Anime_Episode im, string fallbackimage = "plex_404.png")
+        public static string GenPoster(this MetroContract_Anime_Episode im, IProvider prov, string fallbackimage = "plex_404.png")
         {
             if ((im == null) || (im.ImageID == 0))
-                return Helper.ConstructSupportImageLinkTV(fallbackimage);
-            return Helper.ConstructTVThumbLink((int) im.ImageType, im.ImageID);
+                return prov.ConstructSupportImageLinkTV(fallbackimage);
+            return prov.ConstructTVThumbLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im, string fallbackimage = "plex_404V.png")
+        public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im, IProvider prov, string fallbackimage = "plex_404V.png")
         {
             if ((im == null) || (im.AnimeID == 0))
-                return Helper.ConstructSupportImageLink(fallbackimage);
-            return Helper.ConstructThumbLink((int) im.ImageType, im.AnimeID);
+                return prov.ConstructSupportImageLink(fallbackimage);
+            return prov.ConstructThumbLink((int) im.ImageType, im.AnimeID);
         }
 
-        public static string GenPoster(this TvDB_Episode ep)
+        public static string GenPoster(this TvDB_Episode ep, IProvider prov)
         {
             if ((ep == null) || (ep.TvDB_EpisodeID == 0))
-                return Helper.ConstructSupportImageLink("plex_404.png");
-            return Helper.ConstructThumbLink((int) JMMImageType.TvDB_Episode, ep.TvDB_EpisodeID);
+                return prov.ConstructSupportImageLink("plex_404.png");
+            return prov.ConstructThumbLink((int) JMMImageType.TvDB_Episode, ep.TvDB_EpisodeID);
         }
 
-        public static string GenArt(this Contract_AniDB_Anime_DefaultImage im)
+        public static string GenArt(this Contract_AniDB_Anime_DefaultImage im, IProvider prov)
         {
             if (im == null)
                 return null;
-            return Helper.ConstructImageLink((int) im.ImageType, im.AnimeID);
+            return prov.ConstructImageLink((int) im.ImageType, im.AnimeID);
         }
 
-        public static void RandomizeArt(this MediaContainer m, List<Video> vids)
+        public static void RandomizeArt(this MediaContainer m, IProvider prov, List<Video> vids)
         {
-            foreach (Video v in vids.Randomize())
+            foreach (Video v in vids.Randomize(123456789))
             {
                 if (v.Art != null)
                 {
-                    m.Art = Helper.ReplaceSchemeHost(v.Art);
+                    m.Art = prov.ReplaceSchemeHost(v.Art);
                     break;
                 }
             }
@@ -204,14 +209,14 @@ namespace JMMServer.PlexAndKodi
         public static void Add(this List<Video> l, IProvider prov, Video m, BreadCrumbs info, bool noimage = false,
             bool noart = false)
         {
-            m.ReplaceSchemeHost();
+            m.ReplaceSchemeHost(prov);
             info?.Update(m, noart).FillInfo(prov, m, noimage, true);
             l.Add(m);
         }
 
         public static void EppAdd(this List<Video> l, IProvider prov, Video m, BreadCrumbs info, bool noimage = false)
         {
-            m.ReplaceSchemeHost();
+            m.ReplaceSchemeHost(prov);
             if (info != null)
             {
                 info.FillInfo(prov, m, noimage, true);
@@ -225,7 +230,7 @@ namespace JMMServer.PlexAndKodi
         public static void EppAdd(this List<Directory> l, IProvider prov, Directory m, BreadCrumbs info,
             bool noimage = false)
         {
-            m.ReplaceSchemeHost();
+            m.ReplaceSchemeHost(prov);
             if (info != null)
             {
                 info.FillInfo(prov, m, noimage, true);
@@ -239,37 +244,37 @@ namespace JMMServer.PlexAndKodi
         public static void Add(this List<Directory> l, IProvider prov, Directory m, BreadCrumbs info,
             bool noimage = false)
         {
-            m.ReplaceSchemeHost();
+            m.ReplaceSchemeHost(prov);
             info?.Update(m).FillInfo(prov, m, noimage, true);
             l.Add(m);
         }
 
-        public static void ReplaceSchemeHost(this Video o)
+        public static void ReplaceSchemeHost(this Video o, IProvider prov)
         {
-            o.Url = Helper.ReplaceSchemeHost(o.Url);
-            o.Thumb = Helper.ReplaceSchemeHost(o.Thumb);
-            o.ParentThumb = Helper.ReplaceSchemeHost(o.ParentThumb);
-            o.GrandparentThumb = Helper.ReplaceSchemeHost(o.GrandparentThumb);
-            o.Art = Helper.ReplaceSchemeHost(o.Art);
-            o.ParentArt = Helper.ReplaceSchemeHost(o.ParentArt);
-            o.GrandparentArt = Helper.ReplaceSchemeHost(o.GrandparentArt);
+            o.Url = prov.ReplaceSchemeHost(o.Url);
+            o.Thumb = prov.ReplaceSchemeHost(o.Thumb);
+            o.ParentThumb = prov.ReplaceSchemeHost(o.ParentThumb);
+            o.GrandparentThumb = prov.ReplaceSchemeHost(o.GrandparentThumb);
+            o.Art = prov.ReplaceSchemeHost(o.Art);
+            o.ParentArt = prov.ReplaceSchemeHost(o.ParentArt);
+            o.GrandparentArt = prov.ReplaceSchemeHost(o.GrandparentArt);
             if (o.Roles != null)
             {
                 foreach (RoleTag r in o.Roles)
                 {
                     if (!string.IsNullOrEmpty(r.RolePicture))
-                        r.RolePicture = Helper.ReplaceSchemeHost(r.RolePicture);
+                        r.RolePicture = prov.ReplaceSchemeHost(r.RolePicture);
                     if (!string.IsNullOrEmpty(r.TagPicture))
-                        r.TagPicture = Helper.ReplaceSchemeHost(r.TagPicture);
+                        r.TagPicture = prov.ReplaceSchemeHost(r.TagPicture);
                 }
             }
         }
 
-        public static T Clone<T>(this Video o) where T : Video, new()
+        public static T Clone<T>(this Video o, IProvider prov) where T : Video, new()
         {
             T v = new T();
             o.CopyTo(v);
-            v.ReplaceSchemeHost();
+            v.ReplaceSchemeHost(prov);
             return v;
         }
         public static Stream CopyTo(this Stream s, Stream o)

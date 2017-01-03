@@ -32,63 +32,63 @@ namespace JMMServer.PlexAndKodi
 {
     public static class Helper
     {
-        public static string ConstructVideoLocalStream(int userid, string vid, string name, bool autowatch)
+        public static string ConstructVideoLocalStream(this IProvider prov, int userid, string vid, string name, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, BaseObject.IsExternalRequest);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, prov.IsExternalRequest());
         }
 
-        public static string ConstructFileStream(int userid, string file, bool autowatch)
+        public static string ConstructFileStream(this IProvider prov, int userid, string file, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), BaseObject.IsExternalRequest);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), prov.IsExternalRequest());
         }
 
-        public static string ConstructImageLink(int type, int id)
+        public static string ConstructImageLink(this IProvider prov, int type, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
         }
 
-        public static string ConstructSupportImageLink(string name)
+        public static string ConstructSupportImageLink(this IProvider prov, string name)
         {
-            double relation = GetRelation();
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
+            double relation = prov.GetRelation();
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
         }
 
-        public static string ConstructSupportImageLinkTV(string name)
+        public static string ConstructSupportImageLinkTV(this IProvider prov, string name)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name);
         }
 
-        public static string ConstructThumbLink(int type, int id)
+        public static string ConstructThumbLink(this IProvider prov, int type, int id)
         {
-            double relation = GetRelation();
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
+            double relation = prov.GetRelation();
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
         }
 
-        public static string ConstructTVThumbLink(int type, int id)
+        public static string ConstructTVThumbLink(this IProvider prov, int type, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/1.3333");
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/1.3333");
         }
 
-        public static string ConstructCharacterImage(int id)
+        public static string ConstructCharacterImage(this IProvider prov, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + id);
         }
 
-        public static string ConstructSeiyuuImage(int id)
+        public static string ConstructSeiyuuImage(this IProvider prov, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + id);
         }
 
         public static Lazy<Dictionary<string, double>> _relations = new Lazy<Dictionary<string, double>>(CreateRelationsMap, isThreadSafe: true);
 
-        private static double GetRelation()
+        private static double GetRelation(this IProvider prov)
         {
             var relations = _relations.Value;
 
-            if (WebOperationContext.Current != null &&
-                WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
-            {
-                string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
+            string product = prov.RequestHeader("X-Plex-Product");
+            if (product!=null)
+            { 
+                string kh =product.ToUpper();
                 foreach (string n in relations.Keys.Where(a => a != "DEFAULT"))
                 {
                     if (n != null && kh.Contains(n))
@@ -176,49 +176,9 @@ namespace JMMServer.PlexAndKodi
                    allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
         }
 
-        public static string ServerUrl(int port, string path, bool externalip = false)
-        {
-            if (API.Module.apiv1.Legacy.request == null)
-            {
-                return "{SCHEME}://{HOST}:" + port + "/" + path;
-            }
-            if (API.Module.apiv1.Legacy.request.Url == null)
-            {
-                return "{SCHEME}://{HOST}:" + port + "/" + path;
-            }
-            string host = API.Module.apiv1.Legacy.request.Url.HostName;
-            if (externalip)
-            {
-                IPAddress ip = FileServer.FileServer.GetExternalAddress();
-                if (ip != null)
-                    host = ip.ToString();
-            }
-            return API.Module.apiv1.Legacy.request.Url.Scheme + "://" +
-                   host + ":" + port + "/" +
-                   path;
-        }
 
-        public static string ReplaceSchemeHost(string str, bool externalip = false)
-        { 
-            if (str == null)
-                return null;
-            string host="127.0.0.1";
-            string scheme = "http";
-            if (API.Module.apiv1.Legacy.request?.Url?.HostName != null)
-            {
-                host = API.Module.apiv1.Legacy.request.Url.HostName;
-                scheme = API.Module.apiv1.Legacy.request.Url.Scheme;
-            }
-            else if (OperationContext.Current?.RequestContext?.RequestMessage?.Headers?.To?.Host != null)
-                host = OperationContext.Current.RequestContext.RequestMessage.Headers.To.Host;
-            if (externalip)
-            {
-                IPAddress ip = FileServer.FileServer.GetExternalAddress();
-                if (ip != null)
-                    host = ip.ToString();
-            }
-            return str.Replace("{SCHEME}", scheme).Replace("{HOST}", host);
-        }
+
+
 
         public static bool RefreshIfMediaEmpty(VideoLocal vl, Video v)
         {
@@ -245,12 +205,12 @@ namespace JMMServer.PlexAndKodi
                         foreach (Part p in m.Parts)
                         {
                             string ff = "file." + p.Container;
-                            p.Key = ConstructVideoLocalStream(userid, m.Id, ff, prov.AutoWatch);
+                            p.Key = prov.ConstructVideoLocalStream(userid, m.Id, ff, prov.AutoWatch);
                             if (p.Streams != null)
                             {
                                 foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                                 {
-                                    s.Key = ConstructFileStream(userid, s.File,prov.AutoWatch);
+                                    s.Key = prov.ConstructFileStream(userid, s.File,prov.AutoWatch);
                                 }
                             }
                         }
@@ -304,9 +264,9 @@ namespace JMMServer.PlexAndKodi
         public static Video VideoFromAnimeEpisode(IProvider prov, List<Contract_CrossRef_AniDB_TvDBV2> cross,
             KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> e, int userid)
         {
-            Video v = (Video) e.Key.PlexContract?.Clone<Video>();
+            Video v = (Video) e.Key.PlexContract?.Clone<Video>(prov);
             if (v?.Thumb != null)
-                v.Thumb = ReplaceSchemeHost(v.Thumb);
+                v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
                 foreach (VideoLocal vl2 in e.Key.GetVideoLocals())
@@ -322,7 +282,7 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 RepoFactory.AnimeEpisode.Save(e.Key);
-                v = (Video) e.Key.PlexContract?.Clone<Video>();
+                v = (Video) e.Key.PlexContract?.Clone<Video>(prov);
             }
             if (v != null)
             {
@@ -419,7 +379,7 @@ namespace JMMServer.PlexAndKodi
 
 					        if (tvep != null)
 					        {
-						        l.Thumb = tvep.GenPoster();
+						        l.Thumb = tvep.GenPoster(null);
 						        l.Summary = tvep.Overview;
 					        }
 					        else
@@ -444,7 +404,7 @@ namespace JMMServer.PlexAndKodi
 						TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetByTvDBID(xref_tvdb.TvDBEpisodeID);
 						if (tvdb_ep != null)
 						{
-							l.Thumb = tvdb_ep.GenPoster();
+							l.Thumb = tvdb_ep.GenPoster(null);
 							l.Summary = tvdb_ep.Overview;
 						}
 					}
@@ -453,7 +413,7 @@ namespace JMMServer.PlexAndKodi
 		        }
 		        if (l.Thumb == null || l.Summary == null)
 		        {
-			        l.Thumb = ConstructSupportImageLink("plex_404.png");
+			        l.Thumb = ((IProvider)null).ConstructSupportImageLink("plex_404.png");
 			        l.Summary = "Episode Overview not Available";
 		        }
 	        }
@@ -516,7 +476,7 @@ namespace JMMServer.PlexAndKodi
             RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
         }
 
-        private static void GetValidVideoRecursive(GroupFilter f, int userid, Directory pp)
+        private static void GetValidVideoRecursive(IProvider prov, GroupFilter f, int userid, Directory pp)
         {
             List<GroupFilter> gfs = RepoFactory.GroupFilter.GetByParentID(f.GroupFilterID).Where(a=>a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0).ToList();
 
@@ -533,8 +493,8 @@ namespace JMMServer.PlexAndKodi
                             Video v = ag.GetPlexContract(userid);
                             if (v?.Art != null && v.Thumb != null)
                             {
-                                pp.Art = Helper.ReplaceSchemeHost(v.Art);
-                                pp.Thumb = Helper.ReplaceSchemeHost(v.Thumb);
+                                pp.Art = prov.ReplaceSchemeHost(v.Art);
+                                pp.Thumb = prov.ReplaceSchemeHost(v.Thumb);
                                 break;
                             }
                         }
@@ -547,7 +507,7 @@ namespace JMMServer.PlexAndKodi
             {
                 foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0))
                 {
-                    GetValidVideoRecursive(gg, userid, pp);
+                    GetValidVideoRecursive(prov, gg, userid, pp);
                     if (pp.Art != null)
                         break;
                 }
@@ -565,7 +525,7 @@ namespace JMMServer.PlexAndKodi
             pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
             if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
-                GetValidVideoRecursive(gg, userid, pp);
+                GetValidVideoRecursive(prov, gg, userid, pp);
             }
             else if (gg.GroupsIds.ContainsKey(userid))
             {
@@ -580,8 +540,8 @@ namespace JMMServer.PlexAndKodi
                         Video v = ag.GetPlexContract(userid);
                         if (v?.Art != null && v.Thumb != null)
                         {
-                            pp.Art = Helper.ReplaceSchemeHost(v.Art);
-                            pp.Thumb = Helper.ReplaceSchemeHost(v.Thumb);
+                            pp.Art = prov.ReplaceSchemeHost(v.Art);
+                            pp.Thumb = prov.ReplaceSchemeHost(v.Thumb);
                             break;
                         }
                     }
@@ -647,30 +607,31 @@ namespace JMMServer.PlexAndKodi
             v.IsMovie = ret;
         }
 
-	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series)
+	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, IProvider prov)
 	    {
 		    using (var session = DatabaseFactory.SessionFactory.OpenSession())
 		    {
-			    return GetRandomBannerFromSeries(series, session.Wrap());
+			    return GetRandomBannerFromSeries(series, session.Wrap(),prov);
 		    }
 	    }
 
-	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISessionWrapper session)
+	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISessionWrapper session, IProvider prov)
 	    {
-		    foreach (AnimeSeries ser in series.Randomize())
+		    foreach (AnimeSeries ser in series.Randomize(123456789))
 		    {
 			    AniDB_Anime anim = ser.GetAnime();
 			    if (anim != null)
 			    {
 				    ImageDetails banner = anim.GetDefaultWideBannerDetailsNoBlanks(session);
 				    if (banner != null)
-					    return banner.GenArt();
+					    return banner.GenArt(prov);
 			    }
 		    }
 		    return null;
 	    }
 
-	    public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed = -1)
+
+        public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed = -1)
         {
 			Random rnd;
 			if (seed == -1)
@@ -684,24 +645,24 @@ namespace JMMServer.PlexAndKodi
             return source.OrderBy(item => rnd.Next());
         }
 
-		public static string GetRandomFanartFromSeries(List<AnimeSeries> series)
+		public static string GetRandomFanartFromSeries(List<AnimeSeries> series, IProvider prov)
 		{
 			using (var session = DatabaseFactory.SessionFactory.OpenSession())
 			{
-				return GetRandomFanartFromSeries(series, session.Wrap());
+				return GetRandomFanartFromSeries(series, session.Wrap(), prov);
 			}
 		}
 
-        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISessionWrapper session)
+        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISessionWrapper session, IProvider prov)
         {
-            foreach (AnimeSeries ser in series.Randomize())
+            foreach (AnimeSeries ser in series.Randomize(123456789))
             {
                 AniDB_Anime anim = ser.GetAnime();
                 if (anim != null)
                 {
                     ImageDetails fanart = anim.GetDefaultFanartDetailsNoBlanks(session);
                     if (fanart != null)
-                        return fanart.GenArt();
+                        return fanart.GenArt(prov);
                 }
             }
             return null;
@@ -717,17 +678,17 @@ namespace JMMServer.PlexAndKodi
             return null;
         }
 
-	    public static string GetRandomFanartFromVideo(Video v)
+	    public static string GetRandomFanartFromVideo(Video v, IProvider prov)
 	    {
-		    return GetRandomArtFromList(v.Fanarts);
+		    return GetRandomArtFromList(v.Fanarts, prov);
 	    }
 
-	    public static string GetRandomBannerFromVideo(Video v)
+	    public static string GetRandomBannerFromVideo(Video v, IProvider prov)
 	    {
-		    return GetRandomArtFromList(v.Banners);
+		    return GetRandomArtFromList(v.Banners, prov);
 	    }
 
-	    public static string GetRandomArtFromList(List<Contract_ImageDetails> list)
+	    public static string GetRandomArtFromList(List<Contract_ImageDetails> list, IProvider prov)
 	    {
 		    if (list == null || list.Count == 0) return null;
 		    Contract_ImageDetails art;
@@ -745,7 +706,7 @@ namespace JMMServer.PlexAndKodi
 			    ImageID = art.ImageID,
 			    ImageType = (JMMImageType) art.ImageType
 		    };
-		    return details.GenArt();
+		    return details.GenArt(prov);
 	    }
 
         public static Video GenerateFromAnimeGroup(AnimeGroup grp, int userid, List<AnimeSeries> allSeries, ISessionWrapper session = null)
@@ -820,10 +781,10 @@ namespace JMMServer.PlexAndKodi
                                 RoleTag t = new RoleTag();
                                 t.Value = seiyuu?.SeiyuuName;
                                 if (seiyuu != null)
-                                    t.TagPicture = Helper.ConstructSeiyuuImage(seiyuu.AniDB_SeiyuuID);
+                                    t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
                                 t.Role = ch;
                                 t.RoleDescription = c?.CharDescription;
-                                t.RolePicture = Helper.ConstructCharacterImage(c.CharID);
+                                t.RolePicture = Helper.ConstructCharacterImage(null, c.CharID);
                                 v.Roles.Add(t);
                             }
                         }
@@ -857,7 +818,7 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        public static List<Video> ConvertToDirectory(List<Video> n)
+        public static List<Video> ConvertToDirectory(List<Video> n, IProvider prov)
         {
             List<Video> ks = new List<Video>();
             foreach (Video n1 in n)
@@ -866,7 +827,7 @@ namespace JMMServer.PlexAndKodi
                 if (n1 is Directory)
                     m = n1;
                 else
-                    m = n1.Clone<Directory>();
+                    m = n1.Clone<Directory>(prov);
                 m.ParentThumb = m.GrandparentThumb = null;
                 ks.Add(m);
             }
@@ -914,8 +875,8 @@ namespace JMMServer.PlexAndKodi
             p.AirDate = grp.Stat_AirDate_Min.HasValue ? grp.Stat_AirDate_Min.Value : DateTime.MinValue;
             if (ser != null)
             {
-                p.Thumb = ser.AniDBAnime?.AniDBAnime.DefaultImagePoster.GenPoster();
-                p.Art = ser.AniDBAnime?.AniDBAnime.DefaultImageFanart.GenArt();
+                p.Thumb = ser.AniDBAnime?.AniDBAnime.DefaultImagePoster.GenPoster(null);
+                p.Art = ser.AniDBAnime?.AniDBAnime.DefaultImageFanart.GenArt(null);
             }
             p.LeafCount = (grp.UnwatchedEpisodeCount + grp.WatchedEpisodeCount).ToString();
             p.ViewedLeafCount = grp.WatchedEpisodeCount.ToString();
@@ -999,8 +960,8 @@ namespace JMMServer.PlexAndKodi
                         }
                     }
                 }
-                p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster();
-				p.Art = anime?.DefaultImageFanart?.GenArt();
+                p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster(null);
+				p.Art = anime?.DefaultImageFanart?.GenArt(null);
                 if (anime?.Fanarts != null)
                 {
                     p.Fanarts = new List<Contract_ImageDetails>();
@@ -1043,10 +1004,10 @@ namespace JMMServer.PlexAndKodi
                             RoleTag t = new RoleTag();
                             t.Value = seiyuu?.SeiyuuName;
                             if (seiyuu != null)
-                                t.TagPicture = Helper.ConstructSeiyuuImage(seiyuu.AniDB_SeiyuuID);
+                                t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
                             t.Role = ch;
                             t.RoleDescription = c?.CharDescription;
-                            t.RolePicture = Helper.ConstructCharacterImage(c.CharID);
+                            t.RolePicture = Helper.ConstructCharacterImage(null, c.CharID);
                             p.Roles.Add(t);
                         }
                     }

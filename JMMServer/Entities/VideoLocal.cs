@@ -13,6 +13,7 @@ using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Commands.MAL;
 using JMMServer.LZ4;
+using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
@@ -540,12 +541,12 @@ namespace JMMServer.Entities
                             name = name.Substring(1);
                         while (name.StartsWith("."))
                             name = name.Substring(1);
-                        p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
+                        p.Key = ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                         if (p.Streams != null)
                         {
                             foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                             {
-                                s.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructFileStream(userID, s.File, false));
+                                s.Key = ((PlexAndKodi.IProvider)null).ReplaceSchemeHost(((PlexAndKodi.IProvider)null).ConstructFileStream(userID, s.File, false));
                             }
                         }
                     }

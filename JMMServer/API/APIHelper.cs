@@ -169,7 +169,7 @@ namespace JMMServer.API
             ob.size = -1;
             ob.viewed = -1;
 
-            foreach (AnimeSeries ser in grp.GetSeries().Randomize())
+            foreach (AnimeSeries ser in grp.GetSeries().Randomize(123456789))
             {
                 AniDB_Anime anim = ser.GetAnime();
                 if (anim != null)

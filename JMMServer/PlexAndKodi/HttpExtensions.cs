@@ -1,0 +1,122 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.ServiceModel.Web;
+using System.Text;
+using System.Threading.Tasks;
+using FluentNHibernate.Mapping;
+using Nancy;
+
+namespace JMMServer.PlexAndKodi
+{
+    public static class HttpExtensions
+    {
+        public static string ServerUrl(this IProvider prov, int port, string path, bool externalip = false)
+        {
+            Tuple<string, string> scheme_host = prov.GetSchemeHost(externalip);
+            if (scheme_host==null)
+            {
+                return "{SCHEME}://{HOST}:" + port + "/" + path;
+            }
+            return scheme_host.Item1 + "://" + scheme_host.Item2 + ":" + port + "/" + path;
+        }
+
+        private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
+        {
+            if (prov?.Nancy == null && WebOperationContext.Current?.IncomingRequest.UriTemplateMatch == null)
+            {
+                return null;
+            }
+            string host = (prov.Nancy != null) ? prov.Nancy.Request.Url.HostName : WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
+            string scheme = (prov.Nancy != null) ? prov.Nancy.Request.Url.Scheme : WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme;
+            if (externalip)
+            {
+                IPAddress ip = FileServer.FileServer.GetExternalAddress();
+                if (ip != null)
+                    host = ip.ToString();
+            }
+            return new Tuple<string, string>(scheme, host);
+        }
+
+        public static string ReplaceSchemeHost(this IProvider prov, string str, bool externalip = false)
+        {
+            Tuple<string, string> scheme_host = prov.GetSchemeHost(externalip);
+            if (scheme_host==null)
+                scheme_host=new Tuple<string, string>("http","127.0.0.1");
+            return str?.Replace("{SCHEME}", scheme_host.Item1).Replace("{HOST}", scheme_host.Item2);
+        }
+        public static string GetQueryParameter(this IProvider prov, string name)
+        {
+            if (prov?.Nancy?.Request != null)
+            {
+                return prov.Nancy.Request.Query[name];
+            }
+            if (WebOperationContext.Current == null)
+                return null;
+            if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(name))
+                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];
+            return null;
+        }
+        public static bool IsExternalRequest(this IProvider prov)
+        {
+            if (!FileServer.FileServer.UPnPPortAvailable)
+                return false;
+            string extarnalhost = prov.GetQueryParameter("externalhost");
+            if (extarnalhost == null || extarnalhost == "0")
+                return false;
+            return true;
+        }
+        public static string RequestHeader(this IProvider prov, string name)
+        {
+            if (prov?.Nancy?.Request?.Headers != null)
+            {
+                if (prov.Nancy.Request.Headers.Keys.Contains(name))
+                    return prov.Nancy.Request.Headers[name].ElementAt(0);
+            }
+            else if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
+                return WebOperationContext.Current.IncomingRequest.Headers[name];
+            return null;
+        }
+
+        public static bool IsIOS(this IProvider prov)
+        {
+            string product = prov.RequestHeader("X-Plex-Product");
+            if (product.ToUpperInvariant().Contains("IOS"))
+                return true;
+            return false;
+        }
+        public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers, string contentype=null)
+        {
+            if (prov?.Nancy?.After != null)
+            {
+                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value)).ToList();
+                prov.Nancy.After.AddItemToEndOfPipeline((ctx) =>
+                {
+                    ctx.Response.WithHeaders(tps.ToArray());
+                    if (contentype != null)
+                        ctx.Response.ContentType = contentype;
+                });
+            }
+            else if (WebOperationContext.Current != null)
+            {
+                foreach (string n in headers.Keys)
+                    WebOperationContext.Current.OutgoingResponse.Headers.Add(n, headers[n]);
+                if (contentype != null)
+                    WebOperationContext.Current.OutgoingResponse.ContentType = contentype;
+            }
+        }
+
+        public static Dictionary<string, string> GetOptions()
+        {
+            Dictionary<string, string> headers = new Dictionary<string, string>();
+            headers.Add("X-Plex-Protocol", "1.0");
+            headers.Add("Access-Control-Allow-Origin", "*");
+            headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT, HEAD");
+            headers.Add("Access-Control-Max-Age", "1209600");
+            headers.Add("Access-Control-Allow-Headers", "accept, x-plex-token, x-plex-client-identifier, x-plex-username, x-plex-product, x-plex-device, x-plex-platform, x-plex-platform-version, x-plex-version, x-plex-device-name");
+            return headers;
+        }
+     
+    }
+}

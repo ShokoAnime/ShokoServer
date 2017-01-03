@@ -1,4 +1,5 @@
 ﻿using JMMContracts.PlexAndKodi;
+using Nancy;
 
 namespace JMMServer.PlexAndKodi
 {
@@ -22,5 +23,8 @@ namespace JMMServer.PlexAndKodi
         bool AddPlexPrefsItem { get;  }
         bool RemoveFileAttribute { get; } // This will force the transcoder in plex to use the stream instead the file.
         bool AddEpisodeNumberToTitlesOnUnsupportedClients { get;  }
+        NancyModule Nancy { get; set; }
+
+
     }
 }

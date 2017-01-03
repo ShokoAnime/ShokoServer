@@ -59,7 +59,7 @@ namespace JMMServer.PlexAndKodi
                 : null;
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Anime", false, false, info));
-            if (!ret.Init())
+            if (!ret.Init(prov))
                 return new MediaContainer(); //Normal OPTION VERB
             List<Video> dirs = new List<Video>();
             try
@@ -87,7 +87,7 @@ namespace JMMServer.PlexAndKodi
                         pp.Key = prov.ShortUrl(prov.ConstructUnsortUrl(userid));
                         pp.Title = "Unsort";
                         pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
-                        pp.Thumb = Helper.ConstructSupportImageLink("plex_unsort.png");
+                        pp.Thumb = prov.ConstructSupportImageLink("plex_unsort.png");
                         pp.LeafCount = vids.Count.ToString();
                         pp.ViewedLeafCount = "0";
                         dirs.Add(prov, pp, info);
@@ -99,14 +99,14 @@ namespace JMMServer.PlexAndKodi
                         pp.Key = prov.ShortUrl(prov.ConstructPlaylistUrl(userid));
                         pp.Title = "Playlists";
                         pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
-                        pp.Thumb = Helper.ConstructSupportImageLink("plex_playlists.png");
+                        pp.Thumb = prov.ConstructSupportImageLink("plex_playlists.png");
                         pp.LeafCount = playlists.Count.ToString();
                         pp.ViewedLeafCount = "0";
                         dirs.Add(prov, pp, info);
                     }
                     dirs = dirs.OrderBy(a => a.Title).ToList();
                 }
-                ret.MediaContainer.RandomizeArt(dirs);
+                ret.MediaContainer.RandomizeArt(prov, dirs);
                 if (prov.AddPlexPrefsItem)
                 {
                     Directory dir = new Directory();
@@ -183,7 +183,7 @@ namespace JMMServer.PlexAndKodi
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     var ret = new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Playlists", true, true, info));
-                    if (!ret.Init())
+                    if (!ret.Init(prov))
                         return new MediaContainer(); //Normal
                     var retPlaylists = new List<Video>();
                     var playlists = RepoFactory.Playlist.GetAll();
@@ -200,13 +200,13 @@ namespace JMMServer.PlexAndKodi
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
                             var anime = RepoFactory.AnimeEpisode.GetByID(episodeID).GetAnimeSeries(sessionWrapper).GetAnime();
-                            dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster();
-                            dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt();
-                            dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(sessionWrapper)?.GenArt();
+                            dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster(prov);
+                            dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt(prov);
+                            dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(sessionWrapper)?.GenArt(prov);
                         }
                         else
                         {
-                            dir.Thumb = Helper.ConstructSupportImageLink("plex_404V.png");
+                            dir.Thumb = prov.ConstructSupportImageLink("plex_404V.png");
                         }
                         dir.LeafCount = playlist.PlaylistItems.Split('|').Count().ToString();
                         dir.ViewedLeafCount = "0";
@@ -225,7 +225,7 @@ namespace JMMServer.PlexAndKodi
                 var ret =
                     new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Episode, playlist.PlaylistName, true, true,
                         info));
-                if (!ret.Init())
+                if (!ret.Init(prov))
                     return new MediaContainer(); //Normal
                 foreach (var item in playlistItems)
                 {
@@ -254,7 +254,7 @@ namespace JMMServer.PlexAndKodi
                             Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
                             v.Type = "episode";
                             vids.Add(prov, v, info);
-                            if (prov.ConstructFakeIosParent)
+                            if (prov.ConstructFakeIosParent && prov.IsIOS())
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
@@ -266,7 +266,7 @@ namespace JMMServer.PlexAndKodi
                         //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
                     }
                 }
-                ret.MediaContainer.RandomizeArt(vids);
+                ret.MediaContainer.RandomizeArt(prov, vids);
                 ret.Childrens = vids;
                 return ret.GetStream(prov);
             }
@@ -277,7 +277,7 @@ namespace JMMServer.PlexAndKodi
         {
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Video, "Unsort", true, true, info));
-            if (!ret.Init())
+            if (!ret.Init(prov))
                 return new MediaContainer();
             List<Video> dirs = new List<Video>();
             List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
@@ -287,10 +287,10 @@ namespace JMMServer.PlexAndKodi
                 {
                     Video m = Helper.VideoFromVideoLocal(prov, v, userid);
                     dirs.Add(prov, m, info);
-                    m.Thumb = Helper.ConstructSupportImageLink("plex_404.png");
-                    m.ParentThumb = Helper.ConstructSupportImageLink("plex_unsort.png");
+                    m.Thumb = prov.ConstructSupportImageLink("plex_404.png");
+                    m.ParentThumb = prov.ConstructSupportImageLink("plex_unsort.png");
                     m.ParentKey = null;
-                    if (prov.ConstructFakeIosParent)
+                    if (prov.ConstructFakeIosParent && prov.IsIOS())
                         m.GrandparentKey =
                             prov.Proxyfy(prov.ConstructFakeIosThumb(userid, m.ParentThumb,
                                 m.Art ?? m.ParentArt ?? m.GrandparentArt));
@@ -317,9 +317,9 @@ namespace JMMServer.PlexAndKodi
             Video v2 = Helper.VideoFromVideoLocal(prov, vi, userid);
             List<Video> dirs = new List<Video>();
             dirs.EppAdd(prov, v2, info, true);
-            v2.Thumb = Helper.ConstructSupportImageLink("plex_404.png");
-            v2.ParentThumb = Helper.ConstructSupportImageLink("plex_unsort.png");
-            if (prov.ConstructFakeIosParent)
+            v2.Thumb = prov.ConstructSupportImageLink("plex_404.png");
+            v2.ParentThumb = prov.ConstructSupportImageLink("plex_unsort.png");
+            if (prov.ConstructFakeIosParent && prov.IsIOS())
                 v2.GrandparentKey =
                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v2.ParentThumb,
                         v2.Art ?? v2.ParentArt ?? v2.GrandparentArt));
@@ -371,7 +371,7 @@ namespace JMMServer.PlexAndKodi
                         {
                             v.Type = "episode";
                             dirs.EppAdd(prov, v, info, true);
-                            if (prov.ConstructFakeIosParent)
+                            if (prov.ConstructFakeIosParent && prov.IsIOS())
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
@@ -379,7 +379,7 @@ namespace JMMServer.PlexAndKodi
                         }
                         if (prov.UseBreadCrumbs)
                             v.Key = prov.ShortUrl(ret.MediaContainer.Key);
-                        ret.MediaContainer.Art = Helper.ReplaceSchemeHost(nv.Art ?? nv.ParentArt ?? nv.GrandparentArt);
+                        ret.MediaContainer.Art = prov.ReplaceSchemeHost(nv.Art ?? nv.ParentArt ?? nv.GrandparentArt);
                     }
                     ret.MediaContainer.Childrens = dirs;
                     return ret.GetStream(prov);
@@ -491,7 +491,7 @@ namespace JMMServer.PlexAndKodi
             foreach (AnimeSeries ser in series)
             {
                 if (!user.AllowedSeries(ser)) continue;
-                Video v = ser.GetPlexContract(user.JMMUserID)?.Clone<Directory>();
+                Video v = ser.GetPlexContract(user.JMMUserID)?.Clone<Directory>(prov);
                 if (v != null)
                 {
                     switch (ser.Contract.AniDBAnime.AniDBAnime.AnimeType)
@@ -523,8 +523,8 @@ namespace JMMServer.PlexAndKodi
                 if (cnt == lim)
                     break;
             }
-            ret.MediaContainer.RandomizeArt(ls);
-            ret.MediaContainer.Childrens = Helper.ConvertToDirectory(ls);
+            ret.MediaContainer.RandomizeArt(prov, ls);
+            ret.MediaContainer.Childrens = Helper.ConvertToDirectory(ls,prov);
             return ret.GetStream(prov);
         }
 
@@ -543,7 +543,7 @@ namespace JMMServer.PlexAndKodi
 
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, grp.GroupName, false, true, info));
-            if (!ret.Init())
+            if (!ret.Init(prov))
                 return new MediaContainer();
 
             Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
@@ -571,8 +571,8 @@ namespace JMMServer.PlexAndKodi
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
 
-                        v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-                        v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+                        v.Art = Helper.GetRandomFanartFromVideo(v,prov) ?? v.Art;
+                        v.Banner = Helper.GetRandomBannerFromVideo(v,prov) ?? v.Banner;
 
                         if (nocast) v.Roles = null;
 						retGroups.Add(prov, v, info);
@@ -581,23 +581,23 @@ namespace JMMServer.PlexAndKodi
                 }
                 foreach (AnimeSeries ser in seriesList)
                 {
-                    var v = ser.GetPlexContract(userid)?.Clone<Directory>();
+                    var v = ser.GetPlexContract(userid)?.Clone<Directory>(prov);
                     if (v != null)
                     {
                         v.AirDate = ser.AirDate;
                         v.Group = basegrp;
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-	                    v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-	                    v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+	                    v.Art = Helper.GetRandomFanartFromVideo(v,prov) ?? v.Art;
+	                    v.Banner = Helper.GetRandomBannerFromVideo(v,prov) ?? v.Banner;
 	                    if (nocast) v.Roles = null;
 	                    retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
             }
-            ret.MediaContainer.RandomizeArt(retGroups);
-            ret.Childrens = Helper.ConvertToDirectory(retGroups.OrderBy(a => a.AirDate).ToList());
+            ret.MediaContainer.RandomizeArt(prov, retGroups);
+            ret.Childrens = Helper.ConvertToDirectory(retGroups.OrderBy(a => a.AirDate).ToList(),prov);
             FilterExtras(prov,ret.Childrens);
             return ret.GetStream(prov);
         }
@@ -953,11 +953,11 @@ namespace JMMServer.PlexAndKodi
         private MediaContainer FakeParentForIOSThumbnail(IProvider prov, string base64)
         {
             BaseObject ret = new BaseObject(prov.NewMediaContainer(MediaContainerTypes.None, null, false, true, null));
-            if (!ret.Init())
+            if (!ret.Init(prov))
                 return new MediaContainer();
             string[] urls = Helper.Base64DecodeUrl(base64).Split('|');
-            string thumb = Helper.ReplaceSchemeHost(urls[0]);
-            string art = Helper.ReplaceSchemeHost(urls[1]);
+            string thumb = prov.ReplaceSchemeHost(urls[0]);
+            string art = prov.ReplaceSchemeHost(urls[1]);
             Directory v = new Directory()
             {
                 Thumb = thumb,
@@ -1032,9 +1032,9 @@ namespace JMMServer.PlexAndKodi
                     ret =
                         new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Episode, ser.GetSeriesName(), true,
                             true, info));
-                    if (!ret.Init())
+                    if (!ret.Init(prov))
                         return new MediaContainer();
-                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt();
+                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt(prov);
                     ret.MediaContainer.LeafCount =
                         (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
                     ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
@@ -1044,9 +1044,9 @@ namespace JMMServer.PlexAndKodi
                 else
                 {
                     ret = new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Types", false, true, info));
-                    if (!ret.Init())
+                    if (!ret.Init(prov))
                         return new MediaContainer();
-                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt();
+                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt(prov);
                     ret.MediaContainer.LeafCount =
                         (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
                     ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
@@ -1075,7 +1075,7 @@ namespace JMMServer.PlexAndKodi
                             v.ChildCount = v.LeafCount;
                             v.ViewedLeafCount = "0";
                             v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
-                            v.Thumb = Helper.ConstructSupportImageLink(ee.Image);
+                            v.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
                             if ((ee.AnimeType == AnimeTypes.Movie) || (ee.AnimeType == AnimeTypes.OVA))
                             {
                                 v = Helper.MayReplaceVideo(v, ser, cseries, userid, false, nv);
@@ -1102,7 +1102,7 @@ namespace JMMServer.PlexAndKodi
 							Helper.AddInformationFromMasterSeries(v, cseries, nv, hasRoles);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
-                            if (prov.ConstructFakeIosParent)
+                            if (prov.ConstructFakeIosParent && prov.IsIOS())
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
@@ -1143,7 +1143,7 @@ namespace JMMServer.PlexAndKodi
                     BaseObject ret =
                         new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, gf.GroupFilterName, false, true,
                             info));
-                    if (!ret.Init())
+                    if (!ret.Init(prov))
                         return new MediaContainer();
                     List<GroupFilter> allGfs =
                     RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
@@ -1169,15 +1169,15 @@ namespace JMMServer.PlexAndKodi
                         // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
                         foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
                         {
-                            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
+                            Video v = grp.GetPlexContract(userid)?.Clone<Directory>(prov);
                             if (v != null)
                             {
                                 if (v.Group == null)
                                     v.Group = grp.GetUserContract(userid);
                                 v.GenerateKey(prov, userid);
                                 v.Type = "show";
-	                            v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-	                            v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+	                            v.Art = Helper.GetRandomFanartFromVideo(v,prov) ?? v.Art;
+	                            v.Banner = Helper.GetRandomBannerFromVideo(v,prov) ?? v.Banner;
 	                            if (nocast) v.Roles = null;
 								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);
@@ -1185,7 +1185,7 @@ namespace JMMServer.PlexAndKodi
                             }
                         }
                     }
-                    ret.MediaContainer.RandomizeArt(retGroups);
+                    ret.MediaContainer.RandomizeArt(prov, retGroups);
                     IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
                     grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                     ret.Childrens = grps.Select(a => order[a]).ToList();
