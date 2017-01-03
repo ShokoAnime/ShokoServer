@@ -82,6 +82,8 @@ namespace JMMServer.PlexAndKodi
         public static bool IsIOS(this IProvider prov)
         {
             string product = prov.RequestHeader("X-Plex-Product");
+            if (product == null)
+                return false;
             if (product.ToUpperInvariant().Contains("IOS"))
                 return true;
             return false;
