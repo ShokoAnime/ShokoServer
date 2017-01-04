@@ -534,7 +534,7 @@ namespace JMMServer.PlexAndKodi
                 {
                     pp.LeafCount = groups.Count.ToString();
                     pp.ViewedLeafCount = "0";
-                    foreach (int grp in groups)
+                    foreach (int grp in groups.Randomize(gg.GroupFilterID))
                     {
                         AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                         Video v = ag.GetPlexContract(userid);

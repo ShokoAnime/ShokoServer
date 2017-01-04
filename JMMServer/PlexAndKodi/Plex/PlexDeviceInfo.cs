@@ -42,7 +42,9 @@ namespace JMMServer.PlexAndKodi.Plex
 
         public override string ToString()
         {
-            return DoTag("DEVICE", Device) + " - " + DoTag("PRODUCT", Product) + " - " + DoTag("VERSION", Version) + " - " + DoTag("PLATFORM", Platform) + " - " + DoTag("CLIENT", Enum.GetName(typeof(PlexClient), Client));
+            if (Device == null && Product == null && Version == null && Platform == null)
+                return "PRODUCT: Kodi";
+            return DoTag("PRODUCT", Product) + " - " + DoTag("DEVICE", Device) + " - " + DoTag("VERSION", Version) + " - " + DoTag("PLATFORM", Platform) + " - " + DoTag("CLIENT", Enum.GetName(typeof(PlexClient), Client));
         }
 
         private static string DoTag(string name, string value)

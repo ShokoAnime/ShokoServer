@@ -130,7 +130,7 @@ namespace JMMServer.PlexAndKodi
                 ret.Childrens = dirs;
                 PlexDeviceInfo dinfo = prov.GetPlexClient();
                 if (dinfo!=null)
-                    logger.Debug(dinfo.ToString());
+                    logger.Info(dinfo.ToString());
                 return ret.GetStream(prov);
             }
             catch (Exception ex)

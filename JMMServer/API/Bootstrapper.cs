@@ -123,7 +123,6 @@ namespace JMMServer.API
 		{
             // Set to null after request as not to interfere with contract generation
             // Module.apiv2.Core.request = null;
-            CommonImplementation.logger.Info("METHOD: "+ctx.Request.Method);
             if (ctx.Request.Method.Equals("OPTIONS", StringComparison.Ordinal))
             {
                 Dictionary<string, string> headers = HttpExtensions.GetOptions();

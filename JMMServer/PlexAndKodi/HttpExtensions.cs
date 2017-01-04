@@ -87,9 +87,7 @@ namespace JMMServer.PlexAndKodi
             string device = prov.RequestHeader("X-Plex-Device");
             string version = prov.RequestHeader("X-Plex-Version");
             string platform = prov.RequestHeader("X-Plex-Platform");
-            if (product == null && device == null && version == null && platform == null)
-                return null;
-            return new PlexDeviceInfo(product, device, version, platform);
+            return new PlexDeviceInfo(device, product, version, platform);
         }
         public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers, string contentype=null)
         {
