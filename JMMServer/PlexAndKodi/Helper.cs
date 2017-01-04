@@ -487,7 +487,7 @@ namespace JMMServer.PlexAndKodi
                     HashSet<int> groups = gg.GroupsIds[userid];
                     if (groups.Count != 0)
                     {
-                        foreach (int grp in groups)
+                        foreach (int grp in groups.Randomize(f.GroupFilterID))
                         {
                             AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                             Video v = ag.GetPlexContract(userid);
@@ -505,7 +505,7 @@ namespace JMMServer.PlexAndKodi
             }
             if (pp.Art == null)
             {
-                foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0))
+                foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0).Randomize(f.GroupFilterID))
                 {
                     GetValidVideoRecursive(prov, gg, userid, pp);
                     if (pp.Art != null)
@@ -616,7 +616,7 @@ namespace JMMServer.PlexAndKodi
 
 	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISessionWrapper session, IProvider prov)
 	    {
-		    foreach (AnimeSeries ser in series.Randomize(123456789))
+		    foreach (AnimeSeries ser in series.Randomize())
 		    {
 			    AniDB_Anime anim = ser.GetAnime();
 			    if (anim != null)
@@ -654,7 +654,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISessionWrapper session, IProvider prov)
         {
-            foreach (AnimeSeries ser in series.Randomize(123456789))
+            foreach (AnimeSeries ser in series.Randomize())
             {
                 AniDB_Anime anim = ser.GetAnime();
                 if (anim != null)
@@ -669,7 +669,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string GetRandomFanartFromVideoList(List<Video> videos)
         {
-            foreach (Video v in videos.Randomize(123456789))
+            foreach (Video v in videos.Randomize())
             {
                 if (v.Art != null)
                     return v.Art;
