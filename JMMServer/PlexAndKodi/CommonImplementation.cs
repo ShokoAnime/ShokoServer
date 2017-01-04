@@ -13,6 +13,7 @@ using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi.Kodi;
+using JMMServer.PlexAndKodi.Plex;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -127,6 +128,9 @@ namespace JMMServer.PlexAndKodi
                     dirs.Add(dir);
                 }
                 ret.Childrens = dirs;
+                PlexDeviceInfo dinfo = prov.GetPlexClient();
+                if (dinfo!=null)
+                    logger.Debug(dinfo.ToString());
                 return ret.GetStream(prov);
             }
             catch (Exception ex)
@@ -254,7 +258,8 @@ namespace JMMServer.PlexAndKodi
                             Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
                             v.Type = "episode";
                             vids.Add(prov, v, info);
-                            if (prov.ConstructFakeIosParent && prov.IsIOS())
+                            PlexDeviceInfo dinfo = prov.GetPlexClient();
+                            if (prov.ConstructFakeIosParent && dinfo!=null && dinfo.Client==PlexClient.IOS)
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
@@ -290,7 +295,9 @@ namespace JMMServer.PlexAndKodi
                     m.Thumb = prov.ConstructSupportImageLink("plex_404.png");
                     m.ParentThumb = prov.ConstructSupportImageLink("plex_unsort.png");
                     m.ParentKey = null;
-                    if (prov.ConstructFakeIosParent && prov.IsIOS())
+                    PlexDeviceInfo dinfo = prov.GetPlexClient();
+                    if (prov.ConstructFakeIosParent && dinfo != null && dinfo.Client == PlexClient.IOS)
+
                         m.GrandparentKey =
                             prov.Proxyfy(prov.ConstructFakeIosThumb(userid, m.ParentThumb,
                                 m.Art ?? m.ParentArt ?? m.GrandparentArt));
@@ -319,7 +326,9 @@ namespace JMMServer.PlexAndKodi
             dirs.EppAdd(prov, v2, info, true);
             v2.Thumb = prov.ConstructSupportImageLink("plex_404.png");
             v2.ParentThumb = prov.ConstructSupportImageLink("plex_unsort.png");
-            if (prov.ConstructFakeIosParent && prov.IsIOS())
+            PlexDeviceInfo dinfo = prov.GetPlexClient();
+            if (prov.ConstructFakeIosParent && dinfo != null && dinfo.Client == PlexClient.IOS)
+
                 v2.GrandparentKey =
                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v2.ParentThumb,
                         v2.Art ?? v2.ParentArt ?? v2.GrandparentArt));
@@ -371,7 +380,8 @@ namespace JMMServer.PlexAndKodi
                         {
                             v.Type = "episode";
                             dirs.EppAdd(prov, v, info, true);
-                            if (prov.ConstructFakeIosParent && prov.IsIOS())
+                            PlexDeviceInfo dinfo = prov.GetPlexClient();
+                            if (prov.ConstructFakeIosParent && dinfo != null && dinfo.Client == PlexClient.IOS)
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
@@ -1103,7 +1113,8 @@ namespace JMMServer.PlexAndKodi
                             v.Type = "episode";
                             vids.Add(prov, v, info);
                             v.GrandparentThumb = v.ParentThumb;
-                            if (prov.ConstructFakeIosParent && prov.IsIOS())
+                            PlexDeviceInfo dinfo = prov.GetPlexClient();
+                            if (prov.ConstructFakeIosParent && dinfo != null && dinfo.Client == PlexClient.IOS)
                                 v.GrandparentKey =
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));

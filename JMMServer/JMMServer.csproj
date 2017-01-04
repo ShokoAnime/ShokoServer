@@ -388,6 +388,8 @@
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
     <Compile Include="PlexAndKodi\HttpExtensions.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexClient.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexDeviceInfo.cs" />
     <Compile Include="Providers\MovieDB\SyncExtensions.cs" />
     <Compile Include="Tasks\AutoAnimeGroupCalculator.cs" />
     <Compile Include="Tasks\AnimeGroupCreator.cs" />

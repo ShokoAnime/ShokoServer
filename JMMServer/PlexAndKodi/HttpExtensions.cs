@@ -6,6 +6,7 @@ using System.ServiceModel.Web;
 using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
+using JMMServer.PlexAndKodi.Plex;
 using Nancy;
 
 namespace JMMServer.PlexAndKodi
@@ -79,14 +80,16 @@ namespace JMMServer.PlexAndKodi
             return null;
         }
 
-        public static bool IsIOS(this IProvider prov)
+
+        public static PlexDeviceInfo GetPlexClient(this IProvider prov)
         {
             string product = prov.RequestHeader("X-Plex-Product");
-            if (product == null)
-                return false;
-            if (product.ToUpperInvariant().Contains("IOS"))
-                return true;
-            return false;
+            string device = prov.RequestHeader("X-Plex-Device");
+            string version = prov.RequestHeader("X-Plex-Version");
+            string platform = prov.RequestHeader("X-Plex-Platform");
+            if (product == null && device == null && version == null && platform == null)
+                return null;
+            return new PlexDeviceInfo(product, device, version, platform);
         }
         public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers, string contentype=null)
         {

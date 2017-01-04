@@ -5,6 +5,7 @@ using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Text;
 using JMMContracts.PlexAndKodi;
+using JMMServer.PlexAndKodi.Plex;
 
 namespace JMMServer.PlexAndKodi
 {
@@ -41,24 +42,22 @@ namespace JMMServer.PlexAndKodi
                 MediaContainer.ViewGroup = null;
                 MediaContainer.ViewMode = null;
             }
-            bool removeandroid = false;
-            bool addeps = false;
-            string product = prov.RequestHeader("X-Plex-Product");
-            if (!string.IsNullOrEmpty(product))
+            bool isandroid = false;
+            bool isios = false;
+            PlexDeviceInfo dinfo = prov.GetPlexClient();
+            if (dinfo!=null)
             {
-                //Fix for android hang, if the type is populated
-                string kh =product.ToUpper();
-                if (kh.Contains("ANDROID"))
-                    removeandroid = true;
-                else if (kh.Contains("IOS"))
-                    addeps = true;
+                if (dinfo.Client==PlexClient.Android)
+                    isandroid = true;
+                else if (dinfo.Client==PlexClient.IOS)
+                    isios = true;
             }
             MediaContainer.Childrens.ForEach(a =>
             {
                 a.Group = null;
-                if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && addeps && a.Type == "episode")
+                if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && (isios || isandroid) && a.Type == "episode")
                     a.Title = a.EpisodeNumber + ". " + a.Title;
-                if (removeandroid)
+                if (isandroid)
                     a.Type = null;
                 if (prov.RemoveFileAttribute)
                 {
