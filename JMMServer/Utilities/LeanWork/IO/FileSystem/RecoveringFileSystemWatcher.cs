@@ -172,8 +172,8 @@ namespace LeanWork.IO.FileSystem
             }
             else if (ex is Win32Exception && (ex.HResult == NetworkNameNoLongerAvailable | ex.HResult == AccessIsDenied))
             {
-                _trace.Warn(ex.Message);
-                _trace.Warn("Will try to recover automatically!");
+                _trace.Debug(ex.Message);
+                _trace.Debug("Will try to recover automatically!");
                 ReStartIfNeccessary(DirectoryRetryInterval);
             }
             else

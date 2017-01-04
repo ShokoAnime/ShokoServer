@@ -2431,19 +2431,20 @@ namespace JMMServer
                 {
                     if (share.FolderIsWatched)
                     {
-                        logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                        logger.Info($"Watching ImportFolder: {share.ImportFolderName} || {share.ImportFolderLocation}");
                     }
-                    if (share.CloudID==null && Directory.Exists(share.ParsedImportFolderLocation) && share.FolderIsWatched)
+                    if (share.CloudID == null && Directory.Exists(share.ParsedImportFolderLocation) && share.FolderIsWatched)
                     {
+                        logger.Info($"Parsed ImportFolderLocation: {share.ParsedImportFolderLocation}");
                         RecoveringFileSystemWatcher fsw = new RecoveringFileSystemWatcher();
-
                         fsw.Path = share.ParsedImportFolderLocation;
 
                         // Handle all type of events not just created ones
                         fsw.Created += fsw_Handler;
                         fsw.Renamed += fsw_Handler;
 
-                        fsw.InternalBufferSize = 81920;
+                        // Commented out buffer size as it breaks on UNC paths or mapped drives
+                        //fsw.InternalBufferSize = 81920;
                         fsw.IncludeSubdirectories = true;
                         fsw.EnableRaisingEvents = true;
                         watcherVids.Add(fsw);
@@ -2455,7 +2456,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                 }
             }
             StartCloudWatchTimer();
