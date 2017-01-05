@@ -11,6 +11,7 @@ using System.Text;
 using System.Windows.Documents;
 using System.Xml.Serialization;
 using AniDBAPI;
+using FluentNHibernate.Utils;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Databases;
@@ -534,7 +535,7 @@ namespace JMMServer.PlexAndKodi
                 {
                     pp.LeafCount = groups.Count.ToString();
                     pp.ViewedLeafCount = "0";
-                    foreach (int grp in groups.Randomize(gg.GroupFilterID))
+                    foreach (int grp in groups.Randomize())
                     {
                         AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                         Video v = ag.GetPlexContract(userid);
@@ -743,7 +744,7 @@ namespace JMMServer.PlexAndKodi
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min ?? DateTime.MinValue;
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
-	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1);
+	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1).ToLowerInvariantString();
 	            List<Tag> newTags = new List<Tag>();
 	            foreach (AniDB_Tag tag in grp.Tags)
 	            {
@@ -872,6 +873,7 @@ namespace JMMServer.PlexAndKodi
             p.Summary = grp.Description;
             p.Type = "show";
             p.AirDate = grp.Stat_AirDate_Min.HasValue ? grp.Stat_AirDate_Min.Value : DateTime.MinValue;
+	        p.Year = "" + grp.Stat_AllYears.Min();
             if (ser != null)
             {
                 p.Thumb = ser.AniDBAnime?.AniDBAnime.DefaultImagePoster.GenPoster(null);
@@ -946,7 +948,7 @@ namespace JMMServer.PlexAndKodi
                 p.LeafCount = anime.EpisodeCount.ToString();
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = "" + Math.Round((double) (anime.Rating / 100), 1);
+                p.Rating = Math.Round((double) (anime.Rating / 100), 1).ToLowerInvariantString();
                 List<Contract_CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
                 {
