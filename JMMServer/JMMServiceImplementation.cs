@@ -3719,9 +3719,6 @@ namespace JMMServer
                     return $"Unable to delete file '{place.FullServerPath}'";
                 }
                 place.RemoveRecord();
-                RepoFactory.VideoLocal.Delete(vid);
-                CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
-                cmdDel.Save();
                 // For deletion of files from Trakt, we will rely on the Daily sync
 
                 return "";
