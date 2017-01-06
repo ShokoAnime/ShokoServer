@@ -830,8 +830,9 @@ namespace JMMServer
 
 			        foreach (VideoLocal_Place vl in filesAll[folder])
 			        {
-				        FileSystemResult<IObject> obj = fs.Resolve(vl.FullServerPath);
-				        if (obj.IsOk && !(obj.Result is IDirectory)) continue;
+				        FileSystemResult<IObject> obj = null;
+					        if(!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
+				        if (obj == null || obj.IsOk && !(obj.Result is IDirectory)) continue;
 				        VideoLocal v = vl.VideoLocal;
 				        // delete video local record
 				        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
