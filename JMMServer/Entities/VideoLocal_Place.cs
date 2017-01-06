@@ -66,7 +66,7 @@ namespace JMMServer.Entities
             IObject file = re.Result;
             // actually rename the file
             string path = Path.GetDirectoryName(fullFileName);
-            string newFullName = Path.Combine(path, renamed);
+            string newFullName = (path == null ? null: Path.Combine(path, renamed));
 
             try
             {
