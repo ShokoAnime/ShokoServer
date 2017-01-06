@@ -57,8 +57,6 @@ namespace JMMServer.Entities
 
             // check if the file exists
 
-
-
             FileSystemResult<IObject> re = filesys.Resolve(fullFileName);
             if ((re == null) || (!re.IsOk))
             {
@@ -77,27 +75,33 @@ namespace JMMServer.Entities
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     logger.Info($"Renaming file SKIPPED! no change From ({fullFileName}) to ({newFullName})");
+	                return;
                 }
-                else
-                {
-                    FileSystemResult r = file.Rename(renamed);
-                    if (r.IsOk)
-                    {
-                        logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
-                        Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                        if (tup == null)
-                        {
-                            logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
-                            return;
-                        }
-                        this.FilePath = tup.Item2;
-                        RepoFactory.VideoLocalPlace.Save(this);
-                    }
-                    else
-                    {
-                        logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r.Error}");
-                    }
-                }
+
+				FileSystemResult r = file?.FileSystem?.Resolve(newFullName);
+				if (r != null && r.IsOk)
+				{
+					logger.Info($"Renaming file SKIPPED! Destination Exists ({newFullName})");
+					return;
+				}
+
+				r = file.Rename(renamed);
+	            if (r == null || !r.IsOk)
+	            {
+		            logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r?.Error ?? "Result is null"}");
+		            return;
+	            }
+
+				logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
+				Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+				if (tup == null)
+				{
+					logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
+					return;
+				}
+				this.FilePath = tup.Item2;
+				RepoFactory.VideoLocalPlace.Save(this);
+
             }
             catch (Exception ex)
             {
