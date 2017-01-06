@@ -23,7 +23,8 @@ namespace JMMServer.API.Module.apiv2
                 AuthUser auth = this.Bind();
                 if (!string.IsNullOrEmpty(auth.user))
                 {
-                    if (!string.IsNullOrEmpty(auth.device) & auth.pass != null)
+	                if (auth.pass == null) auth.pass = "";
+                    if (!string.IsNullOrEmpty(auth.device) && auth.pass != null)
                     {
                         //create and save new token for authenticated user or return known one
                         apiKey = UserDatabase.ValidateUser(auth.user, Digest.Hash(auth.pass), auth.device);
@@ -32,22 +33,12 @@ namespace JMMServer.API.Module.apiv2
                         {
                             return new Response { StatusCode = HttpStatusCode.Unauthorized };
                         }
-                        else
-                        {
-                            return this.Response.AsJson(new { apikey = apiKey });
-                        }
+                        return this.Response.AsJson(new { apikey = apiKey });
                     }
-                    else
-                    {
-                        //if password or device is missing
-                        return new Response { StatusCode = HttpStatusCode.BadRequest };
-                    }
+					//if password or device is missing
+					return new Response { StatusCode = HttpStatusCode.BadRequest };
                 }
-                else
-                {
-                    //if bind failed
-                    return new Response { StatusCode = HttpStatusCode.ExpectationFailed };
-                }
+                return new Response { StatusCode = HttpStatusCode.ExpectationFailed };
             };
 
             //remove apikey from database
