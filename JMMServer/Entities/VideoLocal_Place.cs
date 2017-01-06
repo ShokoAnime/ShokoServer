@@ -31,7 +31,14 @@ namespace JMMServer.Entities
 
         public ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
-        public string FullServerPath => Path.Combine(ImportFolder.ParsedImportFolderLocation, FilePath);
+	    public string FullServerPath
+	    {
+		    get
+		    {
+			    if (string.IsNullOrEmpty(ImportFolder?.ParsedImportFolderLocation) || string.IsNullOrEmpty(FilePath)) return null;
+			    return Path.Combine(ImportFolder.ParsedImportFolderLocation, FilePath);
+		    }
+	    }
 
         public VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 

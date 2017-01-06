@@ -330,13 +330,19 @@ namespace JMMServer
             {
                 try
                 {
-                    dictFilesExisting[vl.FullServerPath] = vl;
+	                if (vl.FullServerPath == null)
+	                {
+		                logger.Info("Invalid File Path found. Removing: " + vl.VideoLocal_Place_ID);
+		                RepoFactory.VideoLocalPlace.Delete(vl);
+		                continue;
+	                }
+	                dictFilesExisting[vl.FullServerPath] = vl;
                 }
                 catch (Exception ex)
                 {
-                    string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}", vl.FullServerPath,
+                    string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}", ((vl.FullServerPath ?? vl.FilePath) ?? vl.VideoLocal_Place_ID.ToString()),
                         ex.ToString());
-                    logger.Info(msg);
+                    logger.Error(msg);
                     //throw;
                 }
             }
