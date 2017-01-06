@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.FileHelper;
 using JMMServer.FileHelper.MediaInfo;
 using JMMServer.FileHelper.Subtitles;
@@ -14,6 +16,8 @@ using JMMServer.PlexAndKodi;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Nancy.Extensions;
+using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Media = JMMContracts.PlexAndKodi.Media;
@@ -109,6 +113,80 @@ namespace JMMServer.Entities
                 logger.Error( ex,ex.ToString());
             }
         }
+
+	    public void RemoveRecord()
+	    {
+		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
+		    List<AnimeEpisode> episodesToUpdate = new List<AnimeEpisode>();
+		    List<AnimeSeries> seriesToUpdate = new List<AnimeSeries>();
+		    VideoLocal v = VideoLocal;
+		    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+		    {
+			    if (v.Places.Count <= 1)
+			    {
+				    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
+				    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+				    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+				    CommandRequest_DeleteFileFromMyList cmdDel =
+					    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+				    cmdDel.Save();
+			    }
+			    else
+			    {
+				    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
+				    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+			    }
+			    episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
+			    foreach (AnimeEpisode ep in episodesToUpdate)
+			    {
+				    if (ep.AnimeEpisodeID == 0)
+				    {
+					    ep.PlexContract = null;
+					    RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
+				    }
+				    try
+				    {
+					    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
+					    RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
+				    }
+				    catch (Exception ex)
+				    {
+					    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+				    }
+			    }
+			    seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
+			    foreach (AnimeSeries ser in seriesToUpdate)
+			    {
+				    ser.QueueUpdateStats();
+			    }
+		    }
+	    }
+
+	    public void RemoveRecordWithOpenTransaction(ISession session, List<AnimeEpisode> episodesToUpdate,
+		    List<AnimeSeries> seriesToUpdate)
+	    {
+		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
+		    VideoLocal v = VideoLocal;
+		    if (v.Places.Count <= 1)
+		    {
+			    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
+			    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+			    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+			    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+			    CommandRequest_DeleteFileFromMyList cmdDel =
+				    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+			    cmdDel.Save();
+		    }
+		    else
+		    {
+			    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
+			    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+			    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+		    }
+	    }
+
         public IFile GetFile()
         {
             IFileSystem fs = ImportFolder.FileSystem;

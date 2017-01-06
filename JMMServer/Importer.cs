@@ -834,24 +834,8 @@ namespace JMMServer
 				        FileSystemResult<IObject> obj = null;
 					        if(!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
 				        if (obj == null || obj.IsOk && !(obj.Result is IDirectory)) continue;
-				        VideoLocal v = vl.VideoLocal;
 				        // delete video local record
-				        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
-				        if (v.Places.Count <= 1)
-				        {
-					        episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-					        seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
-					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, vl);
-					        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-					        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-					        cmdDel.Save();
-				        }
-				        else
-				        {
-					        episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-					        seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
-					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, vl);
-				        }
+				        vl.RemoveRecordWithOpenTransaction(session,episodesToUpdate,seriesToUpdate);
 			        }
 		        }
 
