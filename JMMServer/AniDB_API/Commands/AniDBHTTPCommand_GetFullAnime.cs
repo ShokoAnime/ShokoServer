@@ -4,11 +4,14 @@ using System.IO;
 using System.Xml;
 using JMMServer;
 using JMMServer.Providers.Azure;
+using NLog;
 
 namespace AniDBAPI.Commands
 {
     public class AniDBHTTPCommand_GetFullAnime : AniDBHTTPCommand, IAniDBHTTPCommand
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         private int animeID;
 
         public int AnimeID
@@ -146,19 +149,34 @@ namespace AniDBAPI.Commands
 
         private void WriteAnimeHTTPToFile(int animeID, string xml)
         {
-            string filePath = ServerSettings.AnimeXmlDirectory;
+            try
+            {
+                string filePath = ServerSettings.AnimeXmlDirectory;
 
+                if (!Directory.Exists(filePath))
+                    Directory.CreateDirectory(filePath);
 
-            if (!Directory.Exists(filePath))
-                Directory.CreateDirectory(filePath);
+                string fileName = $"AnimeDoc_{animeID}.xml";
+                string fileNameWithPath = Path.Combine(filePath, fileName);
 
-            string fileName = string.Format("AnimeDoc_{0}.xml", animeID);
-            string fileNameWithPath = Path.Combine(filePath, fileName);
+                // First check to make sure we not rights issue
+                if (!Utils.IsDirectoryWritable(filePath))
+                    Utils.GrantAccess(filePath);
 
-            StreamWriter sw;
-            sw = File.CreateText(fileNameWithPath);
-            sw.Write(xml);
-            sw.Close();
+                // Check again and only if write-able we create it
+                if (Utils.IsDirectoryWritable(filePath))
+                {
+                    StreamWriter sw;
+                    sw = File.CreateText(fileNameWithPath);
+                    sw.Write(xml);
+                    sw.Close();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error occurred during WriteAnimeHTTPToFile(): {ex}");
+            }
         }
 
         public virtual enHelperActivityType Process()

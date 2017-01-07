@@ -2202,32 +2202,30 @@ namespace JMMServer
             System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
             try
             {
-                if (a != null)
-                {
-                    logger.Info(string.Format("JMM Server Version: v{0}", Utils.GetApplicationVersion(a)));
-                }
+                if(Utils.GetApplicationVersion(a) != null)
+                    logger.Info($"JMM Server Version: v{Utils.GetApplicationVersion(a)}");
             }
             catch (Exception ex)
             {
-                // oopps, can't create file
-                logger.Warn("Error in log: {0}", ex.ToString());
+                logger.Warn("Error in log (server version lookup): {0}", ex.ToString());
             }
 
             try
             {
-                logger.Info(string.Format("Database Version: {0}", DatabaseFactory.Instance.GetDatabaseVersion()));
+                if(DatabaseFactory.Instance != null)
+                    logger.Info($"Database Version: {DatabaseFactory.Instance.GetDatabaseVersion()}");
             }
             catch (Exception ex)
             {
                 // oopps, can't create file
-                logger.Warn("Error in log: {0}", ex.Message);
+                logger.Warn("Error in log (database version lookup: {0}", ex.Message);
             }
 
-            logger.Info(string.Format("Operating System: {0}", Utils.GetOSInfo()));
+            logger.Info($"Operating System: {Utils.GetOSInfo()}");
 
             string screenSize = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width.ToString() + "x" +
                                 System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height.ToString();
-            logger.Info(string.Format("Screen Size: {0}", screenSize));
+            logger.Info($"Screen Size: {screenSize}");
 
 
             try
@@ -2242,9 +2240,8 @@ namespace JMMServer
                 if (File.Exists(mediaInfoPath))
                 {
                     FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
-                    mediaInfoVersion = string.Format("MediaInfo DLL {0}.{1}.{2}.{3} ({4})", fvi.FileMajorPart,
-                        fvi.FileMinorPart,
-                        fvi.FileBuildPart, fvi.FilePrivatePart, mediaInfoPath);
+                    mediaInfoVersion =
+                        $"MediaInfo DLL {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
                 }
                 logger.Info(mediaInfoVersion);
 
@@ -2259,8 +2256,9 @@ namespace JMMServer
                     hasherInfoVersion = string.Format("Hasher DLL found at {0}", fullHasherexepath);
                 logger.Info(hasherInfoVersion);
             }
-            catch
+            catch (Exception ex)
             {
+                logger.Error("Error in log (hasher / info): {0}", ex.Message);
             }
 
             logger.Info("-------------------------------------------------------");
