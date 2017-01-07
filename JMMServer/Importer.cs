@@ -1,5 +1,6 @@
 ﻿﻿using System;
-using System.Collections.Generic;
+ using System.Collections;
+ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JMMContracts;
@@ -818,8 +819,8 @@ namespace JMMServer
         {
 	        using (var session = DatabaseFactory.SessionFactory.OpenSession())
 	        {
-		        List<AnimeEpisode> episodesToUpdate = new List<AnimeEpisode>();
-		        List<AnimeSeries> seriesToUpdate = new List<AnimeSeries>();
+		        HashSet<AnimeEpisode> episodesToUpdate = new HashSet<AnimeEpisode>();
+		        HashSet<AnimeSeries> seriesToUpdate = new HashSet<AnimeSeries>();
 		        // get a full list of files
 		        Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
 			        .Where(a => a.ImportFolder != null)
@@ -842,28 +843,39 @@ namespace JMMServer
 		        IReadOnlyList<VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
 		        foreach (VideoLocal v in videoLocalsAll)
 		        {
+			        List<VideoLocal_Place> places = v.Places;
 			        if (v.Places?.Count > 0)
 			        {
-				        foreach (VideoLocal_Place place in v.Places)
+				        foreach (VideoLocal_Place place in places)
 				        {
 					        if (!string.IsNullOrWhiteSpace(place?.FullServerPath)) continue;
 					        logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
-					        episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-					        seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+					        episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
+					        seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
 					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
 				        }
 			        }
-			        if (v.Places?.Count > 0) continue;
+			        places = v.Places;
+			        if (places?.Count == 1) continue;
+			        if (places?.Count > 0)
+			        {
+				        places = places.DistinctBy(a => a.FullServerPath).ToList();
+				        places = v.Places?.Except(places).ToList();
+				        foreach (VideoLocal_Place place in places)
+				        {
+					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+				        }
+				        continue;
+			        }
 			        // delete video local record
 			        logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
-			        episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-			        seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+			        episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
+			        seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
 			        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
 			        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
 			        cmdDel.Save();
 		        }
 
-		        episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
 		        foreach (AnimeEpisode ep in episodesToUpdate)
 		        {
 			        if (ep.AnimeEpisodeID == 0)
@@ -881,7 +893,7 @@ namespace JMMServer
 				        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
 			        }
 		        }
-		        seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
+
 		        foreach (AnimeSeries ser in seriesToUpdate)
 		        {
 			        ser.QueueUpdateStats();

@@ -164,15 +164,16 @@ namespace JMMServer.Entities
 		    }
 	    }
 
-	    public void RemoveRecordWithOpenTransaction(ISession session, List<AnimeEpisode> episodesToUpdate,
-		    List<AnimeSeries> seriesToUpdate)
+
+	    public void RemoveRecordWithOpenTransaction(ISession session, ICollection<AnimeEpisode> episodesToUpdate,
+		    ICollection<AnimeSeries> seriesToUpdate)
 	    {
 		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
 		    VideoLocal v = VideoLocal;
 		    if (v.Places.Count <= 1)
 		    {
-			    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-			    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+			    v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
+			    v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
 			    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
 			    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
 			    CommandRequest_DeleteFileFromMyList cmdDel =
@@ -181,8 +182,8 @@ namespace JMMServer.Entities
 		    }
 		    else
 		    {
-			    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-			    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+			    v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
+			    v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
 			    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
 		    }
 	    }
