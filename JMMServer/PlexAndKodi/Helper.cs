@@ -382,6 +382,7 @@ namespace JMMServer.PlexAndKodi
 					        {
 						        l.Thumb = tvep.GenPoster(null);
 						        l.Summary = tvep.Overview;
+						        l.Season = string.Format("{0}x{1:0#}",tvep.SeasonNumber, tvep.EpisodeNumber);
 					        }
 					        else
 					        {
