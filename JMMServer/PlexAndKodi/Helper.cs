@@ -407,6 +407,7 @@ namespace JMMServer.PlexAndKodi
 						{
 							l.Thumb = tvdb_ep.GenPoster(null);
 							l.Summary = tvdb_ep.Overview;
+							l.Season = string.Format("{0}x{1:0#}",tvdb_ep.SeasonNumber, tvdb_ep.EpisodeNumber);
 						}
 					}
 
