@@ -1414,16 +1414,23 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
+        /// <summary>
+        /// Join a string like string.Join but 
+        /// </summary>
+        /// <param name="seperator"></param>
+        /// <param name="values"></param>
+        /// <param name="replaceinvalid"></param>
+        /// <returns></returns>
         internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
         {
             if (!replaceinvalid) return string.Join(seperator, values);
             List<string> newItems = new List<string>();
    
-            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars()) + "()!.?@#$%^&*~";
             Regex r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch))); 
 
             foreach (string s in values)
-                newItems.Add(r.Replace(s, ""));
+                newItems.Add(r.Replace(s, "").Replace("-", " "));
 
             return string.Join(seperator, newItems);
         }
