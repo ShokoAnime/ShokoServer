@@ -560,7 +560,7 @@ namespace JMMServer.PlexAndKodi
             if (basegrp != null)
             {
 	            List<AnimeSeries> seriesList = grp.GetSeries();
-	            if (filterID.HasValue)
+	            if (filterID != null)
 	            {
 		            GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
 		            if (filter != null)
