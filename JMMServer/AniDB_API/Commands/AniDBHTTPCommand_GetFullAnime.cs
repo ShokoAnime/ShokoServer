@@ -181,14 +181,6 @@ namespace AniDBAPI.Commands
 
         public virtual enHelperActivityType Process()
         {
-            string filePath = ServerSettings.AnimeXmlDirectory;
-            
-            if (!Directory.Exists(filePath))
-                Directory.CreateDirectory(filePath);
-
-            string fileName = string.Format("AnimeDoc_{0}.xml", animeID);
-            string fileNameWithPath = Path.Combine(filePath, fileName);
-
             if (!CacheOnly)
             {
                 JMMService.LastAniDBMessage = DateTime.Now;
@@ -222,12 +214,17 @@ namespace AniDBAPI.Commands
 						docAnime.LoadXml(xmlResult);
 					}*/
 
-                    docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+                    //logger.Info("Trying to load Anime HTTP info from cache file...");
+                    docAnime = LoadAnimeHTTPFromFile(animeID);
+                    if (docAnime == null)
+                    {
+                        //logger.Info("No Anime HTTP info found in cache file, loading from HTTP API");
+                        docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+                    }
                 }
                 else
                 {
                     docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
-                    //XmlDocument docAnime = LoadAnimeHTTPFromFile(animeID);
                 }
             }
 

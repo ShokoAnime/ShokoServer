@@ -46,8 +46,6 @@ namespace JMMServer
 
         System.Timers.Timer logoutTimer = null;
 
-        public static int AniDBDelay = 2500;
-
         private DateTime? banTime = null;
 
         public DateTime? BanTime

@@ -22,6 +22,8 @@ namespace AniDBAPI
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 20000; // 20 seconds
                 webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+                webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
+
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
                 HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse();
 

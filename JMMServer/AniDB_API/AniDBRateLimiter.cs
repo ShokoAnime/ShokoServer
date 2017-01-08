@@ -62,11 +62,11 @@ namespace JMMServer.AniDB_API
             int currentDelay = activeTime > shortPeriod ? LongDelay : ShortDelay;
 
             if (delay.TotalMilliseconds > currentDelay) {
-                logger.Trace(String.Format("Time since last request is {0} ms, not throttling.", delay.TotalMilliseconds));
+                logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, not throttling.");
                 return;
             }
 
-            logger.Trace(String.Format("Time since last request is {0} ms, throttling for {1}.", delay.TotalMilliseconds, currentDelay));
+            logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, throttling for {currentDelay}.");
             Thread.Sleep(currentDelay);
 
             logger.Trace("Sending AniDB command.");

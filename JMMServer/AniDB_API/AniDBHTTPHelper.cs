@@ -82,7 +82,6 @@ namespace AniDBAPI
                 JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 rawXML = APIUtils.DownloadWebPage(uri);
-
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;
                 if (content.Length > 100) content = content.Substring(0, 100);
@@ -114,7 +113,6 @@ namespace AniDBAPI
                 //StreamReader re = File.OpenText(fileName);
                 //rawXML = re.ReadToEnd();
                 //re.Close();
-
 
                 string uri = string.Format(AniDBHTTPHelper.MyListURL, username, password);
                 rawXML = APIUtils.DownloadWebPage(uri);
