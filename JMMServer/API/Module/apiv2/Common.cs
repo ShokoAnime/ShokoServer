@@ -102,6 +102,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/ep/vote"] = x => { return VoteOnEpisode(); };
             Get["/ep/unsort"] = _ => { return GetUnsort(); };
             Post["/ep/scrobble"] = x => { return EpisodeScrobble(); };
+            Get["/ep/getbyfilename"] = x => { return GetEpisodeFromName(); };
             #endregion
 
             #region 7. Episodes - [Obsolete]
@@ -890,6 +891,17 @@ namespace JMMServer.API.Module.apiv2
             {
                 return GetEpisodeById(para.id, user.JMMUserID);
             }
+        }
+
+        private object GetEpisodeFromName()
+        {
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            string filename = this.Context.Request.Query.filename;
+            if (String.IsNullOrEmpty(filename)) return new Nancy.Response { StatusCode = HttpStatusCode.BadRequest };
+
+            AnimeEpisode aep =RepoFactory.AnimeEpisode.GetByFilename(filename);
+            return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+
         }
  
         /// <summary>
