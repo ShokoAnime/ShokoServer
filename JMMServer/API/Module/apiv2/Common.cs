@@ -15,6 +15,8 @@ using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
 using AniDBAPI;
+using System.Text.RegularExpressions;
+using System.IO;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -1295,7 +1297,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.limit == 0) { para.limit = 100; }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.offset, false, user.JMMUserID, para.nocast, para.notag, para.level);
+                return Search(para.query, para.limit, para.offset, false, user.JMMUserID, para.nocast, para.notag, para.level, this.Request.Query.fuzzy);
             }
             else
             {
@@ -1412,6 +1414,20 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
+        internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
+        {
+            if (!replaceinvalid) return string.Join(seperator, values);
+            List<string> newItems = new List<string>();
+   
+            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+            Regex r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch))); 
+
+            foreach (string s in values)
+                newItems.Add(r.Replace(s, ""));
+
+            return string.Join(seperator, newItems);
+        }
+
         /// <summary>
         /// Internal function that search for given query in name or tag inside series
         /// </summary>
@@ -1421,8 +1437,9 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="tag_search">True for searching in tags, False for searching in name</param>
         /// <param name="uid">user id</param>
         /// <param name="nocast">disable cast</param>
+        /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
-        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level)
+        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, bool fuzzy = false)
         {
             List<object> list = new List<object>();
 
@@ -1439,7 +1456,7 @@ namespace JMMServer.API.Module.apiv2
 		            .Where(
 			            a =>
 				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
-				            string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles)
+				            Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
 					            .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
             foreach (AnimeSeries ser in series)
