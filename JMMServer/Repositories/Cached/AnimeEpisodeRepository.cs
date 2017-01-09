@@ -101,6 +101,12 @@ namespace JMMServer.Repositories.Cached
             return EpisodeIDs.GetOne(epid);
         }
 
+
+        /// <summary>
+        /// Get the AnimeEpisode 
+        /// </summary>
+        /// <param name="name">The filename of the anime to search for.</param>
+        /// <returns>the AnimeEpisode given the file information</returns>
         public AnimeEpisode GetByFilename(string name)
         {
             return RepoFactory.CrossRef_File_Episode.GetAll()

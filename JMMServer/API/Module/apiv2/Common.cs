@@ -895,15 +895,18 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
+        /// <summary>
+        /// handles /api/ep/getbyfilename?filename=...
+        /// </summary>
+        /// <returns>The found Episode given the on system filename.</returns>
         private object GetEpisodeFromName()
         {
             JMMUser user = (JMMUser)this.Context.CurrentUser;
             string filename = this.Context.Request.Query.filename;
             if (String.IsNullOrEmpty(filename)) return new Nancy.Response { StatusCode = HttpStatusCode.BadRequest };
 
-            AnimeEpisode aep =RepoFactory.AnimeEpisode.GetByFilename(filename);
+            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(filename);
             return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
-
         }
  
         /// <summary>
@@ -1426,11 +1429,18 @@ namespace JMMServer.API.Module.apiv2
             if (!replaceinvalid) return string.Join(seperator, values);
             List<string> newItems = new List<string>();
    
-            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars()) + "()!.?@#$%^&*~";
-            Regex r = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch))); 
+            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars()) + "()+";
+            Regex remove = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
+            Regex extraSpaces = new Regex(@"[ ]{2,}", RegexOptions.None);
+            Regex replaceWithSpace = new Regex("[\\-\\.]");
 
             foreach (string s in values)
-                newItems.Add(r.Replace(s, "").Replace("-", " "));
+            {
+                //This is set up in such this way so that any duplicate spaces created are incedentally removed by the replaceWithSpace.
+                //If there is a better way, feel free to optimise this.
+                var actualItem = extraSpaces.Replace(remove.Replace(replaceWithSpace.Replace(s, " "), ""), "");
+                newItems.Add(actualItem);
+            }
 
             return string.Join(seperator, newItems);
         }
