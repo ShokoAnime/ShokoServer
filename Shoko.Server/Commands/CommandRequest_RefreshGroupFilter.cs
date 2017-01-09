@@ -38,7 +38,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-	        GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
+	        SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
 	        if (gf == null) return;
 	        gf.EvaluateAnimeSeries();
 	        gf.EvaluateAnimeGroups();

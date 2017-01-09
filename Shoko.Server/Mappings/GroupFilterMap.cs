@@ -4,7 +4,7 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Mappings
 {
-    public class GroupFilterMap : ClassMap<GroupFilter>
+    public class GroupFilterMap : ClassMap<SVR_GroupFilter>
     {
         public GroupFilterMap()
         {

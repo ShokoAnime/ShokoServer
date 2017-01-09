@@ -160,7 +160,7 @@ namespace Shoko.Server
             return aDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture);
         }
 
-        public static IEnumerable<CL_AnimeGroup_User> Sort(IEnumerable<CL_AnimeGroup_User> groups, GroupFilter gf)
+        public static IEnumerable<CL_AnimeGroup_User> Sort(IEnumerable<CL_AnimeGroup_User> groups, SVR_GroupFilter gf)
         {
             bool isfirst = true;
             IEnumerable<CL_AnimeGroup_User> query = groups;

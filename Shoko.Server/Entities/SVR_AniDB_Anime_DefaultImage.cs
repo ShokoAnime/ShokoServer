@@ -1,5 +1,6 @@
 ﻿using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;

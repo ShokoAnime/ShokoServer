@@ -56,10 +56,10 @@ namespace Shoko.Server.Commands.MAL
 
 
                 // find the anidb user
-                List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 if (aniDBUsers.Count == 0) return;
 
-                JMMUser user = aniDBUsers[0];
+                SVR_JMMUser user = aniDBUsers[0];
 
 
                 foreach (myanimelistAnime malAnime in mal.anime)

@@ -3,6 +3,7 @@ using System.IO;
 using System.Xml;
 using NLog;
 using Shoko.Models;
+using Shoko.Models.Interfaces;
 using Shoko.Server.ImageDownload;
 
 namespace Shoko.Server.Entities

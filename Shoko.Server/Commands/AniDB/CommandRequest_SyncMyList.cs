@@ -111,7 +111,7 @@ namespace Shoko.Server.Commands
                     }
                     logger.Info(string.Format("MYLIST Missing Files: {0} Added to queue for inclusion", missingFiles));
 
-                    List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                    List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
 
                     // 1 . sync mylist items
@@ -153,7 +153,7 @@ namespace Shoko.Server.Commands
                             VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
                             if (vl == null) continue;
 
-                            foreach (JMMUser juser in aniDBUsers)
+                            foreach (SVR_JMMUser juser in aniDBUsers)
                             {
                                 bool localStatus = false;
                                 int? jmmUserID = null;

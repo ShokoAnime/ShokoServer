@@ -60,14 +60,14 @@ namespace Shoko.Server.Entities
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
-            JMMUser usr = RepoFactory.JMMUser.GetByID(JMMUserID);
+            SVR_JMMUser usr = RepoFactory.JMMUser.GetByID(JMMUserID);
             if (ser != null && usr != null)
                 ser.UpdateGroupFilters(types, usr);
         }
 
         public void DeleteFromFilters()
         {
-            foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
             {
                 bool change = false;
                 if (gf.SeriesIds.ContainsKey(JMMUserID))

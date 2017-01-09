@@ -53,7 +53,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             int t = 0;
             int.TryParse(uid, out t);
-            JMMUser user = t > 0 ? Helper.GetJMMUser(uid) : Helper.GetUser(uid);
+            SVR_JMMUser user = t > 0 ? Helper.GetJMMUser(uid) : Helper.GetUser(uid);
             if (user == null)
                 return new MediaContainer() { ErrorString = "User not found" };
             int userid = user.JMMUserID;
@@ -70,7 +70,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 &&
+                    List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 &&
                     (
                         (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
                         || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
@@ -78,7 +78,7 @@ namespace Shoko.Server.PlexAndKodi
 
 
 
-                    foreach (GroupFilter gg in allGfs)
+                    foreach (SVR_GroupFilter gg in allGfs)
                     {
                         Directory pp = Helper.DirectoryFromFilter(prov, gg, userid);
                         if (pp != null)
@@ -150,7 +150,7 @@ namespace Shoko.Server.PlexAndKodi
                 BreadCrumbs his = prov.UseBreadCrumbs ? BreadCrumbs.FromKey(historyinfo) : null;
                 int type;
                 int.TryParse(TypeId, out type);
-                JMMUser user = Helper.GetJMMUser(UserId);
+                SVR_JMMUser user = Helper.GetJMMUser(UserId);
 
                 switch ((JMMType)type)
                 {
@@ -410,7 +410,7 @@ namespace Shoko.Server.PlexAndKodi
             Dictionary<int, string> users = new Dictionary<int, string>();
             try
             {
-                foreach (JMMUser us in RepoFactory.JMMUser.GetAll())
+                foreach (SVR_JMMUser us in RepoFactory.JMMUser.GetAll())
                 {
                     users.Add(us.JMMUserID, us.Username);
                 }
@@ -428,7 +428,7 @@ namespace Shoko.Server.PlexAndKodi
             try
             {
                 gfs.Users = new List<PlexContract_User>();
-                foreach (JMMUser us in RepoFactory.JMMUser.GetAll())
+                foreach (SVR_JMMUser us in RepoFactory.JMMUser.GetAll())
                 {
                     PlexContract_User p = new PlexContract_User();
                     p.id = us.JMMUserID.ToString();
@@ -479,7 +479,7 @@ namespace Shoko.Server.PlexAndKodi
             int lim;
             if (!int.TryParse(limit, out lim))
                 lim = 100;
-            JMMUser user = Helper.GetUser(UserId);
+            SVR_JMMUser user = Helper.GetUser(UserId);
             if (user == null) return new MediaContainer() { ErrorString = "User Not Found" };
             List<Video> ls = new List<Video>();
             int cnt = 0;
@@ -565,7 +565,7 @@ namespace Shoko.Server.PlexAndKodi
 	            List<SVR_AnimeSeries> seriesList = grp.GetSeries();
 	            if (filterID.HasValue)
 	            {
-		            GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
+		            SVR_GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
 		            if (filter != null)
 		            {
 			            if (filter.ApplyToSeries > 0)
@@ -1151,7 +1151,7 @@ namespace Shoko.Server.PlexAndKodi
                         return new MediaContainer() {ErrorString = "Invalid Group Filter"};
                     DateTime start = DateTime.Now;
 
-                    GroupFilter gf;
+                    SVR_GroupFilter gf;
                     gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
                     if (gf == null) return new MediaContainer() { ErrorString = "Invalid Group Filter" };
 
@@ -1160,14 +1160,14 @@ namespace Shoko.Server.PlexAndKodi
                             info));
                     if (!ret.Init(prov))
                         return new MediaContainer();
-                    List<GroupFilter> allGfs =
+                    List<SVR_GroupFilter> allGfs =
                     RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
                     (
                         (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
                         || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                     ).ToList();
                     List<Directory> dirs = new List<Directory>();
-                    foreach (GroupFilter gg in allGfs)
+                    foreach (SVR_GroupFilter gg in allGfs)
                     {
                         Directory pp = Helper.DirectoryFromFilter(prov, gg, userid);
                         if (pp != null)

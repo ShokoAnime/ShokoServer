@@ -13,6 +13,7 @@ using Shoko.Server.Repositories.NHibernate;
  using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
+ using Shoko.Commons.Extensions;
  using Shoko.Server.Commands;
  using Shoko.Server.Commands.AniDB;
  using Shoko.Server.Commands.Azure;
@@ -999,7 +1000,7 @@ namespace Shoko.Server
                 ser.QueueUpdateStats();
             }
 
-	        foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+	        foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
 	        {
 		        gf.QueueUpdate();
 	        }
@@ -1069,9 +1070,9 @@ namespace Shoko.Server
                 GroupFilterConditionType.EpisodeWatchedDate,
                 GroupFilterConditionType.EpisodeAddedDate
             };
-            List<GroupFilter> evalfilters = RepoFactory.GroupFilter.GetWithConditionsTypes(conditions).Where(
-                a => a.Conditions.Any(b => conditions.Contains(b.ConditionTypeEnum) && b.ConditionOperatorEnum == GroupFilterOperator.LastXDays)).ToList();
-            foreach (GroupFilter g in evalfilters)
+            List<SVR_GroupFilter> evalfilters = RepoFactory.GroupFilter.GetWithConditionsTypes(conditions).Where(
+                a => a.Conditions.Any(b => conditions.Contains(b.GetConditionTypeEnum()) && b.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)).ToList();
+            foreach (SVR_GroupFilter g in evalfilters)
                 g.EvaluateAnimeGroups();
             if (sched == null)
             {

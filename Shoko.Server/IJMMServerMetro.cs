@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ServiceModel;
 using Shoko.Models.Client;
+using Shoko.Models.Server;
 
 namespace Shoko.Models
 {
@@ -15,9 +16,9 @@ namespace Shoko.Models
 
         List<MetroContract_Anime_Summary> SearchAnime(int jmmuserID, string queryText, int maxRecords);
 
-        Contract_JMMUser AuthenticateUser(string username, string password);
+        JMMUser AuthenticateUser(string username, string password);
 
-        List<Contract_JMMUser> GetAllUsers();
+        List<JMMUser> GetAllUsers();
 
         List<CL_AnimeGroup_User> GetAllGroups(int userID);
 

@@ -4,7 +4,7 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Mappings
 {
-    public class JMMUserMap : ClassMap<JMMUser>
+    public class JMMUserMap : ClassMap<SVR_JMMUser>
     {
         public JMMUserMap()
         {

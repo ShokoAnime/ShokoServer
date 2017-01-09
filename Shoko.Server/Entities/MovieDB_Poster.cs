@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using NLog;
 using Shoko.Models;
+using Shoko.Models.Interfaces;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers.MovieDB;
 

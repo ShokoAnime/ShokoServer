@@ -1432,7 +1432,7 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.SaveCustomTagCrossRef(a);
         }
 
-        private object SaveFFDPreset(Shoko.Models.Contract_FileFfdshowPreset a)
+        private object SaveFFDPreset(FileFfdshowPreset a)
         {
              _impl.SaveFFDPreset(a);
             return "ok";
@@ -1443,7 +1443,7 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.SaveGroup(a,b);
         }
 
-        private object SaveGroupFilter(Shoko.Models.Contract_GroupFilter a)
+        private object SaveGroupFilter(CL_GroupFilter a)
         {
             return _impl.SaveGroupFilter(a);
         }
@@ -1473,7 +1473,7 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.SaveServerSettings(a);
         }
 
-        private object SaveUser(Shoko.Models.Contract_JMMUser a)
+        private object SaveUser(JMMUser a)
         {
             return _impl.SaveUser(a);
         }
@@ -1499,7 +1499,7 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.AssociateMultipleFiles(a, b, c, d);
         }
 
-        private object EvaluateGroupFilter(Shoko.Models.Contract_GroupFilter a)
+        private object EvaluateGroupFilter(CL_GroupFilter a)
         {
             return _impl.EvaluateGroupFilter(a);
         }

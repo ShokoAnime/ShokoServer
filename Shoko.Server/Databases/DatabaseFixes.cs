@@ -99,12 +99,12 @@ namespace Shoko.Server.Databases
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 // check if it already exists
-                List<GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+                List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
 
                 if (lockedGFs != null)
                 {
                     // if it already exists we can leave
-                    foreach (GroupFilter gf in lockedGFs)
+                    foreach (SVR_GroupFilter gf in lockedGFs)
                     {
                         if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
                             StringComparison.InvariantCultureIgnoreCase))
@@ -365,7 +365,7 @@ namespace Shoko.Server.Databases
 	    {
 		    try
 		    {
-			    foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+			    foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
 			    {
 				    if (gf.FilterType != (int)GroupFilterType.Tag) continue;
 				    foreach (GroupFilterCondition gfc in gf.Conditions)
@@ -399,7 +399,7 @@ namespace Shoko.Server.Databases
 	    {
 		    try
 		    {
-			    foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+			    foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
 			    {
 				    if (gf.FilterType != (int)GroupFilterType.Year) continue;
 				    gf.ApplyToSeries = 1;

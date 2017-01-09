@@ -472,13 +472,13 @@ namespace Shoko.Server.API.Module.apiv2
         private object CreateUser()
         {
             Request request = this.Request;
-            JMMUser _user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser)this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
-                Contract_JMMUser user = this.Bind();
+                JMMUser user = this.Bind();
                 user.Password = Digest.Hash(user.Password);
-                user.HideCategories = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-                user.PlexUsers = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+                user.HideCategories = "";
+                user.PlexUsers = "";
                 if (new JMMServiceImplementation().SaveUser(user) == "")
                 {
                     return APIStatus.statusOK();
@@ -501,7 +501,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object ChangePassword()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             return ChangePassword(user.JMMUserID);
         }
 
@@ -512,10 +512,10 @@ namespace Shoko.Server.API.Module.apiv2
         private object ChangePassword(int uid)
         {
             Request request = this.Request;
-            JMMUser _user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser)this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
-                JMMUser user = this.Bind();
+                SVR_JMMUser user = this.Bind();
                 if (new JMMServiceImplementation().ChangePassword(uid, user.Password) == "")
                 {
                     return APIStatus.statusOK();
@@ -538,10 +538,10 @@ namespace Shoko.Server.API.Module.apiv2
         private object DeleteUser()
         {
             Request request = this.Request;
-            JMMUser _user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser)this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
-                JMMUser user = this.Bind();
+                SVR_JMMUser user = this.Bind();
                 if (new JMMServiceImplementation().DeleteUser(user.JMMUserID) == "")
                 {
                     return APIStatus.statusOK();
@@ -689,7 +689,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object SetRotateLogs()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             Logs rotator = this.Bind();
 
             if (user.IsAdmin == 1)

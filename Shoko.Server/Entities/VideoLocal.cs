@@ -266,10 +266,10 @@ namespace Shoko.Server.Entities
             bool syncTrakt, bool updateWatchedDate)
         {
 
-            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null) return;
 
-            List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+            List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
             // update the video file to watched
             int mywatched = watched ? 1 : 0;
@@ -280,7 +280,7 @@ namespace Shoko.Server.Entities
             {
                 // if the user is AniDB user we also want to update any other AniDB
                 // users to keep them in sync
-                foreach (JMMUser juser in aniDBUsers)
+                foreach (SVR_JMMUser juser in aniDBUsers)
                 {
                     if (juser.IsAniDBUser == 1)
                         SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate);
@@ -367,7 +367,7 @@ namespace Shoko.Server.Entities
                         {
                             // if the user is AniDB user we also want to update any other AniDB
                             // users to keep them in sync
-                            foreach (JMMUser juser in aniDBUsers)
+                            foreach (SVR_JMMUser juser in aniDBUsers)
                             {
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
@@ -421,7 +421,7 @@ namespace Shoko.Server.Entities
                         {
                             // if the user is AniDB user we also want to update any other AniDB
                             // users to keep them in sync
-                            foreach (JMMUser juser in aniDBUsers)
+                            foreach (SVR_JMMUser juser in aniDBUsers)
                             {
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);

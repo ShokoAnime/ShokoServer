@@ -16,18 +16,9 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Entities
 {
-    public class GroupFilter
+    public class SVR_GroupFilter : GroupFilter
     {
-        public int GroupFilterID { get; set; }
-        public string GroupFilterName { get; set; }
-        public int ApplyToSeries { get; set; }
-        public int BaseCondition { get; set; }
-        public string SortingCriteria { get; set; }
-        public int? Locked { get; set; }
-        public int FilterType { get; set; }
 
-        public int? ParentGroupFilterID { get; set; }
-        public int InvisibleInClients { get; set; }
 
         public int GroupsIdsVersion { get; set; }
         public string GroupsIdsString { get; set; }
@@ -45,7 +36,6 @@ namespace Shoko.Server.Entities
 
         internal Dictionary<int, HashSet<int>> _groupsId = new Dictionary<int, HashSet<int>>();
         internal Dictionary<int, HashSet<int>> _seriesId = new Dictionary<int, HashSet<int>>();
-
         internal List<GroupFilterCondition> _conditions = new List<GroupFilterCondition>();
 
 
@@ -163,17 +153,17 @@ namespace Shoko.Server.Entities
         }
 
 
-        public Contract_GroupFilter ToContract()
+        public CL_GroupFilter ToClient()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return ToContract(session);
+                return ToClient(session);
             }
         }
 
-        public Contract_GroupFilter ToContract(ISession session)
+        public CL_GroupFilter ToClient(ISession session)
         {
-            Contract_GroupFilter contract = new Contract_GroupFilter();
+            CL_GroupFilter contract = new CL_GroupFilter();
             contract.GroupFilterID = this.GroupFilterID;
             contract.GroupFilterName = this.GroupFilterName;
             contract.ApplyToSeries = this.ApplyToSeries;
@@ -183,19 +173,17 @@ namespace Shoko.Server.Entities
             contract.FilterType = this.FilterType;
             contract.ParentGroupFilterID = this.ParentGroupFilterID;
             contract.InvisibleInClients = this.InvisibleInClients;
-            contract.FilterConditions = new List<Contract_GroupFilterCondition>();
-            foreach (GroupFilterCondition gfc in Conditions)
-                contract.FilterConditions.Add(gfc.ToContract());
+            contract.FilterConditions = Conditions;
             contract.Groups = this.GroupsIds;
             contract.Series = this.SeriesIds;
             contract.Childs = GroupFilterID==0 ? new HashSet<int>() : RepoFactory.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet();
             return contract;
         }
 
-        public static GroupFilter FromContract(Contract_GroupFilter gfc)
+        public static SVR_GroupFilter FromClient(CL_GroupFilter gfc)
         {
-            GroupFilter gf = new GroupFilter();
-            gf.GroupFilterID = gfc.GroupFilterID ?? 0;
+            SVR_GroupFilter gf = new SVR_GroupFilter();
+            gf.GroupFilterID = gfc.GroupFilterID;
             gf.GroupFilterName = gfc.GroupFilterName;
             gf.ApplyToSeries = gfc.ApplyToSeries;
             gf.BaseCondition = gfc.BaseCondition;
@@ -204,22 +192,13 @@ namespace Shoko.Server.Entities
             gf.InvisibleInClients = gfc.InvisibleInClients;
             gf.ParentGroupFilterID = gfc.ParentGroupFilterID;
             gf.FilterType = gfc.FilterType;
-            List<GroupFilterCondition> conds = new List<GroupFilterCondition>();
-            foreach (Contract_GroupFilterCondition c in gfc.FilterConditions)
-            {
-                GroupFilterCondition cc = new GroupFilterCondition();
-                cc.ConditionType = c.ConditionType;
-                cc.ConditionOperator = c.ConditionOperator;
-                cc.ConditionParameter = c.ConditionParameter;
-                conds.Add(cc);
-            }
-            gf.Conditions = conds;
+            gf.Conditions = gfc.FilterConditions;
             gf.GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>();
             gf.SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>();
             return gf;
         }
 
-        public Contract_GroupFilterExtended ToContractExtended(JMMUser user)
+        public CL_GroupFilterExtended ToContractExtended(SVR_JMMUser user)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -227,10 +206,10 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public Contract_GroupFilterExtended ToContractExtended(ISession session, JMMUser user)
+        public CL_GroupFilterExtended ToContractExtended(ISession session, SVR_JMMUser user)
         {
-            Contract_GroupFilterExtended contract = new Contract_GroupFilterExtended();
-            contract.GroupFilter = this.ToContract();
+            CL_GroupFilterExtended contract = new CL_GroupFilterExtended();
+            contract.GroupFilter = this.ToClient();
             contract.GroupCount = 0;
             contract.SeriesCount = 0;
 
@@ -308,7 +287,7 @@ namespace Shoko.Server.Entities
 		*/
 
 
-        public bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, Contract_JMMUser user, int id)
+        public bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user, int id)
         {
             bool change = false;
             if (EvaluateGroupFilter(ser, user))
@@ -337,7 +316,7 @@ namespace Shoko.Server.Entities
             return change;
         }
 
-        public bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, Contract_JMMUser user, int jmmUserId)
+        public bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user, int jmmUserId)
         {
             bool change = false;
             HashSet<int> groupIds;
@@ -364,39 +343,39 @@ namespace Shoko.Server.Entities
 
         public void EvaluateAnimeGroups()
         {
-            IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
             foreach (SVR_AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
             {
-                foreach (JMMUser user in users)
+                foreach (SVR_JMMUser user in users)
                 {
-                    CalculateGroupFilterGroups(grp.GetUserContract(user.JMMUserID), user.Contract, user.JMMUserID);
+                    CalculateGroupFilterGroups(grp.GetUserContract(user.JMMUserID), user, user.JMMUserID);
                 }
             }
         }
 
         public void EvaluateAnimeSeries()
         {
-            IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
             foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
                 CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
-                foreach (JMMUser user in users)
+                foreach (SVR_JMMUser user in users)
                 {
-                    CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user.Contract, user.JMMUserID);
+                    CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user, user.JMMUserID);
                 }
             }
         }
 
-        public static Contract_GroupFilter EvaluateContract(Contract_GroupFilter gfc)
+        public static CL_GroupFilter EvaluateContract(CL_GroupFilter gfc)
         {
-            GroupFilter gf = FromContract(gfc);
+            SVR_GroupFilter gf = FromClient(gfc);
             gf.EvaluateAnimeGroups();
             gf.EvaluateAnimeSeries();
-            return gf.ToContract();
+            return gf.ToClient();
         }
 
 
-        public bool EvaluateGroupFilter(CL_AnimeGroup_User contractGroup, Contract_JMMUser curUser)
+        public bool EvaluateGroupFilter(CL_AnimeGroup_User contractGroup, JMMUser curUser)
         {
             //Directories don't count
             if ((this.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
@@ -406,22 +385,22 @@ namespace Shoko.Server.Entities
 
 
             // make sure the user has not filtered this out
-            if ((curUser != null) && curUser.HideCategories.FindInEnumerable(contractGroup.Stat_AllTags))
+            if ((curUser != null) && curUser.GetHideCategories().FindInEnumerable(contractGroup.Stat_AllTags))
                 return false;
 
             // first check for anime groups which are included exluded every time
             foreach (GroupFilterCondition gfc in Conditions)
             {
-                if (gfc.ConditionTypeEnum != GroupFilterConditionType.AnimeGroup) continue;
+                if (gfc.GetConditionTypeEnum() != GroupFilterConditionType.AnimeGroup) continue;
 
                 int groupID = 0;
                 int.TryParse(gfc.ConditionParameter, out groupID);
                 if (groupID == 0) break;
 
 
-                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Equals && groupID == contractGroup.AnimeGroupID)
+                if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Equals && groupID == contractGroup.AnimeGroupID)
                     return true;
-                if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotEquals && groupID != contractGroup.AnimeGroupID)
+                if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotEquals && groupID != contractGroup.AnimeGroupID)
                     return true;
                 return false;
             }
@@ -431,7 +410,7 @@ namespace Shoko.Server.Entities
 	        return exclude ^ EvaluateConditions(contractGroup, curUser);
         }
 
-	    private bool EvaluateConditions(CL_AnimeGroup_User contractGroup, Contract_JMMUser curUser)
+	    private bool EvaluateConditions(CL_AnimeGroup_User contractGroup, JMMUser curUser)
 	    {
 		    NumberStyles style = NumberStyles.Number;
 		    CultureInfo culture = CultureInfo.InvariantCulture;
@@ -439,28 +418,28 @@ namespace Shoko.Server.Entities
 
 		    foreach (GroupFilterCondition gfc in Conditions)
 		    {
-			    switch (gfc.ConditionTypeEnum)
+			    switch (gfc.GetConditionTypeEnum())
 			    {
 				    case GroupFilterConditionType.Favourite:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.IsFave == 0)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && contractGroup.IsFave == 0)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.IsFave == 1)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && contractGroup.IsFave == 1)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.MissingEpisodes:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        (contractGroup.MissingEpisodeCount > 0 || contractGroup.MissingEpisodeCountGroups > 0) ==
 					        false) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        (contractGroup.MissingEpisodeCount > 0 || contractGroup.MissingEpisodeCountGroups > 0) ==
 					        true) return false;
 					    break;
 
 				    case GroupFilterConditionType.MissingEpisodesCollecting:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.MissingEpisodeCountGroups > 0 == false) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.MissingEpisodeCountGroups > 0 == true) return false;
 					    break;
 				    case GroupFilterConditionType.Tag:
@@ -471,110 +450,110 @@ namespace Shoko.Server.Entities
 							    .ToList();
 					    bool tagsFound =
 						    tags.Any(a => contractGroup.Stat_AllTags.Contains(a, StringComparer.InvariantCultureIgnoreCase));
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In || gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include) && !tagsFound) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn || gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude) && tagsFound) return false;
 					    break;
 				    case GroupFilterConditionType.Year:
 
 					    int year = 0;
 					    int.TryParse(gfc.ConditionParameter.Trim(), out year);
 					    if (year == 0) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !contractGroup.Stat_AllYears.Contains(year))
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !contractGroup.Stat_AllYears.Contains(year))
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_AllYears.Contains(year))
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && contractGroup.Stat_AllYears.Contains(year))
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.HasWatchedEpisodes:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.WatchedEpisodeCount > 0 == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.WatchedEpisodeCount > 0 == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.HasUnwatchedEpisodes:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.UnwatchedEpisodeCount > 0 == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.UnwatchedEpisodeCount > 0 == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedTvDBInfo:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_HasTvDBLink == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_HasTvDBLink == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedMALInfo:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_HasMALLink == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_HasMALLink == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedMovieDBInfo:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_HasMovieDBLink == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_HasMovieDBLink == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        !contractGroup.Stat_HasMovieDBOrTvDBLink)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_HasMovieDBOrTvDBLink)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.CompletedSeries:
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_IsComplete == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_IsComplete == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.FinishedAiring:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_HasFinishedAiring == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_IsCurrentlyAiring == false)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.UserVoted:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_UserVotePermanent.HasValue == false) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_UserVotePermanent.HasValue == true) return false;
 					    break;
 
 				    case GroupFilterConditionType.UserVotedAny:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractGroup.Stat_UserVoteOverall.HasValue == false) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractGroup.Stat_UserVoteOverall.HasValue == true) return false;
 					    break;
 
 				    case GroupFilterConditionType.AirDate:
 					    DateTime filterDate;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -583,14 +562,14 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDate = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractGroup.Stat_AirDate_Min.HasValue || !contractGroup.Stat_AirDate_Max.HasValue)
 							    return false;
 						    if (contractGroup.Stat_AirDate_Max.Value < filterDate) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (!contractGroup.Stat_AirDate_Min.HasValue || !contractGroup.Stat_AirDate_Max.HasValue)
 							    return false;
@@ -599,7 +578,7 @@ namespace Shoko.Server.Entities
 					    break;
 				    case GroupFilterConditionType.LatestEpisodeAirDate:
 					    DateTime filterDateEpisodeLastAired;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -608,13 +587,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
 						    if (contractGroup.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
 						    if (contractGroup.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
@@ -622,7 +601,7 @@ namespace Shoko.Server.Entities
 					    break;
 				    case GroupFilterConditionType.SeriesCreatedDate:
 					    DateTime filterDateSeries;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -631,13 +610,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateSeries = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractGroup.Stat_SeriesCreatedDate.HasValue) return false;
 						    if (contractGroup.Stat_SeriesCreatedDate.Value < filterDateSeries) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (!contractGroup.Stat_SeriesCreatedDate.HasValue) return false;
 						    if (contractGroup.Stat_SeriesCreatedDate.Value > filterDateSeries) return false;
@@ -646,7 +625,7 @@ namespace Shoko.Server.Entities
 
 				    case GroupFilterConditionType.EpisodeWatchedDate:
 					    DateTime filterDateEpsiodeWatched;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -655,13 +634,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateEpsiodeWatched = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractGroup.WatchedDate.HasValue) return false;
 						    if (contractGroup.WatchedDate.Value < filterDateEpsiodeWatched) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (contractGroup == null) return false;
 						    if (!contractGroup.WatchedDate.HasValue) return false;
@@ -671,7 +650,7 @@ namespace Shoko.Server.Entities
 
 				    case GroupFilterConditionType.EpisodeAddedDate:
 					    DateTime filterDateEpisodeAdded;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -680,13 +659,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateEpisodeAdded = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractGroup.EpisodeAddedDate.HasValue) return false;
 						    if (contractGroup.EpisodeAddedDate.Value < filterDateEpisodeAdded) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (!contractGroup.EpisodeAddedDate.HasValue) return false;
 						    if (contractGroup.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
@@ -698,10 +677,10 @@ namespace Shoko.Server.Entities
 					    int epCount = -1;
 					    int.TryParse(gfc.ConditionParameter, out epCount);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan &&
 					        contractGroup.Stat_EpisodeCount < epCount)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan &&
 					        contractGroup.Stat_EpisodeCount > epCount)
 						    return false;
 					    break;
@@ -713,9 +692,9 @@ namespace Shoko.Server.Entities
 
 					    decimal thisRating = contractGroup.Stat_AniDBRating/(decimal) 100;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan && thisRating < dRating)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan && thisRating > dRating)
 						    return false;
 					    break;
 
@@ -726,9 +705,9 @@ namespace Shoko.Server.Entities
 					    decimal dUserRating = -1;
 					    decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan &&
 					        contractGroup.Stat_UserVoteOverall.Value < dUserRating) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan &&
 					        contractGroup.Stat_UserVoteOverall.Value > dUserRating) return false;
 					    break;
 
@@ -740,8 +719,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => a.ToLowerInvariant().Trim())
 							    .ToList();
 					    bool foundTag = ctags.FindInEnumerable(contractGroup.Stat_AllCustomTags);
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundTag) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) && !foundTag) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn) && foundTag) return false;
 					    break;
 
 				    case GroupFilterConditionType.AnimeType:
@@ -752,8 +731,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => ((int)AniDB_AnimeExtensions.RawToType(a)).ToString())
 							    .ToList();
 					    bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundAnimeType) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) && !foundAnimeType) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn) && foundAnimeType) return false;
 					    break;
 
 				    case GroupFilterConditionType.VideoQuality:
@@ -766,11 +745,11 @@ namespace Shoko.Server.Entities
 					    bool foundVid = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality);
 					    bool foundVidAllEps = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality_Episodes);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.In && !foundVid) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn && foundVid) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
 						    return false;
 					    break;
 
@@ -781,8 +760,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => a.ToLowerInvariant().Trim())
 							    .ToList();
 					    bool foundLang = als.FindInEnumerable(contractGroup.Stat_AudioLanguages);
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.In && !foundLang) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn && foundLang) return false;
 					    break;
 
 				    case GroupFilterConditionType.SubtitleLanguage:
@@ -792,8 +771,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => a.ToLowerInvariant().Trim())
 							    .ToList();
 					    bool foundSub = ass.FindInEnumerable(contractGroup.Stat_SubtitleLanguages);
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.In && !foundSub) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn && foundSub) return false;
 					    break;
 			    }
 		    }
@@ -801,7 +780,7 @@ namespace Shoko.Server.Entities
 		    return true;
 	    }
 
-        public bool EvaluateGroupFilter(CL_AnimeSeries_User contractSerie, Contract_JMMUser curUser)
+        public bool EvaluateGroupFilter(CL_AnimeSeries_User contractSerie, JMMUser curUser)
         {
             //Directories don't count
             if ((this.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
@@ -810,7 +789,7 @@ namespace Shoko.Server.Entities
 
             // make sure the user has not filtered this out
             if ((curUser != null) &&
-                curUser.HideCategories.FindInEnumerable(contractSerie.AniDBAnime.AniDBAnime.GetAllTags()))
+                curUser.GetHideCategories().FindInEnumerable(contractSerie.AniDBAnime.AniDBAnime.GetAllTags()))
                 return false;
 
 	        bool exclude = BaseCondition == (int) GroupFilterBaseCondition.Exclude;
@@ -818,7 +797,7 @@ namespace Shoko.Server.Entities
 	        return exclude ^ EvaluateConditions(contractSerie, curUser);
         }
 
-	    private bool EvaluateConditions(CL_AnimeSeries_User contractSerie, Contract_JMMUser curUser)
+	    private bool EvaluateConditions(CL_AnimeSeries_User contractSerie, JMMUser curUser)
 	    {
 		    NumberStyles style = NumberStyles.Number;
 		    CultureInfo culture = CultureInfo.InvariantCulture;
@@ -826,21 +805,21 @@ namespace Shoko.Server.Entities
 		    // now check other conditions
 		    foreach (GroupFilterCondition gfc in Conditions)
 		    {
-			    switch (gfc.ConditionTypeEnum)
+			    switch (gfc.GetConditionTypeEnum())
 			    {
 				    case GroupFilterConditionType.MissingEpisodes:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        (contractSerie.MissingEpisodeCount > 0 || contractSerie.MissingEpisodeCountGroups > 0) ==
 					        false) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        (contractSerie.MissingEpisodeCount > 0 || contractSerie.MissingEpisodeCountGroups > 0) ==
 					        true) return false;
 					    break;
 
 				    case GroupFilterConditionType.MissingEpisodesCollecting:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractSerie.MissingEpisodeCountGroups > 0 == false) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractSerie.MissingEpisodeCountGroups > 0 == true) return false;
 					    break;
 				    case GroupFilterConditionType.Tag:
@@ -852,8 +831,8 @@ namespace Shoko.Server.Entities
 					    bool tagsFound =
 						    tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.GetAllTags().Contains(a,
 							    StringComparer.InvariantCultureIgnoreCase));
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In || gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include) && !tagsFound) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn || gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude) && tagsFound) return false;
 					    break;
 				    case GroupFilterConditionType.Year:
 					    int BeginYear = contractSerie.AniDBAnime.AniDBAnime.BeginYear;
@@ -863,26 +842,26 @@ namespace Shoko.Server.Entities
 					    int year = 0;
 					    int.TryParse(gfc.ConditionParameter.Trim(), out year);
 					    if (year == 0) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && (year < BeginYear || year > EndYear))
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && (year < BeginYear || year > EndYear))
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && (year >= BeginYear && year <= EndYear))
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && (year >= BeginYear && year <= EndYear))
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.HasWatchedEpisodes:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractSerie.WatchedEpisodeCount > 0 == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractSerie.WatchedEpisodeCount > 0 == true)
 						    return false;
 					    break;
 
 				    case GroupFilterConditionType.HasUnwatchedEpisodes:
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
 					        contractSerie.UnwatchedEpisodeCount > 0 == false)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
 					        contractSerie.UnwatchedEpisodeCount > 0 == true)
 						    return false;
 					    break;
@@ -894,15 +873,15 @@ namespace Shoko.Server.Entities
 					                                  !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
 					    tvDBInfoMissing &= supposedToHaveTvDBLink;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && tvDBInfoMissing) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !tvDBInfoMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && tvDBInfoMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !tvDBInfoMissing) return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedMALInfo:
 					    bool malMissing = contractSerie.CrossRefAniDBMAL == null ||
 					                      contractSerie.CrossRefAniDBMAL.Count == 0;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && malMissing) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !malMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && malMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !malMissing) return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedMovieDBInfo:
@@ -912,8 +891,8 @@ namespace Shoko.Server.Entities
 					                                   !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
 					    movieMissing &= supposedToHaveMovieLink;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && movieMissing) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !movieMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && movieMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !movieMissing) return false;
 					    break;
 
 				    case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
@@ -924,8 +903,8 @@ namespace Shoko.Server.Entities
 					                          contractSerie.CrossRefAniDBTvDBV2.Count == 0) && !restricted;
 					    bool bothMissing = movieLinkMissing && tvlinkMissing;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && bothMissing) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !bothMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !bothMissing) return false;
 					    break;
 
 				    case GroupFilterConditionType.CompletedSeries:
@@ -933,34 +912,34 @@ namespace Shoko.Server.Entities
 					                     contractSerie.AniDBAnime.AniDBAnime.EndDate.Value < DateTime.Now &&
 					                     !(contractSerie.MissingEpisodeCount > 0 ||
 					                       contractSerie.MissingEpisodeCountGroups > 0);
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !completed) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && completed) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !completed) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && completed) return false;
 					    break;
 
 				    case GroupFilterConditionType.FinishedAiring:
 					    bool finished = contractSerie.AniDBAnime.AniDBAnime.EndDate.HasValue &&
 					                    contractSerie.AniDBAnime.AniDBAnime.EndDate.Value < DateTime.Now;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !finished) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && finished) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !finished) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && finished) return false;
 					    break;
 
 				    case GroupFilterConditionType.UserVoted:
 
 					    bool voted = (contractSerie.AniDBAnime.UserVote != null) &&
 					                 (contractSerie.AniDBAnime.UserVote.VoteType == (int) AniDBVoteType.Anime);
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !voted) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && voted) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !voted) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && voted) return false;
 					    break;
 
 				    case GroupFilterConditionType.UserVotedAny:
 					    bool votedany = contractSerie.AniDBAnime.UserVote != null;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !votedany) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && votedany) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !votedany) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && votedany) return false;
 					    break;
 
 				    case GroupFilterConditionType.AirDate:
 					    DateTime filterDate;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -970,18 +949,18 @@ namespace Shoko.Server.Entities
 						    filterDate = GroupFilterHelper.GetDateFromString(gfc.ConditionParameter);
 
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 						    if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue ||
 						        contractSerie.AniDBAnime.AniDBAnime.AirDate.Value < filterDate) return false;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 						    if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue ||
 						        contractSerie.AniDBAnime.AniDBAnime.AirDate.Value > filterDate) return false;
 					    break;
 				    case GroupFilterConditionType.LatestEpisodeAirDate:
 					    DateTime filterDateEpisodeLastAired;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -990,13 +969,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractSerie.LatestEpisodeAirDate.HasValue) return false;
 						    if (contractSerie.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (!contractSerie.LatestEpisodeAirDate.HasValue) return false;
 						    if (contractSerie.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
@@ -1004,7 +983,7 @@ namespace Shoko.Server.Entities
 					    break;
 				    case GroupFilterConditionType.SeriesCreatedDate:
 					    DateTime filterDateSeries;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -1013,12 +992,12 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateSeries = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (contractSerie.DateTimeCreated < filterDateSeries) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (contractSerie.DateTimeCreated > filterDateSeries) return false;
 					    }
@@ -1026,7 +1005,7 @@ namespace Shoko.Server.Entities
 
 				    case GroupFilterConditionType.EpisodeWatchedDate:
 					    DateTime filterDateEpsiodeWatched;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -1035,13 +1014,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateEpsiodeWatched = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractSerie.WatchedDate.HasValue) return false;
 						    if (contractSerie.WatchedDate.Value < filterDateEpsiodeWatched) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (contractSerie == null) return false;
 						    if (!contractSerie.WatchedDate.HasValue) return false;
@@ -1051,7 +1030,7 @@ namespace Shoko.Server.Entities
 
 				    case GroupFilterConditionType.EpisodeAddedDate:
 					    DateTime filterDateEpisodeAdded;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    int days = 0;
 						    int.TryParse(gfc.ConditionParameter, out days);
@@ -1060,13 +1039,13 @@ namespace Shoko.Server.Entities
 					    else
 						    filterDateEpisodeAdded = GetDateFromString(gfc.ConditionParameter);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan ||
-					        gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan ||
+					        gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
 					    {
 						    if (!contractSerie.EpisodeAddedDate.HasValue) return false;
 						    if (contractSerie.EpisodeAddedDate.Value < filterDateEpisodeAdded) return false;
 					    }
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan)
 					    {
 						    if (!contractSerie.EpisodeAddedDate.HasValue) return false;
 						    if (contractSerie.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
@@ -1078,9 +1057,9 @@ namespace Shoko.Server.Entities
 					    int epCount = -1;
 					    int.TryParse(gfc.ConditionParameter, out epCount);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan &&
 					        contractSerie.AniDBAnime.AniDBAnime.EpisodeCount < epCount) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan &&
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan &&
 					        contractSerie.AniDBAnime.AniDBAnime.EpisodeCount > epCount) return false;
 					    break;
 
@@ -1097,9 +1076,9 @@ namespace Shoko.Server.Entities
 					                          contractSerie.AniDBAnime.AniDBAnime.TempVoteCount;
 					    decimal thisRating = totalVotes == 0 ? 0 : totalRating/totalVotes/100;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan && thisRating < dRating)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan && thisRating > dRating)
 						    return false;
 					    break;
 
@@ -1110,9 +1089,9 @@ namespace Shoko.Server.Entities
 					    decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
 					    decimal val = contractSerie.AniDBAnime.UserVote?.VoteValue ?? 0;
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && val < dUserRating)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan && val < dUserRating)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && val > dUserRating)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan && val > dUserRating)
 						    return false;
 					    break;
 
@@ -1127,8 +1106,8 @@ namespace Shoko.Server.Entities
 							    .ToList();
 					    bool foundTag =
 						    ctags.FindInEnumerable(contractSerie.AniDBAnime.CustomTags.Select(a => a.TagName));
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundTag) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) && !foundTag) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn) && foundTag) return false;
 					    break;
 
 				    case GroupFilterConditionType.AnimeType:
@@ -1139,8 +1118,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => ((int)AniDB_AnimeExtensions.RawToType(a.ToLowerInvariant())).ToString())
 							    .ToList();
 					    bool foundAnimeType = ctypes.Contains(contractSerie.AniDBAnime.AniDBAnime.AnimeType.ToString());
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
-					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && foundAnimeType) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) && !foundAnimeType) return false;
+					    if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn) && foundAnimeType) return false;
 					    break;
 
 				    case GroupFilterConditionType.VideoQuality:
@@ -1154,11 +1133,11 @@ namespace Shoko.Server.Entities
 					    bool foundVidAllEps =
 						    vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality_Episodes);
 
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.In && !foundVid) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn && foundVid) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.InAllEpisodes && !foundVidAllEps)
 						    return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps)
 						    return false;
 					    break;
 
@@ -1169,8 +1148,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => a.ToLowerInvariant().Trim())
 							    .ToList();
 					    bool foundLang = als.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.In && !foundLang) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn && foundLang) return false;
 					    break;
 
 				    case GroupFilterConditionType.SubtitleLanguage:
@@ -1180,8 +1159,8 @@ namespace Shoko.Server.Entities
 							    .Select(a => a.ToLowerInvariant().Trim())
 							    .ToList();
 					    bool foundSub = ass.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
-					    if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.In && !foundSub) return false;
+					    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn && foundSub) return false;
 					    break;
 			    }
 		    }
@@ -1233,8 +1212,8 @@ namespace Shoko.Server.Entities
 
 	    public override bool Equals(object obj)
 	    {
-		    if (!(obj is GroupFilter)) return false;
-		    GroupFilter other = obj as GroupFilter;
+		    if (!(obj is SVR_GroupFilter)) return false;
+		    SVR_GroupFilter other = obj as SVR_GroupFilter;
 		    if (other.ApplyToSeries != this.ApplyToSeries) return false;
 		    if (other.BaseCondition != this.BaseCondition) return false;
 		    if (other.FilterType != this.FilterType) return false;

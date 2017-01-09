@@ -428,10 +428,10 @@ namespace Shoko.Server.Providers.MyAnimeList
                 List<SVR_AnimeEpisode> eps = ser.GetAnimeEpisodes();
 
                 // find the anidb user
-                List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 if (aniDBUsers.Count == 0) return;
 
-                JMMUser user = aniDBUsers[0];
+                SVR_JMMUser user = aniDBUsers[0];
 
                 int score = 0;
                 if (ser.GetAnime().UserVote != null)

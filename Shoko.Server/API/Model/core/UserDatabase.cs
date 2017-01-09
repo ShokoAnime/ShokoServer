@@ -27,7 +27,7 @@ namespace Shoko.Server.API.core
             try
             {
                 Users.Clear();
-                foreach (JMMUser us in RepoFactory.JMMUser.GetAll())
+                foreach (SVR_JMMUser us in RepoFactory.JMMUser.GetAll())
                 {
                     Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
                 }
@@ -44,7 +44,7 @@ namespace Shoko.Server.API.core
             }
         }
 
-        public static JMMUser GetUserFromApiKey(string apiKey)
+        public static SVR_JMMUser GetUserFromApiKey(string apiKey)
         {
             var activeKey = ActiveApiKeys.FirstOrDefault(x => x.Item3 == apiKey);
 
@@ -54,7 +54,7 @@ namespace Shoko.Server.API.core
             }
 
             var userRecord = Users.First(u => u.Item1 == activeKey.Item1);
-            return new JMMUser(userRecord.Item2);
+            return new SVR_JMMUser(userRecord.Item2);
         }
 
         public static string ValidateUser(string username, string password, string device)
@@ -71,7 +71,7 @@ namespace Shoko.Server.API.core
                 return null;
             }
 
-            int uid = new JMMUser(username).JMMUserID;
+            int uid = new SVR_JMMUser(username).JMMUserID;
             string apiKey = "";
             try
             {

@@ -132,11 +132,11 @@ namespace Shoko.Server
             return contract;
         }
 
-        public Contract_JMMUser AuthenticateUser(string username, string password)
+        public JMMUser AuthenticateUser(string username, string password)
         {
             try
             {
-                return RepoFactory.JMMUser.AuthenticateUser(username, password)?.Contract;
+                return RepoFactory.JMMUser.AuthenticateUser(username, password);
             }
             catch (Exception ex)
             {
@@ -145,36 +145,31 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_JMMUser> GetAllUsers()
+        public List<JMMUser> GetAllUsers()
         {
             // get all the users
             try
             {
-                return RepoFactory.JMMUser.GetAll().Select(a => a.Contract).ToList();
+                return RepoFactory.JMMUser.GetAll().Cast<JMMUser>().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return new List<Contract_JMMUser>();
+            return new List<JMMUser>();
         }
 
         public List<CL_AnimeGroup_User> GetAllGroups(int userID)
         {
-            List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();
             try
             {
-                foreach (SVR_AnimeGroup ag in RepoFactory.AnimeGroup.GetAll())
-                {
-                    grps.Add(ag.GetUserContract(userID));
-                }
-                grps.Sort();
+                return RepoFactory.AnimeGroup.GetAll().Select(a => a.GetUserContract(userID)).OrderBy(a => a.SortName).ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return grps;
+            return new List<CL_AnimeGroup_User>();
         }
 
         public List<CL_AnimeEpisode_User> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID)
@@ -185,7 +180,7 @@ namespace Shoko.Server
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                    
-                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
                     string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
@@ -242,7 +237,7 @@ namespace Shoko.Server
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
-                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
@@ -320,7 +315,7 @@ namespace Shoko.Server
 
                     DateTime start = DateTime.Now;
 
-                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     // get a list of series that is applicable
@@ -401,16 +396,16 @@ namespace Shoko.Server
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     // find the locked Continue Watching Filter
-                    GroupFilter gf = null;
-                    List<GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+                    SVR_GroupFilter gf = null;
+                    List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
                     if (lockedGFs != null)
                     {
                         // if it already exists we can leave
-                        foreach (GroupFilter gfTemp in lockedGFs)
+                        foreach (SVR_GroupFilter gfTemp in lockedGFs)
                         {
                             if (gfTemp.FilterType == (int) GroupFilterType.ContinueWatching)
                             {
@@ -492,7 +487,7 @@ namespace Shoko.Server
                     ISessionWrapper sessionWrapper = session.Wrap();
 
 
-                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     DateTime? startDate = AniDB.GetAniDBDateAsDate(startDateSecs);
@@ -551,7 +546,7 @@ namespace Shoko.Server
  
    
 
-                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
 
@@ -1210,7 +1205,7 @@ namespace Shoko.Server
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return retAnime;
 
-                    JMMUser juser = RepoFactory.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser juser = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (juser == null) return retAnime;
 
 

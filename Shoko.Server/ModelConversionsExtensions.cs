@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Force.DeepCloner;
+using Shoko.Models;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Entities;
 using Shoko.Server.LZ4;
+using Shoko.Server.Repositories;
 using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
 using CL_AniDB_Anime_Relation = Shoko.Models.Client.CL_AniDB_Anime_Relation;
 using CL_AniDB_Anime_Similar = Shoko.Models.Client.CL_AniDB_Anime_Similar;
@@ -21,7 +24,7 @@ using CL_BookmarkedAnime = Shoko.Models.Client.CL_BookmarkedAnime;
 
 namespace Shoko.Server
 {
-    public static class ClientCloneExtensions
+    public static class ModelConversionsExtensions
     {
         public static CL_AniDB_Anime CloneToClient(this AniDB_Anime anime)
         {
@@ -382,6 +385,30 @@ namespace Shoko.Server
                 ImportFolderIDFile2=d.ImportFolderIDFile2,
                 DateTimeUpdated=d.DateTimeUpdated
             };
+        }
+
+        public static FileNameHash ToFileNameHash(this CrossRef_File_Episode cfe)
+        {
+            return new FileNameHash
+            {
+                FileName = cfe.FileName,
+                FileSize = cfe.FileSize,
+                Hash = cfe.Hash,
+                DateTimeUpdated = DateTime.Now,
+            };
+        }
+
+        public static CL_IgnoreAnime ToClient(this IgnoreAnime i)
+        {
+            CL_IgnoreAnime c = new CL_IgnoreAnime
+            {
+                IgnoreAnimeID = i.IgnoreAnimeID,
+                JMMUserID = i.JMMUserID,
+                AnimeID = i.AnimeID,
+                IgnoreType = i.IgnoreType
+            };
+            c.Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID).CloneToClient();
+            return c;
         }
     }
 }

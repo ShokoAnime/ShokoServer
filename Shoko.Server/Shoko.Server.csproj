@@ -340,7 +340,8 @@
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="API\APIHelper.cs" />
-    <Compile Include="ClientCloneExtensions.cs" />
+    <Compile Include="Entities\Temp.cs" />
+    <Compile Include="ModelConversionsExtensions.cs" />
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />
@@ -371,7 +372,6 @@
     <Compile Include="Databases\DatabaseFactory.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
-    <Compile Include="Entities\IImageEntity.cs" />
     <Compile Include="Entities\SVR_CloudAccount.cs" />
     <Compile Include="Entities\Scan.cs" />
     <Compile Include="Entities\ScanFile.cs" />
@@ -494,7 +494,6 @@
     <Compile Include="Entities\SVR_BookmarkedAnime.cs" />
     <Compile Include="Entities\SVR_CrossRef_AniDB_TraktV2.cs" />
     <Compile Include="Entities\SVR_CrossRef_AniDB_TvDBV2.cs" />
-    <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
     <Compile Include="FileServer\FileServer.cs" />
@@ -702,12 +701,9 @@
     <Compile Include="Entities\SVR_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Entities\SVR_CrossRef_File_Episode.cs" />
     <Compile Include="Entities\SVR_DuplicateFile.cs" />
-    <Compile Include="Entities\FileNameHash.cs" />
-    <Compile Include="Entities\GroupFilter.cs" />
-    <Compile Include="Entities\GroupFilterCondition.cs" />
-    <Compile Include="Entities\IgnoreAnime.cs" />
+    <Compile Include="Entities\SVR_GroupFilter.cs" />
     <Compile Include="Entities\SVR_ImportFolder.cs" />
-    <Compile Include="Entities\JMMUser.cs" />
+    <Compile Include="Entities\SVR_JMMUser.cs" />
     <Compile Include="Entities\Language.cs" />
     <Compile Include="Entities\MovieDB_Fanart.cs" />
     <Compile Include="Entities\MovieDB_Movie.cs" />

@@ -881,11 +881,11 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     // get the latest user record and find the latest date this episode was watched
                     DateTime? thisDate = null;
-                    List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                    List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                     if (traktUsers.Count > 0)
                     {
                         SVR_AnimeEpisode_User userRecord = null;
-                        foreach (JMMUser juser in traktUsers)
+                        foreach (SVR_JMMUser juser in traktUsers)
                         {
                             userRecord = ep.GetUserRecord(juser.JMMUserID);
                             if (userRecord != null)
@@ -1585,7 +1585,7 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // check that we have at least one user nominated for Trakt
-                List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
@@ -1622,7 +1622,7 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
                 // check that we have at least one user nominated for Trakt
-                List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
                 IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
@@ -2001,7 +2001,7 @@ namespace Shoko.Server.Providers.TraktTV
         }
 
         private static EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,
-            TraktSummaryContainer traktSummary, List<JMMUser> traktUsers,
+            TraktSummaryContainer traktSummary, List<SVR_JMMUser> traktUsers,
             List<TraktV2ShowCollectedResult> collected, List<TraktV2ShowWatchedResult> watched, bool sendNow)
         {
             try
@@ -2051,7 +2051,7 @@ namespace Shoko.Server.Providers.TraktTV
                     localCollection = true;
 
                     SVR_AnimeEpisode_User userRecord = null;
-                    foreach (JMMUser juser in traktUsers)
+                    foreach (SVR_JMMUser juser in traktUsers)
                     {
                         userRecord = ep.GetUserRecord(juser.JMMUserID);
 
@@ -2165,7 +2165,7 @@ namespace Shoko.Server.Providers.TraktTV
                     return false;
 
                 // check that we have at least one user nominated for Trakt
-                List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return false;
 
                 int traktCode = TraktStatusCodes.Success;

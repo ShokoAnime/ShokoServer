@@ -461,7 +461,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object MyID()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             dynamic x = new System.Dynamic.ExpandoObject();
             if (user != null)
             {
@@ -756,7 +756,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetFile()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -787,7 +787,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetRecentFiles(int limit = 0, int level = 0)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (limit == 0) { if (para.limit == 0) { para.limit = 10; } }
@@ -810,7 +810,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetUnsort()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             List<object> lst = new List<object>();
@@ -885,7 +885,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetEpisode()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -905,7 +905,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetRecentEpisodes()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0) { para.limit = 10; }
@@ -932,7 +932,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object MarkEpisodeAsWatched()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -951,7 +951,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object MarkEpisodeAsUnwatched()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -970,7 +970,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object VoteOnEpisode()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1132,7 +1132,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetSerie()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1152,7 +1152,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object CountSerie()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             Counter count = new Counter();
             count.count = RepoFactory.AnimeSeries.GetAll().Count;
             return count;
@@ -1165,7 +1165,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetSeriesByFolderId()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1195,7 +1195,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetSeriesRecent()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             List<object> allseries = new List<object>();
@@ -1218,7 +1218,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object MarkSerieAsWatched()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1237,7 +1237,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object MarkSerieAsUnwatched()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1256,7 +1256,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object VoteOnSerie()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1283,7 +1283,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object SearchForSerie()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0) { para.limit = 100; }
@@ -1304,7 +1304,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object SearchForTag()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0) { para.limit = 100; }
@@ -1330,7 +1330,7 @@ namespace Shoko.Server.API.Module.apiv2
         internal object GetAllSeries(int nocast, int limit, int offset, int notag, int level)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
 
             List<Serie> allseries = new List<Serie>();
 
@@ -1356,7 +1356,7 @@ namespace Shoko.Server.API.Module.apiv2
         internal object GetSerieById(int series_id, int nocast, int notag, int level)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             Serie ser = new Serie().GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID, nocast, notag, level);
             return ser;
         }
@@ -1548,7 +1548,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetFilters()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1573,10 +1573,10 @@ namespace Shoko.Server.API.Module.apiv2
         /// <returns>List<Filter></returns>
         internal object GetAllFilters(int uid, int nocast, int notag, int level)
         {
-            List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 && ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)).ToList();
+            List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 && ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)).ToList();
             List<Filter> filters = new List<Filter>();
 
-            foreach (GroupFilter gf in allGfs)
+            foreach (SVR_GroupFilter gf in allGfs)
             {
                 Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level);
                 filters.Add(filter);
@@ -1612,7 +1612,7 @@ namespace Shoko.Server.API.Module.apiv2
         /// <returns>Filter</returns>
         internal object GetFilter(int id, int uid, int nocast, int notag, int level)
         {
-            GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
+            SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
             Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level);
 
             return filter;
@@ -1636,7 +1636,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
         {
   
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
                 int? filterid = filter.ParseNullableInt();
@@ -1652,7 +1652,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetMetadata(int type_id, string id, bool nocast = false, string filter = "")
         {
             Core.request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
                 switch ((JMMType)type_id)
@@ -1702,21 +1702,21 @@ namespace Shoko.Server.API.Module.apiv2
                 ObjectList dir = new ObjectList();
                 if (groupFilterID >= 0)
                 {
-                    GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
+                    SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
 
                     if (gf == null) { return APIStatus.notFound404(); }
 
                     dir.name = gf.GroupFilterName;
                     dir.type = "show";
 
-                    List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
+                    List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
                     (
                         (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
                         || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                     ).ToList();
 
                     List<Filter> dirs = new List<Filter>();
-                    foreach (GroupFilter gg in allGfs)
+                    foreach (SVR_GroupFilter gg in allGfs)
                     {
                         Filter pp = APIHelper.FilterFromGroupFilter(gg, uid);
                         dirs.Add(pp);
@@ -1975,7 +1975,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetRecentFiles_old(int max_limit)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
 
@@ -2044,7 +2044,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetUnrecognisedFiles(int max_limit)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             Dictionary<int, string> files = new Dictionary<int, string>();
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             int i = 0;
@@ -2060,7 +2060,7 @@ namespace Shoko.Server.API.Module.apiv2
         internal object GetAllEpisodes()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             ObjectList ob = new ObjectList("all episodes", ObjectList.ListType.EPISODE);
             List<object> eps = new List<object>();
             List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(user.JMMUserID).Select(a => a.AnimeEpisodeID).ToList();
@@ -2076,7 +2076,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetEpisodeById(int ep_id)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
 
             if (ep_id > 0)
             {
@@ -2113,7 +2113,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetRecentEpisodes(int max_limit)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
 
             ObjectList obl = new ObjectList("recent episodes", ObjectList.ListType.EPISODE);
             List<object> lst = new List<object>();
@@ -2142,7 +2142,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object VoteOnEpisode2()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters epi = this.Bind();
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
@@ -2161,7 +2161,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetSerieByFolderId(int folder_id, int max)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
 
             ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
             List<object> allseries = new List<object>();
@@ -2183,7 +2183,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object GetRecentSeries(int limit)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
 
             ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
             List<object> allseries = new List<object>();
@@ -2209,7 +2209,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object MarkSerieWatched(bool status, int max_episodes, int type)
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             API_Call_Parameters para = this.Bind();
             return _impl.SetWatchedStatusOnSeries(para.id, status, max_episodes, type, user.JMMUserID);
@@ -2222,7 +2222,7 @@ namespace Shoko.Server.API.Module.apiv2
         private object VoteOnSerie2()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
             API_Call_Parameters ser = this.Bind();
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();

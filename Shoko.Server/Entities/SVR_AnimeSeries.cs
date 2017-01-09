@@ -544,28 +544,28 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, JMMUser user = null)
+        public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, SVR_JMMUser user = null)
         {
-            IReadOnlyList<JMMUser> users = new List<JMMUser> {user};
+            IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> {user};
             if (user == null)
                 users = RepoFactory.JMMUser.GetAll();
-            List<GroupFilter> tosave = new List<GroupFilter>();
+            List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
 
-            foreach (JMMUser u in users)
+            foreach (SVR_JMMUser u in users)
             {
                 HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
                 CL_AnimeSeries_User cgrp = GetUserContract(u.JMMUserID, n);
-                foreach (GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
+                foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
                 {
-                    if (gf.CalculateGroupFilterSeries(cgrp, u.Contract, u.JMMUserID))
+                    if (gf.CalculateGroupFilterSeries(cgrp, u, u.JMMUserID))
                     {
                         if (!tosave.Contains(gf))
                             tosave.Add(gf);
                     }
                 }
             }
-            foreach (GroupFilter gf in tosave)
+            foreach (SVR_GroupFilter gf in tosave)
             {
                 RepoFactory.GroupFilter.Save(gf);
             }
@@ -573,7 +573,7 @@ namespace Shoko.Server.Entities
 
         public void DeleteFromFilters()
         {
-            foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
             {
                 bool change = false;
                 foreach (int k in gf.SeriesIds.Keys)
@@ -1078,7 +1078,7 @@ namespace Shoko.Server.Entities
                 missingEpsStats, updateAllGroupsAbove);
 
 
-            IReadOnlyList<JMMUser> allUsers = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<SVR_JMMUser> allUsers = RepoFactory.JMMUser.GetAll();
 
             DateTime startEps = DateTime.Now;
             List<SVR_AnimeEpisode> eps = GetAnimeEpisodes();
@@ -1110,7 +1110,7 @@ namespace Shoko.Server.Entities
 
             if (watchedStats)
             {
-                foreach (JMMUser juser in allUsers)
+                foreach (SVR_JMMUser juser in allUsers)
                 {
                     //this.WatchedCount = 0;
                     SVR_AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID);

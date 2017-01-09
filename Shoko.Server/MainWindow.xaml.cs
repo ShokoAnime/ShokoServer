@@ -27,6 +27,7 @@ using Microsoft.Win32.TaskScheduler;
 using Nancy.Hosting.Self;
 using Action = System.Action;
 using System.Net.NetworkInformation;
+using Shoko.Models.Interfaces;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Databases;

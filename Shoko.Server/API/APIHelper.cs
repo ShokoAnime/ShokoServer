@@ -128,7 +128,7 @@ namespace Shoko.Server.API
             { return null; }
         }
 
-        public static Filter FilterFromGroupFilter(GroupFilter gg, int uid)
+        public static Filter FilterFromGroupFilter(SVR_GroupFilter gg, int uid)
         {
             Filter ob = new Filter();
             ob.type = "show";

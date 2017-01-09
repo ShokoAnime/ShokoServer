@@ -157,12 +157,12 @@ namespace Shoko.Server.PlexAndKodi
         }
 
 
-        public static JMMUser GetUser(string userid)
+        public static SVR_JMMUser GetUser(string userid)
         {
-            IReadOnlyList<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
-            foreach (JMMUser n in allusers)
+            IReadOnlyList<SVR_JMMUser> allusers = RepoFactory.JMMUser.GetAll();
+            foreach (SVR_JMMUser n in allusers)
             {
-                if (userid.FindIn(n?.Contract?.PlexUsers))
+                if (userid.FindIn(n.GetPlexUsers()))
                 {
                     return n;
                 }
@@ -171,9 +171,9 @@ namespace Shoko.Server.PlexAndKodi
                    allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
         }
 
-        public static JMMUser GetJMMUser(string userid)
+        public static SVR_JMMUser GetJMMUser(string userid)
         {
-            IReadOnlyList<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<SVR_JMMUser> allusers = RepoFactory.JMMUser.GetAll();
             int id = 0;
             int.TryParse(userid, out id);
             return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
@@ -483,11 +483,11 @@ namespace Shoko.Server.PlexAndKodi
             RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
         }
 
-        private static void GetValidVideoRecursive(IProvider prov, GroupFilter f, int userid, Directory pp)
+        private static void GetValidVideoRecursive(IProvider prov, SVR_GroupFilter f, int userid, Directory pp)
         {
-            List<GroupFilter> gfs = RepoFactory.GroupFilter.GetByParentID(f.GroupFilterID).Where(a=>a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0).ToList();
+            List<SVR_GroupFilter> gfs = RepoFactory.GroupFilter.GetByParentID(f.GroupFilterID).Where(a=>a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0).ToList();
 
-            foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == 0))
+            foreach (SVR_GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == 0))
             {
                 if (gg.GroupsIds.ContainsKey(userid))
                 {
@@ -512,7 +512,7 @@ namespace Shoko.Server.PlexAndKodi
             }
             if (pp.Art == null)
             {
-                foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0).Randomize(f.GroupFilterID))
+                foreach (SVR_GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0).Randomize(f.GroupFilterID))
                 {
                     GetValidVideoRecursive(prov, gg, userid, pp);
                     if (pp.Art != null)
@@ -522,7 +522,7 @@ namespace Shoko.Server.PlexAndKodi
             pp.LeafCount = gfs.Count.ToString();
             pp.ViewedLeafCount = "0";        
         }
-        public static Directory DirectoryFromFilter(IProvider prov, GroupFilter gg,
+        public static Directory DirectoryFromFilter(IProvider prov, SVR_GroupFilter gg,
             int userid)
         {
             Directory pp = new Directory {Type = "show"};

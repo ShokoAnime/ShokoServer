@@ -220,7 +220,7 @@ namespace Shoko.Server.Databases
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             // Favorites
-            GroupFilter gf = new GroupFilter();
+            SVR_GroupFilter gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Favorites;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
@@ -236,7 +236,7 @@ namespace Shoko.Server.Databases
             RepoFactory.GroupFilter.Save(gf);
 
             // Missing Episodes
-            gf = new GroupFilter();
+            gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_MissingEpisodes;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
@@ -253,7 +253,7 @@ namespace Shoko.Server.Databases
 
 
             // Newly Added Series
-            gf = new GroupFilter();
+            gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Added;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
@@ -269,7 +269,7 @@ namespace Shoko.Server.Databases
             RepoFactory.GroupFilter.Save(gf);
 
             // Newly Airing Series
-            gf = new GroupFilter();
+            gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Airing;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
@@ -285,7 +285,7 @@ namespace Shoko.Server.Databases
             RepoFactory.GroupFilter.Save(gf);
 
             // Votes Needed
-            gf = new GroupFilter();
+            gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Votes;
             gf.ApplyToSeries = 1;
             gf.BaseCondition = 1;
@@ -311,7 +311,7 @@ namespace Shoko.Server.Databases
             RepoFactory.GroupFilter.Save(gf);
 
             // Recently Watched
-            gf = new GroupFilter();
+            gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_RecentlyWatched;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
@@ -327,7 +327,7 @@ namespace Shoko.Server.Databases
             RepoFactory.GroupFilter.Save(gf);
 
             // TvDB/MovieDB Link Missing
-            gf = new GroupFilter();
+            gf = new SVR_GroupFilter();
             gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_LinkMissing;
             gf.ApplyToSeries = 1; // This makes far more sense as applied to series
             gf.BaseCondition = 1;
@@ -350,7 +350,7 @@ namespace Shoko.Server.Databases
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            JMMUser defaultUser = new JMMUser();
+            SVR_JMMUser defaultUser = new SVR_JMMUser();
             defaultUser.CanEditServerSettings = 1;
             defaultUser.HideCategories = "";
             defaultUser.IsAdmin = 1;
@@ -360,7 +360,7 @@ namespace Shoko.Server.Databases
             defaultUser.Username = Shoko.Server.Properties.Resources.Users_Default;
             RepoFactory.JMMUser.Save(defaultUser, true);
 
-            JMMUser familyUser = new JMMUser();
+            SVR_JMMUser familyUser = new SVR_JMMUser();
             familyUser.CanEditServerSettings = 1;
             familyUser.HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted";
             familyUser.IsAdmin = 1;

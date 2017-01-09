@@ -11,7 +11,7 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class JMMUserRepository : BaseCachedRepository<JMMUser, int>
+    public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -25,7 +25,7 @@ namespace Shoko.Server.Repositories.Cached
             return new JMMUserRepository();
         }
 
-        protected override int SelectKey(JMMUser entity)
+        protected override int SelectKey(SVR_JMMUser entity)
         {
             return entity.JMMUserID;
         }
@@ -40,54 +40,17 @@ namespace Shoko.Server.Repositories.Cached
 
         }
 
-        public static void GenerateContract(JMMUser user)
-        {
-            Contract_JMMUser contract = new Contract_JMMUser();
-            contract.JMMUserID = user.JMMUserID;
-            contract.Username = user.Username;
-            contract.Password = user.Password;
-            contract.IsAdmin = user.IsAdmin;
-            contract.IsAniDBUser = user.IsAniDBUser;
-            contract.IsTraktUser = user.IsTraktUser;
-            if (!string.IsNullOrEmpty(user.HideCategories))
-            {
-                contract.HideCategories =
-                    new HashSet<string>(
-                        user.HideCategories.Trim().Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(a => a.Trim())
-                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
-                        StringComparer.InvariantCultureIgnoreCase);
-            }
-            else
-                contract.HideCategories=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-
-            contract.CanEditServerSettings = user.CanEditServerSettings;
-            if (!string.IsNullOrEmpty(user.PlexUsers))
-            {
-                contract.PlexUsers =
-                    new HashSet<string>(
-                        user.PlexUsers.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(a => a.Trim())
-                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
-                        StringComparer.InvariantCultureIgnoreCase);
-            }
-            else
-            {
-                contract.PlexUsers=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-            }
-            user.Contract = contract;
-        }
-
+      
 
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(JMMUser obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_JMMUser obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<JMMUser> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_JMMUser> objs) { throw new NotSupportedException(); }
 
-        public void Save(JMMUser obj, bool updateGroupFilters)
+        public void Save(SVR_JMMUser obj, bool updateGroupFilters)
         {
             lock (obj)
             {
@@ -95,16 +58,14 @@ namespace Shoko.Server.Repositories.Cached
                 if (obj.JMMUserID == 0)
                 {
                     isNew = true;
-                    obj.Contract = null;
                     base.Save(obj);
                 }
-                GenerateContract(obj);
                 if (updateGroupFilters)
                 {
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        JMMUser old = isNew ? null : session.Get<JMMUser>(obj.JMMUserID);
-                        updateGroupFilters = JMMUser.CompareUser(old?.Contract, obj.Contract);
+                        SVR_JMMUser old = isNew ? null : session.Get<SVR_JMMUser>(obj.JMMUserID);
+                        updateGroupFilters = SVR_JMMUser.CompareUser(old, obj);
                     }
                 }
                 base.Save(obj);
@@ -119,11 +80,11 @@ namespace Shoko.Server.Repositories.Cached
 
 
 
-        public JMMUser GetByUsername(string username)
+        public SVR_JMMUser GetByUsername(string username)
         {
             try
             {
-                return Cache.Values.First<JMMUser>(x => x.Username.ToLower() == username.ToLower());
+                return Cache.Values.First<SVR_JMMUser>(x => x.Username.ToLower() == username.ToLower());
             }
             catch
             {
@@ -139,17 +100,17 @@ namespace Shoko.Server.Repositories.Cached
 
 
 
-        public List<JMMUser> GetAniDBUsers()
+        public List<SVR_JMMUser> GetAniDBUsers()
         {
             return Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
         }
 
-        public List<JMMUser> GetTraktUsers()
+        public List<SVR_JMMUser> GetTraktUsers()
         {
             return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
         }
 
-        public JMMUser AuthenticateUser(string userName, string password)
+        public SVR_JMMUser AuthenticateUser(string userName, string password)
         {
             string hashedPassword = Digest.Hash(password);
             return Cache.Values.FirstOrDefault(a => a.Username == userName && a.Password == hashedPassword);

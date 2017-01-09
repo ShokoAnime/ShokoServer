@@ -21,7 +21,7 @@ namespace Shoko.Server.API.Model.common
             groups = new List<Group>();
         }
 
-        internal Filter GenerateFromGroupFilter(GroupFilter gf, int uid, int nocast, int notag, int level)
+        internal Filter GenerateFromGroupFilter(SVR_GroupFilter gf, int uid, int nocast, int notag, int level)
         {
             Filter filter = new Filter();
             filter.name = gf.GroupFilterName;

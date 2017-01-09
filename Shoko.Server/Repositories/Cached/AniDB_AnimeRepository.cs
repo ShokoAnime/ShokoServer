@@ -8,6 +8,7 @@ using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Interfaces;
 using Shoko.Server.Databases;
 using Shoko.Server.Entities;
 using Shoko.Server.Repositories.NHibernate;

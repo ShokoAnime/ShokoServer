@@ -801,7 +801,7 @@ namespace Shoko.Server.Entities
 
             if (watchedStats)
             {
-                IReadOnlyList<JMMUser> allUsers = RepoFactory.JMMUser.GetAll();
+                IReadOnlyList<SVR_JMMUser> allUsers = RepoFactory.JMMUser.GetAll();
 
                 UpdateWatchedStats(this, seriesList, allUsers, (userRecord, isNew) =>
                     {
@@ -838,7 +838,7 @@ namespace Shoko.Server.Entities
                 return; // Nothing to do
             }
 
-            var allUsers = new Lazy<IReadOnlyList<JMMUser>>(() => RepoFactory.JMMUser.GetAll(), isThreadSafe: false);
+            var allUsers = new Lazy<IReadOnlyList<SVR_JMMUser>>(() => RepoFactory.JMMUser.GetAll(), isThreadSafe: false);
 
             foreach (SVR_AnimeGroup animeGroup in animeGroups)
             {
@@ -874,9 +874,9 @@ namespace Shoko.Server.Entities
         /// <param name="newAnimeGroupUsers">A methed that will be called for each processed <see cref="SVR_AnimeGroup_User"/>
         /// and whether or not the <see cref="SVR_AnimeGroup_User"/> is new.</param>
         private static void UpdateWatchedStats(SVR_AnimeGroup animeGroup, IReadOnlyCollection<SVR_AnimeSeries> seriesList,
-            IEnumerable<JMMUser> allUsers, Action<SVR_AnimeGroup_User, bool> newAnimeGroupUsers)
+            IEnumerable<SVR_JMMUser> allUsers, Action<SVR_AnimeGroup_User, bool> newAnimeGroupUsers)
         {
-            foreach (JMMUser juser in allUsers)
+            foreach (SVR_JMMUser juser in allUsers)
             {
                 SVR_AnimeGroup_User userRecord = animeGroup.GetUserRecord(juser.JMMUserID);
                 bool isNewRecord = false;
@@ -1355,7 +1355,7 @@ namespace Shoko.Server.Entities
 
         public void DeleteFromFilters()
         {
-            foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
             {
                 bool change = false;
                 foreach (int k in gf.GroupsIds.Keys)
@@ -1371,27 +1371,27 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, JMMUser user = null)
+        public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, SVR_JMMUser user = null)
         {
-            IReadOnlyList<JMMUser> users = new List<JMMUser> {user};
+            IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> {user};
             if (user == null)
                 users = RepoFactory.JMMUser.GetAll();
-            List<GroupFilter> tosave = new List<GroupFilter>();
+            List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
-            foreach (JMMUser u in users)
+            foreach (SVR_JMMUser u in users)
             {
                 HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
                 CL_AnimeGroup_User cgrp = GetUserContract(u.JMMUserID, n);
-                foreach (GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
+                foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
                 {
-                    if (gf.CalculateGroupFilterGroups(cgrp, u.Contract, u.JMMUserID))
+                    if (gf.CalculateGroupFilterGroups(cgrp, u, u.JMMUserID))
                     {
                         if (!tosave.Contains(gf))
                             tosave.Add(gf);
                     }
                 }
             }
-            foreach (GroupFilter gf in tosave)
+            foreach (SVR_GroupFilter gf in tosave)
             {
                 RepoFactory.GroupFilter.Save(gf);
             }

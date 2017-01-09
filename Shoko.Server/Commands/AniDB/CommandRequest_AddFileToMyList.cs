@@ -80,12 +80,12 @@ namespace Shoko.Server.Commands
                         newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
 
                     // do for all AniDB users
-                    List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                    List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
 
                     if (aniDBUsers.Count > 0)
                     {
-                        JMMUser juser = aniDBUsers[0];
+                        SVR_JMMUser juser = aniDBUsers[0];
                         vid.ToggleWatchedStatus(newWatchedStatus, false, watchedDate, false, false, juser.JMMUserID,
                             false, true);
                         logger.Info("Adding file to list: {0} - {1}", vid.ToString(), watchedDate);
@@ -98,7 +98,7 @@ namespace Shoko.Server.Commands
                                 SVR_AnimeEpisode ep = animeEpisodes[0];
                                 SVR_AnimeEpisode_User epUser = null;
 
-                                foreach (JMMUser tempuser in aniDBUsers)
+                                foreach (SVR_JMMUser tempuser in aniDBUsers)
                                 {
                                     // only find the first user who watched this
                                     if (epUser == null)
