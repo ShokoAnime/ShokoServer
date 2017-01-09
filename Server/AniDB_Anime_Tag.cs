@@ -1,0 +1,17 @@
+﻿
+
+namespace Shoko.Models.Server
+{
+    public class AniDB_Anime_Tag
+    {
+        #region Server DB columns
+
+        public int AniDB_Anime_TagID { get; private set; }
+        public int AnimeID { get; set; }
+        public int TagID { get; set; }
+        public int Approval { get; set; }
+        public int Weight { get; set; }
+
+        #endregion
+    }
+}

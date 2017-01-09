@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Shoko.Models</RootNamespace>
     <AssemblyName>Shoko.Models</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,8 +31,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\shokoserver\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -40,7 +46,200 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Azure\Azure_AnimeCharacter.cs" />
+    <Compile Include="Azure\Azure_AnimeDetail.cs" />
+    <Compile Include="Azure\Azure_AnimeFull.cs" />
+    <Compile Include="Azure\Azure_AnimeIDTitle.cs" />
+    <Compile Include="Azure\Azure_AnimeLink.cs" />
+    <Compile Include="Azure\Azure_AnimeShout.cs" />
+    <Compile Include="Azure\Azure_AnimeXML.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_MAL_Request.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_Other.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_Other_Request.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_Trakt_Request.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Azure\Azure_CrossRef_AniDB_TvDB_Request.cs" />
+    <Compile Include="Azure\Azure_CrossRef_File_Episode.cs" />
+    <Compile Include="Azure\Azure_CrossRef_File_Episode_Request.cs" />
+    <Compile Include="Azure\Azure_FileHash.cs" />
+    <Compile Include="Azure\Azure_FileHash_Request.cs" />
+    <Compile Include="Azure\Azure_Media.cs" />
+    <Compile Include="Azure\Azure_Media_Request.cs" />
+    <Compile Include="Azure\Azure_UserInfo.cs" />
+    <Compile Include="Client\CL_AniDB_Anime_Similar.cs" />
+    <Compile Include="Client\CL_AniDB_Anime.cs" />
+    <Compile Include="Client\CL_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Client\CL_AniDB_Anime_Relation.cs" />
+    <Compile Include="Client\CL_AniDB_Character.cs" />
+    <Compile Include="Client\CL_AniDB_GroupStatus.cs" />
+    <Compile Include="Client\CL_AnimeEpisode_User.cs" />
+    <Compile Include="Client\CL_AnimeGroup_User.cs" />
+    <Compile Include="Client\CL_CloudAccount.cs" />
+    <Compile Include="Enums\enEpisodeSourceType.cs" />
+    <Compile Include="Enums\enEpisodeType.cs" />
+    <Compile Include="Server\AniDB_Anime.cs" />
+    <Compile Include="Constants.cs" />
+    <Compile Include="Client\CL_AniDB_AnimeCrossRefs.cs" />
+    <Compile Include="Client\CL_AniDB_AnimeDetailed.cs" />
+    <Compile Include="Client\CL_AnimeGroup_Save_Request.cs" />
+    <Compile Include="Client\CL_AnimeGroup_Save_Response.cs" />
+    <Compile Include="Client\CL_AnimeRating.cs" />
+    <Compile Include="Client\CL_AnimeSearch.cs" />
+    <Compile Include="Client\CL_AnimeSeries_User.cs" />
+    <Compile Include="Client\CL_AnimeSeries_FileStats.cs" />
+    <Compile Include="Client\CL_AnimeSeries_Save_Request.cs" />
+    <Compile Include="Client\CL_AnimeSeries_Save_Response.cs" />
+    <Compile Include="Client\CL_AnimeTag.cs" />
+    <Compile Include="Client\CL_AnimeTitle.cs" />
+    <Compile Include="Client\CL_AppVersions.cs" />
+    <Compile Include="Client\CL_BookmarkedAnime.cs" />
+    <Compile Include="Client\CL_BookmarkedAnime_Save_Response.cs" />
+    <Compile Include="Client\CL_Changes.cs" />
+    <Compile Include="Client\CL_CrossRef_AniDB_MAL_Response.cs" />
+    <Compile Include="Client\CL_CrossRef_AniDB_Other_Response.cs" />
+    <Compile Include="Client\CL_CrossRef_CustomTag_Save_Response.cs" />
+    <Compile Include="Client\CL_CustomTag_Save_Response.cs" />
+    <Compile Include="Client\CL_DuplicateFile.cs" />
+    <Compile Include="Contract_FileFfdshowPreset.cs" />
+    <Compile Include="Contract_GroupFileSummary.cs" />
+    <Compile Include="Contract_GroupFilter.cs" />
+    <Compile Include="Contract_GroupFilterCondition.cs" />
+    <Compile Include="Contract_GroupFilterExtended.cs" />
+    <Compile Include="Contract_GroupFilter_SaveResponse.cs" />
+    <Compile Include="Contract_GroupVideoQuality.cs" />
+    <Compile Include="Contract_IgnoreAnime.cs" />
+    <Compile Include="Client\CL_ImportFolder_Save_Response.cs" />
+    <Compile Include="Contract_JMMUser.cs" />
+    <Compile Include="Contract_LogMessage.cs" />
+    <Compile Include="Contract_MainChanges.cs" />
+    <Compile Include="Contract_MALAnimeResponse.cs" />
+    <Compile Include="Contract_MissingEpisode.cs" />
+    <Compile Include="Contract_MissingFile.cs" />
+    <Compile Include="Contract_MovieDBMovieSearchResult.cs" />
+    <Compile Include="Contract_MovieDB_Fanart.cs" />
+    <Compile Include="Contract_MovieDB_Movie.cs" />
+    <Compile Include="Contract_MovieDB_Poster.cs" />
+    <Compile Include="Contract_Playlist.cs" />
+    <Compile Include="Contract_Playlist_SaveResponse.cs" />
+    <Compile Include="Contract_Recommendation.cs" />
+    <Compile Include="Contract_ReleaseGroup.cs" />
+    <Compile Include="Contract_RenameScript.cs" />
+    <Compile Include="Contract_RenameScript_SaveResponse.cs" />
+    <Compile Include="Contract_ServerSettings.cs" />
+    <Compile Include="Contract_ServerSettings_SaveResponse.cs" />
+    <Compile Include="Contract_ServerStatus.cs" />
+    <Compile Include="Contract_ToggleWatchedStatusOnEpisode_Response.cs" />
+    <Compile Include="Contract_TraktTVShowResponse.cs" />
+    <Compile Include="Contract_Trakt_Activity.cs" />
+    <Compile Include="Contract_Trakt_Episode.cs" />
+    <Compile Include="Contract_Trakt_Friend.cs" />
+    <Compile Include="Contract_Trakt_ImageFanart.cs" />
+    <Compile Include="Contract_Trakt_ImagePoster.cs" />
+    <Compile Include="Contract_Trakt_Season.cs" />
+    <Compile Include="Contract_Trakt_Shout.cs" />
+    <Compile Include="Contract_Trakt_ShoutUser.cs" />
+    <Compile Include="Contract_Trakt_Show.cs" />
+    <Compile Include="Contract_Trakt_User.cs" />
+    <Compile Include="Contract_Trakt_WatchedEpisode.cs" />
+    <Compile Include="Contract_TvDBLanguage.cs" />
+    <Compile Include="Contract_TVDBSeriesSearchResult.cs" />
+    <Compile Include="Contract_TvDB_Episode.cs" />
+    <Compile Include="Contract_TvDB_ImageFanart.cs" />
+    <Compile Include="Contract_TvDB_ImagePoster.cs" />
+    <Compile Include="Contract_TvDB_ImageWideBanner.cs" />
+    <Compile Include="Contract_TvDB_Series.cs" />
+    <Compile Include="Contract_VideoDetailed.cs" />
+    <Compile Include="Contract_VideoLocal.cs" />
+    <Compile Include="Contract_VideoLocalManualLink.cs" />
+    <Compile Include="Contract_VideoLocalRenamed.cs" />
+    <Compile Include="Contract_VideoLocal_Place.cs" />
+    <Compile Include="Enums\AiringState.cs" />
+    <Compile Include="Enums\AniDBFileState.cs" />
+    <Compile Include="Enums\AniDBRecommendationType.cs" />
+    <Compile Include="Enums\AniDBVoteType.cs" />
+    <Compile Include="Enums\AnimeTypes.cs" />
+    <Compile Include="Enums\AutostartMethod.cs" />
+    <Compile Include="Enums\CustomTagCrossRefType.cs" />
+    <Compile Include="Enums\enAnimeType.cs" />
+    <Compile Include="Enums\enFanartSize.cs" />
+    <Compile Include="Enums\AzureLinkType.cs" />
+    <Compile Include="Enums\GroupFilterBaseCondition.cs" />
+    <Compile Include="Enums\GroupFilterConditionType.cs" />
+    <Compile Include="Enums\GroupFilterOperator.cs" />
+    <Compile Include="Enums\GroupFilterSortDirection.cs" />
+    <Compile Include="Enums\GroupFilterSorting.cs" />
+    <Compile Include="Enums\GroupFilterType.cs" />
+    <Compile Include="Enums\ImageEntityType.cs" />
+    <Compile Include="Enums\ImageSizeType.cs" />
+    <Compile Include="Enums\ImportFolderType.cs" />
+    <Compile Include="Enums\JMMImageType.cs" />
+    <Compile Include="Hashes.cs" />
+    <Compile Include="IJMMServer.cs" />
+    <Compile Include="MediaInfoResult.cs" />
+    <Compile Include="MetroContract_AniDB_Character.cs" />
+    <Compile Include="MetroContract_Anime_Detail.cs" />
+    <Compile Include="MetroContract_Anime_Episode.cs" />
+    <Compile Include="MetroContract_Anime_Summary.cs" />
+    <Compile Include="MetroContract_CommunityLinks.cs" />
+    <Compile Include="MetroContract_Shout.cs" />
+    <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Enums\RatingCollectionState.cs" />
+    <Compile Include="Enums\RatingVotedState.cs" />
+    <Compile Include="Enums\RatingWatchedState.cs" />
+    <Compile Include="Enums\RenamingLanguage.cs" />
+    <Compile Include="Enums\ScanFileStatus.cs" />
+    <Compile Include="Enums\ScanStatus.cs" />
+    <Compile Include="Enums\WhatPeopleAreSayingType.cs" />
+    <Compile Include="Server\AniDB_Anime_Character.cs" />
+    <Compile Include="Server\AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Azure\Azure_AdminMessage.cs" />
+    <Compile Include="Server\AniDB_Anime_Relation.cs" />
+    <Compile Include="Server\AniDB_Anime_Review.cs" />
+    <Compile Include="Server\AniDB_Anime_Similar.cs" />
+    <Compile Include="Server\AniDB_Anime_Tag.cs" />
+    <Compile Include="Server\AniDB_Anime_Title.cs" />
+    <Compile Include="Server\AniDB_Character.cs" />
+    <Compile Include="Server\AniDB_Character_Seiyuu.cs" />
+    <Compile Include="Server\AniDB_Episode.cs" />
+    <Compile Include="Server\AniDB_File.cs" />
+    <Compile Include="Server\AniDB_GroupStatus.cs" />
+    <Compile Include="Server\AniDB_MylistStats.cs" />
+    <Compile Include="Server\AniDB_Recommendation.cs" />
+    <Compile Include="Server\AniDB_ReleaseGroup.cs" />
+    <Compile Include="Server\AniDB_Review.cs" />
+    <Compile Include="Server\AniDB_Seiyuu.cs" />
+    <Compile Include="Server\AniDB_Tag.cs" />
+    <Compile Include="Server\AniDB_Vote.cs" />
+    <Compile Include="Server\AnimeEpisode.cs" />
+    <Compile Include="Server\AnimeEpisode_User.cs" />
+    <Compile Include="Server\AnimeGroup.cs" />
+    <Compile Include="Server\AnimeGroup_User.cs" />
+    <Compile Include="Server\AnimeSeries.cs" />
+    <Compile Include="Server\AnimeSeries_User.cs" />
+    <Compile Include="Server\AuthTokens.cs" />
+    <Compile Include="Server\BookmarkedAnime.cs" />
+    <Compile Include="Server\CloudAccount.cs" />
+    <Compile Include="Server\CommandRequest.cs" />
+    <Compile Include="Server\CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Server\CrossRef_AniDB_Other.cs" />
+    <Compile Include="Server\CrossRef_AniDB_TraktV2.cs" />
+    <Compile Include="Server\CrossRef_AniDB_Trakt_Episode.cs" />
+    <Compile Include="Server\CrossRef_AniDB_TvDBV2.cs" />
+    <Compile Include="Server\CrossRef_AniDB_TvDB_Episode.cs" />
+    <Compile Include="Server\CrossRef_CustomTag.cs" />
+    <Compile Include="Server\CrossRef_File_Episode.cs" />
+    <Compile Include="Server\CrossRef_Languages_AniDB_File.cs" />
+    <Compile Include="Server\CrossRef_Subtitles_AniDB_File.cs" />
+    <Compile Include="Server\CustomTag.cs" />
+    <Compile Include="Server\DuplicateFile.cs" />
+    <Compile Include="Server\ImportFolder.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(SolutionDir)DefineSettings.targets" Condition="exists('$(SolutionDir)DefineSettings.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
