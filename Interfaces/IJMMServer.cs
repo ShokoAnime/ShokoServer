@@ -4,7 +4,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Azure;
 using Shoko.Models.Server;
 
-namespace Shoko.Models
+namespace Shoko.Models.Interfaces
 {
 
     public interface IJMMServer
@@ -122,7 +122,7 @@ namespace Shoko.Models
         Contract_MainChanges GetAllChanges(DateTime date, int userID);
 
 
-        Client.CL_Changes<Contract_GroupFilter> GetGroupFilterChanges(DateTime date);
+        Client.CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date);
 
         
         Client.CL_AnimeSeries_Save_Response SaveSeries(Client.CL_AnimeSeries_Save_Request request, int userID);
@@ -227,22 +227,22 @@ namespace Shoko.Models
         string RenameAllGroups();
 
         
-        List<Contract_GroupFilter> GetAllGroupFilters();
+        List<CL_GroupFilter> GetAllGroupFilters();
 
         
-        List<Contract_GroupFilter> GetGroupFilters(int gfparentid = 0);
+        List<CL_GroupFilter> GetGroupFilters(int gfparentid = 0);
 
         
-        Contract_GroupFilter GetGroupFilter(int gf);
+        CL_GroupFilter GetGroupFilter(int gf);
 
         
-        List<Contract_GroupFilterExtended> GetGroupFiltersExtended(int userID, int gfparentid = 0);
+        List<CL_GroupFilterExtended> GetGroupFiltersExtended(int userID, int gfparentid = 0);
 
         
-        Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract);
+        CL_GroupFilter EvaluateGroupFilter(CL_GroupFilter contract);
 
         
-        Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract);
+        CL_GroupFilter_Save_Response SaveGroupFilter(CL_GroupFilter contract);
 
         
         string DeleteGroupFilter(int groupFilterID);
@@ -292,7 +292,7 @@ namespace Shoko.Models
         void ReevaluateDuplicateFiles();
 
         
-        List<Contract_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
+        List<CL_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
 
         
         string DeleteVideoLocalPlaceAndFile(int videoplaceid);
@@ -397,13 +397,13 @@ namespace Shoko.Models
         List<Client.CL_AniDB_Anime> GetMiniCalendar(int jmmuserID, int numberOfDays);
 
         
-        List<Contract_JMMUser> GetAllUsers();
+        List<JMMUser> GetAllUsers();
 
         
-        Contract_JMMUser AuthenticateUser(string username, string password);
+        JMMUser AuthenticateUser(string username, string password);
 
         
-        string SaveUser(Contract_JMMUser user);
+        string SaveUser(JMMUser user);
 
         
         string DeleteUser(int userID);
@@ -467,13 +467,13 @@ namespace Shoko.Models
         string UpdateMovieDBData(int movieD);
 
         
-        Contract_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
+        CL_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
 
         
         List<Client.CL_AnimeGroup_User> GetAnimeGroupsForFilter(int groupFilterID, int userID, bool getSingleSeriesGroups);
 
         
-        List<Contract_GroupFilterExtended> GetAllGroupFiltersExtended(int userID);
+        List<CL_GroupFilterExtended> GetAllGroupFiltersExtended(int userID);
 
         
         List<Client.CL_AnimeGroup_User> GetSubGroupsForGroup(int animeGroupID, int userID);
@@ -534,7 +534,7 @@ namespace Shoko.Models
         void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType);
 
         
-        List<Contract_IgnoreAnime> GetIgnoredAnime(int userID);
+        List<CL_IgnoreAnime> GetIgnoredAnime(int userID);
 
         
         void RemoveIgnoreAnime(int ignoreAnimeID);
@@ -665,13 +665,13 @@ namespace Shoko.Models
         Client.CL_AnimeEpisode_User GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
 
         
-        Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID);
+        FileFfdshowPreset GetFFDPreset(int videoLocalID);
 
         
         void DeleteFFDPreset(int videoLocalID);
 
         
-        void SaveFFDPreset(Contract_FileFfdshowPreset preset);
+        void SaveFFDPreset(FileFfdshowPreset preset);
 
         
         void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
@@ -716,7 +716,6 @@ namespace Shoko.Models
         int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
 
         
-        List<Contract_GroupFileSummary> GetGroupFileSummary(int animeID);
 
         
         List<Client.CL_AnimeEpisode_User> GetAllUnwatchedEpisodes(int animeSeriesID, int userID);

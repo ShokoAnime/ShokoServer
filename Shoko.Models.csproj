@@ -75,6 +75,7 @@
     <Compile Include="Client\CL_CloudAccount.cs" />
     <Compile Include="Enums\enEpisodeSourceType.cs" />
     <Compile Include="Enums\enEpisodeType.cs" />
+    <Compile Include="Interfaces\IImageEntity.cs" />
     <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
     <Compile Include="Server\AniDB_Anime.cs" />
     <Compile Include="Constants.cs" />
@@ -99,17 +100,13 @@
     <Compile Include="Client\CL_CrossRef_CustomTag_Save_Response.cs" />
     <Compile Include="Client\CL_CustomTag_Save_Response.cs" />
     <Compile Include="Client\CL_DuplicateFile.cs" />
-    <Compile Include="Contract_FileFfdshowPreset.cs" />
-    <Compile Include="Contract_GroupFileSummary.cs" />
-    <Compile Include="Contract_GroupFilter.cs" />
-    <Compile Include="Contract_GroupFilterCondition.cs" />
-    <Compile Include="Contract_GroupFilterExtended.cs" />
-    <Compile Include="Contract_GroupFilter_SaveResponse.cs" />
-    <Compile Include="Contract_GroupVideoQuality.cs" />
-    <Compile Include="Contract_IgnoreAnime.cs" />
+    <Compile Include="Client\CL_GroupFileSummary.cs" />
+    <Compile Include="Client\CL_GroupFilter.cs" />
+    <Compile Include="Client\CL_GroupFilterExtended.cs" />
+    <Compile Include="Client\CL_GroupFilter_Save_Response.cs" />
+    <Compile Include="Client\CL_GroupVideoQuality.cs" />
+    <Compile Include="Client\CL_IgnoreAnime.cs" />
     <Compile Include="Client\CL_ImportFolder_Save_Response.cs" />
-    <Compile Include="Contract_JMMUser.cs" />
-    <Compile Include="Contract_LogMessage.cs" />
     <Compile Include="Contract_MainChanges.cs" />
     <Compile Include="Contract_MALAnimeResponse.cs" />
     <Compile Include="Contract_MissingEpisode.cs" />
@@ -173,7 +170,7 @@
     <Compile Include="Enums\ImportFolderType.cs" />
     <Compile Include="Enums\JMMImageType.cs" />
     <Compile Include="Hashes.cs" />
-    <Compile Include="IJMMServer.cs" />
+    <Compile Include="Interfaces\IJMMServer.cs" />
     <Compile Include="MediaInfoResult.cs" />
     <Compile Include="MetroContract_AniDB_Character.cs" />
     <Compile Include="MetroContract_Anime_Detail.cs" />
@@ -231,7 +228,13 @@
     <Compile Include="Server\CrossRef_Subtitles_AniDB_File.cs" />
     <Compile Include="Server\CustomTag.cs" />
     <Compile Include="Server\DuplicateFile.cs" />
+    <Compile Include="Server\FileFfdshowPreset.cs" />
+    <Compile Include="Server\FileNameHash.cs" />
+    <Compile Include="Server\GroupFilter.cs" />
+    <Compile Include="Server\GroupFilterCondition.cs" />
+    <Compile Include="Server\IgnoreAnime.cs" />
     <Compile Include="Server\ImportFolder.cs" />
+    <Compile Include="Server\JMMUser.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

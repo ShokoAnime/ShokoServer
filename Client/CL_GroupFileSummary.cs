@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Shoko.Models
+namespace Shoko.Models.Client
 {
-    public class Contract_GroupVideoQuality : IComparable<Contract_GroupVideoQuality>
+    public class CL_GroupFileSummary
     {
         public string GroupName { get; set; }
         public string GroupNameShort { get; set; }
-        public int Ranking { get; set; }
-        public string Resolution { get; set; }
-        public string VideoSource { get; set; }
-        public int VideoBitDepth { get; set; }
         public int FileCountNormal { get; set; }
         public bool NormalComplete { get; set; }
         public int FileCountSpecials { get; set; }
@@ -22,14 +18,6 @@ namespace Shoko.Models
         public List<int> NormalEpisodeNumbers { get; set; }
         public string NormalEpisodeNumberSummary { get; set; }
 
-        public int CompareTo(Contract_GroupVideoQuality obj)
-        {
-            return Ranking.CompareTo(obj.Ranking)*-1;
-        }
 
-        public override string ToString()
-        {
-            return string.Format("{0} - {1}/{2}", GroupNameShort, Resolution, VideoSource);
-        }
     }
 }
