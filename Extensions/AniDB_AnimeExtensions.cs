@@ -109,20 +109,47 @@ namespace Shoko.Commons.Extensions
             return Enum.GetName(typeof(AnimeTypes), (AnimeTypes) anime.AnimeType).Replace('_', ' ');
         }
 
+
+        //TODO Move this to a cache Dictionary when time, memory consumption should be low but, who knows.
+        private static Dictionary<string, HashSet<string>> _alltagscache = new Dictionary<string, HashSet<string>>();
+        private static Dictionary<string, HashSet<string>> _alltitlescache = new Dictionary<string, HashSet<string>>();
+
+
+
         public static HashSet<string> GetAllTags(this AniDB_Anime anime)
         {
-            return new HashSet<string>(
-             anime.AllTags.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
-                 .Select(a => a.Trim())
-                 .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);         
+            if (!string.IsNullOrEmpty(anime.AllTags))
+            {
+                lock (_alltagscache)
+                {
+                    if (!_alltagscache.ContainsKey(anime.AllTags))
+                        _alltagscache[anime.AllTags] = new HashSet<string>(
+                        anime.AllTags.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+                         .Select(a => a.Trim())
+                         .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
+                    return _alltagscache[anime.AllTags];
+                }
+
+            }
+            return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static HashSet<string> GetAllTitles(this AniDB_Anime anime)
         {
-            return new HashSet<string>(
-                 anime.AllTitles.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+            if (!string.IsNullOrEmpty(anime.AllTitles))
+            {
+                lock (_alltitlescache)
+                {
+                    if (!_alltitlescache.ContainsKey(anime.AllTitles))
+                        _alltitlescache[anime.AllTitles] = new HashSet<string>(
+                        anime.AllTitles.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
                      .Select(a => a.Trim())
                      .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
+                    return _alltitlescache[anime.AllTitles];
+                }
+
+            }
+            return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         }
 
 
