@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using ProtoBuf;
+
 using Shoko.Models.Client;
 
 namespace Shoko.Models.PlexAndKodi
@@ -12,7 +12,7 @@ namespace Shoko.Models.PlexAndKodi
     [DataContract()]
     [KnownType(typeof(Video))]
     [KnownType(typeof(Directory))]
-    [ProtoInclude(1, typeof(Video))]
+ 
     public class MediaContainer : Video
     {
         [XmlElement(typeof(Video), ElementName = "Video")]
@@ -141,8 +141,7 @@ namespace Shoko.Models.PlexAndKodi
     [XmlType("Video")]
     [Serializable]
     [DataContract]
-    [ProtoInclude(1, typeof(Directory))]
-    [ProtoInclude(2, typeof(MediaContainer))]
+
     public class Video
     {
         [XmlIgnore]
