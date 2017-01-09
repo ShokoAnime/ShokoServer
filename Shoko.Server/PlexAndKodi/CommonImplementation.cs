@@ -563,7 +563,7 @@ namespace Shoko.Server.PlexAndKodi
             if (basegrp != null)
             {
 	            List<SVR_AnimeSeries> seriesList = grp.GetSeries();
-	            if (filterID.HasValue)
+	            if (filterID != null)
 	            {
 		            SVR_GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
 		            if (filter != null)
