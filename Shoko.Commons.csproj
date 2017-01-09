@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Shoko.Commons</RootNamespace>
     <AssemblyName>Shoko.Commons</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -40,7 +41,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\AdminMessageExtensions.cs" />
+    <Compile Include="Extensions\AniDB_AnimeExtensions.cs" />
+    <Compile Include="Extensions\AniDB_Anime_SimilarExtensions.cs" />
+    <Compile Include="Extensions\AniDB_EpisodeExtensions.cs" />
+    <Compile Include="Extensions\AnimeEpisode_UserExtensions.cs" />
+    <Compile Include="Extensions\AnimeGroupExtensions.cs" />
+    <Compile Include="Extensions\AnimeGroup_UserExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\AniDB.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shoko.Models\Shoko.Models.csproj">
+      <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
+      <Name>Shoko.Models</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
