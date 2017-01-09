@@ -1,0 +1,18 @@
+﻿<UserControl x:Class="Shoko.Server.HyperLinkStandard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="300">
+
+    <StackPanel Orientation="Horizontal">
+        <TextBlock VerticalAlignment="Center">
+            <Hyperlink Name="hlURL">
+                <TextBlock Name="txtLink" />
+            </Hyperlink>
+        </TextBlock>
+        <Image Margin="5,0,0,0" Height="16" Width="16" Source="/Images/16_link.png" VerticalAlignment="Center" />
+    </StackPanel>
+
+</UserControl>

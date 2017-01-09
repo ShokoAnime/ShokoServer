@@ -1,0 +1,1354 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{DA8F0783-0F82-4106-9860-6F09BA2EA522}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Shoko.Server</RootNamespace>
+    <AssemblyName>ShokoServer</AssemblyName>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;UNSAFE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;UNSAFE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>db.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <StartupObject>Shoko.Server.App</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AppGlue">
+      <HintPath>..\Dependencies\AppGlue.dll</HintPath>
+    </Reference>
+    <Reference Include="DeepCloner, Version=0.8.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
+      <HintPath>..\packages\DeepCloner.0.9.3\lib\net40\DeepCloner.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
+      <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
+      <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Iesi.Collections, Version=4.0.0.0, Culture=neutral, PublicKeyToken=aa95f207798dfdb4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Iesi.Collections.4.0.1.4000\lib\net40\Iesi.Collections.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Infralution.Localization.Wpf">
+      <HintPath>..\Dependencies\Infralution.Localization.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.ConnectionInfoExtended, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfoExtended.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Smo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Smo.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.SmoExtended, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SmoExtended.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.SqlClrProvider, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SqlClrProvider.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.SqlEnum, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SqlEnum.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Win32.TaskScheduler, Version=2.5.21.0, Culture=neutral, PublicKeyToken=0d013ddd5178a2ae, processorArchitecture=MSIL">
+      <HintPath>..\packages\TaskScheduler.2.5.21\lib\net452\Microsoft.Win32.TaskScheduler.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="MySql.Data, Version=6.9.9.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <HintPath>..\packages\MySql.Data.6.9.9\lib\net45\MySql.Data.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="MySqlBackup, Version=2.0.9.2, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\MySqlBackup.dll</HintPath>
+    </Reference>
+    <Reference Include="Nancy, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.1.4.3\lib\net40\Nancy.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Authentication.Stateless, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Authentication.Stateless.1.4.1\lib\net40\Nancy.Authentication.Stateless.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Gzip, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Gzip.0.1.0\lib\net45\Nancy.Gzip.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Hosting.Self, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Hosting.Self.1.4.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NHibernate, Version=4.1.0.4000, Culture=neutral, PublicKeyToken=aa95f207798dfdb4, processorArchitecture=MSIL">
+      <HintPath>..\packages\NHibernate.4.1.0.4000\lib\net40\NHibernate.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nito.AsyncEx, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Concurrent, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.Concurrent.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Enlightenment, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.Enlightenment.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.4.0\lib\net45\NLog.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Pri.LongPath, Version=2.0.40.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Pri.LongPath.2.0.40\lib\net45\Pri.LongPath.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.105.2.3\lib\net46\RestSharp.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.SQLite, Version=1.0.104.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.Core.1.0.104.0\lib\net46\System.Data.SQLite.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Diagnostics.DiagnosticSource, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Diagnostics.DiagnosticSource.4.3.0\lib\net46\System.Diagnostics.DiagnosticSource.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Http.4.3.0\lib\net46\System.Net.Http.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.0\lib\net461\System.Security.Cryptography.Algorithms.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="TMDbLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TMDbLib.1.0.0\lib\net46\TMDbLib.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsFormsIntegration" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="AniDBHelper.cs" />
+    <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
+    <Compile Include="AniDB_API\AniDBLib.cs" />
+    <Compile Include="AniDB_API\AniDBRateLimiter.cs" />
+    <Compile Include="AniDB_API\Calendar.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_AddFile.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_DeleteFile.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetAnimeDescription.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetAnimeInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetCalendar.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetCharacterInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetCreatorInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetEpisodeInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetFileInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroup.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroupStatus.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListFileInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListStats.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetReview.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetUpdated.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_Login.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_Logout.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDeleted.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsExternal.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsUnknown.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyGet.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyList.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_Ping.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_UpdateFile.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_Vote.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand_GetFullAnime.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand_GetMyList.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand_GetVotes.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBUDPCommand.cs" />
+    <Compile Include="AniDB_API\Commands\IAniDBHTTPCommand.cs" />
+    <Compile Include="AniDB_API\Commands\IAniDBUDPCommand.cs" />
+    <Compile Include="AniDB_API\Enums.cs" />
+    <Compile Include="AniDB_API\GroupStatusCollection.cs" />
+    <Compile Include="AniDB_API\IHash.cs" />
+    <Compile Include="AniDB_API\NotifyListHeader.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Anime.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_AnimeDesc.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Anime_Title.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Calendar.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Category.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Character.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Creator.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Episode.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_File.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Group.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_GroupStatus.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListFile.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListStats.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyAlert.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyList.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyMessage.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Recommendation.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_RelatedAnime.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Review.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Seiyuu.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_SimilarAnime.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Tag.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote_HTTP.cs" />
+    <Compile Include="AniDB_API\UpdatesCollection.cs" />
+    <Compile Include="AniDB_API\Utils.cs" />
+    <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="API\Model\common\Art.cs" />
+    <Compile Include="API\Model\common\Group.cs" />
+    <Compile Include="API\Model\common\ObjectList.cs" />
+    <Compile Include="API\Model\common\RawFile.cs" />
+    <Compile Include="API\Model\common\Filter.cs" />
+    <Compile Include="API\Model\common\Series.cs" />
+    <Compile Include="API\Model\core\Logs.cs" />
+    <Compile Include="API\Model\core\API_Call_Parameters.cs" />
+    <Compile Include="API\Model\common\Episode.cs" />
+    <Compile Include="API\Model\common\Role.cs" />
+    <Compile Include="API\Model\common\Serie.cs" />
+    <Compile Include="API\Model\common\Tag.cs" />
+    <Compile Include="API\Model\core\WebUI-Settings.cs" />
+    <Compile Include="API\Module\apiv2\Common.cs" />
+    <Compile Include="API\Module\apiv2\Dev.cs" />
+    <Compile Include="API\Module\apiv2\Image.cs" />
+    <Compile Include="API\Module\apiv2\Webui_Redirect.cs" />
+    <Compile Include="API\Module\apiv2\Webui.cs" />
+    <Compile Include="API\NancyExtensions.cs" />
+    <Compile Include="API\Negotiation\BinaryProcessor.cs" />
+    <Compile Include="API\Response\ByteArrayResponse.cs" />
+    <Compile Include="API\APIHelper.cs" />
+    <Compile Include="ClientCloneExtensions.cs" />
+    <Compile Include="Collections\EmptyLookup.cs" />
+    <Compile Include="Collections\EnumerableExtensions.cs" />
+    <Compile Include="Collections\LazyLookup.cs" />
+    <Compile Include="API\Module\apiv1\Legacy.cs" />
+    <Compile Include="API\Module\apiv2\Auth.cs" />
+    <Compile Include="API\Module\apiv2\Core.cs" />
+    <Compile Include="API\Module\apiv2\Database.cs" />
+    <Compile Include="API\Module\apiv2\Unauth.cs" />
+    <Compile Include="API\Module\apiv1\Binary.cs" />
+    <Compile Include="API\Bootstrapper.cs" />
+    <Compile Include="API\Model\core\APIMessage.cs" />
+    <Compile Include="API\Model\core\AuthUser.cs" />
+    <Compile Include="API\Model\core\ComponentVersion.cs" />
+    <Compile Include="API\Model\core\Counter.cs" />
+    <Compile Include="API\Model\core\Creditentials.cs" />
+    <Compile Include="API\Model\core\Database.cs" />
+    <Compile Include="API\Model\core\ImagePath.cs" />
+    <Compile Include="API\Model\core\OSFolder.cs" />
+    <Compile Include="API\Model\core\QueueInfo.cs" />
+    <Compile Include="API\Model\core\RecentFile.cs" />
+    <Compile Include="API\Model\core\WebNews.cs" />
+    <Compile Include="API\Model\core\UserDatabase.cs" />
+    <Compile Include="Commands\CommandRequest_RefreshGroupFilter.cs" />
+    <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
+    <Compile Include="Databases\BaseDatabase.cs" />
+    <Compile Include="Databases\DatabaseCommandException.cs" />
+    <Compile Include="Databases\DatabaseCommand.cs" />
+    <Compile Include="Databases\DatabaseFactory.cs" />
+    <Compile Include="Databases\DatabaseFixes.cs" />
+    <Compile Include="Databases\IDatabase.cs" />
+    <Compile Include="Entities\IImageEntity.cs" />
+    <Compile Include="Entities\SVR_CloudAccount.cs" />
+    <Compile Include="Entities\Scan.cs" />
+    <Compile Include="Entities\ScanFile.cs" />
+    <Compile Include="Entities\VideoLocal_Place.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="FileHelper\Crc32.cs" />
+    <Compile Include="FileHelper\FileHashHelper.cs" />
+    <Compile Include="FileHelper\Hasher.cs" />
+    <Compile Include="FileHelper\MD4Managed.cs" />
+    <Compile Include="FileHelper\MediaInfo\Convert.cs" />
+    <Compile Include="FileHelper\MediaInfo\MediaInfoDLL.cs" />
+    <Compile Include="FileHelper\Subtitles\ISubtitles.cs" />
+    <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
+    <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
+    <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
+    <Compile Include="IJMMServerImage.cs" />
+    <Compile Include="IJMMServerMetro.cs" />
+    <Compile Include="IJMMServerStreaming.cs" />
+    <Compile Include="PlexAndKodi\HttpExtensions.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexClient.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexDeviceInfo.cs" />
+    <Compile Include="Providers\MovieDB\SyncExtensions.cs" />
+    <Compile Include="Tasks\AutoAnimeGroupCalculator.cs" />
+    <Compile Include="Tasks\AnimeGroupCreator.cs" />
+    <Compile Include="JMMServiceImplementationImage.cs" />
+    <Compile Include="LogRotator.cs" />
+    <Compile Include="LZ4\CompressionHelper.cs" />
+    <Compile Include="LZ4\LZ4Codec.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe32.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe32HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe64.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe64HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe32.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
+    <Compile Include="Mappings\AuthTokensMap.cs" />
+    <Compile Include="Mappings\CloudAccountMap.cs" />
+    <Compile Include="Mappings\ScanFileMap.cs" />
+    <Compile Include="Mappings\ScanMap.cs" />
+    <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
+    <Compile Include="MigrationDirectory.cs" />
+    <Compile Include="MigrationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MigrationForm.Designer.cs">
+      <DependentUpon>MigrationForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PlexAndKodi\IProvider.cs" />
+    <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
+    <Compile Include="PocoCache.cs" />
+    <Compile Include="BitMaskHelper.cs" />
+    <Compile Include="BlockingList.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetEpisode.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeTitle.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendUserInfo.cs" />
+    <Compile Include="Commands\CommandHelper.cs" />
+    <Compile Include="Commands\CommandProcessorGeneral.cs" />
+    <Compile Include="Commands\CommandProcessorHasher.cs" />
+    <Compile Include="Commands\CommandProcessorImages.cs" />
+    <Compile Include="Commands\CommandRequestImplementation.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_AddFileToMyList.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_DeleteFileFromMyList.cs" />
+    <Compile Include="Commands\CommandRequest_DownloadImage.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetAniDBTitles.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetAnimeHTTP.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetCalendar.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroup.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroupStatus.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetReviews.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetUpdated.cs" />
+    <Compile Include="Commands\CommandRequest_HashFile.cs" />
+    <Compile Include="Commands\CommandRequest_MovieDBSearchAnime.cs" />
+    <Compile Include="Commands\CommandRequest_ProcessFile.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_SyncMyList.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_SyncMyVotes.cs" />
+    <Compile Include="Commands\CommandRequest_ReadMediaInfo.cs" />
+    <Compile Include="Commands\CommandRequest_RefreshAnime.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALDownloadStatusFromMAL.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALSearchAnime.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALUpdatedWatchedStatus.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALUploadStatusToMAL.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktCollectionEpisode.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktSearchAnime.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktHistoryEpisode.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollection.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollectionSeries.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateInfoAndImages.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateAllSeries.cs" />
+    <Compile Include="Commands\TvDB\CommandRequest_TvDBDownloadImages.cs" />
+    <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateSeriesAndEpisodes.cs" />
+    <Compile Include="Commands\TvDB\CommandRequest_TvDBSearchAnime.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListFileStatus.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_VoteAnime.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBMAL.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBOther.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTrakt.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDB.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefFileEpisode.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBMAL.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBOther.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTrakt.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTvDB.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefFileEpisode.cs" />
+    <Compile Include="Commands\ICommandRequest.cs" />
+    <Compile Include="Commands\QueueCountEventArgs.cs" />
+    <Compile Include="Commands\QueueStateEventArgs.cs" />
+    <Compile Include="Constants.cs" />
+    <Compile Include="CustomHttpBinding.cs" />
+    <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Entities\SVR_AniDB_MylistStats.cs" />
+    <Compile Include="Entities\SVR_AniDB_Recommendation.cs" />
+    <Compile Include="Entities\SVR_BookmarkedAnime.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_TraktV2.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_TvDBV2.cs" />
+    <Compile Include="Entities\FileFfdshowPreset.cs" />
+    <Compile Include="Entities\Playlist.cs" />
+    <Compile Include="Entities\RenameScript.cs" />
+    <Compile Include="FileServer\FileServer.cs" />
+    <Compile Include="FileServer\UPnP.cs" />
+    <Compile Include="ImageDownload\ImageDetails.cs" />
+    <Compile Include="JMMServiceImplementationMetro.cs" />
+    <Compile Include="PlexAndKodi\CommonImplementation.cs" />
+    <Compile Include="JMMServiceImplementationREST.cs" />
+    <Compile Include="JMMServiceImplementationStreaming.cs" />
+    <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
+    <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
+    <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TraktV2Map.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_Trakt_EpisodeMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TvDBV2Map.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
+    <Compile Include="Mappings\CrossRef_CustomTagMap.cs" />
+    <Compile Include="Mappings\CustomTagMap.cs" />
+    <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
+    <Compile Include="Mappings\PlaylistMap.cs" />
+    <Compile Include="Mappings\RenameScriptMap.cs" />
+    <Compile Include="PlexAndKodi\Breadcrumbs.cs" />
+    <Compile Include="PlexAndKodi\MediaContainerTypes.cs" />
+    <Compile Include="PlexAndKodi\EpisodeType.cs" />
+    <Compile Include="PlexAndKodi\Extensions.cs" />
+    <Compile Include="PlexAndKodi\Helper.cs" />
+    <Compile Include="PlexAndKodi\BaseObject.cs" />
+    <Compile Include="PlexAndKodi\Utf8SringWriter.cs" />
+    <Compile Include="Properties\Resources.de.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.de.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.en-GB.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.en-GB.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.es.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.es.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.fr.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.fr.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.it.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.it.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.nl.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.nl.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.pl.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.pl.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.pt.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.pt.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.ru.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.ru.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Providers\Azure\AzureWebAPI.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Updates.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Versions.cs" />
+    <Compile Include="Providers\JSONHelper.cs" />
+    <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
+    <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
+    <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
+    <Compile Include="Providers\MyAnimeList\MALHelper.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodesByNumber.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncWatchedEpisodesByNumber.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Temp.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthPIN.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthToken.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Airs.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Banner.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Clearart.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2CollectedEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2CollectedSeason.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Comment.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2CommentShowPost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Episode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeIds.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeImage.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2EpisodePost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeScreenshot.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Fanart.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Follower.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Ids.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Images.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ImagesExtended.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Logo.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Movie.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Poster.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchShowResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchTvDBIDShowResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleMovie.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Season.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2SeasonIds.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Show.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowCollectedResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ShowExtended.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowIdsPost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowPost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowWatchedResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodes.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Thumb.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2User.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2UserEpisodeHistory.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedSeason.cs" />
+    <Compile Include="Providers\TraktTV\TraktConstants.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
+    <Compile Include="Providers\TraktTV\TraktURIs.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktV2RefreshToken.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktDetailsContainer.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktSummaryContainer.cs" />
+    <Compile Include="Providers\TvDB\TvDBDetails.cs" />
+    <Compile Include="Providers\TvDB\TvDBHelper.cs" />
+    <Compile Include="Providers\TvDB\TvDBLanguage.cs" />
+    <Compile Include="Providers\TvDB\TVDBSeriesSearchResult.cs" />
+    <Compile Include="Providers\TvDB\TvDBSummary.cs" />
+    <Compile Include="Repositories\BaseCachedRepository.cs" />
+    <Compile Include="Repositories\BaseDirectRepository.cs" />
+    <Compile Include="Repositories\Direct\ScanFileRepository.cs" />
+    <Compile Include="Repositories\Direct\ScanRepository.cs" />
+    <Compile Include="Repositories\IRepository.cs" />
+    <Compile Include="Repositories\RepoFactory.cs" />
+    <Compile Include="Repositories\Direct\AniDB_MylistStatsRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_RecommendationRepository.cs" />
+    <Compile Include="Repositories\Direct\AuthTokensRepository.cs" />
+    <Compile Include="Repositories\Direct\BookmarkedAnimeRepository.cs" />
+    <Compile Include="Repositories\ChangeTracker.cs" />
+    <Compile Include="Repositories\Cached\CloudAccountRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_MALRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_TraktV2Repository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_TvDBV2Repository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_CustomTagRepository.cs" />
+    <Compile Include="Repositories\Cached\CustomTagRepository.cs" />
+    <Compile Include="Repositories\Direct\FileFfdshowPresetRepository.cs" />
+    <Compile Include="Repositories\NHibernate\ISessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\SessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\SessionExtensions.cs" />
+    <Compile Include="Repositories\NHibernate\StatelessSessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\StatelessSessionExtensions.cs" />
+    <Compile Include="Repositories\Direct\PlaylistRepository.cs" />
+    <Compile Include="Repositories\Direct\RenameScriptRepository.cs" />
+    <Compile Include="Repositories\Cached\VideoLocal_PlaceRepository.cs" />
+    <Compile Include="Scanner.cs" />
+    <Compile Include="Security\CRC32.cs" />
+    <Compile Include="Security\Digest.cs" />
+    <Compile Include="MyAnime2Helper\MA2Progress.cs" />
+    <Compile Include="Databases\SQLite.cs" />
+    <Compile Include="Databases\SQLServer.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Character.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Relation.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Similar.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Tag.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Title.cs" />
+    <Compile Include="Entities\SVR_AniDB_Character.cs" />
+    <Compile Include="Entities\SVR_AniDB_Seiyuu.cs" />
+    <Compile Include="Entities\SVR_AniDB_Episode.cs" />
+    <Compile Include="Entities\SVR_AniDB_File.cs" />
+    <Compile Include="Entities\SVR_AniDB_GroupStatus.cs" />
+    <Compile Include="Entities\SVR_AniDB_ReleaseGroup.cs" />
+    <Compile Include="Entities\SVR_AniDB_Review.cs" />
+    <Compile Include="Entities\SVR_AniDB_Tag.cs" />
+    <Compile Include="Entities\SVR_AnimeEpisode.cs" />
+    <Compile Include="Entities\SVR_AnimeEpisode_User.cs" />
+    <Compile Include="Entities\SVR_AnimeGroup.cs" />
+    <Compile Include="Entities\SVR_AnimeGroup_User.cs" />
+    <Compile Include="Entities\SVR_AnimeSeries.cs" />
+    <Compile Include="Entities\SVR_AnimeSeries_User.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_Other.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Entities\SVR_CrossRef_File_Episode.cs" />
+    <Compile Include="Entities\SVR_DuplicateFile.cs" />
+    <Compile Include="Entities\FileNameHash.cs" />
+    <Compile Include="Entities\GroupFilter.cs" />
+    <Compile Include="Entities\GroupFilterCondition.cs" />
+    <Compile Include="Entities\IgnoreAnime.cs" />
+    <Compile Include="Entities\SVR_ImportFolder.cs" />
+    <Compile Include="Entities\JMMUser.cs" />
+    <Compile Include="Entities\Language.cs" />
+    <Compile Include="Entities\MovieDB_Fanart.cs" />
+    <Compile Include="Entities\MovieDB_Movie.cs" />
+    <Compile Include="Entities\MovieDB_Poster.cs" />
+    <Compile Include="Entities\ScheduledUpdate.cs" />
+    <Compile Include="Entities\Trakt_Episode.cs" />
+    <Compile Include="Entities\Trakt_Friend.cs" />
+    <Compile Include="Entities\Trakt_ImageFanart.cs" />
+    <Compile Include="Entities\Trakt_ImagePoster.cs" />
+    <Compile Include="Entities\Trakt_Season.cs" />
+    <Compile Include="Entities\Trakt_Show.cs" />
+    <Compile Include="Entities\TvDB_Episode.cs" />
+    <Compile Include="Entities\TvDB_ImageFanart.cs" />
+    <Compile Include="Entities\TvDB_ImagePoster.cs" />
+    <Compile Include="Entities\TvDB_ImageWideBanner.cs" />
+    <Compile Include="Entities\TvDB_Series.cs" />
+    <Compile Include="Entities\Versions.cs" />
+    <Compile Include="Entities\VideoLocal.cs" />
+    <Compile Include="Entities\VideoLocal_User.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="ImageDownload\ImageDownloadRequest.cs" />
+    <Compile Include="ImageDownload\ImageUtils.cs" />
+    <Compile Include="Importer.cs" />
+    <Compile Include="JMMService.cs" />
+    <Compile Include="JMMServiceImplementation.cs" />
+    <Compile Include="Languages.cs" />
+    <Compile Include="Mappings\AniDB_AnimeMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_CharacterMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_DefaultImageMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_RelationMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_ReviewMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_SimilarMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_TagMap.cs" />
+    <Compile Include="Mappings\AniDB_Anime_TitleMap.cs" />
+    <Compile Include="Mappings\AniDB_CharacterMap.cs" />
+    <Compile Include="Mappings\AniDB_Character_SeiyuuMap.cs" />
+    <Compile Include="Mappings\AniDB_SeiyuuMap.cs" />
+    <Compile Include="Mappings\AniDB_EpisodeMap.cs" />
+    <Compile Include="Mappings\AniDB_FileMap.cs" />
+    <Compile Include="Mappings\AniDB_GroupStatusMap.cs" />
+    <Compile Include="Mappings\AniDB_ReleaseGroupMap.cs" />
+    <Compile Include="Mappings\AniDB_ReviewMap.cs" />
+    <Compile Include="Mappings\AniDB_TagMap.cs" />
+    <Compile Include="Mappings\AniDB_VoteMap.cs" />
+    <Compile Include="Mappings\AnimeEpisodeMap.cs" />
+    <Compile Include="Mappings\AnimeEpisode_UserMap.cs" />
+    <Compile Include="Mappings\AnimeGroupMap.cs" />
+    <Compile Include="Mappings\AnimeGroup_UserMap.cs" />
+    <Compile Include="Mappings\AnimeSeriesMap.cs" />
+    <Compile Include="Mappings\AnimeSeries_UserMap.cs" />
+    <Compile Include="Mappings\CommandRequestMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_OtherMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TraktMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TvDBMap.cs" />
+    <Compile Include="Mappings\CrossRef_File_EpisodeMap.cs" />
+    <Compile Include="Mappings\CrossRef_Languages_AniDB_FileMap.cs" />
+    <Compile Include="Mappings\CrossRef_Subtitles_AniDB_FileMap.cs" />
+    <Compile Include="Mappings\DuplicateFileMap.cs" />
+    <Compile Include="Mappings\FileNameHashMap.cs" />
+    <Compile Include="Mappings\GroupFilterConditionMap.cs" />
+    <Compile Include="Mappings\GroupFilterMap.cs" />
+    <Compile Include="Mappings\IgnoreAnimeMap.cs" />
+    <Compile Include="Mappings\ImportFolderMap.cs" />
+    <Compile Include="Mappings\JMMUserMap.cs" />
+    <Compile Include="Mappings\LanguageMap.cs" />
+    <Compile Include="Mappings\MovieDB_FanartMap.cs" />
+    <Compile Include="Mappings\MovieDB_MovieMap.cs" />
+    <Compile Include="Mappings\MovieDB_PosterMap.cs" />
+    <Compile Include="Mappings\ScheduledUpdateMap.cs" />
+    <Compile Include="Mappings\Trakt_EpisodeMap.cs" />
+    <Compile Include="Mappings\Trakt_FriendMap.cs" />
+    <Compile Include="Mappings\Trakt_ImageFanartMap.cs" />
+    <Compile Include="Mappings\Trakt_ImagePosterMap.cs" />
+    <Compile Include="Mappings\Trakt_SeasonMap.cs" />
+    <Compile Include="Mappings\Trakt_ShowMap.cs" />
+    <Compile Include="Mappings\TvDB_EpisodeMap.cs" />
+    <Compile Include="Mappings\TvDB_ImageFanartMap.cs" />
+    <Compile Include="Mappings\TvDB_ImagePosterMap.cs" />
+    <Compile Include="Mappings\TvDB_ImageWideBannerMap.cs" />
+    <Compile Include="Mappings\TvDB_SeriesMap.cs" />
+    <Compile Include="Mappings\VersionsMap.cs" />
+    <Compile Include="Mappings\VideoLocalMap.cs" />
+    <Compile Include="Mappings\VideoLocal_UserMap.cs" />
+    <Compile Include="NamingLanguage.cs" />
+    <Compile Include="Repositories\AdhocRepository.cs" />
+    <Compile Include="Repositories\Cached\AniDB_AnimeRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_Anime_CharacterRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_Anime_DefaultImageRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_Anime_RelationRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_Anime_ReviewRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_Anime_SimilarRepository.cs" />
+    <Compile Include="Repositories\Cached\AniDB_Anime_TagRepository.cs" />
+    <Compile Include="Repositories\Cached\AniDB_Anime_TitleRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_CharacterRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_Character_SeiyuuRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_SeiyuuRepository.cs" />
+    <Compile Include="Repositories\Cached\AniDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Cached\AniDB_FileRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_GroupStatusRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_ReleaseGroupRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_ReviewRepository.cs" />
+    <Compile Include="Repositories\Cached\AniDB_TagRepository.cs" />
+    <Compile Include="Repositories\Direct\AniDB_VoteRepository.cs" />
+    <Compile Include="Repositories\Cached\AnimeEpisodeRepository.cs" />
+    <Compile Include="Repositories\Cached\AnimeEpisode_UserRepository.cs" />
+    <Compile Include="Repositories\Cached\AnimeGroupRepository.cs" />
+    <Compile Include="Repositories\Cached\AnimeGroup_UserRepository.cs" />
+    <Compile Include="Repositories\Cached\AnimeSeriesRepository.cs" />
+    <Compile Include="Repositories\Cached\AnimeSeries_UserRepository.cs" />
+    <Compile Include="Repositories\Direct\CommandRequestRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_OtherRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_TraktRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_AniDB_TvDBRepository.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_File_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_Languages_AniDB_FileRepository.cs" />
+    <Compile Include="Repositories\Direct\CrossRef_Subtitles_AniDB_FileRepository.cs" />
+    <Compile Include="Repositories\Direct\DuplicateFileRepository.cs" />
+    <Compile Include="Repositories\Direct\FileNameHashRepository.cs" />
+    <Compile Include="Repositories\Direct\GroupFilterConditionRepository.cs" />
+    <Compile Include="Repositories\Cached\GroupFilterRepository.cs" />
+    <Compile Include="Repositories\Direct\IgnoreAnimeRepository.cs" />
+    <Compile Include="Repositories\Cached\ImportFolderRepository.cs" />
+    <Compile Include="Repositories\Cached\JMMUserRepository.cs" />
+    <Compile Include="Repositories\Direct\LanguageRepository.cs" />
+    <Compile Include="Repositories\Direct\MovieDB_FanartRepository.cs" />
+    <Compile Include="Repositories\Direct\MovieDb_MovieRepository.cs" />
+    <Compile Include="Repositories\Direct\MovieDB_PosterRepository.cs" />
+    <Compile Include="Repositories\Direct\ScheduledUpdateRepository.cs" />
+    <Compile Include="Repositories\Direct\Trakt_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Direct\Trakt_FriendRepository.cs" />
+    <Compile Include="Repositories\Direct\Trakt_ImageFanartRepository.cs" />
+    <Compile Include="Repositories\Direct\Trakt_ImagePosterRepository.cs" />
+    <Compile Include="Repositories\Direct\Trakt_SeasonRepository.cs" />
+    <Compile Include="Repositories\Direct\Trakt_ShowRepository.cs" />
+    <Compile Include="Repositories\Direct\TvDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Direct\TvDB_ImageFanartRepository.cs" />
+    <Compile Include="Repositories\Direct\TvDB_ImagePosterRepository.cs" />
+    <Compile Include="Repositories\Direct\TvDB_ImageWideBannerRepository.cs" />
+    <Compile Include="Repositories\Direct\TvDB_SeriesRepository.cs" />
+    <Compile Include="Repositories\Direct\VersionsRepository.cs" />
+    <Compile Include="Repositories\Cached\VideoLocalRepository.cs" />
+    <Compile Include="Repositories\Cached\VideoLocal_UserRepository.cs" />
+    <Compile Include="Security\StringTools.cs" />
+    <Compile Include="ServerSettings.cs" />
+    <Compile Include="ServerState.cs" />
+    <Compile Include="SubStream.cs" />
+    <Compile Include="Tasks\ContractExtractor.cs" />
+    <Compile Include="TimeUpdater.cs" />
+    <Compile Include="UI\AboutForm.xaml.cs">
+      <DependentUpon>AboutForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\AdminMessagesForm.xaml.cs">
+      <DependentUpon>AdminMessagesForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\AuthProvider.cs" />
+    <Compile Include="UI\CloudAccountAdmin.xaml.cs">
+      <DependentUpon>CloudAccountAdmin.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\CloudAccountForm.xaml.cs">
+      <DependentUpon>CloudAccountForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\CloudFolderBrowser.xaml.cs">
+      <DependentUpon>CloudFolderBrowser.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\HyperLinkStandard.xaml.cs">
+      <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ImportFolderForm.xaml.cs">
+      <DependentUpon>ImportFolderForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ImportFolderAdmin.xaml.cs">
+      <DependentUpon>ImportFolderAdmin.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\InitialSetupForm.xaml.cs">
+      <DependentUpon>InitialSetupForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Integrity.xaml.cs">
+      <DependentUpon>Integrity.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\LoginForm.xaml.cs">
+      <DependentUpon>LoginForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Migration.xaml.cs">
+      <DependentUpon>Migration.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\PasswordBoxAssistant.cs" />
+    <Compile Include="UI\ScanImportFolders.xaml.cs">
+      <DependentUpon>ScanImportFolders.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ServerInfo.cs" />
+    <Compile Include="UI\UpdateForm.xaml.cs">
+      <DependentUpon>UpdateForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UnhandledExceptionManager.cs" />
+    <Compile Include="UPnPData.cs" />
+    <Compile Include="UPnPServerBrowserDialog.cs" />
+    <Compile Include="UserCulture.cs" />
+    <Compile Include="Utilities\GroupFilterHelper.cs" />
+    <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
+    <Compile Include="Utilities\JsonExtensions.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\EventQueueOverflowException.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\FileWatcherErrorEventArgs.cs" />
+    <Compile Include="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Utilities\LogReader.cs" />
+    <Compile Include="Utilities\RenameFileHelper.cs" />
+    <Compile Include="Utils.cs" />
+    <Compile Include="WatchedUnwatchedCount.cs" />
+    <Compile Include="WCFCompression\CompressedMessageEncoderFactory.cs" />
+    <Compile Include="WCFCompression\CompressedMessageEncodingBindingElement.cs" />
+    <Compile Include="WCFCompression\CompressionSelectionEndpointBehavior.cs" />
+    <Compile Include="WCFCompression\CompressionSelectionMessageInspector.cs" />
+    <Compile Include="WCFCompression\CompressionType.cs" />
+    <Compile Include="WCFCompression\PlexKodiFilterInspector.cs" />
+    <Compile Include="WCFCompression\ISerializer.cs" />
+    <Compile Include="WCFCompression\JsonSerializer.cs" />
+    <Compile Include="WCFCompression\MultiBehavior.cs" />
+    <Compile Include="WCFCompression\MultiBehaviorExtension.cs" />
+    <Compile Include="WCFCompression\MultiContentTypeMapper.cs" />
+    <Compile Include="WCFCompression\MultiDispatchFormatter.cs" />
+    <Compile Include="WCFCompression\ProtobufSerializer.cs" />
+    <Compile Include="WCFCompression\RawBodyWriter.cs" />
+    <Compile Include="WCFCompression\XmlSerializer.cs" />
+    <Compile Include="WebCache\AniDB_FileRequest.cs" />
+    <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
+    <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
+    <Compile Include="WebCache\AniDB_UpdatedRequest.cs" />
+    <Compile Include="WebCache\AppVersionsResult.cs" />
+    <Compile Include="WebCache\DeleteCrossRef_AniDBTvDBAll_Request.cs" />
+    <Compile Include="WebCache\DeleteCrossRef_AniDB_MALRequest.cs" />
+    <Compile Include="WebCache\DeleteCrossRef_AniDB_TraktRequest.cs" />
+    <Compile Include="WebCache\XMLService.cs" />
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="UI\AboutForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\AdminMessagesForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudAccountAdmin.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudAccountForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudFolderBrowser.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\HyperLinkStandard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\ImportFolderForm.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\ImportFolderAdmin.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\InitialSetupForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Integrity.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\LoginForm.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\Migration.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\ScanImportFolders.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\UIStyles.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\UpdateForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="MigrationForm.resx">
+      <DependentUpon>MigrationForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.de.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.de.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.en-GB.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.en-GB.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.es.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.es.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.fr.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.fr.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.it.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.it.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.nl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.nl.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.pl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.pl.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.pt.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.pt.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.ru.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.ru.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <None Include="testing.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <AppDesigner Include="Properties\" />
+    <None Include="Resources\plex_404.bin" />
+    <None Include="Resources\plex_404V.bin" />
+    <None Include="Resources\plex_credits.bin" />
+    <None Include="Resources\plex_episodes.bin" />
+    <None Include="Resources\plex_misc.bin" />
+    <None Include="Resources\plex_movies.bin" />
+    <None Include="Resources\plex_others.bin" />
+    <None Include="Resources\plex_ovas.bin" />
+    <None Include="Resources\plex_parodies.bin" />
+    <None Include="Resources\plex_playlists.bin" />
+    <None Include="Resources\plex_specials.bin" />
+    <None Include="Resources\plex_trailers.bin" />
+    <None Include="Resources\plex_tvepisodes.bin" />
+    <None Include="Resources\plex_unsort.bin" />
+    <None Include="Resources\plex_webclips.bin" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_sync.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="db.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
+      <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
+      <Project>{d202b61e-a658-4208-83fc-745e04f43bde}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj">
+      <Project>{964a62e6-2dae-4723-926d-d3e9597b5213}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.GoogleDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj">
+      <Project>{2a705c96-21d4-4061-876f-1bb954e39d25}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.LocalFileSystem</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
+      <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
+      <Name>NutzCode.CloudFileSystem</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj">
+      <Project>{865c8b13-eb43-439e-9d69-ce7b54dca4ff}</Project>
+      <Name>NutzCode.Libraries.Web</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj">
+      <Project>{e0399140-9902-4f38-909d-85e42717ec30}</Project>
+      <Name>Shoko.Commons</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Shoko.Models\Shoko.Models.csproj">
+      <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
+      <Name>Shoko.Models</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_new.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="PostBuild1.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_tick.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="ToDo.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_mail.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="UPNPLib">
+      <Guid>{DB3442A7-A2E9-4A59-9CB5-F5C1A5D901E5}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Flags\ar.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Flags\au_australia.gif" />
+    <Resource Include="Images\Flags\bd.gif" />
+    <Resource Include="Images\Flags\bg.gif" />
+    <Resource Include="Images\Flags\br.gif" />
+    <Resource Include="Images\Flags\ca.gif" />
+    <Resource Include="Images\Flags\cn.gif" />
+    <Resource Include="Images\Flags\cz.gif" />
+    <Resource Include="Images\Flags\de_germany.gif" />
+    <Resource Include="Images\Flags\dk.gif" />
+    <Resource Include="Images\Flags\es.gif" />
+    <Resource Include="Images\Flags\et.gif" />
+    <Resource Include="Images\Flags\fi.gif" />
+    <Resource Include="Images\Flags\fr.gif" />
+    <Resource Include="Images\Flags\gl.gif" />
+    <Resource Include="Images\Flags\gr.gif" />
+    <Resource Include="Images\Flags\hu.gif" />
+    <Resource Include="Images\Flags\il.gif" />
+    <Resource Include="Images\Flags\it.gif" />
+    <Resource Include="Images\Flags\jp.gif" />
+    <Resource Include="Images\Flags\ko.gif" />
+    <Resource Include="Images\Flags\lt.gif" />
+    <Resource Include="Images\Flags\mn.gif" />
+    <Resource Include="Images\Flags\my.gif" />
+    <Resource Include="Images\Flags\nl.gif" />
+    <Resource Include="Images\Flags\no.gif" />
+    <Resource Include="Images\Flags\pl.gif" />
+    <Resource Include="Images\Flags\pt.gif" />
+    <Resource Include="Images\Flags\ro.gif" />
+    <Resource Include="Images\Flags\ru.gif" />
+    <Resource Include="Images\Flags\se.gif" />
+    <Resource Include="Images\Flags\sk.gif" />
+    <Resource Include="Images\Flags\sl.gif" />
+    <Resource Include="Images\Flags\sr.gif" />
+    <Resource Include="Images\Flags\sv.gif" />
+    <Resource Include="Images\Flags\th.gif" />
+    <Resource Include="Images\Flags\tr.gif" />
+    <Resource Include="Images\Flags\ua.gif" />
+    <Resource Include="Images\Flags\uk_unitedkingdom.gif" />
+    <Resource Include="Images\Flags\us.gif" />
+    <Resource Include="Images\Flags\vi.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_green_button.png" />
+    <Resource Include="Images\16_red_button.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_logs.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_add.png" />
+    <Resource Include="Images\16_delete.png" />
+    <Resource Include="Images\16_folder_video.png" />
+    <Resource Include="Images\16_image.png" />
+    <Resource Include="Images\16_pause.png" />
+    <Resource Include="Images\16_update_data.png" />
+    <Resource Include="Images\24_folder_down.png" />
+    <Resource Include="Images\24_folder_up.png" />
+    <Resource Include="Images\32_task.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_link.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_folder_find.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_cancel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_save.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_resume.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\anidb.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_server_connect.png" />
+    <Resource Include="Images\16_server_hash.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_refresh.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_warning.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_info.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_key.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\db.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="API\Views\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_cloud.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_connect.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.6.1 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="API\readme.txt" />
+    <Content Include="webui\index.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
+xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
+xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
+xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
+
+if $(ConfigurationName) == Debug goto :exit
+cd "$(TargetDir)"
+mkdir Merge
+..\..\..\packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe "$(SolutionDir)Dependencies\AppGlue.dll" JMMContracts.dll Pri.LongPath.dll NutzCode.*.dll /closed
+
+del ShokoServer.exe
+del JMMServer.pdb
+move Merge\* .
+del JMMContracts.*
+del NutzCode.*.*
+del AppGlue.*
+del Pri.LongPath.*
+rmdir Merge
+
+:exit</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
+  <Import Project="..\packages\System.Data.SQLite.Core.1.0.104.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.104.0\build\net46\System.Data.SQLite.Core.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.104.0\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.104.0\build\net46\System.Data.SQLite.Core.targets'))" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,31 @@
+﻿REBUILD
+-------
+xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86" /S /R /I /Y
+xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64" /S /R /I /Y
+
+
+POSTBUILD
+---------
+
+xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
+xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
+
+xcopy "$(TargetDir)*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
+xcopy "$(TargetDir)*.exe" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)*.pdb" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)*.manifest" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)x86\*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\*.dll" /S /R /I /Y	
+xcopy "$(TargetDir)x64\*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\*.dll" /S /R /I /Y	
+
+
+-- NuGet packages
+
+http://www.nuget.org/packages/System.Data.SQLite.Core/
+Install-Package System.Data.SQLite.Core
+
+https://www.nuget.org/packages/NHibernate/
+Install-Package NHibernate
+
+https://www.nuget.org/packages/FluentNHibernate/
+Install-Package FluentNHibernate
+
