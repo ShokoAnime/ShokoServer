@@ -6,7 +6,7 @@ using System.Xml.Schema;
 using System.Xml.Serialization;
 using ProtoBuf;
 
-namespace JMMContracts.PlexAndKodi
+namespace Shoko.Models.PlexAndKodi
 {
     [XmlType("MediaContainer")]
     [Serializable]

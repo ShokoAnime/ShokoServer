@@ -1,4 +1,4 @@
-﻿namespace JMMContracts
+﻿namespace Shoko.Models
 {
     public class Contract_CrossRef_AniDB_MALResult
     {

@@ -4,13 +4,14 @@ using System.Linq;
 using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniDB_Other,int>
+    public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<SVR_CrossRef_AniDB_Other,int>
     {
         private CrossRef_AniDB_OtherRepository()
         {
@@ -22,7 +23,7 @@ namespace JMMServer.Repositories.Direct
             return new CrossRef_AniDB_OtherRepository();
         }
 
-        public CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
+        public SVR_CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -39,7 +40,7 @@ namespace JMMServer.Repositories.Direct
         /// <param name="xrefTypes">The types of cross references to find.</param>
         /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps anime ID to their associated other cross references.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public ILookup<int, CrossRef_AniDB_Other> GetByAnimeIDsAndType(ISessionWrapper session, IReadOnlyCollection<int> animeIds,
+        public ILookup<int, SVR_CrossRef_AniDB_Other> GetByAnimeIDsAndType(ISessionWrapper session, IReadOnlyCollection<int> animeIds,
             params CrossRefType[] xrefTypes)
         {
             if (session == null)
@@ -47,56 +48,56 @@ namespace JMMServer.Repositories.Direct
 
             if (xrefTypes == null || xrefTypes.Length == 0 || animeIds?.Count == 0)
             {
-                return EmptyLookup<int, CrossRef_AniDB_Other>.Instance;
+                return EmptyLookup<int, SVR_CrossRef_AniDB_Other>.Instance;
             }
 
-            ICriteria criteria = session.CreateCriteria<CrossRef_AniDB_Other>()
-                .Add(Restrictions.In(nameof(CrossRef_AniDB_Other.CrossRefType), xrefTypes));
+            ICriteria criteria = session.CreateCriteria<SVR_CrossRef_AniDB_Other>()
+                .Add(Restrictions.In(nameof(SVR_CrossRef_AniDB_Other.CrossRefType), xrefTypes));
 
             if (animeIds != null)
             {
-                criteria = criteria.Add(Restrictions.InG(nameof(CrossRef_AniDB_Other.AnimeID), animeIds));
+                criteria = criteria.Add(Restrictions.InG(nameof(SVR_CrossRef_AniDB_Other.AnimeID), animeIds));
             }
 
-            var crossRefs = criteria.List<CrossRef_AniDB_Other>()
+            var crossRefs = criteria.List<SVR_CrossRef_AniDB_Other>()
                 .ToLookup(cr => cr.AnimeID);
 
             return crossRefs;
         }
 
-        public CrossRef_AniDB_Other GetByAnimeIDAndType(ISessionWrapper session, int animeID, CrossRefType xrefType)
+        public SVR_CrossRef_AniDB_Other GetByAnimeIDAndType(ISessionWrapper session, int animeID, CrossRefType xrefType)
         {
-            CrossRef_AniDB_Other cr = session
-                .CreateCriteria(typeof(CrossRef_AniDB_Other))
+            SVR_CrossRef_AniDB_Other cr = session
+                .CreateCriteria(typeof(SVR_CrossRef_AniDB_Other))
                 .Add(Restrictions.Eq("AnimeID", animeID))
                 .Add(Restrictions.Eq("CrossRefType", (int) xrefType))
-                .UniqueResult<CrossRef_AniDB_Other>();
+                .UniqueResult<SVR_CrossRef_AniDB_Other>();
             return cr;
         }
 
-        public List<CrossRef_AniDB_Other> GetByType(CrossRefType xrefType)
+        public List<SVR_CrossRef_AniDB_Other> GetByType(CrossRefType xrefType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_Other))
+                    .CreateCriteria(typeof(SVR_CrossRef_AniDB_Other))
                     .Add(Restrictions.Eq("CrossRefType", (int) xrefType))
-                    .List<CrossRef_AniDB_Other>();
+                    .List<SVR_CrossRef_AniDB_Other>();
 
-                return new List<CrossRef_AniDB_Other>(xrefs);
+                return new List<SVR_CrossRef_AniDB_Other>(xrefs);
             }
         }
 
-        public List<CrossRef_AniDB_Other> GetByAnimeID(int animeID)
+        public List<SVR_CrossRef_AniDB_Other> GetByAnimeID(int animeID)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_Other))
+                    .CreateCriteria(typeof(SVR_CrossRef_AniDB_Other))
                     .Add(Restrictions.Eq("AnimeID", animeID))
-                    .List<CrossRef_AniDB_Other>();
+                    .List<SVR_CrossRef_AniDB_Other>();
 
-                return new List<CrossRef_AniDB_Other>(xrefs);
+                return new List<SVR_CrossRef_AniDB_Other>(xrefs);
             }
         }
     }

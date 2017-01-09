@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
 
 namespace JMMServer
 {
@@ -62,7 +65,7 @@ namespace JMMServer
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestA(string test, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestA(string test, VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -95,7 +98,7 @@ namespace JMMServer
         /// <param name="vid"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private static bool EvaluateTestG(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestG(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -133,7 +136,7 @@ namespace JMMServer
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestM(string test, AniDB_File aniFile, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -169,7 +172,7 @@ namespace JMMServer
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestN(string test, AniDB_File aniFile, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -204,7 +207,7 @@ namespace JMMServer
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestD(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestD(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -249,7 +252,7 @@ namespace JMMServer
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestS(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestS(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -298,7 +301,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestF(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestF(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -437,7 +440,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestW(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestW(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -514,7 +517,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestU(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestU(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -591,7 +594,7 @@ namespace JMMServer
         }
 
 
-        private static bool EvaluateTestR(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestR(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -639,7 +642,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestC(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestC(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -688,7 +691,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestJ(string test, VideoLocal vid, AniDB_File aniFile)
+        private static bool EvaluateTestJ(string test, VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -737,7 +740,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestT(string test, VideoLocal vid, AniDB_Anime anime)
+        private static bool EvaluateTestT(string test, VideoLocal vid, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -748,7 +751,7 @@ namespace JMMServer
                     test = test.Substring(1, test.Length - 1);
                 }
 
-                bool hasType = !string.IsNullOrEmpty(anime.AnimeTypeRAW);
+                bool hasType = !string.IsNullOrEmpty(anime.GetAnimeTypeRAW());
                 if (
                     test.Trim()
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
@@ -761,7 +764,7 @@ namespace JMMServer
                 }
 
 
-                if (test.Trim().Equals(anime.AnimeTypeRAW, StringComparison.InvariantCultureIgnoreCase))
+                if (test.Trim().Equals(anime.GetAnimeTypeRAW(), StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (notCondition)
                         return false;
@@ -783,7 +786,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestY(string test, VideoLocal vid, AniDB_Anime anime)
+        private static bool EvaluateTestY(string test, VideoLocal vid, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -850,7 +853,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestE(string test, VideoLocal vid, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestE(string test, VideoLocal vid, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -917,7 +920,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestH(string test, VideoLocal vid, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestH(string test, VideoLocal vid, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -929,24 +932,24 @@ namespace JMMServer
                 }
 
                 string epType = "";
-                switch (episodes[0].EpisodeTypeEnum)
+                switch (episodes[0].GetEpisodeTypeEnum())
                 {
-                    case AniDBAPI.enEpisodeType.Episode:
+                    case enEpisodeType.Episode:
                         epType = "E";
                         break;
-                    case AniDBAPI.enEpisodeType.Credits:
+                    case enEpisodeType.Credits:
                         epType = "C";
                         break;
-                    case AniDBAPI.enEpisodeType.Other:
+                    case enEpisodeType.Other:
                         epType = "O";
                         break;
-                    case AniDBAPI.enEpisodeType.Parody:
+                    case enEpisodeType.Parody:
                         epType = "P";
                         break;
-                    case AniDBAPI.enEpisodeType.Special:
+                    case enEpisodeType.Special:
                         epType = "S";
                         break;
-                    case AniDBAPI.enEpisodeType.Trailer:
+                    case enEpisodeType.Trailer:
                         epType = "T";
                         break;
                 }
@@ -1024,7 +1027,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestX(string test, VideoLocal vid, AniDB_Anime anime)
+        private static bool EvaluateTestX(string test, VideoLocal vid, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -1098,8 +1101,8 @@ namespace JMMServer
         /// <param name="vid"></param>
         /// <param name="anime"></param>
         /// <returns></returns>
-        private static bool EvaluateTestI(string test, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes,
-            AniDB_Anime anime)
+        private static bool EvaluateTestI(string test, VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
+            SVR_AniDB_Anime anime)
         {
             try
             {
@@ -1266,16 +1269,16 @@ namespace JMMServer
                     Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    foreach (AniDB_Anime_Title ti in anime.GetTitles())
+                    foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
                     {
-                        if (ti.Language.Equals(Constants.AniDBLanguageType.English,
+                        if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             if (
                                 ti.TitleType.Trim()
-                                    .Equals(Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
                                 ti.TitleType.Trim()
-                                    .Equals(Constants.AnimeTitleType.Official,
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
                                         StringComparison.InvariantCultureIgnoreCase))
                             {
                                 if (notCondition) return false;
@@ -1296,16 +1299,16 @@ namespace JMMServer
                     Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    foreach (AniDB_Anime_Title ti in anime.GetTitles())
+                    foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
                     {
-                        if (ti.Language.Equals(Constants.AniDBLanguageType.Kanji,
+                        if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Kanji,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             if (
                                 ti.TitleType.Trim()
-                                    .Equals(Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
                                 ti.TitleType.Trim()
-                                    .Equals(Constants.AnimeTitleType.Official,
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
                                         StringComparison.InvariantCultureIgnoreCase))
                             {
                                 if (notCondition) return false;
@@ -1325,16 +1328,16 @@ namespace JMMServer
                     Constants.FileRenameTag.AnimeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    foreach (AniDB_Anime_Title ti in anime.GetTitles())
+                    foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
                     {
-                        if (ti.Language.Equals(Constants.AniDBLanguageType.Romaji,
+                        if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             if (
                                 ti.TitleType.Trim()
-                                    .Equals(Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
                                 ti.TitleType.Trim()
-                                    .Equals(Constants.AnimeTitleType.Official,
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
                                         StringComparison.InvariantCultureIgnoreCase))
                             {
                                 if (notCondition) return false;
@@ -1723,16 +1726,16 @@ namespace JMMServer
             string newFileName = string.Empty;
 
 
-            List<AniDB_Episode> episodes = new List<AniDB_Episode>();
-            AniDB_Anime anime = null;
+            List<SVR_AniDB_Episode> episodes = new List<SVR_AniDB_Episode>();
+            SVR_AniDB_Anime anime = null;
 
             if (vid == null) return string.Empty;
 
             // get all the data so we don't need to get multiple times
-            AniDB_File aniFile = vid.GetAniDBFile();
+            SVR_AniDB_File aniFile = vid.GetAniDBFile();
             if (aniFile == null)
             {
-                List<AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
+                List<SVR_AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
                 if (animeEps.Count == 0) return string.Empty;
 
                 episodes.Add(animeEps[0].AniDB_Episode);
@@ -1807,7 +1810,7 @@ namespace JMMServer
         }
 
         private static void PerformActionOnFileName(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime)
+            SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // find the first test
             int posStart = action.IndexOf(" ");
@@ -1834,7 +1837,7 @@ namespace JMMServer
         }
 
         private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime)
+            SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -1865,7 +1868,7 @@ namespace JMMServer
         }
 
         private static void PerformActionOnFileNameADD(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime)
+            SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // TODO Remove illegal characters
             // TODO check for double episodes
@@ -1890,16 +1893,16 @@ namespace JMMServer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
             {
-                foreach (AniDB_Anime_Title ti in anime.GetTitles())
+                foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
                 {
-                    if (ti.Language.Equals(Constants.AniDBLanguageType.English,
+                    if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
                         StringComparison.InvariantCultureIgnoreCase))
                     {
                         if (
                             ti.TitleType.Trim()
-                                .Equals(Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
                             ti.TitleType.Trim()
-                                .Equals(Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
                         {
                             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameEnglish, ti.Title);
                         }
@@ -1913,16 +1916,16 @@ namespace JMMServer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameRomaji.ToLower()))
             {
-                foreach (AniDB_Anime_Title ti in anime.GetTitles())
+                foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
                 {
-                    if (ti.Language.Equals(Constants.AniDBLanguageType.Romaji,
+                    if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
                         StringComparison.InvariantCultureIgnoreCase))
                     {
                         if (
                             ti.TitleType.Trim()
-                                .Equals(Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
                             ti.TitleType.Trim()
-                                .Equals(Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
                         {
                             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameRomaji, ti.Title);
                         }
@@ -1936,16 +1939,16 @@ namespace JMMServer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
             {
-                foreach (AniDB_Anime_Title ti in anime.GetTitles())
+                foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
                 {
-                    if (ti.Language.Equals(Constants.AniDBLanguageType.Kanji,
+                    if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Kanji,
                         StringComparison.InvariantCultureIgnoreCase))
                     {
                         if (
                             ti.TitleType.Trim()
-                                .Equals(Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
                             ti.TitleType.Trim()
-                                .Equals(Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
                         {
                             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameKanji, ti.Title);
                         }
@@ -1962,16 +1965,16 @@ namespace JMMServer
                 int zeroPadding = 2;
                 string prefix = "";
 
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Credits) prefix = "C";
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Other) prefix = "O";
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Parody) prefix = "P";
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) prefix = "S";
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Trailer) prefix = "T";
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Credits) prefix = "C";
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Other) prefix = "O";
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Parody) prefix = "P";
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Special) prefix = "S";
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Trailer) prefix = "T";
 
                 int epCount = 1;
 
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) epCount = anime.EpisodeCountNormal;
-                if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) epCount = anime.EpisodeCountSpecial;
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Episode) epCount = anime.EpisodeCountNormal;
+                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Special) epCount = anime.EpisodeCountSpecial;
 
                 if (epCount > 10 && epCount < 100) zeroPadding = 2;
                 if (epCount > 99 && epCount < 1000) zeroPadding = 3;
@@ -2152,7 +2155,7 @@ namespace JMMServer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Type))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.Type, anime.AnimeTypeRAW);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.Type, anime.GetAnimeTypeRAW());
             }
 
             #endregion
@@ -2298,8 +2301,8 @@ namespace JMMServer
             return action;
         }
 
-        private static bool EvaluateTest(string line, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes,
-            AniDB_Anime anime)
+        private static bool EvaluateTest(string line, VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
+            SVR_AniDB_Anime anime)
         {
             line = line.Trim();
             // determine if this line has a test
@@ -2378,8 +2381,8 @@ namespace JMMServer
             return false;
         }
 
-        private static bool EvaluateTest(char testChar, string testCondition, VideoLocal vid, AniDB_File aniFile,
-            List<AniDB_Episode> episodes, AniDB_Anime anime)
+        private static bool EvaluateTest(char testChar, string testCondition, VideoLocal vid, SVR_AniDB_File aniFile,
+            List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             testCondition = testCondition.Trim();
 

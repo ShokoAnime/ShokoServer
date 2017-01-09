@@ -1,11 +1,12 @@
 ﻿using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate.Criterion;
 using NLog;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class AniDB_ReleaseGroupRepository : BaseDirectRepository<AniDB_ReleaseGroup, int>
+    public class AniDB_ReleaseGroupRepository : BaseDirectRepository<SVR_AniDB_ReleaseGroup, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -16,14 +17,14 @@ namespace JMMServer.Repositories.Direct
         {
             return new AniDB_ReleaseGroupRepository();
         }
-        public AniDB_ReleaseGroup GetByGroupID(int id)
+        public SVR_AniDB_ReleaseGroup GetByGroupID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                AniDB_ReleaseGroup cr = session
-                    .CreateCriteria(typeof(AniDB_ReleaseGroup))
+                SVR_AniDB_ReleaseGroup cr = session
+                    .CreateCriteria(typeof(SVR_AniDB_ReleaseGroup))
                     .Add(Restrictions.Eq("GroupID", id))
-                    .UniqueResult<AniDB_ReleaseGroup>();
+                    .UniqueResult<SVR_AniDB_ReleaseGroup>();
                 return cr;
             }
         }

@@ -11,7 +11,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
 using AniDBAPI;
-using JMMContracts;
+using Shoko.Models;
 using JMMServer.Databases;
 using JMMServer.ImageDownload;
 using JMMServer.UI;

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using Force.DeepCloner;
 
 namespace JMMServer.PlexAndKodi

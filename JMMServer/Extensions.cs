@@ -10,8 +10,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using NutzCode.CloudFileSystem;
 using FluentNHibernate.Utils;
-using JMMContracts;
 using JMMServer.Collections;
+using Shoko.Models.Client;
 
 namespace JMMServer
 {
@@ -54,9 +54,9 @@ namespace JMMServer
 		    return int.TryParse(input, out output) ? output : (int?) null;
 	    }
 
-        public static Contract_AnimeGroup DeepCopy(this Contract_AnimeGroup c)
+        public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
-            Contract_AnimeGroup contract = new Contract_AnimeGroup();
+            CL_AnimeGroup_User contract = new CL_AnimeGroup_User();
             contract.AnimeGroupID = c.AnimeGroupID;
             contract.AnimeGroupParentID = c.AnimeGroupParentID;
             contract.DefaultAnimeSeriesID = c.DefaultAnimeSeriesID;

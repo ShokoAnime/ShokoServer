@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.UI;
 
 namespace JMMServer
@@ -24,7 +25,7 @@ namespace JMMServer
         {
             object obj = lbCloudAccounts.SelectedItem;
             if (obj == null) return;
-            CloudAccount ns = (CloudAccount)obj;
+            SVR_CloudAccount ns = (SVR_CloudAccount)obj;
             EditAccount(ns);
 
         }
@@ -37,9 +38,9 @@ namespace JMMServer
 
             try
             {
-                if (obj.GetType() == typeof(CloudAccount))
+                if (obj.GetType() == typeof(SVR_CloudAccount))
                 {
-                    CloudAccount ns = (CloudAccount)obj;
+                    SVR_CloudAccount ns = (SVR_CloudAccount)obj;
 
                     MessageBoxResult res = MessageBox.Show(string.Format(Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,ns.Provider), Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
@@ -57,7 +58,7 @@ namespace JMMServer
             }
         }
 
-        void EditAccount(CloudAccount account)
+        void EditAccount(SVR_CloudAccount account)
         {
             CloudAccountForm frm = new CloudAccountForm();
             frm.Owner = GetTopParent();

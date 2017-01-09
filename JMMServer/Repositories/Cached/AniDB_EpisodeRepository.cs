@@ -3,27 +3,30 @@ using System.Collections.Generic;
 using System.Linq;
 using AniDBAPI;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
 
 namespace JMMServer.Repositories
 {
-    public class AniDB_EpisodeRepository : BaseCachedRepository<AniDB_Episode, int>
+    public class AniDB_EpisodeRepository : BaseCachedRepository<SVR_AniDB_Episode, int>
     {
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
 
-        private PocoIndex<int, AniDB_Episode, int> EpisodesIds;
-        private PocoIndex<int, AniDB_Episode, int> Animes;
+        private PocoIndex<int, SVR_AniDB_Episode, int> EpisodesIds;
+        private PocoIndex<int, SVR_AniDB_Episode, int> Animes;
 
         public override void PopulateIndexes()
         {
-            EpisodesIds = new PocoIndex<int, AniDB_Episode, int>(Cache, a => a.EpisodeID);
-            Animes = new PocoIndex<int, AniDB_Episode, int>(Cache, a => a.AnimeID);
+            EpisodesIds = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.EpisodeID);
+            Animes = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.AnimeID);
         }
 
         private AniDB_EpisodeRepository()
@@ -36,7 +39,7 @@ namespace JMMServer.Repositories
             return new AniDB_EpisodeRepository();
         }
 
-        protected override int SelectKey(AniDB_Episode entity)
+        protected override int SelectKey(SVR_AniDB_Episode entity)
         {
             return entity.AniDB_EpisodeID;
         }
@@ -49,7 +52,7 @@ namespace JMMServer.Repositories
 
 
 
-        public AniDB_Episode GetByEpisodeID(int id)
+        public SVR_AniDB_Episode GetByEpisodeID(int id)
         {
             return EpisodesIds.GetOne(id);
             /*
@@ -63,7 +66,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Episode> GetByAnimeID(int id)
+        public List<SVR_AniDB_Episode> GetByAnimeID(int id)
         {
             return Animes.GetMultiple(id);
             /*
@@ -73,9 +76,9 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
+        public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            return Animes.GetMultiple(animeid).Where(a=>a.EpisodeNumber==epnumber && a.EpisodeTypeEnum==enEpisodeType.Episode).ToList();
+            return Animes.GetMultiple(animeid).Where(a=>a.EpisodeNumber==epnumber && a.GetEpisodeTypeEnum()==enEpisodeType.Episode).ToList();
             /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -90,9 +93,9 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, enEpisodeType epType, int epnumber)
+        public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, enEpisodeType epType, int epnumber)
         {
-            return Animes.GetMultiple(animeid).Where(a => a.EpisodeNumber == epnumber && a.EpisodeTypeEnum == epType).ToList();
+            return Animes.GetMultiple(animeid).Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType).ToList();
 /*            using (var session = JMMService.SessionFactory.OpenSession())
             {
                 var eps = session
@@ -106,7 +109,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
+        public List<SVR_AniDB_Episode> GetEpisodesWithMultipleFiles()
         {
             return
                 RepoFactory.CrossRef_File_Episode.GetAll()

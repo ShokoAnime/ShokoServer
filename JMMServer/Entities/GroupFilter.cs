@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using FluentNHibernate.MappingModel;
-using JMMContracts;
 using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
 using Newtonsoft.Json;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Server;
 
 namespace JMMServer.Entities
 {
@@ -307,7 +308,7 @@ namespace JMMServer.Entities
 		*/
 
 
-        public bool CalculateGroupFilterSeries(Contract_AnimeSeries ser, Contract_JMMUser user, int id)
+        public bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, Contract_JMMUser user, int id)
         {
             bool change = false;
             if (EvaluateGroupFilter(ser, user))
@@ -336,7 +337,7 @@ namespace JMMServer.Entities
             return change;
         }
 
-        public bool CalculateGroupFilterGroups(Contract_AnimeGroup grp, Contract_JMMUser user, int jmmUserId)
+        public bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, Contract_JMMUser user, int jmmUserId)
         {
             bool change = false;
             HashSet<int> groupIds;
@@ -364,7 +365,7 @@ namespace JMMServer.Entities
         public void EvaluateAnimeGroups()
         {
             IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
-            foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
+            foreach (SVR_AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
             {
                 foreach (JMMUser user in users)
                 {
@@ -376,7 +377,7 @@ namespace JMMServer.Entities
         public void EvaluateAnimeSeries()
         {
             IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
-            foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+            foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
                 CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
                 foreach (JMMUser user in users)
@@ -395,7 +396,7 @@ namespace JMMServer.Entities
         }
 
 
-        public bool EvaluateGroupFilter(Contract_AnimeGroup contractGroup, Contract_JMMUser curUser)
+        public bool EvaluateGroupFilter(CL_AnimeGroup_User contractGroup, Contract_JMMUser curUser)
         {
             //Directories don't count
             if ((this.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
@@ -430,7 +431,7 @@ namespace JMMServer.Entities
 	        return exclude ^ EvaluateConditions(contractGroup, curUser);
         }
 
-	    private bool EvaluateConditions(Contract_AnimeGroup contractGroup, Contract_JMMUser curUser)
+	    private bool EvaluateConditions(CL_AnimeGroup_User contractGroup, Contract_JMMUser curUser)
 	    {
 		    NumberStyles style = NumberStyles.Number;
 		    CultureInfo culture = CultureInfo.InvariantCulture;
@@ -748,7 +749,7 @@ namespace JMMServer.Entities
 					    List<string> ctypes =
 						    gfc.ConditionParameter
 							    .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-							    .Select(a => ((int)AniDB_Anime.RawToType(a)).ToString())
+							    .Select(a => ((int)AniDB_AnimeExtensions.RawToType(a)).ToString())
 							    .ToList();
 					    bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
@@ -800,7 +801,7 @@ namespace JMMServer.Entities
 		    return true;
 	    }
 
-        public bool EvaluateGroupFilter(Contract_AnimeSeries contractSerie, Contract_JMMUser curUser)
+        public bool EvaluateGroupFilter(CL_AnimeSeries_User contractSerie, Contract_JMMUser curUser)
         {
             //Directories don't count
             if ((this.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
@@ -809,7 +810,7 @@ namespace JMMServer.Entities
 
             // make sure the user has not filtered this out
             if ((curUser != null) &&
-                curUser.HideCategories.FindInEnumerable(contractSerie.AniDBAnime.AniDBAnime.AllTags))
+                curUser.HideCategories.FindInEnumerable(contractSerie.AniDBAnime.AniDBAnime.GetAllTags()))
                 return false;
 
 	        bool exclude = BaseCondition == (int) GroupFilterBaseCondition.Exclude;
@@ -817,7 +818,7 @@ namespace JMMServer.Entities
 	        return exclude ^ EvaluateConditions(contractSerie, curUser);
         }
 
-	    private bool EvaluateConditions(Contract_AnimeSeries contractSerie, Contract_JMMUser curUser)
+	    private bool EvaluateConditions(CL_AnimeSeries_User contractSerie, Contract_JMMUser curUser)
 	    {
 		    NumberStyles style = NumberStyles.Number;
 		    CultureInfo culture = CultureInfo.InvariantCulture;
@@ -849,7 +850,7 @@ namespace JMMServer.Entities
 							    .Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a))
 							    .ToList();
 					    bool tagsFound =
-						    tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(a,
+						    tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.GetAllTags().Contains(a,
 							    StringComparer.InvariantCultureIgnoreCase));
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) && !tagsFound) return false;
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) && tagsFound) return false;
@@ -1135,7 +1136,7 @@ namespace JMMServer.Entities
 					    List<string> ctypes =
 						    gfc.ConditionParameter.Trim()
 							    .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-							    .Select(a => ((int)AniDB_Anime.RawToType(a.ToLowerInvariant())).ToString())
+							    .Select(a => ((int)AniDB_AnimeExtensions.RawToType(a.ToLowerInvariant())).ToString())
 							    .ToList();
 					    bool foundAnimeType = ctypes.Contains(contractSerie.AniDBAnime.AniDBAnime.AnimeType.ToString());
 					    if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;

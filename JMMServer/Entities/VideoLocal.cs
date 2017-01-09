@@ -1,32 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using AniDBAPI;
-
 using FluentNHibernate.Utils;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Commands.MAL;
 using JMMServer.LZ4;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
-using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Stream = JMMContracts.PlexAndKodi.Stream;
+using Shoko.Commons.Utils;
+using Shoko.Models;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 using Path = Pri.LongPath.Path;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using FileInfo = Pri.LongPath.FileInfo;
-using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -132,7 +125,7 @@ namespace JMMServer.Entities
         }
 
 
-        public AniDB_File GetAniDBFile()
+        public SVR_AniDB_File GetAniDBFile()
         {
             return RepoFactory.AniDB_File.GetByHash(Hash);
         }
@@ -143,29 +136,29 @@ namespace JMMServer.Entities
             return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
         }
 
-        public AniDB_ReleaseGroup ReleaseGroup
+        public SVR_AniDB_ReleaseGroup ReleaseGroup
         {
             get
             {
-                AniDB_File anifile = GetAniDBFile();
+                SVR_AniDB_File anifile = GetAniDBFile();
                 if (anifile == null) return null;
 
                 return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
             }
         }
 
-        public List<AnimeEpisode> GetAnimeEpisodes()
+        public List<SVR_AnimeEpisode> GetAnimeEpisodes()
         {
             return RepoFactory.AnimeEpisode.GetByHash(Hash);
         }
 
 
 
-        public List<CrossRef_File_Episode> EpisodeCrossRefs
+        public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs
         {
             get
             {
-                if (Hash.Length == 0) return new List<CrossRef_File_Episode>();
+                if (Hash.Length == 0) return new List<SVR_CrossRef_File_Episode>();
 
                 return RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
             }
@@ -202,7 +195,7 @@ namespace JMMServer.Entities
 
         public static IFile ResolveFile(string fullname)
         {
-            Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+            Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
             IFileSystem fs = tup?.Item1.FileSystem;
             if (fs == null)
                 return null;
@@ -298,7 +291,7 @@ namespace JMMServer.Entities
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(this.Hash);
+                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(this.Hash);
                 if (aniFile != null)
                 {
                     aniFile.IsWatched = mywatched;
@@ -324,7 +317,7 @@ namespace JMMServer.Entities
                     {
                         CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
                             this.Hash, watched, false,
-                            watchedDate.HasValue ? Utils.GetAniDBDateAsSeconds(watchedDate) : 0);
+                            watchedDate.HasValue ? AniDB.GetAniDBDateAsSeconds(watchedDate) : 0);
                         cmd.Save();
                     }
                 }
@@ -335,23 +328,23 @@ namespace JMMServer.Entities
             // status, 
 
 
-            AnimeSeries ser = null;
+            SVR_AnimeSeries ser = null;
             // get all files associated with this episode
-            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
-            Dictionary<int, AnimeSeries> toUpdateSeries = new Dictionary<int, AnimeSeries>();
+            List<SVR_CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
+            Dictionary<int, SVR_AnimeSeries> toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
             if (watched)
             {
                 // find the total watched percentage
                 // eg one file can have a % = 100
                 // or if 2 files make up one episodes they will each have a % = 50
 
-                foreach (CrossRef_File_Episode xref in xrefs)
+                foreach (SVR_CrossRef_File_Episode xref in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
                     // get all the files for this episode
                     int epPercentWatched = 0;
-                    foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+                    foreach (SVR_CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
                         if (vidUser != null && vidUser.WatchedDate.HasValue)
@@ -402,16 +395,16 @@ namespace JMMServer.Entities
             else
             {
                 // if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
-                foreach (CrossRef_File_Episode xrefEp in xrefs)
+                foreach (SVR_CrossRef_File_Episode xrefEp in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
+                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
                     ser = ep.GetAnimeSeries();
                     if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
                         toUpdateSeries.Add(ser.AnimeSeriesID, ser);
                     // get all the files for this episode
                     int epPercentWatched = 0;
-                    foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+                    foreach (SVR_CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
                         if (vidUser != null && vidUser.WatchedDate.HasValue)
@@ -457,7 +450,7 @@ namespace JMMServer.Entities
             // update stats for groups and series
             if (toUpdateSeries.Count > 0 && updateStats)
             {
-                foreach (AnimeSeries s in toUpdateSeries.Values)
+                foreach (SVR_AnimeSeries s in toUpdateSeries.Values)
                     // update all the groups above this series in the heirarchy
                     s.UpdateStats(true, true, true);
                 //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
@@ -546,7 +539,7 @@ namespace JMMServer.Entities
                         {
                             foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                             {
-                                s.Key = ((PlexAndKodi.IProvider)null).ReplaceSchemeHost(((PlexAndKodi.IProvider)null).ConstructFileStream(userID, s.File, false));
+                                s.Key = ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructFileStream(userID, s.File, false));
                             }
                         }
                     }
@@ -559,7 +552,7 @@ namespace JMMServer.Entities
             Contract_VideoDetailed contract = new Contract_VideoDetailed();
 
             // get the cross ref episode
-            List<CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
+            List<SVR_CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
             if (xrefs.Count == 0) return null;
 
             contract.Percentage = xrefs[0].Percentage;
@@ -604,7 +597,7 @@ namespace JMMServer.Entities
             contract.VideoInfo_VideoResolution = VideoResolution;
 
             // AniDB File
-            AniDB_File anifile = this.GetAniDBFile(); // to prevent multiple db calls
+            SVR_AniDB_File anifile = this.GetAniDBFile(); // to prevent multiple db calls
             if (anifile != null)
             {
                 contract.AniDB_Anime_GroupName = anifile.Anime_GroupName;
@@ -652,9 +645,9 @@ namespace JMMServer.Entities
             }
 
 
-            AniDB_ReleaseGroup relGroup = this.ReleaseGroup; // to prevent multiple db calls
+            SVR_AniDB_ReleaseGroup relGroup = this.ReleaseGroup; // to prevent multiple db calls
             if (relGroup != null)
-                contract.ReleaseGroup = relGroup.ToContract();
+                contract.ReleaseGroup = relGroup;
             else
                 contract.ReleaseGroup = null;
             contract.Media = GetMediaFromUser(userID);

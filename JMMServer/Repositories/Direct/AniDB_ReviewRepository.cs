@@ -1,10 +1,11 @@
 ﻿using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class AniDB_ReviewRepository : BaseDirectRepository<AniDB_Review, int>
+    public class AniDB_ReviewRepository : BaseDirectRepository<SVR_AniDB_Review, int>
     {
         private AniDB_ReviewRepository()
         {
@@ -15,14 +16,14 @@ namespace JMMServer.Repositories.Direct
         {
             return new AniDB_ReviewRepository();
         }
-        public AniDB_Review GetByReviewID(int id)
+        public SVR_AniDB_Review GetByReviewID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                AniDB_Review cr = session
-                    .CreateCriteria(typeof(AniDB_Review))
+                SVR_AniDB_Review cr = session
+                    .CreateCriteria(typeof(SVR_AniDB_Review))
                     .Add(Restrictions.Eq("ReviewID", id))
-                    .UniqueResult<AniDB_Review>();
+                    .UniqueResult<SVR_AniDB_Review>();
                 return cr;
             }
         }

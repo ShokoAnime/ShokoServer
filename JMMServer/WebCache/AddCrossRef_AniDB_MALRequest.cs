@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Xml.Serialization;
 using AniDBAPI;
-using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.WebCache
 {

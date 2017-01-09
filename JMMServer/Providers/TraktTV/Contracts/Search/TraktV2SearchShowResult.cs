@@ -1,5 +1,5 @@
 ﻿using System.Runtime.Serialization;
-using JMMContracts;
+using Shoko.Models;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {

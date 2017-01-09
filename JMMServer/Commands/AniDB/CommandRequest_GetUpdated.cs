@@ -7,6 +7,8 @@ using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
+using Shoko.Commons.Utils;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -71,8 +73,8 @@ namespace JMMServer.Commands
                     // if this is the first time, lets ask for last 3 days
                     DateTime localTime = DateTime.Now.AddDays(-3);
                     DateTime utcTime = localTime.ToUniversalTime();
-                    webUpdateTime = long.Parse(Utils.AniDBDate(utcTime));
-                    webUpdateTimeNew = long.Parse(Utils.AniDBDate(DateTime.Now.ToUniversalTime()));
+                    webUpdateTime = long.Parse(Shoko.Commons.Utils.AniDB.AniDBDate(utcTime));
+                    webUpdateTimeNew = long.Parse(Shoko.Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
                     sched = new ScheduledUpdate();
                     sched.UpdateType = (int) ScheduledUpdateType.AniDBUpdates;
@@ -81,7 +83,7 @@ namespace JMMServer.Commands
                 {
                     logger.Trace("Last anidb info update was : {0}", sched.UpdateDetails);
                     webUpdateTime = long.Parse(sched.UpdateDetails);
-                    webUpdateTimeNew = long.Parse(Utils.AniDBDate(DateTime.Now.ToUniversalTime()));
+                    webUpdateTimeNew = long.Parse(Shoko.Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
                     DateTime timeNow = DateTime.Now.ToUniversalTime();
                     logger.Info(string.Format("{0} since last UPDATED command",
@@ -110,7 +112,7 @@ namespace JMMServer.Commands
                 foreach (int animeID in animeIDsToUpdate)
                 {
                     // update the anime from HTTP
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null)
                     {
                         logger.Trace("No local record found for Anime ID: {0}, so skipping...", animeID);
@@ -131,7 +133,7 @@ namespace JMMServer.Commands
                     // update the group status
                     // this will allow us to determine which anime has missing episodes
                     // so we wonly get by an amime where we also have an associated series
-                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                     if (ser != null)
                     {
                         CommandRequest_GetReleaseGroupStatus cmdStatus =

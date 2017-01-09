@@ -6,6 +6,7 @@ using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -50,7 +51,7 @@ namespace JMMServer.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                AnimeSeries series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)
                 {
                     logger.Error("Could not find anime series: {0}", AnimeSeriesID);

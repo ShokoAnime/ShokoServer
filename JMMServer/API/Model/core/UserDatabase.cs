@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Entities;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.API.core
 {
@@ -25,13 +27,13 @@ namespace JMMServer.API.core
             try
             {
                 Users.Clear();
-                foreach (Entities.JMMUser us in RepoFactory.JMMUser.GetAll())
+                foreach (JMMUser us in RepoFactory.JMMUser.GetAll())
                 {
                     Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
                 }
 
                 ActiveApiKeys.Clear();
-                foreach (Entities.AuthTokens at in RepoFactory.AuthTokens.GetAll())
+                foreach (AuthTokens at in RepoFactory.AuthTokens.GetAll())
                 {
                     ActiveApiKeys.Add(new Tuple<int, string, string>(at.UserID, at.DeviceName, at.Token));
                 }
@@ -42,7 +44,7 @@ namespace JMMServer.API.core
             }
         }
 
-        public static Entities.JMMUser GetUserFromApiKey(string apiKey)
+        public static JMMUser GetUserFromApiKey(string apiKey)
         {
             var activeKey = ActiveApiKeys.FirstOrDefault(x => x.Item3 == apiKey);
 
@@ -52,7 +54,7 @@ namespace JMMServer.API.core
             }
 
             var userRecord = Users.First(u => u.Item1 == activeKey.Item1);
-            return new Entities.JMMUser(userRecord.Item2);
+            return new JMMUser(userRecord.Item2);
         }
 
         public static string ValidateUser(string username, string password, string device)
@@ -69,7 +71,7 @@ namespace JMMServer.API.core
                 return null;
             }
 
-            int uid = new Entities.JMMUser(username).JMMUserID;
+            int uid = new JMMUser(username).JMMUserID;
             string apiKey = "";
             try
             {
@@ -80,7 +82,7 @@ namespace JMMServer.API.core
             {
                 apiKey = Guid.NewGuid().ToString();
                 ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device.ToLower(), apiKey));
-                Entities.AuthTokens token = new Entities.AuthTokens(uid, (device).ToLower(), apiKey);
+                AuthTokens token = new AuthTokens { UserID = uid, DeviceName = (device).ToLower(), Token = apiKey };
                 RepoFactory.AuthTokens.Save(token);
             }
 
@@ -110,7 +112,7 @@ namespace JMMServer.API.core
             {
                 // get all keys related to uid
                 List<string> keysToDelete = new List<string>();
-                foreach (Entities.AuthTokens at in RepoFactory.AuthTokens.GetAll())
+                foreach (AuthTokens at in RepoFactory.AuthTokens.GetAll())
                 {
                     if (at.UserID == uid)
                     {

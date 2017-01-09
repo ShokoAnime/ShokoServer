@@ -1,5 +1,6 @@
-﻿using JMMContracts;
-using JMMServer.Repositories;
+﻿using JMMServer.Repositories;
+using Shoko.Models;
+using Shoko.Models.Server;
 
 namespace JMMServer.Entities
 {
@@ -24,7 +25,7 @@ namespace JMMServer.Entities
             contract.AnimeID = this.AnimeID;
             contract.IgnoreType = this.IgnoreType;
 
-            AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             if (anime != null) contract.Anime = anime.Contract.AniDBAnime;
 
             return contract;

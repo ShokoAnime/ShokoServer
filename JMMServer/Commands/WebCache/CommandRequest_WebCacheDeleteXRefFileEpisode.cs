@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
-using JMMServer.Entities;
+using JMMServer.Providers.Azure;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -40,7 +41,7 @@ namespace JMMServer.Commands
         {
             try
             {
-                JMMServer.Providers.Azure.AzureWebAPI.Delete_CrossRefFileEpisode(Hash);
+                AzureWebAPI.Delete_CrossRefFileEpisode(Hash);
             }
             catch (Exception ex)
             {

@@ -4,14 +4,16 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using JMMContracts;
 using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Models;
+using Shoko.Models.Client;
 
 namespace JMMServer.Repositories.Cached
 {
@@ -309,11 +311,11 @@ namespace JMMServer.Repositories.Cached
                     HashSet<string> allyears;
                     if (airdate == null || airdate.Count == 0)
                     {
-                        List<Contract_AnimeSeries> grps =
+                        List<CL_AnimeSeries_User> grps =
                             RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
 
 	                    allyears = new HashSet<string>(StringComparer.Ordinal);
-	                    foreach (Contract_AnimeSeries ser in grps)
+	                    foreach (CL_AnimeSeries_User ser in grps)
 	                    {
 		                    int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
 		                    int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;

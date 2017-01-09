@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
-using JMMContracts;
+using Shoko.Models;
 using NLog;
 
 using Path = Pri.LongPath.Path;

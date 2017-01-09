@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
+using Shoko.Models;
 
 namespace JMMServer.Repositories
 {

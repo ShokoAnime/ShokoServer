@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_TagMap : ClassMap<AniDB_Tag>
+    public class AniDB_TagMap : ClassMap<SVR_AniDB_Tag>
     {
         public AniDB_TagMap()
         {

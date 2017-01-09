@@ -2,121 +2,7 @@
 
 namespace JMMServer
 {
-    public enum AzureLinkType
-    {
-        TvDB = 1,
-        Trakt = 2,
-        MAL = 3,
-        MovieDB = 4,
-    }
 
-    public enum AiringState
-    {
-        All = 0,
-        StillAiring = 1,
-        FinishedAiring = 2,
-    }
-
-    public enum AutostartMethod
-    {
-        Registry = 1,
-        TaskScheduler = 2
-    }
-
-    public enum ScanStatus
-    {
-        Standby=0,
-        Running=1,
-        Finish=2
-    }
-
-    public enum ScanFileStatus
-    {
-        Waiting=0,
-        ProcessedOK=1,
-        ErrorFileNotFound=2,
-        ErrorInvalidSize=3,
-        ErrorInvalidHash=4,
-        ErrorMissingHash=5,
-        ErrorIOError=6
-    }
-
-    public enum CustomTagCrossRefType
-    {
-        Anime = 1,
-        Group = 2
-    }
-
-    public enum WhatPeopleAreSayingType
-    {
-        TraktComment = 1,
-        AniDBRecommendation = 2,
-        AniDBMustSee = 3,
-        AniDBForFans = 4,
-    }
-
-    public enum AniDBRecommendationType
-    {
-        ForFans = 1,
-        Recommended = 2,
-        MustSee = 3,
-    }
-
-    public enum RatingCollectionState
-    {
-        All = 0,
-        InMyCollection = 1,
-        AllEpisodesInMyCollection = 2,
-        NotInMyCollection = 3
-    }
-
-    public enum RatingWatchedState
-    {
-        All = 0,
-        AllEpisodesWatched = 1,
-        NotWatched = 2
-    }
-
-    public enum RatingVotedState
-    {
-        All = 0,
-        Voted = 1,
-        NotVoted = 2
-    }
-
-    [Flags]
-    public enum AniDBFileState
-    {
-        None = 0,
-        FILE_CRCOK = 1, //file matched official CRC (displayed with green background in AniDB)
-        FILE_CRCERR = 2, // file DID NOT match official CRC (displayed with red background in AniDB)
-        FILE_ISV2 = 4, // file is version 2
-        FILE_ISV3 = 8, // file is version 3
-        FILE_ISV4 = 16, // file is version 4
-        FILE_ISV5 = 32, // file is version 5
-        FILE_UNC = 64, // file is uncensored
-        FILE_CEN = 128, // file is censored
-    }
-
-    public enum ImageEntityType
-    {
-        AniDB_Cover = 1, // use AnimeID
-        AniDB_Character = 2, // use CharID
-        AniDB_Creator = 3, // use CreatorID
-        TvDB_Banner = 4, // use TvDB Banner ID
-        TvDB_Cover = 5, // use TvDB Cover ID
-        TvDB_Episode = 6, // use TvDB Episode ID
-        TvDB_FanArt = 7, // use TvDB FanArt ID
-        MovieDB_FanArt = 8,
-        MovieDB_Poster = 9,
-        Trakt_Poster = 10,
-        Trakt_Fanart = 11,
-        Trakt_Episode = 12,
-        Trakt_Friend = 13,
-        Trakt_ActivityScrobble = 14,
-        Trakt_CommentUser = 15,
-        Trakt_WatchedEpisode = 16
-    }
 
     public enum CommandRequestType
     {
@@ -219,38 +105,7 @@ namespace JMMServer
         MetaData = 2
     }
 
-    public enum enFanartSize
-    {
-        All = 1,
-        HD = 2,
-        FullHD = 3
-    }
 
-    public enum RenamingLanguage
-    {
-        Romaji = 1,
-        English = 2
-    }
-
-
-
-    public enum AnimeTypes
-    {
-        Movie,
-        OVA,
-        TV_Series,
-        TV_Special,
-        Web,
-        Other
-    }
-
-    public enum ImportFolderType
-    {
-        HDD = 1, // files stored on a "permanent" hard drive
-        NAS = 2, // file are stored on a "nas" hard drive
-        Cloud = 3, // files stored in the cloud 
-        DVD = 4, // files stored on a cd/dvd 
-    }
 
     public enum ScheduledUpdateType
     {
@@ -270,32 +125,8 @@ namespace JMMServer
         DayFiltersUpdate = 14
     }
 
-    public enum JMMImageType
-    {
-        AniDB_Cover = 1,
-        AniDB_Character = 2,
-        AniDB_Creator = 3,
-        TvDB_Banner = 4,
-        TvDB_Cover = 5,
-        TvDB_Episode = 6,
-        TvDB_FanArt = 7,
-        MovieDB_FanArt = 8,
-        MovieDB_Poster = 9,
-        Trakt_Poster = 10,
-        Trakt_Fanart = 11,
-        Trakt_Episode = 12,
-        Trakt_Friend = 13,
-        Trakt_ActivityScrobble = 14,
-        Trakt_CommentUser = 15,
-        Trakt_WatchedEpisode = 16
-    }
 
-    public enum ImageSizeType
-    {
-        Poster = 1,
-        Fanart = 2,
-        WideBanner = 3
-    }
+
 
     public enum ImageDownloadEventType
     {
@@ -303,13 +134,6 @@ namespace JMMServer
         Complete = 2
     }
 
-    public enum AniDBVoteType
-    {
-        Anime = 1,
-        AnimeTemp = 2,
-        Group = 3,
-        Episode = 4
-    }
 
     public enum TvDBImageNodeType
     {
@@ -339,108 +163,6 @@ namespace JMMServer
         MonthOne = 6
     }
 
-    public enum GroupFilterConditionType
-    {
-        CompletedSeries = 1,
-        MissingEpisodes = 2,
-        HasUnwatchedEpisodes = 3,
-        // AllEpisodesWatched = 4,
-        UserVoted = 5,
-        Tag = 6,
-        AirDate = 7,
-        //Studio = 8,
-        AssignedTvDBInfo = 9,
-        //ReleaseGroup = 11,
-        AnimeType = 12,
-        VideoQuality = 13,
-        Favourite = 14,
-        AnimeGroup = 15,
-        AniDBRating = 16,
-        UserRating = 17,
-        SeriesCreatedDate = 18,
-        EpisodeAddedDate = 19,
-        EpisodeWatchedDate = 20,
-        FinishedAiring = 21,
-        MissingEpisodesCollecting = 22,
-        AudioLanguage = 23,
-        SubtitleLanguage = 24,
-        AssignedTvDBOrMovieDBInfo = 25,
-        AssignedMovieDBInfo = 26,
-        UserVotedAny = 27,
-        HasWatchedEpisodes = 28,
-        AssignedMALInfo = 29,
-        EpisodeCount = 30,
-        CustomTags = 31,
-        LatestEpisodeAirDate = 32,
-
-        Year = 34
-    }
-
-    public enum GroupFilterOperator
-    {
-        Include = 1,
-        Exclude = 2,
-        GreaterThan = 3,
-        LessThan = 4,
-        Equals = 5,
-        NotEquals = 6,
-        In = 7,
-        NotIn = 8,
-        LastXDays = 9,
-        InAllEpisodes = 10,
-        NotInAllEpisodes = 11
-    }
-
-    [Flags]
-    public enum GroupFilterType
-    {
-        UserDefined = 1,
-        ContinueWatching = 2,
-        All = 4,
-        Directory = 8,
-        Tag = 16,
-        Year = 32,
-    }
-
-    public enum GroupFilterSorting
-    {
-        SeriesAddedDate = 1,
-        EpisodeAddedDate = 2,
-        EpisodeAirDate = 3,
-        EpisodeWatchedDate = 4,
-        GroupName = 5,
-        Year = 6,
-        SeriesCount = 7,
-        UnwatchedEpisodeCount = 8,
-        MissingEpisodeCount = 9,
-        UserRating = 10,
-        AniDBRating = 11,
-        SortName = 12,
-        GroupFilterName = 13,
-    }
-
-    public enum GroupFilterSortDirection
-    {
-        Asc = 1,
-        Desc = 2
-    }
-
-    public enum GroupFilterBaseCondition
-    {
-        Include = 1,
-        Exclude = 2
-    }
-
-
-    public enum enAnimeType
-    {
-        Movie = 0,
-        OVA = 1,
-        TVSeries = 2,
-        TVSpecial = 3,
-        Web = 4,
-        Other = 5
-    }
 
     public enum StatCountType
     {

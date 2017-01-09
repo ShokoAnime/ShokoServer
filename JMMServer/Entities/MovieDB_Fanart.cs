@@ -1,8 +1,8 @@
 ﻿using System.IO;
-using JMMContracts;
 using JMMServer.ImageDownload;
 using JMMServer.Providers.MovieDB;
 using NLog;
+using Shoko.Models;
 
 namespace JMMServer.Entities
 {

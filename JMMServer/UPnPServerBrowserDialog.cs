@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using UPNPLib;
 
 namespace JMMServer
@@ -13,7 +14,7 @@ namespace JMMServer
     /// </summary>
     public partial class UPnPServerBrowserDialog
     {
-        private ImportFolder importFldr = null;
+        private SVR_ImportFolder importFldr = null;
 
         public Form frmMainWindow = new Form();
 

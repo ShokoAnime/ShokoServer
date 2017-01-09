@@ -24,7 +24,7 @@ namespace JMMServer.Providers.MovieDB
         {
             ImageID = string.Empty;
             ImageType = imgType;
-            ImageSize = Constants.MovieDBImageSize.Original;
+            ImageSize = Shoko.Models.Constants.MovieDBImageSize.Original;
             URL = result.FilePath;
             ImageWidth = result.Width;
             ImageHeight = result.Height;

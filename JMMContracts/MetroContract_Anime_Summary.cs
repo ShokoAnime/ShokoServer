@@ -1,4 +1,4 @@
-﻿namespace JMMContracts
+﻿namespace Shoko.Models
 {
     public class MetroContract_Anime_Summary
     {

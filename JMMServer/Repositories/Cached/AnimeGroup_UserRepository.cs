@@ -4,21 +4,23 @@ using System.ComponentModel;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Models;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, int>
+    public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_User, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private PocoIndex<int, AnimeGroup_User, int> Groups;
-        private PocoIndex<int, AnimeGroup_User, int> Users;
-        private PocoIndex<int, AnimeGroup_User, int, int> UsersGroups;
+        private PocoIndex<int, SVR_AnimeGroup_User, int> Groups;
+        private PocoIndex<int, SVR_AnimeGroup_User, int> Users;
+        private PocoIndex<int, SVR_AnimeGroup_User, int, int> UsersGroups;
         private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
 
@@ -39,7 +41,7 @@ namespace JMMServer.Repositories.Cached
             return new AnimeGroup_UserRepository();
         }
 
-        protected override int SelectKey(AnimeGroup_User entity)
+        protected override int SelectKey(SVR_AnimeGroup_User entity)
         {
             return entity.AnimeGroup_UserID;
         }
@@ -60,44 +62,44 @@ namespace JMMServer.Repositories.Cached
         public override void RegenerateDb()
         {
             int cnt = 0;
-            List<AnimeGroup_User> grps =
-                Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
+            List<SVR_AnimeGroup_User> grps =
+                Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup_User).Name, " DbRegen");
 	        if (max <= 0) return;
-	        foreach (AnimeGroup_User g in grps)
+	        foreach (SVR_AnimeGroup_User g in grps)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
-        public override void Save(IReadOnlyCollection<AnimeGroup_User> objs)
+        public override void Save(IReadOnlyCollection<SVR_AnimeGroup_User> objs)
         {
-            foreach(AnimeGroup_User grp in objs)
+            foreach(SVR_AnimeGroup_User grp in objs)
                 Save(grp);
         }
 
 
-        public override void Save(AnimeGroup_User obj)
+        public override void Save(SVR_AnimeGroup_User obj)
         {
             lock (obj)
             {
                 obj.UpdatePlexKodiContracts();
                 //Get The previous AnimeGroup_User from db for comparasion;
-                AnimeGroup_User old;
+                SVR_AnimeGroup_User old;
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    old = session.Get<AnimeGroup_User>(obj.AnimeGroup_UserID);
+                    old = session.Get<SVR_AnimeGroup_User>(obj.AnimeGroup_UserID);
                 }
-                HashSet<GroupFilterConditionType> types = AnimeGroup_User.GetConditionTypesChanged(old, obj);
+                HashSet<GroupFilterConditionType> types = SVR_AnimeGroup_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
                 if (!Changes.ContainsKey(obj.JMMUserID))
                     Changes[obj.JMMUserID] = new ChangeTracker<int>();
@@ -107,7 +109,7 @@ namespace JMMServer.Repositories.Cached
         }
 
         /// <summary>
-        /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+        /// Inserts a batch of <see cref="SVR_AnimeGroup_User"/> into the database.
         /// </summary>
         /// <remarks>
         /// <para>This method should NOT be used for updating existing entities.</para>
@@ -115,16 +117,16 @@ namespace JMMServer.Repositories.Cached
         /// <para>Group Filters, etc. will not be updated by this method.</para>
         /// </remarks>
         /// <param name="session">The NHibernate session.</param>
-        /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+        /// <param name="groupUsers">The batch of <see cref="SVR_AnimeGroup_User"/> to insert into the database.</param>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-        public void InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+        public void InsertBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
             if (groupUsers == null)
                 throw new ArgumentNullException(nameof(groupUsers));
 
-            foreach (AnimeGroup_User groupUser in groupUsers)
+            foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
                 session.Insert(groupUser);
 
@@ -141,23 +143,23 @@ namespace JMMServer.Repositories.Cached
         }
 
         /// <summary>
-        /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+        /// Inserts a batch of <see cref="SVR_AnimeGroup_User"/> into the database.
         /// </summary>
         /// <remarks>
         /// <para>It is up to the caller of this method to manage transactions, etc.</para>
         /// <para>Group Filters, etc. will not be updated by this method.</para>
         /// </remarks>
         /// <param name="session">The NHibernate session.</param>
-        /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+        /// <param name="groupUsers">The batch of <see cref="SVR_AnimeGroup_User"/> to insert into the database.</param>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-        public void UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+        public void UpdateBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
             if (groupUsers == null)
                 throw new ArgumentNullException(nameof(groupUsers));
 
-            foreach (AnimeGroup_User groupUser in groupUsers)
+            foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
                 session.Update(groupUser);
 
@@ -213,17 +215,17 @@ namespace JMMServer.Repositories.Cached
             ClearCache();
         }
 
-        public AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
+        public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
             return UsersGroups.GetOne(userid, groupid);
         }
 
-        public List<AnimeGroup_User> GetByUserID(int userid)
+        public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
             return Users.GetMultiple(userid);
         }
 
-        public List<AnimeGroup_User> GetByGroupID(int groupid)
+        public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
             return Groups.GetMultiple(groupid);
         }

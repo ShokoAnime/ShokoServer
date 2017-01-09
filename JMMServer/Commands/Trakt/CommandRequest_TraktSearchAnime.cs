@@ -4,15 +4,19 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
-using JMMContracts;
+using Shoko.Models;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
+using Shoko.Models.Azure;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -65,14 +69,14 @@ namespace JMMServer.Commands
                     {
                         try
                         {
-                            List<Contract_Azure_CrossRef_AniDB_Trakt> contracts =
-                                new List<Contract_Azure_CrossRef_AniDB_Trakt>();
+                            List<Azure_CrossRef_AniDB_Trakt> contracts =
+                                new List<Azure_CrossRef_AniDB_Trakt>();
 
-                            List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> resultsCache =
-                                JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
+                            List<Azure_CrossRef_AniDB_Trakt> resultsCache =
+                                AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
                             if (resultsCache != null && resultsCache.Count > 0)
                             {
-                                foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in resultsCache)
+                                foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
                                 {
                                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
                                     if (showInfo != null)
@@ -96,10 +100,10 @@ namespace JMMServer.Commands
 
                     // lets try to see locally if we have a tvDB link for this anime
                     // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(sessionWrapper, AnimeID);
+                    List<SVR_CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(sessionWrapper, AnimeID);
                     if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                     {
-                        foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                        foreach (SVR_CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
                         {
                             // first search for this show by the TvDB ID
                             List<TraktV2SearchTvDBIDShowResult> searchResults =
@@ -135,7 +139,7 @@ namespace JMMServer.Commands
                                                 logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
                                                     AnimeID, showInfo.title);
                                                 TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                                    (AniDBAPI.enEpisodeType) tvXRef.AniDBStartEpisodeType,
+                                                    (enEpisodeType) tvXRef.AniDBStartEpisodeType,
                                                     tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
                                                     tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
                                                     true);
@@ -150,7 +154,7 @@ namespace JMMServer.Commands
 
                     // finally lets try searching Trakt directly
                     string searchCriteria = "";
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -163,9 +167,9 @@ namespace JMMServer.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (SVR_AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
+                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
@@ -195,7 +199,7 @@ namespace JMMServer.Commands
                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)
                     {
-                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, AniDBAPI.enEpisodeType.Episode, 1,
+                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, enEpisodeType.Episode, 1,
                             results[0].show.ids.slug, 1, 1,
                             true);
                         return true;

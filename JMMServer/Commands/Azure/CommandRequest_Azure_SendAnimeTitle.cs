@@ -2,8 +2,9 @@
 using System.Globalization;
 using System.Threading;
 using System.Xml;
-using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands.Azure
 {
@@ -51,7 +52,7 @@ namespace JMMServer.Commands.Azure
 
                 if (!process) return;
 
-                AnimeIDTitle thisTitle = new AnimeIDTitle();
+                Azure_AnimeIDTitle thisTitle = new Azure_AnimeIDTitle();
                 thisTitle.AnimeIDTitleId = 0;
                 thisTitle.MainTitle = MainTitle;
                 thisTitle.AnimeID = AnimeID;

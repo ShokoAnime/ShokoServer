@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories.Cached

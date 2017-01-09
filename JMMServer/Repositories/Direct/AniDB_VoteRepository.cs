@@ -6,6 +6,8 @@ using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models;
+using Shoko.Models.Server;
 
 namespace JMMServer.Repositories.Direct
 {
@@ -17,14 +19,14 @@ namespace JMMServer.Repositories.Direct
             {
                 if (cr.VoteType == (int) AniDBVoteType.Anime || cr.VoteType == (int) AniDBVoteType.AnimeTemp)
                 {
-                    AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                 }
             };
             EndDeleteCallback = (cr) =>
             {
                 if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {
-                    AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                 }
 
             };

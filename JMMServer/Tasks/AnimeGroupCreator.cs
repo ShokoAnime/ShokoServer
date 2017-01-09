@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
+using Shoko.Models;
 
 namespace JMMServer.Tasks
 {
@@ -55,12 +57,12 @@ namespace JMMServer.Tasks
         /// Creates a new group that series will be put in during group re-calculation.
         /// </summary>
         /// <param name="session">The NHibernate session.</param>
-        /// <returns>The temporary <see cref="AnimeGroup"/>.</returns>
-        private AnimeGroup CreateTempAnimeGroup(ISessionWrapper session)
+        /// <returns>The temporary <see cref="SVR_AnimeGroup"/>.</returns>
+        private SVR_AnimeGroup CreateTempAnimeGroup(ISessionWrapper session)
         {
             DateTime now = DateTime.Now;
 
-            var tempGroup = new AnimeGroup
+            var tempGroup = new SVR_AnimeGroup
                 {
                     GroupName = TempGroupName,
                     Description = TempGroupName,
@@ -98,7 +100,7 @@ namespace JMMServer.Tasks
             _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
         }
 
-        private void UpdateAnimeSeriesContractsAndSave(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> series)
+        private void UpdateAnimeSeriesContractsAndSave(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> series)
         {
             _log.Info("Updating contracts for AnimeSeries");
 
@@ -108,7 +110,7 @@ namespace JMMServer.Tasks
                 localInit: () => DatabaseFactory.SessionFactory.OpenStatelessSession(),
                 body: (seriesBatch, state, localSession) =>
                     {
-                        AnimeSeries.BatchUpdateContracts(localSession.Wrap(), seriesBatch);
+                        SVR_AnimeSeries.BatchUpdateContracts(localSession.Wrap(), seriesBatch);
                         return localSession;
                     },
                 localFinally: localSession => { localSession.Dispose(); });
@@ -117,11 +119,11 @@ namespace JMMServer.Tasks
             _log.Info("AnimeSeries contracts have been updated");
         }
 
-        private void UpdateAnimeGroupsAndTheirContracts(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
+        private void UpdateAnimeGroupsAndTheirContracts(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
         {
             _log.Info("Updating statistics and contracts for AnimeGroups");
 
-            var allCreatedGroupUsers = new ConcurrentBag<List<AnimeGroup_User>>();
+            var allCreatedGroupUsers = new ConcurrentBag<List<SVR_AnimeGroup_User>>();
 
             // Update batches of AnimeGroup contracts in parallel. Each parallel branch requires it's own session since NHibernate sessions aren't thread safe.
             // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
@@ -129,13 +131,13 @@ namespace JMMServer.Tasks
                 localInit: () => DatabaseFactory.SessionFactory.OpenStatelessSession(),
                 body: (groupBatch, state, localSession) =>
                     {
-                        var createdGroupUsers = new List<AnimeGroup_User>(groupBatch.Length);
+                        var createdGroupUsers = new List<SVR_AnimeGroup_User>(groupBatch.Length);
 
                         // We shouldn't need to keep track of updates to AnimeGroup_Users in the below call, because they should have all been deleted,
                         // therefore they should all be new
-                        AnimeGroup.BatchUpdateStats(groupBatch, watchedStats: true, missingEpsStats: true, createdGroupUsers: createdGroupUsers);
+                        SVR_AnimeGroup.BatchUpdateStats(groupBatch, watchedStats: true, missingEpsStats: true, createdGroupUsers: createdGroupUsers);
                         allCreatedGroupUsers.Add(createdGroupUsers);
-                        AnimeGroup.BatchUpdateContracts(localSession.Wrap(), groupBatch, updateStats: true);
+                        SVR_AnimeGroup.BatchUpdateContracts(localSession.Wrap(), groupBatch, updateStats: true);
 
                         return localSession;
                     },
@@ -146,7 +148,7 @@ namespace JMMServer.Tasks
 
             _log.Info("Creating AnimeGroup_Users and updating plex/kodi contracts");
 
-            List<AnimeGroup_User> animeGroupUsers = allCreatedGroupUsers.SelectMany(groupUsers => groupUsers).ToList();
+            List<SVR_AnimeGroup_User> animeGroupUsers = allCreatedGroupUsers.SelectMany(groupUsers => groupUsers).ToList();
 
             // Insert the AnimeGroup_Users so that they get assigned a primary key before we update plex/kodi contracts
             _animeGroupUserRepo.InsertBatch(session, animeGroupUsers);
@@ -157,7 +159,7 @@ namespace JMMServer.Tasks
 
             // NOTE: There are situations in which UpdatePlexKodiContracts will cause database database writes to occur, so we can't
             // use Parallel.ForEach for the time being (If it was guaranteed to only read then we'd be ok)
-            foreach (AnimeGroup_User groupUser in animeGroupUsers)
+            foreach (SVR_AnimeGroup_User groupUser in animeGroupUsers)
             {
                 groupUser.UpdatePlexKodiContracts(session);
             }
@@ -208,29 +210,29 @@ namespace JMMServer.Tasks
         }
 
         /// <summary>
-        /// Creates a single <see cref="AnimeGroup"/> for each <see cref="AnimeSeries"/> in <paramref name="seriesList"/>.
+        /// Creates a single <see cref="SVR_AnimeGroup"/> for each <see cref="SVR_AnimeSeries"/> in <paramref name="seriesList"/>.
         /// </summary>
         /// <remarks>
         /// This method assumes that there are no active transactions on the specified <paramref name="session"/>.
         /// </remarks>
         /// <param name="session">The NHibernate session.</param>
-        /// <param name="seriesList">The list of <see cref="AnimeSeries"/> to create groups for.</param>
-        /// <returns>A sequence of the created <see cref="AnimeGroup"/>s.</returns>
-        private IEnumerable<AnimeGroup> CreateGroupPerSeries(ISessionWrapper session, IReadOnlyList<AnimeSeries> seriesList)
+        /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
+        /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
+        private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(ISessionWrapper session, IReadOnlyList<SVR_AnimeSeries> seriesList)
         {
             _log.Info("Generating AnimeGroups for {0} AnimeSeries", seriesList.Count);
 
             DateTime now = DateTime.Now;
-            var newGroupsToSeries = new Tuple<AnimeGroup, AnimeSeries>[seriesList.Count];
+            var newGroupsToSeries = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>[seriesList.Count];
 
             // Create one group per series
             for (int grp = 0; grp < seriesList.Count; grp++)
             {
-                AnimeGroup group = new AnimeGroup();
-                AnimeSeries series = seriesList[grp];
+                SVR_AnimeGroup group = new SVR_AnimeGroup();
+                SVR_AnimeSeries series = seriesList[grp];
 
                 group.Populate(series, now);
-                newGroupsToSeries[grp] = new Tuple<AnimeGroup, AnimeSeries>(group, series);
+                newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
             }
 
             using (ITransaction trans = session.BeginTransaction())
@@ -241,7 +243,7 @@ namespace JMMServer.Tasks
 
             // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
             // (The caller of this method will be responsible for saving the AnimeSeries)
-            foreach (Tuple<AnimeGroup, AnimeSeries> groupAndSeries in newGroupsToSeries)
+            foreach (Tuple<SVR_AnimeGroup, SVR_AnimeSeries> groupAndSeries in newGroupsToSeries)
             {
                 groupAndSeries.Item2.AnimeGroupID = groupAndSeries.Item1.AnimeGroupID;
             }
@@ -252,15 +254,15 @@ namespace JMMServer.Tasks
         }
 
         /// <summary>
-        /// Creates <see cref="AnimeGroup"/> that contain <see cref="AnimeSeries"/> that appear to be related.
+        /// Creates <see cref="SVR_AnimeGroup"/> that contain <see cref="SVR_AnimeSeries"/> that appear to be related.
         /// </summary>
         /// <remarks>
         /// This method assumes that there are no active transactions on the specified <paramref name="session"/>.
         /// </remarks>
         /// <param name="session">The NHibernate session.</param>
-        /// <param name="seriesList">The list of <see cref="AnimeSeries"/> to create groups for.</param>
-        /// <returns>A sequence of the created <see cref="AnimeGroup"/>s.</returns>
-        private IEnumerable<AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesList)
+        /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
+        /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
+        private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesList)
         {
             _log.Info("Auto-generating AnimeGroups for {0} AnimeSeries based on aniDB relationships", seriesList.Count);
 
@@ -271,15 +273,15 @@ namespace JMMServer.Tasks
 
             // Group all of the specified series into their respective groups (keyed by the groups main anime ID)
             var seriesByGroup = seriesList.ToLookup(s => grpCalculator.GetGroupAnimeId(s.AniDB_ID));
-            var newGroupsToSeries = new List<Tuple<AnimeGroup, IReadOnlyCollection<AnimeSeries>>>(seriesList.Count);
+            var newGroupsToSeries = new List<Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>>(seriesList.Count);
 
             foreach (var groupAndSeries in seriesByGroup)
             {
                 int mainAnimeId = groupAndSeries.Key;
-                AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
-                AnimeGroup animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, now);
+                SVR_AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
+                SVR_AnimeGroup animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, now);
 
-                newGroupsToSeries.Add(new Tuple<AnimeGroup, IReadOnlyCollection<AnimeSeries>>(animeGroup, groupAndSeries.AsReadOnlyCollection()));
+                newGroupsToSeries.Add(new Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>(animeGroup, groupAndSeries.AsReadOnlyCollection()));
             }
 
             using (ITransaction trans = session.BeginTransaction())
@@ -292,7 +294,7 @@ namespace JMMServer.Tasks
             // (The caller of this method will be responsible for saving the AnimeSeries)
             foreach (var groupAndSeries in newGroupsToSeries)
             {
-                foreach (AnimeSeries series in groupAndSeries.Item2)
+                foreach (SVR_AnimeSeries series in groupAndSeries.Item2)
                 {
                     series.AnimeGroupID = groupAndSeries.Item1.AnimeGroupID;
                 }
@@ -304,19 +306,19 @@ namespace JMMServer.Tasks
         }
 
         /// <summary>
-        /// Creates an <see cref="AnimeGroup"/> instance.
+        /// Creates an <see cref="SVR_AnimeGroup"/> instance.
         /// </summary>
         /// <remarks>
-        /// This method only creates an <see cref="AnimeGroup"/> instance. It does NOT save it to the database.
+        /// This method only creates an <see cref="SVR_AnimeGroup"/> instance. It does NOT save it to the database.
         /// </remarks>
         /// <param name="session">The NHibernate session.</param>
-        /// <param name="mainSeries">The <see cref="AnimeSeries"/> whose name will represent the group (Optional. Pass <c>null</c> if not available).</param>
+        /// <param name="mainSeries">The <see cref="SVR_AnimeSeries"/> whose name will represent the group (Optional. Pass <c>null</c> if not available).</param>
         /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
         /// <param name="now">The current date/time.</param>
-        /// <returns>The created <see cref="AnimeGroup"/>.</returns>
-        private AnimeGroup CreateAnimeGroup(ISessionWrapper session, AnimeSeries mainSeries, int mainAnimeId, DateTime now)
+        /// <returns>The created <see cref="SVR_AnimeGroup"/>.</returns>
+        private SVR_AnimeGroup CreateAnimeGroup(ISessionWrapper session, SVR_AnimeSeries mainSeries, int mainAnimeId, DateTime now)
         {
-            AnimeGroup animeGroup = new AnimeGroup();
+            SVR_AnimeGroup animeGroup = new SVR_AnimeGroup();
             string groupName = null;
 
             if (mainSeries != null)
@@ -326,7 +328,7 @@ namespace JMMServer.Tasks
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
-                AniDB_Anime mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
+                SVR_AniDB_Anime mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
 
                 animeGroup.Populate(mainAnime, now);
                 groupName = mainAnime.GetFormattedTitle();
@@ -340,20 +342,20 @@ namespace JMMServer.Tasks
         }
 
         /// <summary>
-        /// Gets or creates an <see cref="AnimeGroup"/> for the specified series.
+        /// Gets or creates an <see cref="SVR_AnimeGroup"/> for the specified series.
         /// </summary>
         /// <param name="session">The NHibernate session.</param>
         /// <param name="series">The series for which the group is to be created/retrieved (Must be initialised first).</param>
-        /// <returns>The <see cref="AnimeGroup"/> to use for the specified series.</returns>
+        /// <returns>The <see cref="SVR_AnimeGroup"/> to use for the specified series.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="series"/> is <c>null</c>.</exception>
-        public AnimeGroup GetOrCreateSingleGroupForSeries(ISessionWrapper session, AnimeSeries series)
+        public SVR_AnimeGroup GetOrCreateSingleGroupForSeries(ISessionWrapper session, SVR_AnimeSeries series)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
             if (series == null)
                 throw new ArgumentNullException(nameof(series));
 
-            AnimeGroup animeGroup = null;
+            SVR_AnimeGroup animeGroup = null;
 
             if (_autoGroupSeries)
             {
@@ -370,7 +372,7 @@ namespace JMMServer.Tasks
                 {
                     // No existing group was found, so create a new one
                     int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
-                    AnimeSeries mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
+                    SVR_AnimeSeries mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
 
                     animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, DateTime.Now);
                     RepoFactory.AnimeGroup.Save(animeGroup, true, true);
@@ -378,7 +380,7 @@ namespace JMMServer.Tasks
             }
             else // We're not auto grouping (e.g. we're doing group per series)
             {
-                animeGroup = new AnimeGroup();
+                animeGroup = new SVR_AnimeGroup();
                 animeGroup.Populate(series, DateTime.Now);
                 RepoFactory.AnimeGroup.Save(animeGroup, true, true);
             }
@@ -409,9 +411,9 @@ namespace JMMServer.Tasks
 
                 _log.Info("Beginning re-creation of all groups");
 
-                IReadOnlyList<AnimeSeries> animeSeries = RepoFactory.AnimeSeries.GetAll();
-                IReadOnlyCollection<AnimeGroup> createdGroups = null;
-                AnimeGroup tempGroup = null;
+                IReadOnlyList<SVR_AnimeSeries> animeSeries = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyCollection<SVR_AnimeGroup> createdGroups = null;
+                SVR_AnimeGroup tempGroup = null;
 
                 using (ITransaction trans = session.BeginTransaction())
                 {

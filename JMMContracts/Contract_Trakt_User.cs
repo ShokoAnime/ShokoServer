@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     public class Contract_Trakt_User
     {

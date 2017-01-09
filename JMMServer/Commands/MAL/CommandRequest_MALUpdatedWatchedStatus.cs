@@ -7,6 +7,8 @@ using JMMServer.Entities;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Shoko.Models.Server;
+
 
 namespace JMMServer.Commands.MAL
 {
@@ -48,14 +50,14 @@ namespace JMMServer.Commands.MAL
             try
             {
                 // find the latest eps to update
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 List<CrossRef_AniDB_MAL> crossRefs = anime.GetCrossRefMAL();
                 if (crossRefs == null || crossRefs.Count == 0)
                     return;
 
-                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
                 if (ser == null) return;
 
                 MALHelper.UpdateMALSeries(ser);

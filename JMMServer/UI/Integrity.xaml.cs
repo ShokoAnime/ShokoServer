@@ -13,8 +13,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using NutzCode.InMemoryIndex;
+using Shoko.Models;
 
 namespace JMMServer.UI
 {

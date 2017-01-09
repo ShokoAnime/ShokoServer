@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer.Commands.MAL;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -54,7 +55,7 @@ namespace JMMServer.Commands
             {
 
                 vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
-                List<AnimeEpisode> animeEpisodes = new List<AnimeEpisode>();
+                List<SVR_AnimeEpisode> animeEpisodes = new List<SVR_AnimeEpisode>();
                 if (vid != null) animeEpisodes = vid.GetAnimeEpisodes();
 
                 if (vid != null)
@@ -63,7 +64,7 @@ namespace JMMServer.Commands
                     // if the file is already on the user's list
 
                     bool isManualLink = false;
-                    List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
+                    List<SVR_CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
                     if (xrefs.Count > 0)
                         isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
@@ -94,8 +95,8 @@ namespace JMMServer.Commands
                         {
                             if (animeEpisodes.Count > 0)
                             {
-                                AnimeEpisode ep = animeEpisodes[0];
-                                AnimeEpisode_User epUser = null;
+                                SVR_AnimeEpisode ep = animeEpisodes[0];
+                                SVR_AnimeEpisode_User epUser = null;
 
                                 foreach (JMMUser tempuser in aniDBUsers)
                                 {
@@ -117,7 +118,7 @@ namespace JMMServer.Commands
                         }
                     }
 
-                    AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
+                    SVR_AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
                     // all the eps should belong to the same anime
                     ser.QueueUpdateStats();
                     //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
@@ -126,7 +127,7 @@ namespace JMMServer.Commands
                     if (ser != null && ServerSettings.Trakt_IsEnabled &&
                         !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     {
-                        foreach (AnimeEpisode aep in animeEpisodes)
+                        foreach (SVR_AnimeEpisode aep in animeEpisodes)
                         {
                             CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode
                                 (

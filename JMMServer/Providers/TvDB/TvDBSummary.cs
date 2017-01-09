@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NLog;
@@ -17,9 +18,9 @@ namespace JMMServer.Providers.TvDB
         public Dictionary<int, TvDBDetails> TvDetails = new Dictionary<int, TvDBDetails>();
 
         // All the TvDB cross refs for this anime
-        private List<CrossRef_AniDB_TvDBV2> crossRefTvDBV2 = null;
+        private List<SVR_CrossRef_AniDB_TvDBV2> crossRefTvDBV2 = null;
 
-        public List<CrossRef_AniDB_TvDBV2> CrossRefTvDBV2
+        public List<SVR_CrossRef_AniDB_TvDBV2> CrossRefTvDBV2
         {
             get
             {
@@ -151,7 +152,7 @@ namespace JMMServer.Providers.TvDB
         {
             if (CrossRefTvDBV2 == null) return;
 
-            foreach (CrossRef_AniDB_TvDBV2 xref in CrossRefTvDBV2)
+            foreach (SVR_CrossRef_AniDB_TvDBV2 xref in CrossRefTvDBV2)
             {
                 TvDBDetails det = new TvDBDetails(xref.TvDBID);
                 TvDetails[xref.TvDBID] = det;

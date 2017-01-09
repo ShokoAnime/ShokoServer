@@ -4,8 +4,12 @@ using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Repositories;
+using Shoko.Models.Azure;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands.MAL
 {
@@ -53,8 +57,7 @@ namespace JMMServer.Commands.MAL
                 {
                     try
                     {
-                        JMMServer.Providers.Azure.CrossRef_AniDB_MAL crossRef =
-                            JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBMAL(AnimeID);
+                        Azure_CrossRef_AniDB_MAL crossRef = AzureWebAPI.Get_CrossRefAniDBMAL(AnimeID);
                         if (crossRef != null)
                         {
                             logger.Trace("Found MAL match on web cache for {0} - id = {1} ({2}/{3})", AnimeID,
@@ -72,7 +75,7 @@ namespace JMMServer.Commands.MAL
                 }
 
                 string searchCriteria = "";
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 searchCriteria = anime.MainTitle;

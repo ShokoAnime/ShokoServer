@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NLog;
@@ -17,9 +18,9 @@ namespace JMMServer.Providers.TraktTV
         public Dictionary<string, TraktDetailsContainer> TraktDetails = new Dictionary<string, TraktDetailsContainer>();
 
         // All the Trakt cross refs for this anime
-        private List<CrossRef_AniDB_TraktV2> crossRefTraktV2 = null;
+        private List<SVR_CrossRef_AniDB_TraktV2> crossRefTraktV2 = null;
 
-        public List<CrossRef_AniDB_TraktV2> CrossRefTraktV2
+        public List<SVR_CrossRef_AniDB_TraktV2> CrossRefTraktV2
         {
             get
             {
@@ -115,7 +116,7 @@ namespace JMMServer.Providers.TraktTV
         {
             if (CrossRefTraktV2 == null) return;
 
-            foreach (CrossRef_AniDB_TraktV2 xref in CrossRefTraktV2)
+            foreach (SVR_CrossRef_AniDB_TraktV2 xref in CrossRefTraktV2)
             {
                 TraktDetailsContainer det = new TraktDetailsContainer(xref.TraktID);
                 TraktDetails[xref.TraktID] = det;

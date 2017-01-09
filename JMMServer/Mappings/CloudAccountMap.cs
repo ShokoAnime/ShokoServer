@@ -5,10 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class CloudAccountMap : ClassMap<CloudAccount>
+    public class CloudAccountMap : ClassMap<SVR_CloudAccount>
     {
         public CloudAccountMap()
         {

@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class ImportFolderMap : ClassMap<ImportFolder>
+    public class ImportFolderMap : ClassMap<SVR_ImportFolder>
     {
         public ImportFolderMap()
         {

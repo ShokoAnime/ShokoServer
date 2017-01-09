@@ -9,6 +9,7 @@ using AniDBAPI.Commands;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -88,9 +89,9 @@ namespace JMMServer.Commands
                     foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                         onlineFiles[myitem.FileID] = myitem;
 
-                    Dictionary<string, AniDB_File> dictAniFiles = new Dictionary<string, AniDB_File>();
-                    IReadOnlyList<AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
-                    foreach (AniDB_File anifile in allAniFiles)
+                    Dictionary<string, SVR_AniDB_File> dictAniFiles = new Dictionary<string, SVR_AniDB_File>();
+                    IReadOnlyList<SVR_AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
+                    foreach (SVR_AniDB_File anifile in allAniFiles)
                         dictAniFiles[anifile.Hash] = anifile;
 
                     int missingFiles = 0;
@@ -128,14 +129,14 @@ namespace JMMServer.Commands
 
                         string hash = string.Empty;
 
-                        AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                        SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else
                         {
                             // look for manually linked files
-                            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
-                            foreach (CrossRef_File_Episode xref in xrefs)
+                            List<SVR_CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                            foreach (SVR_CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
                                 {

@@ -2,8 +2,8 @@
 using Nancy.Security;
 using System;
 using Nancy.ModelBinding;
-using JMMServer.Entities;
-using JMMContracts;
+using Shoko.Models.Server;
+using Shoko.Models;
 using System.Collections.Generic;
 using System.Threading;
 using System.Globalization;
@@ -12,6 +12,7 @@ using JMMServer.PlexAndKodi;
 using System.IO;
 using JMMServer.Utilities;
 using JMMServer.API.Model.core;
+using JMMServer.Entities;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -471,7 +472,7 @@ namespace JMMServer.API.Module.apiv2
         private object CreateUser()
         {
             Request request = this.Request;
-            Entities.JMMUser _user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser _user = (JMMUser)this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 Contract_JMMUser user = this.Bind();
@@ -500,7 +501,7 @@ namespace JMMServer.API.Module.apiv2
         private object ChangePassword()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             return ChangePassword(user.JMMUserID);
         }
 
@@ -511,7 +512,7 @@ namespace JMMServer.API.Module.apiv2
         private object ChangePassword(int uid)
         {
             Request request = this.Request;
-            Entities.JMMUser _user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser _user = (JMMUser)this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 JMMUser user = this.Bind();
@@ -688,7 +689,7 @@ namespace JMMServer.API.Module.apiv2
         private object SetRotateLogs()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             Logs rotator = this.Bind();
 
             if (user.IsAdmin == 1)

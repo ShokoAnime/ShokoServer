@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class DuplicateFileMap : ClassMap<DuplicateFile>
+    public class DuplicateFileMap : ClassMap<SVR_DuplicateFile>
     {
         public DuplicateFileMap()
         {

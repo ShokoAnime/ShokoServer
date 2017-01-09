@@ -2,8 +2,8 @@
 using System.Globalization;
 using System.Threading;
 using System.Xml;
-using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

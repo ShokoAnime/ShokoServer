@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Similar, int>
+    public class AniDB_Anime_SimilarRepository : BaseDirectRepository<SVR_AniDB_Anime_Similar, int>
     {
 
         private AniDB_Anime_SimilarRepository()
@@ -18,30 +19,30 @@ namespace JMMServer.Repositories.Direct
         {
             return new AniDB_Anime_SimilarRepository();
         }
-        public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(int animeid, int similaranimeid)
+        public SVR_AniDB_Anime_Similar GetByAnimeIDAndSimilarID(int animeid, int similaranimeid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                AniDB_Anime_Similar cr = session
-                    .CreateCriteria(typeof(AniDB_Anime_Similar))
+                SVR_AniDB_Anime_Similar cr = session
+                    .CreateCriteria(typeof(SVR_AniDB_Anime_Similar))
                     .Add(Restrictions.Eq("AnimeID", animeid))
                     .Add(Restrictions.Eq("SimilarAnimeID", similaranimeid))
-                    .UniqueResult<AniDB_Anime_Similar>();
+                    .UniqueResult<SVR_AniDB_Anime_Similar>();
                 return cr;
             }
         }
 
-        public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(ISession session, int animeid, int similaranimeid)
+        public SVR_AniDB_Anime_Similar GetByAnimeIDAndSimilarID(ISession session, int animeid, int similaranimeid)
         {
-            AniDB_Anime_Similar cr = session
-                .CreateCriteria(typeof(AniDB_Anime_Similar))
+            SVR_AniDB_Anime_Similar cr = session
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Similar))
                 .Add(Restrictions.Eq("AnimeID", animeid))
                 .Add(Restrictions.Eq("SimilarAnimeID", similaranimeid))
-                .UniqueResult<AniDB_Anime_Similar>();
+                .UniqueResult<SVR_AniDB_Anime_Similar>();
             return cr;
         }
 
-        public List<AniDB_Anime_Similar> GetByAnimeID(int id)
+        public List<SVR_AniDB_Anime_Similar> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -49,15 +50,15 @@ namespace JMMServer.Repositories.Direct
             }
         }
 
-        public List<AniDB_Anime_Similar> GetByAnimeID(ISession session, int id)
+        public List<SVR_AniDB_Anime_Similar> GetByAnimeID(ISession session, int id)
         {
             var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Similar))
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Similar))
                 .Add(Restrictions.Eq("AnimeID", id))
                 .AddOrder(Order.Desc("Approval"))
-                .List<AniDB_Anime_Similar>();
+                .List<SVR_AniDB_Anime_Similar>();
 
-            return new List<AniDB_Anime_Similar>(cats);
+            return new List<SVR_AniDB_Anime_Similar>(cats);
         }
 
         

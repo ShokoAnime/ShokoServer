@@ -9,6 +9,8 @@ using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -61,7 +63,7 @@ namespace JMMServer.Commands
                 switch (EntityTypeEnum)
                 {
                     case JMMImageType.AniDB_Cover:
-                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(EntityID);
+                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(EntityID);
                         if (anime == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, anime, ForceDownload);
@@ -158,14 +160,14 @@ namespace JMMServer.Commands
                         break;
 
                     case JMMImageType.AniDB_Character:
-                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
+                        SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
                         if (chr == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
                         break;
 
                     case JMMImageType.AniDB_Creator:
-                        AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
+                        SVR_AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
                         if (creator == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
@@ -293,7 +295,7 @@ namespace JMMServer.Commands
             switch (req.ImageType)
             {
                 case JMMImageType.AniDB_Cover:
-                    AniDB_Anime anime = req.ImageData as AniDB_Anime;
+                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     return string.Format(Constants.URLS.AniDB_Images, anime.Picname);
 
                 case JMMImageType.TvDB_Episode:
@@ -342,11 +344,11 @@ namespace JMMServer.Commands
                     return traktEp.EpisodeImage;
 
                 case JMMImageType.AniDB_Character:
-                    AniDB_Character chr = req.ImageData as AniDB_Character;
+                    SVR_AniDB_Character chr = req.ImageData as SVR_AniDB_Character;
                     return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
 
                 case JMMImageType.AniDB_Creator:
-                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
+                    SVR_AniDB_Seiyuu creator = req.ImageData as SVR_AniDB_Seiyuu;
                     return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
 
                 default:
@@ -360,7 +362,7 @@ namespace JMMServer.Commands
             {
                 case JMMImageType.AniDB_Cover:
 
-                    AniDB_Anime anime = req.ImageData as AniDB_Anime;
+                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     return anime.PosterPath;
 
                 case JMMImageType.TvDB_Episode:
@@ -413,11 +415,11 @@ namespace JMMServer.Commands
                     return traktEp.FullImagePath;
 
                 case JMMImageType.AniDB_Character:
-                    AniDB_Character chr = req.ImageData as AniDB_Character;
+                    SVR_AniDB_Character chr = req.ImageData as SVR_AniDB_Character;
                     return chr.PosterPath;
 
                 case JMMImageType.AniDB_Creator:
-                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
+                    SVR_AniDB_Seiyuu creator = req.ImageData as SVR_AniDB_Seiyuu;
                     return creator.PosterPath;
 
                 default:

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands.MAL
 {
@@ -44,9 +45,9 @@ namespace JMMServer.Commands.MAL
                     return;
 
                 // find the latest eps to update
-                IReadOnlyList<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
+                IReadOnlyList<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
 
-                foreach (AniDB_Anime anime in animes)
+                foreach (SVR_AniDB_Anime anime in animes)
                 {
                     CommandRequest_MALUpdatedWatchedStatus cmd =
                         new CommandRequest_MALUpdatedWatchedStatus(anime.AnimeID);

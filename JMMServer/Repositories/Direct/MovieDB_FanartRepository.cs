@@ -4,6 +4,7 @@ using System.Linq;
 using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
@@ -90,7 +91,7 @@ namespace JMMServer.Repositories.Direct
             {
                 var objs = session
                     .CreateCriteria(typeof(MovieDB_Fanart))
-                    .Add(Restrictions.Eq("ImageSize", Constants.MovieDBImageSize.Original))
+                    .Add(Restrictions.Eq("ImageSize", Shoko.Models.Constants.MovieDBImageSize.Original))
                     .List<MovieDB_Fanart>();
 
                 return new List<MovieDB_Fanart>(objs);

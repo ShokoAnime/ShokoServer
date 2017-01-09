@@ -10,7 +10,7 @@ namespace JMMServer.Entities
         public string Hash { get; set; }
         public DateTime DateTimeUpdated { get; set; }
 
-        public void Populate(CrossRef_File_Episode cfe)
+        public void Populate(SVR_CrossRef_File_Episode cfe)
         {
             this.FileName = cfe.FileName;
             this.FileSize = cfe.FileSize;

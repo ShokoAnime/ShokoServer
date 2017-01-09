@@ -1,4 +1,4 @@
-﻿using JMMContracts;
+﻿using Shoko.Models.Client;
 
 namespace JMMServer.WebCache
 {
@@ -18,9 +18,9 @@ namespace JMMServer.WebCache
         {
         }
 
-        public Contract_AppVersions ToContract()
+        public CL_AppVersions ToContract()
         {
-            Contract_AppVersions contract = new Contract_AppVersions();
+            CL_AppVersions contract = new CL_AppVersions();
 
             contract.JMMServerVersion = JMMServerVersion;
             contract.JMMServerDownload = JMMServerDownload;

@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_Anime_DefaultImageMap : ClassMap<AniDB_Anime_DefaultImage>
+    public class AniDB_Anime_DefaultImageMap : ClassMap<SVR_AniDB_Anime_DefaultImage>
     {
         public AniDB_Anime_DefaultImageMap()
         {

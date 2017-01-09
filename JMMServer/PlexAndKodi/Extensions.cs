@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
 using JMMServer.Entities;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using Shoko.Models;
+using Shoko.Models.Client;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -110,7 +112,7 @@ namespace JMMServer.PlexAndKodi
             return prov.ConstructTVThumbLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im, IProvider prov, string fallbackimage = "plex_404V.png")
+        public static string GenPoster(this CL_AniDB_Anime_DefaultImage im, IProvider prov, string fallbackimage = "plex_404V.png")
         {
             if ((im == null) || (im.AnimeID == 0))
                 return prov.ConstructSupportImageLink(fallbackimage);
@@ -124,7 +126,7 @@ namespace JMMServer.PlexAndKodi
             return prov.ConstructThumbLink((int) JMMImageType.TvDB_Episode, ep.TvDB_EpisodeID);
         }
 
-        public static string GenArt(this Contract_AniDB_Anime_DefaultImage im, IProvider prov)
+        public static string GenArt(this CL_AniDB_Anime_DefaultImage im, IProvider prov)
         {
             if (im == null)
                 return null;
@@ -156,16 +158,16 @@ namespace JMMServer.PlexAndKodi
 
         public static void GenerateKey(this Video v, IProvider prov, int userid)
         {
-            switch ((JMMContracts.PlexAndKodi.AnimeTypes)Enum.Parse(typeof(JMMContracts.PlexAndKodi.AnimeTypes),v.AnimeType, true))
+            switch ((Shoko.Models.PlexAndKodi.AnimeTypes)Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes),v.AnimeType, true))
             {
-                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroup:
+                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroup:
                     v.Key = prov.ConstructGroupIdUrl(userid, v.Id);
                     break;
-                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie:
+                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeSerie:
                     v.Key = prov.ConstructSerieIdUrl(userid, v.Id);
                     break;
-                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
-                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
+                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
+                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
                     Helper.AddLinksToAnimeEpisodeVideo(prov, v, userid);
                     AddResumePosition(v,prov,userid);
                     break;
@@ -175,10 +177,10 @@ namespace JMMServer.PlexAndKodi
         public static void AddResumePosition(this Video v, IProvider prov, int userid)
         {
             switch (
-                (JMMContracts.PlexAndKodi.AnimeTypes)
-                    Enum.Parse(typeof(JMMContracts.PlexAndKodi.AnimeTypes), v.AnimeType, true))
+                (Shoko.Models.PlexAndKodi.AnimeTypes)
+                    Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes), v.AnimeType, true))
             {
-                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
+                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                     if (v.Medias!=null)
                     {
                         VideoLocal_User vl=v.Medias.Select(a=> RepoFactory.VideoLocal.GetByID(int.Parse(a.Id))).Where(a => a != null).Select(a => a.GetUserRecord(userid))
@@ -193,7 +195,7 @@ namespace JMMServer.PlexAndKodi
                         }
                     }
                     break;
-                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
+                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
                     int vid = int.Parse(v.Id); //This suxx, but adding regeneration at videolocal_user is worst.
                     VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(vid)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)

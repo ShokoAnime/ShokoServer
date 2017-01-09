@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml.Serialization;
 using JMMServer;
+using Shoko.Commons.Utils;
 
 namespace AniDBAPI
 {
@@ -50,13 +51,13 @@ namespace AniDBAPI
         [XmlIgnore]
         public int AirDateAsSeconds
         {
-            get { return Utils.GetAniDBDateAsSeconds(AirDate); }
+            get { return AniDB.GetAniDBDateAsSeconds(AirDate); }
         }
 
         [XmlIgnore]
         public int EndDateAsSeconds
         {
-            get { return Utils.GetAniDBDateAsSeconds(EndDate); }
+            get { return AniDB.GetAniDBDateAsSeconds(EndDate); }
         }
 
 
@@ -217,8 +218,8 @@ namespace AniDBAPI
             int airDateSeconds = int.Parse(AniDBAPILib.ProcessAniDBString(sDetails[16]));
             int endDateSeconds = int.Parse(AniDBAPILib.ProcessAniDBString(sDetails[17]));
 
-            AirDate = Utils.GetAniDBDateAsDate(airDateSeconds);
-            EndDate = Utils.GetAniDBDateAsDate(endDateSeconds);
+            AirDate = AniDB.GetAniDBDateAsDate(airDateSeconds);
+            EndDate = AniDB.GetAniDBDateAsDate(endDateSeconds);
 
             URL = AniDBAPILib.ProcessAniDBString(sDetails[18]);
             Picname = AniDBAPILib.ProcessAniDBString(sDetails[19]);

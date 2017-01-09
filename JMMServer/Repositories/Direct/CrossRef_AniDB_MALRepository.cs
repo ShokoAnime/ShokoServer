@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Collections;
 using JMMServer.Databases;
-using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 
 namespace JMMServer.Repositories.Direct
 {

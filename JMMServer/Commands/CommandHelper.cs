@@ -3,7 +3,7 @@ using JMMServer.Commands.Azure;
 using JMMServer.Commands.MAL;
 using JMMServer.Commands.TvDB;
 using JMMServer.Commands.WebCache;
-using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

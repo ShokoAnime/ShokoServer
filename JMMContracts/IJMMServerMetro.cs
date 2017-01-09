@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ServiceModel;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     [ServiceContract]
     public interface IJMMServerMetro

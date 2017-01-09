@@ -3,25 +3,23 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Databases;
-using JMMServer.FileHelper;
 using JMMServer.FileHelper.MediaInfo;
 using JMMServer.FileHelper.Subtitles;
 using JMMServer.PlexAndKodi;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using Nancy.Extensions;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Media = JMMContracts.PlexAndKodi.Media;
-using Stream = System.IO.Stream;
+using Shoko.Models;
+using Shoko.Models.PlexAndKodi;
+using Media = Shoko.Models.PlexAndKodi.Media;
 
 namespace JMMServer.Entities
 {
@@ -33,14 +31,14 @@ namespace JMMServer.Entities
         public int ImportFolderID { get; set; }
         public int ImportFolderType { get; set; }
 
-        public ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
+        public SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
 	    public string FullServerPath
 	    {
 		    get
 		    {
-			    if (string.IsNullOrEmpty(ImportFolder?.ParsedImportFolderLocation) || string.IsNullOrEmpty(FilePath)) return null;
-			    return Path.Combine(ImportFolder.ParsedImportFolderLocation, FilePath);
+			    if (string.IsNullOrEmpty(ImportFolder.ImportFolderLocation) || string.IsNullOrEmpty(FilePath)) return null;
+			    return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
 		    }
 	    }
 
@@ -97,7 +95,7 @@ namespace JMMServer.Entities
 	            }
 
 				logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
-				Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+				Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
 				if (tup == null)
 				{
 					logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
@@ -117,8 +115,8 @@ namespace JMMServer.Entities
 	    public void RemoveRecord()
 	    {
 		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
-		    List<AnimeEpisode> episodesToUpdate = new List<AnimeEpisode>();
-		    List<AnimeSeries> seriesToUpdate = new List<AnimeSeries>();
+		    List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
+		    List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
 		    VideoLocal v = VideoLocal;
 		    using (var session = DatabaseFactory.SessionFactory.OpenSession())
 		    {
@@ -139,7 +137,7 @@ namespace JMMServer.Entities
 				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
 			    }
 			    episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-			    foreach (AnimeEpisode ep in episodesToUpdate)
+			    foreach (SVR_AnimeEpisode ep in episodesToUpdate)
 			    {
 				    if (ep.AnimeEpisodeID == 0)
 				    {
@@ -157,7 +155,7 @@ namespace JMMServer.Entities
 				    }
 			    }
 			    seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
-			    foreach (AnimeSeries ser in seriesToUpdate)
+			    foreach (SVR_AnimeSeries ser in seriesToUpdate)
 			    {
 				    ser.QueueUpdateStats();
 			    }
@@ -165,8 +163,8 @@ namespace JMMServer.Entities
 	    }
 
 
-	    public void RemoveRecordWithOpenTransaction(ISession session, ICollection<AnimeEpisode> episodesToUpdate,
-		    ICollection<AnimeSeries> seriesToUpdate)
+	    public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeEpisode> episodesToUpdate,
+		    ICollection<SVR_AnimeSeries> seriesToUpdate)
 	    {
 		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
 		    VideoLocal v = VideoLocal;
@@ -222,7 +220,7 @@ namespace JMMServer.Entities
                 info.Duration = 0;
 
             info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
-            List<JMMContracts.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+            List<Shoko.Models.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
             if (vparts.Count > 0)
             {
                 if (!string.IsNullOrEmpty(vparts[0].Bitrate))
@@ -232,7 +230,7 @@ namespace JMMServer.Entities
                 if (!string.IsNullOrEmpty(vparts[0].FrameRate))
                     info.VideoFrameRate = vparts[0].FrameRate;
             }
-            List<JMMContracts.PlexAndKodi.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+            List<Shoko.Models.PlexAndKodi.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
             if (aparts.Count > 0)
             {
                 if (!string.IsNullOrEmpty(aparts[0].Bitrate))
@@ -245,10 +243,10 @@ namespace JMMServer.Entities
             {
                 logger.Trace($"Getting media info for: {FullServerPath}");
                 Media m=null;
-                List<Providers.Azure.Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
+                List<Shoko.Models.Azure.Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
                 if (webmedias != null && webmedias.Count > 0)
                 {
-                    m = webmedias[0].GetMedia();
+                    m = webmedias[0].ToMedia();
                 }
                 if (m == null)
                 {
@@ -271,7 +269,7 @@ namespace JMMServer.Entities
                     FillVideoInfoFromMedia(info, m);
 
                     m.Id = VideoLocalID.ToString();
-                    List<JMMContracts.PlexAndKodi.Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
+                    List<Shoko.Models.PlexAndKodi.Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
                     if (subs.Count > 0)
                     {
                         m.Parts[0].Streams.AddRange(subs);
@@ -284,7 +282,7 @@ namespace JMMServer.Entities
                         bool vid = false;
                         bool aud = false;
                         bool txt = false;
-                        foreach (JMMContracts.PlexAndKodi.Stream ss in p.Streams.ToArray())
+                        foreach (Shoko.Models.PlexAndKodi.Stream ss in p.Streams.ToArray())
                         {
                             if ((ss.StreamType == "1") && !vid)
                             {
@@ -364,8 +362,8 @@ namespace JMMServer.Entities
                     return;
                 }
                 // find the default destination
-                ImportFolder destFolder = null;
-                foreach (ImportFolder fldr in RepoFactory.ImportFolder.GetAll().Where(a => a.CloudID == ImportFolder.CloudID))
+                SVR_ImportFolder destFolder = null;
+                foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll().Where(a => a.CloudID == ImportFolder.CloudID))
                 {
                     if (fldr.IsDropDestination == 1)
                     {
@@ -381,15 +379,15 @@ namespace JMMServer.Entities
                     return;
 
                 // keep the original drop folder for later (take a copy, not a reference)
-                ImportFolder dropFolder = this.ImportFolder;
+                SVR_ImportFolder dropFolder = this.ImportFolder;
 
                 // we can only move the file if it has an anime associated with it
-                List<CrossRef_File_Episode> xrefs = this.VideoLocal.EpisodeCrossRefs;
+                List<SVR_CrossRef_File_Episode> xrefs = this.VideoLocal.EpisodeCrossRefs;
                 if (xrefs.Count == 0) return;
-                CrossRef_File_Episode xref = xrefs[0];
+                SVR_CrossRef_File_Episode xref = xrefs[0];
 
                 // find the series associated with this episode
-                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                 if (series == null) return;
 
                 // find where the other files are stored for this series
@@ -398,18 +396,18 @@ namespace JMMServer.Entities
                 string newFullPath = "";
 
                 // sort the episodes by air date, so that we will move the file to the location of the latest episode
-                List<AnimeEpisode> allEps = series.GetAnimeEpisodes().OrderByDescending(a => a.AniDB_EpisodeID).ToList();
+                List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes().OrderByDescending(a => a.AniDB_EpisodeID).ToList();
 
                 IDirectory destination = null;
 
-                foreach (AnimeEpisode ep in allEps)
+                foreach (SVR_AnimeEpisode ep in allEps)
                 {
                     // check if this episode belongs to more than one anime
                     // if it does we will ignore it
-                    List<CrossRef_File_Episode> fileEpXrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
+                    List<SVR_CrossRef_File_Episode> fileEpXrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
                     int? animeID = null;
                     bool crossOver = false;
-                    foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
+                    foreach (SVR_CrossRef_File_Episode fileEpXref in fileEpXrefs)
                     {
                         if (!animeID.HasValue)
                             animeID = fileEpXref.AnimeID;
@@ -447,7 +445,7 @@ namespace JMMServer.Entities
                     // we need to create a new folder
                     string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().PreferredTitle);
 
-                    newFullPath =Path.Combine(destFolder.ParsedImportFolderLocation, newFolderName);
+                    newFullPath =Path.Combine(destFolder.ImportFolderLocation, newFolderName);
                     FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
                     if (!dirn.IsOk)
                     {
@@ -471,7 +469,7 @@ namespace JMMServer.Entities
                 }
                 
                 string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
-                Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
+                Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
                 if (tup == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
@@ -592,7 +590,7 @@ namespace JMMServer.Entities
                 ImportFolderID = ImportFolderID,
                 ImportFolderType = ImportFolderType,
                 VideoLocalID = VideoLocalID,
-                ImportFolder = ImportFolder.ToContract(),
+                ImportFolder = ImportFolder,
                 VideoLocal_Place_ID = VideoLocal_Place_ID
             };
             return v;

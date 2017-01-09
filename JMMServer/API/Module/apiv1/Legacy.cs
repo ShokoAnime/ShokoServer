@@ -4,7 +4,7 @@ using Nancy;
 using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using Stream = System.IO.Stream;
 using JMMServer.API.Model.core;
 
@@ -317,7 +317,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object ToggleWatchedStatusOnEpisode_Plex(string userid, string episodeid, string watchedstatus)
         {
-            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.ToggleWatchedStatusOnEpisode(new PlexProvider { Nancy = this }, userid, episodeid, watchedstatus));
+            return Response.AsXml<Shoko.Models.PlexAndKodi.Response>(_impl.ToggleWatchedStatusOnEpisode(new PlexProvider { Nancy = this }, userid, episodeid, watchedstatus));
         }
 
         /// <summary>
@@ -330,7 +330,7 @@ namespace JMMServer.API.Module.apiv1
         /// <returns></returns>
         private object VoteAnime_Plex(string uid, string id, string votevalue, string votetype)
         {
-            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.VoteAnime(new PlexProvider { Nancy = this }, uid, id, votevalue, votetype));
+            return Response.AsXml<Shoko.Models.PlexAndKodi.Response>(_impl.VoteAnime(new PlexProvider { Nancy = this }, uid, id, votevalue, votetype));
         }
 
         #endregion

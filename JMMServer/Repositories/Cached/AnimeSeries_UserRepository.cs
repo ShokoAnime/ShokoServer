@@ -2,24 +2,26 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using JMMContracts;
+using Shoko.Models;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Client;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User, int>
+    public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_User, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private PocoIndex<int, AnimeSeries_User, int> Users;
-        private PocoIndex<int, AnimeSeries_User, int> Series;
-        private PocoIndex<int, AnimeSeries_User, int, int> UsersSeries;
+        private PocoIndex<int, SVR_AnimeSeries_User, int> Users;
+        private PocoIndex<int, SVR_AnimeSeries_User, int> Series;
+        private PocoIndex<int, SVR_AnimeSeries_User, int, int> UsersSeries;
         private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
 
@@ -39,7 +41,7 @@ namespace JMMServer.Repositories.Cached
             return new AnimeSeries_UserRepository();
         }
 
-        protected override int SelectKey(AnimeSeries_User entity)
+        protected override int SelectKey(SVR_AnimeSeries_User entity)
         {
             return entity.AnimeSeries_UserID;
         }
@@ -59,45 +61,45 @@ namespace JMMServer.Repositories.Cached
                 Changes[n].AddOrUpdateRange(Users.GetMultiple(n).Select(a => a.AnimeSeriesID));
             }
             int cnt = 0;
-            List<AnimeSeries_User> sers =
-                Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
+            List<SVR_AnimeSeries_User> sers =
+                Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = sers.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeSeries_User).Name, " DbRegen");
 	        if (max <= 0) return;
-	        foreach (AnimeSeries_User g in sers)
+	        foreach (SVR_AnimeSeries_User g in sers)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeSeries_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeSeries_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
 
 
-        public override void Save(IReadOnlyCollection<AnimeSeries_User> objs)
+        public override void Save(IReadOnlyCollection<SVR_AnimeSeries_User> objs)
         {
-            foreach(AnimeSeries_User s in objs)
+            foreach(SVR_AnimeSeries_User s in objs)
                 Save(s);
         }
 
 
-        public override void Save(AnimeSeries_User obj)
+        public override void Save(SVR_AnimeSeries_User obj)
         {
             lock (obj)
             {
                 UpdatePlexKodiContracts(obj);
-                AnimeSeries_User old;
+                SVR_AnimeSeries_User old;
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    old = session.Get<AnimeSeries_User>(obj.AnimeSeries_UserID);
+                    old = session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
                 }
-                HashSet<GroupFilterConditionType> types = AnimeSeries_User.GetConditionTypesChanged(old, obj);
+                HashSet<GroupFilterConditionType> types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
                 if (!Changes.ContainsKey(obj.JMMUserID))
                     Changes[obj.JMMUserID] = new ChangeTracker<int>();
@@ -108,12 +110,12 @@ namespace JMMServer.Repositories.Cached
             //StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
         }
 
-        private void UpdatePlexKodiContracts(AnimeSeries_User ugrp)
+        private void UpdatePlexKodiContracts(SVR_AnimeSeries_User ugrp)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
-                Contract_AnimeSeries con = ser?.GetUserContract(ugrp.JMMUserID);
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
+                CL_AnimeSeries_User con = ser?.GetUserContract(ugrp.JMMUserID);
                 if (con == null)
                     return;
                 ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(), ugrp.JMMUserID);
@@ -124,25 +126,25 @@ namespace JMMServer.Repositories.Cached
 
 
 
-        public AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
+        public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
             return UsersSeries.GetOne(userid, seriesid);
         }
 
 
-        public List<AnimeSeries_User> GetByUserID(int userid)
+        public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
             return Users.GetMultiple(userid);
         }
 
-        public List<AnimeSeries_User> GetBySeriesID(int seriesid)
+        public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
             return Series.GetMultiple(seriesid);
         }
 
 
 
-        public List<AnimeSeries_User> GetMostRecentlyWatched(int userID)
+        public List<SVR_AnimeSeries_User> GetMostRecentlyWatched(int userID)
         {
             return
                 GetByUserID(userID)

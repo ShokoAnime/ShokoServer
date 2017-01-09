@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer
 {
@@ -26,7 +27,7 @@ namespace JMMServer
             object obj = lbImportFolders.SelectedItem;
             if (obj == null) return;
 
-            ImportFolder ns = (ImportFolder) obj;
+            SVR_ImportFolder ns = (SVR_ImportFolder) obj;
             ImportFolderForm frm = new ImportFolderForm();
             frm.Owner = GetTopParent();
             frm.Init(ns);
@@ -40,9 +41,9 @@ namespace JMMServer
 
             try
             {
-                if (obj.GetType() == typeof(ImportFolder))
+                if (obj.GetType() == typeof(SVR_ImportFolder))
                 {
-                    ImportFolder ns = (ImportFolder) obj;
+                    SVR_ImportFolder ns = (SVR_ImportFolder) obj;
 
                     MessageBoxResult res =
                         MessageBox.Show(
@@ -70,7 +71,7 @@ namespace JMMServer
             {
                 ImportFolderForm frm = new ImportFolderForm();
                 frm.Owner = GetTopParent();
-                frm.Init(new ImportFolder());
+                frm.Init(new SVR_ImportFolder());
                 bool? result = frm.ShowDialog();
 
                 ServerInfo.Instance.RefreshImportFolders();

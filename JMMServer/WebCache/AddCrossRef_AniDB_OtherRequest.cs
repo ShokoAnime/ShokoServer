@@ -2,6 +2,7 @@
 using System.Xml.Serialization;
 using AniDBAPI;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.WebCache
 {
@@ -47,7 +48,7 @@ namespace JMMServer.WebCache
         }
 
         // default constructor
-        public AddCrossRef_AniDB_OtherRequest(CrossRef_AniDB_Other data)
+        public AddCrossRef_AniDB_OtherRequest(SVR_CrossRef_AniDB_Other data)
         {
             this.AnimeID = data.AnimeID;
             this.CrossRefID = data.CrossRefID;

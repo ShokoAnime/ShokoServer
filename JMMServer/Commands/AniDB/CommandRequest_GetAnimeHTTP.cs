@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -48,7 +49,7 @@ namespace JMMServer.Commands
 
             try
             {
-                AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
+                SVR_AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
 
                 // NOTE - related anime are downloaded when the relations are created
 

@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using JMMContracts.PlexAndKodi;
 using JMMServer.Entities;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 
 // ReSharper disable InconsistentNaming
 

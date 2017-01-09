@@ -4,19 +4,22 @@ using System.ComponentModel;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
+    public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private PocoIndex<int, AnimeSeries, int> AniDBIds;
-        private PocoIndex<int, AnimeSeries, int> Groups;
+        private PocoIndex<int, SVR_AnimeSeries, int> AniDBIds;
+        private PocoIndex<int, SVR_AnimeSeries, int> Groups;
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
@@ -33,7 +36,7 @@ namespace JMMServer.Repositories.Cached
                 if (cr.AnimeGroupID > 0)
                 {
                     logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", cr.AnimeGroupID);
-                    AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
+                    SVR_AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
                     if (oldGroup != null)
                         RepoFactory.AnimeGroup.Save(oldGroup, true, true);
                 }
@@ -46,7 +49,7 @@ namespace JMMServer.Repositories.Cached
             return new AnimeSeriesRepository();
         }
 
-        protected override int SelectKey(AnimeSeries entity)
+        protected override int SelectKey(SVR_AnimeSeries entity)
         {
             return entity.AnimeSeriesID;
         }
@@ -61,24 +64,24 @@ namespace JMMServer.Repositories.Cached
         public override void RegenerateDb()
         {
             int cnt = 0;
-            List<AnimeSeries> sers =
+            List<SVR_AnimeSeries> sers =
                 Cache.Values.Where(
-                    a => a.ContractVersion < AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime?.AniDBAnime == null)
+                    a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime?.AniDBAnime == null)
                     .ToList();
             int max = sers.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeSeries).Name, " DbRegen");
 	        if (max <= 0) return;
-	        foreach (AnimeSeries s in sers)
+	        foreach (SVR_AnimeSeries s in sers)
             {
                 Save(s, false, false, true);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeSeries).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeSeries).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
@@ -94,21 +97,21 @@ namespace JMMServer.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(AnimeSeries obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_AnimeSeries obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<AnimeSeries> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_AnimeSeries> objs) { throw new NotSupportedException(); }
 
 
-        public void Save(AnimeSeries obj, bool onlyupdatestats)
+        public void Save(SVR_AnimeSeries obj, bool onlyupdatestats)
         {
             Save(obj, true, onlyupdatestats);
         }
 
-        public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false, bool alsoupdateepisodes=false)
+        public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false, bool alsoupdateepisodes=false)
         {
             bool newSeries = false;
-            AnimeGroup oldGroup = null;
+            SVR_AnimeGroup oldGroup = null;
 			bool isMigrating = false;
             lock (obj)
             {
@@ -117,10 +120,10 @@ namespace JMMServer.Repositories.Cached
                 else
                 {
                     // get the old version from the DB
-                    AnimeSeries oldSeries;
+                    SVR_AnimeSeries oldSeries;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        oldSeries = session.Get<AnimeSeries>(obj.AnimeSeriesID);
+                        oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
                     }
                     if (oldSeries != null)
                     {
@@ -128,7 +131,7 @@ namespace JMMServer.Repositories.Cached
                         if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
                         {
                             oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
-							AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+							SVR_AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
 							if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
 								isMigrating = true;
                             newSeries = true;
@@ -153,7 +156,7 @@ namespace JMMServer.Repositories.Cached
 			                endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
 	                }
 	                RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false,
-                        obj.Contract?.AniDBAnime?.AniDBAnime?.AllTags, allyears);
+                        obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears);
                     //This call will create extra years or tags if the Group have a new year or tag
                     obj.UpdateGroupFilters(types, null);
                 }
@@ -162,7 +165,7 @@ namespace JMMServer.Repositories.Cached
             if (updateGroups && !isMigrating)
             {
                 logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
-                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                 if (grp != null)
                     RepoFactory.AnimeGroup.Save(grp, true, true);
 
@@ -174,12 +177,12 @@ namespace JMMServer.Repositories.Cached
             }
             if (alsoupdateepisodes)
             {
-                List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
+                List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
                 RepoFactory.AnimeEpisode.Save(eps);
             }
         }
 
-        public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesBatch)
+        public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesBatch)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -191,14 +194,14 @@ namespace JMMServer.Repositories.Cached
                 return;
             }
 
-            foreach (AnimeSeries series in seriesBatch)
+            foreach (SVR_AnimeSeries series in seriesBatch)
             {
                 session.Update(series);
                 Changes.AddOrUpdate(series.AnimeSeriesID);
             }
         }
 
-        public AnimeSeries GetByAnimeID(int id)
+        public SVR_AnimeSeries GetByAnimeID(int id)
         {
             return AniDBIds.GetOne(id);
         }
@@ -206,13 +209,13 @@ namespace JMMServer.Repositories.Cached
 
 
 
-        public List<AnimeSeries> GetByGroupID(int groupid)
+        public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
             return Groups.GetMultiple(groupid);
         }
 
 
-        public List<AnimeSeries> GetWithMissingEpisodes()
+        public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
             return
                 Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
@@ -220,7 +223,7 @@ namespace JMMServer.Repositories.Cached
                     .ToList();
         }
 
-        public List<AnimeSeries> GetMostRecentlyAdded(int maxResults)
+        public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
         }

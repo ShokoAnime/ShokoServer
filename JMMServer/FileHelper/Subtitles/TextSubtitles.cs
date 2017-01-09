@@ -2,8 +2,9 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
-using Stream = JMMContracts.PlexAndKodi.Stream;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 using Path = Pri.LongPath.Path;
 using File = Pri.LongPath.File;
 

@@ -1,21 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JMMContracts;
 using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
+using Shoko.Models;
+using Shoko.Models.Client;
 
 namespace JMMServer.Repositories
 {
-    public class AniDB_AnimeRepository : BaseCachedRepository<AniDB_Anime, int>
+    public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
     {
 
-        private static PocoIndex<int, AniDB_Anime, int> Animes;
+        private static PocoIndex<int, SVR_AniDB_Anime, int> Animes;
 
         private AniDB_AnimeRepository()
         {
@@ -27,14 +29,14 @@ namespace JMMServer.Repositories
             return new AniDB_AnimeRepository();
         }
 
-        protected override int SelectKey(AniDB_Anime entity)
+        protected override int SelectKey(SVR_AniDB_Anime entity)
         {
             return entity.AniDB_AnimeID;
         }
 
         public override void PopulateIndexes()
         {
-            Animes = new PocoIndex<int, AniDB_Anime, int>(Cache, a => a.AnimeID);
+            Animes = new PocoIndex<int, SVR_AniDB_Anime, int>(Cache, a => a.AnimeID);
         }
 
         public override void RegenerateDb()
@@ -43,21 +45,21 @@ namespace JMMServer.Repositories
             {
                 const int batchSize = 50;
                 ISessionWrapper sessionWrapper = session.Wrap();
-                IList<AniDB_Anime> animeToUpdate = session.CreateCriteria<AniDB_Anime>()
-                    .Add(Restrictions.Lt(nameof(AniDB_Anime.ContractVersion), AniDB_Anime.CONTRACT_VERSION))
-                    .List<AniDB_Anime>();
+                IList<SVR_AniDB_Anime> animeToUpdate = session.CreateCriteria<SVR_AniDB_Anime>()
+                    .Add(Restrictions.Lt(nameof(SVR_AniDB_Anime.ContractVersion), SVR_AniDB_Anime.CONTRACT_VERSION))
+                    .List<SVR_AniDB_Anime>();
                 int max = animeToUpdate.Count;
                 int count = 0;
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen");
+                ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(SVR_AniDB_Anime).Name, " DbRegen");
 	            if (max <= 0) return;
-                foreach (AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
+                foreach (SVR_AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
                 {
-                    AniDB_Anime.UpdateContractDetailedBatch(sessionWrapper, animeBatch);
+                    SVR_AniDB_Anime.UpdateContractDetailedBatch(sessionWrapper, animeBatch);
 
                     using (ITransaction trans = session.BeginTransaction())
                     {
-                        foreach (AniDB_Anime anime in animeBatch)
+                        foreach (SVR_AniDB_Anime anime in animeBatch)
                         {
                             session.Update(anime);
                             count++;
@@ -66,22 +68,22 @@ namespace JMMServer.Repositories
                         trans.Commit();
                     }
 
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen - " + count + "/" + max);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(SVR_AniDB_Anime).Name, " DbRegen - " + count + "/" + max);
                 }
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen - " + max + "/" + max);
+                ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(SVR_AniDB_Anime).Name, " DbRegen - " + max + "/" + max);
             }
         }
 
 
 
-        public override void Save(IReadOnlyCollection<AniDB_Anime> objs)
+        public override void Save(IReadOnlyCollection<SVR_AniDB_Anime> objs)
         {
-            foreach(AniDB_Anime o in objs)
+            foreach(SVR_AniDB_Anime o in objs)
                 Save(o);
         }
 
-        public override void Save(AniDB_Anime obj)
+        public override void Save(SVR_AniDB_Anime obj)
         {
             lock (obj)
             {
@@ -104,37 +106,37 @@ namespace JMMServer.Repositories
 
 
 
-        public AniDB_Anime GetByAnimeID(int id)
+        public SVR_AniDB_Anime GetByAnimeID(int id)
         {
             return Animes.GetOne(id);
         }
 
-        public AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
+        public SVR_AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
         {
             return Animes.GetOne(id);
         }
 
-        public List<AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
+        public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
             return Cache.Values.Where(a=>a.AirDate.HasValue && a.AirDate.Value>=startDate && a.AirDate.Value<=endDate).ToList();
         }
 
-        public List<AniDB_Anime> GetForDate(ISession session, DateTime startDate, DateTime endDate)
+        public List<SVR_AniDB_Anime> GetForDate(ISession session, DateTime startDate, DateTime endDate)
         {
             return Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
         }
 
-        public List<AniDB_Anime> SearchByName(ISession session, string queryText)
+        public List<SVR_AniDB_Anime> SearchByName(ISession session, string queryText)
         {
             return Cache.Values.Where(a=>a.AllTitles.IndexOf(queryText,StringComparison.InvariantCultureIgnoreCase)>=0).ToList();
         }
 
-        public List<AniDB_Anime> SearchByName(string queryText)
+        public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
             return Cache.Values.Where(a => a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
         }
 
-        public List<AniDB_Anime> SearchByTag(string queryText)
+        public List<SVR_AniDB_Anime> SearchByTag(string queryText)
         {
             return Cache.Values.Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
         }
@@ -172,7 +174,7 @@ namespace JMMServer.Repositories
                         LEFT OUTER JOIN Trakt_ImagePoster AS traktPoster
                             ON traktPoster.Trakt_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = :traktPosterType
                     WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType, :traktFanartType, :traktPosterType)")
-                .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
+                .AddEntity("defImg", typeof(SVR_AniDB_Anime_DefaultImage))
                 .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
                 .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
                 .AddEntity("tvFanart", typeof(TvDB_ImageFanart))
@@ -192,7 +194,7 @@ namespace JMMServer.Repositories
 
             foreach (object[] result in results)
             {
-                var aniDbDefImage = (AniDB_Anime_DefaultImage)result[0];
+                var aniDbDefImage = (SVR_AniDB_Anime_DefaultImage)result[0];
                 IImageEntity parentImage = null;
 
                 switch ((JMMImageType)aniDbDefImage.ImageParentType)
@@ -254,21 +256,21 @@ namespace JMMServer.Repositories
 
     public class DefaultAnimeImages
     {
-        public Contract_AniDB_Anime_DefaultImage GetPosterContractNoBlanks()
+        public CL_AniDB_Anime_DefaultImage GetPosterContractNoBlanks()
         {
             if (Poster != null)
             {
                 return Poster.ToContract();
             }
 
-            return new Contract_AniDB_Anime_DefaultImage
+            return new CL_AniDB_Anime_DefaultImage
                 {
                     AnimeID = AnimeID,
                     ImageType = (int)JMMImageType.AniDB_Cover
                 };
         }
 
-        public Contract_AniDB_Anime_DefaultImage GetFanartContractNoBlanks(Contract_AniDBAnime anime)
+        public CL_AniDB_Anime_DefaultImage GetFanartContractNoBlanks(CL_AniDB_Anime anime)
         {
             if (anime == null)
                 throw new ArgumentNullException(nameof(anime));
@@ -278,7 +280,7 @@ namespace JMMServer.Repositories
                 return Fanart.ToContract();
             }
 
-            List<Contract_AniDB_Anime_DefaultImage> fanarts = anime.Fanarts;
+            List<CL_AniDB_Anime_DefaultImage> fanarts = anime.Fanarts;
 
             if (fanarts == null || fanarts.Count == 0)
             {
@@ -307,7 +309,7 @@ namespace JMMServer.Repositories
     {
         private readonly IImageEntity _parentImage;
 
-        public DefaultAnimeImage(AniDB_Anime_DefaultImage aniDbImage, IImageEntity parentImage)
+        public DefaultAnimeImage(SVR_AniDB_Anime_DefaultImage aniDbImage, IImageEntity parentImage)
         {
             if (aniDbImage == null)
                 throw new ArgumentNullException(nameof(aniDbImage));
@@ -318,16 +320,16 @@ namespace JMMServer.Repositories
             _parentImage = parentImage;
         }
 
-        public Contract_AniDB_Anime_DefaultImage ToContract()
+        public CL_AniDB_Anime_DefaultImage ToContract()
         {
-            return AniDBImage.ToContract(_parentImage);
+            return AniDBImage.ToClient(_parentImage);
         }
 
         public TImageType GetParentImage<TImageType>() where TImageType : class, IImageEntity  => _parentImage as TImageType;
 
         public ImageSizeType AniDBImageSizeType => (ImageSizeType)AniDBImage.ImageType;
 
-        public AniDB_Anime_DefaultImage AniDBImage { get; private set; }
+        public SVR_AniDB_Anime_DefaultImage AniDBImage { get; private set; }
 
         public JMMImageType ParentImageType => (JMMImageType)AniDBImage.ImageParentType;
     }

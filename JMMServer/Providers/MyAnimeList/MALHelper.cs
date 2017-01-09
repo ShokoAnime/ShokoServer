@@ -9,7 +9,7 @@ using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using AniDBAPI;
-using JMMContracts;
+using Shoko.Models;
 using JMMServer.Commands.MAL;
 using JMMServer.Commands.WebCache;
 using JMMServer.Entities;
@@ -17,6 +17,9 @@ using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer.Providers.MyAnimeList
 {
@@ -276,7 +279,7 @@ namespace JMMServer.Providers.MyAnimeList
                 xref.CrossRefSource = (int) CrossRefSource.User;
 
             RepoFactory.CrossRef_AniDB_MAL.Save(xref);
-            AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
 
             logger.Trace("Changed MAL association: {0}", animeID);
@@ -296,7 +299,7 @@ namespace JMMServer.Providers.MyAnimeList
 
             RepoFactory.CrossRef_AniDB_MAL.Delete(xref.CrossRef_AniDB_MALID);
 
-            AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(animeID,
                 epType,
@@ -312,14 +315,14 @@ namespace JMMServer.Providers.MyAnimeList
                 return;
             }
 
-            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            foreach (AnimeSeries ser in allSeries)
+            foreach (SVR_AnimeSeries ser in allSeries)
             {
-                AniDB_Anime anime = ser.GetAnime();
+                SVR_AniDB_Anime anime = ser.GetAnime();
                 if (anime == null) continue;
 
-                if (anime.IsMALLinkDisabled) continue;
+                if (anime.GetIsMALLinkDisabled()) continue;
 
                 // don't scan if it is associated on the TvDB
                 List<CrossRef_AniDB_MAL> xrefs = anime.GetCrossRefMAL();
@@ -390,7 +393,7 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 		}*/
 
-        public static void UpdateMALSeries(AnimeSeries ser)
+        public static void UpdateMALSeries(SVR_AnimeSeries ser)
         {
             try
             {
@@ -422,7 +425,7 @@ namespace JMMServer.Providers.MyAnimeList
                     return;
                 }
 
-                List<AnimeEpisode> eps = ser.GetAnimeEpisodes();
+                List<SVR_AnimeEpisode> eps = ser.GetAnimeEpisodes();
 
                 // find the anidb user
                 List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
@@ -455,7 +458,7 @@ namespace JMMServer.Providers.MyAnimeList
                     int lastWatchedEpNumber = 0;
                     int downloadedEps = 0;
 
-                    foreach (AnimeEpisode ep in eps)
+                    foreach (SVR_AnimeEpisode ep in eps)
                     {
                         int epNum = ep.AniDB_Episode.EpisodeNumber;
                         if (xref.StartEpisodeType == (int) ep.EpisodeTypeEnum && epNum >= xref.StartEpisodeNumber &&
@@ -467,16 +470,16 @@ namespace JMMServer.Providers.MyAnimeList
                             // find the total episode count
                             if (totalEpCount < 0)
                             {
-                                if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
+                                if (ep.EpisodeTypeEnum == enEpisodeType.Episode)
                                     totalEpCount = ser.GetAnime().EpisodeCountNormal;
-                                if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
+                                if (ep.EpisodeTypeEnum == enEpisodeType.Special)
                                     totalEpCount = ser.GetAnime().EpisodeCountSpecial;
                                 totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
                             }
 
                             // any episodes here belong to the MAL series
                             // find the latest watched episod enumber
-                            AnimeEpisode_User usrRecord = ep.GetUserRecord(user.JMMUserID);
+                            SVR_AnimeEpisode_User usrRecord = ep.GetUserRecord(user.JMMUserID);
                             if (usrRecord != null && usrRecord.WatchedDate.HasValue && epNum > lastWatchedEpNumber)
                             {
                                 lastWatchedEpNumber = epNum;

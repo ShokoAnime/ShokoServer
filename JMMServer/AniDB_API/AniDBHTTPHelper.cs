@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer;
 using JMMServer.AniDB_API.Raws;
 using NLog;
+using Shoko.Commons.Utils;
 
 namespace AniDBAPI
 {
@@ -179,14 +180,14 @@ namespace AniDBAPI
             anime.EpisodeCount = epCount;
             anime.EpisodeCountNormal = epCount;
 
-            int convertedAirDate = Utils.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "startdate"), true);
-            int convertedEndDate = Utils.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "enddate"), false);
+            int convertedAirDate = AniDB.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "startdate"), true);
+            int convertedEndDate = AniDB.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "enddate"), false);
 
             //anime.AirDate = TryGetProperty(docAnime, "anime", "startdate");
             //anime.EndDate = TryGetProperty(docAnime, "anime", "enddate");
 
-            anime.AirDate = Utils.GetAniDBDateAsDate(convertedAirDate);
-            anime.EndDate = Utils.GetAniDBDateAsDate(convertedEndDate);
+            anime.AirDate = AniDB.GetAniDBDateAsDate(convertedAirDate);
+            anime.EndDate = AniDB.GetAniDBDateAsDate(convertedEndDate);
 
             anime.BeginYear = anime.AirDate.HasValue ? anime.AirDate.Value.Year : 0;
             anime.EndYear = anime.EndDate.HasValue ? anime.EndDate.Value.Year : 0;

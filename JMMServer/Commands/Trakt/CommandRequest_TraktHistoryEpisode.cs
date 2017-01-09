@@ -6,6 +6,7 @@ using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -55,7 +56,7 @@ namespace JMMServer.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
                 if (ep != null)
                 {
                     TraktSyncType syncType = TraktSyncType.HistoryAdd;

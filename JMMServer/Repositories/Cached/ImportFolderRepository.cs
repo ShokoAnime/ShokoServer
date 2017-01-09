@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class ImportFolderRepository : BaseCachedRepository<ImportFolder,int>
+    public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder,int>
     {
         private ImportFolderRepository()
         {
         }
 
-        protected override int SelectKey(ImportFolder entity)
+        protected override int SelectKey(SVR_ImportFolder entity)
         {
             return entity.ImportFolderID;
         }
@@ -29,12 +30,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new ImportFolderRepository();
         }
-        public ImportFolder GetByImportLocation(string importloc)
+        public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc || a.ParsedImportFolderLocation==importloc);
+            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc || a.ImportFolderLocation == importloc);
         }
 
-        public List<ImportFolder> GetByCloudId(int cloudid)
+        public List<SVR_ImportFolder> GetByCloudId(int cloudid)
         {
             return Cache.Values.Where(a=>a.CloudID.HasValue && a.CloudID.Value==cloudid).ToList();
         }

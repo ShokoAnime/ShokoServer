@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using JMMContracts;
+using Shoko.Models;
 using NLog;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;

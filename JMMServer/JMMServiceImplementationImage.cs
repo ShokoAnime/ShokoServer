@@ -1,6 +1,7 @@
 ﻿using System.IO;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NLog;
@@ -27,7 +28,7 @@ namespace JMMServer
             {
                 case JMMImageType.AniDB_Cover:
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(entityID));
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(entityID));
                     if (anime == null) return null;
 
 					if (File.Exists(anime.PosterPath))
@@ -42,7 +43,7 @@ namespace JMMServer
 					}
 
                 case JMMImageType.AniDB_Character:
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(entityID));
+                    SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(entityID));
                     if (chr == null) return null;
 
                     if (File.Exists(chr.PosterPath))
@@ -57,7 +58,7 @@ namespace JMMServer
                     }
 
                 case JMMImageType.AniDB_Creator:
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(entityID));
+                    SVR_AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(entityID));
                     if (creator == null) return null;
 
 					if (File.Exists(creator.PosterPath))

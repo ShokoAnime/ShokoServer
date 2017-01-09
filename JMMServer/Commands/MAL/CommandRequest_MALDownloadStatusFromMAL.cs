@@ -8,6 +8,8 @@ using JMMServer.Providers.MyAnimeList;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
+
 
 namespace JMMServer.Commands.MAL
 {
@@ -79,12 +81,12 @@ namespace JMMServer.Commands.MAL
                     int startEpNumber = xref.StartEpisodeNumber;
                     int endEpNumber = GetUpperEpisodeLimit(allXrefs, xref);
 
-                    List<AniDB_Episode> aniEps = RepoFactory.AniDB_Episode.GetByAnimeID(xref.AnimeID);
-                    foreach (AniDB_Episode aniep in aniEps)
+                    List<SVR_AniDB_Episode> aniEps = RepoFactory.AniDB_Episode.GetByAnimeID(xref.AnimeID);
+                    foreach (SVR_AniDB_Episode aniep in aniEps)
                     {
                         if (aniep.EpisodeType != xref.StartEpisodeType) continue;
 
-                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
+                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                         if (ep == null) continue;
 
                         int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;
@@ -92,7 +94,7 @@ namespace JMMServer.Commands.MAL
 
                         if (epNum < startEpNumber || epNum > endEpNumber) continue;
 
-                        AnimeEpisode_User usrRec = ep.GetUserRecord(user.JMMUserID);
+                        SVR_AnimeEpisode_User usrRec = ep.GetUserRecord(user.JMMUserID);
 
                         if (epNum <= adjustedWatchedEps)
                         {

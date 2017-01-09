@@ -1,4 +1,6 @@
-﻿namespace JMMServer
+﻿using Shoko.Models;
+
+namespace JMMServer
 {
     public class GroupFilterSortingCriteria
     {

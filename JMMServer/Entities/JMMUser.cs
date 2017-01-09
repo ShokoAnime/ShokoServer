@@ -1,9 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using JMMContracts;
+﻿using System.Collections.Generic;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using NHibernate;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Server;
 
 namespace JMMServer.Entities
 {
@@ -38,18 +40,18 @@ namespace JMMServer.Entities
         /// </summary>
         /// <param name="ser"></param>
         /// <returns></returns>
-        public bool AllowedSeries(ISession session, AnimeSeries ser)
+        public bool AllowedSeries(ISession session, SVR_AnimeSeries ser)
         {
             if (Contract.HideCategories.Count == 0) return true;
             if (ser?.Contract?.AniDBAnime == null) return false;
-            return !Contract.HideCategories.FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.AllTags);
+            return !Contract.HideCategories.FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.GetAllTags());
         }
 
-        public bool AllowedSeries(AnimeSeries ser)
+        public bool AllowedSeries(SVR_AnimeSeries ser)
         {
             if (Contract.HideCategories.Count == 0) return true;
             if (ser?.Contract?.AniDBAnime == null) return false;
-            return !Contract.HideCategories.FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.AllTags);
+            return !Contract.HideCategories.FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.GetAllTags());
         }
 
         /// <summary>
@@ -57,14 +59,14 @@ namespace JMMServer.Entities
         /// </summary>
         /// <param name="ser"></param>
         /// <returns></returns>
-        public bool AllowedAnime(AniDB_Anime anime)
+        public bool AllowedAnime(SVR_AniDB_Anime anime)
         {
             if (Contract.HideCategories.Count == 0) return true;
             if (anime?.Contract?.AnimeTitles == null) return false;
-            return !Contract.HideCategories.FindInEnumerable(anime.Contract.AniDBAnime.AllTags);
+            return !Contract.HideCategories.FindInEnumerable(anime.Contract.AniDBAnime.GetAllTags());
         }
 
-        public bool AllowedGroup(AnimeGroup grp)
+        public bool AllowedGroup(SVR_AnimeGroup grp)
         {
             if (Contract.HideCategories.Count == 0) return true;
             if (grp.Contract == null) return false;
@@ -81,19 +83,19 @@ namespace JMMServer.Entities
         public void UpdateGroupFilters()
         {
             IReadOnlyList<GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
-            List<AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
-            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            List<SVR_AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
+            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
             foreach (GroupFilter gf in gfs)
             {
                 bool change = false;
-                foreach (AnimeGroup grp in allGrps)
+                foreach (SVR_AnimeGroup grp in allGrps)
                 {
-                    Contract_AnimeGroup cgrp = grp.GetUserContract(this.JMMUserID);
+                    CL_AnimeGroup_User cgrp = grp.GetUserContract(this.JMMUserID);
                     change |= gf.CalculateGroupFilterGroups(cgrp, Contract, JMMUserID);
                 }
-                foreach (AnimeSeries ser in allSeries)
+                foreach (SVR_AnimeSeries ser in allSeries)
                 {
-                    Contract_AnimeSeries cser = ser.GetUserContract(this.JMMUserID);
+                    CL_AnimeSeries_User cser = ser.GetUserContract(this.JMMUserID);
                     change |= gf.CalculateGroupFilterSeries(cser, Contract, JMMUserID);
                 }
                 if (change)

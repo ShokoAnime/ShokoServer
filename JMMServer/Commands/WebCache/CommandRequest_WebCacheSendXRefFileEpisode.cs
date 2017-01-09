@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Xml;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -39,10 +41,10 @@ namespace JMMServer.Commands
         {
             try
             {
-                CrossRef_File_Episode xref = RepoFactory.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
+                SVR_CrossRef_File_Episode xref = RepoFactory.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
                 if (xref == null) return;
 
-                JMMServer.Providers.Azure.AzureWebAPI.Send_CrossRefFileEpisode(xref);
+                AzureWebAPI.Send_CrossRefFileEpisode(xref);
             }
             catch (Exception ex)
             {

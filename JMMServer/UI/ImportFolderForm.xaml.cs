@@ -3,8 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using FluentNHibernate.Utils;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Server;
 
 //using System.Windows.Media;
 //using System.Windows.Media.Imaging;
@@ -17,7 +19,7 @@ namespace JMMServer
     /// </summary>
     public partial class ImportFolderForm : Window
     {
-        private ImportFolder importFldr = null;
+        private SVR_ImportFolder importFldr = null;
 
         public ImportFolderForm()
         {
@@ -86,7 +88,7 @@ namespace JMMServer
             if (comboProvider.SelectedIndex == 0)
                 importFldr.CloudID = null;
             else
-                importFldr.CloudID = ((CloudAccount)comboProvider.SelectedItem).CloudID;
+                importFldr.CloudID = ((SVR_CloudAccount)comboProvider.SelectedItem).CloudID;
         }
 
         void btnChooseFolder_Click(object sender, RoutedEventArgs e)
@@ -140,11 +142,8 @@ namespace JMMServer
                     return;
                 }
 
-                Contract_ImportFolder contract = new Contract_ImportFolder();
-                if (importFldr.ImportFolderID == 0)
-                    contract.ImportFolderID = null;
-                else
-                    contract.ImportFolderID = importFldr.ImportFolderID;
+                ImportFolder contract = new ImportFolder();
+                contract.ImportFolderID = importFldr.ImportFolderID;
                 contract.ImportFolderType = (int)(importFldr.CloudID.HasValue ? ImportFolderType.Cloud : ImportFolderType.HDD);
                 contract.ImportFolderName = "NA";
                 contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
@@ -154,9 +153,9 @@ namespace JMMServer
                 if (comboProvider.SelectedIndex == 0)
                     contract.CloudID = null;
                 else
-                    contract.CloudID = ((CloudAccount) comboProvider.SelectedItem).CloudID;
+                    contract.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
                 JMMServiceImplementation imp = new JMMServiceImplementation();
-                Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
+                CL_ImportFolder_Save_Response response = imp.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
                     MessageBox.Show(response.ErrorMessage, JMMServer.Properties.Resources.Error, MessageBoxButton.OK,
                         MessageBoxImage.Error);
@@ -178,12 +177,12 @@ namespace JMMServer
             this.Close();
         }
 
-        public void Init(ImportFolder ifldr)
+        public void Init(SVR_ImportFolder ifldr)
         {
             try
             {
                 ServerInfo.Instance.RefreshFolderProviders();
-                importFldr = new ImportFolder()
+                importFldr = new SVR_ImportFolder()
                 {
                     ImportFolderID = ifldr.ImportFolderID,
                     ImportFolderType = ifldr.ImportFolderType,

@@ -1,4 +1,4 @@
-﻿using JMMServer.Entities;
+﻿using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

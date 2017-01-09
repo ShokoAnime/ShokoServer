@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using NLog;
@@ -159,21 +160,21 @@ namespace JMMServer
         }
         public bool EnableConnect => (comboProvider.SelectedIndex >= 0 && !string.IsNullOrEmpty(txtCloudAccountName.Text));
 
-        private CloudAccount WorkingAccount;
-        private CloudAccount SaveAccount;
+        private SVR_CloudAccount WorkingAccount;
+        private SVR_CloudAccount SaveAccount;
 
-        public void Init(CloudAccount account)
+        public void Init(SVR_CloudAccount account)
         {
 
             SaveAccount = account;
 
-            WorkingAccount = account != null ? new CloudAccount
+            WorkingAccount = account != null ? new SVR_CloudAccount
             {
                 CloudID=account.CloudID,
                 Name=account.Name,
                 ConnectionString = account.ConnectionString,
                 Provider=account.Provider
-        } : new CloudAccount();
+        } : new SVR_CloudAccount();
             SetConnectStatus();
             try
             {

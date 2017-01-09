@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using JMMContracts;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
+using Shoko.Models;
 
 namespace JMMServer.Entities
 {

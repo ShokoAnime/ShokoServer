@@ -1,4 +1,6 @@
-﻿namespace JMMServer.ImageDownload
+﻿using Shoko.Models;
+
+namespace JMMServer.ImageDownload
 {
     public class ImageDownloadRequest
     {

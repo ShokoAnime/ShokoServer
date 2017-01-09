@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -50,7 +51,7 @@ namespace JMMServer.Commands
 
                 // we will always assume that an anime was downloaded via http first
              
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
                 if (anime != null)
                 {

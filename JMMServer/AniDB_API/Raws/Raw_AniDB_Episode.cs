@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Text;
 using System.Xml;
 using JMMServer;
+using Shoko.Commons.Utils;
+using Shoko.Models.Enums;
 
 namespace AniDBAPI
 {
@@ -154,7 +156,7 @@ namespace AniDBAPI
 			<title xml:lang="x-jat">Asahina Mikuru no Bouken Episode 00</title>*/
             string adate = AniDBHTTPHelper.TryGetProperty(node, "airdate");
 
-            AirDate = Utils.GetAniDBDateAsSeconds(adate, true);
+            AirDate = AniDB.GetAniDBDateAsSeconds(adate, true);
 
             //BaseConfig.MyAnimeLog.Write("EPISODE: {0}: {1}", epno.Trim(), this.ToString());
         }
@@ -344,20 +346,5 @@ namespace AniDBAPI
         }
     }
 
-    public enum enEpisodeSourceType
-    {
-        File = 1,
-        Episode = 2,
-        HTTPAPI = 3
-    }
 
-    public enum enEpisodeType
-    {
-        Episode = 1,
-        Credits = 2,
-        Special = 3,
-        Trailer = 4,
-        Parody = 5,
-        Other = 6
-    }
 }

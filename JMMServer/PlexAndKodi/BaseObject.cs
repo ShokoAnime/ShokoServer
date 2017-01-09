@@ -4,7 +4,7 @@ using System.Linq;
 using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Text;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 
 namespace JMMServer.PlexAndKodi

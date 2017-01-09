@@ -12,8 +12,7 @@ using System.Windows.Documents;
 using System.Xml.Serialization;
 using AniDBAPI;
 using FluentNHibernate.Utils;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.FileHelper;
@@ -26,8 +25,13 @@ using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Dialect;
 using NLog;
-using Directory = JMMContracts.PlexAndKodi.Directory;
-using Stream = JMMContracts.PlexAndKodi.Stream;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using Directory = Shoko.Models.PlexAndKodi.Directory;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace JMMServer.PlexAndKodi
 {
@@ -193,7 +197,7 @@ namespace JMMServer.PlexAndKodi
 
         public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
         {
-            if (v.AnimeType == JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString())
+            if (v.AnimeType == Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString())
                 v.Key = prov.ContructVideoUrl(userid, v.Id, JMMType.Episode);
             else if (v.Medias != null && v.Medias.Count > 0)
                 v.Key = prov.ContructVideoUrl(userid, v.Medias[0].Id, JMMType.File);
@@ -223,7 +227,7 @@ namespace JMMServer.PlexAndKodi
         public static Video VideoFromVideoLocal(IProvider prov, VideoLocal v, int userid)
         {
             Video l = new Video();
-            l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile.ToString();
+            l.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile.ToString();
             l.Id = v.VideoLocalID.ToString();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
@@ -262,8 +266,8 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        public static Video VideoFromAnimeEpisode(IProvider prov, List<Contract_CrossRef_AniDB_TvDBV2> cross,
-            KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> e, int userid)
+        public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_TvDBV2> cross,
+            KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
         {
             Video v = (Video) e.Key.PlexContract?.Clone<Video>(prov);
             if (v?.Thumb != null)
@@ -300,7 +304,7 @@ namespace JMMServer.PlexAndKodi
                 }
                 if (cross != null && cross.Count > 0)
                 {
-                    Contract_CrossRef_AniDB_TvDBV2 c2 =
+                    CrossRef_AniDB_TvDBV2 c2 =
                         cross.FirstOrDefault(
                             a =>
                                 a.AniDBStartEpisodeType == int.Parse(v.EpisodeType) &&
@@ -315,14 +319,14 @@ namespace JMMServer.PlexAndKodi
             return v;
         }
 
-        public static Video GenerateVideoFromAnimeEpisode(AnimeEpisode ep)
+        public static Video GenerateVideoFromAnimeEpisode(SVR_AnimeEpisode ep)
         {
             Video l = new Video();
             List<VideoLocal> vids = ep.GetVideoLocals();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Id = ep.AnimeEpisodeID.ToString();
-            l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
+            l.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
 	        if (vids.Count > 0)
 	        {
 		        //List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
@@ -352,7 +356,7 @@ namespace JMMServer.PlexAndKodi
 
 		        }
 
-		        AniDB_Episode aep = ep?.AniDB_Episode;
+		        SVR_AniDB_Episode aep = ep?.AniDB_Episode;
 		        if (aep != null)
 		        {
 			        l.EpisodeNumber = aep.EpisodeNumber.ToString();
@@ -361,17 +365,17 @@ namespace JMMServer.PlexAndKodi
 			        l.OriginalTitle = aep.RomajiName;
 			        l.EpisodeType = aep.EpisodeType.ToString();
 			        l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-			        if (aep.AirDateAsDate.HasValue)
+			        if (aep.GetAirDateAsDate().HasValue)
 			        {
-				        l.Year = aep.AirDateAsDate.Value.Year.ToString();
-				        l.OriginallyAvailableAt = aep.AirDateAsDate.Value.ToPlexDate();
+				        l.Year = aep.GetAirDateAsDate().Value.Year.ToString();
+				        l.OriginallyAvailableAt = aep.GetAirDateAsDate().Value.ToPlexDate();
 			        }
 
 			        #region TvDB
 
 			        using (var session = DatabaseFactory.SessionFactory.OpenSession())
 			        {
-				        List<CrossRef_AniDB_TvDBV2> xref_tvdb2 =
+				        List<SVR_CrossRef_AniDB_TvDBV2> xref_tvdb2 =
 					        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
 						        aep.EpisodeType, aep.EpisodeNumber);
 				        if (xref_tvdb2 != null && xref_tvdb2.Count > 0)
@@ -387,7 +391,7 @@ namespace JMMServer.PlexAndKodi
 					        else
 					        {
 						        string anime = "[Blank]";
-						        AnimeSeries ser = ep.GetAnimeSeries();
+						        SVR_AnimeSeries ser = ep.GetAnimeSeries();
 						        if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
 								LogManager.GetCurrentClassLogger().Error("Episode " + aep.EpisodeNumber + ": " + aep.EnglishName + " from " + anime + " is out of range for its TvDB Link. Please relink it.");
 							}
@@ -424,7 +428,7 @@ namespace JMMServer.PlexAndKodi
             return l;
         }
 
-	    private static TvDB_Episode GetTvDBEpisodeFromAniDB(ISession session, AniDB_Episode aep, CrossRef_AniDB_TvDBV2 xref_tvdb2)
+	    private static TvDB_Episode GetTvDBEpisodeFromAniDB(ISession session, SVR_AniDB_Episode aep, SVR_CrossRef_AniDB_TvDBV2 xref_tvdb2)
 	    {
 	        int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
 		                   (xref_tvdb2.AniDBStartEpisodeNumber - 1);
@@ -462,10 +466,10 @@ namespace JMMServer.PlexAndKodi
 
         private static void AddCrossRef_AniDB_TvDBV2(ISession session, int animeID, int anistart, int tvdbID, int tvdbSeason, string title)
         {
-            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
+            SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
                 animeID, (int) enEpisodeType.Episode, anistart);
             if (xref != null) return;
-            xref = new CrossRef_AniDB_TvDBV2();
+            xref = new SVR_CrossRef_AniDB_TvDBV2();
 
             xref.AnimeID = animeID;
             xref.AniDBStartEpisodeType = (int)enEpisodeType.Episode;
@@ -492,7 +496,7 @@ namespace JMMServer.PlexAndKodi
                     {
                         foreach (int grp in groups.Randomize(f.GroupFilterID))
                         {
-                            AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
+                            SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                             Video v = ag.GetPlexContract(userid);
                             if (v?.Art != null && v.Thumb != null)
                             {
@@ -525,7 +529,7 @@ namespace JMMServer.PlexAndKodi
             pp.Key = prov.ConstructFilterIdUrl(userid, gg.GroupFilterID);
             pp.Title = gg.GroupFilterName;
             pp.Id = gg.GroupFilterID.ToString();
-            pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
+            pp.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
             if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
                 GetValidVideoRecursive(prov, gg, userid, pp);
@@ -539,7 +543,7 @@ namespace JMMServer.PlexAndKodi
                     pp.ViewedLeafCount = "0";
                     foreach (int grp in groups.Randomize())
                     {
-                        AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
+                        SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                         Video v = ag.GetPlexContract(userid);
                         if (v?.Art != null && v.Thumb != null)
                         {
@@ -556,7 +560,7 @@ namespace JMMServer.PlexAndKodi
 
         
 
-        public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, Video nv, bool omitExtraData=false)
+        public static void AddInformationFromMasterSeries(Video v, CL_AnimeSeries_User cserie, Video nv, bool omitExtraData=false)
         {
             bool ret = false;
             v.ParentThumb = v.GrandparentThumb = nv.Thumb;
@@ -609,7 +613,7 @@ namespace JMMServer.PlexAndKodi
             v.IsMovie = ret;
         }
 
-	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, IProvider prov)
+	    public static string GetRandomBannerFromSeries(List<SVR_AnimeSeries> series, IProvider prov)
 	    {
 		    using (var session = DatabaseFactory.SessionFactory.OpenSession())
 		    {
@@ -617,11 +621,11 @@ namespace JMMServer.PlexAndKodi
 		    }
 	    }
 
-	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISessionWrapper session, IProvider prov)
+	    public static string GetRandomBannerFromSeries(List<SVR_AnimeSeries> series, ISessionWrapper session, IProvider prov)
 	    {
-		    foreach (AnimeSeries ser in series.Randomize())
+		    foreach (SVR_AnimeSeries ser in series.Randomize())
 		    {
-			    AniDB_Anime anim = ser.GetAnime();
+			    SVR_AniDB_Anime anim = ser.GetAnime();
 			    if (anim != null)
 			    {
 				    ImageDetails banner = anim.GetDefaultWideBannerDetailsNoBlanks(session);
@@ -647,7 +651,7 @@ namespace JMMServer.PlexAndKodi
             return source.OrderBy(item => rnd.Next());
         }
 
-		public static string GetRandomFanartFromSeries(List<AnimeSeries> series, IProvider prov)
+		public static string GetRandomFanartFromSeries(List<SVR_AnimeSeries> series, IProvider prov)
 		{
 			using (var session = DatabaseFactory.SessionFactory.OpenSession())
 			{
@@ -655,11 +659,11 @@ namespace JMMServer.PlexAndKodi
 			}
 		}
 
-        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISessionWrapper session, IProvider prov)
+        public static string GetRandomFanartFromSeries(List<SVR_AnimeSeries> series, ISessionWrapper session, IProvider prov)
         {
-            foreach (AnimeSeries ser in series.Randomize())
+            foreach (SVR_AnimeSeries ser in series.Randomize())
             {
-                AniDB_Anime anim = ser.GetAnime();
+                SVR_AniDB_Anime anim = ser.GetAnime();
                 if (anim != null)
                 {
                     ImageDetails fanart = anim.GetDefaultFanartDetailsNoBlanks(session);
@@ -711,17 +715,17 @@ namespace JMMServer.PlexAndKodi
 		    return details.GenArt(prov);
 	    }
 
-        public static Video GenerateFromAnimeGroup(AnimeGroup grp, int userid, List<AnimeSeries> allSeries, ISessionWrapper session = null)
+        public static Video GenerateFromAnimeGroup(SVR_AnimeGroup grp, int userid, List<SVR_AnimeSeries> allSeries, ISessionWrapper session = null)
         {
-            Contract_AnimeGroup cgrp = grp.GetUserContract(userid);
+            CL_AnimeGroup_User cgrp = grp.GetUserContract(userid);
             int subgrpcnt = grp.GetAllChildGroups().Count;
 
             if ((cgrp.Stat_SeriesCount == 1) && (subgrpcnt == 0))
             {
-                AnimeSeries ser = JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                SVR_AnimeSeries ser = JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
-                    Contract_AnimeSeries cserie = ser.GetUserContract(userid);
+                    CL_AnimeSeries_User cserie = ser.GetUserContract(userid);
                     if (cserie != null)
                     {
                         Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(), userid, session);
@@ -736,19 +740,19 @@ namespace JMMServer.PlexAndKodi
             }
             else
             {
-                AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
+                SVR_AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
                     ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
                     : allSeries.Find(a => a.AirDate != DateTime.MinValue);
 	            if ((ser == null) && (allSeries!=null && allSeries.Count>0))
                     ser = allSeries[0];
-                Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
+                CL_AnimeSeries_User cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min ?? DateTime.MinValue;
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
 	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1).ToLowerInvariantString();
 	            List<Tag> newTags = new List<Tag>();
-	            foreach (AniDB_Tag tag in grp.Tags)
+	            foreach (SVR_AniDB_Tag tag in grp.Tags)
 	            {
 		            Tag newTag = new Tag();
 		            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
@@ -759,7 +763,7 @@ namespace JMMServer.PlexAndKodi
                 if (ser != null)
                 {
                     List<AnimeTitle> newTitles = new List<AnimeTitle>();
-                    foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+                    foreach (SVR_AniDB_Anime_Title title in ser.GetAnime().GetTitles())
                     {
                         AnimeTitle newTitle = new AnimeTitle();
                         newTitle.Title = title.Title;
@@ -774,10 +778,10 @@ namespace JMMServer.PlexAndKodi
                     //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
                     if (ser.GetAnime()?.Contract?.AniDBAnime?.Characters != null)
                     {
-                        foreach (Contract_AniDB_Character c in ser.GetAnime().Contract.AniDBAnime.Characters)
+                        foreach (CL_AniDB_Character c in ser.GetAnime().Contract.AniDBAnime.Characters)
                         {
                             string ch = c?.CharName;
-                            Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;
+                            AniDB_Seiyuu seiyuu = c?.Seiyuu;
                             if (!string.IsNullOrEmpty(ch))
                             {
                                 RoleTag t = new RoleTag();
@@ -836,7 +840,7 @@ namespace JMMServer.PlexAndKodi
             return ks;
         }
 
-        public static Video MayReplaceVideo(Video v1, AnimeSeries ser, Contract_AnimeSeries cserie, int userid,
+        public static Video MayReplaceVideo(Video v1, SVR_AnimeSeries ser, CL_AnimeSeries_User cserie, int userid,
             bool all = true, Video serie = null)
         {
             int epcount = all
@@ -848,7 +852,7 @@ namespace JMMServer.PlexAndKodi
             {
                 try
                 {
-                    List<AnimeEpisode> episodes = ser.GetAnimeEpisodes();
+                    List<SVR_AnimeEpisode> episodes = ser.GetAnimeEpisodes();
                     Video v2 = episodes[0].PlexContract;
                     if (v2.IsMovie)
                     {
@@ -866,11 +870,11 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        private static Video FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid, int subgrpcnt)
+        private static Video FromGroup(CL_AnimeGroup_User grp, CL_AnimeSeries_User ser, int userid, int subgrpcnt)
         {
             Directory p = new Directory();
             p.Id = grp.AnimeGroupID.ToString();
-            p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroup.ToString();
+            p.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroup.ToString();
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
@@ -889,11 +893,11 @@ namespace JMMServer.PlexAndKodi
             return p;
         }
 
-        public static Video GenerateFromSeries(Contract_AnimeSeries cserie, AnimeSeries ser, AniDB_Anime anidb,
+        public static Video GenerateFromSeries(CL_AnimeSeries_User cserie, SVR_AnimeSeries ser, SVR_AniDB_Anime anidb,
             int userid, ISessionWrapper session = null)
         {
             Video v = new Directory();
-            Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes()
+            Dictionary<SVR_AnimeEpisode, CL_AnimeEpisode_User> episodes = ser.GetAnimeEpisodes()
                 .ToDictionary(a => a, a => a.GetUserContract(userid, session));
             episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
                 .ToDictionary(a => a.Key, a => a.Value);
@@ -908,7 +912,7 @@ namespace JMMServer.PlexAndKodi
             return v;
         }
 
-        private static string SummaryFromAnimeContract(Contract_AnimeSeries c)
+        private static string SummaryFromAnimeContract(CL_AnimeSeries_User c)
         {
             string s = c.AniDBAnime.AniDBAnime.Description;
             if (string.IsNullOrEmpty(s) && c.MovieDB_Movie != null)
@@ -919,15 +923,15 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        private static void FillSerie(Video p, AnimeSeries aser, Dictionary<AnimeEpisode, Contract_AnimeEpisode> eps,
-            AniDB_Anime anidb, Contract_AnimeSeries ser, int userid)
+        private static void FillSerie(Video p, SVR_AnimeSeries aser, Dictionary<SVR_AnimeEpisode, CL_AnimeEpisode_User> eps,
+            SVR_AniDB_Anime anidb, CL_AnimeSeries_User ser, int userid)
         {
             using (ISession session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
-                Contract_AniDBAnime anime = ser.AniDBAnime.AniDBAnime;
+                CL_AniDB_Anime anime = ser.AniDBAnime.AniDBAnime;
                 p.Id = ser.AnimeSeriesID.ToString();
-                p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie.ToString();
+                p.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
                 p.Title = aser.GetSeriesName(sessionWrapper);
@@ -935,10 +939,10 @@ namespace JMMServer.PlexAndKodi
                 p.Type = "show";
                 p.AirDate = DateTime.MinValue;
                 TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
-                if (anime.AllTags.Count > 0)
+                if (anime.GetAllTags().Count > 0)
                 {
                     p.Genres = new List<Tag>();
-                    anime.AllTags.ToList().ForEach(a => p.Genres.Add(new Tag {Value = textInfo.ToTitleCase(a.Trim())}));
+                    anime.GetAllTags().ToList().ForEach(a => p.Genres.Add(new Tag {Value = textInfo.ToTitleCase(a.Trim())}));
                 }
                 //p.OriginalTitle
                 if (anime.AirDate.HasValue)
@@ -951,10 +955,10 @@ namespace JMMServer.PlexAndKodi
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
                 p.Rating = Math.Round((double) (anime.Rating / 100), 1).ToLowerInvariantString();
-                List<Contract_CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
+                List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
                 {
-                    foreach (Contract_CrossRef_AniDB_TvDBV2 c in ls)
+                    foreach (CrossRef_AniDB_TvDBV2 c in ls)
                     {
                         if (c.TvDBSeasonNumber != 0)
                         {
@@ -998,10 +1002,10 @@ namespace JMMServer.PlexAndKodi
                 //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
                 if (anime.Characters != null)
                 {
-                    foreach (Contract_AniDB_Character c in anime.Characters)
+                    foreach (CL_AniDB_Character c in anime.Characters)
                     {
                         string ch = c?.CharName;
-                        Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;
+                        AniDB_Seiyuu seiyuu = c?.Seiyuu;
                         if (!string.IsNullOrEmpty(ch))
                         {
                             RoleTag t = new RoleTag();
@@ -1016,7 +1020,7 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 p.Titles = new List<AnimeTitle>();
-                foreach (AniDB_Anime_Title title in anidb.GetTitles())
+                foreach (SVR_AniDB_Anime_Title title in anidb.GetTitles())
                 {
                     p.Titles.Add(new AnimeTitle {Language = title.Language, Title = title.Title, Type = title.TitleType});
                 }

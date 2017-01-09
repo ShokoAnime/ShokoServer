@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class CrossRef_AniDB_TvDBMap : ClassMap<CrossRef_AniDB_TvDB>
+    public class CrossRef_AniDB_TvDBMap : ClassMap<SVR_CrossRef_AniDB_TvDB>
     {
         public CrossRef_AniDB_TvDBMap()
         {

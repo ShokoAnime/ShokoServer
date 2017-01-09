@@ -4,10 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models;
 using JMMServer.FileHelper;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
@@ -15,7 +16,7 @@ using Path = Pri.LongPath.Path;
 using File = Pri.LongPath.File;
 using FileInfo = Pri.LongPath.FileInfo;
 using NutzCode.CloudFileSystem;
-using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -103,13 +104,13 @@ namespace JMMServer.Commands
             string filePath = "";
 
 
-            Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
+            Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
             if (tup == null)
             {
                 logger.Error($"Unable to locate file {FileName} inside the import folders");
                 return null;
             }
-            ImportFolder folder = tup.Item1;
+            SVR_ImportFolder folder = tup.Item1;
             filePath = tup.Item2;
             IFileSystem f = tup.Item1.FileSystem;
             if (f == null)
@@ -199,7 +200,7 @@ namespace JMMServer.Commands
                 // try getting the hash from the CrossRef
                 if (!ForceHash)
                 {
-                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
+                    List<SVR_CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                     if (crossRefs.Count == 1)
                     {
                         vlocal.Hash = crossRefs[0].Hash;
@@ -277,7 +278,7 @@ namespace JMMServer.Commands
                     logger.Warn("---------------------------------------------");
 
                     // check if we have a record of this in the database, if not create one
-                    List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
+                    List<SVR_DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
                         prep.FilePath,
                         vlocalplace.ImportFolderID, prep.ImportFolderID);
                     if (dupFiles.Count == 0)
@@ -285,7 +286,7 @@ namespace JMMServer.Commands
 
                     if (dupFiles.Count == 0)
                     {
-                        DuplicateFile dup = new DuplicateFile();
+                        SVR_DuplicateFile dup = new SVR_DuplicateFile();
                         dup.DateTimeUpdated = DateTime.Now;
                         dup.FilePathFile1 = vlocalplace.FilePath;
                         dup.FilePathFile2 = prep.FilePath;
@@ -449,7 +450,7 @@ namespace JMMServer.Commands
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
-                AniDB_File f = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
+                SVR_AniDB_File f = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                 if (f != null)
                 {
                     if (!string.IsNullOrEmpty(f.CRC))
@@ -463,7 +464,7 @@ namespace JMMServer.Commands
             }
             if (!string.IsNullOrEmpty(v.SHA1))
             {
-                AniDB_File f = RepoFactory.AniDB_File.GetBySHA1(v.SHA1);
+                SVR_AniDB_File f = RepoFactory.AniDB_File.GetBySHA1(v.SHA1);
                 if (f != null)
                 {
                     if (!string.IsNullOrEmpty(f.CRC))
@@ -477,7 +478,7 @@ namespace JMMServer.Commands
             }
             if (!string.IsNullOrEmpty(v.MD5))
             {
-                AniDB_File f = RepoFactory.AniDB_File.GetByMD5(v.MD5);
+                SVR_AniDB_File f = RepoFactory.AniDB_File.GetByMD5(v.MD5);
                 if (f != null)
                 {
                     if (!string.IsNullOrEmpty(f.CRC))
@@ -493,7 +494,7 @@ namespace JMMServer.Commands
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
-                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<FileHash>();
+                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<Azure_FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.SHA1)).ToList();
                 if (ls.Count > 0)
                 {
@@ -508,7 +509,7 @@ namespace JMMServer.Commands
             }
             if (!string.IsNullOrEmpty(v.SHA1))
             {
-                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<FileHash>();
+                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<Azure_FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                 if (ls.Count > 0)
                 {
@@ -523,7 +524,7 @@ namespace JMMServer.Commands
             }
             if (!string.IsNullOrEmpty(v.MD5))
             {
-                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5) ?? new List<FileHash>();
+                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5) ?? new List<Azure_FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                 if (ls.Count > 0)
                 {

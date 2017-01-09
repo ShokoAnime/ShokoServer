@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Xml;
-using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands.WebCache
 {
@@ -41,7 +42,7 @@ namespace JMMServer.Commands.WebCache
         {
             try
             {
-                JMMServer.Entities.CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByID(CrossRef_AniDB_MALID);
+                CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByID(CrossRef_AniDB_MALID);
                 if (xref == null) return;
 
 

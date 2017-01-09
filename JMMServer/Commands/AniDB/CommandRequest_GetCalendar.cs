@@ -7,6 +7,7 @@ using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -79,7 +80,7 @@ namespace JMMServer.Commands
                 }
                 foreach (AniDBAPI.Calendar cal in colCalendars.Calendars)
                 {
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
                     if (anime != null)
                     {
                         // don't update if the local data is less 2 days old
@@ -97,7 +98,7 @@ namespace JMMServer.Commands
                             {
                                 anime.AirDate = cal.ReleaseDate;
                                 RepoFactory.AniDB_Anime.Save(anime);
-                                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
                                     RepoFactory.AnimeSeries.Save(ser, true, false);
                             }

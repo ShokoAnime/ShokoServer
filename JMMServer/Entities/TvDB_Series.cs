@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Xml;
-using JMMContracts;
 using NLog;
+using Shoko.Models;
 
 namespace JMMServer.Entities
 {

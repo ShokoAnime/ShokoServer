@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class CrossRef_AniDB_TraktV2Map : ClassMap<CrossRef_AniDB_TraktV2>
+    public class CrossRef_AniDB_TraktV2Map : ClassMap<SVR_CrossRef_AniDB_TraktV2>
     {
         public CrossRef_AniDB_TraktV2Map()
         {

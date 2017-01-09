@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using NLog;
 

@@ -2,6 +2,7 @@
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate.Criterion;
 

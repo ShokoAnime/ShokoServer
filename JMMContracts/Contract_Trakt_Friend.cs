@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     public class Contract_Trakt_Friend
     {

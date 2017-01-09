@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Xml;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using JMMServer;
+using Shoko.Commons.Utils;
 
 namespace AniDBAPI
 {
@@ -64,7 +65,7 @@ namespace AniDBAPI
 
         public DateTime? MessageDateAsDate
         {
-            get { return Utils.GetAniDBDateAsDate(MessageDate); }
+            get { return AniDB.GetAniDBDateAsDate(MessageDate); }
         }
 
         public Raw_AniDB_NotifyMessage(string sRecMessage)

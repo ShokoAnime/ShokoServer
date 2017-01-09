@@ -1,6 +1,6 @@
 ﻿using System.ServiceModel;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     [ServiceContract]
     public interface IJMMServerImage

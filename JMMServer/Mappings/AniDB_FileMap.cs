@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_FileMap : ClassMap<AniDB_File>
+    public class AniDB_FileMap : ClassMap<SVR_AniDB_File>
     {
         public AniDB_FileMap()
         {

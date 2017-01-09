@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_ReleaseGroupMap : ClassMap<AniDB_ReleaseGroup>
+    public class AniDB_ReleaseGroupMap : ClassMap<SVR_AniDB_ReleaseGroup>
     {
         public AniDB_ReleaseGroupMap()
         {

@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Linq;
-using JMMContracts;
 using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Client;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, int>
+    public class AniDB_CharacterRepository : BaseDirectRepository<SVR_AniDB_Character, int>
     {
         private AniDB_CharacterRepository()
         {
@@ -21,7 +22,7 @@ namespace JMMServer.Repositories.Direct
         {
             return new AniDB_CharacterRepository();
         }
-        public AniDB_Character GetByCharID(int id)
+        public SVR_AniDB_Character GetByCharID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -29,12 +30,12 @@ namespace JMMServer.Repositories.Direct
             }
         }
 
-        public AniDB_Character GetByCharID(ISessionWrapper session, int id)
+        public SVR_AniDB_Character GetByCharID(ISessionWrapper session, int id)
         {
-            AniDB_Character cr = session
-                .CreateCriteria(typeof(AniDB_Character))
+            SVR_AniDB_Character cr = session
+                .CreateCriteria(typeof(SVR_AniDB_Character))
                 .Add(Restrictions.Eq("CharID", id))
-                .UniqueResult<AniDB_Character>();
+                .UniqueResult<SVR_AniDB_Character>();
             return cr;
         }
 
@@ -69,12 +70,12 @@ namespace JMMServer.Repositories.Direct
                             ON seiyuu.SeiyuuID = chrSeiyuu.SeiyuuID
                     WHERE animeChr.AnimeID IN (:animeIds)")
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddEntity("chr", typeof(AniDB_Character))
-                .AddEntity("seiyuu", typeof(AniDB_Seiyuu))
+                .AddEntity("chr", typeof(SVR_AniDB_Character))
+                .AddEntity("seiyuu", typeof(SVR_AniDB_Seiyuu))
                 .AddScalar("CharType", NHibernateUtil.String)
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .Select(r => new AnimeCharacterAndSeiyuu((int)r[0], (AniDB_Character)r[1], (AniDB_Seiyuu)r[2], (string)r[3]))
+                .Select(r => new AnimeCharacterAndSeiyuu((int)r[0], (SVR_AniDB_Character)r[1], (SVR_AniDB_Seiyuu)r[2], (string)r[3]))
                 .ToLookup(ac => ac.AnimeID);
 
             return animeChars;
@@ -84,7 +85,7 @@ namespace JMMServer.Repositories.Direct
 
     public class AnimeCharacterAndSeiyuu
     {
-        public AnimeCharacterAndSeiyuu(int animeID, AniDB_Character character, AniDB_Seiyuu seiyuu = null, string characterType = null)
+        public AnimeCharacterAndSeiyuu(int animeID, SVR_AniDB_Character character, SVR_AniDB_Seiyuu seiyuu = null, string characterType = null)
         {
             if (character == null)
                 throw new ArgumentNullException(nameof(character));
@@ -95,16 +96,16 @@ namespace JMMServer.Repositories.Direct
             CharacterType = characterType ?? String.Empty;
         }
 
-        public Contract_AniDB_Character ToContract()
+        public CL_AniDB_Character ToClient()
         {
-            return Character.ToContract(CharacterType, Seiyuu);
+            return Character.ToClient(CharacterType, Seiyuu);
         }
 
         public int AnimeID { get; private set; }
 
-        public AniDB_Character Character { get; private set; }
+        public SVR_AniDB_Character Character { get; private set; }
 
-        public AniDB_Seiyuu Seiyuu { get; private set; }
+        public SVR_AniDB_Seiyuu Seiyuu { get; private set; }
 
         public string CharacterType { get; private set; }
     }

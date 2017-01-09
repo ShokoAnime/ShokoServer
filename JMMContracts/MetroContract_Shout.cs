@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     public class MetroContract_Comment
     {

@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_ReviewMap : ClassMap<AniDB_Review>
+    public class AniDB_ReviewMap : ClassMap<SVR_AniDB_Review>
     {
         public AniDB_ReviewMap()
         {

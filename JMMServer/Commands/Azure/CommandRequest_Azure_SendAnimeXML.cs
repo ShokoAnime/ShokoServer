@@ -5,7 +5,9 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands.Azure
 {
@@ -49,7 +51,7 @@ namespace JMMServer.Commands.Azure
 
                 if (!process) return;
 
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 string filePath = ServerSettings.AnimeXmlDirectory;
@@ -68,7 +70,7 @@ namespace JMMServer.Commands.Azure
                     re.Close();
                 }
 
-                AnimeXML xml = new AnimeXML();
+                Azure_AnimeXML xml = new Azure_AnimeXML();
                 xml.AnimeID = AnimeID;
                 xml.AnimeName = anime.MainTitle;
                 xml.DateDownloaded = 0;

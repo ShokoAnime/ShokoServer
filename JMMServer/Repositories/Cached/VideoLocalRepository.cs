@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using FluentNHibernate.Utils;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
@@ -100,7 +101,7 @@ namespace JMMServer.Repositories.Cached
 
         public override void Delete(VideoLocal obj)
         {
-	        List<AnimeEpisode> list = obj.GetAnimeEpisodes();
+	        List<SVR_AnimeEpisode> list = obj.GetAnimeEpisodes();
 	        base.Delete(obj);
             list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
         }
@@ -136,7 +137,7 @@ namespace JMMServer.Repositories.Cached
             }
             if (updateEpisodes)
             {
-                foreach (AnimeEpisode ep in obj.GetAnimeEpisodes())
+                foreach (SVR_AnimeEpisode ep in obj.GetAnimeEpisodes())
                 {
                     RepoFactory.AnimeEpisode.Save(ep);
                 }

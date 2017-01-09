@@ -1,7 +1,8 @@
-﻿using JMMContracts.PlexAndKodi;
-using JMMServer.Entities;
+﻿using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using System;
 using System.Collections.Generic;
+using JMMServer.Entities;
 
 namespace JMMServer.API.Model.common
 {
@@ -35,7 +36,7 @@ namespace JMMServer.API.Model.common
 
             if (vl != null)
             {
-                foreach (AnimeEpisode ep in vl.GetAnimeEpisodes())
+                foreach (SVR_AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
                     sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast, notag, level);
                 }
@@ -44,7 +45,7 @@ namespace JMMServer.API.Model.common
             return sr;
         }
 
-        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast, int notag, int level)
+        public Serie GenerateFromAnimeSeries(SVR_AnimeSeries ser, int uid, int nocast, int notag, int level)
         {
             Serie sr = new Serie();
 
@@ -87,7 +88,7 @@ namespace JMMServer.API.Model.common
             {
                 if (nv.Genres != null)
                 {
-                    foreach (JMMContracts.PlexAndKodi.Tag otg in nv.Genres)
+                    foreach (Shoko.Models.PlexAndKodi.Tag otg in nv.Genres)
                     {
                         Tag new_tag = new Tag();
                         new_tag.tag = otg.Value;
@@ -98,11 +99,11 @@ namespace JMMServer.API.Model.common
 
             if (level != 1)
             {
-                List<AnimeEpisode> ael = ser.GetAnimeEpisodes();
+                List<SVR_AnimeEpisode> ael = ser.GetAnimeEpisodes();
                 if (ael.Count > 0)
                 {
                     sr.eps = new List<Episode>();
-                    foreach (AnimeEpisode ae in ael)
+                    foreach (SVR_AnimeEpisode ae in ael)
                     {
                         sr.eps.Add(new Episode().GenerateFromAnimeEpisode(ae, uid, (level - 1)));
                     }

@@ -7,9 +7,10 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
-using JMMContracts;
+using Shoko.Models;
 using JMMServer.Collections;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.FileHelper;
 using JMMServer.Repositories;
 

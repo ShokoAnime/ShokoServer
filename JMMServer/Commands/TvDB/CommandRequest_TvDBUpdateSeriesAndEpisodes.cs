@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Threading;
 using System.Xml;
-using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

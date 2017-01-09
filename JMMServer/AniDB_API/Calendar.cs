@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JMMServer;
+using Shoko.Commons.Utils;
 
 namespace AniDBAPI
 {
@@ -97,7 +98,7 @@ namespace AniDBAPI
                 cal.AnimeID = int.Parse(flds[0]);
                 cal.ReleaseDateRaw = flds[1];
                 cal.DateFlags = int.Parse(flds[2]);
-                cal.ReleaseDate = Utils.GetAniDBDateAsDate(flds[1], cal.DateFlags);
+                cal.ReleaseDate = AniDB.GetAniDBDateAsDate(flds[1], cal.DateFlags);
 
                 calendars.Add(cal);
 

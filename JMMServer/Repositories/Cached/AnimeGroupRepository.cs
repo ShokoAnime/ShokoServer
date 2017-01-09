@@ -4,18 +4,20 @@ using System.ComponentModel;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Models;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
+    public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private PocoIndex<int, AnimeGroup, int> Parents;
+        private PocoIndex<int, SVR_AnimeGroup, int> Parents;
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
@@ -32,7 +34,7 @@ namespace JMMServer.Repositories.Cached
                 {
                     logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}",
                         cr.AnimeGroupParentID.Value);
-                    AnimeGroup ngrp = GetByID(cr.AnimeGroupParentID.Value);
+                    SVR_AnimeGroup ngrp = GetByID(cr.AnimeGroupParentID.Value);
                     if (ngrp != null)
                         Save(ngrp, false, true);
                 }
@@ -45,7 +47,7 @@ namespace JMMServer.Repositories.Cached
             return new AnimeGroupRepository();
         }
 
-        protected override int SelectKey(AnimeGroup entity)
+        protected override int SelectKey(SVR_AnimeGroup entity)
         {
             return entity.AnimeGroupID;
         }
@@ -58,22 +60,22 @@ namespace JMMServer.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            List<AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < AnimeGroup.CONTRACT_VERSION).ToList();
+            List<SVR_AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < SVR_AnimeGroup.CONTRACT_VERSION).ToList();
             int max = grps.Count;
             int cnt = 0;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup).Name, " DbRegen");
 	        if (max <= 0) return;
-	        foreach (AnimeGroup g in grps)
+	        foreach (SVR_AnimeGroup g in grps)
             {
                 Save(g, true, false, false);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
@@ -81,12 +83,12 @@ namespace JMMServer.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(AnimeGroup obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_AnimeGroup obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<AnimeGroup> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_AnimeGroup> objs) { throw new NotSupportedException(); }
 
-        public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
+        public void Save(SVR_AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
         {
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -122,7 +124,7 @@ namespace JMMServer.Repositories.Cached
                 }
                 if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
-                    AnimeGroup pgroup = GetByID(grp.AnimeGroupParentID.Value);
+                    SVR_AnimeGroup pgroup = GetByID(grp.AnimeGroupParentID.Value);
 					// This will avoid the recursive error that would be possible, it won't update it, but that would be
 					// the least of the issues
 					if(pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
@@ -131,14 +133,14 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
-        public void InsertBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
+        public void InsertBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
             if (groups == null)
                 throw new ArgumentNullException(nameof(groups));
 
-            foreach (AnimeGroup group in groups)
+            foreach (SVR_AnimeGroup group in groups)
             {
                 session.Insert(group);
             }
@@ -146,14 +148,14 @@ namespace JMMServer.Repositories.Cached
             Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
-        public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
+        public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
             if (groups == null)
                 throw new ArgumentNullException(nameof(groups));
 
-            foreach (AnimeGroup group in groups)
+            foreach (SVR_AnimeGroup group in groups)
             {
                 session.Update(group);
             }
@@ -201,7 +203,7 @@ namespace JMMServer.Repositories.Cached
             // If we're exlcuding a group from deletion, and it was in the cache originally, then re-add it back in
             if (excludeGroupId != null)
             {
-                AnimeGroup excludedGroup = allGrps.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
+                SVR_AnimeGroup excludedGroup = allGrps.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
 
                 if (excludedGroup != null)
                 {
@@ -210,12 +212,12 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
-        public List<AnimeGroup> GetByParentID(int parentid)
+        public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
             return Parents.GetMultiple(parentid);
         }
 
-        public List<AnimeGroup> GetAllTopLevelGroups()
+        public List<SVR_AnimeGroup> GetAllTopLevelGroups()
         {
             return Parents.GetMultiple(0);
         }

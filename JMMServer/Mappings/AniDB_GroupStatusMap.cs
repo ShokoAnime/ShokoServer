@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_GroupStatusMap : ClassMap<AniDB_GroupStatus>
+    public class AniDB_GroupStatusMap : ClassMap<SVR_AniDB_GroupStatus>
     {
         public AniDB_GroupStatusMap()
         {

@@ -5,6 +5,7 @@ using Microsoft.Win32;
 using System;
 using Microsoft.Win32.TaskScheduler;
 using NutzCode.CloudFileSystem;
+using Shoko.Models;
 
 namespace JMMServer
 {

@@ -5,16 +5,18 @@ using System.IO.Compression;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.LZ4;
 using JMMServer.Repositories.NHibernate;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Criterion;
 using NHibernate.Criterion.Lambda;
+using Shoko.Models.Client;
+
 
 namespace JMMServer.Tasks
 {
@@ -27,9 +29,9 @@ namespace JMMServer.Tasks
         {
             ContractExtractors.Add("AniDB_Anime", (sw, za) =>
                 {
-                    ExtractContracts<AniDB_Anime, Contract_AniDB_AnimeDetailed>(sw, za, pb =>
+                    ExtractContracts<SVR_AniDB_Anime, CL_AniDB_AnimeDetailed>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AniDB_Anime>("AniDB_Anime\\a", a => a.AnimeID));
+                            pb.Select(CreateEntryNameProjection<SVR_AniDB_Anime>("AniDB_Anime\\a", a => a.AnimeID));
                             pb.Select(s => s.ContractSize);
                             pb.Select(s => s.ContractBlob);
                             return pb;
@@ -37,9 +39,9 @@ namespace JMMServer.Tasks
                 });
             ContractExtractors.Add("AnimeEpisode", (sw, za) =>
                 {
-                    ExtractContracts<AnimeEpisode, Video>(sw, za, pb =>
+                    ExtractContracts<SVR_AnimeEpisode, Video>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AnimeEpisode>("AnimeEpisode\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
+                            pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode>("AnimeEpisode\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
                             pb.Select(s => s.PlexContractSize);
                             pb.Select(s => s.PlexContractBlob);
                             return pb;
@@ -47,9 +49,9 @@ namespace JMMServer.Tasks
                 });
             ContractExtractors.Add("AnimeEpisode_User", (sw, za) =>
                 {
-                    ExtractContracts<AnimeEpisode_User, Contract_AnimeEpisode>(sw, za, pb =>
+                    ExtractContracts<SVR_AnimeEpisode_User, CL_AnimeEpisode_User>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AnimeEpisode_User>("AnimeEpisode_User\\u", a => a.JMMUserID,
+                            pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode_User>("AnimeEpisode_User\\u", a => a.JMMUserID,
                                 "\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
                             pb.Select(s => s.ContractSize);
                             pb.Select(s => s.ContractBlob);
@@ -58,9 +60,9 @@ namespace JMMServer.Tasks
                 });
             ContractExtractors.Add("AnimeGroup", (sw, za) =>
                 {
-                    ExtractContracts<AnimeGroup, Contract_AnimeGroup>(sw, za, pb =>
+                    ExtractContracts<SVR_AnimeGroup, CL_AnimeGroup_User>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AnimeGroup>("AnimeGroup\\g", a => a.AnimeGroupID));
+                            pb.Select(CreateEntryNameProjection<SVR_AnimeGroup>("AnimeGroup\\g", a => a.AnimeGroupID));
                             pb.Select(s => s.ContractSize);
                             pb.Select(s => s.ContractBlob);
                             return pb;
@@ -68,9 +70,9 @@ namespace JMMServer.Tasks
                 });
             ContractExtractors.Add("AnimeGroup_User", (sw, za) =>
                 {
-                    ExtractContracts<AnimeGroup_User, Video>(sw, za, pb =>
+                    ExtractContracts<SVR_AnimeGroup_User, Video>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AnimeGroup_User>("AnimeGroup_User\\u", a => a.JMMUserID, "\\g", a => a.AnimeGroupID));
+                            pb.Select(CreateEntryNameProjection<SVR_AnimeGroup_User>("AnimeGroup_User\\u", a => a.JMMUserID, "\\g", a => a.AnimeGroupID));
                             pb.Select(s => s.PlexContractSize);
                             pb.Select(s => s.PlexContractBlob);
                             return pb;
@@ -78,9 +80,9 @@ namespace JMMServer.Tasks
                 });
             ContractExtractors.Add("AnimeSeries", (sw, za) =>
                 {
-                    ExtractContracts<AnimeSeries, Contract_AnimeSeries>(sw, za, pb =>
+                    ExtractContracts<SVR_AnimeSeries, CL_AnimeSeries_User>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AnimeSeries>("AnimeSeries\\g", a => a.AnimeGroupID, "_s", a => a.AnimeSeriesID));
+                            pb.Select(CreateEntryNameProjection<SVR_AnimeSeries>("AnimeSeries\\g", a => a.AnimeGroupID, "_s", a => a.AnimeSeriesID));
                             pb.Select(s => s.ContractSize);
                             pb.Select(s => s.ContractBlob);
                             return pb;
@@ -88,9 +90,9 @@ namespace JMMServer.Tasks
                 });
             ContractExtractors.Add("AnimeSeries_User", (sw, za) =>
                 {
-                    ExtractContracts<AnimeSeries_User, Video>(sw, za, pb =>
+                    ExtractContracts<SVR_AnimeSeries_User, Video>(sw, za, pb =>
                         {
-                            pb.Select(CreateEntryNameProjection<AnimeSeries_User>("AnimeSeries_User\\u", a => a.JMMUserID, "\\s", a => a.AnimeSeriesID));
+                            pb.Select(CreateEntryNameProjection<SVR_AnimeSeries_User>("AnimeSeries_User\\u", a => a.JMMUserID, "\\s", a => a.AnimeSeriesID));
                             pb.Select(s => s.PlexContractSize);
                             pb.Select(s => s.PlexContractBlob);
                             return pb;

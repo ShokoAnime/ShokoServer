@@ -1,5 +1,5 @@
 ﻿using System.Xml;
-using JMMContracts;
+using Shoko.Models;
 
 namespace JMMServer.Providers.TvDB
 {

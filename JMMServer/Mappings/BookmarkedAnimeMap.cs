@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class BookmarkedAnimeMap : ClassMap<BookmarkedAnime>
+    public class BookmarkedAnimeMap : ClassMap<SVR_BookmarkedAnime>
     {
         public BookmarkedAnimeMap()
         {

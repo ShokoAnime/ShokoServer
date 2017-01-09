@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_MylistStatsMap : ClassMap<AniDB_MylistStats>
+    public class AniDB_MylistStatsMap : ClassMap<SVR_AniDB_MylistStats>
     {
         public AniDB_MylistStatsMap()
         {

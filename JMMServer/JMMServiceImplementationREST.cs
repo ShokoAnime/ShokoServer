@@ -5,8 +5,9 @@ using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.ServiceModel.Web;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models;
+using Shoko.Models.Server;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
@@ -31,7 +32,7 @@ namespace JMMServer
             {
                 case JMMImageType.AniDB_Cover:
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(ImageID));
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(ImageID));
                     if (anime == null) return null;
 
 		            path = anime.PosterPath;
@@ -49,7 +50,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Character:
 
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(int.Parse(ImageID));
+                    SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(int.Parse(ImageID));
                     if (chr == null) return null;
 
 		            path = chr.PosterPath;
@@ -67,7 +68,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Creator:
 
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(int.Parse(ImageID));
+                    SVR_AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(int.Parse(ImageID));
                     if (creator == null) return null;
 
 		            path = creator.PosterPath;
@@ -643,7 +644,7 @@ namespace JMMServer
             {
                 case JMMImageType.AniDB_Cover:
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(ImageID));
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(ImageID));
                     if (anime == null) return null;
 
                     if (File.Exists(anime.PosterPath))
@@ -658,7 +659,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Character:
 
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(ImageID));
+                    SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(ImageID));
                     if (chr == null) return null;
 
                     if (File.Exists(chr.PosterPath))
@@ -673,7 +674,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Creator:
 
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(ImageID));
+                    SVR_AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(ImageID));
                     if (creator == null) return "";
 
                     if (File.Exists(creator.PosterPath))

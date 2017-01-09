@@ -7,9 +7,13 @@ using System.Xml;
 using AniDBAPI;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Azure;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -59,23 +63,23 @@ namespace JMMServer.Commands
                     {
                         try
                         {
-                            List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> cacheResults =
-                                JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
+                            List<Azure_CrossRef_AniDB_TvDB> cacheResults =
+                                AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
                             if (cacheResults != null && cacheResults.Count > 0)
                             {
                                 // check again to see if there are any links, user may have manually added links while
                                 // this command was in the queue
-                                List<CrossRef_AniDB_TvDBV2> xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+                                List<SVR_CrossRef_AniDB_TvDBV2> xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
                                 if (xrefTemp != null && xrefTemp.Count > 0) return;
 
-                                foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in cacheResults)
+                                foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
                                 {
                                     TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(xref.TvDBID);
                                     if (tvser != null)
                                     {
                                         logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
                                         TvDBHelper.LinkAniDBTvDB(AnimeID,
-                                            (AniDBAPI.enEpisodeType)xref.AniDBStartEpisodeType,
+                                            (enEpisodeType)xref.AniDBStartEpisodeType,
                                             xref.AniDBStartEpisodeNumber,
                                             xref.TvDBID, xref.TvDBSeasonNumber,
                                             xref.TvDBStartEpisodeNumber, true, true);
@@ -101,7 +105,7 @@ namespace JMMServer.Commands
                     }
 
                     string searchCriteria = "";
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -114,9 +118,9 @@ namespace JMMServer.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (SVR_AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
+                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
@@ -143,7 +147,7 @@ namespace JMMServer.Commands
                     results[0].SeriesName,
                     results[0].SeriesID);
                 TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-                TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
+                TvDBHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
 
 	            // add links for multiple seasons (for long shows)
 	            List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
@@ -173,7 +177,7 @@ namespace JMMServer.Commands
                             sres.SeriesName,
                             sres.SeriesID);
                         TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-                        TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
+                        TvDBHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
 
 	                    // add links for multiple seasons (for long shows)
 	                    List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
@@ -200,11 +204,11 @@ namespace JMMServer.Commands
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason,
+                SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason,
                     1,
                     animeID, (int) enEpisodeType.Episode, anistart);
                 if (xref != null) return;
-                xref = new CrossRef_AniDB_TvDBV2();
+                xref = new SVR_CrossRef_AniDB_TvDBV2();
 
                 xref.AnimeID = animeID;
                 xref.AniDBStartEpisodeType = (int) enEpisodeType.Episode;

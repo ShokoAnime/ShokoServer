@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode,int>
+    public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode,int>
     {
-        private PocoIndex<int, AnimeEpisode, int> Series;
-        private PocoIndex<int, AnimeEpisode, int> EpisodeIDs;
+        private PocoIndex<int, SVR_AnimeEpisode, int> Series;
+        private PocoIndex<int, SVR_AnimeEpisode, int> EpisodeIDs;
 
         private AnimeEpisodeRepository()
         {
@@ -27,7 +28,7 @@ namespace JMMServer.Repositories.Cached
             return new AnimeEpisodeRepository();
         }
 
-        protected override int SelectKey(AnimeEpisode entity)
+        protected override int SelectKey(SVR_AnimeEpisode entity)
         {
             return entity.AnimeEpisodeID;
         }
@@ -41,40 +42,40 @@ namespace JMMServer.Repositories.Cached
         public override void RegenerateDb()
         {
             int cnt = 0;
-            List<AnimeEpisode> grps =
-                Cache.Values.Where(a => a.PlexContractVersion < AnimeEpisode.PLEXCONTRACT_VERSION).ToList();
+            List<SVR_AnimeEpisode> grps =
+                Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeEpisode.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeEpisode).Name, " DbRegen");
 	        if (max <= 0) return;
-	        foreach (AnimeEpisode g in grps)
+	        foreach (SVR_AnimeEpisode g in grps)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen - " + cnt + "/" + max);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeEpisode).Name, " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen - " + max + "/" + max);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(SVR_AnimeEpisode).Name, " DbRegen - " + max + "/" + max);
         }
 
 
 
 
 
-        private void UpdatePlexContract(AnimeEpisode e)
+        private void UpdatePlexContract(SVR_AnimeEpisode e)
         {
             e.PlexContract = Helper.GenerateVideoFromAnimeEpisode(e);
         }
 
 
-        public override void Save(IReadOnlyCollection<AnimeEpisode> objs)
+        public override void Save(IReadOnlyCollection<SVR_AnimeEpisode> objs)
         {
-            foreach(AnimeEpisode ep in objs)
+            foreach(SVR_AnimeEpisode ep in objs)
                 Save(ep);
         }
 
-        public override void Save(AnimeEpisode obj)
+        public override void Save(SVR_AnimeEpisode obj)
         {
             lock (obj)
             {
@@ -89,13 +90,13 @@ namespace JMMServer.Repositories.Cached
         }
 
 
-        public List<AnimeEpisode> GetBySeriesID(int seriesid)
+        public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
             return Series.GetMultiple(seriesid);
         }
 
 
-        public AnimeEpisode GetByAniDBEpisodeID(int epid)
+        public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
             //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
             return EpisodeIDs.GetOne(epid);
@@ -111,7 +112,7 @@ namespace JMMServer.Repositories.Cached
         /// <param name="hash"></param>
         /// <returns></returns>
 
-        public List<AnimeEpisode> GetByHash(string hash)
+        public List<SVR_AnimeEpisode> GetByHash(string hash)
         {
             return RepoFactory.CrossRef_File_Episode.GetByHash(hash).Select(a => GetByAniDBEpisodeID(a.EpisodeID)).Where(a => a != null).ToList();
             /*
@@ -122,7 +123,7 @@ namespace JMMServer.Repositories.Cached
                     .List<int>().Select(GetByID).Where(a => a != null).ToList();*/
         }
 
-        public List<AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
+        public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
 
             List<string> hashes = ignoreVariations ? RepoFactory.VideoLocal.GetAll().Where(a=>a.IsVariation==0).Select(a => a.Hash).Where(a => a != string.Empty).ToList() : RepoFactory.VideoLocal.GetAll().Select(a => a.Hash).Where(a => a != string.Empty).ToList();
@@ -189,7 +190,7 @@ namespace JMMServer.Repositories.Cached
             }*/
         }
 
-        public List<AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
+        public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
         {
             List<int> eps =
                 RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid).Where(a=>a.WatchedDate.HasValue)
@@ -208,7 +209,7 @@ namespace JMMServer.Repositories.Cached
             }*/
         }
 
-        public List<AnimeEpisode> GetMostRecentlyAdded(int seriesID)
+        public List<SVR_AnimeEpisode> GetMostRecentlyAdded(int seriesID)
         {
             return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();
         }

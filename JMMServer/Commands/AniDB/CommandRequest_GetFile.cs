@@ -9,6 +9,7 @@ using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -61,7 +62,7 @@ namespace JMMServer.Commands
                 if (vlocal == null) return;
                 lock (vlocal)
                 {
-                    AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+                    SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
                     /*// get anidb file info from web cache
                     if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
@@ -92,7 +93,7 @@ namespace JMMServer.Commands
                     {
                         // save to the database
                         if (aniFile == null)
-                            aniFile = new AniDB_File();
+                            aniFile = new SVR_AniDB_File();
 
                         aniFile.Populate(fileInfo);
 
@@ -117,7 +118,7 @@ namespace JMMServer.Commands
                                 }
                             }
                         }
-                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
                         if (anime != null)
                         {
                             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -125,7 +126,7 @@ namespace JMMServer.Commands
                                 anime.UpdateContractDetailed(session.Wrap());
                             }
                         }
-                        AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(false, true, true);
 //					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
                     }

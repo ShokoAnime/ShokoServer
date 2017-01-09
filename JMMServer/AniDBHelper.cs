@@ -11,7 +11,6 @@ using AniDBAPI.Commands;
 using JMMServer.Commands;
 using JMMServer.Commands.Azure;
 using JMMServer.Databases;
-using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
@@ -20,6 +19,9 @@ using NHibernate;
 using NLog;
 using JMMServer.UI;
 using System.Windows;
+using JMMServer.Entities;
+using Shoko.Models;
+using Shoko.Models.Server;
 
 namespace JMMServer
 {
@@ -453,10 +455,10 @@ namespace JMMServer
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
-                    AniDB_MylistStats stat = null;
-                    IReadOnlyList<AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
+                    SVR_AniDB_MylistStats stat = null;
+                    IReadOnlyList<SVR_AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
                     if (allStats.Count == 0)
-                        stat = new AniDB_MylistStats();
+                        stat = new SVR_AniDB_MylistStats();
                     else
                         stat = allStats[0];
 
@@ -710,9 +712,9 @@ namespace JMMServer
             return true;
         }
 
-        public AniDB_Anime GetAnimeInfoUDP(int animeID, bool forceRefresh)
+        public SVR_AniDB_Anime GetAnimeInfoUDP(int animeID, bool forceRefresh)
         {
-            AniDB_Anime anime = null;
+            SVR_AniDB_Anime anime = null;
 
             bool skip = true;
             if (forceRefresh)
@@ -749,7 +751,7 @@ namespace JMMServer
             {
                 // check for an existing record so we don't over write the description
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(getAnimeCmd.AnimeInfo.AnimeID);
-                if (anime == null) anime = new AniDB_Anime();
+                if (anime == null) anime = new SVR_AniDB_Anime();
 
                 anime.PopulateAndSaveFromUDP(getAnimeCmd.AnimeInfo);
             }
@@ -757,7 +759,7 @@ namespace JMMServer
             return anime;
         }
 
-        public AniDB_Character GetCharacterInfoUDP(int charID)
+        public SVR_AniDB_Character GetCharacterInfoUDP(int charID)
         {
             if (!Login()) return null;
 
@@ -772,11 +774,11 @@ namespace JMMServer
                 SetWaitingOnResponse(false);
             }
 
-            AniDB_Character chr = null;
+            SVR_AniDB_Character chr = null;
             if (ev == enHelperActivityType.GotCharInfo && getCharCmd.CharInfo != null)
             {
                 chr = RepoFactory.AniDB_Character.GetByCharID(charID);
-                if (chr == null) chr = new AniDB_Character();
+                if (chr == null) chr = new SVR_AniDB_Character();
 
                 chr.PopulateFromUDP(getCharCmd.CharInfo);
                 RepoFactory.AniDB_Character.Save(chr);
@@ -815,7 +817,7 @@ namespace JMMServer
 			return chr;
 		}*/
 
-        public AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
+        public SVR_AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
         {
             if (!Login()) return null;
 
@@ -830,11 +832,11 @@ namespace JMMServer
                 SetWaitingOnResponse(false);
             }
 
-            AniDB_ReleaseGroup relGroup = null;
+            SVR_AniDB_ReleaseGroup relGroup = null;
             if (ev == enHelperActivityType.GotGroup && getCmd.Group != null)
             {
                 relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID);
-                if (relGroup == null) relGroup = new AniDB_ReleaseGroup();
+                if (relGroup == null) relGroup = new SVR_AniDB_ReleaseGroup();
 
                 relGroup.Populate(getCmd.Group);
                 RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
@@ -868,7 +870,7 @@ namespace JMMServer
                 // save the records
                 foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
                 {
-                    AniDB_GroupStatus grpstat = new AniDB_GroupStatus(raw);
+                    SVR_AniDB_GroupStatus grpstat = new SVR_AniDB_GroupStatus(raw);
                     RepoFactory.AniDB_GroupStatus.Save(grpstat);
                 }
 
@@ -884,7 +886,7 @@ namespace JMMServer
                 if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
                 {
                     // update the anime with a record of the latest subbed episode
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime != null)
                     {
                         anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
@@ -892,7 +894,7 @@ namespace JMMServer
 
                         // check if we have this episode in the database
                         // if not get it now by updating the anime record
-                        List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                        List<SVR_AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
                             getCmd.GrpStatusCollection.LatestEpisodeNumber);
                         if (eps.Count == 0)
                         {
@@ -900,7 +902,7 @@ namespace JMMServer
                             cr_anime.Save();
                         }
                         // update the missing episode stats on groups and children
-                        AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                         if (series != null)
                         {
                             series.QueueUpdateStats();
@@ -934,7 +936,7 @@ namespace JMMServer
             return null;
         }
 
-        public AniDB_Review GetReviewUDP(int reviewID)
+        public SVR_AniDB_Review GetReviewUDP(int reviewID)
         {
             if (!Login()) return null;
 
@@ -950,11 +952,11 @@ namespace JMMServer
                 SetWaitingOnResponse(false);
             }
 
-            AniDB_Review review = null;
+            SVR_AniDB_Review review = null;
             if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
             {
                 review = RepoFactory.AniDB_Review.GetByReviewID(reviewID);
-                if (review == null) review = new AniDB_Review();
+                if (review == null) review = new SVR_AniDB_Review();
 
                 review.Populate(cmd.ReviewInfo);
                 RepoFactory.AniDB_Review.Save(review);
@@ -1019,12 +1021,12 @@ namespace JMMServer
         }
 
 
-        public AniDB_Anime GetAnimeInfoHTTP(int animeID)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID)
         {
             return GetAnimeInfoHTTP(animeID, false, true);
         }
 
-        public AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh, bool downloadRelations)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh, bool downloadRelations)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -1032,11 +1034,11 @@ namespace JMMServer
             }
         }
 
-        public AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh, bool downloadRelations)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh, bool downloadRelations)
         {
             //if (!Login()) return null;
 
-            AniDB_Anime anime = null;
+            SVR_AniDB_Anime anime = null;
             ISessionWrapper sessionWrapper = session.Wrap();
 
             bool skip = true;
@@ -1080,17 +1082,17 @@ namespace JMMServer
             return anime;
         }
 
-        private AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+        private SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
-            AniDB_Anime anime = null;
+            SVR_AniDB_Anime anime = null;
             ISessionWrapper sessionWrapper = session.Wrap();
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
             anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
             if (anime == null)
-                anime = new AniDB_Anime();
+                anime = new SVR_AniDB_Anime();
             anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
@@ -1103,7 +1105,7 @@ namespace JMMServer
             cmd.Save(session);
             // create AnimeEpisode records for all episodes in this anime
             // only if we have a series
-            AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             RepoFactory.AniDB_Anime.Save(anime);
             if (ser != null)
             {
@@ -1121,9 +1123,9 @@ namespace JMMServer
             //StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
             // download character images
-            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
+            foreach (SVR_AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
             {
-                AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
+                SVR_AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
                 if (chr == null) continue;
 
                 if (ServerSettings.AniDB_DownloadCharacters)
@@ -1141,7 +1143,7 @@ namespace JMMServer
 
                 if (ServerSettings.AniDB_DownloadCreators)
                 {
-                    AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
+                    SVR_AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
                     if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
 
                     if (!File.Exists(seiyuu.PosterPath))
@@ -1158,7 +1160,7 @@ namespace JMMServer
             return anime;
         }
 
-        public AniDB_Anime GetAnimeInfoHTTPFromCache(ISession session, int animeID, bool downloadRelations)
+        public SVR_AniDB_Anime GetAnimeInfoHTTPFromCache(ISession session, int animeID, bool downloadRelations)
         {
             AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
             lock (lockAniDBConnections)
@@ -1168,7 +1170,7 @@ namespace JMMServer
                 getAnimeCmd.Process();
             }
 
-            AniDB_Anime anime = null;
+            SVR_AniDB_Anime anime = null;
             if (getAnimeCmd.Anime != null)
             {
                 anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);

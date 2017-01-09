@@ -1,6 +1,6 @@
 ﻿using JMMServer.Databases;
-using JMMServer.Entities;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 
 namespace JMMServer.Repositories.Direct
 {

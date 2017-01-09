@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using FluentNHibernate.MappingModel.Collections;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Persister.Entity;
+using Shoko.Models;
+using Shoko.Models.Client;
 
 namespace JMMServer
 {
@@ -154,13 +157,13 @@ namespace JMMServer
 
         public static string GetDateAsFriendlyString(DateTime aDate)
         {
-            return aDate.ToString("dd MMM yyyy", Globals.Culture);
+            return aDate.ToString("dd MMM yyyy", CultureInfo.CurrentCulture);
         }
 
-        public static IEnumerable<Contract_AnimeGroup> Sort(IEnumerable<Contract_AnimeGroup> groups, GroupFilter gf)
+        public static IEnumerable<CL_AnimeGroup_User> Sort(IEnumerable<CL_AnimeGroup_User> groups, GroupFilter gf)
         {
             bool isfirst = true;
-            IEnumerable<Contract_AnimeGroup> query = groups;
+            IEnumerable<CL_AnimeGroup_User> query = groups;
             foreach (GroupFilterSortingCriteria gfsc in gf.SortCriteriaList)
             {
                 query = Order(query, gfsc, isfirst);
@@ -169,7 +172,7 @@ namespace JMMServer
             return query;
         }
 
-        public static IOrderedEnumerable<Contract_AnimeGroup> Order(IEnumerable<Contract_AnimeGroup> groups,
+        public static IOrderedEnumerable<CL_AnimeGroup_User> Order(IEnumerable<CL_AnimeGroup_User> groups,
             GroupFilterSortingCriteria gfsc, bool isfirst)
         {
 
@@ -205,7 +208,7 @@ namespace JMMServer
             }
         }
 
-        private static IOrderedEnumerable<Contract_AnimeGroup> Order<T>(IEnumerable<Contract_AnimeGroup> groups, Func<Contract_AnimeGroup, T> o,
+        private static IOrderedEnumerable<CL_AnimeGroup_User> Order<T>(IEnumerable<CL_AnimeGroup_User> groups, Func<CL_AnimeGroup_User, T> o,
             GroupFilterSortDirection direc, bool isfirst)
         {
             if (isfirst)
@@ -217,8 +220,8 @@ namespace JMMServer
             else
             {
                 if (direc == GroupFilterSortDirection.Asc)
-                    return ((IOrderedEnumerable<Contract_AnimeGroup>) groups).ThenBy(o);
-                return ((IOrderedEnumerable<Contract_AnimeGroup>)groups).ThenByDescending(o);
+                    return ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenBy(o);
+                return ((IOrderedEnumerable<CL_AnimeGroup_User>)groups).ThenByDescending(o);
             }
         }
         /*

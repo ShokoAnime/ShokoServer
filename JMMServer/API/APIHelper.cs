@@ -1,11 +1,12 @@
-﻿using JMMContracts.PlexAndKodi;
+﻿using Shoko.Models.PlexAndKodi;
 using JMMServer.API.Model.common;
-using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.ImageDownload;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System;
 using System.Collections.Generic;
+using JMMServer.Entities;
 
 namespace JMMServer.API
 {
@@ -145,7 +146,7 @@ namespace JMMServer.API
 
                     foreach (int grp in groups)
                     {
-                        AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
+                        SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                         Video v = ag.GetPlexContract(uid);
                         if (v?.Art != null && v.Thumb != null)
                         {
@@ -159,7 +160,7 @@ namespace JMMServer.API
             return ob;
         }
 
-        public static Filter FilterFromAnimeGroup(AnimeGroup grp, int uid)
+        public static Filter FilterFromAnimeGroup(SVR_AnimeGroup grp, int uid)
         {
             Filter ob = new Filter();
             ob.type = "show";
@@ -169,9 +170,9 @@ namespace JMMServer.API
             ob.size = -1;
             ob.viewed = -1;
 
-            foreach (AnimeSeries ser in grp.GetSeries().Randomize())
+            foreach (SVR_AnimeSeries ser in grp.GetSeries().Randomize())
             {
-                AniDB_Anime anim = ser.GetAnime();
+                SVR_AniDB_Anime anim = ser.GetAnime();
                 if (anim != null)
                 {
                     ImageDetails fanart = anim.GetDefaultFanartDetailsNoBlanks();

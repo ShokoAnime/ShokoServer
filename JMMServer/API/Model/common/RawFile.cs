@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JMMServer.Entities;
 
 namespace JMMServer.API.Model.common
 {
@@ -38,7 +39,7 @@ namespace JMMServer.API.Model.common
 
         }
 
-        public RawFile(Entities.VideoLocal vl, int level, int uid)
+        public RawFile(VideoLocal vl, int level, int uid)
         {
             if (vl != null)
             {
@@ -88,7 +89,7 @@ namespace JMMServer.API.Model.common
                     {
                         new_media.AddGeneral(MediaInfo.General.size, vl.Media.Parts[0].Size);
 
-                        foreach (JMMContracts.PlexAndKodi.Stream p in vl.Media.Parts[0].Streams)
+                        foreach (Shoko.Models.PlexAndKodi.Stream p in vl.Media.Parts[0].Streams)
                         {
                             switch (p.StreamType)
                             {
@@ -130,20 +131,20 @@ namespace JMMServer.API.Model.common
             public Dictionary<General, string> general { get; private set; }
 
             //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
-            public Dictionary<int, JMMContracts.PlexAndKodi.Stream> audios { get; private set; }
+            public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> audios { get; private set; }
             //public Dictionary<int, Dictionary<Video, string>> videos { get; private set; }
-            public Dictionary<int, JMMContracts.PlexAndKodi.Stream> videos { get; private set; }
+            public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> videos { get; private set; }
             //public Dictionary<int, Dictionary<Subtitle, string>> subtitles { get; private set; }
-            public Dictionary<int, JMMContracts.PlexAndKodi.Stream> subtitles { get; private set; }
+            public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> subtitles { get; private set; }
 
             public Dictionary<int, Dictionary<string, string>> menus { get; private set; }
 
             public MediaInfo()
             {
                 general = new Dictionary<General, string>();
-                audios = new Dictionary<int, JMMContracts.PlexAndKodi.Stream>();
-                videos = new Dictionary<int, JMMContracts.PlexAndKodi.Stream>();
-                subtitles = new Dictionary<int, JMMContracts.PlexAndKodi.Stream>();
+                audios = new Dictionary<int, Shoko.Models.PlexAndKodi.Stream>();
+                videos = new Dictionary<int, Shoko.Models.PlexAndKodi.Stream>();
+                subtitles = new Dictionary<int, Shoko.Models.PlexAndKodi.Stream>();
                 menus = new Dictionary<int, Dictionary<string, string>>();
             }
 
@@ -152,17 +153,17 @@ namespace JMMServer.API.Model.common
                 general.Add(param, value);
             }
 
-            public void AddAudio(JMMContracts.PlexAndKodi.Stream dict)
+            public void AddAudio(Shoko.Models.PlexAndKodi.Stream dict)
             {
                 audios.Add(audios.Count + 1, dict);
             }
 
-            public void AddVideo(JMMContracts.PlexAndKodi.Stream dict)
+            public void AddVideo(Shoko.Models.PlexAndKodi.Stream dict)
             {
                 videos.Add(videos.Count + 1, dict);
             }
 
-            public void AddSubtitle(JMMContracts.PlexAndKodi.Stream dict)
+            public void AddSubtitle(Shoko.Models.PlexAndKodi.Stream dict)
             {
                 subtitles.Add(subtitles.Count + 1, dict);
             }

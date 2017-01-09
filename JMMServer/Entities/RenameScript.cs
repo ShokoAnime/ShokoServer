@@ -1,4 +1,4 @@
-﻿using JMMContracts;
+﻿using Shoko.Models;
 
 namespace JMMServer.Entities
 {

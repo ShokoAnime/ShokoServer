@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using JMMServer.Commands.Azure;
-using JMMServer.Entities;
-using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -68,7 +68,7 @@ namespace JMMServer.Commands
 
 
                 string[] lines = b.ToString().Split('\n');
-                Dictionary<int, AnimeIDTitle> titles = new Dictionary<int, AnimeIDTitle>();
+                Dictionary<int, Azure_AnimeIDTitle> titles = new Dictionary<int, Azure_AnimeIDTitle>();
                 foreach (string line in lines)
                 {
                     if (line.Trim().Length == 0 || line.Trim().Substring(0, 1) == "#") continue;
@@ -84,14 +84,14 @@ namespace JMMServer.Commands
                     string titleValue = fields[3].Trim();
 
 
-                    AnimeIDTitle thisTitle = null;
+                    Azure_AnimeIDTitle thisTitle = null;
                     if (titles.ContainsKey(animeID))
                     {
                         thisTitle = titles[animeID];
                     }
                     else
                     {
-                        thisTitle = new AnimeIDTitle();
+                        thisTitle = new Azure_AnimeIDTitle();
                         thisTitle.AnimeIDTitleId = 0;
                         thisTitle.MainTitle = titleValue;
                         thisTitle.AnimeID = animeID;
@@ -107,7 +107,7 @@ namespace JMMServer.Commands
                     thisTitle.Titles += titleValue;
                 }
 
-                foreach (AnimeIDTitle aniTitle in titles.Values)
+                foreach (Azure_AnimeIDTitle aniTitle in titles.Values)
                 {
                     //AzureWebAPI.Send_AnimeTitle(aniTitle);
                     CommandRequest_Azure_SendAnimeTitle cmdAzure =

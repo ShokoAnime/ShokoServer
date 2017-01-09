@@ -2,8 +2,6 @@
 using Nancy.Security;
 using System;
 using Nancy.ModelBinding;
-using JMMServer.Entities;
-using JMMContracts;
 using System.Collections.Generic;
 using System.Threading;
 using JMMServer.PlexAndKodi;
@@ -13,8 +11,16 @@ using Newtonsoft.Json;
 using JMMServer.API.Model.core;
 using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using AniDBAPI;
+using JMMServer.Entities;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
+
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -169,7 +175,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object GetFolders()
         {
-            List<Contract_ImportFolder> list = new JMMServiceImplementation().GetImportFolders();
+            List<ImportFolder> list = new JMMServiceImplementation().GetImportFolders();
             return list;
         }
 
@@ -192,12 +198,12 @@ namespace JMMServer.API.Module.apiv2
         {
             try
             {
-                Contract_ImportFolder folder = this.Bind();
+                ImportFolder folder = this.Bind();
                 if (folder.ImportFolderLocation != "")
                 {
                     try
                     {
-                        Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
+                        CL_ImportFolder_Save_Response response = new JMMServiceImplementation().SaveImportFolder(folder);
 
                         if (string.IsNullOrEmpty(response.ErrorMessage))
                         {
@@ -230,7 +236,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object EditFolder()
         {
-            ImportFolder folder = this.Bind();
+            SVR_ImportFolder folder = this.Bind();
             if (!String.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
             {
                 try
@@ -241,9 +247,9 @@ namespace JMMServer.API.Module.apiv2
                     }
                     else
                     {
-                        if (folder.ImportFolderID != 0 & folder.ToContract().ImportFolderID.HasValue)
+                        if (folder.ImportFolderID != 0)
                         {
-                            Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
+                            CL_ImportFolder_Save_Response response = new JMMServiceImplementation().SaveImportFolder(folder);
                             if (!string.IsNullOrEmpty(response.ErrorMessage))
                             {
                                 return new APIMessage(500, response.ErrorMessage);
@@ -276,7 +282,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object DeleteFolder()
         {
-            ImportFolder folder = this.Bind();
+            SVR_ImportFolder folder = this.Bind();
             if (folder.ImportFolderID != 0)
             {
                 string res = Importer.DeleteImportFolder(folder.ImportFolderID);
@@ -455,7 +461,7 @@ namespace JMMServer.API.Module.apiv2
         private object MyID()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             dynamic x = new System.Dynamic.ExpandoObject();
             if (user != null)
             {
@@ -750,7 +756,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetFile()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -781,7 +787,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetRecentFiles(int limit = 0, int level = 0)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (limit == 0) { if (para.limit == 0) { para.limit = 10; } }
@@ -804,7 +810,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetUnsort()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             List<object> lst = new List<object>();
@@ -899,7 +905,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetRecentEpisodes()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0) { para.limit = 10; }
@@ -909,7 +915,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (VideoLocal vl in vids)
             {
-                foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
+                foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
                     Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level);
                     lst.Add(ep);
@@ -926,7 +932,7 @@ namespace JMMServer.API.Module.apiv2
         private object MarkEpisodeAsWatched()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -945,7 +951,7 @@ namespace JMMServer.API.Module.apiv2
         private object MarkEpisodeAsUnwatched()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -964,7 +970,7 @@ namespace JMMServer.API.Module.apiv2
         private object VoteOnEpisode()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1006,7 +1012,7 @@ namespace JMMServer.API.Module.apiv2
         {
             try
             {
-                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(id);
+                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (ep == null) { return APIStatus.notFound404(); }
                 ep.ToggleWatchedStatus(status, true, DateTime.Now, false, false, uid, true);
                 ep.GetAnimeSeries().UpdateStats(true, false, true);
@@ -1126,7 +1132,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetSerie()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1146,7 +1152,7 @@ namespace JMMServer.API.Module.apiv2
         private object CountSerie()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             Counter count = new Counter();
             count.count = RepoFactory.AnimeSeries.GetAll().Count;
             return count;
@@ -1159,7 +1165,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetSeriesByFolderId()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1189,15 +1195,15 @@ namespace JMMServer.API.Module.apiv2
         private object GetSeriesRecent()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             List<object> allseries = new List<object>();
 
             if (para.limit == 0) { para.limit = 10; }
-            List<AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit);
+            List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit);
 
-            foreach (AnimeSeries aser in series)
+            foreach (SVR_AnimeSeries aser in series)
             {
                 allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast, para.notag, para.level));
             }
@@ -1212,7 +1218,7 @@ namespace JMMServer.API.Module.apiv2
         private object MarkSerieAsWatched()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1231,7 +1237,7 @@ namespace JMMServer.API.Module.apiv2
         private object MarkSerieAsUnwatched()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1250,7 +1256,7 @@ namespace JMMServer.API.Module.apiv2
         private object VoteOnSerie()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1277,7 +1283,7 @@ namespace JMMServer.API.Module.apiv2
         private object SearchForSerie()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0) { para.limit = 100; }
@@ -1298,7 +1304,7 @@ namespace JMMServer.API.Module.apiv2
         private object SearchForTag()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0) { para.limit = 100; }
@@ -1324,11 +1330,11 @@ namespace JMMServer.API.Module.apiv2
         internal object GetAllSeries(int nocast, int limit, int offset, int notag, int level)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
 
             List<Serie> allseries = new List<Serie>();
 
-            foreach (AnimeSeries asi in RepoFactory.AnimeSeries.GetAll())
+            foreach (SVR_AnimeSeries asi in RepoFactory.AnimeSeries.GetAll())
             {
                 if (offset <= 0)
                 {
@@ -1350,7 +1356,7 @@ namespace JMMServer.API.Module.apiv2
         internal object GetSerieById(int series_id, int nocast, int notag, int level)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             Serie ser = new Serie().GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID, nocast, notag, level);
             return ser;
         }
@@ -1366,12 +1372,12 @@ namespace JMMServer.API.Module.apiv2
         {
             try
             {
-                List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(id);
+                List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(id);
 
-                AnimeSeries ser = null;
-                foreach (AnimeEpisode ep in eps)
+                SVR_AnimeSeries ser = null;
+                foreach (SVR_AnimeEpisode ep in eps)
                 {
-                    AnimeEpisode_User epUser = ep.GetUserRecord(uid);
+                    SVR_AnimeEpisode_User epUser = ep.GetUserRecord(uid);
                     if (epUser != null)
                     {
                         if (epUser.WatchedCount <= 0 && watched)
@@ -1414,12 +1420,12 @@ namespace JMMServer.API.Module.apiv2
         {
             List<object> list = new List<object>();
 
-            IEnumerable<AnimeSeries> series = tag_search
+            IEnumerable<SVR_AnimeSeries> series = tag_search
 	            ? RepoFactory.AnimeSeries.GetAll()
 		            .Where(
 			            a =>
 				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
-				            (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+				            (a.Contract.AniDBAnime.AniDBAnime.GetAllTags().Contains(query,
 					             StringComparer.InvariantCultureIgnoreCase) ||
 				             a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
 					             .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
@@ -1430,7 +1436,7 @@ namespace JMMServer.API.Module.apiv2
 				            string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles)
 					            .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
-            foreach (AnimeSeries ser in series)
+            foreach (SVR_AnimeSeries ser in series)
             {
                 if (offset == 0)
                 {
@@ -1542,7 +1548,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetFilters()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1630,7 +1636,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
         {
   
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
                 int? filterid = filter.ParseNullableInt();
@@ -1725,7 +1731,7 @@ namespace JMMServer.API.Module.apiv2
 
                     if (gf.GroupsIds.ContainsKey(uid))
                     {
-                        foreach (AnimeGroup grp in gf.GroupsIds[uid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                        foreach (SVR_AnimeGroup grp in gf.GroupsIds[uid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
                         {
                             Filter pp = APIHelper.FilterFromAnimeGroup(grp, uid);
                             dirs.Add(pp);
@@ -1761,9 +1767,9 @@ namespace JMMServer.API.Module.apiv2
                 if (!int.TryParse(SerieId, out serieID)) { return APIStatus.notFound404("Invalid Serie Id"); }
             }
 
-            AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serieID);
+            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serieID);
             if (ser == null) { return APIStatus.notFound404("Series not found"); }
-            Contract_AnimeSeries cseries = ser.GetUserContract(uid);
+            CL_AnimeSeries_User cseries = ser.GetUserContract(uid);
             if (cseries == null) { return APIStatus.notFound404("Invalid Series, Contract Not Found"); }
 
             Serie sers = new Serie();
@@ -1771,7 +1777,7 @@ namespace JMMServer.API.Module.apiv2
             Video nv = ser.GetPlexContract(uid);
 
 
-            Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes().ToDictionary(a => a, a => a.GetUserContract(uid));
+            Dictionary<SVR_AnimeEpisode, CL_AnimeEpisode_User> episodes = ser.GetAnimeEpisodes().ToDictionary(a => a, a => a.GetUserContract(uid));
             episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0).ToDictionary(a => a.Key, a => a.Value);
 
             sers.size = (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
@@ -1791,7 +1797,7 @@ namespace JMMServer.API.Module.apiv2
                     foreach (enEpisodeType ee in types)
                     {
                         PlexEpisodeType k2 = new PlexEpisodeType();
-                        PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (AnimeTypes)cseries.AniDBAnime.AniDBAnime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
+                        PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (Shoko.Models.AnimeTypes)cseries.AniDBAnime.AniDBAnime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                         eps.Add(k2);
                     }
 
@@ -1816,7 +1822,7 @@ namespace JMMServer.API.Module.apiv2
 
             List<Episode> lep = new List<Episode>();
 
-            foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> epi in episodes)
+            foreach (KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> epi in episodes)
             {
                 try
                 {
@@ -1847,7 +1853,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 List<Video> dirs = new List<Video>();
 
-                AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(aep_id);
+                SVR_AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(aep_id);
                 if (e == null) { return APIStatus.notFound404("Episode not found"); }
 
                 //KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep = new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e, e.GetUserContract(uid));
@@ -1886,15 +1892,15 @@ namespace JMMServer.API.Module.apiv2
             ObjectList obl = new ObjectList();
 
             List<Video> retGroups = new List<Video>();
-            AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(gid);
+            SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(gid);
             if (grp == null) { return APIStatus.notFound404("Group not found"); }
 
-            Contract_AnimeGroup basegrp = grp?.GetUserContract(uid);
+            CL_AnimeGroup_User basegrp = grp?.GetUserContract(uid);
             if (basegrp != null)
             {
-                List<AnimeSeries> seriesList = grp.GetSeries();
+                List<SVR_AnimeSeries> seriesList = grp.GetSeries();
                 
-                foreach (AnimeGroup grpChild in grp.GetChildGroups())
+                foreach (SVR_AnimeGroup grpChild in grp.GetChildGroups())
                 {
                     Filter fr = new Filter();
 
@@ -1910,7 +1916,7 @@ namespace JMMServer.API.Module.apiv2
                         obl.list.Add(fr);                 
                     }
                 }
-                foreach (AnimeSeries ser in seriesList)
+                foreach (SVR_AnimeSeries ser in seriesList)
                 {
                     Serie seri = new Serie().GenerateFromAnimeSeries(ser, uid, 0,0,0);
                     obl.list.Add(seri);
@@ -1969,7 +1975,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetRecentFiles_old(int max_limit)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
 
@@ -2038,7 +2044,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetUnrecognisedFiles(int max_limit)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             Dictionary<int, string> files = new Dictionary<int, string>();
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             int i = 0;
@@ -2093,7 +2099,7 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         internal Episode GetEpisode(int ep_id, int uid)
         {
-            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(ep_id);
+            SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(ep_id);
 
             Episode ep = new Episode().GenerateFromAnimeEpisode(aep, uid, 0);
             return ep;
@@ -2107,7 +2113,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetRecentEpisodes(int max_limit)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
 
             ObjectList obl = new ObjectList("recent episodes", ObjectList.ListType.EPISODE);
             List<object> lst = new List<object>();
@@ -2116,7 +2122,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (VideoLocal vl in vids)
             {
-                foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
+                foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
                     Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
                     lst.Add(ep);
@@ -2136,7 +2142,7 @@ namespace JMMServer.API.Module.apiv2
         private object VoteOnEpisode2()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters epi = this.Bind();
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
@@ -2155,7 +2161,7 @@ namespace JMMServer.API.Module.apiv2
         private object GetSerieByFolderId(int folder_id, int max)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
 
             ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
             List<object> allseries = new List<object>();
@@ -2177,14 +2183,14 @@ namespace JMMServer.API.Module.apiv2
         private object GetRecentSeries(int limit)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
 
             ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
             List<object> allseries = new List<object>();
 
-            List<AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(limit);
+            List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(limit);
 
-            foreach (AnimeSeries aser in series)
+            foreach (SVR_AnimeSeries aser in series)
             {
                 allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, 1,0,0));
             }
@@ -2203,7 +2209,7 @@ namespace JMMServer.API.Module.apiv2
         private object MarkSerieWatched(bool status, int max_episodes, int type)
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             API_Call_Parameters para = this.Bind();
             return _impl.SetWatchedStatusOnSeries(para.id, status, max_episodes, type, user.JMMUserID);
@@ -2216,7 +2222,7 @@ namespace JMMServer.API.Module.apiv2
         private object VoteOnSerie2()
         {
             Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
             API_Call_Parameters ser = this.Bind();
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();

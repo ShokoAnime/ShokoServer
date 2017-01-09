@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AniDBAPI;
-
-using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
@@ -17,6 +15,12 @@ using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer
 {
@@ -85,7 +89,7 @@ namespace JMMServer
                     ISessionWrapper sessionWrapper = session.Wrap();
 
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return null;
 
                     //AniDB
@@ -104,7 +108,7 @@ namespace JMMServer
                     }
 
                     // TvDB
-                    List<CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2(sessionWrapper);
+                    List<SVR_CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2(sessionWrapper);
                     if (tvdbRef != null && tvdbRef.Count > 0)
                     {
                         contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
@@ -112,7 +116,7 @@ namespace JMMServer
                     }
 
                     // Trakt
-                    List<CrossRef_AniDB_TraktV2> traktRef = anime.GetCrossRefTraktV2(session);
+                    List<SVR_CrossRef_AniDB_TraktV2> traktRef = anime.GetCrossRefTraktV2(session);
                     if (traktRef != null && traktRef.Count > 0)
                     {
                         contract.Trakt_ID = traktRef[0].TraktID;
@@ -155,12 +159,12 @@ namespace JMMServer
             return new List<Contract_JMMUser>();
         }
 
-        public List<Contract_AnimeGroup> GetAllGroups(int userID)
+        public List<CL_AnimeGroup_User> GetAllGroups(int userID)
         {
-            List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
+            List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();
             try
             {
-                foreach (AnimeGroup ag in RepoFactory.AnimeGroup.GetAll())
+                foreach (SVR_AnimeGroup ag in RepoFactory.AnimeGroup.GetAll())
                 {
                     grps.Add(ag.GetUserContract(userID));
                 }
@@ -173,9 +177,9 @@ namespace JMMServer
             return grps;
         }
 
-        public List<Contract_AnimeEpisode> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID)
+        public List<CL_AnimeEpisode_User> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID)
         {
-            List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
+            List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -197,7 +201,7 @@ namespace JMMServer
                     {
                         int animeSeriesID = int.Parse(res[0].ToString());
 
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(session, ser)) continue;
@@ -206,10 +210,10 @@ namespace JMMServer
                         List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
-                        List<AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
+                        List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
                         if (eps.Count == 0) continue;
 
-                        Contract_AnimeEpisode epContract = eps[0].GetUserContract(jmmuserID);
+                        CL_AnimeEpisode_User epContract = eps[0].GetUserContract(jmmuserID);
                         if (epContract != null)
                         {
                             retEps.Add(epContract);
@@ -254,23 +258,23 @@ namespace JMMServer
                     {
                         int animeSeriesID = int.Parse(res[0].ToString());
 
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(session, ser)) continue;
 
-                        AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
+                        SVR_AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
 
                         List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
-                        List<AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
+                        List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
                         if (eps.Count == 0) continue;
 
-                        Contract_AnimeEpisode epContract = eps[0].GetUserContract(jmmuserID);
+                        CL_AnimeEpisode_User epContract = eps[0].GetUserContract(jmmuserID);
                         if (epContract != null)
                         {
-                            AniDB_Anime anidb_anime = ser.GetAnime();
+                            SVR_AniDB_Anime anidb_anime = ser.GetAnime();
 
                             MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                             summ.AnimeID = ser.AniDB_ID;
@@ -320,18 +324,18 @@ namespace JMMServer
                     if (user == null) return retAnime;
 
                     // get a list of series that is applicable
-                    List<AnimeSeries_User> allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(jmmuserID);
+                    List<SVR_AnimeSeries_User> allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(jmmuserID);
 
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info(string.Format("GetAnimeContinueWatching:Series: {0}", ts.TotalMilliseconds));
 
 
                     JMMServiceImplementation imp = new JMMServiceImplementation();
-                    foreach (AnimeSeries_User userRecord in allSeriesUser)
+                    foreach (SVR_AnimeSeries_User userRecord in allSeriesUser)
                     {
                         start = DateTime.Now;
 
-                        AnimeSeries series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
+                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
                         if (series == null) continue;
 
                         if (!user.AllowedSeries(session, series))
@@ -341,13 +345,13 @@ namespace JMMServer
                             continue;
                         }
 
-                        AnimeSeries_User serUser = series.GetUserRecord(jmmuserID);
+                        SVR_AnimeSeries_User serUser = series.GetUserRecord(jmmuserID);
 
-                        Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(sessionWrapper, userRecord.AnimeSeriesID,
+                        CL_AnimeEpisode_User ep = imp.GetNextUnwatchedEpisode(sessionWrapper, userRecord.AnimeSeriesID,
                             jmmuserID);
                         if (ep != null)
                         {
-                            AniDB_Anime anidb_anime = series.GetAnime();
+                            SVR_AniDB_Anime anidb_anime = series.GetAnime();
 
                             MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                             summ.AnimeID = series.AniDB_ID;
@@ -417,7 +421,7 @@ namespace JMMServer
                     }
                     if ((gf == null) || !gf.GroupsIds.ContainsKey(jmmuserID))
                         return retAnime;
-                    IEnumerable<Contract_AnimeGroup> comboGroups =
+                    IEnumerable<CL_AnimeGroup_User> comboGroups =
                         gf.GroupsIds[jmmuserID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
                             .Where(a => a != null)
                             .Select(a => a.GetUserContract(jmmuserID));
@@ -425,19 +429,19 @@ namespace JMMServer
                     // apply sorting
                     comboGroups= GroupFilterHelper.Sort(comboGroups, gf);
                     
-                    foreach (Contract_AnimeGroup grp in comboGroups)
+                    foreach (CL_AnimeGroup_User grp in comboGroups)
                     {
                         JMMServiceImplementation imp = new JMMServiceImplementation();
-                        foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
+                        foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
                         {
                             if (!user.AllowedSeries(ser)) continue;
 
-                            AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
+                            SVR_AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
 
-                            Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(sessionWrapper, ser.AnimeSeriesID, jmmuserID);
+                            CL_AnimeEpisode_User ep = imp.GetNextUnwatchedEpisode(sessionWrapper, ser.AnimeSeriesID, jmmuserID);
                             if (ep != null)
                             {
-                                AniDB_Anime anidb_anime = ser.GetAnime();
+                                SVR_AniDB_Anime anidb_anime = ser.GetAnime();
 
                                 MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                                 summ.AnimeID = ser.AniDB_ID;
@@ -491,19 +495,19 @@ namespace JMMServer
                     JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
-                    DateTime? startDate = Utils.GetAniDBDateAsDate(startDateSecs);
-                    DateTime? endDate = Utils.GetAniDBDateAsDate(endDateSecs);
+                    DateTime? startDate = AniDB.GetAniDBDateAsDate(startDateSecs);
+                    DateTime? endDate = AniDB.GetAniDBDateAsDate(endDateSecs);
 
-                    List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetForDate(session, startDate.Value, endDate.Value);
-                    foreach (AniDB_Anime anidb_anime in animes)
+                    List<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetForDate(session, startDate.Value, endDate.Value);
+                    foreach (SVR_AniDB_Anime anidb_anime in animes)
                     {
                         if (!user.AllowedAnime(anidb_anime)) continue;
 
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
                         MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
 
-                        summ.AirDateAsSeconds = anidb_anime.AirDateAsSeconds;
+                        summ.AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds();
                         summ.AnimeID = anidb_anime.AnimeID;
                         if (ser != null)
                         {
@@ -551,16 +555,16 @@ namespace JMMServer
                     if (user == null) return retAnime;
 
 
-                    List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.SearchByName(session, queryText);
-                    foreach (AniDB_Anime anidb_anime in animes)
+                    List<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.SearchByName(session, queryText);
+                    foreach (SVR_AniDB_Anime anidb_anime in animes)
                     {
                         if (!user.AllowedAnime(anidb_anime)) continue;
 
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
                         MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
 
-                        summ.AirDateAsSeconds = anidb_anime.AirDateAsSeconds;
+                        summ.AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds();
                         summ.AnimeID = anidb_anime.AnimeID;
                         if (ser != null)
                         {
@@ -602,10 +606,10 @@ namespace JMMServer
                     ISessionWrapper sessionWrapper = session.Wrap();
       
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return null;
 
-                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                     MetroContract_Anime_Detail ret = new MetroContract_Anime_Detail();
                     ret.AnimeID = anime.AnimeID;
@@ -648,28 +652,28 @@ namespace JMMServer
                     ret.AirDate = anime.AirDate;
                     ret.EndDate = anime.EndDate;
 
-                    ret.OverallRating = anime.AniDBRating;
-                    ret.TotalVotes = anime.AniDBTotalVotes;
+                    ret.OverallRating = anime.GetAniDBRating();
+                    ret.TotalVotes = anime.GetAniDBTotalVotes();
                     ret.AllTags = anime.TagsString;
 
                     ret.NextEpisodesToWatch = new List<MetroContract_Anime_Episode>();
                     if (ser != null)
                     {
-                        AnimeSeries_User serUserRec = ser.GetUserRecord(jmmuserID);
+                        SVR_AnimeSeries_User serUserRec = ser.GetUserRecord(jmmuserID);
                         if (ser != null)
                             ret.UnwatchedEpisodeCount = serUserRec.UnwatchedEpisodeCount;
                         else
                             ret.UnwatchedEpisodeCount = 0;
 
 
-                        List<AnimeEpisode> epList = new List<AnimeEpisode>();
-                        Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
+                        List<SVR_AnimeEpisode> epList = new List<SVR_AnimeEpisode>();
+                        Dictionary<int, SVR_AnimeEpisode_User> dictEpUsers = new Dictionary<int, SVR_AnimeEpisode_User>();
                         foreach (
-                            AnimeEpisode_User userRecord in
+                            SVR_AnimeEpisode_User userRecord in
                                 RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(jmmuserID, ser.AnimeSeriesID))
                             dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
 
-                        foreach (AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(ser.AnimeSeriesID))
+                        foreach (SVR_AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(ser.AnimeSeriesID))
                         {
                             if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
                             {
@@ -677,31 +681,31 @@ namespace JMMServer
                                 continue;
                             }
 
-                            AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
+                            SVR_AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
                             if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
                                 epList.Add(animeep);
                         }
 
-                        List<AniDB_Episode> aniEpList = RepoFactory.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
-                        Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
-                        foreach (AniDB_Episode aniep in aniEpList)
+                        List<SVR_AniDB_Episode> aniEpList = RepoFactory.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
+                        Dictionary<int, SVR_AniDB_Episode> dictAniEps = new Dictionary<int, SVR_AniDB_Episode>();
+                        foreach (SVR_AniDB_Episode aniep in aniEpList)
                             dictAniEps[aniep.EpisodeID] = aniep;
 
-                        List<Contract_AnimeEpisode> candidateEps = new List<Contract_AnimeEpisode>();
+                        List<CL_AnimeEpisode_User> candidateEps = new List<CL_AnimeEpisode_User>();
 
-                        foreach (AnimeEpisode ep in epList)
+                        foreach (SVR_AnimeEpisode ep in epList)
                         {
                             if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
                             {
-                                AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
+                                SVR_AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
                                 if (anidbep.EpisodeType == (int) enEpisodeType.Episode ||
                                     anidbep.EpisodeType == (int) enEpisodeType.Special)
                                 {
-                                    AnimeEpisode_User userRecord = null;
+                                    SVR_AnimeEpisode_User userRecord = null;
                                     if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
                                     {
                                         userRecord = dictEpUsers[ep.AnimeEpisodeID];
-                                        Contract_AnimeEpisode epContract = userRecord.Contract;
+                                        CL_AnimeEpisode_User epContract = userRecord.Contract;
                                         if (epContract != null)
                                             candidateEps.Add(epContract);
                                     }
@@ -719,18 +723,18 @@ namespace JMMServer
                             // this will generate a lot of queries when the user doesn have files
                             // for these episodes
                             int cnt = 0;
-                            foreach (Contract_AnimeEpisode canEp in candidateEps.OrderBy(a=>a.EpisodeType).ThenBy(a=>a.EpisodeNumber))
+                            foreach (CL_AnimeEpisode_User canEp in candidateEps.OrderBy(a=>a.EpisodeType).ThenBy(a=>a.EpisodeNumber))
                             {
                                 if (dictAniEps.ContainsKey(canEp.AniDB_EpisodeID))
                                 {
-                                    AniDB_Episode anidbep = dictAniEps[canEp.AniDB_EpisodeID];
+                                    SVR_AniDB_Episode anidbep = dictAniEps[canEp.AniDB_EpisodeID];
 
-                                    AnimeEpisode_User userEpRecord = null;
+                                    SVR_AnimeEpisode_User userEpRecord = null;
                                     if (dictEpUsers.ContainsKey(canEp.AnimeEpisodeID))
                                         userEpRecord = dictEpUsers[canEp.AnimeEpisodeID];
 
                                     // now refresh from the database to get file count
-                                    AnimeEpisode epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
+                                    SVR_AnimeEpisode epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
 
                                     int fileCount = epFresh.GetVideoLocals(session).Count;
                                     if (fileCount > 0)
@@ -752,7 +756,7 @@ namespace JMMServer
 
                                         contract.EpisodeType = anidbep.EpisodeType;
                                         contract.LengthSeconds = anidbep.LengthSeconds;
-                                        contract.AirDate = anidbep.AirDateFormatted;
+                                        contract.AirDate = anidbep.GetAirDateFormatted();
 
                                         // tvdb
                                         SetTvDBInfo(tvSummary, anidbep, ref contract);
@@ -785,10 +789,10 @@ namespace JMMServer
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return null;
 
-                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                     MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                     summ.AnimeID = anime.AnimeID;
@@ -820,7 +824,7 @@ namespace JMMServer
             return null;
         }
 
-        public static void SetTvDBInfo(AniDB_Anime anime, AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
         {
             TvDBSummary tvSummary = new TvDBSummary();
             tvSummary.Populate(anime.AnimeID);
@@ -828,7 +832,7 @@ namespace JMMServer
             SetTvDBInfo(tvSummary, ep, ref contract);
         }
 
-        public static void SetTvDBInfo(int anidbid, AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(int anidbid, SVR_AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
         {
             TvDBSummary tvSummary = new TvDBSummary();
             tvSummary.Populate(anidbid);
@@ -836,7 +840,7 @@ namespace JMMServer
             SetTvDBInfo(tvSummary, ep, ref contract);
         }
 
-        public static void SetTvDBInfo(TvDBSummary tvSummary, AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(TvDBSummary tvSummary, SVR_AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
         {
             #region episode override
 
@@ -877,18 +881,18 @@ namespace JMMServer
             #region normal episodes
 
             // now do stuff to improve performance
-            if (ep.EpisodeTypeEnum == enEpisodeType.Episode)
+            if (ep.GetEpisodeTypeEnum() == enEpisodeType.Episode)
             {
                 if (tvSummary != null && tvSummary.CrossRefTvDBV2 != null && tvSummary.CrossRefTvDBV2.Count > 0)
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
-                    List<CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2.OrderByDescending(a=>a.AniDBStartEpisodeNumber).ToList();
+                    List<SVR_CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2.OrderByDescending(a=>a.AniDBStartEpisodeNumber).ToList();
 
 
                     bool foundStartingPoint = false;
-                    CrossRef_AniDB_TvDBV2 xrefBase = null;
-                    foreach (CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
+                    SVR_CrossRef_AniDB_TvDBV2 xrefBase = null;
+                    foreach (SVR_CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
                     {
                         if (xrefTV.AniDBStartEpisodeType != (int) enEpisodeType.Episode) continue;
                         if (ep.EpisodeNumber >= xrefTV.AniDBStartEpisodeNumber)
@@ -952,16 +956,16 @@ namespace JMMServer
 
             #region special episodes
 
-            if (ep.EpisodeTypeEnum == enEpisodeType.Special)
+            if (ep.GetEpisodeTypeEnum() == enEpisodeType.Special)
             {
                 // find the xref that is right
                 // relies on the xref's being sorted by season number and then episode number (desc)
 
-                List<CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2.OrderByDescending(a=>a.AniDBStartEpisodeNumber).ToList();
+                List<SVR_CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2.OrderByDescending(a=>a.AniDBStartEpisodeNumber).ToList();
 
                 bool foundStartingPoint = false;
-                CrossRef_AniDB_TvDBV2 xrefBase = null;
-                foreach (CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
+                SVR_CrossRef_AniDB_TvDBV2 xrefBase = null;
+                foreach (SVR_CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
                 {
                     if (xrefTV.AniDBStartEpisodeType != (int) enEpisodeType.Special) continue;
                     if (ep.EpisodeNumber >= xrefTV.AniDBStartEpisodeNumber)
@@ -1033,21 +1037,21 @@ namespace JMMServer
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     
-                    List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(sessionWrapper, animeID);
+                    List<SVR_AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(sessionWrapper, animeID);
                     if (animeChars == null || animeChars.Count == 0) return chars;
 
                     int cnt = 0;
 
                     // first get all the main characters
                     foreach (
-                        AniDB_Anime_Character animeChar in
+                        SVR_AniDB_Anime_Character animeChar in
                             animeChars.Where(
                                 item =>
                                     item.CharType.Equals("main character in",
                                         StringComparison.InvariantCultureIgnoreCase)))
                     {
                         cnt++;
-                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
+                        SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
                         if (chr != null)
                         {
                             MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
@@ -1059,7 +1063,7 @@ namespace JMMServer
 
                     // now get the rest
                     foreach (
-                        AniDB_Anime_Character animeChar in
+                        SVR_AniDB_Anime_Character animeChar in
                             animeChars.Where(
                                 item =>
                                     !item.CharType.Equals("main character in",
@@ -1067,7 +1071,7 @@ namespace JMMServer
                         )
                     {
                         cnt++;
-                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
+                        SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
                         if (chr != null)
                         {
                             MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
@@ -1148,7 +1152,7 @@ namespace JMMServer
                     ISessionWrapper sessionWrapper = session.Wrap();
 
                     int cnt = 0;
-                    foreach (AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(sessionWrapper, animeID))
+                    foreach (SVR_AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(sessionWrapper, animeID))
                     {
                         MetroContract_Comment shout = new MetroContract_Comment();
 
@@ -1196,14 +1200,14 @@ namespace JMMServer
 
         public List<MetroContract_Anime_Summary> GetSimilarAnimeForAnime(int animeID, int maxRecords, int jmmuserID)
         {
-            List<Contract_AniDB_Anime_Similar> links = new List<Contract_AniDB_Anime_Similar>();
+            List<CL_AniDB_Anime_Similar> links = new List<CL_AniDB_Anime_Similar>();
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return retAnime;
 
                     JMMUser juser = RepoFactory.JMMUser.GetByID(jmmuserID);
@@ -1211,9 +1215,9 @@ namespace JMMServer
 
 
                     // first get the related anime
-                    foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
+                    foreach (SVR_AniDB_Anime_Relation link in anime.GetRelatedAnime())
                     {
-                        AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
+                        SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
 
                         if (animeLink == null)
                         {
@@ -1226,7 +1230,7 @@ namespace JMMServer
                         if (!juser.AllowedAnime(animeLink)) continue;
 
                         // check if this anime has a series
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
 
                         MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                         summ.AnimeID = animeLink.AnimeID;
@@ -1253,9 +1257,9 @@ namespace JMMServer
                     }
 
                     // now get similar anime
-                    foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime(session))
+                    foreach (SVR_AniDB_Anime_Similar link in anime.GetSimilarAnime(session))
                     {
-                        AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, link.SimilarAnimeID);
+                        SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, link.SimilarAnimeID);
 
                         if (animeLink == null)
                         {
@@ -1268,7 +1272,7 @@ namespace JMMServer
                         if (!juser.AllowedAnime(animeLink)) continue;
 
                         // check if this anime has a series
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
 
                         MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                         summ.AnimeID = animeLink.AnimeID;
@@ -1310,7 +1314,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
+                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
                 if (ep != null)
                     return ep.GetVideoDetailedContracts(userID);
                 else
@@ -1333,7 +1337,7 @@ namespace JMMServer
 
             try
             {
-                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
+                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
                 if (ep == null)
                 {
                     response.ErrorMessage = "Could not find anime episode record";

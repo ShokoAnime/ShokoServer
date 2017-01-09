@@ -1,7 +1,8 @@
-﻿using JMMServer.Entities;
-using JMMServer.Providers.TvDB;
+﻿using JMMServer.Providers.TvDB;
 using System;
 using System.Xml;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands.TvDB
 {
@@ -10,7 +11,7 @@ namespace JMMServer.Commands.TvDB
     {
 
         public int animeID;
-        public AniDBAPI.enEpisodeType aniEpType;
+        public enEpisodeType aniEpType;
         public int aniEpNumber;
         public int tvDBID;
         public int tvSeasonNumber;
@@ -35,7 +36,7 @@ namespace JMMServer.Commands.TvDB
         {
         }
 
-        public CommandRequest_LinkAniDBTvDB(int animeID, AniDBAPI.enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+        public CommandRequest_LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink=false)
         {
             this.animeID = animeID;
@@ -91,7 +92,7 @@ namespace JMMServer.Commands.TvDB
 
                 // populate the fields
                 this.animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-                this.aniEpType = (AniDBAPI.enEpisodeType)Enum.Parse(typeof(AniDBAPI.enEpisodeType), TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
+                this.aniEpType = (enEpisodeType)Enum.Parse(typeof(enEpisodeType), TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
                 this.aniEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpNumber"));
                 this.tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
                 this.tvSeasonNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvSeasonNumber"));

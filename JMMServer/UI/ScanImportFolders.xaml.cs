@@ -14,7 +14,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
+using Shoko.Models;
 
 namespace JMMServer.UI
 {
@@ -24,7 +26,7 @@ namespace JMMServer.UI
     public partial class ScanImportFolders : Window
     {
         public Scan SelectedScan { get; private set; }
-        public class CheckedImportFolder : ImportFolder
+        public class CheckedImportFolder : SVR_ImportFolder
         {
             public bool Checked { get; set; }
 
@@ -35,9 +37,9 @@ namespace JMMServer.UI
         public ScanImportFolders()
         {
 
-            List<ImportFolder> flds = RepoFactory.ImportFolder.GetAll().Where(a => a.ImportFolderType <= (int)ImportFolderType.HDD).ToList();
+            List<SVR_ImportFolder> flds = RepoFactory.ImportFolder.GetAll().Where(a => a.ImportFolderType <= (int)ImportFolderType.HDD).ToList();
             ObservableCollection<CheckedImportFolder> flds2 = new ObservableCollection<CheckedImportFolder>();
-            foreach (ImportFolder fld in flds)
+            foreach (SVR_ImportFolder fld in flds)
             {
                 CheckedImportFolder c = new CheckedImportFolder();
                 c.ImportFolderID = fld.ImportFolderID;

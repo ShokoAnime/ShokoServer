@@ -1,6 +1,7 @@
 ﻿using System;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

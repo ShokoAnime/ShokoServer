@@ -5,6 +5,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -47,7 +48,7 @@ namespace JMMServer.Commands
 
             try
             {
-                AniDB_ReleaseGroup relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
+                SVR_AniDB_ReleaseGroup relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
 
                 if (ForceRefresh || relGroup == null)
                 {

@@ -2,8 +2,10 @@
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -43,10 +45,10 @@ namespace JMMServer.Commands
             {
                 //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
+                SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null) return;
 
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
                 AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);

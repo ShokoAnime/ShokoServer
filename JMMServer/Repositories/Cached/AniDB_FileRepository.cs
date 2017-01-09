@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
@@ -11,24 +12,24 @@ using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories
 {
-    public class AniDB_FileRepository : BaseCachedRepository<AniDB_File, int>
+    public class AniDB_FileRepository : BaseCachedRepository<SVR_AniDB_File, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private PocoIndex<int, AniDB_File, string> Hashes;
-        private PocoIndex<int, AniDB_File, string> SHA1s;
-        private PocoIndex<int, AniDB_File, string> MD5s;
-        private PocoIndex<int, AniDB_File, int> FileIds;
-        private PocoIndex<int, AniDB_File, int> Animes;
-        private PocoIndex<int, AniDB_File, string> Resolutions;
-        private PocoIndex<int, AniDB_File, int> InternalVersions;
+        private PocoIndex<int, SVR_AniDB_File, string> Hashes;
+        private PocoIndex<int, SVR_AniDB_File, string> SHA1s;
+        private PocoIndex<int, SVR_AniDB_File, string> MD5s;
+        private PocoIndex<int, SVR_AniDB_File, int> FileIds;
+        private PocoIndex<int, SVR_AniDB_File, int> Animes;
+        private PocoIndex<int, SVR_AniDB_File, string> Resolutions;
+        private PocoIndex<int, SVR_AniDB_File, int> InternalVersions;
 
         private AniDB_FileRepository()
         {
             EndDeleteCallback = (cr) =>
             {
                 if (cr.AnimeID > 0)
-                    AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);
             };
         }
 
@@ -37,20 +38,20 @@ namespace JMMServer.Repositories
             return new AniDB_FileRepository();
         }
 
-        protected override int SelectKey(AniDB_File entity)
+        protected override int SelectKey(SVR_AniDB_File entity)
         {
             return entity.AniDB_FileID;
         }
 
         public override void PopulateIndexes()
         {
-            Hashes = new PocoIndex<int, AniDB_File, string>(Cache, a => a.Hash);
-            SHA1s = new PocoIndex<int, AniDB_File, string>(Cache, a => a.SHA1);
-            MD5s = new PocoIndex<int, AniDB_File, string>(Cache, a => a.MD5);
-            FileIds = new PocoIndex<int, AniDB_File, int>(Cache, a => a.FileID);
-            Animes = new PocoIndex<int, AniDB_File, int>(Cache, a => a.AnimeID);
-            Resolutions = new PocoIndex<int, AniDB_File, string>(Cache, a => a.File_VideoResolution);
-            InternalVersions = new PocoIndex<int, AniDB_File, int>(Cache, a => a.InternalVersion);
+            Hashes = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.Hash);
+            SHA1s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.SHA1);
+            MD5s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.MD5);
+            FileIds = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.FileID);
+            Animes = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.AnimeID);
+            Resolutions = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.File_VideoResolution);
+            InternalVersions = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.InternalVersion);
         }
 
         public override void RegenerateDb()
@@ -60,23 +61,23 @@ namespace JMMServer.Repositories
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(AniDB_File obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_AniDB_File obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<AniDB_File> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_AniDB_File> objs) { throw new NotSupportedException(); }
 
-        public void Save(AniDB_File obj, bool updateStats)
+        public void Save(SVR_AniDB_File obj, bool updateStats)
         {
             base.Save(obj);
             if (updateStats)
             {
                 logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", obj.Hash);
-                AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
             }
         }
 
 
-        public AniDB_File GetByHash(string hash)
+        public SVR_AniDB_File GetByHash(string hash)
         {
             return Hashes.GetOne(hash);
             /*            AniDB_File cr = session
@@ -86,7 +87,7 @@ namespace JMMServer.Repositories
             return cr;*/
         }
 
-        public AniDB_File GetBySHA1(string hash)
+        public SVR_AniDB_File GetBySHA1(string hash)
         {
             return SHA1s.GetOne(hash);
             /*
@@ -96,7 +97,7 @@ namespace JMMServer.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
-        public AniDB_File GetByMD5(string hash)
+        public SVR_AniDB_File GetByMD5(string hash)
         {
             return MD5s.GetOne(hash);
             /*
@@ -106,7 +107,7 @@ namespace JMMServer.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
-        public List<AniDB_File> GetByInternalVersion(int version)
+        public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
             return InternalVersions.GetMultiple(version);
             /*
@@ -116,7 +117,7 @@ namespace JMMServer.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
-        public AniDB_File GetByHashAndFileSize(string hash, long fsize)
+        public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
             return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
             /*using (var session = JMMService.SessionFactory.OpenSession())
@@ -130,7 +131,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public AniDB_File GetByFileID(int fileID)
+        public SVR_AniDB_File GetByFileID(int fileID)
         {
             return FileIds.GetOne(fileID);
             /*
@@ -146,7 +147,7 @@ namespace JMMServer.Repositories
 
 
 
-        public List<AniDB_File> GetByAnimeID(int animeID)
+        public List<SVR_AniDB_File> GetByAnimeID(int animeID)
         {
             return Animes.GetMultiple(animeID);
             /*
@@ -161,7 +162,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_File> GetByResolution(string res)
+        public List<SVR_AniDB_File> GetByResolution(string res)
         {
             return Resolutions.GetMultiple(res);
             /*

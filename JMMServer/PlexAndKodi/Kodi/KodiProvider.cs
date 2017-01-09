@@ -2,7 +2,7 @@
 using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using System;
 using Nancy;
 

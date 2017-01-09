@@ -6,6 +6,7 @@ using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

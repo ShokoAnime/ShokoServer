@@ -1,13 +1,14 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_Relation, int>
+    public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Anime_Relation, int>
     {
         private AniDB_Anime_RelationRepository()
         {
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         {
             return new AniDB_Anime_RelationRepository();
         }
-        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
+        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -26,17 +27,17 @@ namespace JMMServer.Repositories.Direct
             }
         }
 
-        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
+        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
         {
-            AniDB_Anime_Relation cr = session
-                .CreateCriteria(typeof(AniDB_Anime_Relation))
+            SVR_AniDB_Anime_Relation cr = session
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", animeid))
                 .Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
-                .UniqueResult<AniDB_Anime_Relation>();
+                .UniqueResult<SVR_AniDB_Anime_Relation>();
             return cr;
         }
 
-        public List<AniDB_Anime_Relation> GetByAnimeID(int id)
+        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -44,14 +45,14 @@ namespace JMMServer.Repositories.Direct
             }
         }
 
-        public List<AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
+        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
         {
             var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Relation))
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Relation>();
+                .List<SVR_AniDB_Anime_Relation>();
 
-            return new List<AniDB_Anime_Relation>(cats);
+            return new List<SVR_AniDB_Anime_Relation>(cats);
         }
     }
 }

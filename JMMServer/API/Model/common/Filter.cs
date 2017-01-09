@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Entities;
 
 namespace JMMServer.API.Model.common
 {
@@ -20,7 +21,7 @@ namespace JMMServer.API.Model.common
             groups = new List<Group>();
         }
 
-        internal Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, int nocast, int notag, int level)
+        internal Filter GenerateFromGroupFilter(GroupFilter gf, int uid, int nocast, int notag, int level)
         {
             Filter filter = new Filter();
             filter.name = gf.GroupFilterName;
@@ -37,11 +38,11 @@ namespace JMMServer.API.Model.common
 
                     foreach (int gp in groupsh)
                     {
-                        Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.First<int>());
+                        SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.First<int>());
 
                         if (ag != null)
                         {
-                            JMMContracts.PlexAndKodi.Video v = ag.GetPlexContract(uid);
+                            Shoko.Models.PlexAndKodi.Video v = ag.GetPlexContract(uid);
                             
                             if (v.Art != null)
                             {

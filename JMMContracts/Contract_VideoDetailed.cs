@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     public class Contract_VideoDetailed
     {

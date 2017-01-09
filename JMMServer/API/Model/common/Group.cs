@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Entities;
 
 namespace JMMServer.API.Model.common
 {
@@ -7,7 +8,7 @@ namespace JMMServer.API.Model.common
         public List<Serie> series { get; set; }
         public int id { get; set; }
         public string name { get; set; }
-        public List<Entities.AniDB_Anime_Title> titles { get; set; }
+        public List<SVR_AniDB_Anime_Title> titles { get; set; }
         public HashSet<string> videoqualities { get; set; }
 
         public Group()
@@ -16,7 +17,7 @@ namespace JMMServer.API.Model.common
         }
 
 
-        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, int nocast, int notag, int level)
+        public Group GenerateFromAnimeGroup(SVR_AnimeGroup ag, int uid, int nocast, int notag, int level)
         {
             Group g = new Group();
 
@@ -27,7 +28,7 @@ namespace JMMServer.API.Model.common
 
             if (level != 1)
             {
-                foreach (Entities.AniDB_Anime ada in ag.Anime)
+                foreach (SVR_AniDB_Anime ada in ag.Anime)
                 {
                     g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1)));
                 }

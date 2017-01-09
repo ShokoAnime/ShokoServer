@@ -3,15 +3,17 @@
  using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using JMMContracts;
+using Shoko.Models;
 using JMMServer.Commands;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
 using JMMServer.Databases;
-using JMMServer.Entities;
+ using JMMServer.Entities;
+ using Shoko.Models.Server;
 using JMMServer.FileHelper;
  using JMMServer.PlexAndKodi;
  using JMMServer.Providers.Azure;
+ using Shoko.Models.Azure;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Providers.TraktTV;
@@ -24,9 +26,7 @@ using JMMServer.Repositories.NHibernate;
  using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
-using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
-
-using File = Pri.LongPath.File;
+ using File = Pri.LongPath.File;
 
 namespace JMMServer
 {
@@ -100,8 +100,8 @@ namespace JMMServer
             foreach (VideoLocal vl in RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
                 // if the file is not manually associated, then check for AniDB_File info
-                AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
-                foreach (CrossRef_File_Episode xref in vl.EpisodeCrossRefs)
+                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
+                foreach (SVR_CrossRef_File_Episode xref in vl.EpisodeCrossRefs)
                 {
                     if (xref.CrossRefSource != (int)CrossRefSource.AniDB) continue;
                     if (aniFile == null)
@@ -117,9 +117,9 @@ namespace JMMServer
                 // the cross ref is created before the actually episode data is downloaded
                 // so lets check for that
                 bool missingEpisodes = false;
-                foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
+                foreach (SVR_CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                 {
-                    AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                    SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                     if (ep == null) missingEpisodes = true;
                 }
 
@@ -153,7 +153,7 @@ namespace JMMServer
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (VideoLocal v in missfiles.ToList())
                 {
-                    AniDB_File file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
+                    SVR_AniDB_File file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                     if (file != null)
                     {
                         if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&
@@ -171,7 +171,7 @@ namespace JMMServer
                 //Try obtain missing hashes
                 foreach (VideoLocal v in missfiles.ToList())
                 {
-                    List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
+                    List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
                         ls = ls.Where(
@@ -231,7 +231,7 @@ namespace JMMServer
 
             try
             {
-                ImportFolder fldr = RepoFactory.ImportFolder.GetByID(importFolderID);
+                SVR_ImportFolder fldr = RepoFactory.ImportFolder.GetByID(importFolderID);
                 if (fldr == null) return;
 
                 // first build a list of files that we already know about, as we don't want to process them again
@@ -292,7 +292,7 @@ namespace JMMServer
         {
             // get a complete list of files
             List<string> fileList = new List<string>();
-            foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
+            foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 if (!share.FolderIsDropSource) continue;
 
@@ -356,7 +356,7 @@ namespace JMMServer
 
             // get a complete list of files
             List<string> fileList = new List<string>();
-            foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
+            foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 try
@@ -398,7 +398,7 @@ namespace JMMServer
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);
         }
-        public static void RunImport_ImportFolderNewFiles(ImportFolder fldr)
+        public static void RunImport_ImportFolderNewFiles(SVR_ImportFolder fldr)
         {
             List<string> fileList = new List<string>();
             int filesFound = 0, videosFound = 0;
@@ -435,7 +435,7 @@ namespace JMMServer
         public static void RunImport_GetImages()
         {
             // AniDB posters
-            foreach (AniDB_Anime anime in RepoFactory.AniDB_Anime.GetAll())
+            foreach (SVR_AniDB_Anime anime in RepoFactory.AniDB_Anime.GetAll())
             {
                 if (anime.AnimeID == 8580)
                     Console.Write("");
@@ -745,7 +745,7 @@ namespace JMMServer
             // AniDB Characters
             if (ServerSettings.AniDB_DownloadCharacters)
             {
-                foreach (AniDB_Character chr in RepoFactory.AniDB_Character.GetAll())
+                foreach (SVR_AniDB_Character chr in RepoFactory.AniDB_Character.GetAll())
                 {
                     if (chr.CharID == 75250)
                     {
@@ -766,7 +766,7 @@ namespace JMMServer
             // AniDB Creators
             if (ServerSettings.AniDB_DownloadCreators)
             {
-                foreach (AniDB_Seiyuu seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
+                foreach (SVR_AniDB_Seiyuu seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
                 {
                     if (string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
                     bool fileExists = File.Exists(seiyuu.PosterPath);
@@ -808,7 +808,7 @@ namespace JMMServer
 
         public static void RunImport_UpdateAllAniDB()
         {
-            foreach (AniDB_Anime anime in RepoFactory.AniDB_Anime.GetAll())
+            foreach (SVR_AniDB_Anime anime in RepoFactory.AniDB_Anime.GetAll())
             {
                 CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false);
                 cmd.Save();
@@ -819,14 +819,14 @@ namespace JMMServer
         {
 	        using (var session = DatabaseFactory.SessionFactory.OpenSession())
 	        {
-		        HashSet<AnimeEpisode> episodesToUpdate = new HashSet<AnimeEpisode>();
-		        HashSet<AnimeSeries> seriesToUpdate = new HashSet<AnimeSeries>();
+		        HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
+		        HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
 		        // get a full list of files
-		        Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
+		        Dictionary<SVR_ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
 			        .Where(a => a.ImportFolder != null)
 			        .GroupBy(a => a.ImportFolder)
 			        .ToDictionary(a => a.Key, a => a.ToList());
-		        foreach (ImportFolder folder in filesAll.Keys)
+		        foreach (SVR_ImportFolder folder in filesAll.Keys)
 		        {
 			        IFileSystem fs = folder.FileSystem;
 
@@ -876,7 +876,7 @@ namespace JMMServer
 			        cmdDel.Save();
 		        }
 
-		        foreach (AnimeEpisode ep in episodesToUpdate)
+		        foreach (SVR_AnimeEpisode ep in episodesToUpdate)
 		        {
 			        if (ep.AnimeEpisodeID == 0)
 			        {
@@ -894,7 +894,7 @@ namespace JMMServer
 			        }
 		        }
 
-		        foreach (AnimeSeries ser in seriesToUpdate)
+		        foreach (SVR_AnimeSeries ser in seriesToUpdate)
 		        {
 			        ser.QueueUpdateStats();
 		        }
@@ -905,9 +905,9 @@ namespace JMMServer
 
         public static string DeleteCloudAccount(int cloudaccountID)
         {
-            CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountID);
+            SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountID);
             if (cl == null) return "Could not find Cloud Account ID: " + cloudaccountID;
-            foreach (ImportFolder f in RepoFactory.ImportFolder.GetByCloudId(cl.CloudID))
+            foreach (SVR_ImportFolder f in RepoFactory.ImportFolder.GetByCloudId(cl.CloudID))
             {
                 string r = DeleteImportFolder(f.ImportFolderID);
                 if (!string.IsNullOrEmpty(r))
@@ -920,20 +920,20 @@ namespace JMMServer
         {
             try
             {
-                ImportFolder ns = RepoFactory.ImportFolder.GetByID(importFolderID);
+                SVR_ImportFolder ns = RepoFactory.ImportFolder.GetByID(importFolderID);
 
                 if (ns == null) return "Could not find Import Folder ID: " + importFolderID;
 
                 // first delete all the files attached  to this import folder
-                Dictionary<int, AnimeSeries> affectedSeries = new Dictionary<int, AnimeSeries>();
+                Dictionary<int, SVR_AnimeSeries> affectedSeries = new Dictionary<int, SVR_AnimeSeries>();
 
                 foreach (VideoLocal_Place vid in RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID))
                 {
                     //Thread.Sleep(5000);
                     logger.Info("Deleting video local record: {0}", vid.FullServerPath);
 
-                    AnimeSeries ser = null;
-                    List<AnimeEpisode> animeEpisodes = vid.VideoLocal.GetAnimeEpisodes();
+                    SVR_AnimeSeries ser = null;
+                    List<SVR_AnimeEpisode> animeEpisodes = vid.VideoLocal.GetAnimeEpisodes();
                     if (animeEpisodes.Count > 0)
                     {
                         ser = animeEpisodes[0].GetAnimeSeries();
@@ -976,7 +976,7 @@ namespace JMMServer
                     //dont do this at home :-)
                 }
 
-                foreach (AnimeSeries ser in affectedSeries.Values)
+                foreach (SVR_AnimeSeries ser in affectedSeries.Values)
                 {
                     ser.QueueUpdateStats();
                     //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
@@ -994,7 +994,7 @@ namespace JMMServer
 
         public static void UpdateAllStats()
         {
-            foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+            foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
                 ser.QueueUpdateStats();
             }

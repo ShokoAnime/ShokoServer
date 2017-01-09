@@ -6,10 +6,13 @@ using System.Text;
 using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
@@ -254,9 +257,9 @@ namespace JMMServer.Providers.MovieDB
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
 
-            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            SVR_CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null)
-                xref = new CrossRef_AniDB_Other();
+                xref = new SVR_CrossRef_AniDB_Other();
 
             xref.AnimeID = animeID;
             if (fromWebCache)
@@ -267,7 +270,7 @@ namespace JMMServer.Providers.MovieDB
             xref.CrossRefType = (int) CrossRefType.MovieDB;
             xref.CrossRefID = movieDBID.ToString();
             RepoFactory.CrossRef_AniDB_Other.Save(xref);
-            AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
 
@@ -278,7 +281,7 @@ namespace JMMServer.Providers.MovieDB
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            SVR_CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null) return;
 
             RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
@@ -290,14 +293,14 @@ namespace JMMServer.Providers.MovieDB
 
         public static void ScanForMatches()
         {
-            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            foreach (AnimeSeries ser in allSeries)
+            foreach (SVR_AnimeSeries ser in allSeries)
             {
-                AniDB_Anime anime = ser.GetAnime();
+                SVR_AniDB_Anime anime = ser.GetAnime();
                 if (anime == null) continue;
 
-                if (anime.IsMovieDBLinkDisabled) continue;
+                if (anime.GetIsMovieDBLinkDisabled()) continue;
 
                 // don't scan if it is associated on the TvDB
                 if (anime.GetCrossRefTvDBV2().Count > 0) continue;
@@ -306,7 +309,7 @@ namespace JMMServer.Providers.MovieDB
                 if (anime.GetCrossRefMovieDB() != null) continue;
 
                 // don't scan if it is not a movie
-                if (!anime.SearchOnMovieDB)
+                if (!anime.GetSearchOnMovieDB())
                     continue;
 
                 logger.Trace("Found anime movie without MovieDB association: " + anime.MainTitle);

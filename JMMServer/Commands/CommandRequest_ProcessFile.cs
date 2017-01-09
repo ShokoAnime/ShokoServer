@@ -7,10 +7,12 @@ using System.Xml;
 using AniDBAPI;
 using JMMServer.Commands.AniDB;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -85,7 +87,7 @@ namespace JMMServer.Commands
             lock (vidLocal)
             {
 
-                AniDB_File aniFile = null;
+                SVR_AniDB_File aniFile = null;
 
                 if (!ForceAniDB)
                 {
@@ -108,7 +110,7 @@ namespace JMMServer.Commands
                         aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
                         if (aniFile == null)
-                            aniFile = new AniDB_File();
+                            aniFile = new SVR_AniDB_File();
 
                         aniFile.Populate(fileInfo);
 
@@ -144,16 +146,16 @@ namespace JMMServer.Commands
                 if (aniFile == null)
                 {
                     // check if we have any records from previous imports
-                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                    List<SVR_CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                     if (crossRefs == null || crossRefs.Count == 0)
                     {
                         // lets see if we can find the episode/anime info from the web cache
                         if (ServerSettings.WebCache_XRefFileEpisode_Get)
                         {
-                            List<JMMServer.Providers.Azure.CrossRef_File_Episode> xrefs =
-                                JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
+                            List<Shoko.Models.Azure.Azure_CrossRef_File_Episode> xrefs =
+                                AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
 
-                            crossRefs = new List<CrossRef_File_Episode>();
+                            crossRefs = new List<SVR_CrossRef_File_Episode>();
                             if (xrefs == null || xrefs.Count == 0)
                             {
                                 logger.Debug(
@@ -163,9 +165,9 @@ namespace JMMServer.Commands
                             }
                             else
                             {
-                                foreach (JMMServer.Providers.Azure.CrossRef_File_Episode xref in xrefs)
+                                foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
                                 {
-                                    CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
+                                    SVR_CrossRef_File_Episode xrefEnt = new SVR_CrossRef_File_Episode();
                                     xrefEnt.Hash = vidLocal.ED2KHash;
                                     xrefEnt.FileName = vidLocal.FileName;
                                     xrefEnt.FileSize = vidLocal.FileSize;
@@ -177,7 +179,7 @@ namespace JMMServer.Commands
 
                                     bool duplicate = false;
 
-                                    foreach (CrossRef_File_Episode xrefcheck in crossRefs)
+                                    foreach (SVR_CrossRef_File_Episode xrefcheck in crossRefs)
                                     {
                                         if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
                                             xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
@@ -202,11 +204,11 @@ namespace JMMServer.Commands
                     }
 
                     // we assume that all episodes belong to the same anime
-                    foreach (CrossRef_File_Episode xref in crossRefs)
+                    foreach (SVR_CrossRef_File_Episode xref in crossRefs)
                     {
                         animeID = xref.AnimeID;
 
-                        AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                        SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                         if (ep == null) missingEpisodes = true;
                     }
                 }
@@ -225,9 +227,9 @@ namespace JMMServer.Commands
                     }
                     else
                     {
-                        foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
+                        foreach (SVR_CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                         {
-                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                            SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null)
                                 missingEpisodes = true;
 
@@ -237,7 +239,7 @@ namespace JMMServer.Commands
                 }
 
                 // get from DB
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 bool animeRecentlyUpdated = false;
 
                 if (anime != null)
@@ -255,7 +257,7 @@ namespace JMMServer.Commands
                 }
 
                 // create the group/series/episode records if needed
-                AnimeSeries ser = null;
+                SVR_AnimeSeries ser = null;
                 if (anime != null)
                 {
                     logger.Debug("Creating groups, series and episodes....");
@@ -283,7 +285,7 @@ namespace JMMServer.Commands
                     ser.EpisodeAddedDate = DateTime.Now;
                     RepoFactory.AnimeSeries.Save(ser, false, false);
 
-                    foreach (AnimeGroup grp in ser.AllGroupsAbove)
+                    foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
                     {
                         grp.EpisodeAddedDate = DateTime.Now;
                         RepoFactory.AnimeGroup.Save(grp, true, false);

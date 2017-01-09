@@ -3,11 +3,11 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using JMMServer.Databases;
-using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NHibernate;
 using NLog;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

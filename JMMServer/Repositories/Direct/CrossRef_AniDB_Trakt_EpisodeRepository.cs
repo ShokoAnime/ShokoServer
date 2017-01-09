@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Databases;
-using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 

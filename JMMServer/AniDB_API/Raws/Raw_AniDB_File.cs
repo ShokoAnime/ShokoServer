@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Xml.Serialization;
 using JMMServer;
+using Shoko.Models;
 
 namespace AniDBAPI
 {

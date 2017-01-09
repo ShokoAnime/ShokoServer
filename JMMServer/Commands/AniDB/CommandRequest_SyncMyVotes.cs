@@ -6,9 +6,9 @@ using System.Xml;
 using AniDBAPI;
 using JMMServer.AniDB_API.Commands;
 using JMMServer.AniDB_API.Raws;
-using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

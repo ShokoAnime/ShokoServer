@@ -5,11 +5,14 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
+using Shoko.Models.Azure;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -62,8 +65,8 @@ namespace JMMServer.Commands
                         try
                         {
                    
-                            JMMServer.Providers.Azure.CrossRef_AniDB_Other crossRef =
-                                JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBOther(AnimeID,
+                            Azure_CrossRef_AniDB_Other crossRef =
+                                AzureWebAPI.Get_CrossRefAniDBOther(AnimeID,
                                     CrossRefType.MovieDB);
                             if (crossRef != null)
                             {
@@ -90,7 +93,7 @@ namespace JMMServer.Commands
                     }
 
                     string searchCriteria = "";
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -103,9 +106,9 @@ namespace JMMServer.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (SVR_AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
+                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 

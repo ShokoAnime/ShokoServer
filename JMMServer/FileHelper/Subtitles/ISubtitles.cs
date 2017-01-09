@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
-using JMMContracts.PlexAndKodi;
 using JMMServer.Entities;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
 
 namespace JMMServer.FileHelper.Subtitles

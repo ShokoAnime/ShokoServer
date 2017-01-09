@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JMMServer</RootNamespace>
     <AssemblyName>ShokoServer</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -340,6 +340,7 @@
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="API\APIHelper.cs" />
+    <Compile Include="ClientCloneExtensions.cs" />
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />
@@ -370,9 +371,8 @@
     <Compile Include="Databases\DatabaseFactory.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
-    <Compile Include="Entities\AuthTokens.cs" />
     <Compile Include="Entities\IImageEntity.cs" />
-    <Compile Include="Entities\CloudAccount.cs" />
+    <Compile Include="Entities\SVR_CloudAccount.cs" />
     <Compile Include="Entities\Scan.cs" />
     <Compile Include="Entities\ScanFile.cs" />
     <Compile Include="Entities\VideoLocal_Place.cs" />
@@ -387,6 +387,9 @@
     <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
+    <Compile Include="IJMMServerImage.cs" />
+    <Compile Include="IJMMServerMetro.cs" />
+    <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="PlexAndKodi\HttpExtensions.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexClient.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexDeviceInfo.cs" />
@@ -486,16 +489,11 @@
     <Compile Include="Constants.cs" />
     <Compile Include="CustomHttpBinding.cs" />
     <Compile Include="Databases\MySQL.cs" />
-    <Compile Include="Entities\AniDB_MylistStats.cs" />
-    <Compile Include="Entities\AniDB_Recommendation.cs" />
-    <Compile Include="Entities\BookmarkedAnime.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_TraktV2.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_Trakt_Episode.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_TvDBV2.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
-    <Compile Include="Entities\CrossRef_CustomTag.cs" />
-    <Compile Include="Entities\CustomTag.cs" />
+    <Compile Include="Entities\SVR_AniDB_MylistStats.cs" />
+    <Compile Include="Entities\SVR_AniDB_Recommendation.cs" />
+    <Compile Include="Entities\SVR_BookmarkedAnime.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_TraktV2.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_TvDBV2.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
@@ -576,30 +574,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.ru.resx</DependentUpon>
     </Compile>
-    <Compile Include="Providers\Azure\Azure_AdminMessage.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeIDTitle.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeLink.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeXML.cs" />
     <Compile Include="Providers\Azure\AzureWebAPI.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeCharacter.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeDetail.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeFull.cs" />
-    <Compile Include="Providers\Azure\Azure_AnimeShout.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MAL.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Other.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_OtherInput.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TraktInput.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Trakt.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MALInput.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_File_Episode.cs" />
-    <Compile Include="Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
-    <Compile Include="Providers\Azure\Azure_UserInfo.cs" />
-    <Compile Include="Providers\Azure\FileHash.cs" />
-    <Compile Include="Providers\Azure\FileHashInput.cs" />
-    <Compile Include="Providers\Azure\Media.cs" />
-    <Compile Include="Providers\Azure\MediaInput.cs" />
     <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
     <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
@@ -701,43 +676,37 @@
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
     <Compile Include="Databases\SQLite.cs" />
     <Compile Include="Databases\SQLServer.cs" />
-    <Compile Include="Entities\AniDB_Anime.cs" />
-    <Compile Include="Entities\AniDB_Anime_Character.cs" />
-    <Compile Include="Entities\AniDB_Anime_DefaultImage.cs" />
-    <Compile Include="Entities\AniDB_Anime_Relation.cs" />
-    <Compile Include="Entities\AniDB_Anime_Review.cs" />
-    <Compile Include="Entities\AniDB_Anime_Similar.cs" />
-    <Compile Include="Entities\AniDB_Anime_Tag.cs" />
-    <Compile Include="Entities\AniDB_Anime_Title.cs" />
-    <Compile Include="Entities\AniDB_Character.cs" />
-    <Compile Include="Entities\AniDB_Character_Seiyuu.cs" />
-    <Compile Include="Entities\AniDB_Seiyuu.cs" />
-    <Compile Include="Entities\AniDB_Episode.cs" />
-    <Compile Include="Entities\AniDB_File.cs" />
-    <Compile Include="Entities\AniDB_GroupStatus.cs" />
-    <Compile Include="Entities\AniDB_ReleaseGroup.cs" />
-    <Compile Include="Entities\AniDB_Review.cs" />
-    <Compile Include="Entities\AniDB_Tag.cs" />
-    <Compile Include="Entities\AniDB_Vote.cs" />
-    <Compile Include="Entities\AnimeEpisode.cs" />
-    <Compile Include="Entities\AnimeEpisode_User.cs" />
-    <Compile Include="Entities\AnimeGroup.cs" />
-    <Compile Include="Entities\AnimeGroup_User.cs" />
-    <Compile Include="Entities\AnimeSeries.cs" />
-    <Compile Include="Entities\AnimeSeries_User.cs" />
-    <Compile Include="Entities\CommandRequest.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_Other.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_Trakt.cs" />
-    <Compile Include="Entities\CrossRef_AniDB_TvDB.cs" />
-    <Compile Include="Entities\CrossRef_File_Episode.cs" />
-    <Compile Include="Entities\CrossRef_Languages_AniDB_File.cs" />
-    <Compile Include="Entities\CrossRef_Subtitles_AniDB_File.cs" />
-    <Compile Include="Entities\DuplicateFile.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Character.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Relation.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Similar.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Tag.cs" />
+    <Compile Include="Entities\SVR_AniDB_Anime_Title.cs" />
+    <Compile Include="Entities\SVR_AniDB_Character.cs" />
+    <Compile Include="Entities\SVR_AniDB_Seiyuu.cs" />
+    <Compile Include="Entities\SVR_AniDB_Episode.cs" />
+    <Compile Include="Entities\SVR_AniDB_File.cs" />
+    <Compile Include="Entities\SVR_AniDB_GroupStatus.cs" />
+    <Compile Include="Entities\SVR_AniDB_ReleaseGroup.cs" />
+    <Compile Include="Entities\SVR_AniDB_Review.cs" />
+    <Compile Include="Entities\SVR_AniDB_Tag.cs" />
+    <Compile Include="Entities\SVR_AnimeEpisode.cs" />
+    <Compile Include="Entities\SVR_AnimeEpisode_User.cs" />
+    <Compile Include="Entities\SVR_AnimeGroup.cs" />
+    <Compile Include="Entities\SVR_AnimeGroup_User.cs" />
+    <Compile Include="Entities\SVR_AnimeSeries.cs" />
+    <Compile Include="Entities\SVR_AnimeSeries_User.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_Other.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Entities\SVR_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Entities\SVR_CrossRef_File_Episode.cs" />
+    <Compile Include="Entities\SVR_DuplicateFile.cs" />
     <Compile Include="Entities\FileNameHash.cs" />
     <Compile Include="Entities\GroupFilter.cs" />
     <Compile Include="Entities\GroupFilterCondition.cs" />
     <Compile Include="Entities\IgnoreAnime.cs" />
-    <Compile Include="Entities\ImportFolder.cs" />
+    <Compile Include="Entities\SVR_ImportFolder.cs" />
     <Compile Include="Entities\JMMUser.cs" />
     <Compile Include="Entities\Language.cs" />
     <Compile Include="Entities\MovieDB_Fanart.cs" />
@@ -971,9 +940,6 @@
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
     <Compile Include="WebCache\AniDB_UpdatedRequest.cs" />
     <Compile Include="WebCache\AppVersionsResult.cs" />
-    <Compile Include="WebCache\CrossRef_AniDB_MALResult.cs" />
-    <Compile Include="WebCache\CrossRef_AniDB_TraktResult.cs" />
-    <Compile Include="WebCache\CrossRef_AniDB_TvDBResult.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDBTvDBAll_Request.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_TraktRequest.cs" />
@@ -1152,10 +1118,6 @@
     <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
       <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\JMMContracts\JMMContracts.csproj">
-      <Project>{D777636B-F927-4C7D-9D00-4A7858E75F3E}</Project>
-      <Name>JMMContracts</Name>
     </ProjectReference>
     <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
       <Project>{d202b61e-a658-4208-83fc-745e04f43bde}</Project>

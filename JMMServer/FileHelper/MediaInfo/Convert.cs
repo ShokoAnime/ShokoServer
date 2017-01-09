@@ -6,10 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using MediaInfoLib;
 using NutzCode.CloudFileSystem;
-using Stream = JMMContracts.PlexAndKodi.Stream;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 using File = Pri.LongPath.File;
 
 

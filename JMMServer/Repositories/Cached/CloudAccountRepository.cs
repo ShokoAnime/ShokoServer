@@ -1,9 +1,10 @@
 ﻿using System;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.Repositories.Cached
 {
-    public class CloudAccountRepository : BaseCachedRepository<CloudAccount, int>
+    public class CloudAccountRepository : BaseCachedRepository<SVR_CloudAccount, int>
     {
         private CloudAccountRepository()
         {
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Cached
             return new CloudAccountRepository();
         }
 
-        protected override int SelectKey(CloudAccount entity)
+        protected override int SelectKey(SVR_CloudAccount entity)
         {
             return entity.CloudID;
         }

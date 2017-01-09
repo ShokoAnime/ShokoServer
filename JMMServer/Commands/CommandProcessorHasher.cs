@@ -2,10 +2,10 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NLog;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

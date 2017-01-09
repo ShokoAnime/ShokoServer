@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using JMMServer;
+using Shoko.Commons.Utils;
 
 namespace AniDBAPI
 {
@@ -81,7 +82,7 @@ namespace AniDBAPI
 
         public DateTime? AlertDateAsDate
         {
-            get { return Utils.GetAniDBDateAsDate(alertDate); }
+            get { return AniDB.GetAniDBDateAsDate(alertDate); }
         }
 
         public Raw_AniDB_NotifyAlert(string sRecMessage)

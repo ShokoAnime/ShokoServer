@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Xml;
-using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {

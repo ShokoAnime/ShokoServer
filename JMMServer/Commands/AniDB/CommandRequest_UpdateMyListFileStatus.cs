@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -61,7 +62,7 @@ namespace JMMServer.Commands
                 if (vid != null)
                 {
                     bool isManualLink = false;
-                    List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
+                    List<SVR_CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
                     if (xrefs.Count > 0)
                         isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
@@ -75,7 +76,7 @@ namespace JMMServer.Commands
                     {
                         if (WatchedDateAsSecs > 0)
                         {
-                            DateTime? watchedDate = Utils.GetAniDBDateAsDate(WatchedDateAsSecs);
+                            DateTime? watchedDate = Shoko.Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                             JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, watchedDate);
                         }
                         else
@@ -86,7 +87,7 @@ namespace JMMServer.Commands
                     if (UpdateSeriesStats)
                     {
                         // update watched stats
-                        List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
+                        List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
                         if (eps.Count > 0)
                         {
                             // all the eps should belong to the same anime

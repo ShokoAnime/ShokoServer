@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------
 
 using System.Xml.Serialization;
-using JMMContracts;
+using Shoko.Models;
 
 // 
 // Ce code source a été automatiquement généré par xsd, Version=2.0.50727.3038.

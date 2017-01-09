@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JMMContracts
+namespace Shoko.Models
 {
     public class Contract_VideoLocal_Place
     {

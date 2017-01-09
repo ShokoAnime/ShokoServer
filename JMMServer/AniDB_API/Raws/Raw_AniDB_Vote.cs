@@ -1,4 +1,6 @@
-﻿namespace AniDBAPI
+﻿using Shoko.Models.Enums;
+
+namespace AniDBAPI
 {
     public class Raw_AniDB_Vote : XMLBase
     {

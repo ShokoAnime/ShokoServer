@@ -1,6 +1,9 @@
-﻿using JMMContracts.PlexAndKodi;
-using JMMServer.Entities;
+﻿using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using System.Collections.Generic;
+using JMMServer.Entities;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 
 namespace JMMServer.API.Model.common
 {
@@ -36,12 +39,12 @@ namespace JMMServer.API.Model.common
             return ep;
         }
 
-        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid, int level)
+        internal Episode GenerateFromAnimeEpisode(SVR_AnimeEpisode aep, int uid, int level)
         {
             Episode ep = new Episode();
             if (aep != null)
             {
-                JMMContracts.Contract_AnimeEpisode cae = aep.GetUserContract(uid);
+                CL_AnimeEpisode_User cae = aep.GetUserContract(uid);
                 if (cae != null)
                 {
                     ep.id = aep.AniDB_EpisodeID;
@@ -59,7 +62,7 @@ namespace JMMServer.API.Model.common
                         ep.rating = (rating / 100).ToString().Replace(',','.');
                     }
 
-                    ep.view = cae.IsWatched;
+                    ep.view = cae.IsWatched() ? 1 : 0;
                     ep.epnumber = cae.EpisodeNumber;
                     ep.eptype = cae.EpisodeType;
 

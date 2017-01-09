@@ -6,9 +6,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using NHibernate.Util;
 using NLog;
+using Shoko.Models;
 
 namespace JMMServer.Databases
 {

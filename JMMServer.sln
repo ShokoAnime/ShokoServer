@@ -1,13 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.26020.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JMMServer", "JMMServer\JMMServer.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Hasher", "hasher\Hasher.vcxproj", "{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JMMContracts", "JMMContracts\JMMContracts.csproj", "{D777636B-F927-4C7D-9D00-4A7858E75F3E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NutzCode.CloudFilesystem", "NutzCode.CloudFilesystem", "{6568B082-7BB9-4D24-921A-840E8CF1612F}"
 EndProject
@@ -62,18 +60,6 @@ Global
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.Release|Win32.Build.0 = Release|Win32
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.Release|x64.ActiveCfg = Release|x64
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.Release|x64.Build.0 = Release|x64
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Release|Win32.ActiveCfg = Release|Any CPU
-		{D777636B-F927-4C7D-9D00-4A7858E75F3E}.Release|x64.ActiveCfg = Release|Any CPU
 		{29861D1A-968C-49CA-A637-88B391AA5063}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{29861D1A-968C-49CA-A637-88B391AA5063}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29861D1A-968C-49CA-A637-88B391AA5063}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU

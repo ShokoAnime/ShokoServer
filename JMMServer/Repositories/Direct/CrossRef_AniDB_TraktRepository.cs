@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class CrossRef_AniDB_TraktRepository : BaseDirectRepository<CrossRef_AniDB_Trakt, int>
+    public class CrossRef_AniDB_TraktRepository : BaseDirectRepository<SVR_CrossRef_AniDB_Trakt, int>
     {
         private CrossRef_AniDB_TraktRepository()
         {
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         {
             return new CrossRef_AniDB_TraktRepository();
         }
-        public CrossRef_AniDB_Trakt GetByAnimeID(int id)
+        public SVR_CrossRef_AniDB_Trakt GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -25,38 +26,38 @@ namespace JMMServer.Repositories.Direct
             }
         }
 
-        public CrossRef_AniDB_Trakt GetByAnimeID(ISession session, int id)
+        public SVR_CrossRef_AniDB_Trakt GetByAnimeID(ISession session, int id)
         {
-            CrossRef_AniDB_Trakt cr = session
-                .CreateCriteria(typeof(CrossRef_AniDB_Trakt))
+            SVR_CrossRef_AniDB_Trakt cr = session
+                .CreateCriteria(typeof(SVR_CrossRef_AniDB_Trakt))
                 .Add(Restrictions.Eq("AnimeID", id))
-                .UniqueResult<CrossRef_AniDB_Trakt>();
+                .UniqueResult<SVR_CrossRef_AniDB_Trakt>();
             return cr;
         }
 
-        public CrossRef_AniDB_Trakt GetByTraktID(string id, int season)
+        public SVR_CrossRef_AniDB_Trakt GetByTraktID(string id, int season)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_Trakt cr = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_Trakt))
+                SVR_CrossRef_AniDB_Trakt cr = session
+                    .CreateCriteria(typeof(SVR_CrossRef_AniDB_Trakt))
                     .Add(Restrictions.Eq("TraktID", id))
                     .Add(Restrictions.Eq("TraktSeasonNumber", season))
-                    .UniqueResult<CrossRef_AniDB_Trakt>();
+                    .UniqueResult<SVR_CrossRef_AniDB_Trakt>();
                 return cr;
             }
         }
 
-        public List<CrossRef_AniDB_Trakt> GetByTraktID(string id)
+        public List<SVR_CrossRef_AniDB_Trakt> GetByTraktID(string id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var series = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_Trakt))
+                    .CreateCriteria(typeof(SVR_CrossRef_AniDB_Trakt))
                     .Add(Restrictions.Eq("TraktID", id))
-                    .List<CrossRef_AniDB_Trakt>();
+                    .List<SVR_CrossRef_AniDB_Trakt>();
 
-                return new List<CrossRef_AniDB_Trakt>(series);
+                return new List<SVR_CrossRef_AniDB_Trakt>(series);
             }
         }
     }

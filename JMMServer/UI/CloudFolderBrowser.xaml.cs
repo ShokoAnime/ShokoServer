@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
 
 namespace JMMServer
@@ -23,7 +24,7 @@ namespace JMMServer
     {
         private object obj = new object();
 
-        private CloudAccount _account;
+        private SVR_CloudAccount _account;
         public string SelectedPath { get; set; } = string.Empty;
 
         public CloudFolderBrowser()
@@ -48,7 +49,7 @@ namespace JMMServer
             Close();
         }
 
-        public void Init(ImportFolder acc, string initialpath)
+        public void Init(SVR_ImportFolder acc, string initialpath)
         {
             _account = acc.CloudAccount;
             PopulateMainDir(initialpath);

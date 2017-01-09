@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -7,9 +8,12 @@ using System.Text;
 using System.Web;
 using JMMServer.Entities;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
 using Newtonsoft.Json;
 using NLog;
+using Shoko.Commons.Utils;
+using Shoko.Models.Azure;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace JMMServer.Providers.Azure
 {
@@ -48,22 +52,22 @@ namespace JMMServer.Providers.Azure
             string json = DeleteDataJson(uri);
         }
 
-        public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
+        public static void Send_CrossRefAniDBTvDB(SVR_CrossRef_AniDB_TvDBV2 data, string animeName)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB", azureHostBaseAddress);
 
-            CrossRef_AniDB_TvDBInput input = new CrossRef_AniDB_TvDBInput(data, animeName);
-            string json = JSONHelper.Serialize<CrossRef_AniDB_TvDBInput>(input);
+            Azure_CrossRef_AniDB_TvDB_Request input = data.ToRequest(animeName);
+            string json = JSONHelper.Serialize<Azure_CrossRef_AniDB_TvDB_Request>(input);
             SendData(uri, json, "POST");
         }
 
-        public static List<CrossRef_AniDB_TvDB> Get_CrossRefAniDBTvDB(int animeID)
+        public static List<Azure_CrossRef_AniDB_TvDB> Get_CrossRefAniDBTvDB(int animeID)
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}", azureHostBaseAddress, animeID,
@@ -71,15 +75,15 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/TvDB Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_TvDB>>(json);
+            List<Azure_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_TvDB>>(json);
 
             return xrefs;
         }
@@ -88,38 +92,38 @@ namespace JMMServer.Providers.Azure
 
         #region Trakt
 
-        public static List<CrossRef_AniDB_Trakt> Get_CrossRefAniDBTrakt(int animeID)
+        public static List<Azure_CrossRef_AniDB_Trakt> Get_CrossRefAniDBTrakt(int animeID)
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Trakt/{1}?p={2}", azureHostBaseAddress, animeID,
                 username);
             string msg = string.Format("Getting AniDB/Trakt Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/Trakt Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_Trakt>>(json);
+            List<Azure_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_Trakt>>(json);
 
             return xrefs;
         }
 
-        public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
+        public static void Send_CrossRefAniDBTrakt(SVR_CrossRef_AniDB_TraktV2 data, string animeName)
         {
             if (!ServerSettings.WebCache_Trakt_Send) return;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Trakt", azureHostBaseAddress);
 
-            CrossRef_AniDB_TraktInput input = new CrossRef_AniDB_TraktInput(data, animeName);
-            string json = JSONHelper.Serialize<CrossRef_AniDB_TraktInput>(input);
+            Azure_CrossRef_AniDB_Trakt_Request input = data.ToRequest(animeName);
+            string json = JSONHelper.Serialize<Azure_CrossRef_AniDB_Trakt_Request>(input);
             SendData(uri, json, "POST");
         }
 
@@ -155,41 +159,44 @@ namespace JMMServer.Providers.Azure
 
         #region MAL
 
-        public static void Send_CrossRefAniDBMAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
+        public static void Send_CrossRefAniDBMAL(CrossRef_AniDB_MAL data)
         {
             if (!ServerSettings.WebCache_MAL_Send) return;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL", azureHostBaseAddress);
 
-            CrossRef_AniDB_MALInput input = new CrossRef_AniDB_MALInput(data);
-            string json = JSONHelper.Serialize<CrossRef_AniDB_MALInput>(input);
+            Azure_CrossRef_AniDB_MAL_Request input = data.CloneToRequest();
+            input.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                input.Username = JMMServer.Constants.AnonWebCacheUsername;
+            string json = JSONHelper.Serialize<Azure_CrossRef_AniDB_MAL_Request>(input);
 
             SendData(uri, json, "POST");
         }
 
-        public static CrossRef_AniDB_MAL Get_CrossRefAniDBMAL(int animeID)
+        public static Azure_CrossRef_AniDB_MAL Get_CrossRefAniDBMAL(int animeID)
         {
             if (!ServerSettings.WebCache_MAL_Get) return null;
 
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL/{1}?p={2}", azureHostBaseAddress, animeID,
                 username);
             string msg = string.Format("Getting AniDB/MAL Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<CrossRef_AniDB_MAL>(json);
-
+            Azure_CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_MAL>(json);
+            xref.Self = string.Format(CultureInfo.CurrentCulture, "api/crossRef_anidb_mal/{0}", xref.CrossRef_AniDB_MALID);
             return xref;
         }
 
@@ -216,13 +223,13 @@ namespace JMMServer.Providers.Azure
 
         #region Cross Ref Other
 
-        public static CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
+        public static Azure_CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
         {
             if (!ServerSettings.WebCache_TvDB_Get) return null;
 
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other/{1}?p={2}&p2={3}", azureHostBaseAddress,
                 animeID,
@@ -230,27 +237,27 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting AniDB/Other Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            CrossRef_AniDB_Other xref = JSONHelper.Deserialize<CrossRef_AniDB_Other>(json);
+            Azure_CrossRef_AniDB_Other xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_Other>(json);
 
             return xref;
         }
 
-        public static void Send_CrossRefAniDBOther(JMMServer.Entities.CrossRef_AniDB_Other data)
+        public static void Send_CrossRefAniDBOther(SVR_CrossRef_AniDB_Other data)
         {
             if (!ServerSettings.WebCache_TvDB_Send) return;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other", azureHostBaseAddress);
 
-            CrossRef_AniDB_OtherInput input = new CrossRef_AniDB_OtherInput(data);
-            string json = JSONHelper.Serialize<CrossRef_AniDB_OtherInput>(input);
+            Azure_CrossRef_AniDB_Other_Request input = data.CloneToRequest();
+            string json = JSONHelper.Serialize<Azure_CrossRef_AniDB_Other_Request>(input);
 
             SendData(uri, json, "POST");
         }
@@ -266,7 +273,7 @@ namespace JMMServer.Providers.Azure
 
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other/{1}?p={2}&p2={3}", azureHostBaseAddress,
                 animeID,
@@ -305,40 +312,40 @@ namespace JMMServer.Providers.Azure
             return xrefs;
         }*/
 
-        public static List<CrossRef_File_Episode> Get_CrossRefFileEpisode(VideoLocal vid)
+        public static List<Azure_CrossRef_File_Episode> Get_CrossRefFileEpisode(VideoLocal vid)
         {
             if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
 
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress, vid.Hash,
                 username);
             string msg = string.Format("Getting File/Episode Cross Ref From Cache: {0}", vid.Hash);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got File/Episode Cross Ref From Cache: {0} - {1}", vid.Hash, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<CrossRef_File_Episode> xrefs = JSONHelper.Deserialize<List<CrossRef_File_Episode>>(json);
+            List<Azure_CrossRef_File_Episode> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_File_Episode>>(json);
 
             return xrefs;
         }
 
-        public static void Send_CrossRefFileEpisode(JMMServer.Entities.CrossRef_File_Episode data)
+        public static void Send_CrossRefFileEpisode(SVR_CrossRef_File_Episode data)
         {
             if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode", azureHostBaseAddress);
 
-            CrossRef_File_EpisodeInput input = new CrossRef_File_EpisodeInput(data);
-            string json = JSONHelper.Serialize<CrossRef_File_EpisodeInput>(input);
+            Azure_CrossRef_File_Episode_Request input = data.ToRequest();
+            string json = JSONHelper.Serialize<Azure_CrossRef_File_Episode_Request>(input);
 
             SendData(uri, json, "POST");
         }
@@ -349,7 +356,7 @@ namespace JMMServer.Providers.Azure
 
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress, hash,
                 username);
@@ -370,7 +377,7 @@ namespace JMMServer.Providers.Azure
 
             DateTime start = DateTime.Now;
             string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string xml = GetDataXML(uri);
 
@@ -390,27 +397,27 @@ namespace JMMServer.Providers.Azure
             string content = xml;
             if (content.Length > 100) content = content.Substring(0, 100);
             msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             return xml;
         }
 
-        public static void Send_AnimeFull(JMMServer.Entities.AniDB_Anime data)
+        public static void Send_AnimeFull(SVR_AniDB_Anime data)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/animefull", azureHostBaseAddress);
-            AnimeFull obj = data.ToContractAzure();
-            string json = JSONHelper.Serialize<AnimeFull>(obj);
+            Azure_AnimeFull obj = data.ToContractAzure();
+            string json = JSONHelper.Serialize<Azure_AnimeFull>(obj);
             SendData(uri, json, "POST");
         }
 
-        public static void Send_AnimeXML(AnimeXML data)
+        public static void Send_AnimeXML(Azure_AnimeXML data)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/animexml", azureHostBaseAddress);
-            string json = JSONHelper.Serialize<AnimeXML>(data);
+            string json = JSONHelper.Serialize<Azure_AnimeXML>(data);
             SendData(uri, json, "POST");
         }
 
@@ -418,31 +425,31 @@ namespace JMMServer.Providers.Azure
 
         #region Anime Titles
 
-        public static void Send_AnimeTitle(AnimeIDTitle data)
+        public static void Send_AnimeTitle(Azure_AnimeIDTitle data)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/animeidtitle", azureHostBaseAddress);
-            string json = JSONHelper.Serialize<AnimeIDTitle>(data);
+            string json = JSONHelper.Serialize<Azure_AnimeIDTitle>(data);
             SendData(uri, json, "POST");
         }
 
-        public static List<AnimeIDTitle> Get_AnimeTitle(string query)
+        public static List<Azure_AnimeIDTitle> Get_AnimeTitle(string query)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
             string uri = string.Format(@"http://{0}/api/animeidtitle/{1}", azureHostBaseAddress, query);
             string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got Anime Title Data From Cache: {0} - {1}", query, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<AnimeIDTitle> titles = JSONHelper.Deserialize<List<AnimeIDTitle>>(json);
+            List<Azure_AnimeIDTitle> titles = JSONHelper.Deserialize<List<Azure_AnimeIDTitle>>(json);
 
             return titles;
         }
@@ -451,14 +458,14 @@ namespace JMMServer.Providers.Azure
 
         #region Admin Messages
 
-        public static List<AdminMessage> Get_AdminMessages()
+        public static List<Azure_AdminMessage> Get_AdminMessages()
         {
             try
             {
                 string uri = string.Format(@"http://{0}/api/AdminMessage/{1}", azureHostBaseAddress, "all");
                 string json = GetDataJson(uri);
 
-                List<AdminMessage> msgs = JSONHelper.Deserialize<List<AdminMessage>>(json);
+                List<Azure_AdminMessage> msgs = JSONHelper.Deserialize<List<Azure_AdminMessage>>(json);
 
                 return msgs;
             }
@@ -478,11 +485,11 @@ namespace JMMServer.Providers.Azure
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
-            UserInfo uinfo = GetUserInfoData();
+            Azure_UserInfo uinfo = GetUserInfoData();
             if (uinfo == null) return;
 
             string uri = string.Format(@"http://{0}/api/userinfo", azureHostBaseAddress);
-            string json = JSONHelper.Serialize<UserInfo>(uinfo);
+            string json = JSONHelper.Serialize<Azure_UserInfo>(uinfo);
             SendData(uri, json, "POST");
         }
 
@@ -679,13 +686,13 @@ namespace JMMServer.Providers.Azure
             return "";
         }
 
-        public static UserInfo GetUserInfoData(string dashType = "", string vidPlayer = "")
+        public static Azure_UserInfo GetUserInfoData(string dashType = "", string vidPlayer = "")
         {
             try
             {
                 if (string.IsNullOrEmpty(ServerSettings.AniDB_Username)) return null;
 
-                UserInfo uinfo = new UserInfo();
+                Azure_UserInfo uinfo = new Azure_UserInfo();
 
                 uinfo.DateTimeUpdated = DateTime.Now;
                 uinfo.DateTimeUpdatedUTC = 0;
@@ -718,10 +725,10 @@ namespace JMMServer.Providers.Azure
 
                 uinfo.FileCount = RepoFactory.VideoLocal.GetTotalRecordCount();
 
-                AnimeEpisode_User rec = RepoFactory.AnimeEpisode_User.GetLastWatchedEpisode();
+                SVR_AnimeEpisode_User rec = RepoFactory.AnimeEpisode_User.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
                 if (rec != null)
-                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(rec.WatchedDate);
+                    uinfo.LastEpisodeWatched = AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
 
                 return uinfo;
             }
@@ -740,7 +747,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username,
                 ServerSettings.WebCacheAuthKey);
@@ -754,11 +761,11 @@ namespace JMMServer.Providers.Azure
 
         #region Admin - TvDB
 
-        public static List<CrossRef_AniDB_TvDB> Admin_Get_CrossRefAniDBTvDB(int animeID)
+        public static List<Azure_CrossRef_AniDB_TvDB> Admin_Get_CrossRefAniDBTvDB(int animeID)
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}",
@@ -768,7 +775,7 @@ namespace JMMServer.Providers.Azure
 
             string json = GetDataJson(uri);
 
-            List<CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_TvDB>>(json);
+            List<Azure_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_TvDB>>(json);
 
             return xrefs;
         }
@@ -777,7 +784,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}",
                 azureHostBaseAddress,
@@ -791,7 +798,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}",
                 azureHostBaseAddress,
@@ -805,7 +812,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3=dummy",
                 azureHostBaseAddress, (int) AzureLinkType.TvDB, username, ServerSettings.WebCacheAuthKey);
@@ -818,11 +825,11 @@ namespace JMMServer.Providers.Azure
 
         #region Admin - Trakt
 
-        public static List<CrossRef_AniDB_Trakt> Admin_Get_CrossRefAniDBTrakt(int animeID)
+        public static List<Azure_CrossRef_AniDB_Trakt> Admin_Get_CrossRefAniDBTrakt(int animeID)
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}",
@@ -832,7 +839,7 @@ namespace JMMServer.Providers.Azure
 
             string json = GetDataJson(uri);
 
-            List<CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_Trakt>>(json);
+            List<Azure_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_Trakt>>(json);
 
             return xrefs;
         }
@@ -841,7 +848,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}",
                 azureHostBaseAddress,
@@ -855,7 +862,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}",
                 azureHostBaseAddress,
@@ -869,7 +876,7 @@ namespace JMMServer.Providers.Azure
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+                username = JMMServer.Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}&p3=dummy",
                 azureHostBaseAddress, (int) AzureLinkType.Trakt, username, ServerSettings.WebCacheAuthKey);
@@ -883,22 +890,22 @@ namespace JMMServer.Providers.Azure
         #region File Hashes
 
 
-        public static void Send_FileHash(List<AniDB_File> aniFiles)
+        public static void Send_FileHash(List<SVR_AniDB_File> aniFiles)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/FileHash", azureHostBaseAddress);
 
-            List<FileHashInput> inputs = new List<FileHashInput>();
+            List<Azure_FileHash_Request> inputs = new List<Azure_FileHash_Request>();
             // send a max of 25 at a time
-            foreach (AniDB_File aniFile in aniFiles)
+            foreach (SVR_AniDB_File aniFile in aniFiles)
             {
-                FileHashInput input = new FileHashInput(aniFile);
+                Azure_FileHash_Request input = aniFile.ToHashRequest();
                 if (inputs.Count < 25)
                     inputs.Add(input);
                 else
                 {
-                    string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
+                    string json = JSONHelper.Serialize<List<Azure_FileHash_Request>>(inputs);
                     SendData(uri, json, "POST");
                     inputs.Clear();
                 }
@@ -906,7 +913,7 @@ namespace JMMServer.Providers.Azure
 
             if (inputs.Count > 0)
             {
-                string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
+                string json = JSONHelper.Serialize<List<Azure_FileHash_Request>>(inputs);
                 SendData(uri, json, "POST");
             }
 
@@ -917,16 +924,16 @@ namespace JMMServer.Providers.Azure
 
             string uri = string.Format(@"http://{0}/api/FileHash", azureHostBaseAddress);
 
-            List<FileHashInput> inputs = new List<FileHashInput>();
+            List<Azure_FileHash_Request> inputs = new List<Azure_FileHash_Request>();
             // send a max of 25 at a time
             foreach (VideoLocal v in locals)
             {
-                FileHashInput input = new FileHashInput(v);
+                Azure_FileHash_Request input = v.ToHashRequest();
                 if (inputs.Count < 25)
                     inputs.Add(input);
                 else
                 {
-                    string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
+                    string json = JSONHelper.Serialize<List<Azure_FileHash_Request>>(inputs);
                     SendData(uri, json, "POST");
                     inputs.Clear();
                 }
@@ -934,7 +941,7 @@ namespace JMMServer.Providers.Azure
 
             if (inputs.Count > 0)
             {
-                string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
+                string json = JSONHelper.Serialize<List<Azure_FileHash_Request>>(inputs);
                 SendData(uri, json, "POST");
             }
 
@@ -947,7 +954,7 @@ namespace JMMServer.Providers.Azure
         /// <param name="hashType"></param>
         /// <param name="hashDetails"></param>
         /// <returns></returns>
-        public static List<FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
+        public static List<Azure_FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
         {
             
             string uri = string.Format(@"http://{0}/api/FileHash/{1}?p={2}", azureHostBaseAddress, (int)hashType,
@@ -955,15 +962,15 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting File Hash From Cache: {0} - {1}", hashType, hashDetails);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<FileHash> hashes = JsonConvert.DeserializeObject<List<FileHash>>(json) ?? new List<FileHash>();
+            List<Azure_FileHash> hashes = JsonConvert.DeserializeObject<List<Azure_FileHash>>(json) ?? new List<Azure_FileHash>();
             return hashes;
         }
 
@@ -977,12 +984,12 @@ namespace JMMServer.Providers.Azure
 
             string uri = string.Format(@"http://{0}/api/Media", azureHostBaseAddress);
 
-            List<MediaInput> inputs = new List<MediaInput>();
+            List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
             // send a max of 25 at a time
             // send a max of 25 at a time
             foreach (VideoLocal v in locals.Where(a=>a.MediaBlob!=null && a.MediaBlob.Length>0 && a.MediaVersion==VideoLocal.MEDIA_VERSION && !string.IsNullOrEmpty(a.ED2KHash)))
             {
-                MediaInput input = new MediaInput(v);
+                Azure_Media_Request input = v.ToMediaRequest();
                 if (inputs.Count < 25)
                     inputs.Add(input);
                 else
@@ -1001,35 +1008,35 @@ namespace JMMServer.Providers.Azure
             }
 
         }
-        public static void Send_Media(string ed2k, JMMContracts.PlexAndKodi.Media media)
+        public static void Send_Media(string ed2k, Shoko.Models.PlexAndKodi.Media media)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/Media", azureHostBaseAddress);
 
-            List<MediaInput> inputs = new List<MediaInput>();
-            MediaInput input = new MediaInput(ed2k, media);
+            List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
+            Azure_Media_Request input = media.ToMediaRequest(ed2k);
             inputs.Add(input);
             string json = JsonConvert.SerializeObject(inputs);
             SendData(uri, json, "POST");
 
         }
-        public static List<Media> Get_Media(string ed2k)
+        public static List<Azure_Media> Get_Media(string ed2k)
         {
 
             string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,VideoLocal.MEDIA_VERSION);
             string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,VideoLocal.MEDIA_VERSION);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Getting Media Info From Cache for ED2K: {0} - {1}", ed2k, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(JMMServer.Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<Media> medias = JsonConvert.DeserializeObject<List<Media>>(json) ?? new List<Media>();
+            List<Azure_Media> medias = JsonConvert.DeserializeObject<List<Azure_Media>>(json) ?? new List<Azure_Media>();
             
             return medias;
         }

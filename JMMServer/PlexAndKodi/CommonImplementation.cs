@@ -7,8 +7,7 @@ using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
 using FluentNHibernate.Conventions;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
+using Shoko.Models.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Entities;
@@ -16,11 +15,15 @@ using JMMServer.PlexAndKodi.Kodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.Properties;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NLog;
-using Directory = JMMContracts.PlexAndKodi.Directory;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
+using Directory = Shoko.Models.PlexAndKodi.Directory;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -87,7 +90,7 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory() { Type = "show" };
                         pp.Key = prov.ShortUrl(prov.ConstructUnsortUrl(userid));
                         pp.Title = "Unsort";
-                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
+                        pp.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
                         pp.Thumb = prov.ConstructSupportImageLink("plex_unsort.png");
                         pp.LeafCount = vids.Count.ToString();
                         pp.ViewedLeafCount = "0";
@@ -99,7 +102,7 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory() { Type = "show" };
                         pp.Key = prov.ShortUrl(prov.ConstructPlaylistUrl(userid));
                         pp.Title = "Playlists";
-                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
+                        pp.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
                         pp.Thumb = prov.ConstructSupportImageLink("plex_playlists.png");
                         pp.LeafCount = playlists.Count.ToString();
                         pp.ViewedLeafCount = "0";
@@ -199,7 +202,7 @@ namespace JMMServer.PlexAndKodi
                         dir.Key = prov.ShortUrl(prov.ConstructPlaylistIdUrl(userid, playlist.PlaylistID));
                         dir.Title = playlist.PlaylistName;
                         dir.Id = playlist.PlaylistID.ToString();
-                        dir.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
+                        dir.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
@@ -238,18 +241,18 @@ namespace JMMServer.PlexAndKodi
                         var episodeID = -1;
                         int.TryParse(item.Split(';')[1], out episodeID);
                         if (episodeID < 0) return new MediaContainer() { ErrorString = "Invalid Episode ID" };
-                        AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(episodeID);
+                        SVR_AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(episodeID);
                         if (e == null)
                             return new MediaContainer() { ErrorString = "Invalid Episode" };
-                        KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep =
-                            new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e,
+                        KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> ep =
+                            new KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User>(e,
                                 e.GetUserContract(userid));
                         if (ep.Value != null && ep.Value.LocalFileCount == 0)
                             continue;
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
                         if (ser == null)
                             return new MediaContainer() { ErrorString = "Invalid Series" };
-                        Contract_AnimeSeries con = ser.GetUserContract(userid);
+                        CL_AnimeSeries_User con = ser.GetUserContract(userid);
                         if (con == null)
                             return new MediaContainer() { ErrorString = "Invalid Series, Contract not found" };
                         Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
@@ -351,22 +354,22 @@ namespace JMMServer.PlexAndKodi
                 List<Video> dirs = new List<Video>();
                 ISessionWrapper sessionWrapper = session.Wrap();
 
-                AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(id);
+                SVR_AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(id);
                 if (e == null)
                     return new MediaContainer() { ErrorString = "Invalid Episode Id" };
-                KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep =
-                    new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e,
+                KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> ep =
+                    new KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User>(e,
                         e.GetUserContract(userid));
                 if (ep.Value != null && ep.Value.LocalFileCount == 0)
                     return new MediaContainer() { ErrorString = "Episode do not have videolocals" };
-                AniDB_Episode aep = ep.Key.AniDB_Episode;
+                SVR_AniDB_Episode aep = ep.Key.AniDB_Episode;
                 if (aep == null)
                     return new MediaContainer() { ErrorString = "Invalid Episode AniDB link not found" };
-                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
                 if (ser == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie" };
-                AniDB_Anime anime = ser.GetAnime();
-                Contract_AnimeSeries con = ser.GetUserContract(userid);
+                SVR_AniDB_Anime anime = ser.GetAnime();
+                CL_AnimeSeries_User con = ser.GetUserContract(userid);
                 if (con == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie, Contract not found" };
                 try
@@ -480,13 +483,13 @@ namespace JMMServer.PlexAndKodi
             if (user == null) return new MediaContainer() { ErrorString = "User Not Found" };
             List<Video> ls = new List<Video>();
             int cnt = 0;
-            IEnumerable<AnimeSeries> series = searchTag
+            IEnumerable<SVR_AnimeSeries> series = searchTag
                 ? RepoFactory.AnimeSeries.GetAll()
                     .Where(
                         a =>
                             a.Contract != null && a.Contract.AniDBAnime != null &&
                             a.Contract.AniDBAnime.AniDBAnime != null &&
-                            (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+                            (a.Contract.AniDBAnime.AniDBAnime.GetAllTags().Contains(query,
                                 StringComparer.InvariantCultureIgnoreCase) ||
                             a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
                                 .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
@@ -498,7 +501,7 @@ namespace JMMServer.PlexAndKodi
                             string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles).IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
             //List<AniDB_Anime> animes = searchTag ? RepoFactory.AniDB_Anime.SearchByTag(query) : RepoFactory.AniDB_Anime.SearchByName(query);
-            foreach (AnimeSeries ser in series)
+            foreach (SVR_AnimeSeries ser in series)
             {
                 if (!user.AllowedSeries(ser)) continue;
                 Video v = ser.GetPlexContract(user.JMMUserID)?.Clone<Directory>(prov);
@@ -546,7 +549,7 @@ namespace JMMServer.PlexAndKodi
                 return new MediaContainer() { ErrorString = "Invalid Group Id" };
 
             List<Video> retGroups = new List<Video>();
-			AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID);
+			SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID);
 
             if (grp == null)
                 return new MediaContainer { ErrorString = "Invalid Group" };
@@ -556,10 +559,10 @@ namespace JMMServer.PlexAndKodi
             if (!ret.Init(prov))
                 return new MediaContainer();
 
-            Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
+            CL_AnimeGroup_User basegrp = grp?.GetUserContract(userid);
             if (basegrp != null)
             {
-	            List<AnimeSeries> seriesList = grp.GetSeries();
+	            List<SVR_AnimeSeries> seriesList = grp.GetSeries();
 	            if (filterID.HasValue)
 	            {
 		            GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
@@ -573,7 +576,7 @@ namespace JMMServer.PlexAndKodi
 			            }
 		            }
 	            }
-	            foreach (AnimeGroup grpChild in grp.GetChildGroups())
+	            foreach (SVR_AnimeGroup grpChild in grp.GetChildGroups())
                 {
                     var v = grpChild.GetPlexContract(userid);
                     if (v != null)
@@ -589,7 +592,7 @@ namespace JMMServer.PlexAndKodi
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
-                foreach (AnimeSeries ser in seriesList)
+                foreach (SVR_AnimeSeries ser in seriesList)
                 {
                     var v = ser.GetPlexContract(userid)?.Clone<Directory>(prov);
                     if (v != null)
@@ -630,7 +633,7 @@ namespace JMMServer.PlexAndKodi
                 if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
                     wstatus = true;
 
-                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
+                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
                 if (ep == null)
                 {
                     rsp.Code = "404";
@@ -672,7 +675,7 @@ namespace JMMServer.PlexAndKodi
 				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
 					wstatus = true;
 
-				AnimeSeries series = RepoFactory.AnimeSeries.GetByID(aep);
+				SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(aep);
 				if (series == null)
 				{
 					rsp.Code = "404";
@@ -680,8 +683,8 @@ namespace JMMServer.PlexAndKodi
 					return rsp;
 				}
 
-				List<AnimeEpisode> eps = series.GetAnimeEpisodes();
-				foreach (AnimeEpisode ep in eps)
+				List<SVR_AnimeEpisode> eps = series.GetAnimeEpisodes();
+				foreach (SVR_AnimeEpisode ep in eps)
 				{
 					if (ep.EpisodeTypeEnum == enEpisodeType.Credits) continue;
 					if (ep.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
@@ -723,7 +726,7 @@ namespace JMMServer.PlexAndKodi
 				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
 					wstatus = true;
 
-				AnimeGroup group = RepoFactory.AnimeGroup.GetByID(aep);
+				SVR_AnimeGroup group = RepoFactory.AnimeGroup.GetByID(aep);
 				if (group == null)
 				{
 					rsp.Code = "404";
@@ -731,9 +734,9 @@ namespace JMMServer.PlexAndKodi
 					return rsp;
 				}
 
-				foreach(AnimeSeries series in group.GetAllSeries())
+				foreach(SVR_AnimeSeries series in group.GetAllSeries())
 				{
-					foreach(AnimeEpisode ep in series.GetAnimeEpisodes())
+					foreach(SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
 					{
 						if (ep.EpisodeTypeEnum == enEpisodeType.Credits) continue;
                         if (ep.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
@@ -782,14 +785,14 @@ namespace JMMServer.PlexAndKodi
 
                     if (vt == (int) enAniDBVoteType.Episode)
                     {
-                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(objid);
+                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(objid);
                         if (ep == null)
                         {
                             rsp.Code = "404";
                             rsp.Message = "Episode Not Found";
                             return rsp;
                         }
-                        AniDB_Anime anime = ep.GetAnimeSeries().GetAnime();
+                        SVR_AniDB_Anime anime = ep.GetAnimeSeries().GetAnime();
                         if (anime == null)
                         {
                             rsp.Code = "404";
@@ -836,8 +839,8 @@ namespace JMMServer.PlexAndKodi
 
                     if (vt == (int)enAniDBVoteType.Anime)
                     {
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(objid);
-                        AniDB_Anime anime = ser.GetAnime();
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(objid);
+                        SVR_AniDB_Anime anime = ser.GetAnime();
                         if (anime == null)
                         {
                             rsp.Code = "404";
@@ -1024,16 +1027,16 @@ namespace JMMServer.PlexAndKodi
                 if (serieID == -1)
                     return new MediaContainer() { ErrorString = "Invalid Serie Id" };
                 ISessionWrapper sessionWrapper = session.Wrap();
-                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serieID);
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serieID);
                 if (ser == null)
                     return new MediaContainer() {ErrorString = "Invalid Series"};
-                Contract_AnimeSeries cseries = ser.GetUserContract(userid);
+                CL_AnimeSeries_User cseries = ser.GetUserContract(userid);
                 if (cseries == null)
                     return new MediaContainer() {ErrorString = "Invalid Series, Contract Not Found"};
                 Video nv = ser.GetPlexContract(userid);
 
 
-                Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes()
+                Dictionary<SVR_AnimeEpisode, CL_AnimeEpisode_User> episodes = ser.GetAnimeEpisodes()
                     .ToDictionary(a => a, a => a.GetUserContract(userid));
                 episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
                     .ToDictionary(a => a.Key, a => a.Value);
@@ -1068,7 +1071,7 @@ namespace JMMServer.PlexAndKodi
                         {
                             PlexEpisodeType k2 = new PlexEpisodeType();
                             PlexEpisodeType.EpisodeTypeTranslated(k2, ee,
-                                (AnimeTypes) cseries.AniDBAnime.AniDBAnime.AnimeType,
+                                (Shoko.Models.AnimeTypes) cseries.AniDBAnime.AniDBAnime.AnimeType,
                                 episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                             eps.Add(k2);
                         }
@@ -1086,7 +1089,7 @@ namespace JMMServer.PlexAndKodi
                             v.ViewedLeafCount = "0";
                             v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
                             v.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
-                            if ((ee.AnimeType == AnimeTypes.Movie) || (ee.AnimeType == AnimeTypes.OVA))
+                            if ((ee.AnimeType == Shoko.Models.AnimeTypes.Movie) || (ee.AnimeType == Shoko.Models.AnimeTypes.OVA))
                             {
                                 v = Helper.MayReplaceVideo(v, ser, cseries, userid, false, nv);
                             }
@@ -1101,7 +1104,7 @@ namespace JMMServer.PlexAndKodi
                 if ((eptype.HasValue) && (info!=null))
                     info.ParentKey = info.GrandParentKey;
 	            bool hasRoles = false;
-                foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep in episodes)
+                foreach (KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> ep in episodes)
                 {
                     try
                     {
@@ -1175,11 +1178,11 @@ namespace JMMServer.PlexAndKodi
                         ret.Childrens = dirs.OrderBy(a => a.Title).Cast<Video>().ToList();
                         return ret.GetStream(prov);
                     }
-                    Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
+                    Dictionary<CL_AnimeGroup_User, Video> order = new Dictionary<CL_AnimeGroup_User, Video>();
                     if (gf.GroupsIds.ContainsKey(userid))
                     {
                         // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
-                        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                        foreach (SVR_AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
                         {
                             Video v = grp.GetPlexContract(userid)?.Clone<Directory>(prov);
                             if (v != null)
@@ -1198,7 +1201,7 @@ namespace JMMServer.PlexAndKodi
                         }
                     }
                     ret.MediaContainer.RandomizeArt(prov, retGroups);
-                    IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
+                    IEnumerable<CL_AnimeGroup_User> grps = retGroups.Select(a => a.Group);
                     grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                     ret.Childrens = grps.Select(a => order[a]).ToList();
                     FilterExtras(prov,ret.Childrens);

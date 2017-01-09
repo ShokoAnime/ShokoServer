@@ -9,6 +9,7 @@ using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -52,10 +53,10 @@ namespace JMMServer.Commands
             try
             {
                 // only get group status if we have an associated series
-                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago
@@ -70,7 +71,7 @@ namespace JMMServer.Commands
                             if (ts.TotalDays > 50)
                             {
                                 // don't skip if we have never downloaded this info before
-                                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
+                                List<SVR_AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
                                 if (grpStatuses != null && grpStatuses.Count > 0)
                                 {
                                     skip = true;

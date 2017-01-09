@@ -4,6 +4,7 @@ using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -40,7 +41,7 @@ namespace JMMServer.Commands
 
         public override void ProcessCommand()
         {
-            AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
             if (ser != null)
                 ser.UpdateStats(true, true, true);
         }

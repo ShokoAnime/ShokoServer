@@ -1,5 +1,5 @@
 ﻿using JMMServer.API.Model.core;
-using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using Nancy;
@@ -9,6 +9,8 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using JMMServer.Entities;
+using Shoko.Models;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -127,7 +129,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 // 1
                 case JMMImageType.AniDB_Cover:
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
                     if (anime == null) { return null; }
 
                     path = anime.PosterPath;
@@ -145,7 +147,7 @@ namespace JMMServer.API.Module.apiv2
 
                 // 2
                 case JMMImageType.AniDB_Character:
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(id);
+                    SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(id);
                     if (chr == null) { return null; }
 
                     path = chr.PosterPath;
@@ -162,7 +164,7 @@ namespace JMMServer.API.Module.apiv2
 
                 // 3
                 case JMMImageType.AniDB_Creator:
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(id);
+                    SVR_AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(id);
                     if (creator == null) { return null; }
 
                     path = creator.PosterPath;

@@ -2,6 +2,7 @@
 using System.Xml.Serialization;
 using AniDBAPI;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 
 namespace JMMServer.WebCache
 {
@@ -215,7 +216,7 @@ namespace JMMServer.WebCache
         }
 
         // default constructor
-        public AniDB_FileRequest(AniDB_File data)
+        public AniDB_FileRequest(SVR_AniDB_File data)
         {
             this.Anime_GroupName = data.Anime_GroupName;
             this.Anime_GroupNameShort = data.Anime_GroupNameShort;

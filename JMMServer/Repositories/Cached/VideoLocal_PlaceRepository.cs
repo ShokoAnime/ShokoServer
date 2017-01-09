@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories.Cached
@@ -50,7 +51,7 @@ namespace JMMServer.Repositories.Cached
         public override void Delete(VideoLocal_Place obj)
         {
             base.Delete(obj);
-            foreach (AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
+            foreach (SVR_AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
             {
                 RepoFactory.AnimeEpisode.Save(ep);
             }
@@ -65,15 +66,15 @@ namespace JMMServer.Repositories.Cached
         public override void Delete(int id) { throw new NotSupportedException(); }
 
 
-        public static Tuple<ImportFolder, string> GetFromFullPath(string fullPath)
+        public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
         {
-            IReadOnlyList<ImportFolder> shares = RepoFactory.ImportFolder.GetAll();
+            IReadOnlyList<SVR_ImportFolder> shares = RepoFactory.ImportFolder.GetAll();
 
             // TODO make sure that import folders are not sub folders of each other
             // TODO make sure import folders do not contain a trailing "\"
-            foreach (ImportFolder ifolder in shares)
+            foreach (SVR_ImportFolder ifolder in shares)
             {
-                string importLocation = ifolder.ParsedImportFolderLocation;
+                string importLocation = ifolder.ImportFolderLocation;
                 string importLocationFull = importLocation.TrimEnd('\\');
 
                 // add back the trailing back slashes
@@ -84,7 +85,7 @@ namespace JMMServer.Repositories.Cached
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
                     filePath = filePath.TrimStart('\\');
-                    return new Tuple<ImportFolder, string>(ifolder,filePath);
+                    return new Tuple<SVR_ImportFolder, string>(ifolder,filePath);
                 }
             }
             return null;

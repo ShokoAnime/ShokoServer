@@ -1,4 +1,4 @@
-﻿using JMMContracts.PlexAndKodi;
+﻿using Shoko.Models.PlexAndKodi;
 using Nancy;
 
 namespace JMMServer.PlexAndKodi

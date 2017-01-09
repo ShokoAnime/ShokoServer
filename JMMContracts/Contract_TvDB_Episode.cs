@@ -1,4 +1,4 @@
-﻿namespace JMMContracts
+﻿namespace Shoko.Models
 {
     public class Contract_TvDB_Episode
     {

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
+using Shoko.Models;
 
 namespace JMMServer.Tasks
 {

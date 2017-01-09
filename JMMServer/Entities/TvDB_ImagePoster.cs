@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Xml;
-using JMMContracts;
 using JMMServer.ImageDownload;
 using NLog;
+using Shoko.Models;
 
 namespace JMMServer.Entities
 {

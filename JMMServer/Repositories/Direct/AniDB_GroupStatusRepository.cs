@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using NHibernate.Criterion;
 using NLog;
 
 namespace JMMServer.Repositories.Direct
 {
-    public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatus, int>
+    public class AniDB_GroupStatusRepository : BaseDirectRepository<SVR_AniDB_GroupStatus, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -23,34 +24,34 @@ namespace JMMServer.Repositories.Direct
                 if (obj.AnimeID > 0)
                 {
                     logger.Trace("Updating group stats by anime from AniDB_GroupStatusRepository.Delete: {0}", obj.AnimeID);
-                    AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
                 }
             };
         }
 
-        public AniDB_GroupStatus GetByAnimeIDAndGroupID(int animeid, int groupid)
+        public SVR_AniDB_GroupStatus GetByAnimeIDAndGroupID(int animeid, int groupid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                AniDB_GroupStatus cr = session
-                    .CreateCriteria(typeof(AniDB_GroupStatus))
+                SVR_AniDB_GroupStatus cr = session
+                    .CreateCriteria(typeof(SVR_AniDB_GroupStatus))
                     .Add(Restrictions.Eq("AnimeID", animeid))
                     .Add(Restrictions.Eq("GroupID", groupid))
-                    .UniqueResult<AniDB_GroupStatus>();
+                    .UniqueResult<SVR_AniDB_GroupStatus>();
                 return cr;
             }
         }
 
-        public List<AniDB_GroupStatus> GetByAnimeID(int id)
+        public List<SVR_AniDB_GroupStatus> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
-                    .CreateCriteria(typeof(AniDB_GroupStatus))
+                    .CreateCriteria(typeof(SVR_AniDB_GroupStatus))
                     .Add(Restrictions.Eq("AnimeID", id))
-                    .List<AniDB_GroupStatus>();
+                    .List<SVR_AniDB_GroupStatus>();
 
-                return new List<AniDB_GroupStatus>(objs);
+                return new List<SVR_AniDB_GroupStatus>(objs);
             }
         }
 

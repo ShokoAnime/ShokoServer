@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
-using JMMContracts;
 using JMMServer.Entities;
+using Shoko.Models;
+using Shoko.Models.Server;
 using NLog;
 using NutzCode.CloudFileSystem;
 

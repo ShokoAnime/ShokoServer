@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using JMMServer.Tasks;
+using Shoko.Models.Client;
+using Shoko.Models.Server;
 
 namespace JMMServer.API.Module.apiv1
 {
@@ -1415,63 +1417,63 @@ namespace JMMServer.API.Module.apiv1
         //    return _impl.GetSeriesForGroup(a,b);
         //}
 
-        private object SaveBookmarkedAnime(JMMContracts.Contract_BookmarkedAnime a)
+        private object SaveBookmarkedAnime(CL_BookmarkedAnime a)
         {
             return _impl.SaveBookmarkedAnime(a);
         }
 
-        private object SaveCustomTag(JMMContracts.Contract_CustomTag a)
+        private object SaveCustomTag(CustomTag a)
         {
             return _impl.SaveCustomTag(a);
         }
 
-        private object SaveCustomTagCrossRef(JMMContracts.Contract_CrossRef_CustomTag a)
+        private object SaveCustomTagCrossRef(CrossRef_CustomTag a)
         {
             return _impl.SaveCustomTagCrossRef(a);
         }
 
-        private object SaveFFDPreset(JMMContracts.Contract_FileFfdshowPreset a)
+        private object SaveFFDPreset(Shoko.Models.Contract_FileFfdshowPreset a)
         {
              _impl.SaveFFDPreset(a);
             return "ok";
         }
 
-        private object SaveGroup(JMMContracts.Contract_AnimeGroup_Save a, int b)
+        private object SaveGroup(CL_AnimeGroup_Save_Request a, int b)
         {
             return _impl.SaveGroup(a,b);
         }
 
-        private object SaveGroupFilter(JMMContracts.Contract_GroupFilter a)
+        private object SaveGroupFilter(Shoko.Models.Contract_GroupFilter a)
         {
             return _impl.SaveGroupFilter(a);
         }
 
-        private object SaveImportFolder(JMMContracts.Contract_ImportFolder a)
+        private object SaveImportFolder(ImportFolder a)
         {
             return _impl.SaveImportFolder(a);
         }
 
-        private object SavePlaylist(JMMContracts.Contract_Playlist a)
+        private object SavePlaylist(Shoko.Models.Contract_Playlist a)
         {
             return _impl.SavePlaylist(a);
         }
 
-        private object SaveRenameScript(JMMContracts.Contract_RenameScript a)
+        private object SaveRenameScript(Shoko.Models.Contract_RenameScript a)
         {
             return _impl.SaveRenameScript(a);
         }
 
-        private object SaveSeries(JMMContracts.Contract_AnimeSeries_Save a, int b)
+        private object SaveSeries(CL_AnimeSeries_Save_Request a, int b)
         {
             return _impl.SaveSeries(a,b);
         }
 
-        private object SaveServerSettings(JMMContracts.Contract_ServerSettings a)
+        private object SaveServerSettings(Shoko.Models.Contract_ServerSettings a)
         {
             return _impl.SaveServerSettings(a);
         }
 
-        private object SaveUser(JMMContracts.Contract_JMMUser a)
+        private object SaveUser(Shoko.Models.Contract_JMMUser a)
         {
             return _impl.SaveUser(a);
         }
@@ -1486,7 +1488,7 @@ namespace JMMServer.API.Module.apiv1
             return _impl.RenameFiles(a,b);
         }
 
-        private object RemoveMissingMyListFiles(List<JMMContracts.Contract_MissingFile> a)
+        private object RemoveMissingMyListFiles(List<Shoko.Models.Contract_MissingFile> a)
         {
             _impl.RemoveMissingMyListFiles(a);
             return "ok";
@@ -1497,7 +1499,7 @@ namespace JMMServer.API.Module.apiv1
             return _impl.AssociateMultipleFiles(a, b, c, d);
         }
 
-        private object EvaluateGroupFilter(JMMContracts.Contract_GroupFilter a)
+        private object EvaluateGroupFilter(Shoko.Models.Contract_GroupFilter a)
         {
             return _impl.EvaluateGroupFilter(a);
         }

@@ -2,8 +2,10 @@
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Shoko.Models.Server;
 
 namespace JMMServer.Commands
 {
@@ -41,13 +43,13 @@ namespace JMMServer.Commands
         {
             try
             {
-                CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
+                SVR_CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
                 if (xref == null) return;
 
                 Trakt_Show tvShow = RepoFactory.Trakt_Show.GetByTraktSlug(xref.TraktID);
                 if (tvShow == null) return;
 
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
                 string showName = "";

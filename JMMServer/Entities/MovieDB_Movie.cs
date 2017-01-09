@@ -1,6 +1,6 @@
-﻿using JMMContracts;
-using JMMServer.Providers.MovieDB;
+﻿using JMMServer.Providers.MovieDB;
 using NLog;
+using Shoko.Models;
 
 namespace JMMServer.Entities
 {

@@ -8,8 +8,10 @@ using System.Windows.Media;
 using JMMServer.Collections;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
+using Shoko.Models.Server;
 using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Azure;
 
 namespace JMMServer
 {
@@ -44,11 +46,11 @@ namespace JMMServer
 
         private ServerInfo()
         {
-            ImportFolders = new ObservableCollection<ImportFolder>();
-            CloudAccounts=new ObservableCollection<CloudAccount>();
-            AdminMessages = new ObservableCollection<AdminMessage>();
+            ImportFolders = new ObservableCollection<SVR_ImportFolder>();
+            CloudAccounts=new ObservableCollection<SVR_CloudAccount>();
+            AdminMessages = new ObservableCollection<Azure_AdminMessage>();
             CloudProviders = new ObservableCollection<CloudProvider>();
-            FolderProviders = new ObservableCollection<CloudAccount>();
+            FolderProviders = new ObservableCollection<SVR_CloudAccount>();
         }
 
         private void Init()
@@ -124,7 +126,7 @@ namespace JMMServer
 
         #region Observable Properties
 
-        public ObservableCollection<AdminMessage> AdminMessages { get; set; }
+        public ObservableCollection<Azure_AdminMessage> AdminMessages { get; set; }
 
         public void RefreshAdminMessages()
         {
@@ -132,14 +134,14 @@ namespace JMMServer
 
             try
             {
-                List<AdminMessage> msgs = AzureWebAPI.Get_AdminMessages();
+                List<Azure_AdminMessage> msgs = AzureWebAPI.Get_AdminMessages();
                 if (msgs == null || msgs.Count == 0)
                 {
                     AdminMessagesAvailable = false;
                     return;
                 }
 
-                foreach (AdminMessage msg in msgs)
+                foreach (Azure_AdminMessage msg in msgs)
                     AdminMessages.Add(msg);
 
                 AdminMessagesAvailable = true;
@@ -421,9 +423,9 @@ namespace JMMServer
             }
         }
 
-        public ObservableCollection<ImportFolder> ImportFolders { get; set; }
+        public ObservableCollection<SVR_ImportFolder> ImportFolders { get; set; }
 
-        public ObservableCollection<CloudAccount> FolderProviders { get; set; }
+        public ObservableCollection<SVR_CloudAccount> FolderProviders { get; set; }
 
         public ObservableCollection<CloudProvider> CloudProviders { get; set; }
 
@@ -435,7 +437,7 @@ namespace JMMServer
         }
 
 
-        public ObservableCollection<CloudAccount> CloudAccounts { get; set; }
+        public ObservableCollection<SVR_CloudAccount> CloudAccounts { get; set; }
         public void RefreshImportFolders()
         {
             ImportFolders.Clear();
@@ -465,7 +467,7 @@ namespace JMMServer
         public void RefreshFolderProviders()
         {
             FolderProviders.Clear();
-            CloudAccount lfs = new CloudAccount() {Name = "NA", Provider = "Local File System"};
+            SVR_CloudAccount lfs = new SVR_CloudAccount() {Name = "NA", Provider = "Local File System"};
             FolderProviders.Add(lfs);
             RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
         }

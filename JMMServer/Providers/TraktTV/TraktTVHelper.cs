@@ -9,12 +9,15 @@ using AniDBAPI;
 using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using Shoko.Models.Server;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
 using JMMServer.Utilities;
 using NHibernate;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
 
 namespace JMMServer.Providers.TraktTV
 {
@@ -348,12 +351,12 @@ namespace JMMServer.Providers.TraktTV
         public static string LinkAniDBTrakt(ISession session, int animeID, enEpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            List<CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
+            List<SVR_CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xrefTemps != null && xrefTemps.Count > 0)
             {
-                foreach (CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
+                foreach (SVR_CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
                 {
                     // delete the existing one if we are updating
                     TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
@@ -377,11 +380,11 @@ namespace JMMServer.Providers.TraktTV
             // download fanart, posters
             DownloadImagesFromTMDB(traktID);
 
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID, seasonNumber, traktEpNumber,
+            SVR_CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID, seasonNumber, traktEpNumber,
                 animeID,
                 (int) aniEpType, aniEpNumber);
             if (xref == null)
-                xref = new CrossRef_AniDB_TraktV2();
+                xref = new SVR_CrossRef_AniDB_TraktV2();
 
             xref.AnimeID = animeID;
             xref.AniDBStartEpisodeType = (int) aniEpType;
@@ -400,7 +403,7 @@ namespace JMMServer.Providers.TraktTV
 
             RepoFactory.CrossRef_AniDB_TraktV2.Save(xref);
 
-            AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
@@ -417,14 +420,14 @@ namespace JMMServer.Providers.TraktTV
         public static void RemoveLinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber)
         {
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
+            SVR_CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xref == null) return;
 
             RepoFactory.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
-            AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             if (ServerSettings.WebCache_Trakt_Send)
             {
@@ -484,44 +487,44 @@ namespace JMMServer.Providers.TraktTV
 
         public static void ScanForMatches()
         {
-            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<SVR_CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
             List<int> alreadyLinked = new List<int>();
-            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+            foreach (SVR_CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 alreadyLinked.Add(xref.AnimeID);
             }
 
-            foreach (AnimeSeries ser in allSeries)
+            foreach (SVR_AnimeSeries ser in allSeries)
             {
                 if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
 
-                AniDB_Anime anime = ser.GetAnime();
+                SVR_AniDB_Anime anime = ser.GetAnime();
 
                 if (anime != null)
                     logger.Trace("Found anime without Trakt association: " + anime.MainTitle);
 
-                if (anime.IsTraktLinkDisabled) continue;
+                if (anime.GetIsTraktLinkDisabled()) continue;
 
                 CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(ser.AniDB_ID, false);
                 cmd.Save();
             }
         }
 
-        private static int? GetTraktEpisodeIdV2(AnimeEpisode ep, ref string traktID, ref int season, ref int epNumber)
+        private static int? GetTraktEpisodeIdV2(SVR_AnimeEpisode ep, ref string traktID, ref int season, ref int epNumber)
         {
-            AniDB_Episode aniep = ep?.AniDB_Episode;
+            SVR_AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
 
-            AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
+            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
             if (anime == null)
                 return null;
 
             return GetTraktEpisodeIdV2(anime, aniep, ref traktID, ref season, ref epNumber);
         }
 
-        private static int? GetTraktEpisodeIdV2(AniDB_Anime anime, AniDB_Episode ep, ref string traktID, ref int season,
+        private static int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref string traktID, ref int season,
             ref int epNumber)
         {
             if (anime == null || ep == null)
@@ -534,7 +537,7 @@ namespace JMMServer.Providers.TraktTV
             return GetTraktEpisodeIdV2(traktSummary, anime, ep, ref traktID, ref season, ref epNumber);
         }
 
-        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, AniDB_Anime anime, AniDB_Episode ep,
+        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, SVR_AniDB_Anime anime, SVR_AniDB_Episode ep,
             ref string traktID, ref int season, ref int epNumber)
         {
             try
@@ -544,19 +547,19 @@ namespace JMMServer.Providers.TraktTV
                 #region normal episodes
 
                 // now do stuff to improve performance
-                if (ep.EpisodeTypeEnum == enEpisodeType.Episode)
+                if (ep.GetEpisodeTypeEnum() == enEpisodeType.Episode)
                 {
                     if (traktSummary != null && traktSummary.CrossRefTraktV2 != null &&
                         traktSummary.CrossRefTraktV2.Count > 0)
                     {
                         // find the xref that is right
                         // relies on the xref's being sorted by season number and then episode number (desc)
-                        List<CrossRef_AniDB_TraktV2> traktCrossRef =
+                        List<SVR_CrossRef_AniDB_TraktV2> traktCrossRef =
                             traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
 
                         bool foundStartingPoint = false;
-                        CrossRef_AniDB_TraktV2 xrefBase = null;
-                        foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
+                        SVR_CrossRef_AniDB_TraktV2 xrefBase = null;
+                        foreach (SVR_CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                         {
                             if (xrefTrakt.AniDBStartEpisodeType != (int) enEpisodeType.Episode) continue;
                             if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
@@ -605,16 +608,16 @@ namespace JMMServer.Providers.TraktTV
 
                 #region special episodes
 
-                if (ep.EpisodeTypeEnum == enEpisodeType.Special)
+                if (ep.GetEpisodeTypeEnum() == enEpisodeType.Special)
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
-                    List<CrossRef_AniDB_TraktV2> traktCrossRef =
+                    List<SVR_CrossRef_AniDB_TraktV2> traktCrossRef =
                         traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
                     
                     bool foundStartingPoint = false;
-                    CrossRef_AniDB_TraktV2 xrefBase = null;
-                    foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
+                    SVR_CrossRef_AniDB_TraktV2 xrefBase = null;
+                    foreach (SVR_CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                     {
                         if (xrefTrakt.AniDBStartEpisodeType != (int) enEpisodeType.Special) continue;
                         if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
@@ -849,7 +852,7 @@ namespace JMMServer.Providers.TraktTV
             return true;
         }
 
-        private static DateTime GetEpisodeDateForSync(AnimeEpisode ep, TraktSyncType syncType)
+        private static DateTime GetEpisodeDateForSync(SVR_AnimeEpisode ep, TraktSyncType syncType)
         {
             DateTime epDate = DateTime.Now;
 
@@ -882,7 +885,7 @@ namespace JMMServer.Providers.TraktTV
                     List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                     if (traktUsers.Count > 0)
                     {
-                        AnimeEpisode_User userRecord = null;
+                        SVR_AnimeEpisode_User userRecord = null;
                         foreach (JMMUser juser in traktUsers)
                         {
                             userRecord = ep.GetUserRecord(juser.JMMUserID);
@@ -904,7 +907,7 @@ namespace JMMServer.Providers.TraktTV
             return epDate;
         }
 
-        public static void SyncEpisodeToTrakt(AnimeEpisode ep, TraktSyncType syncType, bool secondaryAction = true)
+        public static void SyncEpisodeToTrakt(SVR_AnimeEpisode ep, TraktSyncType syncType, bool secondaryAction = true)
         {
             try
             {
@@ -1071,7 +1074,7 @@ namespace JMMServer.Providers.TraktTV
                 //1.get traktid and slugid from episode id
                 int aep = 0;
                 int.TryParse(AnimeEpisodeID, out aep);
-                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
+                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
                 string slugID = "";
                 int season = 0;
                 int epNumber = 0;
@@ -1374,12 +1377,12 @@ namespace JMMServer.Providers.TraktTV
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     return ret;
 
-                List<CrossRef_AniDB_TraktV2> traktXRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
+                List<SVR_CrossRef_AniDB_TraktV2> traktXRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
                 if (traktXRefs == null || traktXRefs.Count == 0) return null;
 
                 // get a unique list of trakt id's
                 List<string> ids = new List<string>();
-                foreach (CrossRef_AniDB_TraktV2 xref in traktXRefs)
+                foreach (SVR_CrossRef_AniDB_TraktV2 xref in traktXRefs)
                 {
                     if (!ids.Contains(xref.TraktID))
                         ids.Add(xref.TraktID);
@@ -1570,15 +1573,15 @@ namespace JMMServer.Providers.TraktTV
 
         public static void UpdateAllInfo()
         {
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
-            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+            IReadOnlyList<SVR_CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            foreach (SVR_CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 CommandRequest_TraktUpdateInfoAndImages cmd = new CommandRequest_TraktUpdateInfoAndImages(xref.TraktID);
                 cmd.Save();
             }
         }
 
-        public static void SyncCollectionToTrakt_Series(AnimeSeries series)
+        public static void SyncCollectionToTrakt_Series(SVR_AnimeSeries series)
         {
             try
             {
@@ -1586,7 +1589,7 @@ namespace JMMServer.Providers.TraktTV
                 List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                 if (anime == null) return;
 
                 TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1599,7 +1602,7 @@ namespace JMMServer.Providers.TraktTV
 
                 if (!GetTraktCollectionInfo(ref collected, ref watched)) return;
 
-                foreach (AnimeEpisode ep in series.GetAnimeEpisodes())
+                foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                 {
                     if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                     {
@@ -1623,7 +1626,7 @@ namespace JMMServer.Providers.TraktTV
                 List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
                 // now get the full users collection from Trakt
                 List<TraktV2ShowCollectedResult> collected = new List<TraktV2ShowCollectedResult>();
@@ -1643,13 +1646,13 @@ namespace JMMServer.Providers.TraktTV
                 ///////////////////////////////////////////////////////////////////////////////////////
 
                 int counter = 0;
-                foreach (AnimeSeries series in allSeries)
+                foreach (SVR_AnimeSeries series in allSeries)
                 {
                     counter++;
                     logger.Trace("Syncing check -  local collection: {0} / {1} - {2}", counter, allSeries.Count,
                         series.GetSeriesName());
 
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                     if (anime == null) continue;
 
                     //if (anime.AnimeID != 3427) continue;
@@ -1660,7 +1663,7 @@ namespace JMMServer.Providers.TraktTV
 
                     // get the current watched records for this series on Trakt
 
-                    foreach (AnimeEpisode ep in series.GetAnimeEpisodes())
+                    foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                     {
                         if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                         {
@@ -1713,13 +1716,13 @@ namespace JMMServer.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                    List<SVR_CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
-                        foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                        foreach (SVR_CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
-                            AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                            SVR_AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
 
                             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1728,7 +1731,7 @@ namespace JMMServer.Providers.TraktTV
                                 continue;
 
                             // if we have this series locSeries, let's sync the whole series
-                            foreach (AnimeEpisode ep in locSeries.GetAnimeEpisodes())
+                            foreach (SVR_AnimeEpisode ep in locSeries.GetAnimeEpisodes())
                             {
                                 if (ep.EpisodeTypeEnum == enEpisodeType.Episode ||
                                     ep.EpisodeTypeEnum == enEpisodeType.Special)
@@ -1801,13 +1804,13 @@ namespace JMMServer.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                    List<SVR_CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
-                        foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                        foreach (SVR_CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
-                            AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                            SVR_AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
 
                             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1816,7 +1819,7 @@ namespace JMMServer.Providers.TraktTV
                                 continue;
 
                             // if we have this series locSeries, let's sync the whole series
-                            foreach (AnimeEpisode ep in locSeries.GetAnimeEpisodes())
+                            foreach (SVR_AnimeEpisode ep in locSeries.GetAnimeEpisodes())
                             {
                                 if (ep.EpisodeTypeEnum == enEpisodeType.Episode ||
                                     ep.EpisodeTypeEnum == enEpisodeType.Special)
@@ -1998,7 +2001,7 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
-        private static EpisodeSyncDetails ReconSyncTraktEpisode(AnimeSeries ser, AnimeEpisode ep,
+        private static EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,
             TraktSummaryContainer traktSummary, List<JMMUser> traktUsers,
             List<TraktV2ShowCollectedResult> collected, List<TraktV2ShowWatchedResult> watched, bool sendNow)
         {
@@ -2048,7 +2051,7 @@ namespace JMMServer.Providers.TraktTV
                 {
                     localCollection = true;
 
-                    AnimeEpisode_User userRecord = null;
+                    SVR_AnimeEpisode_User userRecord = null;
                     foreach (JMMUser juser in traktUsers)
                     {
                         userRecord = ep.GetUserRecord(juser.JMMUserID);
