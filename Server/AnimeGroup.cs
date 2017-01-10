@@ -3,7 +3,7 @@ using Shoko.Models.Client;
 
 namespace Shoko.Models.Server
 {
-    public class AnimeGroup
+    public class AnimeGroup 
     {
         #region Server DB Columns
 

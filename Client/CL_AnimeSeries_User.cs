@@ -27,8 +27,8 @@ namespace Shoko.Models.Client
         public List<CrossRef_AniDB_TvDBV2> CrossRefAniDBTvDBV2 { get; set; }
         public CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
         public List<CrossRef_AniDB_MAL> CrossRefAniDBMAL { get; set; }
-        public List<Contract_TvDB_Series> TvDB_Series { get; set; }
-        public Contract_MovieDB_Movie MovieDB_Movie { get; set; }
+        public List<TvDB_Series> TvDB_Series { get; set; }
+        public MovieDB_Movie MovieDB_Movie { get; set; }
         public CL_AnimeGroup_User TopLevelGroup { get; set; }
     }
 }

@@ -9,14 +9,14 @@ namespace Shoko.Models.Client
 {
     public class CL_AniDB_Anime_DefaultImage : AniDB_Anime_DefaultImage
     {
-        public Contract_MovieDB_Poster MoviePoster { get; set; }
-        public Contract_MovieDB_Fanart MovieFanart { get; set; }
+        public MovieDB_Poster MoviePoster { get; set; }
+        public MovieDB_Fanart MovieFanart { get; set; }
 
-        public Contract_TvDB_ImagePoster TVPoster { get; set; }
-        public Contract_TvDB_ImageFanart TVFanart { get; set; }
-        public Contract_TvDB_ImageWideBanner TVWideBanner { get; set; }
+        public TvDB_ImagePoster TVPoster { get; set; }
+        public TvDB_ImageFanart TVFanart { get; set; }
+        public TvDB_ImageWideBanner TVWideBanner { get; set; }
 
-        public Contract_Trakt_ImagePoster TraktPoster { get; set; }
-        public Contract_Trakt_ImageFanart TraktFanart { get; set; }
+        public Trakt_ImagePoster TraktPoster { get; set; }
+        public Trakt_ImageFanart TraktFanart { get; set; }
     }
 }
