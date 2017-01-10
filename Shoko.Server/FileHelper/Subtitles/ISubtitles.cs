@@ -8,7 +8,7 @@ namespace Shoko.Server.FileHelper.Subtitles
 {
     public interface ISubtitles
     {
-        List<Stream> Process(VideoLocal_Place filename);
+        List<Stream> Process(SVR_VideoLocal_Place filename);
         List<Stream> GetStreams(IFile filename);
     }
 }

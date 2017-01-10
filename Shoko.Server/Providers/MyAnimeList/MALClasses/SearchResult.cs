@@ -10,6 +10,7 @@
 
 using System.Xml.Serialization;
 using Shoko.Models;
+using Shoko.Models.Client;
 
 // 
 // Ce code source a été automatiquement généré par xsd, Version=2.0.50727.3038.
@@ -191,9 +192,9 @@ public partial class animeEntry {
         }
     }
 
-	public Contract_MALAnimeResponse ToContract()
+	public CL_MALAnime_Response ToContract()
 	{
-		Contract_MALAnimeResponse contract = new Contract_MALAnimeResponse();
+		CL_MALAnime_Response contract = new CL_MALAnime_Response();
 
 		contract.animeType = type;
 		contract.end_date = end_date;

@@ -30,7 +30,7 @@ namespace Shoko.Server.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast, int notag, int level)
+        public Serie GenerateFromVideoLocal(SVR_VideoLocal vl, int uid, int nocast, int notag, int level)
         {
             Serie sr = new Serie();
 

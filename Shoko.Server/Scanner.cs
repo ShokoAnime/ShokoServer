@@ -56,7 +56,7 @@ namespace Shoko.Server
             {
                 RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a));
             });
-            Scan runscan = Scans.FirstOrDefault(a => a.ScanStatus == ScanStatus.Running);
+            SVR_Scan runscan = Scans.FirstOrDefault(a => a.ScanStatus == ScanStatus.Running);
             if (runscan != null)
             {
                 ActiveScan = runscan;
@@ -123,8 +123,8 @@ namespace Shoko.Server
         public bool QueuePaused => ActiveScan != null && ActiveScan.ScanStatus == ScanStatus.Standby;
         public bool QueueRunning => ActiveScan!=null && ActiveScan.ScanStatus == ScanStatus.Running;
         public bool Exists => (ActiveScan != null);
-        private Scan activeScan;
-        public Scan ActiveScan
+        private SVR_Scan activeScan;
+        public SVR_Scan ActiveScan
         {
             get
             {
@@ -156,11 +156,11 @@ namespace Shoko.Server
             if (activeScan!=null)
                 QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
         }
-        public ObservableCollection<Scan> Scans { get; set; }=new ObservableCollection<Scan>();
+        public ObservableCollection<SVR_Scan> Scans { get; set; }=new ObservableCollection<SVR_Scan>();
 
-        public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; }=new ObservableCollection<ScanFile>();
+        public ObservableCollection<SVR_ScanFile> ActiveErrorFiles { get; set; }=new ObservableCollection<SVR_ScanFile>();
 
-        public void AddErrorScan(ScanFile file)
+        public void AddErrorScan(SVR_ScanFile file)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -170,7 +170,7 @@ namespace Shoko.Server
         }
 
         private bool cancelIntegrityCheck = false;
-        internal Scan RunScan;
+        internal SVR_Scan RunScan;
 
         public static int OnHashProgress(string fileName, int percentComplete)
         {
@@ -180,13 +180,13 @@ namespace Shoko.Server
         {
             if (RunScan != null && RunScan.ScanStatus != ScanStatus.Finish)
             {
-                Scan s = RunScan;
+                SVR_Scan s = RunScan;
                 s.Status = (int)ScanStatus.Running;
                 RepoFactory.Scan.Save(s);
                 Refresh();
-                List<ScanFile> files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
+                List<SVR_ScanFile> files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
                 int cnt = 0;
-                foreach (ScanFile sf in files)
+                foreach (SVR_ScanFile sf in files)
                 {
                     try
                     {
@@ -200,13 +200,13 @@ namespace Shoko.Server
                             else
                             {
                                 Hashes hashes = FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
-                                if (string.IsNullOrEmpty(hashes.ed2k))
+                                if (string.IsNullOrEmpty(hashes.ED2K))
                                 {
                                     sf.Status = (int)ScanFileStatus.ErrorMissingHash;
                                 }
                                 else
                                 {
-                                    sf.HashResult = hashes.ed2k;
+                                    sf.HashResult = hashes.ED2K;
                                     if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
                                         sf.Status = (int)ScanFileStatus.ErrorInvalidHash;
                                     else

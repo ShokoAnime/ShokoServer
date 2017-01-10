@@ -203,7 +203,7 @@ namespace Shoko.Server.FileServer
                 int autowatch = 0;
                 int.TryParse(user, out userid);
                 int.TryParse(aw, out autowatch);
-                VideoLocal loc = null;
+                SVR_VideoLocal loc = null;
                 IFile file = null;
                 if (cmd == "videolocal")
                 {
@@ -246,7 +246,7 @@ namespace Shoko.Server.FileServer
                 else if (cmd == "file")
                 {
                     fullname = Base64DecodeUrl(arg);
-                    file = VideoLocal.ResolveFile(fullname);
+                    file = SVR_VideoLocal.ResolveFile(fullname);
                     if (file == null)
                     {
                         obj.Response.StatusCode = (int) HttpStatusCode.NotFound;

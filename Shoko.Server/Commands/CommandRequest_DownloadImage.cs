@@ -368,51 +368,51 @@ namespace Shoko.Server.Commands
                 case JMMImageType.TvDB_Episode:
 
                     TvDB_Episode ep = req.ImageData as TvDB_Episode;
-                    return ep.FullImagePath;
+                    return ep.GetFullImagePath();
 
                 case JMMImageType.TvDB_FanArt:
 
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
                     if (thumbNailOnly)
-                        return fanart.FullThumbnailPath;
+                        return fanart.GetFullThumbnailPath();
                     else
-                        return fanart.FullImagePath;
+                        return fanart.GetFullImagePath();
 
                 case JMMImageType.TvDB_Cover:
 
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
-                    return poster.FullImagePath;
+                    return poster.GetFullImagePath();
 
                 case JMMImageType.TvDB_Banner:
 
                     TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
-                    return wideBanner.FullImagePath;
+                    return wideBanner.GetFullImagePath();
 
                 case JMMImageType.MovieDB_Poster:
 
                     MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
-                    return moviePoster.FullImagePath;
+                    return moviePoster.GetFullImagePath();
 
                 case JMMImageType.MovieDB_FanArt:
 
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
-                    return movieFanart.FullImagePath;
+                    return movieFanart.GetFullImagePath();
 
                 case JMMImageType.Trakt_Poster:
                     Trakt_ImagePoster traktPoster = req.ImageData as Trakt_ImagePoster;
-                    return traktPoster.FullImagePath;
+                    return traktPoster.GetFullImagePath();
 
                 case JMMImageType.Trakt_Fanart:
                     Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
-                    return traktFanart.FullImagePath;
+                    return traktFanart.GetFullImagePath();
 
                 case JMMImageType.Trakt_Friend:
                     Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
-                    return traktFriend.FullImagePath;
+                    return traktFriend.GetFullImagePath();
 
                 case JMMImageType.Trakt_Episode:
                     Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
-                    return traktEp.FullImagePath;
+                    return traktEp.GetFullImagePath();
 
                 case JMMImageType.AniDB_Character:
                     SVR_AniDB_Character chr = req.ImageData as SVR_AniDB_Character;

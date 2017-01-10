@@ -4,10 +4,12 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Mappings
 {
-    public class ScanFileMap : ClassMap<ScanFile>
+    public class ScanFileMap : ClassMap<SVR_ScanFile>
     {
         public ScanFileMap()
         {
+            Table("ScanFile");
+
             Not.LazyLoad();
             Id(x => x.ScanFileID);
             Map(x => x.ScanID).Not.Nullable();

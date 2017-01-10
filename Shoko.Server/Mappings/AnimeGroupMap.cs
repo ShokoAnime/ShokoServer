@@ -8,6 +8,8 @@ namespace Shoko.Server.Mappings
     {
         public AnimeGroupMap()
         {
+            Table("AnimeGroup");
+
             Not.LazyLoad();
             Id(x => x.AnimeGroupID);
 

@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_RecommendationMap()
         {
+            Table("AniDB_Recommendation");
             Not.LazyLoad();
             Id(x => x.AniDB_RecommendationID);
 

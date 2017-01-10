@@ -1453,12 +1453,12 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.SaveImportFolder(a);
         }
 
-        private object SavePlaylist(Shoko.Models.Contract_Playlist a)
+        private object SavePlaylist(Playlist a)
         {
             return _impl.SavePlaylist(a);
         }
 
-        private object SaveRenameScript(Shoko.Models.Contract_RenameScript a)
+        private object SaveRenameScript(RenameScript a)
         {
             return _impl.SaveRenameScript(a);
         }
@@ -1468,7 +1468,7 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.SaveSeries(a,b);
         }
 
-        private object SaveServerSettings(Shoko.Models.Contract_ServerSettings a)
+        private object SaveServerSettings(CL_ServerSettings a)
         {
             return _impl.SaveServerSettings(a);
         }
@@ -1488,7 +1488,7 @@ namespace Shoko.Server.API.Module.apiv1
             return _impl.RenameFiles(a,b);
         }
 
-        private object RemoveMissingMyListFiles(List<Shoko.Models.Contract_MissingFile> a)
+        private object RemoveMissingMyListFiles(List<CL_MissingFile> a)
         {
             _impl.RemoveMissingMyListFiles(a);
             return "ok";

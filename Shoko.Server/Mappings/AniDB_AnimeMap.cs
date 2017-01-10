@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_AnimeMap()
         {
+            Table("AniDB_Anime");
             Not.LazyLoad();
             Id(x => x.AniDB_AnimeID);
 

@@ -16,6 +16,7 @@ using Microsoft.Win32;
 using NLog;
 using Newtonsoft.Json;
 using NLog.Targets;
+using Shoko.Models.Client;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.UI;
@@ -2082,9 +2083,9 @@ namespace Shoko.Server
             set { Set("WebCacheAuthKey", value); }
         }
 
-        public static Contract_ServerSettings ToContract()
+        public static CL_ServerSettings ToContract()
         {
-            Contract_ServerSettings contract = new Contract_ServerSettings();
+            CL_ServerSettings contract = new CL_ServerSettings();
 
             contract.AniDB_Username = ServerSettings.AniDB_Username;
             contract.AniDB_Password = ServerSettings.AniDB_Password;

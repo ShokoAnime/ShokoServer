@@ -2,6 +2,7 @@
 using System.Linq;
 using Shoko.Models.Server;
 using NHibernate.Criterion;
+using Shoko.Models;
 using Shoko.Server.Databases;
 using Shoko.Server.Entities;
 

@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Shoko.Models;
 using NLog;
+using Shoko.Models.Server;
 using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.FileHelper
@@ -123,11 +124,11 @@ namespace Shoko.Server.FileHelper
                 {
                     if (CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1))
                     {
-                        rhash.ed2k = HashToString(hash, 0, 16);
-                        if (!string.IsNullOrEmpty(rhash.ed2k)) gotHash = true;
-                        if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
-                        if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
-                        if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
+                        rhash.ED2K = HashToString(hash, 0, 16);
+                        if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
+                        if (getCRC32) rhash.CRC32 = HashToString(hash, 16, 4);
+                        if (getMD5) rhash.MD5 = HashToString(hash, 20, 16);
+                        if (getSHA1) rhash.SHA1 = HashToString(hash, 36, 20);
                     }
                 }
                 catch (Exception ex)
@@ -231,13 +232,13 @@ namespace Shoko.Server.FileHelper
             {
                 //byte[] baHashFinal = md4.ComputeHash(baED2KHash);
                 //rhash.ed2k = BitConverter.ToString(baHashFinal).Replace("-", "").ToUpper();
-                rhash.ed2k = nBlocks > 1
+                rhash.ED2K = nBlocks > 1
                     ? BitConverter.ToString(md4.ComputeHash(baED2KHash)).Replace("-", "").ToUpper()
                     : BitConverter.ToString(baED2KHash).Replace("-", "").ToUpper();
             }
-            if (getCRC32) rhash.crc32 = BitConverter.ToString(crc32.Hash).Replace("-", "").ToUpper();
-            if (getMD5) rhash.md5 = BitConverter.ToString(md5.Hash).Replace("-", "").ToUpper();
-            if (getSHA1) rhash.sha1 = BitConverter.ToString(sha1.Hash).Replace("-", "").ToUpper();
+            if (getCRC32) rhash.CRC32 = BitConverter.ToString(crc32.Hash).Replace("-", "").ToUpper();
+            if (getMD5) rhash.MD5 = BitConverter.ToString(md5.Hash).Replace("-", "").ToUpper();
+            if (getSHA1) rhash.SHA1 = BitConverter.ToString(sha1.Hash).Replace("-", "").ToUpper();
             return rhash;
         }
     }

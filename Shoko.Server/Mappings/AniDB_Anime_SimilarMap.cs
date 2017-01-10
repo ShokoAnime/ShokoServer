@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_Anime_SimilarMap()
         {
+            Table("AniDB_Anime_Similar");
             Not.LazyLoad();
             Id(x => x.AniDB_Anime_SimilarID);
 

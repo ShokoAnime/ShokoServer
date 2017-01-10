@@ -13,13 +13,14 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Entities;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Providers.TvDB
+namespace Shoko.Models.TvDB
 {
     public class TvDBHelper
     {
@@ -34,7 +35,7 @@ namespace Shoko.Server.Providers.TvDB
 
         public string urlMirrorsList
         {
-            get { return @"http://www.thetvdb.com/api/" + Constants.TvDBURLs.apiKey + @"/mirrors.xml"; }
+            get { return @"http://www.thetvdb.com/api/" + Shoko.Server.Constants.TvDBURLs.apiKey + @"/mirrors.xml"; }
         }
 
         public string urlServerTime
@@ -157,7 +158,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 //Init();
 
-                string url = string.Format(Constants.TvDBURLs.urlSeriesBaseXML, URLMirror, Constants.TvDBURLs.apiKey,
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlSeriesBaseXML, URLMirror, Shoko.Server.Constants.TvDBURLs.apiKey,
                     seriesID,
                     ServerSettings.TvDB_Language);
                 logger.Trace("GetSeriesInfo: {0}", url);
@@ -198,7 +199,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 Init();
 
-                string url = string.Format(Constants.TvDBURLs.urlBannersXML, urlMirror, Constants.TvDBURLs.apiKey,
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlBannersXML, urlMirror, Shoko.Server.Constants.TvDBURLs.apiKey,
                     seriesID);
                 logger.Trace("GetSeriesBannersOnline: {0}", url);
 
@@ -224,7 +225,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 Init();
 
-                string url = string.Format(Constants.TvDBURLs.urlFullSeriesData, urlMirror, Constants.TvDBURLs.apiKey,
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlFullSeriesData, urlMirror, Shoko.Server.Constants.TvDBURLs.apiKey,
                     seriesID,
                     ServerSettings.TvDB_Language);
                 logger.Trace("GetFullSeriesInfo: {0}", url);
@@ -348,15 +349,15 @@ namespace Shoko.Server.Providers.TvDB
             }
              */
 
-        public List<TvDBLanguage> GetLanguages()
+        public List<TvDB_Language> GetLanguages()
         {
-            List<TvDBLanguage> languages = new List<TvDBLanguage>();
+            List<TvDB_Language> languages = new List<TvDB_Language>();
 
             try
             {
                 Init();
 
-                string url = string.Format(Constants.TvDBURLs.urlLanguagesXML, urlMirror, Constants.TvDBURLs.apiKey);
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlLanguagesXML, urlMirror, Shoko.Server.Constants.TvDBURLs.apiKey);
                 logger.Trace("GetLanguages: {0}", url);
 
                 // Search for a series
@@ -375,7 +376,7 @@ namespace Shoko.Server.Providers.TvDB
 
                 foreach (XmlNode node in lanItems)
                 {
-                    TvDBLanguage lan = new TvDBLanguage();
+                    TvDB_Language lan = new TvDB_Language();
 
                     lan.Name = node["name"].InnerText.Trim();
                     lan.Abbreviation = node["abbreviation"].InnerText.Trim();
@@ -414,19 +415,19 @@ namespace Shoko.Server.Providers.TvDB
 
                 foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(sessionWrapper, seriesID))
                 {
-                    if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
+                    if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
                         numFanartDownloaded++;
                 }
 
                 foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(sessionWrapper, seriesID))
                 {
-                    if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
+                    if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath()))
                         numPostersDownloaded++;
                 }
 
                 foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(session, seriesID))
                 {
-                    if (!string.IsNullOrEmpty(banner.FullImagePath) && File.Exists(banner.FullImagePath))
+                    if (!string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()))
                         numBannersDownloaded++;
                 }
             }
@@ -439,7 +440,7 @@ namespace Shoko.Server.Providers.TvDB
                     TvDB_ImageFanart img = obj as TvDB_ImageFanart;
                     if (ServerSettings.TvDB_AutoFanart && numFanartDownloaded < ServerSettings.TvDB_AutoFanartAmount)
                     {
-                        bool fileExists = File.Exists(img.FullImagePath);
+                        bool fileExists = File.Exists(img.GetFullImagePath());
                         if (!fileExists || (fileExists && forceDownload))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageFanartID,
@@ -453,7 +454,7 @@ namespace Shoko.Server.Providers.TvDB
                         //The TvDB_AutoFanartAmount point to download less images than its available
                         // we should clean those image that we didn't download because those dont exists in local repo
                         // first we check if file was downloaded
-                        if (!File.Exists(img.FullImagePath))
+                        if (!File.Exists(img.GetFullImagePath()))
                         {
                             RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
                         }
@@ -465,7 +466,7 @@ namespace Shoko.Server.Providers.TvDB
                     TvDB_ImagePoster img = obj as TvDB_ImagePoster;
                     if (ServerSettings.TvDB_AutoPosters && numPostersDownloaded < ServerSettings.TvDB_AutoPostersAmount)
                     {
-                        bool fileExists = File.Exists(img.FullImagePath);
+                        bool fileExists = File.Exists(img.GetFullImagePath());
                         if (!fileExists || (fileExists && forceDownload))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImagePosterID,
@@ -479,7 +480,7 @@ namespace Shoko.Server.Providers.TvDB
                         //The TvDB_AutoPostersAmount point to download less images than its available
                         // we should clean those image that we didn't download because those dont exists in local repo
                         // first we check if file was downloaded
-                        if (!File.Exists(img.FullImagePath))
+                        if (!File.Exists(img.GetFullImagePath()))
                         {
                             RepoFactory.TvDB_ImagePoster.Delete(img.TvDB_ImagePosterID);
                         }
@@ -492,7 +493,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (ServerSettings.TvDB_AutoWideBanners &&
                         numBannersDownloaded < ServerSettings.TvDB_AutoWideBannersAmount)
                     {
-                        bool fileExists = File.Exists(img.FullImagePath);
+                        bool fileExists = File.Exists(img.GetFullImagePath());
                         if (!fileExists || (fileExists && forceDownload))
                         {
                             CommandRequest_DownloadImage cmd =
@@ -507,7 +508,7 @@ namespace Shoko.Server.Providers.TvDB
                         //The TvDB_AutoWideBannersAmount point to download less images than its available
                         // we should clean those image that we didn't download because those dont exists in local repo
                         // first we check if file was downloaded
-                        if (!File.Exists(img.FullImagePath))
+                        if (!File.Exists(img.GetFullImagePath()))
                         {
                             RepoFactory.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
                         }
@@ -655,9 +656,9 @@ namespace Shoko.Server.Providers.TvDB
         }
 
 
-        public List<TVDBSeriesSearchResult> SearchSeries(string criteria)
+        public List<TVDB_Series_Search_Response> SearchSeries(string criteria)
         {
-            List<TVDBSeriesSearchResult> results = new List<TVDBSeriesSearchResult>();
+            List<TVDB_Series_Search_Response> results = new List<TVDB_Series_Search_Response>();
 
             try
             {
@@ -666,7 +667,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (!initialised) return results;
 
                 // Search for a series
-                string url = string.Format(Constants.TvDBURLs.urlSeriesSearch, criteria);
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlSeriesSearch, criteria);
                 logger.Trace("Search TvDB Series: {0}", url);
 
                 string xmlSeries = Utils.DownloadWebPage(url);
@@ -681,7 +682,9 @@ namespace Shoko.Server.Providers.TvDB
 
                     foreach (XmlNode series in seriesItems)
                     {
-                        TVDBSeriesSearchResult searchResult = new TVDBSeriesSearchResult(series);
+                        TVDB_Series_Search_Response searchResult = new TVDB_Series_Search_Response();
+                        searchResult.Populate(series);
+
                         results.Add(searchResult);
                     }
                 }
@@ -700,7 +703,7 @@ namespace Shoko.Server.Providers.TvDB
             List<int> seriesList = new List<int>();
             try
             {
-                string url = string.Format(Constants.TvDBURLs.urlUpdatesList, URLMirror, serverTime);
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlUpdatesList, URLMirror, serverTime);
 
                 // Search for a series
                 string xmlUpdateList = Utils.DownloadWebPage(url);
@@ -799,7 +802,7 @@ namespace Shoko.Server.Providers.TvDB
                                 // download the image for this episode
                                 if (!string.IsNullOrEmpty(ep.Filename))
                                 {
-                                    bool fileExists = File.Exists(ep.FullImagePath);
+                                    bool fileExists = File.Exists(ep.GetFullImagePath());
                                     if (!fileExists || (fileExists && forceRefresh))
                                     {
                                         CommandRequest_DownloadImage cmd =

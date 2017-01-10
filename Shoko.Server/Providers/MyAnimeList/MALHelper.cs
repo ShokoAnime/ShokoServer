@@ -14,6 +14,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.MAL;
@@ -485,13 +486,13 @@ namespace Shoko.Server.Providers.MyAnimeList
                                 lastWatchedEpNumber = epNum;
                             }
 
-                            List<Contract_VideoDetailed> contracts = ep.GetVideoDetailedContracts(user.JMMUserID);
+                            List<CL_VideoDetailed> contracts = ep.GetVideoDetailedContracts(user.JMMUserID);
 
                             // find the latest episode number in the collection
                             if (contracts.Count > 0)
                                 downloadedEps++;
 
-                            foreach (Contract_VideoDetailed contract in contracts)
+                            foreach (CL_VideoDetailed contract in contracts)
                             {
                                 if (!string.IsNullOrEmpty(contract.AniDB_Anime_GroupNameShort) &&
                                     !fanSubGroups.Contains(contract.AniDB_Anime_GroupNameShort))

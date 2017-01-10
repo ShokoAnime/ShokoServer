@@ -7,6 +7,7 @@ namespace NHibernateTest.Mappings
     {
         public CommandRequestMap()
         {
+
             Not.LazyLoad();
             Id(x => x.CommandRequestID);
             Map(x => x.CommandDetails).Not.Nullable();

@@ -32,7 +32,7 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
-using Shoko.Server.Providers.TvDB;
+using Shoko.Models.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
@@ -436,20 +436,17 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_Playlist> GetAllPlaylists()
+        public List<Playlist> GetAllPlaylists()
         {
-            List<Contract_Playlist> pls = new List<Contract_Playlist>();
             try
             {
-                IReadOnlyList<Playlist> allPls = RepoFactory.Playlist.GetAll();
-                foreach (Playlist pl in allPls)
-                    pls.Add(pl.ToContract());
+                return RepoFactory.Playlist.GetAll().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return pls;
+            return new List<Playlist>();
         }
 
         #region Custom Tags
@@ -467,9 +464,9 @@ namespace Shoko.Server
             }
         }
 
-        public CL_CrossRef_CustomTag_Save_Response SaveCustomTagCrossRef(CrossRef_CustomTag contract)
+        public CL_Response<CrossRef_CustomTag> SaveCustomTagCrossRef(CrossRef_CustomTag contract)
         {
-            CL_CrossRef_CustomTag_Save_Response contractRet = new CL_CrossRef_CustomTag_Save_Response();
+            CL_Response<CrossRef_CustomTag> contractRet = new CL_Response<CrossRef_CustomTag>();
             contractRet.ErrorMessage = "";
 
             try
@@ -493,7 +490,7 @@ namespace Shoko.Server
 
                 RepoFactory.CrossRef_CustomTag.Save(xref);
 
-                contractRet.CrossRef_CustomTag = xref;
+                contractRet.Result = xref;
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(contract.CrossRefID);
             }
             catch (Exception ex)
@@ -545,9 +542,9 @@ namespace Shoko.Server
             }
         }
 
-        public CL_CustomTag_Save_Response SaveCustomTag(CustomTag contract)
+        public CL_Response<CustomTag> SaveCustomTag(CustomTag contract)
         {
-            CL_CustomTag_Save_Response contractRet = new CL_CustomTag_Save_Response();
+            CL_Response<CustomTag> contractRet = new CL_Response<CustomTag>();
             contractRet.ErrorMessage = "";
 
             try
@@ -578,7 +575,7 @@ namespace Shoko.Server
 
                 RepoFactory.CustomTag.Save(ctag);
 
-                contractRet.CustomTag = ctag;
+                contractRet.Result = ctag;
             }
             catch (Exception ex)
             {
@@ -635,9 +632,9 @@ namespace Shoko.Server
 
         #endregion
 
-        public Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract)
+        public CL_Response<Playlist> SavePlaylist(Playlist contract)
         {
-            Contract_Playlist_SaveResponse contractRet = new Contract_Playlist_SaveResponse();
+            CL_Response<Playlist> contractRet = new CL_Response<Playlist>();
             contractRet.ErrorMessage = "";
 
             try
@@ -646,13 +643,13 @@ namespace Shoko.Server
 
                 // Process the playlist
                 Playlist pl = null;
-                if (contract.PlaylistID.HasValue)
+                if (contract.PlaylistID!=0)
                 {
-                    pl = RepoFactory.Playlist.GetByID(contract.PlaylistID.Value);
+                    pl = RepoFactory.Playlist.GetByID(contract.PlaylistID);
                     if (pl == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Playlist with ID: " +
-                                                   contract.PlaylistID.Value.ToString();
+                                                   contract.PlaylistID.ToString();
                         return contractRet;
                     }
                 }
@@ -673,7 +670,7 @@ namespace Shoko.Server
 
                 RepoFactory.Playlist.Save(pl);
 
-                contractRet.Playlist = pl.ToContract();
+                contractRet.Result = pl;
             }
             catch (Exception ex)
             {
@@ -705,15 +702,11 @@ namespace Shoko.Server
             }
         }
 
-        public Contract_Playlist GetPlaylist(int playlistID)
+        public Playlist GetPlaylist(int playlistID)
         {
             try
             {
-                Playlist pl = RepoFactory.Playlist.GetByID(playlistID);
-                if (pl == null)
-                    return null;
-
-                return pl.ToContract();
+                return RepoFactory.Playlist.GetByID(playlistID);
             }
             catch (Exception ex)
             {
@@ -736,9 +729,9 @@ namespace Shoko.Server
             return baList;
         }
 
-        public CL_BookmarkedAnime_Save_Response SaveBookmarkedAnime(CL_BookmarkedAnime contract)
+        public CL_Response<CL_BookmarkedAnime> SaveBookmarkedAnime(CL_BookmarkedAnime contract)
         {
-            CL_BookmarkedAnime_Save_Response contractRet = new CL_BookmarkedAnime_Save_Response();
+            CL_Response<CL_BookmarkedAnime> contractRet = new CL_Response<CL_BookmarkedAnime>();
             contractRet.ErrorMessage = "";
 
             try
@@ -776,7 +769,7 @@ namespace Shoko.Server
 
                 RepoFactory.BookmarkedAnime.Save(ba);
 
-                contractRet.BookmarkedAnime = ba.ToClient();
+                contractRet.Result = ba.ToClient();
             }
             catch (Exception ex)
             {
@@ -821,11 +814,11 @@ namespace Shoko.Server
             }
         }
 
-        public CL_GroupFilter_Save_Response SaveGroupFilter(CL_GroupFilter contract)
+        public CL_Response<CL_GroupFilter> SaveGroupFilter(CL_GroupFilter contract)
         {
-            CL_GroupFilter_Save_Response response = new CL_GroupFilter_Save_Response();
+            CL_Response<CL_GroupFilter> response = new CL_Response<CL_GroupFilter>();
             response.ErrorMessage = string.Empty;
-            response.GroupFilter = null;
+            response.Result = null;
 
 
 
@@ -845,7 +838,7 @@ namespace Shoko.Server
             gf.EvaluateAnimeGroups();
             gf.EvaluateAnimeSeries();
             RepoFactory.GroupFilter.Save(gf);
-            response.GroupFilter = gf.ToClient();
+            response.Result = gf.ToClient();
             return response;
         }
 
@@ -868,11 +861,11 @@ namespace Shoko.Server
             }
         }
 
-        public CL_AnimeGroup_Save_Response SaveGroup(CL_AnimeGroup_Save_Request contract, int userID)
+        public CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request contract, int userID)
         {
-            CL_AnimeGroup_Save_Response contractout = new CL_AnimeGroup_Save_Response();
+            CL_Response<CL_AnimeGroup_User> contractout = new CL_Response<CL_AnimeGroup_User>();
             contractout.ErrorMessage = "";
-            contractout.AnimeGroup = null;
+            contractout.Result = null;
             try
             {
                 SVR_AnimeGroup grp = null;
@@ -924,7 +917,7 @@ namespace Shoko.Server
                 userRecord.IsFave = contract.IsFave;
                 RepoFactory.AnimeGroup_User.Save(userRecord);
 
-                contractout.AnimeGroup = grp.GetUserContract(userID);
+                contractout.Result = grp.GetUserContract(userID);
 
 
                 return contractout;
@@ -937,11 +930,11 @@ namespace Shoko.Server
             }
         }
 
-        public CL_AnimeSeries_Save_Response MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID)
+        public CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID)
         {
-            CL_AnimeSeries_Save_Response contractout = new CL_AnimeSeries_Save_Response();
+            CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>();
             contractout.ErrorMessage = "";
-            contractout.AnimeSeries = null;
+            contractout.Result = null;
             try
             {
                 SVR_AnimeSeries ser = null;
@@ -993,7 +986,7 @@ namespace Shoko.Server
                     return contractout;
                 }
 
-                contractout.AnimeSeries = ser.GetUserContract(userID);
+                contractout.Result = ser.GetUserContract(userID);
 
                 return contractout;
             }
@@ -1005,11 +998,11 @@ namespace Shoko.Server
             }
         }
 
-        public CL_AnimeSeries_Save_Response SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
+        public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
         {
-            CL_AnimeSeries_Save_Response contractout = new CL_AnimeSeries_Save_Response();
+            CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>();
             contractout.ErrorMessage = "";
-            contractout.AnimeSeries = null;
+            contractout.Result = null;
             try
             {
                
@@ -1073,7 +1066,7 @@ namespace Shoko.Server
                         grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                     }
                 }
-                contractout.AnimeSeries = ser.GetUserContract(userID);
+                contractout.Result = ser.GetUserContract(userID);
                 return contractout;
             }
             catch (Exception ex)
@@ -1128,7 +1121,7 @@ namespace Shoko.Server
             try
             {
 
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 if (string.IsNullOrEmpty(vid.Hash)) //this shouldn't happen
@@ -1175,7 +1168,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 vid.IsIgnored = isIgnored ? 1 : 0;
@@ -1193,7 +1186,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 vid.IsVariation = isVariation ? 1 : 0;
@@ -1211,7 +1204,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 if (string.IsNullOrEmpty(vid.Hash))
@@ -1271,7 +1264,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 if (vid.Hash == null)
@@ -1345,7 +1338,7 @@ namespace Shoko.Server
 
                 foreach (int videoLocalID in videoLocalIDs)
                 {
-                    VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                    SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                     if (vid == null)
                         return "Could not find video local record";
                     if (vid.Hash == null)
@@ -1419,10 +1412,10 @@ namespace Shoko.Server
             return new int[] {100};
         }
 
-        public CL_AnimeSeries_Save_Response CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID)
+        public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID)
         {
-            CL_AnimeSeries_Save_Response response = new CL_AnimeSeries_Save_Response();
-            response.AnimeSeries = null;
+            CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>();
+            response.Result = null;
             response.ErrorMessage = "";
             try
             {
@@ -1494,7 +1487,7 @@ namespace Shoko.Server
                         CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(anime.AnimeID, false);
                         cmd2.Save(session);
                     }
-                    response.AnimeSeries = ser.GetUserContract(userID);
+                    response.Result = ser.GetUserContract(userID);
                     return response;
                 }
             }
@@ -1517,7 +1510,7 @@ namespace Shoko.Server
 
                     // also find any files for this anime which don't have proper media info data
                     // we can usually tell this if the Resolution == '0x0'
-                    foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                    foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                     {
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile == null) continue;
@@ -1564,7 +1557,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
                 CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
                 cmd.Save();
@@ -1596,7 +1589,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
                 if (string.IsNullOrEmpty(vid.Hash)) return "Could not Update a cloud file without hash, hash it locally first";
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vid.VideoLocalID, true);
@@ -1932,9 +1925,9 @@ namespace Shoko.Server
             return c;
         }
 
-        public Contract_MainChanges GetAllChanges(DateTime date, int userID)
+        public CL_MainChanges GetAllChanges(DateTime date, int userID)
         {
-            Contract_MainChanges c=new Contract_MainChanges();
+            CL_MainChanges c=new CL_MainChanges();
             try
             {
                 List<Changes<int>> changes = ChangeTracker<int>.GetChainedChanges(new List<ChangeTracker<int>>
@@ -2418,7 +2411,7 @@ namespace Shoko.Server
                 int limit = 0;
                 List<CL_AnimeSeries_User> list = new List<CL_AnimeSeries_User>();
 
-                foreach (VideoLocal vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
+                foreach (SVR_VideoLocal vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
                 {
                     foreach (CL_AnimeEpisode_User ae in GetEpisodesForFile(vi.VideoLocalID, userID))
                     {
@@ -2450,7 +2443,7 @@ namespace Shoko.Server
             {
                 int limit = 0;
                 Dictionary<int, CL_AnimeSeries_FileStats> list = new Dictionary<int, CL_AnimeSeries_FileStats>();
-                foreach (VideoLocal vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
+                foreach (SVR_VideoLocal vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
                 {
                     foreach (CL_AnimeEpisode_User ae in GetEpisodesForFile(vi.VideoLocalID, userID))
                     {
@@ -2525,7 +2518,7 @@ namespace Shoko.Server
             return true;
         }
 
-        public List<Contract_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
+        public List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
         {
             try
             {
@@ -2533,26 +2526,26 @@ namespace Shoko.Server
                 if (ep != null)
                     return ep.GetVideoDetailedContracts(userID);
                 else
-                    return new List<Contract_VideoDetailed>();
+                    return new List<CL_VideoDetailed>();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return new List<Contract_VideoDetailed>();
+            return new List<CL_VideoDetailed>();
         }
 
-        public List<Contract_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID)
+        public List<CL_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID)
         {
-            List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
+            List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
                 if (ep != null)
                 {
-                    foreach (VideoLocal vid in ep.GetVideoLocals())
+                    foreach (SVR_VideoLocal vid in ep.GetVideoLocals())
                     {
-                        contracts.Add(vid.ToContract(userID));
+                        contracts.Add(vid.ToClient(userID));
                     }
                 }
             }
@@ -2563,14 +2556,14 @@ namespace Shoko.Server
             return contracts;
         }
 
-        public List<Contract_VideoLocal> GetIgnoredFiles(int userID)
+        public List<CL_VideoLocal> GetIgnoredFiles(int userID)
         {
-            List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
+            List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetIgnoredVideos())
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetIgnoredVideos())
                 {
-                    contracts.Add(vid.ToContract(userID));
+                    contracts.Add(vid.ToClient(userID));
                 }
             }
             catch (Exception ex)
@@ -2580,14 +2573,14 @@ namespace Shoko.Server
             return contracts;
         }
 
-        public List<Contract_VideoLocal> GetManuallyLinkedFiles(int userID)
+        public List<CL_VideoLocal> GetManuallyLinkedFiles(int userID)
         {
-            List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
+            List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
                 {
-                    contracts.Add(vid.ToContract(userID));
+                    contracts.Add(vid.ToClient(userID));
                 }
             }
             catch (Exception ex)
@@ -2597,14 +2590,14 @@ namespace Shoko.Server
             return contracts;
         }
 
-        public List<Contract_VideoLocal> GetUnrecognisedFiles(int userID)
+        public List<CL_VideoLocal> GetUnrecognisedFiles(int userID)
         {
-            List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
+            List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
                 {
-                    contracts.Add(vid.ToContract(userID));
+                    contracts.Add(vid.ToClient(userID));
                 }
             }
             catch (Exception ex)
@@ -2614,9 +2607,9 @@ namespace Shoko.Server
             return contracts;
         }
 
-        public Contract_ServerStatus GetServerStatus()
+        public CL_ServerStatus GetServerStatus()
         {
-            Contract_ServerStatus contract = new Contract_ServerStatus();
+            CL_ServerStatus contract = new CL_ServerStatus();
 
             try
             {
@@ -2646,9 +2639,9 @@ namespace Shoko.Server
             return contract;
         }
 
-        public Contract_ServerSettings_SaveResponse SaveServerSettings(Contract_ServerSettings contractIn)
+        public CL_Response SaveServerSettings(CL_ServerSettings contractIn)
         {
-            Contract_ServerSettings_SaveResponse contract = new Contract_ServerSettings_SaveResponse();
+            CL_Response contract = new CL_Response();
             contract.ErrorMessage = "";
 
             try
@@ -2827,9 +2820,9 @@ namespace Shoko.Server
             return contract;
         }
 
-        public Contract_ServerSettings GetServerSettings()
+        public CL_ServerSettings GetServerSettings()
         {
-            Contract_ServerSettings contract = new Contract_ServerSettings();
+            CL_ServerSettings contract = new CL_ServerSettings();
 
             try
             {
@@ -2846,7 +2839,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video local record";
                 vid.SetResumePosition(resumeposition, userID);
@@ -2863,7 +2856,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video local record";
                 vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true, true);
@@ -2876,13 +2869,13 @@ namespace Shoko.Server
             }
         }
 
-        public Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID,
+        public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID,
             bool watchedStatus, int userID)
         {
-            Contract_ToggleWatchedStatusOnEpisode_Response response =
-                new Contract_ToggleWatchedStatusOnEpisode_Response();
+            CL_Response<CL_AnimeEpisode_User> response =
+                new CL_Response<CL_AnimeEpisode_User>();
             response.ErrorMessage = "";
-            response.AnimeEpisode = null;
+            response.Result = null;
 
             try
             {
@@ -2900,7 +2893,7 @@ namespace Shoko.Server
                 // refresh from db
 
 
-                response.AnimeEpisode = ep.GetUserContract(userID);
+                response.Result = ep.GetUserContract(userID);
 
                 return response;
             }
@@ -2981,15 +2974,15 @@ namespace Shoko.Server
             }
         }
 
-        public Contract_VideoDetailed GetVideoDetailed(int videoLocalID, int userID)
+        public CL_VideoDetailed GetVideoDetailed(int videoLocalID, int userID)
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return null;
 
-                return vid.ToContractDetailed(userID);
+                return vid.ToClientDetailed(userID);
             }
             catch (Exception ex)
             {
@@ -3003,7 +2996,7 @@ namespace Shoko.Server
             List<CL_AnimeEpisode_User> contracts = new List<CL_AnimeEpisode_User>();
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return contracts;
 
@@ -3047,11 +3040,11 @@ namespace Shoko.Server
                 Dictionary<int, int> userReleaseGroups = new Dictionary<int, int>();
                 foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                 {
-                    List<VideoLocal> vids = ep.GetVideoLocals();
+                    List<SVR_VideoLocal> vids = ep.GetVideoLocals();
                     List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
                     foreach (string s in hashes)
                     {
-                        VideoLocal vid = vids.First(a => a.Hash == s);
+                        SVR_VideoLocal vid = vids.First(a => a.Hash == s);
                         AniDB_File anifile = vid.GetAniDBFile();
                         if (anifile != null)
                         {
@@ -3101,11 +3094,11 @@ namespace Shoko.Server
             return new List<ImportFolder>();
         }
 
-        public CL_ImportFolder_Save_Response SaveImportFolder(ImportFolder contract)
+        public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
         {
-            CL_ImportFolder_Save_Response response = new CL_ImportFolder_Save_Response();
+            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>();
             response.ErrorMessage = "";
-            response.ImportFolder = null;
+            response.Result = null;
 
             try
             {
@@ -3185,7 +3178,7 @@ namespace Shoko.Server
                 ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID; ;
                 RepoFactory.ImportFolder.Save(ns);
 
-                response.ImportFolder = ns;
+                response.Result = ns;
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
                     ServerInfo.Instance.RefreshImportFolders();
@@ -3260,9 +3253,9 @@ namespace Shoko.Server
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
-                foreach (VideoLocal vl in filesWithoutEpisode.Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
                     CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
                     cmd.Save();
@@ -3279,9 +3272,9 @@ namespace Shoko.Server
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<VideoLocal> files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+                List<SVR_VideoLocal> files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
 
-                foreach (VideoLocal vl in files.Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                foreach (SVR_VideoLocal vl in files.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
                     CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
                     cmd.Save();
@@ -3378,11 +3371,11 @@ namespace Shoko.Server
 
         public void RehashFile(int videoLocalID)
         {
-            VideoLocal vl = RepoFactory.VideoLocal.GetByID(videoLocalID);
+            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(videoLocalID);
 
             if (vl != null)
             {
-                VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
                 if (pl == null)
                 {
                     logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
@@ -3656,7 +3649,7 @@ namespace Shoko.Server
                     string fileName = "";
                     if (fileNumber == 1) fileName = df.FullServerPath1;
                     if (fileNumber == 2) fileName = df.FullServerPath2;
-                    IFile file = VideoLocal.ResolveFile(fileName);
+                    IFile file = SVR_VideoLocal.ResolveFile(fileName);
                     file?.Delete(false);
                 }
 
@@ -3680,10 +3673,10 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
+                SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
                 if ((place==null) || (place.VideoLocal==null))
                     return "Database entry does not exist";
-                VideoLocal vid = place.VideoLocal;
+                SVR_VideoLocal vid = place.VideoLocal;
                 logger.Info("Deleting video local place record and file: {0}", place.FullServerPath);
 
                 IFileSystem fileSystem = place.ImportFolder?.FileSystem;
@@ -3726,14 +3719,14 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_VideoLocal> GetAllManuallyLinkedFiles(int userID)
+        public List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID)
         {
-            List<Contract_VideoLocal> manualFiles = new List<Contract_VideoLocal>();
+            List<CL_VideoLocal> manualFiles = new List<CL_VideoLocal>();
             try
             {
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
                 {
-                    manualFiles.Add(vid.ToContract(userID));
+                    manualFiles.Add(vid.ToClient(userID));
                 }
 
                 return manualFiles;
@@ -3826,8 +3819,8 @@ namespace Shoko.Server
                     }
 
                     // check if both files still exist
-                    IFile file1 = VideoLocal.ResolveFile(df.FullServerPath1);
-                    IFile file2 = VideoLocal.ResolveFile(df.FullServerPath2);
+                    IFile file1 = SVR_VideoLocal.ResolveFile(df.FullServerPath1);
+                    IFile file2 = SVR_VideoLocal.ResolveFile(df.FullServerPath2);
                     if (file1==null || file2==null)
                     {
                         string msg =
@@ -3845,18 +3838,18 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName,
+        public List<CL_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName,
             string resolution,
             string videoSource, int videoBitDepth, int userID)
         {
-            List<Contract_VideoDetailed> vids = new List<Contract_VideoDetailed>();
+            List<CL_VideoDetailed> vids = new List<CL_VideoDetailed>();
 
             try
             {
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return vids;
 
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
                     int thisBitDepth = 8;
 
@@ -3885,7 +3878,7 @@ namespace Shoko.Server
                                 resolution.Equals(vidResAniFile, StringComparison.InvariantCultureIgnoreCase) &&
                                 thisBitDepth == videoBitDepth)
                             {
-                                vids.Add(vid.ToContractDetailed(userID));
+                                vids.Add(vid.ToClientDetailed(userID));
                             }
                         }
                         else
@@ -3899,7 +3892,7 @@ namespace Shoko.Server
                                 resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
                                 thisBitDepth == videoBitDepth)
                             {
-                                vids.Add(vid.ToContractDetailed(userID));
+                                vids.Add(vid.ToClientDetailed(userID));
                             }
                         }
                     }
@@ -3913,16 +3906,16 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID)
+        public List<CL_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID)
         {
-            List<Contract_VideoDetailed> vids = new List<Contract_VideoDetailed>();
+            List<CL_VideoDetailed> vids = new List<CL_VideoDetailed>();
 
             try
             {
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return vids;
 
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
 
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
@@ -3938,14 +3931,14 @@ namespace Shoko.Server
                             // match based on group / video sorce / video res
                             if (relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase))
                             {
-                                vids.Add(vid.ToContractDetailed(userID));
+                                vids.Add(vid.ToClientDetailed(userID));
                             }
                         }
                         else
                         {
                             if (relGroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase))
                             {
-                                vids.Add(vid.ToContractDetailed(userID));
+                                vids.Add(vid.ToClientDetailed(userID));
                             }
                         }
                     }
@@ -4012,7 +4005,7 @@ namespace Shoko.Server
                 timingVids += ts.TotalMilliseconds;
 
 
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
 
                     start = DateTime.Now;
@@ -4276,7 +4269,7 @@ namespace Shoko.Server
                 if (anime == null) return vidQuals;
 
 
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
 
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
@@ -4469,23 +4462,23 @@ namespace Shoko.Server
             CL_AniDB_AnimeCrossRefs result = new CL_AniDB_AnimeCrossRefs
             {
                 CrossRef_AniDB_TvDB = new List<CrossRef_AniDB_TvDBV2>(),
-                TvDBSeries = new List<Contract_TvDB_Series>(),
-                TvDBEpisodes = new List<Contract_TvDB_Episode>(),
-                TvDBImageFanarts = new List<Contract_TvDB_ImageFanart>(),
-                TvDBImagePosters = new List<Contract_TvDB_ImagePoster>(),
-                TvDBImageWideBanners = new List<Contract_TvDB_ImageWideBanner>(),
+                TvDBSeries = new List<TvDB_Series>(),
+                TvDBEpisodes = new List<TvDB_Episode>(),
+                TvDBImageFanarts = new List<TvDB_ImageFanart>(),
+                TvDBImagePosters = new List<TvDB_ImagePoster>(),
+                TvDBImageWideBanners = new List<TvDB_ImageWideBanner>(),
 
                 CrossRef_AniDB_MovieDB = null,
                 MovieDBMovie = null,
-                MovieDBFanarts = new List<Contract_MovieDB_Fanart>(),
-                MovieDBPosters = new List<Contract_MovieDB_Poster>(),
+                MovieDBFanarts = new List<MovieDB_Fanart>(),
+                MovieDBPosters = new List<MovieDB_Poster>(),
 
                 CrossRef_AniDB_MAL = null,
 
                 CrossRef_AniDB_Trakt = new List<CrossRef_AniDB_TraktV2>(),
-                TraktShows = new List<Contract_Trakt_Show>(),
-                TraktImageFanarts = new List<Contract_Trakt_ImageFanart>(),
-                TraktImagePosters = new List<Contract_Trakt_ImagePoster>(),
+                TraktShows = new List<CL_Trakt_Show>(),
+                TraktImageFanarts = new List<Trakt_ImageFanart>(),
+                TraktImagePosters = new List<Trakt_ImagePoster>(),
                 AnimeID = animeID
             };
 
@@ -4508,19 +4501,19 @@ namespace Shoko.Server
 
                         TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(sessionWrapper, xref.TvDBID);
                         if (ser != null)
-                            result.TvDBSeries.Add(ser.ToContract());
+                            result.TvDBSeries.Add(ser);
 
                         foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
-                            result.TvDBEpisodes.Add(ep.ToContract());
+                            result.TvDBEpisodes.Add(ep);
 
                         foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(sessionWrapper, xref.TvDBID))
-                            result.TvDBImageFanarts.Add(fanart.ToContract());
+                            result.TvDBImageFanarts.Add(fanart);
 
                         foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(sessionWrapper, xref.TvDBID))
-                            result.TvDBImagePosters.Add(poster.ToContract());
+                            result.TvDBImagePosters.Add(poster);
 
                         foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref.TvDBID))
-                            result.TvDBImageWideBanners.Add(banner.ToContract());
+                            result.TvDBImageWideBanners.Add(banner);
                     }
 
                     // Trakt
@@ -4533,14 +4526,14 @@ namespace Shoko.Server
                         Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
                         if (show != null)
                         {
-                            result.TraktShows.Add(show.ToContract());
+                            result.TraktShows.Add(show.ToClient());
 
                             foreach (Trakt_ImageFanart fanart in RepoFactory.Trakt_ImageFanart.GetByShowID(session, show.Trakt_ShowID))
-                                result.TraktImageFanarts.Add(fanart.ToContract());
+                                result.TraktImageFanarts.Add(fanart);
 
                             foreach (Trakt_ImagePoster poster in RepoFactory.Trakt_ImagePoster.GetByShowID(session, show.Trakt_ShowID)
                                 )
-                                result.TraktImagePosters.Add(poster.ToContract());
+                                result.TraktImagePosters.Add(poster);
                         }
                     }
 
@@ -4553,24 +4546,21 @@ namespace Shoko.Server
                         result.CrossRef_AniDB_MovieDB = xrefMovie;
 
 
-                    MovieDB_Movie movie = anime.GetMovieDBMovie();
-                    if (movie == null)
-                        result.MovieDBMovie = null;
-                    else
-                        result.MovieDBMovie = movie.ToContract();
+                        result.MovieDBMovie = anime.GetMovieDBMovie();
+
 
                     foreach (MovieDB_Fanart fanart in anime.GetMovieDBFanarts())
                     {
                         if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
                             StringComparison.InvariantCultureIgnoreCase))
-                            result.MovieDBFanarts.Add(fanart.ToContract());
+                            result.MovieDBFanarts.Add(fanart);
                     }
 
                     foreach (MovieDB_Poster poster in anime.GetMovieDBPosters())
                     {
                         if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
                             StringComparison.InvariantCultureIgnoreCase))
-                            result.MovieDBPosters.Add(poster.ToContract());
+                            result.MovieDBPosters.Add(poster);
                     }
 
                     // MAL
@@ -5068,22 +5058,16 @@ namespace Shoko.Server
         }
 
 
-        public List<Contract_TVDBSeriesSearchResult> SearchTheTvDB(string criteria)
+        public List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria)
         {
-            List<Contract_TVDBSeriesSearchResult> results = new List<Contract_TVDBSeriesSearchResult>();
             try
             {
-                List<TVDBSeriesSearchResult> tvResults = JMMService.TvdbHelper.SearchSeries(criteria);
-
-                foreach (TVDBSeriesSearchResult res in tvResults)
-                    results.Add(res.ToContract());
-
-                return results;
+                return JMMService.TvdbHelper.SearchSeries(criteria);
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return results;
+                return new List<TVDB_Series_Search_Response>();
             }
         }
 
@@ -5260,95 +5244,69 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
+        public List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
         {
-            List<Contract_TvDB_ImagePoster> allImages = new List<Contract_TvDB_ImagePoster>();
+            List<TvDB_ImagePoster> allImages = new List<TvDB_ImagePoster>();
             try
             {
-                IReadOnlyList<TvDB_ImagePoster> allPosters;
                 if (tvDBID.HasValue)
-                    allPosters = RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
+                    return RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
                 else
-                    allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
-
-                foreach (TvDB_ImagePoster img in allPosters)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
+                    return RepoFactory.TvDB_ImagePoster.GetAll().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<TvDB_ImagePoster>();
             }
         }
 
-        public List<Contract_TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID)
+        public List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID)
         {
-            List<Contract_TvDB_ImageWideBanner> allImages = new List<Contract_TvDB_ImageWideBanner>();
             try
             {
-                IReadOnlyList<TvDB_ImageWideBanner> allBanners;
                 if (tvDBID.HasValue)
-                    allBanners = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
+                    return RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
                 else
-                    allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
-
-                foreach (TvDB_ImageWideBanner img in allBanners)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
+                    return RepoFactory.TvDB_ImageWideBanner.GetAll().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<TvDB_ImageWideBanner>();
             }
         }
 
-        public List<Contract_TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID)
+        public List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID)
         {
-            List<Contract_TvDB_ImageFanart> allImages = new List<Contract_TvDB_ImageFanart>();
             try
             {
-                IReadOnlyList<TvDB_ImageFanart> allFanart;
                 if (tvDBID.HasValue)
-                    allFanart = RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
+                    return RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
                 else
-                    allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
-
-                foreach (TvDB_ImageFanart img in allFanart)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
+                    return RepoFactory.TvDB_ImageFanart.GetAll().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<TvDB_ImageFanart>();
             }
         }
 
-        public List<Contract_TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID)
+        public List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID)
         {
-            List<Contract_TvDB_Episode> allImages = new List<Contract_TvDB_Episode>();
             try
             {
-                IReadOnlyList<TvDB_Episode> allEpisodes;
                 if (tvDBID.HasValue)
-                    allEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
+                    return RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
                 else
-                    allEpisodes = RepoFactory.TvDB_Episode.GetAll();
+                    return RepoFactory.TvDB_Episode.GetAll().ToList();
 
-                foreach (TvDB_Episode img in allEpisodes)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<TvDB_Episode>();
             }
         }
 
@@ -5356,90 +5314,71 @@ namespace Shoko.Server
 
         #region Trakt
 
-        public List<Contract_Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID)
+        public List<Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID)
         {
-            List<Contract_Trakt_ImageFanart> allImages = new List<Contract_Trakt_ImageFanart>();
+            List<Trakt_ImageFanart> allImages = new List<Trakt_ImageFanart>();
             try
             {
-                IReadOnlyList<Trakt_ImageFanart> allFanart;
                 if (traktShowID.HasValue)
-                    allFanart = RepoFactory.Trakt_ImageFanart.GetByShowID(traktShowID.Value);
+                    return RepoFactory.Trakt_ImageFanart.GetByShowID(traktShowID.Value);
                 else
-                    allFanart = RepoFactory.Trakt_ImageFanart.GetAll();
+                    return RepoFactory.Trakt_ImageFanart.GetAll().ToList();
 
-                foreach (Trakt_ImageFanart img in allFanart)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<Trakt_ImageFanart>();
             }
         }
 
-        public List<Contract_Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID)
+        public List<Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID)
         {
-            List<Contract_Trakt_ImagePoster> allImages = new List<Contract_Trakt_ImagePoster>();
             try
             {
-                IReadOnlyList<Trakt_ImagePoster> allPosters;
                 if (traktShowID.HasValue)
-                    allPosters = RepoFactory.Trakt_ImagePoster.GetByShowID(traktShowID.Value);
+                    return RepoFactory.Trakt_ImagePoster.GetByShowID(traktShowID.Value);
                 else
-                    allPosters = RepoFactory.Trakt_ImagePoster.GetAll();
-
-                foreach (Trakt_ImagePoster img in allPosters)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
+                    return RepoFactory.Trakt_ImagePoster.GetAll().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<Trakt_ImagePoster>();
             }
         }
 
-        public List<Contract_Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
+        public List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
         {
-            List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
             try
             {
-                IReadOnlyList<Trakt_Episode> allEpisodes;
                 if (traktShowID.HasValue)
-                    allEpisodes = RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value);
+                    return RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value).ToList();
                 else
-                    allEpisodes = RepoFactory.Trakt_Episode.GetAll();
+                    return RepoFactory.Trakt_Episode.GetAll().ToList();
 
-                foreach (Trakt_Episode ep in allEpisodes)
-                    allEps.Add(ep.ToContract());
-
-                return allEps;
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allEps;
+                return new List<Trakt_Episode>();
             }
         }
 
-        public List<Contract_Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID)
+        public List<Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID)
         {
-            List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
             try
             {
                 Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
                 if (show != null)
-                    allEps = GetAllTraktEpisodes(show.Trakt_ShowID);
+                    return GetAllTraktEpisodes(show.Trakt_ShowID);
 
-                return allEps;
+                return new List<Trakt_Episode>();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allEps;
+                return new List<Trakt_Episode>();
             }
         }
 
@@ -5529,9 +5468,9 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_TraktTVShowResponse> SearchTrakt(string criteria)
+        public List<CL_TraktTVShowResponse> SearchTrakt(string criteria)
         {
-            List<Contract_TraktTVShowResponse> results = new List<Contract_TraktTVShowResponse>();
+            List<CL_TraktTVShowResponse> results = new List<CL_TraktTVShowResponse>();
             try
             {
                 List<TraktV2SearchShowResult> traktResults = TraktTVHelper.SearchShowV2(criteria);
@@ -5627,7 +5566,7 @@ namespace Shoko.Server
                 Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
                 if (show == null) return seasonNumbers;
 
-                foreach (Trakt_Season season in show.Seasons)
+                foreach (Trakt_Season season in show.GetSeasons())
                     seasonNumbers.Add(season.Season);
 
                 return seasonNumbers;
@@ -5656,9 +5595,9 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_MALAnimeResponse> SearchMAL(string criteria)
+        public List<CL_MALAnime_Response> SearchMAL(string criteria)
         {
-            List<Contract_MALAnimeResponse> results = new List<Contract_MALAnimeResponse>();
+            List<CL_MALAnime_Response> results = new List<CL_MALAnime_Response>();
             try
             {
                 anime malResults = MALHelper.SearchAnimesByTitle(criteria);
@@ -5844,9 +5783,9 @@ namespace Shoko.Server
 
         #region MovieDB
 
-        public List<Contract_MovieDBMovieSearchResult> SearchTheMovieDB(string criteria)
+        public List<CL_MovieDBMovieSearch_Response> SearchTheMovieDB(string criteria)
         {
-            List<Contract_MovieDBMovieSearchResult> results = new List<Contract_MovieDBMovieSearchResult>();
+            List<CL_MovieDBMovieSearch_Response> results = new List<CL_MovieDBMovieSearch_Response>();
             try
             {
                 List<MovieDB_Movie_Result> movieResults = MovieDBHelper.Search(criteria);
@@ -5863,49 +5802,35 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_MovieDB_Poster> GetAllMovieDBPosters(int? movieID)
+        public List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID)
         {
-            List<Contract_MovieDB_Poster> allImages = new List<Contract_MovieDB_Poster>();
             try
             {
-                List<MovieDB_Poster> allPosters;
                 if (movieID.HasValue)
-                    allPosters = RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
+                    return RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
                 else
-                    allPosters = RepoFactory.MovieDB_Poster.GetAllOriginal();
-
-                foreach (MovieDB_Poster img in allPosters)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
+                    return RepoFactory.MovieDB_Poster.GetAllOriginal();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<MovieDB_Poster>();
             }
         }
 
-        public List<Contract_MovieDB_Fanart> GetAllMovieDBFanart(int? movieID)
+        public List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID)
         {
-            List<Contract_MovieDB_Fanart> allImages = new List<Contract_MovieDB_Fanart>();
             try
             {
-                List<MovieDB_Fanart> allFanart;
                 if (movieID.HasValue)
-                    allFanart = RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
+                    return RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
                 else
-                    allFanart = RepoFactory.MovieDB_Fanart.GetAllOriginal();
-
-                foreach (MovieDB_Fanart img in allFanart)
-                    allImages.Add(img.ToContract());
-
-                return allImages;
+                    return RepoFactory.MovieDB_Fanart.GetAllOriginal();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return allImages;
+                return new List<MovieDB_Fanart>();
             }
         }
 
@@ -6346,7 +6271,7 @@ namespace Shoko.Server
             return retEps;
         }
 
-        public IReadOnlyList<VideoLocal> GetAllFiles()
+        public IReadOnlyList<SVR_VideoLocal> GetAllFiles()
         {
             try
             {
@@ -6355,11 +6280,11 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return new List<VideoLocal>();
+                return new List<SVR_VideoLocal>();
             }
         }
 
-        public VideoLocal GetFileByID(int id)
+        public SVR_VideoLocal GetFileByID(int id)
         {
             try
             {
@@ -6368,11 +6293,11 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return new VideoLocal();
+                return new SVR_VideoLocal();
             }
         }
 
-        public List<VideoLocal> GetFilesRecentlyAdded(int max_records)
+        public List<SVR_VideoLocal> GetFilesRecentlyAdded(int max_records)
         {
             try
             {
@@ -6381,7 +6306,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return new List<VideoLocal>();
+                return new List<SVR_VideoLocal>();
             }
         }
 
@@ -6399,9 +6324,9 @@ namespace Shoko.Server
                     if (user == null) return retEps;
 
 	                // We will deal with a large list, don't perform ops on the whole thing!
-                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1);
+                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1);
                     int numEps = 0;
-                    foreach (VideoLocal vid in vids)
+                    foreach (SVR_VideoLocal vid in vids)
                     {
 	                    if (string.IsNullOrEmpty(vid.Hash)) continue;
 
@@ -6466,7 +6391,7 @@ namespace Shoko.Server
 
                         if (!user.AllowedSeries(ser)) continue;
 
-                        List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                        List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
                         List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
@@ -6589,9 +6514,9 @@ namespace Shoko.Server
 
                 foreach (SVR_AnimeEpisode ep in ser.GetAnimeEpisodes())
                 {
-                    foreach (VideoLocal vid in ep.GetVideoLocals())
+                    foreach (SVR_VideoLocal vid in ep.GetVideoLocals())
                     {
-                        foreach (VideoLocal_Place place in vid.Places)
+                        foreach (SVR_VideoLocal_Place place in vid.Places)
                         {
                             if (deleteFiles)
                             {
@@ -7023,9 +6948,9 @@ namespace Shoko.Server
         /// <param name="maxResults"></param>
         /// <param name="userID"></param>
         /// <param name="recommendationType">1 = to watch, 2 = to download</param>
-        public List<Contract_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType)
+        public List<CL_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType)
         {
-            List<Contract_Recommendation> recs = new List<Contract_Recommendation>();
+            List<CL_Recommendation> recs = new List<CL_Recommendation>();
 
             try
             {
@@ -7055,7 +6980,7 @@ namespace Shoko.Server
                 if (allVotes.Count == 0) return recs;
 
 
-                Dictionary<int, Contract_Recommendation> dictRecs = new Dictionary<int, Contract_Recommendation>();
+                Dictionary<int, CL_Recommendation> dictRecs = new Dictionary<int, CL_Recommendation>();
 
                 List<AniDB_Vote> animeVotes = new List<AniDB_Vote>();
                 foreach (AniDB_Vote vote in allVotes)
@@ -7102,7 +7027,7 @@ namespace Shoko.Server
                             if (ser.LatestLocalEpisodeNumber > 0 && recommendationType == 2) continue;
                         }
 
-                        Contract_Recommendation rec = new Contract_Recommendation();
+                        CL_Recommendation rec = new CL_Recommendation();
                         rec.BasedOnAnimeID = anime.AnimeID;
                         rec.RecommendedAnimeID = link.SimilarAnimeID;
 
@@ -7141,14 +7066,14 @@ namespace Shoko.Server
                     }
                 }
 
-                List<Contract_Recommendation> tempRecs = new List<Contract_Recommendation>();
-                foreach (Contract_Recommendation rec in dictRecs.Values)
+                List<CL_Recommendation> tempRecs = new List<CL_Recommendation>();
+                foreach (CL_Recommendation rec in dictRecs.Values)
                     tempRecs.Add(rec);
 
                 // sort by the highest score
 
                 int numRecs = 0;
-                foreach (Contract_Recommendation rec in tempRecs.OrderByDescending(a=>a.Score))
+                foreach (CL_Recommendation rec in tempRecs.OrderByDescending(a=>a.Score))
                 {
                     if (numRecs == maxResults) break;
                     recs.Add(rec);
@@ -7201,11 +7126,11 @@ namespace Shoko.Server
                 Dictionary<int, int> userReleaseGroups = new Dictionary<int, int>();
                 foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                 {
-                    List<VideoLocal> vids = ep.GetVideoLocals();
+                    List<SVR_VideoLocal> vids = ep.GetVideoLocals();
                     List<string> hashes = vids.Where(a => !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
                     foreach(string h in hashes)
                     {
-                        VideoLocal vid = vids.First(a => a.Hash == h);
+                        SVR_VideoLocal vid = vids.First(a => a.Hash == h);
                         AniDB_File anifile = vid.GetAniDBFile();
                         if (anifile != null)
                         {
@@ -7309,9 +7234,9 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_MissingFile> GetMyListFilesForRemoval(int userID)
+        public List<CL_MissingFile> GetMyListFilesForRemoval(int userID)
         {
-            List<Contract_MissingFile> contracts = new List<Contract_MissingFile>();
+            List<CL_MissingFile> contracts = new List<CL_MissingFile>();
 
             /*Contract_MissingFile missingFile2 = new Contract_MissingFile();
 			missingFile2.AnimeID = 1;
@@ -7365,9 +7290,9 @@ namespace Shoko.Server
                         else
                         {
                             // now check if the file actually exists on disk
-                            VideoLocal v = RepoFactory.VideoLocal.GetByHash(hash);
+                            SVR_VideoLocal v = RepoFactory.VideoLocal.GetByHash(hash);
                             fileMissing = true;
-                            foreach (VideoLocal_Place p in v.Places)
+                            foreach (SVR_VideoLocal_Place p in v.Places)
                             {
                                 IFileSystem fs = p.ImportFolder.FileSystem;
                                 if (fs != null)
@@ -7404,7 +7329,7 @@ namespace Shoko.Server
                             }
 
 
-                            Contract_MissingFile missingFile = new Contract_MissingFile();
+                            CL_MissingFile missingFile = new CL_MissingFile();
                             missingFile.AnimeID = myitem.AnimeID;
                             missingFile.AnimeTitle = "Data Missing";
                             if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
@@ -7435,9 +7360,9 @@ namespace Shoko.Server
             return contracts;
         }
 
-        public void RemoveMissingMyListFiles(List<Contract_MissingFile> myListFiles)
+        public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
         {
-            foreach (Contract_MissingFile missingFile in myListFiles)
+            foreach (CL_MissingFile missingFile in myListFiles)
             {
                 CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(missingFile.FileID);
                 cmd.Save();
@@ -7478,10 +7403,10 @@ namespace Shoko.Server
             cmd.Save();
         }
 
-        public List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly,
+        public List<CL_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly,
             int airingState)
         {
-            List<Contract_MissingEpisode> contracts = new List<Contract_MissingEpisode>();
+            List<CL_MissingEpisode> contracts = new List<CL_MissingEpisode>();
 
             AiringState airState = (AiringState) airingState;
 
@@ -7542,16 +7467,16 @@ namespace Shoko.Server
                             if (aniep.GetFutureDated()) continue;
 
                             start = DateTime.Now;
-                            List<VideoLocal> vids = aep.GetVideoLocals();
+                            List<SVR_VideoLocal> vids = aep.GetVideoLocals();
                             ts = DateTime.Now - start;
                             timingVids += ts.TotalMilliseconds;
 
                             if (vids.Count == 0)
                             {
-                                Contract_MissingEpisode contract = new Contract_MissingEpisode();
-                                contract.AnimeID = ser.AniDB_ID;
+                                CL_MissingEpisode cl = new CL_MissingEpisode();
+                                cl.AnimeID = ser.AniDB_ID;
                                 start = DateTime.Now;
-                                contract.AnimeSeries = ser.GetUserContract(userID);
+                                cl.AnimeSeries = ser.GetUserContract(userID);
                                 ts = DateTime.Now - start;
                                 timingSeries += ts.TotalMilliseconds;
 
@@ -7567,10 +7492,10 @@ namespace Shoko.Server
                                     animeCache[ser.AniDB_ID] = anime;
                                 }
 
-                                contract.AnimeTitle = anime.MainTitle;
+                                cl.AnimeTitle = anime.MainTitle;
 
                                 start = DateTime.Now;
-                                contract.GroupFileSummary = "";
+                                cl.GroupFileSummary = "";
                                 List<CL_GroupVideoQuality> summ = null;
                                 if (gvqCache.ContainsKey(ser.AniDB_ID))
                                     summ = gvqCache[ser.AniDB_ID];
@@ -7582,15 +7507,15 @@ namespace Shoko.Server
 
                                 foreach (CL_GroupVideoQuality gvq in summ)
                                 {
-                                    if (contract.GroupFileSummary.Length > 0)
-                                        contract.GroupFileSummary += " --- ";
+                                    if (cl.GroupFileSummary.Length > 0)
+                                        cl.GroupFileSummary += " --- ";
 
-                                    contract.GroupFileSummary += string.Format("{0} - {1}/{2}/{3}bit ({4})",
+                                    cl.GroupFileSummary += string.Format("{0} - {1}/{2}/{3}bit ({4})",
                                         gvq.GroupNameShort, gvq.Resolution,
                                         gvq.VideoSource, gvq.VideoBitDepth, gvq.NormalEpisodeNumberSummary);
                                 }
 
-                                contract.GroupFileSummarySimple = "";
+                                cl.GroupFileSummarySimple = "";
                                 List<CL_GroupFileSummary> summFiles = null;
                                 if (gfqCache.ContainsKey(ser.AniDB_ID))
                                     summFiles = gfqCache[ser.AniDB_ID];
@@ -7602,10 +7527,10 @@ namespace Shoko.Server
 
                                 foreach (CL_GroupFileSummary gfq in summFiles)
                                 {
-                                    if (contract.GroupFileSummarySimple.Length > 0)
-                                        contract.GroupFileSummarySimple += ", ";
+                                    if (cl.GroupFileSummarySimple.Length > 0)
+                                        cl.GroupFileSummarySimple += ", ";
 
-                                    contract.GroupFileSummarySimple += string.Format("{0} ({1})", gfq.GroupNameShort,
+                                    cl.GroupFileSummarySimple += string.Format("{0} ({1})", gfq.GroupNameShort,
                                         gfq.NormalEpisodeNumberSummary);
                                 }
 
@@ -7614,10 +7539,10 @@ namespace Shoko.Server
                                 animeCache[ser.AniDB_ID] = anime;
 
                                 start = DateTime.Now;
-                                contract.EpisodeID = aniep.EpisodeID;
-                                contract.EpisodeNumber = aniep.EpisodeNumber;
-                                contract.EpisodeType = aniep.EpisodeType;
-                                contracts.Add(contract);
+                                cl.EpisodeID = aniep.EpisodeID;
+                                cl.EpisodeNumber = aniep.EpisodeNumber;
+                                cl.EpisodeType = aniep.EpisodeType;
+                                contracts.Add(cl);
                                 ts = DateTime.Now - start;
                                 timingAniEps += ts.TotalMilliseconds;
                             }
@@ -7699,9 +7624,9 @@ namespace Shoko.Server
             return new List<CrossRef_AniDB_TraktV2>();
         }
 
-        public List<Contract_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
+        public List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
         {
-            List<Contract_Trakt_CommentUser> comments = new List<Contract_Trakt_CommentUser>();
+            List<CL_Trakt_CommentUser> comments = new List<CL_Trakt_CommentUser>();
 
             try
             {
@@ -7711,12 +7636,12 @@ namespace Shoko.Server
 
                 foreach (TraktV2Comment sht in commentsTemp)
                 {
-                    Contract_Trakt_CommentUser comment = new Contract_Trakt_CommentUser();
+                    CL_Trakt_CommentUser comment = new CL_Trakt_CommentUser();
 
                     Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(sht.user.username);
 
                     // user details
-                    comment.User = new Contract_Trakt_User();
+                    comment.User = new CL_Trakt_User();
                     if (traktFriend == null)
                         comment.User.Trakt_FriendID = 0;
                     else
@@ -7726,7 +7651,7 @@ namespace Shoko.Server
                     comment.User.Full_name = sht.user.name;
 
                     // comment details
-                    comment.Comment = new Contract_Trakt_Comment();
+                    comment.Comment = new CL_Trakt_Comment();
                     comment.Comment.CommentType = (int) TraktActivityType.Show; // episode or show
                     comment.Comment.Text = sht.comment;
                     comment.Comment.Spoiler = sht.spoiler;
@@ -7894,23 +7819,19 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_TvDBLanguage> GetTvDBLanguages()
+        public List<TvDB_Language> GetTvDBLanguages()
         {
-            List<Contract_TvDBLanguage> retLanguages = new List<Contract_TvDBLanguage>();
-
             try
             {
-                foreach (TvDBLanguage lan in JMMService.TvdbHelper.GetLanguages())
-                {
-                    retLanguages.Add(lan.ToContract());
-                }
+                return JMMService.TvdbHelper.GetLanguages();
+
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
 
-            return retLanguages;
+            return new List<TvDB_Language>();
         }
 
         public void RefreshAllMediaInfo()
@@ -7979,7 +7900,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return null;
 
                 return RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
@@ -7996,7 +7917,7 @@ namespace Shoko.Server
             try
             {
 
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return;
 
                 FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
@@ -8014,7 +7935,7 @@ namespace Shoko.Server
         {
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByHashAndSize(preset.Hash, preset.FileSize);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHashAndSize(preset.Hash, preset.FileSize);
                 if (vid == null) return;
 
                 FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(preset.Hash, preset.FileSize);
@@ -8032,11 +7953,11 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID)
+        public List<CL_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID)
         {
             try
             {
-                List<Contract_VideoLocal> vids = new List<Contract_VideoLocal>();
+                List<CL_VideoLocal> vids = new List<CL_VideoLocal>();
 
                 FileSearchCriteria sType = (FileSearchCriteria) searchType;
 
@@ -8045,17 +7966,17 @@ namespace Shoko.Server
                 {
                     case FileSearchCriteria.Name:
 
-                        List<VideoLocal> results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
-                        foreach (VideoLocal vid in results1)
-                            vids.Add(vid.ToContract(userID));
+                        List<SVR_VideoLocal> results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
+                        foreach (SVR_VideoLocal vid in results1)
+                            vids.Add(vid.ToClient(userID));
 
                         break;
 
                     case FileSearchCriteria.ED2KHash:
 
-                        VideoLocal vidl = RepoFactory.VideoLocal.GetByHash(searchCriteria.Trim());
+                        SVR_VideoLocal vidl = RepoFactory.VideoLocal.GetByHash(searchCriteria.Trim());
                         if (vidl!=null)
-                            vids.Add(vidl.ToContract(userID));
+                            vids.Add(vidl.ToClient(userID));
                         
                         break;
 
@@ -8065,9 +7986,9 @@ namespace Shoko.Server
 
                     case FileSearchCriteria.LastOneHundred:
 
-                        List<VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(100);
-                        foreach (VideoLocal vid in results2)
-                            vids.Add(vid.ToContract(userID));
+                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(100);
+                        foreach (SVR_VideoLocal vid in results2)
+                            vids.Add(vid.ToClient(userID));
 
                         break;
                 }
@@ -8078,7 +7999,7 @@ namespace Shoko.Server
             {
                 logger.Error( ex,ex.ToString());
             }
-            return new List<Contract_VideoLocal>();
+            return new List<CL_VideoLocal>();
         }
 
         /*public List<Contract_VideoLocalRenamed> RandomFileRenamePreview(int maxResults, int userID, string renameRules)
@@ -8104,28 +8025,28 @@ namespace Shoko.Server
 			return ret;
 		}*/
 
-        public List<Contract_VideoLocal> RandomFileRenamePreview(int maxResults, int userID)
+        public List<CL_VideoLocal> RandomFileRenamePreview(int maxResults, int userID)
         {
             try
             {
-                return RepoFactory.VideoLocal.GetRandomFiles(maxResults).Select(a => a.ToContract(userID)).ToList();
+                return RepoFactory.VideoLocal.GetRandomFiles(maxResults).Select(a => a.ToClient(userID)).ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                return new List<Contract_VideoLocal>();
+                return new List<CL_VideoLocal>();
             }
         }
 
-        public Contract_VideoLocalRenamed RenameFilePreview(int videoLocalID, string renameRules)
+        public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID, string renameRules)
         {
-            Contract_VideoLocalRenamed ret = new Contract_VideoLocalRenamed();
+            CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed();
             ret.VideoLocalID = videoLocalID;
             ret.Success = true;
 
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
@@ -8152,14 +8073,14 @@ namespace Shoko.Server
             return ret;
         }
 
-        public Contract_VideoLocalRenamed RenameFile(int videoLocalID, string renameRules)
+        public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string renameRules)
         {
-            Contract_VideoLocalRenamed ret = new Contract_VideoLocalRenamed();
+            CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed();
             ret.VideoLocalID = videoLocalID;
             ret.Success = true;
             try
             {
-                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
@@ -8176,7 +8097,7 @@ namespace Shoko.Server
                         string name = string.Empty;
                         if (vid.Places.Count > 0)
                         {
-                            foreach (VideoLocal_Place place in vid.Places)
+                            foreach (SVR_VideoLocal_Place place in vid.Places)
                             {
                                 // check if the file exists
                                 string fullFileName = place.FullServerPath;
@@ -8246,9 +8167,9 @@ namespace Shoko.Server
             return ret;
         }
 
-        public List<Contract_VideoLocalRenamed> RenameFiles(List<int> videoLocalIDs, string renameRules)
+        public List<CL_VideoLocal_Renamed> RenameFiles(List<int> videoLocalIDs, string renameRules)
         {
-            List<Contract_VideoLocalRenamed> ret = new List<Contract_VideoLocalRenamed>();
+            List<CL_VideoLocal_Renamed> ret = new List<CL_VideoLocal_Renamed>();
             try
             {
                 foreach (int vid in videoLocalIDs)
@@ -8263,52 +8184,49 @@ namespace Shoko.Server
             return ret;
         }
 
-        public List<Contract_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID)
+        public List<CL_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID)
         {
             try
             {
-                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Select(a => a.ToContract(userID)).ToList();
+                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Select(a => a.ToClient(userID)).ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return new List<Contract_VideoLocal>();
+            return new List<CL_VideoLocal>();
         }
 
-        public List<Contract_RenameScript> GetAllRenameScripts()
+        public List<RenameScript> GetAllRenameScripts()
         {
-            List<Contract_RenameScript> ret = new List<Contract_RenameScript>();
             try
             {
-                IReadOnlyList<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
-                foreach (RenameScript scr in allScripts)
-                    ret.Add(scr.ToContract());
+                return RepoFactory.RenameScript.GetAll().ToList();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return ret;
+            return new List<RenameScript>();
         }
 
-        public Contract_RenameScript_SaveResponse SaveRenameScript(Contract_RenameScript contract)
+        public CL_Response<RenameScript> SaveRenameScript(RenameScript contract)
         {
-            Contract_RenameScript_SaveResponse response = new Contract_RenameScript_SaveResponse();
+            CL_Response<RenameScript> response = new CL_Response<RenameScript>();
             response.ErrorMessage = "";
-            response.RenameScript = null;
+            response.Result = null;
 
             try
             {
                 RenameScript script = null;
-                if (contract.RenameScriptID.HasValue)
+                if (contract.RenameScriptID!=0)
                 {
                     // update
-                    script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID.Value);
+                    script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID);
                     if (script == null)
                     {
                         response.ErrorMessage = "Could not find Rename Script ID: " +
-                                                contract.RenameScriptID.Value.ToString();
+                                                contract.RenameScriptID.ToString();
                         return response;
                     }
                 }
@@ -8332,7 +8250,7 @@ namespace Shoko.Server
                     foreach (RenameScript rs in allScripts)
                     {
                         if (rs.IsEnabledOnImport == 1 &&
-                            (!contract.RenameScriptID.HasValue || (contract.RenameScriptID.Value != rs.RenameScriptID)))
+                            (contract.RenameScriptID==0 || (contract.RenameScriptID != rs.RenameScriptID)))
                         {
                             rs.IsEnabledOnImport = 0;
                             RepoFactory.RenameScript.Save(rs);
@@ -8345,8 +8263,8 @@ namespace Shoko.Server
                 script.ScriptName = contract.ScriptName;
                 RepoFactory.RenameScript.Save(script);
 
-                response.RenameScript = script.ToContract();
-
+                response.Result = script;
+                
                 return response;
             }
             catch (Exception ex)

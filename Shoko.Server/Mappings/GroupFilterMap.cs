@@ -8,6 +8,8 @@ namespace Shoko.Server.Mappings
     {
         public GroupFilterMap()
         {
+            Table("GroupFilter");
+
             Not.LazyLoad();
             Id(x => x.GroupFilterID);
 

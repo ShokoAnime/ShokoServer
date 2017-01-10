@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AnimeSeriesMap()
         {
+            Table("AnimeSeries");
             Not.LazyLoad();
             Id(x => x.AnimeSeriesID);
 

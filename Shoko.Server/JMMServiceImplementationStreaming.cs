@@ -16,7 +16,7 @@ namespace Shoko.Server
         {
             try
             {
-                IFile file = VideoLocal.ResolveFile(fileName);
+                IFile file = SVR_VideoLocal.ResolveFile(fileName);
                 if (file == null)
                     return null;
                 FileSystemResult<Stream> r=file.OpenRead();

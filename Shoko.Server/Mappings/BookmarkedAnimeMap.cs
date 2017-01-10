@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public BookmarkedAnimeMap()
         {
+            Table("BookmarkedAnime");
             Not.LazyLoad();
             Id(x => x.BookmarkedAnimeID);
 

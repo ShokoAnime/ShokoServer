@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_ReviewMap()
         {
+            Table("AniDB_Review");
             Not.LazyLoad();
             Id(x => x.AniDB_ReviewID);
 

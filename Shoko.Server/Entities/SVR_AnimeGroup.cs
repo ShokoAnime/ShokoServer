@@ -1120,12 +1120,12 @@ namespace Shoko.Server.Entities
                     {
                         seriesCount++;
 
-                        List<VideoLocal> vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
+                        List<SVR_VideoLocal> vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
                         List<SVR_CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
                         ILookup<int, SVR_CrossRef_File_Episode> crossRefsLookup = crossRefs.ToLookup(cr => cr.EpisodeID);
-                        var dictVids = new Dictionary<string, VideoLocal>();
+                        var dictVids = new Dictionary<string, SVR_VideoLocal>();
 
-                        foreach (VideoLocal vid in vidsTemp)
+                        foreach (SVR_VideoLocal vid in vidsTemp)
                         {
                             //Hashes may be repeated from multiple locations but we don't care
                             dictVids[vid.Hash] = vid;
@@ -1146,7 +1146,7 @@ namespace Shoko.Server.Entities
                                 continue;
                             }
 
-                            var epVids = new List<VideoLocal>();
+                            var epVids = new List<SVR_VideoLocal>();
 
                             foreach (SVR_CrossRef_File_Episode xref in crossRefsLookup[ep.AniDB_EpisodeID])
                             {
@@ -1155,7 +1155,7 @@ namespace Shoko.Server.Entities
                                     continue;
                                 }
 
-                                VideoLocal video;
+                                SVR_VideoLocal video;
 
                                 if (dictVids.TryGetValue(xref.Hash, out video))
                                 {
@@ -1166,7 +1166,7 @@ namespace Shoko.Server.Entities
                             var qualityAddedSoFar = new HashSet<string>();
 
                             // Handle mutliple files of the same quality for one episode
-                            foreach (VideoLocal vid in epVids)
+                            foreach (SVR_VideoLocal vid in epVids)
                             {
                                 SVR_AniDB_File anifile = vid.GetAniDBFile();
 

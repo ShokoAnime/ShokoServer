@@ -97,7 +97,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private VideoLocal_Place ProcessFile_LocalInfo()
+        private SVR_VideoLocal_Place ProcessFile_LocalInfo()
         {
             // hash and read media info for file
             int nshareID = -1;
@@ -159,8 +159,8 @@ namespace Shoko.Server.Commands
             // check if we have already processed this file
 
          
-            VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(filePath, nshareID);
-            VideoLocal vlocal;
+            SVR_VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(filePath, nshareID);
+            SVR_VideoLocal vlocal;
 
             if (vlocalplace!=null)
             {
@@ -176,7 +176,7 @@ namespace Shoko.Server.Commands
             else
             {                
                 logger.Trace("VideoLocal, creating temporary record");
-                vlocal = new VideoLocal();
+                vlocal = new SVR_VideoLocal();
                 vlocal.DateTimeUpdated = DateTime.Now;
                 vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
                 vlocal.FileName = Path.GetFileName(filePath);
@@ -187,7 +187,7 @@ namespace Shoko.Server.Commands
                 vlocal.SHA1 = source_file.SHA1.ToUpperInvariant() ?? string.Empty;
                 vlocal.IsIgnored = 0;
                 vlocal.IsVariation = 0;
-                vlocalplace=new VideoLocal_Place();
+                vlocalplace=new SVR_VideoLocal_Place();
                 vlocalplace.FilePath = filePath;
                 vlocalplace.ImportFolderID = nshareID;
                 vlocalplace.ImportFolderType = folder.ImportFolderType;
@@ -254,20 +254,20 @@ namespace Shoko.Server.Commands
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
                         Utils.FormatByteSize(vlocal.FileSize));
-                    vlocal.Hash = hashes.ed2k?.ToUpperInvariant();
-                    vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
-                    vlocal.MD5 = hashes.md5?.ToUpperInvariant();
-                    vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
+                    vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
+                    vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
+                    vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
+                    vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
                     vlocal.HashSource = (int) HashSource.DirectHash;
                 }
                 FillMissingHashes(vlocal);
                 // We should have a hash by now
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
-                VideoLocal tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+                SVR_VideoLocal tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
 
                 bool intercloudfolder = false;
-                VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                SVR_VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
                 if (prep!=null)
                 {
                     // delete the VideoLocal record
@@ -350,7 +350,7 @@ namespace Shoko.Server.Commands
             }
 
 
-            if ((vlocal.Media == null) || vlocal.MediaVersion < VideoLocal.MEDIA_VERSION || vlocal.Duration==0)
+            if ((vlocal.Media == null) || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || vlocal.Duration==0)
             {
                 if (vlocalplace.RefreshMediaInfo()) 
                     RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal,true);
@@ -362,7 +362,7 @@ namespace Shoko.Server.Commands
             return vlocalplace;
         }
 
-        private void FillMissingHashes(VideoLocal vlocal)
+        private void FillMissingHashes(SVR_VideoLocal vlocal)
         {
             bool needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
             bool needmd5 = string.IsNullOrEmpty(vlocal.MD5);
@@ -391,22 +391,22 @@ namespace Shoko.Server.Commands
                 logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),
                     FileName, Utils.FormatByteSize(vlocal.FileSize));
 	            if (String.IsNullOrEmpty(vlocal.Hash))
-		            vlocal.Hash = hashes.ed2k?.ToUpperInvariant();
+		            vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
                 if (needsha1)
-                    vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
+                    vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
                 if (needmd5)
-                    vlocal.MD5 = hashes.md5?.ToUpperInvariant();
+                    vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
                 if (needcrc32)
-                    vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
-                AzureWebAPI.Send_FileHash(new List<VideoLocal> { vlocal });
+                    vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
+                AzureWebAPI.Send_FileHash(new List<SVR_VideoLocal> { vlocal });
             }
         }
 
-        private void FillHashesAgainstVideoLocalRepo(VideoLocal v)
+        private void FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
-                VideoLocal n = RepoFactory.VideoLocal.GetByHash(v.ED2KHash);
+                SVR_VideoLocal n = RepoFactory.VideoLocal.GetByHash(v.ED2KHash);
                 if (n != null)
                 {
                     if (!string.IsNullOrEmpty(n.CRC32))
@@ -420,7 +420,7 @@ namespace Shoko.Server.Commands
             }
             if (!string.IsNullOrEmpty(v.SHA1))
             {
-                VideoLocal n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
+                SVR_VideoLocal n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
                 if (n != null)
                 {
                     if (!string.IsNullOrEmpty(n.CRC32))
@@ -434,7 +434,7 @@ namespace Shoko.Server.Commands
             }
             if (!string.IsNullOrEmpty(v.MD5))
             {
-                VideoLocal n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
+                SVR_VideoLocal n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
                 if (n != null)
                 {
                     if (!string.IsNullOrEmpty(n.CRC32))
@@ -446,7 +446,7 @@ namespace Shoko.Server.Commands
                 }
             }
         }
-        private void FillHashesAgainstAniDBRepo(VideoLocal v)
+        private void FillHashesAgainstAniDBRepo(SVR_VideoLocal v)
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
@@ -490,7 +490,7 @@ namespace Shoko.Server.Commands
                 }
             }
         }
-        private void FillHashesAgainstWebCache(VideoLocal v)
+        private void FillHashesAgainstWebCache(SVR_VideoLocal v)
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
@@ -537,7 +537,7 @@ namespace Shoko.Server.Commands
                 }
             }
         }
-        private void FillVideoHashes(VideoLocal v)
+        private void FillVideoHashes(SVR_VideoLocal v)
         {
             FillHashesAgainstVideoLocalRepo(v);
             FillHashesAgainstAniDBRepo(v);

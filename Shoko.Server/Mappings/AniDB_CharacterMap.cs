@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_CharacterMap()
         {
+            Table("AniDB_Character");
             Not.LazyLoad();
             Id(x => x.AniDB_CharacterID);
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using NHibernate;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 

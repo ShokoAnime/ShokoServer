@@ -72,11 +72,11 @@ namespace Shoko.Server.API.Model.common
 
                     if (level != 1)
                     {
-                        List<VideoLocal> vls = aep.GetVideoLocals();
+                        List<SVR_VideoLocal> vls = aep.GetVideoLocals();
                         if (vls.Count > 0)
                         {
                             ep.files = new List<RawFile>();
-                            foreach (VideoLocal vl in vls)
+                            foreach (SVR_VideoLocal vl in vls)
                             {
                                 ep.files.Add(new RawFile(vl, (level-1), uid));
                             }

@@ -15,7 +15,7 @@ using FluentNHibernate.Utils;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.FileHelper;
 using Shoko.Server.FileHelper.Subtitles;
-using Shoko.Server.Providers.TvDB;
+using Shoko.Models.TvDB;
 using Shoko.Server.Repositories.Cached;
 using NHibernate;
 using NHibernate.Dialect;
@@ -185,7 +185,7 @@ namespace Shoko.Server.PlexAndKodi
 
 
 
-        public static bool RefreshIfMediaEmpty(VideoLocal vl, Video v)
+        public static bool RefreshIfMediaEmpty(SVR_VideoLocal vl, Video v)
         {
             if (v.Medias == null || v.Medias.Count == 0)
             {
@@ -224,7 +224,7 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
 
-        public static Video VideoFromVideoLocal(IProvider prov, VideoLocal v, int userid)
+        public static Video VideoFromVideoLocal(IProvider prov, SVR_VideoLocal v, int userid)
         {
             Video l = new Video();
             l.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile.ToString();
@@ -248,7 +248,7 @@ namespace Shoko.Server.PlexAndKodi
             Media m = v.Media;
             if (string.IsNullOrEmpty(m?.Duration))
             {
-                VideoLocal_Place pl = v.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl != null)
                 {
                     if (pl.RefreshMediaInfo())
@@ -274,11 +274,11 @@ namespace Shoko.Server.PlexAndKodi
                 v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
-                foreach (VideoLocal vl2 in e.Key.GetVideoLocals())
+                foreach (SVR_VideoLocal vl2 in e.Key.GetVideoLocals())
                 {
                     if (string.IsNullOrEmpty(vl2.Media?.Duration))
                     {
-                        VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
+                        SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
                         if (pl != null)
                         {
                             if (pl.RefreshMediaInfo())
@@ -322,7 +322,7 @@ namespace Shoko.Server.PlexAndKodi
         public static Video GenerateVideoFromAnimeEpisode(SVR_AnimeEpisode ep)
         {
             Video l = new Video();
-            List<VideoLocal> vids = ep.GetVideoLocals();
+            List<SVR_VideoLocal> vids = ep.GetVideoLocals();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Id = ep.AnimeEpisodeID.ToString();
@@ -336,11 +336,11 @@ namespace Shoko.Server.PlexAndKodi
 		        l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
 		        l.Year = vids[0].DateTimeCreated.Year.ToString();
 		        l.Medias = new List<Media>();
-		        foreach (VideoLocal v in vids)
+		        foreach (SVR_VideoLocal v in vids)
 		        {
 			        if (string.IsNullOrEmpty(v.Media?.Duration))
 			        {
-				        VideoLocal_Place pl = v.GetBestVideoLocalPlace();
+				        SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
 				        if (pl != null)
 				        {
 					        if (pl.RefreshMediaInfo())

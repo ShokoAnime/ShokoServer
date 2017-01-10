@@ -8,6 +8,8 @@ namespace Shoko.Server.Mappings
     {
         public DuplicateFileMap()
         {
+            Table("DuplicateFile");
+
             Not.LazyLoad();
             Id(x => x.DuplicateFileID);
 

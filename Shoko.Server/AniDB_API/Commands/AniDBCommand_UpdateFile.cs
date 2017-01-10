@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Interfaces;
 using Shoko.Server;
 
 namespace AniDBAPI.Commands

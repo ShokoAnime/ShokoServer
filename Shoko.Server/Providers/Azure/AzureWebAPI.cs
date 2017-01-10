@@ -312,7 +312,7 @@ namespace Shoko.Server.Providers.Azure
             return xrefs;
         }*/
 
-        public static List<Azure_CrossRef_File_Episode> Get_CrossRefFileEpisode(VideoLocal vid)
+        public static List<Azure_CrossRef_File_Episode> Get_CrossRefFileEpisode(SVR_VideoLocal vid)
         {
             if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
 
@@ -918,7 +918,7 @@ namespace Shoko.Server.Providers.Azure
             }
 
         }
-        public static void Send_FileHash(List<VideoLocal> locals)
+        public static void Send_FileHash(List<SVR_VideoLocal> locals)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
@@ -926,7 +926,7 @@ namespace Shoko.Server.Providers.Azure
 
             List<Azure_FileHash_Request> inputs = new List<Azure_FileHash_Request>();
             // send a max of 25 at a time
-            foreach (VideoLocal v in locals)
+            foreach (SVR_VideoLocal v in locals)
             {
                 Azure_FileHash_Request input = v.ToHashRequest();
                 if (inputs.Count < 25)
@@ -978,7 +978,7 @@ namespace Shoko.Server.Providers.Azure
 
         #region Media
 
-        public static void Send_Media(List<VideoLocal> locals)
+        public static void Send_Media(List<SVR_VideoLocal> locals)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
@@ -987,7 +987,7 @@ namespace Shoko.Server.Providers.Azure
             List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
             // send a max of 25 at a time
             // send a max of 25 at a time
-            foreach (VideoLocal v in locals.Where(a=>a.MediaBlob!=null && a.MediaBlob.Length>0 && a.MediaVersion==VideoLocal.MEDIA_VERSION && !string.IsNullOrEmpty(a.ED2KHash)))
+            foreach (SVR_VideoLocal v in locals.Where(a=>a.MediaBlob!=null && a.MediaBlob.Length>0 && a.MediaVersion==SVR_VideoLocal.MEDIA_VERSION && !string.IsNullOrEmpty(a.ED2KHash)))
             {
                 Azure_Media_Request input = v.ToMediaRequest();
                 if (inputs.Count < 25)
@@ -1024,8 +1024,8 @@ namespace Shoko.Server.Providers.Azure
         public static List<Azure_Media> Get_Media(string ed2k)
         {
 
-            string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,VideoLocal.MEDIA_VERSION);
-            string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,VideoLocal.MEDIA_VERSION);
+            string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,SVR_VideoLocal.MEDIA_VERSION);
+            string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,SVR_VideoLocal.MEDIA_VERSION);
 
             DateTime start = DateTime.Now;
             JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);

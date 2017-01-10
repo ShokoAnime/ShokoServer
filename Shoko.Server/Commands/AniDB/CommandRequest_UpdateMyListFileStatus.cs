@@ -58,7 +58,7 @@ namespace Shoko.Server.Commands
             {
  
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-                VideoLocal vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
                 if (vid != null)
                 {
                     bool isManualLink = false;

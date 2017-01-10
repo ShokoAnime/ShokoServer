@@ -13,6 +13,8 @@ namespace Shoko.Server.Mappings
     {
         public CloudAccountMap()
         {
+            Table("CloudAccount");
+
             Not.LazyLoad();
             Id(x => x.CloudID);
             Map(x => x.Name).Not.Nullable();

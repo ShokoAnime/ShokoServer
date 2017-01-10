@@ -8,6 +8,8 @@ namespace Shoko.Server.Mappings
     {
         public CrossRef_File_EpisodeMap()
         {
+            Table("CrossRef_File_Episode");
+
             Not.LazyLoad();
             Id(x => x.CrossRef_File_EpisodeID);
 

@@ -84,7 +84,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (pp != null)
                             dirs.Add(prov, pp, info);
                     }
-                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
                     if (vids.Count > 0)
                     {
                         Directory pp = new Directory() { Type = "show" };
@@ -288,8 +288,8 @@ namespace Shoko.Server.PlexAndKodi
             if (!ret.Init(prov))
                 return new MediaContainer();
             List<Video> dirs = new List<Video>();
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-            foreach (VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            foreach (SVR_VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
             {
                 try
                 {
@@ -319,7 +319,7 @@ namespace Shoko.Server.PlexAndKodi
             int id;
             if (!int.TryParse(Id, out id))
                 return new MediaContainer() { ErrorString = "Invalid File Id" };
-            VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
+            SVR_VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
                     Path.GetFileNameWithoutExtension(vi.FileName ?? ""),

@@ -9,6 +9,8 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
@@ -23,34 +25,19 @@ using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Entities
 {
-    public class VideoLocal : IHash
+    public class SVR_VideoLocal : VideoLocal, IHash
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public int VideoLocalID { get; private set; }
-        public string Hash { get; set; }
-        public string CRC32 { get; set; }
-        public string MD5 { get; set; }
-        public string SHA1 { get; set; }
-        public int HashSource { get; set; }
-        public long FileSize { get; set; }
-        public int IsIgnored { get; set; }
-        public DateTime DateTimeUpdated { get; set; }
-        public DateTime DateTimeCreated { get; set; }
-        public int IsVariation { get; set; }
+        #region DB columns
+
         public int MediaVersion { get; set; }
         public byte[] MediaBlob { get; set; }
         public int MediaSize { get; set; }
 
-        public string VideoCodec { get; set; } = string.Empty;
-        public string VideoBitrate { get; set; } = string.Empty;
-        public string VideoBitDepth { get; set; } = string.Empty;
-        public string VideoFrameRate { get; set; } = string.Empty;
-        public string VideoResolution { get; set; } = string.Empty;
-        public string AudioCodec { get; set; } = string.Empty;
-        public string AudioBitrate { get; set; } = string.Empty;
-        public long Duration { get; set; }
-        public string FileName { get; set; }
+        #endregion
+
+
 
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
@@ -79,7 +66,7 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public List<VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+        public List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
 
         public void CollectContractMemory()
@@ -219,7 +206,7 @@ namespace Shoko.Server.Entities
         public IFile GetBestFileLink()
         {
             IFile file=null;
-            foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+            foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
                 if (p != null)
                 {
@@ -230,9 +217,9 @@ namespace Shoko.Server.Entities
             }
             return file;
         }
-        public VideoLocal_Place GetBestVideoLocalPlace()
+        public SVR_VideoLocal_Place GetBestVideoLocalPlace()
         {
-            foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+            foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
                 if (p != null)
                 {
@@ -467,37 +454,37 @@ namespace Shoko.Server.Entities
 
 
 
-        public Contract_VideoLocal ToContract(int userID)
+        public CL_VideoLocal ToClient(int userID)
         {
-            Contract_VideoLocal contract = new Contract_VideoLocal();
-            contract.CRC32 = this.CRC32;
-            contract.DateTimeUpdated = this.DateTimeUpdated;
-            contract.FileName = this.FileName;
-            contract.FileSize = this.FileSize;
-            contract.Hash = this.Hash;
-            contract.HashSource = this.HashSource;
-            contract.IsIgnored = this.IsIgnored;
-            contract.IsVariation = this.IsVariation;
-            contract.Duration = this.Duration;
-            contract.MD5 = this.MD5;
-            contract.SHA1 = this.SHA1;
-            contract.VideoLocalID = this.VideoLocalID;
-            contract.Places = Places.Select(a => a.ToContract()).ToList();
+            CL_VideoLocal cl = new CL_VideoLocal();
+            cl.CRC32 = this.CRC32;
+            cl.DateTimeUpdated = this.DateTimeUpdated;
+            cl.FileName = this.FileName;
+            cl.FileSize = this.FileSize;
+            cl.Hash = this.Hash;
+            cl.HashSource = this.HashSource;
+            cl.IsIgnored = this.IsIgnored;
+            cl.IsVariation = this.IsVariation;
+            cl.Duration = this.Duration;
+            cl.MD5 = this.MD5;
+            cl.SHA1 = this.SHA1;
+            cl.VideoLocalID = this.VideoLocalID;
+            cl.Places = Places.Select(a => a.ToContract()).ToList();
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
-                contract.IsWatched = 0;
-                contract.WatchedDate = null;
+                cl.IsWatched = 0;
+                cl.WatchedDate = null;
             }
             else
             {
-                contract.IsWatched = 1;
-                contract.WatchedDate = userRecord.WatchedDate;
+                cl.IsWatched = 1;
+                cl.WatchedDate = userRecord.WatchedDate;
             }
             if (userRecord != null)
-                contract.ResumePosition = userRecord.ResumePosition;
-            contract.Media = GetMediaFromUser(userID);           
-            return contract;
+                cl.ResumePosition = userRecord.ResumePosition;
+            cl.Media = GetMediaFromUser(userID);           
+            return cl;
         }
         private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]", RegexOptions.Compiled);
         private static Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
@@ -506,7 +493,7 @@ namespace Shoko.Server.Entities
             Media n = null;
             if (Media == null)
             {
-                VideoLocal_Place pl = GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
                 if (pl != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
@@ -547,144 +534,144 @@ namespace Shoko.Server.Entities
             }
             return n;
         }
-        public Contract_VideoDetailed ToContractDetailed(int userID)
+        public CL_VideoDetailed ToClientDetailed(int userID)
         {
-            Contract_VideoDetailed contract = new Contract_VideoDetailed();
+            CL_VideoDetailed cl = new CL_VideoDetailed();
 
             // get the cross ref episode
             List<SVR_CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
             if (xrefs.Count == 0) return null;
 
-            contract.Percentage = xrefs[0].Percentage;
-            contract.EpisodeOrder = xrefs[0].EpisodeOrder;
-            contract.CrossRefSource = xrefs[0].CrossRefSource;
-            contract.AnimeEpisodeID = xrefs[0].EpisodeID;
+            cl.Percentage = xrefs[0].Percentage;
+            cl.EpisodeOrder = xrefs[0].EpisodeOrder;
+            cl.CrossRefSource = xrefs[0].CrossRefSource;
+            cl.AnimeEpisodeID = xrefs[0].EpisodeID;
 
-            contract.VideoLocal_FileName = this.FileName;
-            contract.VideoLocal_Hash = this.Hash;
-            contract.VideoLocal_FileSize = this.FileSize;
-            contract.VideoLocalID = this.VideoLocalID;
-            contract.VideoLocal_IsIgnored = this.IsIgnored;
-            contract.VideoLocal_IsVariation = this.IsVariation;
-            contract.Places = Places.Select(a => a.ToContract()).ToList();
+            cl.VideoLocal_FileName = this.FileName;
+            cl.VideoLocal_Hash = this.Hash;
+            cl.VideoLocal_FileSize = this.FileSize;
+            cl.VideoLocalID = this.VideoLocalID;
+            cl.VideoLocal_IsIgnored = this.IsIgnored;
+            cl.VideoLocal_IsVariation = this.IsVariation;
+            cl.Places = Places.Select(a => a.ToContract()).ToList();
 
-            contract.VideoLocal_MD5 = this.MD5;
-            contract.VideoLocal_SHA1 = this.SHA1;
-            contract.VideoLocal_CRC32 = this.CRC32;
-            contract.VideoLocal_HashSource = this.HashSource;
+            cl.VideoLocal_MD5 = this.MD5;
+            cl.VideoLocal_SHA1 = this.SHA1;
+            cl.VideoLocal_CRC32 = this.CRC32;
+            cl.VideoLocal_HashSource = this.HashSource;
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
-                contract.VideoLocal_IsWatched = 0;
-                contract.VideoLocal_WatchedDate = null;
-                contract.VideoLocal_ResumePosition = 0;
+                cl.VideoLocal_IsWatched = 0;
+                cl.VideoLocal_WatchedDate = null;
+                cl.VideoLocal_ResumePosition = 0;
             }
             else
             {
-                contract.VideoLocal_IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
-                contract.VideoLocal_WatchedDate = userRecord.WatchedDate;
+                cl.VideoLocal_IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
+                cl.VideoLocal_WatchedDate = userRecord.WatchedDate;
             }
             if (userRecord!=null)
-                contract.VideoLocal_ResumePosition = userRecord.ResumePosition;
-            contract.VideoInfo_AudioBitrate = AudioBitrate;
-            contract.VideoInfo_AudioCodec = AudioCodec;
-            contract.VideoInfo_Duration = Duration;
-            contract.VideoInfo_VideoBitrate = VideoBitrate;
-            contract.VideoInfo_VideoBitDepth = VideoBitDepth;
-            contract.VideoInfo_VideoCodec = VideoCodec;
-            contract.VideoInfo_VideoFrameRate = VideoFrameRate;
-            contract.VideoInfo_VideoResolution = VideoResolution;
+                cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
+            cl.VideoInfo_AudioBitrate = AudioBitrate;
+            cl.VideoInfo_AudioCodec = AudioCodec;
+            cl.VideoInfo_Duration = Duration;
+            cl.VideoInfo_VideoBitrate = VideoBitrate;
+            cl.VideoInfo_VideoBitDepth = VideoBitDepth;
+            cl.VideoInfo_VideoCodec = VideoCodec;
+            cl.VideoInfo_VideoFrameRate = VideoFrameRate;
+            cl.VideoInfo_VideoResolution = VideoResolution;
 
             // AniDB File
             SVR_AniDB_File anifile = this.GetAniDBFile(); // to prevent multiple db calls
             if (anifile != null)
             {
-                contract.AniDB_Anime_GroupName = anifile.Anime_GroupName;
-                contract.AniDB_Anime_GroupNameShort = anifile.Anime_GroupNameShort;
-                contract.AniDB_AnimeID = anifile.AnimeID;
-                contract.AniDB_CRC = anifile.CRC;
-                contract.AniDB_Episode_Rating = anifile.Episode_Rating;
-                contract.AniDB_Episode_Votes = anifile.Episode_Votes;
-                contract.AniDB_File_AudioCodec = anifile.File_AudioCodec;
-                contract.AniDB_File_Description = anifile.File_Description;
-                contract.AniDB_File_FileExtension = anifile.File_FileExtension;
-                contract.AniDB_File_LengthSeconds = anifile.File_LengthSeconds;
-                contract.AniDB_File_ReleaseDate = anifile.File_ReleaseDate;
-                contract.AniDB_File_Source = anifile.File_Source;
-                contract.AniDB_File_VideoCodec = anifile.File_VideoCodec;
-                contract.AniDB_File_VideoResolution = anifile.File_VideoResolution;
-                contract.AniDB_FileID = anifile.FileID;
-                contract.AniDB_GroupID = anifile.GroupID;
-                contract.AniDB_MD5 = anifile.MD5;
-                contract.AniDB_SHA1 = anifile.SHA1;
-                contract.AniDB_File_FileVersion = anifile.FileVersion;
+                cl.AniDB_Anime_GroupName = anifile.Anime_GroupName;
+                cl.AniDB_Anime_GroupNameShort = anifile.Anime_GroupNameShort;
+                cl.AniDB_AnimeID = anifile.AnimeID;
+                cl.AniDB_CRC = anifile.CRC;
+                cl.AniDB_Episode_Rating = anifile.Episode_Rating;
+                cl.AniDB_Episode_Votes = anifile.Episode_Votes;
+                cl.AniDB_File_AudioCodec = anifile.File_AudioCodec;
+                cl.AniDB_File_Description = anifile.File_Description;
+                cl.AniDB_File_FileExtension = anifile.File_FileExtension;
+                cl.AniDB_File_LengthSeconds = anifile.File_LengthSeconds;
+                cl.AniDB_File_ReleaseDate = anifile.File_ReleaseDate;
+                cl.AniDB_File_Source = anifile.File_Source;
+                cl.AniDB_File_VideoCodec = anifile.File_VideoCodec;
+                cl.AniDB_File_VideoResolution = anifile.File_VideoResolution;
+                cl.AniDB_FileID = anifile.FileID;
+                cl.AniDB_GroupID = anifile.GroupID;
+                cl.AniDB_MD5 = anifile.MD5;
+                cl.AniDB_SHA1 = anifile.SHA1;
+                cl.AniDB_File_FileVersion = anifile.FileVersion;
 
                 // languages
-                contract.LanguagesAudio = anifile.LanguagesRAW;
-                contract.LanguagesSubtitle = anifile.SubtitlesRAW;
+                cl.LanguagesAudio = anifile.LanguagesRAW;
+                cl.LanguagesSubtitle = anifile.SubtitlesRAW;
             }
             else
             {
-                contract.AniDB_Anime_GroupName = "";
-                contract.AniDB_Anime_GroupNameShort = "";
-                contract.AniDB_CRC = "";
-                contract.AniDB_File_AudioCodec = "";
-                contract.AniDB_File_Description = "";
-                contract.AniDB_File_FileExtension = "";
-                contract.AniDB_File_Source = "";
-                contract.AniDB_File_VideoCodec = "";
-                contract.AniDB_File_VideoResolution = "";
-                contract.AniDB_MD5 = "";
-                contract.AniDB_SHA1 = "";
-                contract.AniDB_File_FileVersion = 1;
+                cl.AniDB_Anime_GroupName = "";
+                cl.AniDB_Anime_GroupNameShort = "";
+                cl.AniDB_CRC = "";
+                cl.AniDB_File_AudioCodec = "";
+                cl.AniDB_File_Description = "";
+                cl.AniDB_File_FileExtension = "";
+                cl.AniDB_File_Source = "";
+                cl.AniDB_File_VideoCodec = "";
+                cl.AniDB_File_VideoResolution = "";
+                cl.AniDB_MD5 = "";
+                cl.AniDB_SHA1 = "";
+                cl.AniDB_File_FileVersion = 1;
 
                 // languages
-                contract.LanguagesAudio = "";
-                contract.LanguagesSubtitle = "";
+                cl.LanguagesAudio = "";
+                cl.LanguagesSubtitle = "";
             }
 
 
             SVR_AniDB_ReleaseGroup relGroup = this.ReleaseGroup; // to prevent multiple db calls
             if (relGroup != null)
-                contract.ReleaseGroup = relGroup;
+                cl.ReleaseGroup = relGroup;
             else
-                contract.ReleaseGroup = null;
-            contract.Media = GetMediaFromUser(userID);
-            return contract;
+                cl.ReleaseGroup = null;
+            cl.Media = GetMediaFromUser(userID);
+            return cl;
         }
 
-        public Contract_VideoLocalManualLink ToContractManualLink(int userID)
+        public CL_VideoLocal_ManualLink ToContractManualLink(int userID)
         {
-            Contract_VideoLocalManualLink contract = new Contract_VideoLocalManualLink();
-            contract.CRC32 = this.CRC32;
-            contract.DateTimeUpdated = this.DateTimeUpdated;
-            contract.FileName = this.FileName;
-            contract.FileSize = this.FileSize;
-            contract.Hash = this.Hash;
-            contract.HashSource = this.HashSource;
-            contract.IsIgnored = this.IsIgnored;
-            contract.IsVariation = this.IsVariation;
-            contract.MD5 = this.MD5;
-            contract.SHA1 = this.SHA1;
-            contract.VideoLocalID = this.VideoLocalID;
-            contract.Places = Places.Select(a => a.ToContract()).ToList();
+            CL_VideoLocal_ManualLink cl = new CL_VideoLocal_ManualLink();
+            cl.CRC32 = this.CRC32;
+            cl.DateTimeUpdated = this.DateTimeUpdated;
+            cl.FileName = this.FileName;
+            cl.FileSize = this.FileSize;
+            cl.Hash = this.Hash;
+            cl.HashSource = this.HashSource;
+            cl.IsIgnored = this.IsIgnored;
+            cl.IsVariation = this.IsVariation;
+            cl.MD5 = this.MD5;
+            cl.SHA1 = this.SHA1;
+            cl.VideoLocalID = this.VideoLocalID;
+            cl.Places = Places.Select(a => a.ToContract()).ToList();
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
-                contract.IsWatched = 0;
-                contract.WatchedDate = null;
-                contract.ResumePosition = 0;
+                cl.IsWatched = 0;
+                cl.WatchedDate = null;
+                cl.ResumePosition = 0;
             }
             else
             {
-                contract.IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
-                contract.WatchedDate = userRecord.WatchedDate;
+                cl.IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
+                cl.WatchedDate = userRecord.WatchedDate;
             }
             if (userRecord!=null)
-                contract.ResumePosition = userRecord.ResumePosition;
-            return contract;
+                cl.ResumePosition = userRecord.ResumePosition;
+            return cl;
         }
     }
 }

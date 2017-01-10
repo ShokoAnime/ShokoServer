@@ -185,7 +185,7 @@ namespace Shoko.Server.API.Module.apiv2
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(id);
                     if (wideBanner == null) { return null; }
 
-                    path = wideBanner.FullImagePath;
+                    path = wideBanner.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -193,7 +193,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.FullImagePath);
+                        logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
                     }
                     break;
 
@@ -202,7 +202,7 @@ namespace Shoko.Server.API.Module.apiv2
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(id);
                     if (poster == null) { return null; }
 
-                    path = poster.FullImagePath;
+                    path = poster.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -210,7 +210,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find TvDB_Cover image: {0}", poster.FullImagePath);
+                        logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
                     }
                     break;
 
@@ -219,7 +219,7 @@ namespace Shoko.Server.API.Module.apiv2
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(id);
                     if (ep == null) { return null; }
 
-                    path = ep.FullImagePath;
+                    path = ep.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -227,7 +227,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find TvDB_Episode image: {0}", ep.FullImagePath);
+                        logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
                     }
                     break;
 
@@ -239,7 +239,7 @@ namespace Shoko.Server.API.Module.apiv2
                     if (thumb)
                     {
                         //ratio
-                        path = fanart.FullThumbnailPath;
+                        path = fanart.GetFullThumbnailPath();
                         if (Pri.LongPath.File.Exists(path))
                         {
                             return path;
@@ -247,12 +247,12 @@ namespace Shoko.Server.API.Module.apiv2
                         else
                         {
                             path = "";
-                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullThumbnailPath);
+                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
                         }
                     }
                     else
                     {
-                        path = fanart.FullImagePath;
+                        path = fanart.GetFullImagePath();
                         if (Pri.LongPath.File.Exists(path))
                         {
                             return path;
@@ -260,7 +260,7 @@ namespace Shoko.Server.API.Module.apiv2
                         else
                         {
                             path = "";
-                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
+                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
                         }
                     }
                     break;
@@ -273,7 +273,7 @@ namespace Shoko.Server.API.Module.apiv2
                     mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) { return null; }
 
-                    path = mFanart.FullImagePath;
+                    path = mFanart.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -281,7 +281,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.FullImagePath);
+                        logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
                     }
                     break;
 
@@ -293,7 +293,7 @@ namespace Shoko.Server.API.Module.apiv2
                     mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null) { return null; }
 
-                    path = mPoster.FullImagePath;
+                    path = mPoster.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -301,7 +301,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.FullImagePath);
+                        logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
                     }
                     break;
 
@@ -310,7 +310,7 @@ namespace Shoko.Server.API.Module.apiv2
                     Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(id);
                     if (tPoster == null) { return null; }
 
-                    path = tPoster.FullImagePath;
+                    path = tPoster.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -318,7 +318,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.FullImagePath);
+                        logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.GetFullImagePath());
                     }
                     break;
 
@@ -328,7 +328,7 @@ namespace Shoko.Server.API.Module.apiv2
                     Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(id);
                     if (tFanart == null) { return null; }
 
-                    path = tFanart.FullImagePath;
+                    path = tFanart.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -336,7 +336,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.FullImagePath);
+                        logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.GetFullImagePath());
                     }
                     break;
 
@@ -348,7 +348,7 @@ namespace Shoko.Server.API.Module.apiv2
                     Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(id);
                     if (tEpisode == null) { return null; }
 
-                    path = tEpisode.FullImagePath;
+                    path = tEpisode.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -356,7 +356,7 @@ namespace Shoko.Server.API.Module.apiv2
                     else
                     {
                         path = "";
-                        logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.FullImagePath);
+                        logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.GetFullImagePath());
                     }
 
                     break;

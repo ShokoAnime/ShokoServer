@@ -539,7 +539,7 @@ namespace Shoko.Server.Entities
 
                         TvDB_ImagePoster tvPoster = RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
                         if (tvPoster != null)
-                            return tvPoster.FullImagePath;
+                            return tvPoster.GetFullImagePath();
                         else
                             return this.PosterPath;
 
@@ -547,7 +547,7 @@ namespace Shoko.Server.Entities
 
                         Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
                         if (traktPoster != null)
-                            return traktPoster.FullImagePath;
+                            return traktPoster.GetFullImagePath();
                         else
                             return this.PosterPath;
 
@@ -555,7 +555,7 @@ namespace Shoko.Server.Entities
 
                         MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
                         if (moviePoster != null)
-                            return moviePoster.FullImagePath;
+                            return moviePoster.GetFullImagePath();
                         else
                             return this.PosterPath;
                 }
@@ -1625,7 +1625,7 @@ namespace Shoko.Server.Entities
                 cl.Fanarts = movDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
                         ImageType = (int)JMMImageType.MovieDB_FanArt,
-                        MovieFanart = a.ToContract(),
+                        MovieFanart = a,
                         AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
                     })
                     .ToList();
@@ -1635,14 +1635,14 @@ namespace Shoko.Server.Entities
                 cl.Fanarts = tvDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
                         ImageType = (int)JMMImageType.TvDB_FanArt,
-                        TVFanart = a.ToContract(),
+                        TVFanart = a,
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
                     })
                     .ToList();
                 cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
                         ImageType = (int)JMMImageType.TvDB_Banner,
-                        TVWideBanner = a.ToContract(),
+                        TVWideBanner = a,
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
                     })
                     .ToList();

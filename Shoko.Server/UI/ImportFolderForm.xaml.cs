@@ -155,7 +155,7 @@ namespace Shoko.Server
                 else
                     contract.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
                 JMMServiceImplementation imp = new JMMServiceImplementation();
-                CL_ImportFolder_Save_Response response = imp.SaveImportFolder(contract);
+                CL_Response<ImportFolder> response = imp.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
                     MessageBox.Show(response.ErrorMessage, Shoko.Server.Properties.Resources.Error, MessageBoxButton.OK,
                         MessageBoxImage.Error);

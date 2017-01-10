@@ -12,7 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Entities;
 using Shoko.Server.Providers.Azure;
-using Shoko.Server.Providers.TvDB;
+using Shoko.Models.TvDB;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -111,7 +111,7 @@ namespace Shoko.Server.Commands
                     searchCriteria = anime.MainTitle;
 
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<TVDBSeriesSearchResult> results = JMMService.TvdbHelper.SearchSeries(searchCriteria);
+                    List<TVDB_Series_Search_Response> results = JMMService.TvdbHelper.SearchSeries(searchCriteria);
                     logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
                     if (ProcessSearchResults(results, searchCriteria)) return;
 
@@ -138,7 +138,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private bool ProcessSearchResults(List<TVDBSeriesSearchResult> results, string searchCriteria)
+        private bool ProcessSearchResults(List<TVDB_Series_Search_Response> results, string searchCriteria)
         {
             if (results.Count == 1)
             {
@@ -168,7 +168,7 @@ namespace Shoko.Server.Commands
                 logger.Trace("Found multiple ({0}) tvdb results for search on so checking for english results {1}",
                     results.Count,
                     searchCriteria);
-                foreach (TVDBSeriesSearchResult sres in results)
+                foreach (TVDB_Series_Search_Response sres in results)
                 {
                     if (sres.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase))
                     {

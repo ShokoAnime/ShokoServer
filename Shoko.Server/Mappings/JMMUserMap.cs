@@ -8,6 +8,8 @@ namespace Shoko.Server.Mappings
     {
         public JMMUserMap()
         {
+            Table("JMMUser");
+
             Not.LazyLoad();
             Id(x => x.JMMUserID);
 

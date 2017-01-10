@@ -77,14 +77,14 @@ namespace Shoko.Server
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(int.Parse(entityID));
                     if (poster == null) return null;
 
-					if (File.Exists(poster.FullImagePath))
+					if (File.Exists(poster.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(poster.FullImagePath);
-						return File.ReadAllBytes(poster.FullImagePath);
+						contentType = MimeTypes.GetMimeType(poster.GetFullImagePath());
+						return File.ReadAllBytes(poster.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find TvDB_Cover image: {0}", poster.FullImagePath);
+						logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
 						return null;
 					}
 
@@ -93,14 +93,14 @@ namespace Shoko.Server
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(int.Parse(entityID));
                     if (wideBanner == null) return null;
 
-					if (File.Exists(wideBanner.FullImagePath))
+					if (File.Exists(wideBanner.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(wideBanner.FullImagePath);
-						return File.ReadAllBytes(wideBanner.FullImagePath);
+						contentType = MimeTypes.GetMimeType(wideBanner.GetFullImagePath());
+						return File.ReadAllBytes(wideBanner.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.FullImagePath);
+						logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
 						return null;
 					}
 
@@ -109,14 +109,14 @@ namespace Shoko.Server
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(int.Parse(entityID));
                     if (ep == null) return null;
 
-					if (File.Exists(ep.FullImagePath))
+					if (File.Exists(ep.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(ep.FullImagePath);
-						return File.ReadAllBytes(ep.FullImagePath);
+						contentType = MimeTypes.GetMimeType(ep.GetFullImagePath());
+						return File.ReadAllBytes(ep.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find TvDB_Episode image: {0}", ep.FullImagePath);
+						logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
 						return null;
 					}
 
@@ -127,27 +127,27 @@ namespace Shoko.Server
 
                     if (thumnbnailOnly)
                     {
-						if (File.Exists(fanart.FullThumbnailPath))
+						if (File.Exists(fanart.GetFullThumbnailPath()))
 						{
-							contentType = MimeTypes.GetMimeType(fanart.FullThumbnailPath);
-							return File.ReadAllBytes(fanart.FullThumbnailPath);
+							contentType = MimeTypes.GetMimeType(fanart.GetFullThumbnailPath());
+							return File.ReadAllBytes(fanart.GetFullThumbnailPath());
 						}
 						else
 						{
-							logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullThumbnailPath);
+							logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
 							return null;
 						}
                     }
                     else
                     {
-						if (File.Exists(fanart.FullImagePath))
+						if (File.Exists(fanart.GetFullImagePath()))
 						{
-							contentType = MimeTypes.GetMimeType(fanart.FullImagePath);
-							return File.ReadAllBytes(fanart.FullImagePath);
+							contentType = MimeTypes.GetMimeType(fanart.GetFullImagePath());
+							return File.ReadAllBytes(fanart.GetFullImagePath());
 						}
 						else
 						{
-							logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
+							logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
 							return null;
 						}
                     }
@@ -161,14 +161,14 @@ namespace Shoko.Server
                     mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null) return null;
 
-					if (File.Exists(mPoster.FullImagePath))
+					if (File.Exists(mPoster.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(mPoster.FullImagePath);
-						return File.ReadAllBytes(mPoster.FullImagePath);
+						contentType = MimeTypes.GetMimeType(mPoster.GetFullImagePath());
+						return File.ReadAllBytes(mPoster.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.FullImagePath);
+						logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
 						return null;
 					}
 
@@ -180,14 +180,14 @@ namespace Shoko.Server
                     mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) return null;
 
-					if (File.Exists(mFanart.FullImagePath))
+					if (File.Exists(mFanart.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(mFanart.FullImagePath);
-						return File.ReadAllBytes(mFanart.FullImagePath);
+						contentType = MimeTypes.GetMimeType(mFanart.GetFullImagePath());
+						return File.ReadAllBytes(mFanart.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.FullImagePath);
+						logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
 						return null;
 					}
 
@@ -196,14 +196,14 @@ namespace Shoko.Server
                     Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(int.Parse(entityID));
                     if (tFanart == null) return null;
 
-					if (File.Exists(tFanart.FullImagePath))
+					if (File.Exists(tFanart.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(tFanart.FullImagePath);
-						return File.ReadAllBytes(tFanart.FullImagePath);
+						contentType = MimeTypes.GetMimeType(tFanart.GetFullImagePath());
+						return File.ReadAllBytes(tFanart.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.FullImagePath);
+						logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.GetFullImagePath());
 						return null;
 					}
 
@@ -212,14 +212,14 @@ namespace Shoko.Server
                     Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(int.Parse(entityID));
                     if (tPoster == null) return null;
 
-					if (File.Exists(tPoster.FullImagePath))
+					if (File.Exists(tPoster.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(tPoster.FullImagePath);
-						return File.ReadAllBytes(tPoster.FullImagePath);
+						contentType = MimeTypes.GetMimeType(tPoster.GetFullImagePath());
+						return File.ReadAllBytes(tPoster.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.FullImagePath);
+						logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.GetFullImagePath());
 						return null;
 					}
 
@@ -229,14 +229,14 @@ namespace Shoko.Server
                     Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(int.Parse(entityID));
                     if (tEpisode == null) return null;
 
-					if (File.Exists(tEpisode.FullImagePath))
+					if (File.Exists(tEpisode.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(tEpisode.FullImagePath);
-						return File.ReadAllBytes(tEpisode.FullImagePath);
+						contentType = MimeTypes.GetMimeType(tEpisode.GetFullImagePath());
+						return File.ReadAllBytes(tEpisode.GetFullImagePath());
 					}
 					else
 					{
-						logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.FullImagePath);
+						logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.GetFullImagePath());
 						return null;
 					}
 

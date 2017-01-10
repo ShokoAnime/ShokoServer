@@ -15,7 +15,7 @@ namespace Shoko.Server.Commands
     {
         public string Hash { get; set; }
 
-        private VideoLocal vid = null;
+        private SVR_VideoLocal vid = null;
 
         public CommandRequestPriority DefaultPriority
         {

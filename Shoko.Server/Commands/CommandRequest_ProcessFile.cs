@@ -22,7 +22,7 @@ namespace Shoko.Server.Commands
         public int VideoLocalID { get; set; }
         public bool ForceAniDB { get; set; }
 
-        private VideoLocal vlocal = null;
+        private SVR_VideoLocal vlocal = null;
 
         public CommandRequestPriority DefaultPriority
         {
@@ -79,7 +79,7 @@ namespace Shoko.Server.Commands
             // TODO check for TvDB
         }
 
-        private void ProcessFile_AniDB(VideoLocal vidLocal)
+        private void ProcessFile_AniDB(SVR_VideoLocal vidLocal)
         {
             logger.Trace("Checking for AniDB_File record for: {0} --- {1}", vidLocal.Hash, vidLocal.FileName);
             // check if we already have this AniDB_File info in the database

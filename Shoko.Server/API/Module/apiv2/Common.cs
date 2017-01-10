@@ -203,7 +203,7 @@ namespace Shoko.Server.API.Module.apiv2
                 {
                     try
                     {
-                        CL_ImportFolder_Save_Response response = new JMMServiceImplementation().SaveImportFolder(folder);
+                        CL_Response<ImportFolder> response = new JMMServiceImplementation().SaveImportFolder(folder);
 
                         if (string.IsNullOrEmpty(response.ErrorMessage))
                         {
@@ -249,7 +249,7 @@ namespace Shoko.Server.API.Module.apiv2
                     {
                         if (folder.ImportFolderID != 0)
                         {
-                            CL_ImportFolder_Save_Response response = new JMMServiceImplementation().SaveImportFolder(folder);
+                            CL_Response<ImportFolder> response = new JMMServiceImplementation().SaveImportFolder(folder);
                             if (!string.IsNullOrEmpty(response.ErrorMessage))
                             {
                                 return new APIMessage(500, response.ErrorMessage);
@@ -395,7 +395,7 @@ namespace Shoko.Server.API.Module.apiv2
             {
                 try
                 {
-                    VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
+                    SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
                     if (vid == null) { return APIStatus.notFound404(); }
                     if (string.IsNullOrEmpty(vid.Hash)) { return APIStatus.badRequest("Could not Update a cloud file without hash, hash it locally first"); }
                     Commands.CommandRequest_ProcessFile cmd = new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
@@ -426,10 +426,10 @@ namespace Shoko.Server.API.Module.apiv2
 
             if (para.id != 0)
             {
-                VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
+                SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
                 if (vl != null)
                 {
-                    VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                    SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
                     if (pl == null)
                     {
                         return APIStatus.notFound404("videolocal_place not found");
@@ -795,7 +795,7 @@ namespace Shoko.Server.API.Module.apiv2
             if (level != 0) { para.level = level; }
 
             List<RawFile> list = new List<RawFile>();
-            foreach (VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
+            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
             {
                 list.Add(new RawFile(file, para.level, user.JMMUserID));
             }
@@ -815,9 +815,9 @@ namespace Shoko.Server.API.Module.apiv2
 
             List<object> lst = new List<object>();
 
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
-            foreach (VideoLocal vl in vids)
+            foreach (SVR_VideoLocal vl in vids)
             {
                 if (para.offset == 0)
                 {
@@ -840,7 +840,7 @@ namespace Shoko.Server.API.Module.apiv2
         /// <returns>RawFile</returns>
         internal object GetFileById(int file_id, int level, int uid)
         {
-            VideoLocal vl = RepoFactory.VideoLocal.GetByID(file_id);
+            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(file_id);
             if (vl != null)
             {
                 RawFile rawfile = new RawFile(vl, level, uid);
@@ -863,7 +863,7 @@ namespace Shoko.Server.API.Module.apiv2
             List<RawFile> list = new List<RawFile>();
             int limit_x = limit;
             if (limit == 0) { limit_x = 100; }
-            foreach (VideoLocal file in RepoFactory.VideoLocal.GetAll(limit_x))
+            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetAll(limit_x))
             {
                 list.Add(new RawFile(file, level, uid));
                 if (limit != 0) { if (list.Count >= limit) { break; } }
@@ -911,9 +911,9 @@ namespace Shoko.Server.API.Module.apiv2
             if (para.limit == 0) { para.limit = 10; }
             List<object> lst = new List<object>();
 
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit);
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit);
 
-            foreach (VideoLocal vl in vids)
+            foreach (SVR_VideoLocal vl in vids)
             {
                 foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
@@ -1171,9 +1171,9 @@ namespace Shoko.Server.API.Module.apiv2
             if (para.id != 0)
             {
                 List<object> allseries = new List<object>();
-                List<VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(para.id).Select(a => a.VideoLocal).ToList();
+                List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(para.id).Select(a => a.VideoLocal).ToList();
                 if (para.limit == 0) { para.limit = 10; }
-                foreach (VideoLocal vl in vlpall)
+                foreach (SVR_VideoLocal vl in vlpall)
                 {
                     Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, para.nocast, para.notag, para.level);
                     allseries.Add(ser);
@@ -1583,7 +1583,7 @@ namespace Shoko.Server.API.Module.apiv2
             }
 
             // Unsort
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
             if (vids.Count > 0)
             {
                 Filter filter = new Filter();
@@ -1932,7 +1932,7 @@ namespace Shoko.Server.API.Module.apiv2
             int id;
             if (!int.TryParse(vl_Id, out id)) { return APIStatus.badRequest("bad group id"); }
 
-            VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
+            SVR_VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
 
             RawFile rf = new RawFile(vi, 0,1 );
 
@@ -1959,7 +1959,7 @@ namespace Shoko.Server.API.Module.apiv2
         {
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             Dictionary<int, string> files = new Dictionary<int, string>();
-            foreach (VideoLocal file in _impl.GetAllFiles())
+            foreach (SVR_VideoLocal file in _impl.GetAllFiles())
             {
                 files.Add(file.VideoLocalID, file.FileName);
             }
@@ -1981,7 +1981,7 @@ namespace Shoko.Server.API.Module.apiv2
 
             List<RecentFile> files = new List<RecentFile>();
 
-            foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
+            foreach (SVR_VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
             {
                 RecentFile recent = new RecentFile();
                 recent.path = "";
@@ -2011,9 +2011,9 @@ namespace Shoko.Server.API.Module.apiv2
             ObjectList dir = new ObjectList("unsort", ObjectList.ListType.FILE);
             List<object> lst = new List<object>();
 
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
-            foreach (VideoLocal vl in vids)
+            foreach (SVR_VideoLocal vl in vids)
             {
                 try
                 {
@@ -2048,7 +2048,7 @@ namespace Shoko.Server.API.Module.apiv2
             Dictionary<int, string> files = new Dictionary<int, string>();
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             int i = 0;
-            foreach (Contract_VideoLocal file in _impl.GetUnrecognisedFiles(user.JMMUserID))
+            foreach (CL_VideoLocal file in _impl.GetUnrecognisedFiles(user.JMMUserID))
             {
                 i++;
                 files.Add(file.VideoLocalID, file.FileName);
@@ -2118,9 +2118,9 @@ namespace Shoko.Server.API.Module.apiv2
             ObjectList obl = new ObjectList("recent episodes", ObjectList.ListType.EPISODE);
             List<object> lst = new List<object>();
 
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(max_limit);
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(max_limit);
 
-            foreach (VideoLocal vl in vids)
+            foreach (SVR_VideoLocal vl in vids)
             {
                 foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
@@ -2166,9 +2166,9 @@ namespace Shoko.Server.API.Module.apiv2
             ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
             List<object> allseries = new List<object>();
 
-            List<VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(folder_id).Select(a => a.VideoLocal).ToList();
+            List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(folder_id).Select(a => a.VideoLocal).ToList();
 
-            foreach (VideoLocal vl in vlpall)
+            foreach (SVR_VideoLocal vl in vlpall)
             {
                 Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, 1,0,0);
                 allseries.Add(ser);

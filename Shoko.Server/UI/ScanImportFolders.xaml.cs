@@ -25,7 +25,7 @@ namespace Shoko.Server.UI
     /// </summary>
     public partial class ScanImportFolders : Window
     {
-        public Scan SelectedScan { get; private set; }
+        public SVR_Scan SelectedScan { get; private set; }
         public class CheckedImportFolder : SVR_ImportFolder
         {
             public bool Checked { get; set; }
@@ -67,7 +67,7 @@ namespace Shoko.Server.UI
             }
             if (ids.Count == 0)
                 return;
-            Scan s=new Scan();
+            SVR_Scan s=new SVR_Scan();
             s.Status = (int) ScanStatus.Standby;
             s.CreationTIme = DateTime.Now;
             s.ImportFolders = string.Join(",", ids.Select(a => a.ToString()));

@@ -680,7 +680,7 @@ namespace Shoko.Server.Entities
                         .Select(s => s.Item1)
                         .Cast<CrossRef_AniDB_TvDBV2>().ToList();
                     contract.TvDB_Series = tvDbCrossRefs
-                        .Select(s => s.Item2.ToContract())
+                        .Select(s => s.Item2)
                         .ToList();
 
                     // MovieDB contracts
@@ -689,7 +689,7 @@ namespace Shoko.Server.Entities
                     if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out movieDbInfo))
                     {
                         contract.CrossRefAniDBMovieDB = movieDbInfo.Item1;
-                        contract.MovieDB_Movie = movieDbInfo.Item2.ToContract();
+                        contract.MovieDB_Movie = movieDbInfo.Item2;
                     }
                     else
                     {
@@ -794,15 +794,12 @@ namespace Shoko.Server.Entities
             contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.Cast<CrossRef_AniDB_TvDBV2>().ToList();
 
 
-            contract.TvDB_Series = new List<Contract_TvDB_Series>();
-            foreach (TvDB_Series ser in sers)
-                contract.TvDB_Series.Add(ser.ToContract());
-
+            contract.TvDB_Series = sers;
             contract.CrossRefAniDBMovieDB = null;
             if (movieDBCrossRef != null)
             {
                 contract.CrossRefAniDBMovieDB = movieDBCrossRef;
-                contract.MovieDB_Movie = movie.ToContract();
+                contract.MovieDB_Movie = movie;
             }
             contract.CrossRefAniDBMAL = CrossRefMAL?.Cast<Shoko.Models.Server.CrossRef_AniDB_MAL>()?.ToList() ?? new List<Shoko.Models.Server.CrossRef_AniDB_MAL>();
             HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
@@ -1086,7 +1083,7 @@ namespace Shoko.Server.Entities
             logger.Trace("Got episodes for SERIES {0} in {1}ms", this.ToString(), tsEps.TotalMilliseconds);
 
             DateTime startVids = DateTime.Now;
-            List<VideoLocal> vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(this.AniDB_ID);
+            List<SVR_VideoLocal> vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(this.AniDB_ID);
             List<SVR_CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(this.AniDB_ID);
 
             Dictionary<int, List<SVR_CrossRef_File_Episode>> dictCrossRefs =
@@ -1098,8 +1095,8 @@ namespace Shoko.Server.Entities
                 dictCrossRefs[xref.EpisodeID].Add(xref);
             }
 
-            Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
-            foreach (VideoLocal vid in vidsTemp)
+            Dictionary<string, SVR_VideoLocal> dictVids = new Dictionary<string, SVR_VideoLocal>();
+            foreach (SVR_VideoLocal vid in vidsTemp)
             {
                 //Hashes may be repeated from multiple locations but we don't care
                 dictVids[vid.Hash] = vid;
@@ -1134,7 +1131,7 @@ namespace Shoko.Server.Entities
                     foreach (SVR_AnimeEpisode ep in eps)
                     {
                         // if the episode doesn't have any files then it won't count towards watched/unwatched counts
-                        List<VideoLocal> epVids = new List<VideoLocal>();
+                        List<SVR_VideoLocal> epVids = new List<SVR_VideoLocal>();
 
                         if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
                         {
@@ -1205,7 +1202,7 @@ namespace Shoko.Server.Entities
                 List<int> userReleaseGroups = new List<int>();
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
-                    List<VideoLocal> vids = new List<VideoLocal>();
+                    List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
                     {
                         foreach (SVR_CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
@@ -1219,7 +1216,7 @@ namespace Shoko.Server.Entities
                     }
 
                     //List<VideoLocal> vids = ep.VideoLocals;
-                    foreach (VideoLocal vid in vids)
+                    foreach (SVR_VideoLocal vid in vids)
                     {
                         SVR_AniDB_File anifile = vid.GetAniDBFile();
                         if (anifile != null)
@@ -1239,7 +1236,7 @@ namespace Shoko.Server.Entities
                     //List<VideoLocal> vids = ep.VideoLocals;
                     if (ep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
 
-                    List<VideoLocal> vids = new List<VideoLocal>();
+                    List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
                     {
                         foreach (SVR_CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])

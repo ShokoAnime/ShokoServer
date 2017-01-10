@@ -2,7 +2,7 @@
 using System.Xml;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Providers.TvDB;
+using Shoko.Models.TvDB;
 
 namespace Shoko.Server.Commands.TvDB
 {

@@ -7,6 +7,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Metro;
 using Shoko.Server.Entities;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
@@ -105,7 +106,7 @@ namespace Shoko.Server.PlexAndKodi
             return prov.ConstructImageLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this MetroContract_Anime_Episode im, IProvider prov, string fallbackimage = "plex_404.png")
+        public static string GenPoster(this Metro_Anime_Episode im, IProvider prov, string fallbackimage = "plex_404.png")
         {
             if ((im == null) || (im.ImageID == 0))
                 return prov.ConstructSupportImageLinkTV(fallbackimage);

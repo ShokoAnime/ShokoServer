@@ -1,22 +1,11 @@
 ﻿using System;
 using Shoko.Models;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Entities
 {
-    public class ScanFile
+    public class SVR_ScanFile : ScanFile
     {
-        public int ScanFileID { get; private set; }
-        public int ScanID { get; set; }
-        public int ImportFolderID { get; set; }
-        public int VideoLocal_Place_ID { get; set; }
-        public string FullName { get; set; }
-        public long FileSize { get; set; }
-        public int Status { get; set; }
-        public DateTime? CheckDate { get; set; }
-        public string Hash { get; set; }
-        public string HashResult { get; set; }
-
-
         public ScanFileStatus ScanFileStatus  => (ScanFileStatus)Status;
 
         public string StatusText

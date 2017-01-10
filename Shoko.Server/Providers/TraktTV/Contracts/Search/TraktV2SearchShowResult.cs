@@ -1,5 +1,6 @@
 ﻿using System.Runtime.Serialization;
 using Shoko.Models;
+using Shoko.Models.Client;
 
 namespace Shoko.Server.Providers.TraktTV.Contracts
 {
@@ -26,9 +27,9 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         }
 
 
-        public Contract_TraktTVShowResponse ToContract()
+        public CL_TraktTVShowResponse ToContract()
         {
-            Contract_TraktTVShowResponse contract = new Contract_TraktTVShowResponse();
+            CL_TraktTVShowResponse contract = new CL_TraktTVShowResponse();
 
             contract.title = show.Title;
             contract.year = show.Year.ToString();

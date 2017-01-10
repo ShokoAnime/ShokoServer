@@ -28,25 +28,25 @@ namespace Shoko.Server.Entities
             switch (imgType)
             {
                 case JMMImageType.TvDB_Banner:
-                    contract.TVWideBanner = (parentImage as TvDB_ImageWideBanner)?.ToContract();
+                    contract.TVWideBanner = (parentImage as TvDB_ImageWideBanner);
                     break;
                 case JMMImageType.TvDB_Cover:
-                    contract.TVPoster = (parentImage as TvDB_ImagePoster)?.ToContract();
+                    contract.TVPoster = (parentImage as TvDB_ImagePoster);
                     break;
                 case JMMImageType.TvDB_FanArt:
-                    contract.TVFanart = (parentImage as TvDB_ImageFanart)?.ToContract();
+                    contract.TVFanart = (parentImage as TvDB_ImageFanart);
                     break;
                 case JMMImageType.MovieDB_Poster:
-                    contract.MoviePoster = (parentImage as MovieDB_Poster)?.ToContract();
+                    contract.MoviePoster = (parentImage as MovieDB_Poster);
                     break;
                 case JMMImageType.MovieDB_FanArt:
-                    contract.MovieFanart = (parentImage as MovieDB_Fanart)?.ToContract();
+                    contract.MovieFanart = (parentImage as MovieDB_Fanart);
                     break;
                 case JMMImageType.Trakt_Fanart:
-                    contract.TraktFanart = (parentImage as Trakt_ImageFanart)?.ToContract();
+                    contract.TraktFanart = (parentImage as Trakt_ImageFanart);
                     break;
                 case JMMImageType.Trakt_Poster:
-                    contract.TraktPoster = (parentImage as Trakt_ImagePoster)?.ToContract();
+                    contract.TraktPoster = (parentImage as Trakt_ImagePoster);
                     break;
             }
 

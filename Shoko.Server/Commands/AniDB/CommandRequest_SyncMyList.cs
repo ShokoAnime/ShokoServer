@@ -95,7 +95,7 @@ namespace Shoko.Server.Commands
                         dictAniFiles[anifile.Hash] = anifile;
 
                     int missingFiles = 0;
-                    foreach (VideoLocal vid in RepoFactory.VideoLocal.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                    foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
                     {
                         if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
 
@@ -150,7 +150,7 @@ namespace Shoko.Server.Commands
                         if (!string.IsNullOrEmpty(hash))
                         {
                             // find the video associated with this record
-                            VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
+                            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
                             if (vl == null) continue;
 
                             foreach (SVR_JMMUser juser in aniDBUsers)

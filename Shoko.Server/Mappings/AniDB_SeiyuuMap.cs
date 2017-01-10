@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_SeiyuuMap()
         {
+            Table("AniDB_Seiyuu");
             Not.LazyLoad();
             Id(x => x.AniDB_SeiyuuID);
 

@@ -25,7 +25,7 @@ using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Server.Providers.MovieDB;
  using Shoko.Server.Providers.MyAnimeList;
  using Shoko.Server.Providers.TraktTV;
- using Shoko.Server.Providers.TvDB;
+ using Shoko.Models.TvDB;
  using Shoko.Server.Repositories;
  using File = Pri.LongPath.File;
 
@@ -47,12 +47,12 @@ namespace Shoko.Server
 
             // files which have not been hashed yet
             // or files which do not have a VideoInfo record
-            List<VideoLocal> filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
-            Dictionary<int, VideoLocal> dictFilesToHash = new Dictionary<int, VideoLocal>();
-            foreach (VideoLocal vl in filesToHash)
+            List<SVR_VideoLocal> filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
+            Dictionary<int, SVR_VideoLocal> dictFilesToHash = new Dictionary<int, SVR_VideoLocal>();
+            foreach (SVR_VideoLocal vl in filesToHash)
             {
                 dictFilesToHash[vl.VideoLocalID] = vl;
-                VideoLocal_Place p = vl.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace();
                 if (p != null)
                 {
                     CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
@@ -60,9 +60,9 @@ namespace Shoko.Server
                 }
             }
 
-            List<VideoLocal> filesToRehash = RepoFactory.VideoLocal.GetVideosWithoutVideoInfo();
-            Dictionary<int, VideoLocal> dictFilesToRehash = new Dictionary<int, VideoLocal>();
-            foreach (VideoLocal vl in filesToHash)
+            List<SVR_VideoLocal> filesToRehash = RepoFactory.VideoLocal.GetVideosWithoutVideoInfo();
+            Dictionary<int, SVR_VideoLocal> dictFilesToRehash = new Dictionary<int, SVR_VideoLocal>();
+            foreach (SVR_VideoLocal vl in filesToHash)
             {
                 dictFilesToRehash[vl.VideoLocalID] = vl;
                 // don't use if it is in the previous list
@@ -70,7 +70,7 @@ namespace Shoko.Server
                 {
                     try
                     {
-                        VideoLocal_Place p = vl.GetBestVideoLocalPlace();
+                        SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace();
                         if (p != null)
                         {
                             CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
@@ -87,7 +87,7 @@ namespace Shoko.Server
             }
 
             // files which have been hashed, but don't have an associated episode
-            foreach (VideoLocal v in RepoFactory.VideoLocal.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
+            foreach (SVR_VideoLocal v in RepoFactory.VideoLocal.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(v.VideoLocalID, false);
                 cmd.Save();
@@ -98,7 +98,7 @@ namespace Shoko.Server
 
 
             // check that all the episode data is populated
-            foreach (VideoLocal vl in RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
+            foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
                 // if the file is not manually associated, then check for AniDB_File info
                 SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
@@ -136,7 +136,7 @@ namespace Shoko.Server
 
         public static void SyncMedia()
         {
-            List<VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
+            List<SVR_VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
             AzureWebAPI.Send_Media(allfiles);
         }
 
@@ -144,15 +144,15 @@ namespace Shoko.Server
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                List<VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
-                List<VideoLocal> missfiles = allfiles.Where(
+                List<SVR_VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
+                List<SVR_VideoLocal> missfiles = allfiles.Where(
                             a =>
                                 string.IsNullOrEmpty(a.CRC32) || string.IsNullOrEmpty(a.SHA1) ||
                                 string.IsNullOrEmpty(a.MD5) || a.SHA1 == "0000000000000000000000000000000000000000" || a.MD5 == "00000000000000000000000000000000")
                         .ToList();
-                List<VideoLocal> withfiles = allfiles.Except(missfiles).ToList();
+                List<SVR_VideoLocal> withfiles = allfiles.Except(missfiles).ToList();
                 //Check if we can populate md5,sha and crc from AniDB_Files
-                foreach (VideoLocal v in missfiles.ToList())
+                foreach (SVR_VideoLocal v in missfiles.ToList())
                 {
                     SVR_AniDB_File file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                     if (file != null)
@@ -170,7 +170,7 @@ namespace Shoko.Server
                     }
                 }
                 //Try obtain missing hashes
-                foreach (VideoLocal v in missfiles.ToList())
+                foreach (SVR_VideoLocal v in missfiles.ToList())
                 {
                     List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
@@ -190,22 +190,22 @@ namespace Shoko.Server
                     }
                 }
                 //We need to recalculate the sha1, md5 and crc32 of the missing ones.
-                List<VideoLocal> tosend = new List<VideoLocal>();
-                foreach (VideoLocal v in missfiles)
+                List<SVR_VideoLocal> tosend = new List<SVR_VideoLocal>();
+                foreach (SVR_VideoLocal v in missfiles)
                 {
                     try
                     {
-                        VideoLocal_Place p = v.GetBestVideoLocalPlace();
+                        SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
                             Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, MainWindow.OnHashProgress, true,
                                 true,
                                 true);
 
-                            v.Hash = h.ed2k;
-                            v.CRC32 = h.crc32;
-                            v.MD5 = h.md5;
-                            v.SHA1 = h.sha1;
+                            v.Hash = h.ED2K;
+                            v.CRC32 = h.CRC32;
+                            v.MD5 = h.MD5;
+                            v.SHA1 = h.SHA1;
                             v.HashSource = (int)HashSource.DirectHash;
                             withfiles.Add(v);
                         }
@@ -238,9 +238,9 @@ namespace Shoko.Server
                 // first build a list of files that we already know about, as we don't want to process them again
 
 
-                List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
-                Dictionary<string, VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
-                foreach (VideoLocal_Place vl in filesAll)
+                List<SVR_VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
+                Dictionary<string, SVR_VideoLocal_Place> dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
+                foreach (SVR_VideoLocal_Place vl in filesAll)
                 {
                     try
                     {
@@ -326,9 +326,9 @@ namespace Shoko.Server
         public static void RunImport_NewFiles()
         {
             // first build a list of files that we already know about, as we don't want to process them again
-            IReadOnlyList<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetAll();
-            Dictionary<string, VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
-            foreach (VideoLocal_Place vl in filesAll)
+            IReadOnlyList<SVR_VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetAll();
+            Dictionary<string, SVR_VideoLocal_Place> dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
+            foreach (SVR_VideoLocal_Place vl in filesAll)
             {
                 try
                 {
@@ -404,11 +404,11 @@ namespace Shoko.Server
             List<string> fileList = new List<string>();
             int filesFound = 0, videosFound = 0;
             int i = 0;
-            List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
+            List<SVR_VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
             Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
             HashSet<string> fs = new HashSet<string>(fileList);
-            foreach (VideoLocal_Place v in filesAll)
+            foreach (SVR_VideoLocal_Place v in filesAll)
             {
                 if (fs.Contains(v.FullServerPath))
                     fileList.Remove(v.FullServerPath);
@@ -462,8 +462,8 @@ namespace Shoko.Server
                 IReadOnlyList<TvDB_ImagePoster> allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
                 foreach (TvDB_ImagePoster tvPoster in allPosters)
                 {
-                    if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
-                    bool fileExists = File.Exists(tvPoster.FullImagePath);
+                    if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(tvPoster.GetFullImagePath());
 
                     if (fileExists)
                     {
@@ -476,8 +476,8 @@ namespace Shoko.Server
 
                 foreach (TvDB_ImagePoster tvPoster in allPosters)
                 {
-                    if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
-                    bool fileExists = File.Exists(tvPoster.FullImagePath);
+                    if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(tvPoster.GetFullImagePath());
 
                     int postersAvailable = 0;
                     if (postersCount.ContainsKey(tvPoster.SeriesID))
@@ -505,8 +505,8 @@ namespace Shoko.Server
                 foreach (TvDB_ImageFanart tvFanart in allFanart)
                 {
                     // build a dictionary of series and how many images exist
-                    if (string.IsNullOrEmpty(tvFanart.FullImagePath)) continue;
-                    bool fileExists = File.Exists(tvFanart.FullImagePath);
+                    if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(tvFanart.GetFullImagePath());
 
                     if (fileExists)
                     {
@@ -519,8 +519,8 @@ namespace Shoko.Server
 
                 foreach (TvDB_ImageFanart tvFanart in allFanart)
                 {
-                    if (string.IsNullOrEmpty(tvFanart.FullImagePath)) continue;
-                    bool fileExists = File.Exists(tvFanart.FullImagePath);
+                    if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(tvFanart.GetFullImagePath());
 
                     int fanartAvailable = 0;
                     if (fanartCount.ContainsKey(tvFanart.SeriesID))
@@ -549,8 +549,8 @@ namespace Shoko.Server
                 IReadOnlyList<TvDB_ImageWideBanner> allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
                 foreach (TvDB_ImageWideBanner tvBanner in allBanners)
                 {
-                    if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
-                    bool fileExists = File.Exists(tvBanner.FullImagePath);
+                    if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(tvBanner.GetFullImagePath());
 
                     if (fileExists)
                     {
@@ -563,8 +563,8 @@ namespace Shoko.Server
 
                 foreach (TvDB_ImageWideBanner tvBanner in allBanners)
                 {
-                    if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
-                    bool fileExists = File.Exists(tvBanner.FullImagePath);
+                    if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(tvBanner.GetFullImagePath());
 
                     int bannersAvailable = 0;
                     if (fanartCount.ContainsKey(tvBanner.SeriesID))
@@ -589,8 +589,8 @@ namespace Shoko.Server
 
             foreach (TvDB_Episode tvEpisode in RepoFactory.TvDB_Episode.GetAll())
             {
-                if (string.IsNullOrEmpty(tvEpisode.FullImagePath)) continue;
-                bool fileExists = File.Exists(tvEpisode.FullImagePath);
+                if (string.IsNullOrEmpty(tvEpisode.GetFullImagePath())) continue;
+                bool fileExists = File.Exists(tvEpisode.GetFullImagePath());
                 if (!fileExists)
                 {
                     CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvEpisode.TvDB_EpisodeID,
@@ -608,8 +608,8 @@ namespace Shoko.Server
                 IReadOnlyList<MovieDB_Poster> allPosters = RepoFactory.MovieDB_Poster.GetAll();
                 foreach (MovieDB_Poster moviePoster in allPosters)
                 {
-                    if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
-                    bool fileExists = File.Exists(moviePoster.FullImagePath);
+                    if (string.IsNullOrEmpty(moviePoster.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(moviePoster.GetFullImagePath());
 
                     if (fileExists)
                     {
@@ -622,8 +622,8 @@ namespace Shoko.Server
 
                 foreach (MovieDB_Poster moviePoster in allPosters)
                 {
-                    if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
-                    bool fileExists = File.Exists(moviePoster.FullImagePath);
+                    if (string.IsNullOrEmpty(moviePoster.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(moviePoster.GetFullImagePath());
 
                     int postersAvailable = 0;
                     if (postersCount.ContainsKey(moviePoster.MovieId))
@@ -653,8 +653,8 @@ namespace Shoko.Server
                 IReadOnlyList<MovieDB_Fanart> allFanarts = RepoFactory.MovieDB_Fanart.GetAll();
                 foreach (MovieDB_Fanart movieFanart in allFanarts)
                 {
-                    if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
-                    bool fileExists = File.Exists(movieFanart.FullImagePath);
+                    if (string.IsNullOrEmpty(movieFanart.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(movieFanart.GetFullImagePath());
 
                     if (fileExists)
                     {
@@ -667,8 +667,8 @@ namespace Shoko.Server
 
                 foreach (MovieDB_Fanart movieFanart in RepoFactory.MovieDB_Fanart.GetAll())
                 {
-                    if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
-                    bool fileExists = File.Exists(movieFanart.FullImagePath);
+                    if (string.IsNullOrEmpty(movieFanart.GetFullImagePath())) continue;
+                    bool fileExists = File.Exists(movieFanart.GetFullImagePath());
 
                     int fanartAvailable = 0;
                     if (fanartCount.ContainsKey(movieFanart.MovieId))
@@ -823,7 +823,7 @@ namespace Shoko.Server
 		        HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
 		        HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
 		        // get a full list of files
-		        Dictionary<SVR_ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
+		        Dictionary<SVR_ImportFolder, List<SVR_VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
 			        .Where(a => a.ImportFolder != null)
 			        .GroupBy(a => a.ImportFolder)
 			        .ToDictionary(a => a.Key, a => a.ToList());
@@ -831,7 +831,7 @@ namespace Shoko.Server
 		        {
 			        IFileSystem fs = folder.FileSystem;
 
-			        foreach (VideoLocal_Place vl in filesAll[folder])
+			        foreach (SVR_VideoLocal_Place vl in filesAll[folder])
 			        {
 				        FileSystemResult<IObject> obj = null;
 					        if(!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
@@ -841,13 +841,13 @@ namespace Shoko.Server
 			        }
 		        }
 
-		        IReadOnlyList<VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
-		        foreach (VideoLocal v in videoLocalsAll)
+		        IReadOnlyList<SVR_VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
+		        foreach (SVR_VideoLocal v in videoLocalsAll)
 		        {
-			        List<VideoLocal_Place> places = v.Places;
+			        List<SVR_VideoLocal_Place> places = v.Places;
 			        if (v.Places?.Count > 0)
 			        {
-				        foreach (VideoLocal_Place place in places)
+				        foreach (SVR_VideoLocal_Place place in places)
 				        {
 					        if (!string.IsNullOrWhiteSpace(place?.FullServerPath)) continue;
 					        logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
@@ -862,7 +862,7 @@ namespace Shoko.Server
 			        {
 				        places = places.DistinctBy(a => a.FullServerPath).ToList();
 				        places = v.Places?.Except(places).ToList();
-				        foreach (VideoLocal_Place place in places)
+				        foreach (SVR_VideoLocal_Place place in places)
 				        {
 					        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
 				        }
@@ -928,7 +928,7 @@ namespace Shoko.Server
                 // first delete all the files attached  to this import folder
                 Dictionary<int, SVR_AnimeSeries> affectedSeries = new Dictionary<int, SVR_AnimeSeries>();
 
-                foreach (VideoLocal_Place vid in RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID))
+                foreach (SVR_VideoLocal_Place vid in RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID))
                 {
                     //Thread.Sleep(5000);
                     logger.Info("Deleting video local record: {0}", vid.FullServerPath);
@@ -941,7 +941,7 @@ namespace Shoko.Server
                         if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
                             affectedSeries.Add(ser.AnimeSeriesID, ser);
                     }
-                    VideoLocal v = vid.VideoLocal;
+                    SVR_VideoLocal v = vid.VideoLocal;
                     // delete video local record
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v.Places.Count == 1)
@@ -1015,9 +1015,9 @@ namespace Shoko.Server
 
                 if (missingInfo)
                 {
-                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetByAniDBResolution("0x0");
+                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetByAniDBResolution("0x0");
 
-                    foreach (VideoLocal vid in vids)
+                    foreach (SVR_VideoLocal vid in vids)
                     {
                         if (!vidsToUpdate.Contains(vid.VideoLocalID))
                             vidsToUpdate.Add(vid.VideoLocalID);
@@ -1026,9 +1026,9 @@ namespace Shoko.Server
 
                 if (outOfDate)
                 {
-                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetByInternalVersion(1);
+                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetByInternalVersion(1);
 
-                    foreach (VideoLocal vid in vids)
+                    foreach (SVR_VideoLocal vid in vids)
                     {
                         if (!vidsToUpdate.Contains(vid.VideoLocalID))
                             vidsToUpdate.Add(vid.VideoLocalID);
@@ -1389,9 +1389,9 @@ namespace Shoko.Server
             UpdateAniDBFileData(true, false, false);
 
             // files which have been hashed, but don't have an associated episode
-            List<VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
-            foreach (VideoLocal vl in filesWithoutEpisode)
+            foreach (SVR_VideoLocal vl in filesWithoutEpisode)
             {
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
                 cmd.Save();
@@ -1414,15 +1414,15 @@ namespace Shoko.Server
         {
             try
             {
-                IReadOnlyList<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
-                IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+                IReadOnlyList<SVR_VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+                IReadOnlyList<SVR_VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
 
-                foreach (VideoLocal vl in filesAll)
+                foreach (SVR_VideoLocal vl in filesAll)
                 {
                     if (vl.IsIgnored == 0)
                     {
                         // Check if we have this file marked as previously ignored, matches only if it has the same hash
-                        List<VideoLocal> resultVideoLocalsIgnored = filesIgnored.Where(s => s.Hash == vl.Hash).ToList();
+                        List<SVR_VideoLocal> resultVideoLocalsIgnored = filesIgnored.Where(s => s.Hash == vl.Hash).ToList();
 
                         if (resultVideoLocalsIgnored.Any())
                         {

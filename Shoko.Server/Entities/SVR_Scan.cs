@@ -3,16 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Shoko.Models;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Entities
 {
-    public class Scan
+    public class SVR_Scan : Scan
     {
-        public int ScanID { get; private set; }
-        public DateTime CreationTIme { get; set; }
-        public string ImportFolders { get; set; }
-        public int Status { get; set; }
-
         public ScanStatus ScanStatus => (ScanStatus)Status;
 
         public string StatusText

@@ -29,7 +29,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetAll())
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll())
                 {
                     bool fixedHash = false;
                     if (vid.CRC32.Equals("00000000"))
@@ -62,17 +62,17 @@ namespace Shoko.Server.Databases
 
         public static void FixEmptyVideoInfos()
         {
-            List<VideoLocal> locals = RepoFactory.VideoLocal.GetAll().Where(a => string.IsNullOrEmpty(a.FileName)).ToList();
-            foreach (VideoLocal v in locals)
+            List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll().Where(a => string.IsNullOrEmpty(a.FileName)).ToList();
+            foreach (SVR_VideoLocal v in locals)
             {
-                VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
                 if (p != null && !string.IsNullOrEmpty(p.FilePath) && v.Media != null)
                 {
                     v.FileName = p.FilePath;
                     int a=p.FilePath.LastIndexOf("\\",StringComparison.InvariantCulture);
                     if (a > 0)
                         v.FileName = p.FilePath.Substring(a + 1);
-                    VideoLocal_Place.FillVideoInfoFromMedia(v,v.Media);
+                    SVR_VideoLocal_Place.FillVideoInfoFromMedia(v,v.Media);
                     RepoFactory.VideoLocal.Save(v,false);
                 }
             }

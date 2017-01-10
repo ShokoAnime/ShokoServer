@@ -1343,8 +1343,8 @@ namespace Shoko.Server
         {
 
             // first build a list of files that we already know about, as we don't want to process them again
-            IReadOnlyList<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
-            foreach (VideoLocal vl in filesAll)
+            IReadOnlyList<SVR_VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+            foreach (SVR_VideoLocal vl in filesAll)
             {
                 CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
                 cr.Save();
@@ -1402,10 +1402,10 @@ namespace Shoko.Server
                 // get a list of unlinked files
 
 
-                List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
-                foreach (VideoLocal vid in vids.Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                foreach (SVR_VideoLocal vid in vids.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
                     ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
                     workerMyAnime2.ReportProgress(0, ma2Progress);
@@ -3022,20 +3022,20 @@ namespace Shoko.Server
 
             double doubleAll = ts.TotalMilliseconds;
 
-            logger.Info("ED2K only took {0} ms --- {1}/{2}/{3}/{4}", doubleED2k, hashes.ed2k, hashes.crc32, hashes.md5,
-                hashes.sha1);
-            logger.Info("ED2K + CRCR32 took {0} ms --- {1}/{2}/{3}/{4}", doubleCRC32, hashes2.ed2k, hashes2.crc32,
-                hashes2.md5,
-                hashes2.sha1);
-            logger.Info("ED2K + MD5 took {0} ms --- {1}/{2}/{3}/{4}", doubleMD5, hashes3.ed2k, hashes3.crc32,
-                hashes3.md5,
-                hashes3.sha1);
-            logger.Info("ED2K + SHA1 took {0} ms --- {1}/{2}/{3}/{4}", doubleSHA1, hashes4.ed2k, hashes4.crc32,
-                hashes4.md5,
-                hashes4.sha1);
-            logger.Info("Everything took {0} ms --- {1}/{2}/{3}/{4}", doubleAll, hashes5.ed2k, hashes5.crc32,
-                hashes5.md5,
-                hashes5.sha1);
+            logger.Info("ED2K only took {0} ms --- {1}/{2}/{3}/{4}", doubleED2k, hashes.ED2K, hashes.CRC32, hashes.MD5,
+                hashes.SHA1);
+            logger.Info("ED2K + CRCR32 took {0} ms --- {1}/{2}/{3}/{4}", doubleCRC32, hashes2.ED2K, hashes2.CRC32,
+                hashes2.MD5,
+                hashes2.SHA1);
+            logger.Info("ED2K + MD5 took {0} ms --- {1}/{2}/{3}/{4}", doubleMD5, hashes3.ED2K, hashes3.CRC32,
+                hashes3.MD5,
+                hashes3.SHA1);
+            logger.Info("ED2K + SHA1 took {0} ms --- {1}/{2}/{3}/{4}", doubleSHA1, hashes4.ED2K, hashes4.CRC32,
+                hashes4.MD5,
+                hashes4.SHA1);
+            logger.Info("Everything took {0} ms --- {1}/{2}/{3}/{4}", doubleAll, hashes5.ED2K, hashes5.CRC32,
+                hashes5.MD5,
+                hashes5.SHA1);
         }
 
         private static void HashTest2()
@@ -3068,9 +3068,9 @@ namespace Shoko.Server
 
             double doubleFile3 = ts.TotalMilliseconds;
 
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize1, doubleFile1, hashes.ed2k);
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize2, doubleFile2, hashes2.ed2k);
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize3, doubleFile3, hashes3.ed2k);
+            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize1, doubleFile1, hashes.ED2K);
+            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize2, doubleFile2, hashes2.ED2K);
+            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize3, doubleFile3, hashes3.ED2K);
         }
 
         private static void UpdateStatsTest()

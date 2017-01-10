@@ -4,10 +4,12 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Mappings
 {
-    public class VideoLocal_PlaceMap : ClassMap<VideoLocal_Place>
+    public class VideoLocal_PlaceMap : ClassMap<SVR_VideoLocal_Place>
     {
         public VideoLocal_PlaceMap()
         {
+            Table("VideoLocal_Place");
+
             Not.LazyLoad();
             Id(x => x.VideoLocal_Place_ID);
             Map(x => x.VideoLocalID).Not.Nullable();

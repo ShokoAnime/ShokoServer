@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Globalization;
 using System.IO;
+using Shoko.Models.Client;
 using Shoko.Server.API.Model.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Entities;
@@ -193,7 +194,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         private object ImportConfig()
         {
-            Contract_ServerSettings settings = this.Bind();
+            CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
             string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
             File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);

@@ -8,6 +8,8 @@ namespace Shoko.Server.Mappings
     {
         public CrossRef_AniDB_TraktMap()
         {
+            Table("CrossRef_AniDB_Trakt");
+
             Not.LazyLoad();
             Id(x => x.CrossRef_AniDB_TraktID);
 

@@ -8,11 +8,11 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,int>
+    public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Place,int>
     {
-        private PocoIndex<int, VideoLocal_Place, int> VideoLocals;
-        private PocoIndex<int, VideoLocal_Place, int> ImportFolders;
-        private PocoIndex<int, VideoLocal_Place, string> Paths;
+        private PocoIndex<int, SVR_VideoLocal_Place, int> VideoLocals;
+        private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
+        private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
         private VideoLocal_PlaceRepository()
         {
@@ -24,31 +24,31 @@ namespace Shoko.Server.Repositories.Cached
             return new VideoLocal_PlaceRepository();
         }
 
-        protected override int SelectKey(VideoLocal_Place entity)
+        protected override int SelectKey(SVR_VideoLocal_Place entity)
         {
             return entity.VideoLocal_Place_ID;
         }
 
         public override void PopulateIndexes()
         {
-            VideoLocals = new PocoIndex<int, VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
-            ImportFolders = new PocoIndex<int, VideoLocal_Place, int>(Cache, a => a.ImportFolderID);
-            Paths = new PocoIndex<int, VideoLocal_Place, string>(Cache, a => a.FilePath);
+            VideoLocals = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
+            ImportFolders = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.ImportFolderID);
+            Paths = new PocoIndex<int, SVR_VideoLocal_Place, string>(Cache, a => a.FilePath);
         }
 
         public override void RegenerateDb()
         {
         }
 
-        public List<VideoLocal_Place> GetByImportFolder(int importFolderID)
+        public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
             return ImportFolders.GetMultiple(importFolderID);
         }
-        public VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
+        public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
         {
             return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
         }
-        public override void Delete(VideoLocal_Place obj)
+        public override void Delete(SVR_VideoLocal_Place obj)
         {
             base.Delete(obj);
             foreach (SVR_AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
@@ -59,7 +59,7 @@ namespace Shoko.Server.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Delete(IReadOnlyCollection<VideoLocal_Place> objs) { throw new NotSupportedException(); }
+        public override void Delete(IReadOnlyCollection<SVR_VideoLocal_Place> objs) { throw new NotSupportedException(); }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
@@ -91,7 +91,7 @@ namespace Shoko.Server.Repositories.Cached
             return null;
         }
 
-        public List<VideoLocal_Place> GetByVideoLocal(int videolocalid)
+        public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
         {
             return VideoLocals.GetMultiple(videolocalid);
         }

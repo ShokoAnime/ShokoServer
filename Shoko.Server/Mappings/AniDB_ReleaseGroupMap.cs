@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_ReleaseGroupMap()
         {
+            Table("AniDB_ReleaseGroup");
             Not.LazyLoad();
             Id(x => x.AniDB_ReleaseGroupID);
 

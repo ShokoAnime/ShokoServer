@@ -4,13 +4,13 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Mappings
 {
-    public class VideoLocalMap : ClassMap<VideoLocal>
+    public class VideoLocalMap : ClassMap<SVR_VideoLocal>
     {
         public VideoLocalMap()
         {
+            Table("VideoLocal");
             Not.LazyLoad();
             Id(x => x.VideoLocalID);
-
             Map(x => x.DateTimeUpdated).Not.Nullable();
             Map(x => x.DateTimeCreated).Not.Nullable();
             Map(x => x.FileName).Not.Nullable();

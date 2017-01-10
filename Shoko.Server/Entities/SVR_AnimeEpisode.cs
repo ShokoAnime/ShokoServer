@@ -101,7 +101,7 @@ namespace Shoko.Server.Entities
             return RepoFactory.AnimeSeries.GetByID(this.AnimeSeriesID);
         }
 
-        public List<VideoLocal> GetVideoLocals()
+        public List<SVR_VideoLocal> GetVideoLocals()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -109,7 +109,7 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public List<VideoLocal> GetVideoLocals(ISession session)
+        public List<SVR_VideoLocal> GetVideoLocals(ISession session)
         {
             return RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
@@ -170,16 +170,16 @@ namespace Shoko.Server.Entities
         }
 
 
-        public List<Contract_VideoDetailed> GetVideoDetailedContracts(int userID)
+        public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
         {
-            List<Contract_VideoDetailed> contracts = new List<Contract_VideoDetailed>();
+            List<CL_VideoDetailed> contracts = new List<CL_VideoDetailed>();
 
             // get all the cross refs
             foreach (SVR_CrossRef_File_Episode xref in FileCrossRefs)
             {
-                VideoLocal v=RepoFactory.VideoLocal.GetByHash(xref.Hash);
+                SVR_VideoLocal v=RepoFactory.VideoLocal.GetByHash(xref.Hash);
                 if (v != null)
-                    contracts.Add(v.ToContractDetailed(userID));
+                    contracts.Add(v.ToClientDetailed(userID));
             }
 
 
@@ -226,7 +226,7 @@ namespace Shoko.Server.Entities
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats,
             bool updateStatsCache, int userID, bool syncTrakt)
         {
-            foreach (VideoLocal vid in GetVideoLocals())
+            foreach (SVR_VideoLocal vid in GetVideoLocals())
             {
                 vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID,
                     syncTrakt, true);

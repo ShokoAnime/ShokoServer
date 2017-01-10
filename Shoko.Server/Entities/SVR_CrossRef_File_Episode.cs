@@ -19,7 +19,7 @@ namespace Shoko.Server.Entities
     {
 
 
-        public void PopulateManually(VideoLocal vid, SVR_AnimeEpisode ep)
+        public void PopulateManually(SVR_VideoLocal vid, SVR_AnimeEpisode ep)
         {
             Hash = vid.ED2KHash;
             FileName = vid.FileName;
@@ -43,7 +43,7 @@ namespace Shoko.Server.Entities
         public VideoLocal_User GetVideoLocalUserRecord(int userID)
         {
 
-            VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
+            SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
             if (vid != null)
             {
                 VideoLocal_User vidUser = vid.GetUserRecord(userID);

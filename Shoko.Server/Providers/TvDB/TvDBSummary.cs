@@ -6,7 +6,7 @@ using NLog;
 using Shoko.Server.Entities;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Providers.TvDB
+namespace Shoko.Models.TvDB
 {
     public class TvDBSummary
     {

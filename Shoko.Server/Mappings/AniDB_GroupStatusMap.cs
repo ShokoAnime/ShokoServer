@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public AniDB_GroupStatusMap()
         {
+            Table("AniDB_GroupStatus");
             Not.LazyLoad();
             Id(x => x.AniDB_GroupStatusID);
 

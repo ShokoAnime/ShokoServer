@@ -12,7 +12,7 @@ namespace Shoko.Server.FileHelper.Subtitles
 {
     public class TextSubtitles : ISubtitles
     {
-        public List<Stream> Process(VideoLocal_Place vplace)
+        public List<Stream> Process(SVR_VideoLocal_Place vplace)
         {
             string dirname = Path.GetDirectoryName(vplace.FullServerPath);
             string fname = Path.GetFileNameWithoutExtension(vplace.FilePath);

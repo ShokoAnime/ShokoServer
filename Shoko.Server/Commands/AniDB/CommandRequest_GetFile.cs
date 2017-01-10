@@ -19,7 +19,7 @@ namespace Shoko.Server.Commands
         public int VideoLocalID { get; set; }
         public bool ForceAniDB { get; set; }
 
-        private VideoLocal vlocal = null;
+        private SVR_VideoLocal vlocal = null;
 
         public CommandRequestPriority DefaultPriority
         {

@@ -65,7 +65,7 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestA(string test, VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestA(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -98,7 +98,7 @@ namespace Shoko.Server
         /// <param name="vid"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private static bool EvaluateTestG(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestG(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -207,7 +207,7 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestD(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestD(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -252,7 +252,7 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestS(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestS(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -301,7 +301,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestF(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestF(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -370,7 +370,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestZ(string test, VideoLocal vid)
+        private static bool EvaluateTestZ(string test, SVR_VideoLocal vid)
         {
             try
             {
@@ -440,7 +440,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestW(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestW(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -517,7 +517,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestU(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestU(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -594,7 +594,7 @@ namespace Shoko.Server
         }
 
 
-        private static bool EvaluateTestR(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestR(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -642,7 +642,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestC(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestC(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -691,7 +691,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestJ(string test, VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestJ(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -740,7 +740,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestT(string test, VideoLocal vid, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestT(string test, SVR_VideoLocal vid, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -786,7 +786,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestY(string test, VideoLocal vid, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestY(string test, SVR_VideoLocal vid, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -853,7 +853,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestE(string test, VideoLocal vid, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestE(string test, SVR_VideoLocal vid, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -920,7 +920,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestH(string test, VideoLocal vid, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestH(string test, SVR_VideoLocal vid, List<SVR_AniDB_Episode> episodes)
         {
             try
             {
@@ -1027,7 +1027,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestX(string test, VideoLocal vid, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestX(string test, SVR_VideoLocal vid, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -1101,7 +1101,7 @@ namespace Shoko.Server
         /// <param name="vid"></param>
         /// <param name="anime"></param>
         /// <returns></returns>
-        private static bool EvaluateTestI(string test, VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
+        private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
             try
@@ -1681,7 +1681,7 @@ namespace Shoko.Server
             }
         }
 
-        public static void Test(VideoLocal vid)
+        public static void Test(SVR_VideoLocal vid)
         {
             /*string testScript = "IF A(69),A(1),A(2) DO FAIL" + Environment.NewLine + //Do not rename file if it is Naruto
 				"DO ADD '%eng (%ann) - %enr - %epn '" + Environment.NewLine + //Add the base, same for all files
@@ -1719,7 +1719,7 @@ namespace Shoko.Server
             Debug.WriteLine(newName);
         }
 
-        public static string GetNewFileName(VideoLocal vid, string script)
+        public static string GetNewFileName(SVR_VideoLocal vid, string script)
         {
             string[] lines = script.Split(Environment.NewLine.ToCharArray());
 
@@ -1809,7 +1809,7 @@ namespace Shoko.Server
             return string.Format("{0}{1}", newFileName.Replace("`", "'"), Path.GetExtension(vid.FileName));
         }
 
-        private static void PerformActionOnFileName(ref string newFileName, string action, VideoLocal vid,
+        private static void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
             SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // find the first test
@@ -1836,7 +1836,7 @@ namespace Shoko.Server
             }
         }
 
-        private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, VideoLocal vid,
+        private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, SVR_VideoLocal vid,
             SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             try
@@ -1867,7 +1867,7 @@ namespace Shoko.Server
             }
         }
 
-        private static void PerformActionOnFileNameADD(ref string newFileName, string action, VideoLocal vid,
+        private static void PerformActionOnFileNameADD(ref string newFileName, string action, SVR_VideoLocal vid,
             SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // TODO Remove illegal characters
@@ -2301,7 +2301,7 @@ namespace Shoko.Server
             return action;
         }
 
-        private static bool EvaluateTest(string line, VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
+        private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
             line = line.Trim();
@@ -2381,7 +2381,7 @@ namespace Shoko.Server
             return false;
         }
 
-        private static bool EvaluateTest(char testChar, string testCondition, VideoLocal vid, SVR_AniDB_File aniFile,
+        private static bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
             List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             testCondition = testCondition.Trim();
@@ -2431,7 +2431,7 @@ namespace Shoko.Server
             return false;
         }
 
-        public static string GetNewFileName(VideoLocal vid)
+        public static string GetNewFileName(SVR_VideoLocal vid)
         {
             try
             {

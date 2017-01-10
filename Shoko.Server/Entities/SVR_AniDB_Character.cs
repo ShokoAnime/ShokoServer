@@ -4,6 +4,7 @@ using AniDBAPI;
 using NHibernate;
 using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
@@ -82,9 +83,9 @@ namespace Shoko.Server.Entities
             return ToClient(charType, seiyuu);
         }
 
-        public MetroContract_AniDB_Character ToContractMetro(ISession session, SVR_AniDB_Anime_Character charRel)
+        public Metro_AniDB_Character ToContractMetro(ISession session, SVR_AniDB_Anime_Character charRel)
         {
-            MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
+            Metro_AniDB_Character contract = new Metro_AniDB_Character();
 
             contract.AniDB_CharacterID = this.AniDB_CharacterID;
             contract.CharID = this.CharID;

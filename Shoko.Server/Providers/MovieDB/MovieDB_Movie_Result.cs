@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Shoko.Models;
 using NLog;
+using Shoko.Models.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
 
@@ -67,14 +68,14 @@ namespace Shoko.Server.Providers.MovieDB
             return true;
         }
 
-        public Contract_MovieDBMovieSearchResult ToContract()
+        public CL_MovieDBMovieSearch_Response ToContract()
         {
-            Contract_MovieDBMovieSearchResult contract = new Contract_MovieDBMovieSearchResult();
-            contract.MovieID = this.MovieID;
-            contract.MovieName = this.MovieName;
-            contract.OriginalName = this.OriginalName;
-            contract.Overview = this.Overview;
-            return contract;
+            CL_MovieDBMovieSearch_Response cl = new CL_MovieDBMovieSearch_Response();
+            cl.MovieID = this.MovieID;
+            cl.MovieName = this.MovieName;
+            cl.OriginalName = this.OriginalName;
+            cl.Overview = this.Overview;
+            return cl;
         }
     }
 }

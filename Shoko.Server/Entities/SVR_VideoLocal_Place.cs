@@ -10,7 +10,9 @@ using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models;
+using Shoko.Models.Client;
 using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper.MediaInfo;
@@ -23,13 +25,9 @@ using Media = Shoko.Models.PlexAndKodi.Media;
 
 namespace Shoko.Server.Entities
 {
-    public class VideoLocal_Place
+    public class SVR_VideoLocal_Place : VideoLocal_Place
     {
-        public int VideoLocal_Place_ID { get; private set; }
-        public int VideoLocalID { get; set; }
-        public string FilePath { get; set; }
-        public int ImportFolderID { get; set; }
-        public int ImportFolderType { get; set; }
+
 
         public SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
@@ -42,7 +40,7 @@ namespace Shoko.Server.Entities
 		    }
 	    }
 
-        public VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -117,7 +115,7 @@ namespace Shoko.Server.Entities
 		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
 		    List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
 		    List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
-		    VideoLocal v = VideoLocal;
+		    SVR_VideoLocal v = VideoLocal;
 		    using (var session = DatabaseFactory.SessionFactory.OpenSession())
 		    {
 			    if (v.Places.Count <= 1)
@@ -167,7 +165,7 @@ namespace Shoko.Server.Entities
 		    ICollection<SVR_AnimeSeries> seriesToUpdate)
 	    {
 		    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
-		    VideoLocal v = VideoLocal;
+		    SVR_VideoLocal v = VideoLocal;
 		    if (v.Places.Count <= 1)
 		    {
 			    v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
@@ -197,7 +195,7 @@ namespace Shoko.Server.Entities
             return fobj.Result as IFile;
         }
 
-        public static void FillVideoInfoFromMedia(VideoLocal info, Media m)
+        public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
         {
             info.VideoResolution = (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
                       ? m.Width + "x" + m.Height
@@ -265,7 +263,7 @@ namespace Shoko.Server.Entities
 
                 if (m != null)
                 {
-                    VideoLocal info = VideoLocal;
+                    SVR_VideoLocal info = VideoLocal;
                     FillVideoInfoFromMedia(info, m);
 
                     m.Id = VideoLocalID.ToString();
@@ -419,11 +417,11 @@ namespace Shoko.Server.Entities
                     }
                     if (crossOver) continue;
 
-                    foreach (VideoLocal vid in ep.GetVideoLocals().Where(a => a.Places.Any(b=>b.ImportFolder.CloudID == destFolder.CloudID && b.ImportFolder.IsDropSource==0)))
+                    foreach (SVR_VideoLocal vid in ep.GetVideoLocals().Where(a => a.Places.Any(b=>b.ImportFolder.CloudID == destFolder.CloudID && b.ImportFolder.IsDropSource==0)))
                     {
                         if (vid.VideoLocalID != this.VideoLocalID)
                         {
-                            VideoLocal_Place place=vid.Places.FirstOrDefault(a=>a.ImportFolder.CloudID==destFolder.CloudID);
+                            SVR_VideoLocal_Place place=vid.Places.FirstOrDefault(a=>a.ImportFolder.CloudID==destFolder.CloudID);
                             string thisFileName = place?.FullServerPath;
                             string folderName = Path.GetDirectoryName(thisFileName);
 
@@ -582,9 +580,9 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public Contract_VideoLocal_Place ToContract()
+        public CL_VideoLocal_Place ToContract()
         {
-            Contract_VideoLocal_Place v = new Contract_VideoLocal_Place
+            CL_VideoLocal_Place v = new CL_VideoLocal_Place
             {
                 FilePath = FilePath,
                 ImportFolderID = ImportFolderID,

@@ -39,7 +39,7 @@ namespace Shoko.Server.API.Model.common
 
         }
 
-        public RawFile(VideoLocal vl, int level, int uid)
+        public RawFile(SVR_VideoLocal vl, int level, int uid)
         {
             if (vl != null)
             {

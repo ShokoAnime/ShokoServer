@@ -862,7 +862,7 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     // get the the first file that was added to this episode
                     DateTime? thisDate = null;
-                    foreach (VideoLocal vid in ep.GetVideoLocals())
+                    foreach (SVR_VideoLocal vid in ep.GetVideoLocals())
                     {
                         if (!thisDate.HasValue)
                             thisDate = vid.DateTimeCreated;

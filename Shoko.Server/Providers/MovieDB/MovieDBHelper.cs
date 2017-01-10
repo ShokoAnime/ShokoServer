@@ -78,7 +78,7 @@ namespace Shoko.Server.Providers.MovieDB
                     poster.Populate(img, movie.MovieId);
                     RepoFactory.MovieDB_Poster.Save(poster);
 
-                    if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
+                    if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath()))
                         numPostersDownloaded++;
                 }
                 else
@@ -89,7 +89,7 @@ namespace Shoko.Server.Providers.MovieDB
                     fanart.Populate(img, movie.MovieId);
                     RepoFactory.MovieDB_Fanart.Save(fanart);
 
-                    if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
+                    if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
                         numFanartDownloaded++;
                 }
             }
@@ -103,7 +103,7 @@ namespace Shoko.Server.Providers.MovieDB
                     if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
                         // download the image
-                        if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
+                        if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && !File.Exists(poster.GetFullImagePath()))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
                                 JMMImageType.MovieDB_Poster, false);
@@ -116,7 +116,7 @@ namespace Shoko.Server.Providers.MovieDB
                         //The MovieDB_AutoPostersAmount should prevent from saving image info without image
                         // we should clean those image that we didn't download because those dont exists in local repo
                         // first we check if file was downloaded
-                        if (!File.Exists(poster.FullImagePath))
+                        if (!File.Exists(poster.GetFullImagePath()))
                         {
                             RepoFactory.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
                         }
@@ -133,7 +133,7 @@ namespace Shoko.Server.Providers.MovieDB
                     if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {
                         // download the image
-                        if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
+                        if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && !File.Exists(fanart.GetFullImagePath()))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
                                 JMMImageType.MovieDB_FanArt, false);
@@ -146,7 +146,7 @@ namespace Shoko.Server.Providers.MovieDB
                         //The MovieDB_AutoFanartAmount should prevent from saving image info without image
                         // we should clean those image that we didn't download because those dont exists in local repo
                         // first we check if file was downloaded
-                        if (!File.Exists(fanart.FullImagePath))
+                        if (!File.Exists(fanart.GetFullImagePath()))
                         {
                             RepoFactory.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
                         }

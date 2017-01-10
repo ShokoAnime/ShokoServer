@@ -8,6 +8,7 @@ namespace Shoko.Server.Mappings
     {
         public ImportFolderMap()
         {
+            Table("ImportFolder");
             Not.LazyLoad();
             Id(x => x.ImportFolderID);
 

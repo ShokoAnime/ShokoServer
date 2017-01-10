@@ -12,12 +12,12 @@ using Shoko.Server.Entities;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class VideoLocalRepository : BaseCachedRepository<VideoLocal,int>
+    public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal,int>
     {
-        private PocoIndex<int, VideoLocal, string> Hashes;
-        private PocoIndex<int, VideoLocal, string> SHA1;
-        private PocoIndex<int, VideoLocal, string> MD5;
-        private PocoIndex<int, VideoLocal, int> Ignored;
+        private PocoIndex<int, SVR_VideoLocal, string> Hashes;
+        private PocoIndex<int, SVR_VideoLocal, string> SHA1;
+        private PocoIndex<int, SVR_VideoLocal, string> MD5;
+        private PocoIndex<int, SVR_VideoLocal, int> Ignored;
 
         private VideoLocalRepository()
         {
@@ -33,7 +33,7 @@ namespace Shoko.Server.Repositories.Cached
             return new VideoLocalRepository();
         }
 
-        protected override int SelectKey(VideoLocal entity)
+        protected override int SelectKey(SVR_VideoLocal entity)
         {
             return entity.VideoLocalID;
         }
@@ -41,7 +41,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PopulateIndexes()
         {
             //Fix null hashes
-            foreach (VideoLocal l in Cache.Values)
+            foreach (SVR_VideoLocal l in Cache.Values)
             {
                 if (l.MD5 == null || l.SHA1 == null || l.Hash == null || l.FileName == null)
                 {
@@ -56,15 +56,15 @@ namespace Shoko.Server.Repositories.Cached
                         l.FileName = string.Empty;
                 }
             }
-            Hashes = new PocoIndex<int, VideoLocal, string>(Cache, a => a.Hash);
-            SHA1 = new PocoIndex<int, VideoLocal, string>(Cache, a => a.SHA1);
-            MD5 = new PocoIndex<int, VideoLocal, string>(Cache, a => a.MD5);
-            Ignored = new PocoIndex<int, VideoLocal, int>(Cache, a => a.IsIgnored);
+            Hashes = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
+            SHA1 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.SHA1);
+            MD5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
+            Ignored = new PocoIndex<int, SVR_VideoLocal, int>(Cache, a => a.IsIgnored);
         }
 
         public override void RegenerateDb()
         {
-            RegenerateDb(Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(),a=>
+            RegenerateDb(Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(),a=>
             {
                 //Fix possible paths in filename
                 if (!string.IsNullOrEmpty(a.FileName))
@@ -85,21 +85,21 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-        public List<VideoLocal> GetByImportFolder(int importFolderID)
+        public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
         {
             return RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID).Select(a=>a.VideoLocal).Where(a=>a!=null).Distinct().ToList();
         }
 
-        private void UpdateMediaContracts(VideoLocal obj)
+        private void UpdateMediaContracts(SVR_VideoLocal obj)
         {
-            if (obj.Media == null || obj.MediaVersion < VideoLocal.MEDIA_VERSION || obj.Duration==0)
+            if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || obj.Duration==0)
             {
-                VideoLocal_Place place = obj.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace();
                 place?.RefreshMediaInfo();
             }
         }
 
-        public override void Delete(VideoLocal obj)
+        public override void Delete(SVR_VideoLocal obj)
         {
 	        List<SVR_AnimeEpisode> list = obj.GetAnimeEpisodes();
 	        base.Delete(obj);
@@ -108,7 +108,7 @@ namespace Shoko.Server.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Delete(IReadOnlyCollection<VideoLocal> objs) { throw new NotSupportedException(); }
+        public override void Delete(IReadOnlyCollection<SVR_VideoLocal> objs) { throw new NotSupportedException(); }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
@@ -117,13 +117,13 @@ namespace Shoko.Server.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(VideoLocal obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_VideoLocal obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<VideoLocal> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_VideoLocal> objs) { throw new NotSupportedException(); }
 
 
-        public void Save(VideoLocal obj, bool updateEpisodes)
+        public void Save(SVR_VideoLocal obj, bool updateEpisodes)
         {
             lock (obj)
             {
@@ -145,16 +145,16 @@ namespace Shoko.Server.Repositories.Cached
         }
 
         
-        public VideoLocal GetByHash(string hash)
+        public SVR_VideoLocal GetByHash(string hash)
         {
             return Hashes.GetOne(hash);
         }
 
-        public VideoLocal GetByMD5(string hash)
+        public SVR_VideoLocal GetByMD5(string hash)
         {
             return MD5.GetOne(hash);
         }
-        public VideoLocal GetBySHA1(string hash)
+        public SVR_VideoLocal GetBySHA1(string hash)
         {
             return SHA1.GetOne(hash);
         }
@@ -163,12 +163,12 @@ namespace Shoko.Server.Repositories.Cached
             return Cache.Keys.Count;
         }
 
-        public VideoLocal GetByHashAndSize(string hash, long fsize)
+        public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
         {
             return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
         }
 
-        public List<VideoLocal> GetByName(string fileName)
+        public List<SVR_VideoLocal> GetByName(string fileName)
         {
             //return Paths.GetMultiple(fileName);
             //return Cache.Values.Where(store => store.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)).ToList();
@@ -176,17 +176,17 @@ namespace Shoko.Server.Repositories.Cached
             return Cache.Values.Where(p => p.Places.Any(a=>CultureInfo.CurrentCulture.CompareInfo.IndexOf(a.FilePath, fileName, CompareOptions.IgnoreCase) >= 0)).ToList();
         }
 
-        public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
+        public List<SVR_VideoLocal> GetMostRecentlyAdded(int maxResults)
         {
 	        if (maxResults == -1)
 		        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList();
 	        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
         }
 
-        public List<VideoLocal> GetRandomFiles(int maxResults)
+        public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
         {
             IEnumerator<int> en = new UniqueRandoms(0, Cache.Values.Count - 1).GetEnumerator();
-            List<VideoLocal> vids = new List<VideoLocal>();
+            List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
             if (maxResults > Cache.Values.Count)
                 maxResults = Cache.Values.Count;
             for (int x = 0; x < maxResults; x++)
@@ -237,7 +237,7 @@ namespace Shoko.Server.Repositories.Cached
         /// <param name="animeEpisodeID"></param>
         /// <returns></returns>
         /// 
-        public List<VideoLocal> GetByAniDBEpisodeID(int episodeID)
+        public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID)
         {
             return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
             /*
@@ -250,7 +250,7 @@ namespace Shoko.Server.Repositories.Cached
 
 
 
-        public List<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
+        public List<SVR_VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
         {
             return
                 RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
@@ -269,7 +269,7 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-        public List<VideoLocal> GetByAniDBResolution(string res)
+        public List<SVR_VideoLocal> GetByAniDBResolution(string res)
         {
             return RepoFactory.AniDB_File.GetByResolution(res).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
             /*
@@ -283,7 +283,7 @@ namespace Shoko.Server.Repositories.Cached
             }*/
         }
 
-        public List<VideoLocal> GetByInternalVersion(int iver)
+        public List<SVR_VideoLocal> GetByInternalVersion(int iver)
         {
             return RepoFactory.AniDB_File.GetByInternalVersion(iver).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
             /*
@@ -302,7 +302,7 @@ namespace Shoko.Server.Repositories.Cached
         /// </summary>
         /// <param name="animeEpisodeID"></param>
         /// <returns></returns>
-        public List<VideoLocal> GetByAniDBAnimeID(int animeID)
+        public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID)
         {
             return
              RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
@@ -330,15 +330,15 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
         */
-        public List<VideoLocal> GetVideosWithoutHash()
+        public List<SVR_VideoLocal> GetVideosWithoutHash()
         {
             return Hashes.GetMultiple("").ToList();
         }
-        public List<VideoLocal> GetVideosWithoutVideoInfo()
+        public List<SVR_VideoLocal> GetVideosWithoutVideoInfo()
         {
-            return Cache.Values.Where(a => a.Media == null || a.MediaVersion < VideoLocal.MEDIA_VERSION || a.Duration==0).ToList();
+            return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.Duration==0).ToList();
         }
-        public List<VideoLocal> GetVideosWithoutEpisode()
+        public List<SVR_VideoLocal> GetVideosWithoutEpisode()
         {
             HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
             HashSet<string> vlocals=new HashSet<string>(Cache.Values.Where(a=>a.IsIgnored==0).Select(a=>a.Hash));
@@ -377,7 +377,7 @@ namespace Shoko.Server.Repositories.Cached
         //return ret.SelectMany(a => Hashes.GetMultiple(a)).OrderBy(a => a.DateTimeCreated).ToList();
         //}
 
-        public List<VideoLocal> GetManuallyLinkedVideos()
+        public List<SVR_VideoLocal> GetManuallyLinkedVideos()
         {
             return
                 RepoFactory.CrossRef_File_Episode.GetAll()
@@ -400,7 +400,7 @@ namespace Shoko.Server.Repositories.Cached
             }*/
         }
 
-        public List<VideoLocal> GetIgnoredVideos()
+        public List<SVR_VideoLocal> GetIgnoredVideos()
         {
             return Ignored.GetMultiple(1);
         }

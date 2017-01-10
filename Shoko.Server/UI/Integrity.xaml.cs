@@ -41,7 +41,7 @@ namespace Shoko.Server.UI
         private void ComboProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (comboProvider.SelectedItem!=null)
-                Scanner.Instance.ActiveScan = (Scan)comboProvider.SelectedItem;
+                Scanner.Instance.ActiveScan = (SVR_Scan)comboProvider.SelectedItem;
         }
 
         private void BtnResumeClick(object sender, RoutedEventArgs e)
@@ -77,15 +77,15 @@ namespace Shoko.Server.UI
             {
                 this.IsEnabled = false;
                 Cursor = Cursors.Wait;
-                Scan s = frm.SelectedScan;
+                SVR_Scan s = frm.SelectedScan;
                 HashSet<int> imp=new HashSet<int>(s.ImportFolderList);
-                List<VideoLocal> vl=imp.SelectMany(a=>RepoFactory.VideoLocal.GetByImportFolder(a)).Distinct().ToList();
-                List<ScanFile> files=new List<ScanFile>();
-                foreach (VideoLocal v in vl)
+                List<SVR_VideoLocal> vl=imp.SelectMany(a=>RepoFactory.VideoLocal.GetByImportFolder(a)).Distinct().ToList();
+                List<SVR_ScanFile> files=new List<SVR_ScanFile>();
+                foreach (SVR_VideoLocal v in vl)
                 {
-                    foreach (VideoLocal_Place p in v.Places.Where(a => imp.Contains(a.ImportFolderID)))
+                    foreach (SVR_VideoLocal_Place p in v.Places.Where(a => imp.Contains(a.ImportFolderID)))
                     {
-                        ScanFile sfile=new ScanFile();
+                        SVR_ScanFile sfile=new SVR_ScanFile();
                         sfile.Hash = v.ED2KHash;
                         sfile.FileSize = v.FileSize;
                         sfile.FullName = p.FullServerPath;
@@ -116,7 +116,7 @@ namespace Shoko.Server.UI
         }
         private void BtnReAddAll_Click(object sender, RoutedEventArgs e)
         {
-            Scan scan = Scanner.Instance.ActiveScan;
+            SVR_Scan scan = Scanner.Instance.ActiveScan;
             if ((scan != null) && (Scanner.Instance.ActiveErrorFiles.Count>0))
             {
                 if (scan.ScanStatus == ScanStatus.Running)
@@ -129,7 +129,7 @@ namespace Shoko.Server.UI
                     scan.Status = (int)ScanStatus.Standby;
                     RepoFactory.Scan.Save(scan);
                 }
-                List<ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
+                List<SVR_ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
                 Scanner.Instance.ActiveErrorFiles.Clear();
                 files.ForEach(a =>
                 {
@@ -142,8 +142,8 @@ namespace Shoko.Server.UI
 
         private void Add_Click(object sender, RoutedEventArgs e)
         {
-            ScanFile item = (ScanFile)(sender as Button).DataContext;
-            Scan scan = Scanner.Instance.ActiveScan;
+            SVR_ScanFile item = (SVR_ScanFile)(sender as Button).DataContext;
+            SVR_Scan scan = Scanner.Instance.ActiveScan;
             if (scan != null && scan.ScanID == item.ScanID)
             {
                 if (scan.ScanStatus == ScanStatus.Running)

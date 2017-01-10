@@ -12,13 +12,14 @@ using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Entities;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
-using Shoko.Server.Providers.TvDB;
+using Shoko.Models.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -28,9 +29,9 @@ namespace Shoko.Server
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public Contract_ServerStatus GetServerStatus()
+        public CL_ServerStatus GetServerStatus()
         {
-            Contract_ServerStatus contract = new Contract_ServerStatus();
+            CL_ServerStatus contract = new CL_ServerStatus();
 
             try
             {
@@ -59,9 +60,9 @@ namespace Shoko.Server
             return contract;
         }
 
-        public Contract_ServerSettings GetServerSettings()
+        public CL_ServerSettings GetServerSettings()
         {
-            Contract_ServerSettings contract = new Contract_ServerSettings();
+            CL_ServerSettings contract = new CL_ServerSettings();
 
             try
             {
@@ -79,9 +80,9 @@ namespace Shoko.Server
             return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler, ref returnMessage);
         }
 
-        public MetroContract_CommunityLinks GetCommunityLinks(int animeID)
+        public Metro_CommunityLinks GetCommunityLinks(int animeID)
         {
-            MetroContract_CommunityLinks contract = new MetroContract_CommunityLinks();
+            Metro_CommunityLinks contract = new Metro_CommunityLinks();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -202,7 +203,7 @@ namespace Shoko.Server
                         if (!user.AllowedSeries(session, ser)) continue;
 
 
-                        List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                        List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
                         List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
@@ -228,9 +229,9 @@ namespace Shoko.Server
             return retEps;
         }
 
-        public List<MetroContract_Anime_Summary> GetAnimeWithNewEpisodes(int maxRecords, int jmmuserID)
+        public List<Metro_Anime_Summary> GetAnimeWithNewEpisodes(int maxRecords, int jmmuserID)
         {
-            List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+            List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -260,7 +261,7 @@ namespace Shoko.Server
 
                         SVR_AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
 
-                        List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                        List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
                         List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
@@ -271,7 +272,7 @@ namespace Shoko.Server
                         {
                             SVR_AniDB_Anime anidb_anime = ser.GetAnime();
 
-                            MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                            Metro_Anime_Summary summ = new Metro_Anime_Summary();
                             summ.AnimeID = ser.AniDB_ID;
                             summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
@@ -304,9 +305,9 @@ namespace Shoko.Server
             return retAnime;
         }
 
-        public List<MetroContract_Anime_Summary> GetAnimeContinueWatching_old(int maxRecords, int jmmuserID)
+        public List<Metro_Anime_Summary> GetAnimeContinueWatching_old(int maxRecords, int jmmuserID)
         {
-            List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+            List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -348,7 +349,7 @@ namespace Shoko.Server
                         {
                             SVR_AniDB_Anime anidb_anime = series.GetAnime();
 
-                            MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                            Metro_Anime_Summary summ = new Metro_Anime_Summary();
                             summ.AnimeID = series.AniDB_ID;
                             summ.AnimeName = series.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = series.AnimeSeriesID;
@@ -388,9 +389,9 @@ namespace Shoko.Server
             return retAnime;
         }
 
-        public List<MetroContract_Anime_Summary> GetAnimeContinueWatching(int maxRecords, int jmmuserID)
+        public List<Metro_Anime_Summary> GetAnimeContinueWatching(int maxRecords, int jmmuserID)
         {
-            List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+            List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -438,7 +439,7 @@ namespace Shoko.Server
                             {
                                 SVR_AniDB_Anime anidb_anime = ser.GetAnime();
 
-                                MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                                Metro_Anime_Summary summ = new Metro_Anime_Summary();
                                 summ.AnimeID = ser.AniDB_ID;
                                 summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                                 summ.AnimeSeriesID = ser.AnimeSeriesID;
@@ -476,10 +477,10 @@ namespace Shoko.Server
             return retAnime;
         }
 
-        public List<MetroContract_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs,
+        public List<Metro_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs,
             int maxRecords)
         {
-            List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+            List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -500,7 +501,7 @@ namespace Shoko.Server
 
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
-                        MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
 
                         summ.AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds();
                         summ.AnimeID = anidb_anime.AnimeID;
@@ -535,9 +536,9 @@ namespace Shoko.Server
             return retAnime;
         }
 
-        public List<MetroContract_Anime_Summary> SearchAnime(int jmmuserID, string queryText, int maxRecords)
+        public List<Metro_Anime_Summary> SearchAnime(int jmmuserID, string queryText, int maxRecords)
         {
-            List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+            List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -557,7 +558,7 @@ namespace Shoko.Server
 
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
-                        MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
 
                         summ.AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds();
                         summ.AnimeID = anidb_anime.AnimeID;
@@ -592,7 +593,7 @@ namespace Shoko.Server
             return retAnime;
         }
 
-        public MetroContract_Anime_Detail GetAnimeDetail(int animeID, int jmmuserID, int maxEpisodeRecords)
+        public Metro_Anime_Detail GetAnimeDetail(int animeID, int jmmuserID, int maxEpisodeRecords)
         {
             try
             {
@@ -606,7 +607,7 @@ namespace Shoko.Server
 
                     SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
-                    MetroContract_Anime_Detail ret = new MetroContract_Anime_Detail();
+                    Metro_Anime_Detail ret = new Metro_Anime_Detail();
                     ret.AnimeID = anime.AnimeID;
 
                     if (ser != null)
@@ -651,7 +652,7 @@ namespace Shoko.Server
                     ret.TotalVotes = anime.GetAniDBTotalVotes();
                     ret.AllTags = anime.TagsString;
 
-                    ret.NextEpisodesToWatch = new List<MetroContract_Anime_Episode>();
+                    ret.NextEpisodesToWatch = new List<Metro_Anime_Episode>();
                     if (ser != null)
                     {
                         SVR_AnimeSeries_User serUserRec = ser.GetUserRecord(jmmuserID);
@@ -734,7 +735,7 @@ namespace Shoko.Server
                                     int fileCount = epFresh.GetVideoLocals(session).Count;
                                     if (fileCount > 0)
                                     {
-                                        MetroContract_Anime_Episode contract = new MetroContract_Anime_Episode();
+                                        Metro_Anime_Episode contract = new Metro_Anime_Episode();
                                         contract.AnimeEpisodeID = epFresh.AnimeEpisodeID;
                                         contract.LocalFileCount = fileCount;
 
@@ -776,7 +777,7 @@ namespace Shoko.Server
             }
         }
 
-        public MetroContract_Anime_Summary GetAnimeSummary(int animeID)
+        public Metro_Anime_Summary GetAnimeSummary(int animeID)
         {
             try
             {
@@ -789,7 +790,7 @@ namespace Shoko.Server
 
                     SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
-                    MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                    Metro_Anime_Summary summ = new Metro_Anime_Summary();
                     summ.AnimeID = anime.AnimeID;
                     summ.AnimeName = anime.MainTitle;
                     summ.AnimeSeriesID = 0;
@@ -819,7 +820,7 @@ namespace Shoko.Server
             return null;
         }
 
-        public static void SetTvDBInfo(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
             TvDBSummary tvSummary = new TvDBSummary();
             tvSummary.Populate(anime.AnimeID);
@@ -827,7 +828,7 @@ namespace Shoko.Server
             SetTvDBInfo(tvSummary, ep, ref contract);
         }
 
-        public static void SetTvDBInfo(int anidbid, SVR_AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(int anidbid, SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
             TvDBSummary tvSummary = new TvDBSummary();
             tvSummary.Populate(anidbid);
@@ -835,7 +836,7 @@ namespace Shoko.Server
             SetTvDBInfo(tvSummary, ep, ref contract);
         }
 
-        public static void SetTvDBInfo(TvDBSummary tvSummary, SVR_AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(TvDBSummary tvSummary, SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
             #region episode override
 
@@ -851,7 +852,7 @@ namespace Shoko.Server
                         else
                             contract.EpisodeOverview = tvep.Overview;
 
-                        if (string.IsNullOrEmpty(tvep.FullImagePath) || !File.Exists(tvep.FullImagePath))
+                        if (string.IsNullOrEmpty(tvep.GetFullImagePath()) || !File.Exists(tvep.GetFullImagePath()))
                         {
                             contract.ImageType = 0;
                             contract.ImageID = 0;
@@ -927,7 +928,7 @@ namespace Shoko.Server
                                 else
                                     contract.EpisodeOverview = tvep.Overview;
 
-                                if (string.IsNullOrEmpty(tvep.FullImagePath) || !File.Exists(tvep.FullImagePath))
+                                if (string.IsNullOrEmpty(tvep.GetFullImagePath()) || !File.Exists(tvep.GetFullImagePath()))
                                 {
                                     contract.ImageType = 0;
                                     contract.ImageID = 0;
@@ -999,7 +1000,7 @@ namespace Shoko.Server
                                 TvDB_Episode tvep = dictTvDBEpisodes[episodeNumber];
                                 contract.EpisodeOverview = tvep.Overview;
 
-                                if (string.IsNullOrEmpty(tvep.FullImagePath) || !File.Exists(tvep.FullImagePath))
+                                if (string.IsNullOrEmpty(tvep.GetFullImagePath()) || !File.Exists(tvep.GetFullImagePath()))
                                 {
                                     contract.ImageType = 0;
                                     contract.ImageID = 0;
@@ -1022,9 +1023,9 @@ namespace Shoko.Server
             #endregion
         }
 
-        public List<MetroContract_AniDB_Character> GetCharactersForAnime(int animeID, int maxRecords)
+        public List<Metro_AniDB_Character> GetCharactersForAnime(int animeID, int maxRecords)
         {
-            List<MetroContract_AniDB_Character> chars = new List<MetroContract_AniDB_Character>();
+            List<Metro_AniDB_Character> chars = new List<Metro_AniDB_Character>();
 
             try
             {
@@ -1049,7 +1050,7 @@ namespace Shoko.Server
                         SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
                         if (chr != null)
                         {
-                            MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
+                            Metro_AniDB_Character contract = new Metro_AniDB_Character();
                             chars.Add(chr.ToContractMetro(session, animeChar));
                         }
 
@@ -1069,7 +1070,7 @@ namespace Shoko.Server
                         SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
                         if (chr != null)
                         {
-                            MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
+                            Metro_AniDB_Character contract = new Metro_AniDB_Character();
                             chars.Add(chr.ToContractMetro(session, animeChar));
                         }
 
@@ -1084,9 +1085,9 @@ namespace Shoko.Server
             return chars;
         }
 
-        public List<MetroContract_Comment> GetTraktCommentsForAnime(int animeID, int maxRecords)
+        public List<Metro_Comment> GetTraktCommentsForAnime(int animeID, int maxRecords)
         {
-            List<MetroContract_Comment> comments = new List<MetroContract_Comment>();
+            List<Metro_Comment> comments = new List<Metro_Comment>();
 
             try
             {
@@ -1100,12 +1101,12 @@ namespace Shoko.Server
                     int cnt = 0;
                     foreach (TraktV2Comment sht in commentsTemp)
                     {
-                        MetroContract_Comment comment = new MetroContract_Comment();
+                        Metro_Comment comment = new Metro_Comment();
 
                         Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(session, sht.user.username);
 
                         // user details
-                        Contract_Trakt_User user = new Contract_Trakt_User();
+                        CL_Trakt_User user = new CL_Trakt_User();
                         if (traktFriend == null)
                             comment.UserID = 0;
                         else
@@ -1137,9 +1138,9 @@ namespace Shoko.Server
             return comments;
         }
 
-        public List<MetroContract_Comment> GetAniDBRecommendationsForAnime(int animeID, int maxRecords)
+        public List<Metro_Comment> GetAniDBRecommendationsForAnime(int animeID, int maxRecords)
         {
-            List<MetroContract_Comment> contracts = new List<MetroContract_Comment>();
+            List<Metro_Comment> contracts = new List<Metro_Comment>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -1149,7 +1150,7 @@ namespace Shoko.Server
                     int cnt = 0;
                     foreach (SVR_AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(sessionWrapper, animeID))
                     {
-                        MetroContract_Comment shout = new MetroContract_Comment();
+                        Metro_Comment shout = new Metro_Comment();
 
                         shout.UserID = rec.UserID;
                         shout.UserName = "";
@@ -1193,10 +1194,10 @@ namespace Shoko.Server
             }
         }
 
-        public List<MetroContract_Anime_Summary> GetSimilarAnimeForAnime(int animeID, int maxRecords, int jmmuserID)
+        public List<Metro_Anime_Summary> GetSimilarAnimeForAnime(int animeID, int maxRecords, int jmmuserID)
         {
             List<CL_AniDB_Anime_Similar> links = new List<CL_AniDB_Anime_Similar>();
-            List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+            List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -1227,7 +1228,7 @@ namespace Shoko.Server
                         // check if this anime has a series
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
 
-                        MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
                         summ.AnimeID = animeLink.AnimeID;
                         summ.AnimeName = animeLink.MainTitle;
                         summ.AnimeSeriesID = 0;
@@ -1269,7 +1270,7 @@ namespace Shoko.Server
                         // check if this anime has a series
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
 
-                        MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
                         summ.AnimeID = animeLink.AnimeID;
                         summ.AnimeName = animeLink.MainTitle;
                         summ.AnimeSeriesID = 0;
@@ -1305,7 +1306,7 @@ namespace Shoko.Server
             }
         }
 
-        public List<Contract_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
+        public List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
         {
             try
             {
@@ -1313,22 +1314,22 @@ namespace Shoko.Server
                 if (ep != null)
                     return ep.GetVideoDetailedContracts(userID);
                 else
-                    return new List<Contract_VideoDetailed>();
+                    return new List<CL_VideoDetailed>();
             }
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
             }
-            return new List<Contract_VideoDetailed>();
+            return new List<CL_VideoDetailed>();
         }
 
-        public Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID,
+        public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID,
             bool watchedStatus, int userID)
         {
-            Contract_ToggleWatchedStatusOnEpisode_Response response =
-                new Contract_ToggleWatchedStatusOnEpisode_Response();
+            CL_Response<CL_AnimeEpisode_User> response =
+                new CL_Response<CL_AnimeEpisode_User>();
             response.ErrorMessage = "";
-            response.AnimeEpisode = null;
+            response.Result = null;
 
             try
             {
@@ -1346,8 +1347,8 @@ namespace Shoko.Server
                 // refresh from db
                 ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
 
-                response.AnimeEpisode = ep.GetUserContract(userID);
-
+                response.Result = ep.GetUserContract(userID);
+                
                 return response;
             }
             catch (Exception ex)
