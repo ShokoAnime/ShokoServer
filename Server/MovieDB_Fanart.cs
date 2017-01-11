@@ -4,6 +4,9 @@ namespace Shoko.Models.Server
 {
     public class MovieDB_Fanart : IImageEntity
     {
+        public MovieDB_Fanart()
+        {
+        }
         public int MovieDB_FanartID { get; set; }
         public string ImageID { get; set; }
         public int MovieId { get; set; }

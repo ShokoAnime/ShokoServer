@@ -6,6 +6,9 @@ namespace Shoko.Models.Server
 {
     public class TvDB_ImageFanart : IImageEntity
     {
+        public TvDB_ImageFanart()
+        {
+        }
         public int TvDB_ImageFanartID { get; private set; }
         public int Id { get; set; }
         public int SeriesID { get; set; }

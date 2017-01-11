@@ -4,6 +4,9 @@ namespace Shoko.Models.Server
 {
     public class GroupFilterCondition
     {
+        public GroupFilterCondition()
+        {
+        }
         public int GroupFilterConditionID { get; private set; }
         public int GroupFilterID { get; set; }
         public int ConditionType { get; set; }

@@ -6,7 +6,9 @@ namespace Shoko.Models.Server
 {
     public class TvDB_ImagePoster : IImageEntity
     {
-
+        public TvDB_ImagePoster()
+        {
+        }
 
         public int TvDB_ImagePosterID { get; private set; }
         public int Id { get; set; }

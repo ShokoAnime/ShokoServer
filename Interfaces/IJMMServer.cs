@@ -1,761 +1,871 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Client;
+using Nancy.Rest.Annotations;
 using Shoko.Models.Azure;
+using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 
+// ReSharper disable InconsistentNaming
 namespace Shoko.Models.Interfaces
 {
-
-    public interface IJMMServer
+    [RestBasePath("/Legacy")]
+    public interface IJMMServer : ILevel<IJMMServer>
     {
-        
-        Client.CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID);
+        //TODO Need Methods, and syntax revision
 
-        
-        string UseMyTraktLinksWebCache(int animeID);
+        #region GroupsFilter
 
-        
-        string UseMyTvDBLinksWebCache(int animeID);
+        [Rest("GroupFilter/Changes/{date}", Verbs.Get)]
+        CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date);
 
-        
-        List<CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs();
-
-        
-        bool CheckTraktLinkValidity(string slug, bool removeDBEntries);
-
-        
-        Azure.Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType);
-
-        
-        bool IsWebCacheAdmin();
-
-        
-        string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
-
-        
-        string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
-
-        
-        string UpdateCalendarData();
-
-        
-        string UpdateEpisodeData(int episodeID);
-
-        
-        string DeleteCustomTagCrossRef(int customTagID, int crossRefType, int crossRefID);
-
-        
-        CL_Response<CrossRef_CustomTag> SaveCustomTagCrossRef(CrossRef_CustomTag contract);
-
-        
-        string DeleteCustomTagCrossRefByID(int xrefID);
-
-        
-        List<CustomTag> GetAllCustomTags();
-
-        
-        CL_Response<CustomTag> SaveCustomTag(CustomTag contract);
-
-        
-        string DeleteCustomTag(int customTagID);
-
-        
-        CustomTag GetCustomTag(int customTagID);
-
-        
-        List<Azure_AdminMessage> GetAdminMessages();
-
-        
-        List<Client.CL_AnimeEpisode_User> GetContinueWatchingFilter(int userID, int maxRecords);
-
-        
-        string RemoveLinkAniDBTvDBForAnime(int animeID);
-
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesForSeriesOld(int animeSeriesID);
-
-        
-        Client.CL_AnimeEpisode_User GetEpisode(int animeEpisodeID, int userID);
-
-        
-        string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID);
-
-        
-        string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored);
-
-        
-        CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID);
-
-        
-        string UpdateAnimeData(int animeID);
-
-        
-        string AssociateSingleFile(int videoLocalID, int animeEpisodeID);
-
-        
-        string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum, int endEpNum);
-
-        
-        string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber,
-            bool singleEpisode);
-
-        
-        List<Client.CL_AnimeGroup_User> GetAllGroups(int userID);
-
-        
-        CL_Response<CL_AnimeGroup_User> SaveGroup(Client.CL_AnimeGroup_Save_Request grp, int userID);
-
-        
-        Client.CL_AnimeGroup_User GetGroup(int animeGroupID, int userID);
-
-        
-        List<Client.CL_AnimeGroup_User> GetAllGroupsAboveSeries(int animeSeriesID, int userID);
-
-        
-        List<Client.CL_AnimeGroup_User> GetAllGroupsAboveGroupInclusive(int animeGroupID, int userID);
-
-        
-        List<Client.CL_AnimeSeries_User> GetAllSeries(int userID);
-
-        
-        CL_MainChanges GetAllChanges(DateTime date, int userID);
-
-
-        Client.CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date);
-
-
-        CL_Response<CL_AnimeSeries_User> SaveSeries(Client.CL_AnimeSeries_Save_Request request, int userID);
-
-
-        CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID);
-
-        
-        List<Client.CL_AniDB_Anime> GetAllAnime();
-
-        
-        List<Client.CL_AniDB_AnimeDetailed> GetAllAnimeDetailed();
-
-        
-        Client.CL_AniDB_AnimeDetailed GetAnimeDetailed(int animeID);
-
-        
-        List<Client.CL_AnimeSeries_User> GetSeriesForGroup(int animeGroupID, int userID);
-
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID);
-
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesForFile(int videoLocalID, int userID);
-
-        
-        List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID);
-
-
-        
-        List<Client.CL_AniDB_GroupStatus> GetMyReleaseGroupsForAniDBEpisode(int aniDBEpisodeID);
-
-        
-        List<ImportFolder> GetImportFolders();
-
-        
-        CL_ServerStatus GetServerStatus();
-
-        
-        CL_ServerSettings GetServerSettings();
-
-        
-        CL_Response SaveServerSettings(CL_ServerSettings contractIn);
-
-        
-        string SetResumePositionOnVideo(int videoLocalID, long resumeposition, int userID);
-
-        
-        string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
-
-        
-        CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID,
-            bool watchedStatus,
-            int userID);
-
-        
-        CL_VideoDetailed GetVideoDetailed(int videoLocalID, int userID);
-
-
-        CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract);
-
-        
-        string DeleteImportFolder(int importFolderID);
-
-        
-        Client.CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID);
-
-        
-        void RunImport();
-
-        
-        void RemoveMissingFiles();
-
-        
-        void SyncMyList();
-
-        
-        void RehashFile(int videoLocalID);
-
-        
-        void SetCommandProcessorHasherPaused(bool paused);
-
-        
-        void SetCommandProcessorGeneralPaused(bool paused);
-
-        
-        void SetCommandProcessorImagesPaused(bool paused);
-
-        
-        List<CL_VideoLocal> GetUnrecognisedFiles(int userID);
-
-        
-        List<CL_VideoLocal> GetManuallyLinkedFiles(int userID);
-
-        
-        List<CL_VideoLocal> GetIgnoredFiles(int userID);
-
-        
-        string TestAniDBConnection();
-
-        
-        string RenameAllGroups();
-
-        
+        [Rest("GroupFilter", Verbs.Get)]
         List<CL_GroupFilter> GetAllGroupFilters();
 
-        
+        [Rest("GroupFilter/Parent/{gfparentid?}", Verbs.Get)]
         List<CL_GroupFilter> GetGroupFilters(int gfparentid = 0);
 
-        
+        [Rest("GroupFilter/{gf}", Verbs.Get)]
         CL_GroupFilter GetGroupFilter(int gf);
 
-        
+        [Rest("GroupFilter/Detailed/ForUser/{userID}/{gfparentid?}", Verbs.Get)]
         List<CL_GroupFilterExtended> GetGroupFiltersExtended(int userID, int gfparentid = 0);
 
-        
+        [Rest("GroupFilter/Evaluate", Verbs.Post)]
         CL_GroupFilter EvaluateGroupFilter(CL_GroupFilter contract);
 
-        
+        [Rest("GroupFilter", Verbs.Post)]
         CL_Response<CL_GroupFilter> SaveGroupFilter(CL_GroupFilter contract);
 
-        
+        [Rest("GroupFilter/{groupFilterID}", Verbs.Delete)]
         string DeleteGroupFilter(int groupFilterID);
 
-        
-        List<string> GetAllTagNames();
-
-        
-        void ScanFolder(int importFolderID);
-
-        
-        void SyncVotes();
-
-        
-        void VoteAnime(int animeID, decimal voteValue, int voteType);
-
-        
-        void VoteAnimeRevoke(int animeID);
-
-        
-        string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType,
-            int userID);
-
-        
-        List<string> GetAllUniqueVideoQuality();
-
-        
-        List<string> GetAllUniqueAudioLanguages();
-
-        
-        List<string> GetAllUniqueSubtitleLanguages();
-
-        
-        List<CL_DuplicateFile> GetAllDuplicateFiles();
-
-        
-        string DeleteDuplicateFile(int duplicateFileID, int fileNumber);
-
-        
-        List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID);
-
-        
-        List<Client.CL_AnimeEpisode_User> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries,
-            bool ignoreVariations);
-
-        
-        void ReevaluateDuplicateFiles();
-
-        
-        List<CL_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
-
-        
-        string DeleteVideoLocalPlaceAndFile(int videoplaceid);
-
-        
-        void RescanUnlinkedFiles();
-
-        
-        void SyncHashes();
-
-        
-        List<CL_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution,
-            string videoSource, int videoBitDepth, int userID);
-
-        
-        Client.CL_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
-
-        
-        List<Azure.Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
-
-        
-        List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);
-
-        
-        List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria);
-
-        
-        List<int> GetSeasonNumbersForSeries(int seriesID);
-
-        
-        string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber,
-            int? crossRef_AniDB_TvDBV2ID);
-
-        
-        string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber,
-            int tvEpNumber);
-
-        
-        List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID);
-
-        
-        List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID);
-
-        
-        List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID);
-
-        
-        List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID);
-
-        
-        string UpdateTvDBData(int seriesID);
-
-        
-        string EnableDisableImage(bool enabled, int imageID, int imageType);
-
-        
-        CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
-
-        
-        CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType);
-
-        
-        List<CL_MovieDBMovieSearch_Response> SearchTheMovieDB(string criteria);
-
-        
-        string LinkAniDBOther(int animeID, int movieID, int crossRefType);
-
-        
-        string RemoveLinkAniDBOther(int animeID, int crossRefType);
-
-        
-        List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID);
-
-        
-        List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
-
-        
-        Client.CL_AniDB_Anime GetAnime(int animeID);
-
-        
-        string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType);
-
-        
-        Client.CL_AnimeEpisode_User GetNextUnwatchedEpisode(int animeSeriesID, int userID);
-
-        
-        Client.CL_AnimeEpisode_User GetNextUnwatchedEpisodeForGroup(int animeGroupID, int userID);
-        
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int jmmuserID);
-
-        
-        string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup);
-
-        
-        string DeleteAnimeGroup(int animeGroupID, bool deleteFiles);
-
-        
-        List<Client.CL_AnimeSeries_User> GetSeriesWithMissingEpisodes(int maxRecords, int jmmuserID);
-
-        
-        List<Client.CL_AniDB_Anime> GetMiniCalendar(int jmmuserID, int numberOfDays);
-
-        
-        List<JMMUser> GetAllUsers();
-
-        
-        JMMUser AuthenticateUser(string username, string password);
-
-        
-        string SaveUser(JMMUser user);
-
-        
-        string DeleteUser(int userID);
-
-        
-        string EnterTraktPIN(string pin);
-
-        
-        List<Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID);
-
-        
-        List<Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID);
-
-        
-        List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
-
-        
-        List<Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID);
-
-        
-        List<Azure.Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
-
-        
-        string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
-
-        
-        string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
-
-
-        
-        List<CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID);
-
-        
-        List<CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID);
-
-        
-        List<CL_TraktTVShowResponse> SearchTrakt(string criteria);
-
-        
-        string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber,
-            int traktEpNumber,
-            int? crossRef_AniDB_TraktV2ID);
-
-        
-        string RemoveLinkAniDBTraktForAnime(int animeID);
-
-        
-        string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber,
-            int traktEpNumber);
-
-        
-        List<int> GetSeasonNumbersForTrakt(string traktID);
-
-        
-        string UpdateTraktData(string traktD);
-
-        
-        string SyncTraktSeries(int animeID);
-
-        
-        string UpdateMovieDBData(int movieD);
-
-        
+        [Rest("GroupFilter/Detailed/{groupFilterID}/{userID}", Verbs.Get)]
         CL_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
 
-        
-        List<Client.CL_AnimeGroup_User> GetAnimeGroupsForFilter(int groupFilterID, int userID, bool getSingleSeriesGroups);
-
-        
+        [Rest("GroupFilter/Detailed/ForUser/{userID}", Verbs.Get)]
         List<CL_GroupFilterExtended> GetAllGroupFiltersExtended(int userID);
 
-        
-        List<Client.CL_AnimeGroup_User> GetSubGroupsForGroup(int animeGroupID, int userID);
+        #endregion
 
-        
-        List<Client.CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID);
+        #region Groups
 
-        
-        bool GetSeriesExistingForAnime(int animeID);
+        [Rest("Group/{userID}", Verbs.Get)]
+        List<CL_AnimeGroup_User> GetAllGroups(int userID);
 
-        
-        List<Client.CL_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID);
+        [Rest("Group/{userID}", Verbs.Post)]
+        CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request grp, int userID);
 
-        
-        List<Client.CL_AniDB_Anime_Relation> GetRelatedAnimeLinks(int animeID, int userID);
+        [Rest("Group/{animeGroupID}/{userID}", Verbs.Get)]
+        CL_AnimeGroup_User GetGroup(int animeGroupID, int userID);
 
-        
-        List<CL_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType);
+        [Rest("Group/AboveSeries/{animeSeriesID}/{userID}", Verbs.Get)]
+        List<CL_AnimeGroup_User> GetAllGroupsAboveSeries(int animeSeriesID, int userID);
 
-        
-        List<Client.CL_AniDB_GroupStatus> GetReleaseGroupsForAnime(int animeID);
+        [Rest("Group/AboveGroup/{animeGroupID}/{userID}", Verbs.Get)]
+        List<CL_AnimeGroup_User> GetAllGroupsAboveGroupInclusive(int animeGroupID, int userID);
 
-        
-        List<Client.CL_AniDB_Anime> GetAnimeForMonth(int jmmuserID, int month, int year);
+        [Rest("Group/Rename", Verbs.Post)]
+        string RenameAllGroups();
 
-        
-        Client.CL_AnimeSeries_User GetSeriesForAnime(int animeID, int userID);
+        [Rest("Group/{animeGroupID}/{deleteFiles}", Verbs.Delete)]
+        string DeleteAnimeGroup(int animeGroupID, bool deleteFiles);
 
-        
-        List<Client.CL_AniDB_Character> GetCharactersForAnime(int animeID);
+        [Rest("Group/ForFilter/{groupFilterID}/{deleteFiles}", Verbs.Get)]
+        List<CL_AnimeGroup_User> GetAnimeGroupsForFilter(int groupFilterID, int userID, bool getSingleSeriesGroups);
 
-        
-        void ForceAddFileToMyList(string hash);
+        [Rest("Group/SubGroup/{animeGroupID}/{userID}", Verbs.Get)]
+        List<CL_AnimeGroup_User> GetSubGroupsForGroup(int animeGroupID, int userID);
 
-        
-        List<CL_MissingFile> GetMyListFilesForRemoval(int userID);
-
-        
-        void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles);
-
-        
-        List<Client.CL_AnimeSeries_User> GetSeriesWithoutAnyFiles(int userID);
-
-        
-        void DeleteFileFromMyList(int fileID);
-
-        
-        List<CL_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly,
-            int airingState);
-
-        
-        void IgnoreAnime(int animeID, int ignoreType, int userID);
-
-        
-        AniDB_Vote GetUserVote(int animeID);
-
-        
-        void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType);
-
-        
-        List<CL_IgnoreAnime> GetIgnoredAnime(int userID);
-
-        
-        void RemoveIgnoreAnime(int ignoreAnimeID);
-
-        
+        [Rest("Group/DefaultSerie/{animeGroupID}/{animeSeriesID}", Verbs.Post)]
         void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID);
 
-        
+        [Rest("Group/DefaultSerie/{animeGroupID}", Verbs.Delete)]
         void RemoveDefaultSeriesForGroup(int animeGroupID);
 
-        
-        List<TvDB_Language> GetTvDBLanguages();
+        [Rest("Group/ForSerie/{animeSeriesID}/{userID}", Verbs.Delete)]
+        CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID);
 
-        
-        void ScanDropFolders();
+        [Rest("Group/Recreate", Verbs.Post)]
+        void RecreateAllGroups(bool resume = false);
 
-        
-        void RefreshAllMediaInfo();
 
-        
-        bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage);
+        #endregion
 
-        
-        bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage);
+        #region Series
 
-        
-        string ChangePassword(int userID, string newPassword);
+        [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}", Verbs.Post)]
+        CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID);
 
-        
-        List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID);
+        [Rest("Serie/{userID}", Verbs.Get)]
+        List<CL_AnimeSeries_User> GetAllSeries(int userID);
 
-        
-        bool PostTraktCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage);
+        [Rest("Serie/{userID}", Verbs.Post)]
+        CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request request, int userID);
 
-        
-        Client.CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID);
+        [Rest("Serie/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}", Verbs.Post)]
+        CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID);
 
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesRecentlyWatched(int maxRecords, int jmmuserID);
+        [Rest("Serie/ForGroup/{animeGroupID}/{userID}", Verbs.Get)]
+        List<CL_AnimeSeries_User> GetSeriesForGroup(int animeGroupID, int userID);
 
-        
-        List<CL_MALAnime_Response> SearchMAL(string criteria);
+        [Rest("Serie/{animeSeriesID}/{userID}", Verbs.Get)]
+        CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID);
 
-        
-        string TestMALLogin();
+        [Rest("Serie/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}", Verbs.Post)]
+        string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType, int userID);
 
+        [Rest("Serie/Seasons/{seriesID}", Verbs.Get)]
+        List<int> GetSeasonNumbersForSeries(int seriesID);
+
+        [Rest("Serie/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}", Verbs.Delete)]
+        string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup);
+
+        [Rest("Serie/TvDB/Refresh/{seriesID}", Verbs.Post)]
+        string UpdateTvDBData(int seriesID);
+
+        [Rest("Serie/MissingEpisodes/{maxRecords}/{userID}", Verbs.Get)]
+        List<CL_AnimeSeries_User> GetSeriesWithMissingEpisodes(int maxRecords, int userID);
+
+        [Rest("Serie/ForGroupRecursive/{animeGroupID}/{userID}", Verbs.Get)]
+        List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID);
+
+
+        [Rest("Serie/ForAnime/{animeID}/{userID}", Verbs.Get)]
+        CL_AnimeSeries_User GetSeriesForAnime(int animeID, int userID);
+
+        [Rest("Serie/WithoutFiles/{userID}", Verbs.Get)]
+        List<CL_AnimeSeries_User> GetSeriesWithoutAnyFiles(int userID);
+
+        [Rest("Serie/RecentlyAdded/{maxRecords}/{userID}", Verbs.Get)]
+        List<CL_AnimeSeries_User> GetSeriesRecentlyAdded(int maxRecords, int userID);
+
+
+
+        [Rest("Serie/ExistingForAnime/{animeID}", Verbs.Get)]
+        bool GetSeriesExistingForAnime(int animeID);
+
+        #endregion
+
+        #region Episodes
+
+
+        [Rest("Episode/LastWatched/{animeSeriesID}/{jmmuserID}", Verbs.Get)]
+        CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID);
+
+        [Rest("Episode/Refresh/{episodeID}", Verbs.Post)]
+        string UpdateEpisodeData(int episodeID);
+
+        [Rest("Episode/ContinueWatching/{userID}/{maxRecords}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetContinueWatchingFilter(int userID, int maxRecords);
+
+        [Rest("Episode/Old/{animeSeriesID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesForSeriesOld(int animeSeriesID);
+
+        [Rest("Episode/{animeEpisodeID}/{userID}", Verbs.Get)]
+        CL_AnimeEpisode_User GetEpisode(int animeEpisodeID, int userID);
+
+        [Rest("Episode/ForSerie/{animeSeriesID}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID);
+
+        [Rest("Episode/ForSingleFile/{videoLocalID}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesForFile(int videoLocalID, int userID);
+
+        [Rest("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}", Verbs.Post)]
+        CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
+
+        [Rest("Episode/ForMultipleFiles/{userID}/{onlyFinishedSeries}/{ignoreVariations}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries, bool ignoreVariations);
+
+        [Rest("Episode/NextForSeries/{animeSeriesID}/{userID}", Verbs.Get)]
+        CL_AnimeEpisode_User GetNextUnwatchedEpisode(int animeSeriesID, int userID);
+
+        [Rest("Episode/NextForGroup/{animeGroupID}/{userID}", Verbs.Get)]
+        CL_AnimeEpisode_User GetNextUnwatchedEpisodeForGroup(int animeGroupID, int userID);
+
+        [Rest("Episode/WatchedToWatch/{maxRecords}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int userID);
+
+        [Rest("Episode/Watched/{maxRecords}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesRecentlyWatched(int maxRecords, int jmmuserID);
+
+        [Rest("Episode/IncrementStats/{animeEpisodeID}/{userID}/{statCountType}", Verbs.Get)]
+        void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType);
+
+        [Rest("Episode/RecentlyAdded/{maxRecords}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesRecentlyAdded(int maxRecords, int jmmuserID);
+
+        [Rest("Episode/PreviousEpisode/{animeSeriesID}/{userID}", Verbs.Get)]
+        CL_AnimeEpisode_User GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
+
+        [Rest("Episode/AniDB/{episodeID}/{userID}", Verbs.Get)]
+        CL_AnimeEpisode_User GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
+
+        [Rest("Episode/Unwatched/{animeSeriesID}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetAllUnwatchedEpisodes(int animeSeriesID, int userID);
+
+        [Rest("Episode/RecentlyAdded/Summary/{maxRecords}/{userID}", Verbs.Get)]
+        List<CL_AnimeEpisode_User> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID);
+
+        [Rest("Episode/Missing/{userID}/{onlyMyGroups}/{regularEpisodesOnly}/{airingState}", Verbs.Get)]
+        List<CL_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly, int airingState);
+
+
+        #endregion
+
+        #region CustomTag
+
+        [Rest("CustomTag/CrossRef/{customTagID}/{crossRefType}/{crossRefID}", Verbs.Delete)]
+        string DeleteCustomTagCrossRef(int customTagID, int crossRefType, int crossRefID);
+
+        [Rest("CustomTag/CrossRef", Verbs.Post)]
+        CL_Response<CrossRef_CustomTag> SaveCustomTagCrossRef(CrossRef_CustomTag contract);
+
+        [Rest("CustomTag/CrossRef/{xrefID}", Verbs.Delete)]
+        string DeleteCustomTagCrossRefByID(int xrefID);
+
+        [Rest("CustomTag", Verbs.Get)]
+        List<CustomTag> GetAllCustomTags();
+
+        [Rest("CustomTag", Verbs.Post)]
+        CL_Response<CustomTag> SaveCustomTag(CustomTag contract);
+
+        [Rest("CustomTag/{customTagID}", Verbs.Delete)]
+        string DeleteCustomTag(int customTagID);
+
+        [Rest("CustomTag/{customTagID}", Verbs.Get)]
+        CustomTag GetCustomTag(int customTagID);
+
+        #endregion
+
+        #region WebCache
+
+        [Rest("WebCache/Trakt/UseLinks/{animeID}", Verbs.Post)]
+        string UseMyTraktLinksWebCache(int animeID);
+
+        [Rest("WebCache/TvDB/UseLinks/{animeID}", Verbs.Get)]
+        string UseMyTvDBLinksWebCache(int animeID);
+
+        [Rest("WebCache/RandomLinkForApproval/{linkType}", Verbs.Get)]
+        Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType);
+
+        [Rest("WebCache/IsAdmin", Verbs.Get)]
+        bool IsWebCacheAdmin();
+
+        [Rest("WebCache/AdminMessages", Verbs.Get)]
+        List<Azure_AdminMessage> GetAdminMessages();
         
+        [Rest("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}",Verbs.Get)]
+        List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
+
+        [Rest("WebCache/CrossRef/Other/{animeID}/{crossRefType}", Verbs.Get)]
+        CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
+
+        [Rest("WebCache/CrossRef/MAL/{animeID}", Verbs.Get)]
         CL_CrossRef_AniDB_MAL_Response GetMALCrossRefWebCache(int animeID);
 
-        
-        string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
+        [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Post)]
+        string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
 
-        
-        string RemoveLinkAniDBMAL(int animeID, int epType, int epNumber);
+        [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Delete)]
+        string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
 
-        
-        string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber,
-            int newEpType,
-            int newEpNumber);
+        [Rest("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}", Verbs.Get)]
+        List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
 
-        
-        void SyncMALUpload();
+        [Rest("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}", Verbs.Post)]
+        string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
 
-        
-        void SyncMALDownload();
 
-        
-        void RecreateAllGroups(bool resume=false);
+        [Rest("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}", Verbs.Delete)]
+        string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
 
-        
-        List<Playlist> GetAllPlaylists();
+        #endregion
 
-        
-        CL_Response<Playlist> SavePlaylist(Playlist contract);
+        #region Files
 
-        
-        string DeletePlaylist(int playlistID);
+        [Rest("File/Association/{videoLocalID}/{animeEpisodeID}", Verbs.Delete)]
+        string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID);
 
-        
-        Playlist GetPlaylist(int playlistID);
+        [Rest("File/Status/{videoLocalID}/{isIgnored}", Verbs.Post)]
+        string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored);
 
-        
-        Client.CL_AppVersions GetAppVersions();
+        [Rest("File/Association/{videoLocalID}/{animeEpisodeID}", Verbs.Post)]
+        string AssociateSingleFile(int videoLocalID, int animeEpisodeID);
 
-        
+        [Rest("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}", Verbs.Post)]
+        string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startingEpisodeNumber, int endEpisodeNumber);
+
+        [Rest("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}", Verbs.Post)]
+        string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber, bool singleEpisode);
+
+        [Rest("File/Resume/{videoLocalID}/{resumeposition}/{userID}", Verbs.Post)]
+        string SetResumePosition(int videoLocalID, long resumeposition, int userID);
+
+        [Rest("File/Watch/{videoLocalID}/{watchedStatus}/{userID}", Verbs.Post)]
+        string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
+
+        [Rest("File/Detailed/{videoLocalID}/{userID}", Verbs.Post)]
+        CL_VideoDetailed GetVideoDetailed(int videoLocalID, int userID);
+
+        [Rest("File/Rehash/{videoLocalID}", Verbs.Post)]
+        void RehashFile(int videoLocalID);
+
+        [Rest("File/Unrecognised/{userID}", Verbs.Post)]
+        List<CL_VideoLocal> GetUnrecognisedFiles(int userID);
+
+        [Rest("File/ManuallyLinked/{userID}", Verbs.Post)]
+        List<CL_VideoLocal> GetManuallyLinkedFiles(int userID);
+
+        [Rest("File/Ignored/{userID}", Verbs.Post)]
+        List<CL_VideoLocal> GetIgnoredFiles(int userID);
+
+        [Rest("File/Duplicated", Verbs.Get)]
+        List<CL_DuplicateFile> GetAllDuplicateFiles();
+
+        [Rest("File/Duplicated/{duplicateFileID]/{fileNumber}", Verbs.Delete)]
+        string DeleteDuplicateFile(int duplicateFileID, int fileNumber);
+
+        [Rest("File/ManuallyLinked/{userID}", Verbs.Get)]
+        List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID);
+
+        [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
+        void ReevaluateDuplicateFiles();
+
+        [Rest("File/Physical/{videoplaceid}", Verbs.Delete)]
+        string DeleteVideoLocalPlaceAndFile(int videoplaceid);
+
+        [Rest("File/Unlinked/Rescan", Verbs.Post)]
+        void RescanUnlinkedFiles();
+
+        [Rest("File/Hashes/Rescan", Verbs.Post)]
+        void SyncHashes();
+
+        [Rest("File/Detailed/{animeID}/{relGroupName}/{resolution}/{videoSource}/{videoBitDepth}/{userID}", Verbs.Post)]
+        List<CL_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int videoBitDepth, int userID);
+
+        [Rest("File/Refresh/{videoLocalID}", Verbs.Post)]
         string UpdateFileData(int videoLocalID);
 
-        
+        [Rest("File/Rescan/{videoLocalID}", Verbs.Post)]
         string RescanFile(int videoLocalID);
 
-        
-        List<Client.CL_BookmarkedAnime> GetAllBookmarkedAnime();
-
-        
-        CL_Response<CL_BookmarkedAnime> SaveBookmarkedAnime(Client.CL_BookmarkedAnime cl);
-
-        
-        string DeleteBookmarkedAnime(int bookmarkedAnimeID);
-
-        
-        Client.CL_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID);
-
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesRecentlyAdded(int maxRecords, int jmmuserID);
-
-        
-        List<Client.CL_AnimeSeries_User> GetSeriesRecentlyAdded(int maxRecords, int jmmuserID);
-
-        
-        string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID);
-
-        
-        List<CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID);
-
-        
-        string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID);
-
-        
-        List<Client.CL_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID);
-
-        
-        AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
-
-        
-        Client.CL_AnimeEpisode_User GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
-
-        
-        Client.CL_AnimeEpisode_User GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
-
-        
-        FileFfdshowPreset GetFFDPreset(int videoLocalID);
-
-        
-        void DeleteFFDPreset(int videoLocalID);
-
-        
-        void SaveFFDPreset(FileFfdshowPreset preset);
-
-        
-        void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
-
-        
+        [Rest("File/Search/{searchType}/{searchCriteria}/{userID}", Verbs.Get)]
         List<CL_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID);
 
-        
+        [Rest("File/Rename/Preview/{videoLocalID}/{renameRules}", Verbs.Post)]
         CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID, string renameRules);
 
-        
+        [Rest("File/Rename/{videoLocalID}/{renameRules}", Verbs.Post)]
         CL_VideoLocal_Renamed RenameFile(int videoLocalID, string renameRules);
 
-        
+        [Rest("File/Rename/RandomPreview/{maxResults}/{userID}", Verbs.Post)]
         List<CL_VideoLocal> RandomFileRenamePreview(int maxResults, int userID);
 
-        
+        [Rest("File/ForEpisode/{episodeID}/{userID}", Verbs.Post)]
         List<CL_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID);
 
-        
+        [Rest("File/ForAnime/{animeID}/{userID}", Verbs.Post)]
         List<CL_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID);
 
-        
-        List<RenameScript> GetAllRenameScripts();
-
-        
-        CL_Response<RenameScript> SaveRenameScript(RenameScript contract);
-
-        
-        string DeleteRenameScript(int renameScriptID);
-
-        
-        void ClearHasherQueue();
-
-        
-        void ClearImagesQueue();
-
-        
-        void ClearGeneralQueue();
-
-        
-        int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
-
-        
-
-        
-        List<Client.CL_AnimeEpisode_User> GetAllUnwatchedEpisodes(int animeSeriesID, int userID);
-
-        
-        List<CL_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID);
-
-        
-        List<Client.CL_AnimeEpisode_User> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID);
-
-        
-        List<Client.CL_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState,
-            int userID);
-
-        
+        [Rest("File/Variation/{videoLocalID}/{isVariation}", Verbs.Post)]
         string SetVariationStatusOnFile(int videoLocalID, bool isVariation);
 
-        
-        List<AniDB_Recommendation> GetAniDBRecommendations(int animeID);
-
-        
+        [Rest("File/Rescan/ManuallyLinked", Verbs.Post)]
         void RescanManuallyLinkedFiles();
 
-        
-        List<Client.CL_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery);
+        [Rest("File/Detailed/{episodeID}/{userID}", Verbs.Get)]
+        List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID);
 
-        
-        List<AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
+        [Rest("File/ByGroup/{animeID}/{relGroupName}/{userID}", Verbs.Get)]
+        List<CL_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID);
 
-        
+
+        #endregion
+
+        #region Folders
+
+        [Rest("Folder", Verbs.Get)]
+        List<ImportFolder> GetImportFolders();
+
+        [Rest("Folder", Verbs.Post)]
+        CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract);
+
+        [Rest("Folder/{importFolderID}", Verbs.Delete)]
+        string DeleteImportFolder(int importFolderID);
+
+        [Rest("Folder/Import", Verbs.Post)]
+        void RunImport();
+
+        [Rest("Folder/RemoveMissing", Verbs.Post)]
+        void RemoveMissingFiles();
+
+        [Rest("Folder/Scan/{importFolderID}", Verbs.Post)]
+        void ScanFolder(int importFolderID);
+
+        [Rest("Folder/Scan", Verbs.Post)]
+        void ScanDropFolders();
+
+        [Rest("Folder/RefreshMediaInfo", Verbs.Post)]
+        void RefreshAllMediaInfo();
+
+        #endregion
+
+        #region CloudAccounts
+
+        [Rest("CloudAccount/Directory/{cloudaccountid}/{path}",Verbs.Get)]
         List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path);
 
-        
+        [Rest("CloudAccount", Verbs.Get)]
         List<CL_CloudAccount> GetCloudProviders();
 
-        
-        void SetResumePosition(int videolocalid, int jmmuserID, long position);
 
-        
+        #endregion
+
+        #region AniDB
+
+        [Rest("AniDB/CrossRef/{animeID}",Verbs.Get)]
+        CL_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
+
+        [Rest("AniDB/Status", Verbs.Get)]
+        string TestAniDBConnection();
+
+        [Rest("AniDB/Anime", Verbs.Get)]
+        List<CL_AniDB_Anime> GetAllAnime();
+
+        [Rest("AniDB/Anime/Detailed", Verbs.Get)]
+        List<CL_AniDB_AnimeDetailed> GetAllAnimeDetailed();
+
+        [Rest("AniDB/Anime/Detailed/{animeID}", Verbs.Get)]
+        CL_AniDB_AnimeDetailed GetAnimeDetailed(int animeID);
+
+        [Rest("AniDB/Anime/Update/{animeID}", Verbs.Get)]
+        string UpdateAnimeData(int animeID);
+
+        [Rest("AniDB/Anime/{animeID}",Verbs.Get)]
+        CL_AniDB_Anime GetAnime(int animeID);
+
+        [Rest("AniDB/Anime/Calendar/{userID}/{numberOfDays}", Verbs.Get)]
+        List<CL_AniDB_Anime> GetMiniCalendar(int userID, int numberOfDays);
+
+        [Rest("AniDB/Anime/Calendar/Update", Verbs.Post)]
+        string UpdateCalendarData();
+
+        [Rest("AniDB/Anime/Calendar/Update", Verbs.Post)]
+        List<CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID);
+
+        [Rest("AniDB/Anime/Similar/{animeID}/{userID}",Verbs.Get)]
+        List<CL_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID);
+
+        [Rest("AniDB/Anime/Relation/{animeID}/{userID}", Verbs.Get)]
+        List<CL_AniDB_Anime_Relation> GetRelatedAnimeLinks(int animeID, int userID);
+
+        [Rest("AniDB/ReleaseGroup/FromEpisode/{aniDBEpisodeID}", Verbs.Get)]
+        List<CL_AniDB_GroupStatus> GetMyReleaseGroupsForAniDBEpisode(int aniDBEpisodeID);
+
+        [Rest("AniDB/ReleaseGroup/Quality/{animeID}", Verbs.Get)]
+        List<CL_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
+
+        [Rest("AniDB/Anime/Sync/Trakt/{animeID}", Verbs.Get)]
+        string SyncTraktSeries(int animeID);
+
+        [Rest("AniDB/ReleaseGroup/{animeID}", Verbs.Get)]
+        List<CL_AniDB_GroupStatus> GetReleaseGroupsForAnime(int animeID);
+
+        [Rest("AniDB/Anime/ForMonth/{userID}/{month}/{year}", Verbs.Get)]
+        List<CL_AniDB_Anime> GetAnimeForMonth(int userID, int month, int year);
+
+        [Rest("AniDB/Character/{animeID}",Verbs.Get)]
+        List<CL_AniDB_Character> GetCharactersForAnime(int animeID);
+
+        [Rest("AniDB/Anime/Ignore/{animeID}/{ignoreType}/{userID}", Verbs.Post)]
+        void IgnoreAnime(int animeID, int ignoreType, int userID);
+
+        [Rest("AniDB/MyList/Sync", Verbs.Post)]
+        void SyncMyList();
+
+        [Rest("AniDB/MyList/{hash}", Verbs.Post)]
+        void ForceAddFileToMyList(string hash);
+
+        [Rest("AniDB/MyList/Missing/{userID}", Verbs.Get)]
+        List<CL_MissingFile> GetMyListFilesForRemoval(int userID);
+
+        [Rest("AniDB/MyList/Missing", Verbs.Delete)]       
+        void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles);
+
+        [Rest("AniDB/MyList/{fileID}", Verbs.Delete)]
+        void DeleteFileFromMyList(int fileID);
+
+        [Rest("AniDB/Anime/Ignore/{userID}", Verbs.Get)]
+        List<CL_IgnoreAnime> GetIgnoredAnime(int userID);
+
+        [Rest("AniDB/Anime/Ignore/{ignoreAnimeID}", Verbs.Delete)]
+        void RemoveIgnoreAnime(int ignoreAnimeID);
+
+        [Rest("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}", Verbs.Post)]
+        int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
+
+        [Rest("AniDB/Character/FromSeiyuu/{seiyuuID}",Verbs.Get)]
+        List <CL_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID);
+
+        [Rest("AniDB/Seiyuu/{seiyuuID}", Verbs.Get)]
+        AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
+
+        [Rest("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}", Verbs.Post)]
+        void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
+
+        [Rest("AniDB/Anime/Rating/{collectionState}/{watchedState}/{ratingVotedState}/{userID}",Verbs.Get)]
+        List<CL_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState, int userID);
+
+        [Rest("AniDB/Anime/Search/{titleQuery}", Verbs.Get)]
+        List<CL_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery);
+
+        [Rest("AniDB/Episode/ForAnime/{animeID}", Verbs.Get)]
+        List<AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
+
+        [Rest("AniDB/Recommendation/{animeID}", Verbs.Get)]
+        List<AniDB_Recommendation> GetAniDBRecommendations(int animeID);
+
+
+
+        #endregion
+
+        #region TvDB Provider
+
+        [Rest("TvDB/CrossRef/{animeID}", Verbs.Get)]
+        List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);
+
+        [Rest("TvDB/CrossRef/{animeID}", Verbs.Delete)]
+        string RemoveLinkAniDBTvDBForAnime(int animeID);
+
+        [Rest("TvDB/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{tvDBID}/{tvSeasonNumber}/{tvEpNumber}/{crossRef_AniDB_TvDBV2ID?}", Verbs.Post)]
+        string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, int? crossRef_AniDB_TvDBV2ID);
+
+        [Rest("TvDB/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{tvDBID}/{tvSeasonNumber}/{tvEpNumber}", Verbs.Delete)]
+        string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber);
+
+        [Rest("TvDB/Search/{criteria}", Verbs.Get)]
+        List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria);
+
+        [Rest("TvDB/Poster/{tvDBID?}", Verbs.Get)]
+        List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID);
+
+        [Rest("TvDB/Banner/{tvDBID?}", Verbs.Get)]
+        List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID);
+
+        [Rest("TvDB/Fanart/{tvDBID?}", Verbs.Get)]
+        List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID);
+
+        [Rest("TvDB/Episode/{tvDBID?}", Verbs.Get)]
+        List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID);
+
+        [Rest("TvDB/Language", Verbs.Get)]
+        List<TvDB_Language> GetTvDBLanguages();
+
+        [Rest("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}/{animeID}", Verbs.Post)]
+        string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID);
+
+        [Rest("TvDB/CrossRef/Episode/{animeID}", Verbs.Get)]
+        List<CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID);
+
+        [Rest("TvDB/CrossRef/Episode/{aniDBEpisodeID}", Verbs.Delete)]
+        string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID);
+
+        #endregion
+
+        #region Trakt Provider
+
+        [Rest("Trakt/CrossRef", Verbs.Get)]
+        List<CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs();
+
+        [Rest("Trakt/CrossRef/Episode/{animeID}", Verbs.Get)]
+        List<CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID);
+
+        [Rest("Trakt/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{traktID}/{seasonNumber}/{traktEpNumber}/{crossRef_AniDB_TraktV2ID?}", Verbs.Post)]
+        string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, int? crossRef_AniDB_TraktV2ID);
+
+        [Rest("Trakt/CrossRef/{animeID}", Verbs.Delete)]
+        string RemoveLinkAniDBTraktForAnime(int animeID);
+
+        [Rest("Trakt/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{traktID}/{traktSeasonNumber}/{traktEpNumber}", Verbs.Delete)]
+        string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber, int traktEpNumber);
+
+        [Rest("Trakt/LinkValidity/{slug}/{removeDBEntries}", Verbs.Get)]
+        bool CheckTraktLinkValidity(string slug, bool removeDBEntries);
+
+        [Rest("Trakt/Pin/{pin}", Verbs.Post)]
+        string EnterTraktPIN(string pin);
+
+        [Rest("Trakt/Fanart/{traktShowID?}", Verbs.Get)]
+        List<Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID);
+
+        [Rest("Trakt/Poster/{traktShowID?}", Verbs.Get)]
+        List<Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID);
+
+        [Rest("Trakt/Episode/{traktShowID?}", Verbs.Get)]
+        List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
+
+        [Rest("Trakt/Episode/FromTraktId/{traktID}", Verbs.Get)]
+        List<Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID);
+
+        [Rest("Trakt/Search/{criteria}", Verbs.Get)]
+        List<CL_TraktTVShowResponse> SearchTrakt(string criteria);
+
+        [Rest("Trakt/Seasons/{traktID}", Verbs.Get)]
+        List<int> GetSeasonNumbersForTrakt(string traktID);
+
+        [Rest("Trakt/Refresh/{traktID}", Verbs.Get)]
+        string UpdateTraktData(string traktID);
+
+        [Rest("Trakt/Friend/{friendUsername}", Verbs.Delete)]
+        CL_Response<bool> TraktFriendRequestDeny(string friendUsername);
+
+        [Rest("Trakt/Friend/{friendUsername}", Verbs.Post)]
+        CL_Response<bool> TraktFriendRequestApprove(string friendUsername);
+
+        [Rest("Trakt/Comment/{animeID}", Verbs.Get)]
+        List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID);
+
+        [Rest("Trakt/Comment/{traktID}/{commentText}/{isSpoiler}", Verbs.Post)]
+        CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler);
+
+        [Rest("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}", Verbs.Post)]
         void TraktScrobble(int animeId, int type, int progress, int status);
+
+        #endregion
+
+        #region MAL Provider
+
+        [Rest("MAL/Search/{criteria}",Verbs.Get)]
+        List<CL_MALAnime_Response> SearchMAL(string criteria);
+
+        [Rest("MAL/Status", Verbs.Get)]
+        string TestMALLogin();
+
+        [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{epType}/{epNumber}", Verbs.Post)]
+        string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
+
+        [Rest("MAL/CrossRef/{animeID}/{epType}/{epNumber}", Verbs.Delete)]
+        string RemoveLinkAniDBMAL(int animeID, int epType, int epNumber);
+
+        [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{oldEpType}/{oldEpNumber}/{newEpType}/{newEpNumber}", Verbs.Patch)]
+        string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
+
+        [Rest("MAL/Sync/Up",Verbs.Post)]
+        void SyncMALUpload();
+
+        [Rest("MAL/Sync/Down", Verbs.Post)]
+        void SyncMALDownload();
+
+        #endregion
+
+        #region MovieDB Provider
+
+        [Rest("MovieDB/Search/{criteria}", Verbs.Get)]
+        List<CL_MovieDBMovieSearch_Response> SearchTheMovieDB(string criteria);
+
+        [Rest("MovieDB/Poster/{movieID?}", Verbs.Get)]
+        List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID);
+
+        [Rest("MovieDB/Fanart/{movieID?}", Verbs.Get)]
+        List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
+
+        [Rest("MovieDB/Refresh/{movieID?}", Verbs.Post)]
+        string UpdateMovieDBData(int movieD);
+
+        #endregion
+
+        #region Other Providers (MovieDB, MAL)
+
+        [Rest("Other/CrossRef/{animeID}/{crossRefType}", Verbs.Get)]
+        CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType);
+
+        [Rest("Other/CrossRef/{animeID}/{id)/{crossRefType}", Verbs.Post)]
+        string LinkAniDBOther(int animeID, int id, int crossRefType);
+
+        [Rest("Other/CrossRef/{animeID}/{crossRefType}", Verbs.Delete)]
+        string RemoveLinkAniDBOther(int animeID, int crossRefType);
+
+        #endregion
+
+        #region Server
+
+
+        [Rest("Server", Verbs.Get)]
+        CL_ServerStatus GetServerStatus();
+
+        [Rest("Server/Settings", Verbs.Get)]
+        CL_ServerSettings GetServerSettings();
+
+        [Rest("Server/Settings", Verbs.Post)]
+        CL_Response SaveServerSettings(CL_ServerSettings contractIn);
+
+        [Rest("Server/Versions", Verbs.Get)]
+        CL_AppVersions GetAppVersions();
+
+        #endregion
+
+        #region Change Tracker
+
+        [Rest("Changes/{date}/{userID}", Verbs.Get)]
+        CL_MainChanges GetAllChanges(DateTime date, int userID);
+
+        #endregion
+
+        #region CommandQueue
+
+        [Rest("CommandQueue/Hasher/{paused}", Verbs.Post)]
+        void SetCommandProcessorHasherPaused(bool paused);
+
+        [Rest("CommandQueue/General/{paused}", Verbs.Post)]
+        void SetCommandProcessorGeneralPaused(bool paused);
+
+        [Rest("CommandQueue/Images/{paused}", Verbs.Post)]
+        void SetCommandProcessorImagesPaused(bool paused);
+
+        [Rest("CommandQueue/Hasher", Verbs.Delete)]
+        void ClearHasherQueue();
+
+        [Rest("CommandQueue/Images", Verbs.Delete)]
+        void ClearImagesQueue();
+
+        [Rest("CommandQueue/General", Verbs.Delete)]
+        void ClearGeneralQueue();
+
+        #endregion
+
+        #region Tags
+
+        [Rest("Tags", Verbs.Get)]
+        List<string> GetAllTagNames();
+
+        #endregion
+
+        #region Votes
+
+        [Rest("AniDB/Vote/Sync", Verbs.Post)]
+        void SyncVotes();
+
+        [Rest("AniDB/Vote/{animeID}/{voteType}", Verbs.Post)]
+        void VoteAnime(int animeID, decimal voteValue, int voteType);
+
+        [Rest("AniDB/Vote/{animeID}", Verbs.Delete)]
+        void VoteAnimeRevoke(int animeID);
+
+        [Rest("AniDB/Vote/{animeID}", Verbs.Get)]
+        AniDB_Vote GetUserVote(int animeID);
+
+        #endregion
+
+        #region MediaInformation
+
+        [Rest("MediaInfo/Quality", Verbs.Get)]
+        List<string> GetAllUniqueVideoQuality();
+
+
+        [Rest("MediaInfo/AudioLanguages", Verbs.Get)]
+        List<string> GetAllUniqueAudioLanguages();
+
+        [Rest("MediaInfo/SubtitleLanguages", Verbs.Get)]
+        List<string> GetAllUniqueSubtitleLanguages();
+
+        #endregion
+
+        #region Users
+
+        [Rest("User",Verbs.Get)]
+        List<JMMUser> GetAllUsers();
+
+        [Rest("User/{username}/{password}", Verbs.Get)]
+        JMMUser AuthenticateUser(string username, string password);
+
+        [Rest("User", Verbs.Post)]
+        string SaveUser(JMMUser user);
+
+        [Rest("User", Verbs.Delete)]
+        string DeleteUser(int userID);
+
+        [Rest("User/ChangePassword/{userID}/{newPassword}", Verbs.Post)]
+        string ChangePassword(int userID, string newPassword);
+
+        #endregion
+
+        #region Images
+
+        [Rest("Image/Enable/{enabled}/{imageID}/{imageType}",Verbs.Post)]
+        string EnableDisableImage(bool enabled, int imageID, int imageType);
+
+        [Rest("Image/Default/{isDefault}/{animeID}/{imageID}/{imageType}/{imageSizeType}", Verbs.Post)]
+        string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType);
+
+        #endregion
+
+        #region Recommendations
+
+        [Rest("Recommendation/{maxResults}/{userID}/{recommendationType}",Verbs.Get)]
+        List<CL_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType);
+
+        #endregion
+
+        #region Playlists
+
+        [Rest("Playlist",Verbs.Get)]
+        List<Playlist> GetAllPlaylists();
+
+        [Rest("Playlist", Verbs.Post)]
+        CL_Response<Playlist> SavePlaylist(Playlist contract);
+
+        [Rest("Playlist/{playlistID}", Verbs.Delete)]
+        string DeletePlaylist(int playlistID);
+
+        [Rest("Playlist/{playlistID}", Verbs.Get)]
+        Playlist GetPlaylist(int playlistID);
+
+        #endregion
+
+        #region Bookmarks
+
+        [Rest("Bookmark",Verbs.Get)]
+        List<CL_BookmarkedAnime> GetAllBookmarkedAnime();
+
+        [Rest("Bookmark", Verbs.Post)]
+        CL_Response<CL_BookmarkedAnime> SaveBookmarkedAnime(CL_BookmarkedAnime cl);
+
+        [Rest("Bookmark/{bookmarkedAnimeID}", Verbs.Delete)]
+        string DeleteBookmarkedAnime(int bookmarkedAnimeID);
+
+        [Rest("Bookmark/{bookmarkedAnimeID}", Verbs.Get)]
+        CL_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID);
+
+
+        #endregion
+
+        #region FFDShow Presets
+
+        [Rest("FFDShowPreset/{videoLocalID}",Verbs.Get)]
+        FileFfdshowPreset GetFFDPreset(int videoLocalID);
+
+        [Rest("FFDShowPreset/{videoLocalID}", Verbs.Delete)]
+        void DeleteFFDPreset(int videoLocalID);
+
+        [Rest("FFDShowPreset", Verbs.Post)]
+        void SaveFFDPreset(FileFfdshowPreset preset);
+
+        #endregion
+
+        #region Rename Scripts
+
+        [Rest("RenameScript",Verbs.Get)]
+        List<RenameScript> GetAllRenameScripts();
+        
+        [Rest("RenameScript", Verbs.Post)]
+        CL_Response<RenameScript> SaveRenameScript(RenameScript contract);
+
+        [Rest("RenameScript/{renameScriptID}", Verbs.Delete)]
+        string DeleteRenameScript(int renameScriptID);
+
+
+        #endregion
+
     }
 }

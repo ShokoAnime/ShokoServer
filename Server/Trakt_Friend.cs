@@ -6,6 +6,9 @@ namespace Shoko.Models.Server
 {
     public class Trakt_Friend
     {
+        public Trakt_Friend()
+        {
+        }
         public int Trakt_FriendID { get; private set; }
         public string Username { get; set; }
         public string FullName { get; set; }

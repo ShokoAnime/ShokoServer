@@ -5,6 +5,9 @@ namespace Shoko.Models.Server
 {
     public class Trakt_Show
     {
+        public Trakt_Show()
+        {
+        }
         public int Trakt_ShowID { get; set; }
         public string TraktID { get; set; }
         public string Title { get; set; }

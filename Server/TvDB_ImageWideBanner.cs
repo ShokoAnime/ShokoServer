@@ -6,7 +6,9 @@ namespace Shoko.Models.Server
 {
     public class TvDB_ImageWideBanner : IImageEntity
     {
-
+        public TvDB_ImageWideBanner()
+        {
+        }
         public int TvDB_ImageWideBannerID { get; set; }
         public int Id { get; set; }
         public int SeriesID { get; set; }

@@ -6,7 +6,9 @@ namespace Shoko.Models.Server
 {
     public class Trakt_ImagePoster : IImageEntity
     {
-
+        public Trakt_ImagePoster()
+        {
+        }
 
         public int Trakt_ImagePosterID { get; private set; }
         public int Trakt_ShowID { get; set; }
