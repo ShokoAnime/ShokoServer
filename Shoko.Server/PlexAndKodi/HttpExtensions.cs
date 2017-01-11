@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
 using Nancy;
+using Shoko.Server.API.Module.apiv2;
 using Shoko.Server.PlexAndKodi.Plex;
 
 namespace Shoko.Server.PlexAndKodi
@@ -25,12 +26,10 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-            if (prov?.Nancy == null && WebOperationContext.Current?.IncomingRequest.UriTemplateMatch == null)
-            {
-                return null;
-            }
-            string host = (prov.Nancy != null) ? prov.Nancy.Request.Url.HostName : WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
-            string scheme = (prov.Nancy != null) ? prov.Nancy.Request.Url.Scheme : WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme;
+	        Request req = prov?.Nancy?.Request ?? Core.request;
+	        string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Host;
+            string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Scheme;
+	        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {
                 IPAddress ip = FileServer.FileServer.GetExternalAddress();

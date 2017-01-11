@@ -121,8 +121,6 @@ namespace Shoko.Server.API
 
 		private void AfterProcessing(NancyContext ctx)
 		{
-            // Set to null after request as not to interfere with contract generation
-            // Module.apiv2.Core.request = null;
             if (ctx.Request.Method.Equals("OPTIONS", StringComparison.Ordinal))
             {
                 Dictionary<string, string> headers = HttpExtensions.GetOptions();
@@ -130,8 +128,9 @@ namespace Shoko.Server.API
                 ctx.Response.WithHeaders(tps.ToArray());
                 ctx.Response.ContentType = "text/plain";
             }
-
-        }
+			// Set to null after request as not to interfere with contract generation
+			Module.apiv2.Core.request = null;
+		}
 	}
 
     public class StatusCodeHandler : IStatusCodeHandler
