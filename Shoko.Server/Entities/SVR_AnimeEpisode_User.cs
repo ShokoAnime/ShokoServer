@@ -7,6 +7,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AnimeEpisode_User : AnimeEpisode_User
     {
+        public SVR_AnimeEpisode_User()
+        {
+        }
         public int ContractVersion { get; set; }
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }

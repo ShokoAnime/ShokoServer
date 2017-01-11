@@ -6,7 +6,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_BookmarkedAnime : BookmarkedAnime
     {
-
+        public SVR_BookmarkedAnime()
+        {
+        }
         public CL_BookmarkedAnime ToClient()
         {
             CL_BookmarkedAnime contract = this.CloneToClient();

@@ -6,7 +6,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Seiyuu : AniDB_Seiyuu
     {
-
+        public SVR_AniDB_Seiyuu()
+        {
+        }
         public string PosterPath
         {
             get

@@ -8,7 +8,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_CrossRef_AniDB_TvDBV2 : CrossRef_AniDB_TvDBV2
     {
-      
+        public SVR_CrossRef_AniDB_TvDBV2()
+        {
+        }
 
         public TvDB_Series GetTvDBSeries()
         {

@@ -6,7 +6,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Anime_Similar : AniDB_Anime_Similar
     {
+        public SVR_AniDB_Anime_Similar() //Empty Constructor for nhibernate
+        {
 
+        }
 
         public void Populate(Raw_AniDB_SimilarAnime rawSim)
         {

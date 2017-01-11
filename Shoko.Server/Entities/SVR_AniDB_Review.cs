@@ -5,6 +5,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Review : AniDB_Review
     {
+        public SVR_AniDB_Review() //Empty Constructor for nhibernate
+        {
+
+        }
         public void Populate(Raw_AniDB_Review rawReview)
         {
             this.ReviewID = rawReview.ReviewID;

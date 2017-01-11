@@ -9,7 +9,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Episode : AniDB_Episode
     {
+        public SVR_AniDB_Episode() //Empty Constructor for nhibernate
+        {
 
+        }
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();

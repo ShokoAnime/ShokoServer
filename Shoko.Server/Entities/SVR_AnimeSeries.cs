@@ -22,6 +22,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AnimeSeries : AnimeSeries
     {
+        public SVR_AnimeSeries()
+        {
+        }
+
         #region DB Columns
 
         public int ContractVersion { get; set; }
@@ -766,7 +770,7 @@ namespace Shoko.Server.Entities
             if (animeRec != null)
             {
                 contract.AniDBAnime = animeRec.Contract.DeepClone();
-                contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
+                contract.AniDBAnime.AniDBAnime.DefaultImagePoster = SVR_AniDB_Anime_DefaultImage.ToClient(animeRec.GetDefaultPoster());
                 if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
                 {
                     ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
@@ -777,7 +781,7 @@ namespace Shoko.Server.Entities
                         contract.AniDBAnime.AniDBAnime.DefaultImagePoster.ImageType = (int) im.ImageType;
                     }
                 }
-                contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
+                contract.AniDBAnime.AniDBAnime.DefaultImageFanart = SVR_AniDB_Anime_DefaultImage.ToClient(animeRec.GetDefaultFanart());
                 if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
                 {
                     ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
@@ -788,7 +792,7 @@ namespace Shoko.Server.Entities
                         contract.AniDBAnime.AniDBAnime.DefaultImageFanart.ImageType = (int) im.ImageType;
                     }
                 }
-                contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
+                contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = SVR_AniDB_Anime_DefaultImage.ToClient(animeRec.GetDefaultWideBanner());
             }
 
             contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.Cast<CrossRef_AniDB_TvDBV2>().ToList();

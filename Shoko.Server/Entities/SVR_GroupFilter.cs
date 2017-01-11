@@ -18,7 +18,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_GroupFilter : GroupFilter
     {
-
+        public SVR_GroupFilter()
+        {
+        }
 
         public int GroupsIdsVersion { get; set; }
         public string GroupsIdsString { get; set; }

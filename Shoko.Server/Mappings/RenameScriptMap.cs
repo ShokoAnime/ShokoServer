@@ -6,6 +6,7 @@ namespace Shoko.Server.Mappings
 {
     public class RenameScriptMap : ClassMap<RenameScript>
     {
+
         public RenameScriptMap()
         {
             Not.LazyLoad();

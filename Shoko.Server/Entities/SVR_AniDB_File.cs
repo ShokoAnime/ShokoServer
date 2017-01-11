@@ -20,7 +20,10 @@ namespace Shoko.Server.Entities
         private string episodesRAW;
         private string episodesPercentRAW;
 
+        public SVR_AniDB_File() //Empty Constructor for nhibernate
+        {
 
+        }
         [XmlIgnore]
         public List<Language> Languages
         {

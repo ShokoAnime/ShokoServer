@@ -6,6 +6,7 @@ namespace Shoko.Server.Mappings
 {
     public class Trakt_ShowMap : ClassMap<Trakt_Show>
     {
+
         public Trakt_ShowMap()
         {
             Not.LazyLoad();

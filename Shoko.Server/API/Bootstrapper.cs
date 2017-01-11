@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Nancy.Rest.Module;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi;
 
@@ -18,11 +19,11 @@ namespace Shoko.Server.API
     using Nancy.Gzip;
     using core;
 
-    public class Bootstrapper : DefaultNancyBootstrapper
+    public class Bootstrapper : DefaultRestBootstrapper
     {
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		protected virtual NancyInternalConfiguration InternalConfiguration
+		protected override NancyInternalConfiguration InternalConfiguration
 		{
 			//overwrite bootsrapper to use different json implementation
 			get
@@ -32,8 +33,7 @@ namespace Shoko.Server.API
 					  // Make sure this runs first to override xml or html requests
 					  c.ResponseProcessors.Remove(typeof(BinaryProcessor));
 					  c.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
-
-					  c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer));
+//					  c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer));
 				  });
 			}
 		}
@@ -115,7 +115,7 @@ namespace Shoko.Server.API
 		private Response BeforeProcessing(NancyContext ctx)
 		{
             // Request will always be populated!
-            Module.apiv2.Core.request = ctx.Request;
+            //Module.apiv2.Core.request = ctx.Request;
 			return null;
 		}
 

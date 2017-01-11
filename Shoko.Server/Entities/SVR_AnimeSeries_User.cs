@@ -9,6 +9,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AnimeSeries_User : AnimeSeries_User
     {
+        public SVR_AnimeSeries_User()
+        {
+        }
         public int PlexContractVersion { get; set; }
         public byte[] PlexContractBlob { get; set; }
         public int PlexContractSize { get; set; }
@@ -83,9 +86,7 @@ namespace Shoko.Server.Entities
             }
         }
 
-        public SVR_AnimeSeries_User()
-        {
-        }
+
 
         public SVR_AnimeSeries_User(int userID, int seriesID)
         {

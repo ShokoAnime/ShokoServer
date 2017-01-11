@@ -5,6 +5,7 @@ namespace Shoko.Server.Mappings
 {
     public class AniDB_Anime_ReviewMap : ClassMap<AniDB_Anime_Review>
     {
+
         public AniDB_Anime_ReviewMap()
         {
             Not.LazyLoad();

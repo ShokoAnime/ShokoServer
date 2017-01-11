@@ -28,6 +28,8 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Anime : AniDB_Anime
     {
+
+
         #region DB columns
 
         public int ContractVersion { get; set; }

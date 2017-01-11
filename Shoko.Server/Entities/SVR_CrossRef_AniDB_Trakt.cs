@@ -9,6 +9,9 @@ namespace Shoko.Server.Entities
     [Obsolete]
     public class SVR_CrossRef_AniDB_Trakt 
     {
+        public SVR_CrossRef_AniDB_Trakt()
+        {
+        }
         public int CrossRef_AniDB_TraktID { get; private set; }
         public int AnimeID { get; set; }
         public string TraktID { get; set; }

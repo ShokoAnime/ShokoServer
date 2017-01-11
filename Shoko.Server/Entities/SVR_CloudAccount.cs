@@ -13,6 +13,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_CloudAccount : CloudAccount
     {
+        public SVR_CloudAccount()
+        {
+        }
         public new string Provider 
         {
             get { return Provider; }
@@ -59,10 +62,7 @@ namespace Shoko.Server.Entities
 
         public bool NeedSave { get; set; } = false;
 
-        public SVR_CloudAccount()
-        {
 
-        }
 
         public CL_CloudAccount ToClient()
         {

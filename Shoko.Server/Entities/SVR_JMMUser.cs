@@ -11,6 +11,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_JMMUser: JMMUser, Nancy.Security.IUserIdentity
     {
+        public SVR_JMMUser()
+        {
+        }
         /// <summary>
         /// Returns whether a user is allowed to view this series
         /// </summary>
@@ -90,10 +93,7 @@ namespace Shoko.Server.Entities
 
         public IEnumerable<string> Claims { get; set; }
 
-        public SVR_JMMUser()
-        {
 
-        }
 
         public SVR_JMMUser(string username)
         {

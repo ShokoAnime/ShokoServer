@@ -6,6 +6,7 @@ namespace Shoko.Server.Mappings
 {
     public class BookmarkedAnimeMap : ClassMap<SVR_BookmarkedAnime>
     {
+
         public BookmarkedAnimeMap()
         {
             Table("BookmarkedAnime");

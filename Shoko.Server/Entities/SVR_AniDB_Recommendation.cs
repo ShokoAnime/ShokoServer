@@ -7,7 +7,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Recommendation : AniDB_Recommendation
     {
+        public SVR_AniDB_Recommendation() //Empty Constructor for nhibernate
+        {
 
+        }
         public void Populate(Raw_AniDB_Recommendation rawRec)
         {
             this.AnimeID = rawRec.AnimeID;

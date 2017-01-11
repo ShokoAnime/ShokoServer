@@ -19,6 +19,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AnimeGroup : AnimeGroup
     {
+        public SVR_AnimeGroup()
+        {
+        }
         #region DB Columns
 
         public int ContractVersion { get; set; }

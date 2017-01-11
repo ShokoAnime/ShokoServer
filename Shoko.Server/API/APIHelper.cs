@@ -200,14 +200,17 @@ namespace Shoko.Server.API
 
         #endregion
 
+
         private static string ProperURL(string path, bool short_url = false)
         {
-            return ProperURL(Module.apiv2.Core.request.Url.Port, path, short_url);
+            return "";
+//            return ProperURL(Module.apiv2.Core.request.Url.Port, path, short_url);
         }
 
         private static string ProperURL(int? port, string path, bool short_url = false)
         {
-            if (!string.IsNullOrEmpty(path))
+            return "";
+/*            if (!string.IsNullOrEmpty(path))
             {
                 if (!short_url)
                 {
@@ -221,7 +224,9 @@ namespace Shoko.Server.API
             else
             {
                 return "";
-            }      
+            }      */
         }
+
+  
     }
 }

@@ -5,6 +5,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Anime_Title : AniDB_Anime_Title
     {
+        public SVR_AniDB_Anime_Title() //Empty Constructor for nhibernate
+        {
+            
+        }
         public void Populate(Raw_AniDB_Anime_Title rawTitle)
         {
             this.AnimeID = rawTitle.AnimeID;

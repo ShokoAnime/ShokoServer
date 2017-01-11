@@ -17,7 +17,9 @@ namespace Shoko.Server.Entities
     /// </summary>
     public class SVR_CrossRef_File_Episode : CrossRef_File_Episode
     {
-
+        public SVR_CrossRef_File_Episode()
+        {
+        }
 
         public void PopulateManually(SVR_VideoLocal vid, SVR_AnimeEpisode ep)
         {

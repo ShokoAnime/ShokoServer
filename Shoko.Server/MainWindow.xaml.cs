@@ -27,6 +27,7 @@ using Microsoft.Win32.TaskScheduler;
 using Nancy.Hosting.Self;
 using Action = System.Action;
 using System.Net.NetworkInformation;
+using Nancy.Rest.Module;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
@@ -1272,11 +1273,12 @@ namespace Shoko.Server
                 SetupAniDBProcessor();
 	            bool started = true;
                 started &= NetPermissionWrapper(StartNancyHost);
+                /*
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
 	            started &= NetPermissionWrapper(StartImageHostMetro);
-	            started &= NetPermissionWrapper(StartStreamingHost);
+	            started &= NetPermissionWrapper(StartStreamingHost);*/
 	            if (!started)
 	            {
 		            StopHost();
@@ -1621,13 +1623,14 @@ namespace Shoko.Server
 
 	            bool started = true;
 	            started &= NetPermissionWrapper(StartFileHost);
-	            started &= NetPermissionWrapper(StartNancyHost);
+	            started &= NetPermissionWrapper(StartNancyHost);/*
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
 	            started &= NetPermissionWrapper(StartImageHostMetro);
 	            started &= NetPermissionWrapper(StartStreamingHost);
-	            if (!started)
+                */
+                if (!started)
 	            {
 		            StopHost();
 		            throw new Exception("Failed to start all of the network hosts");
@@ -2877,7 +2880,7 @@ namespace Shoko.Server
                 logger.Error(ex);
             }
         }
-
+      
         private static void StartFileHost()
         {
             hostFile = new FileServer.FileServer(int.Parse(ServerSettings.JMMServerFilePort));

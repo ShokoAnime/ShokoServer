@@ -45,6 +45,9 @@ namespace Shoko.Server
     [ServiceBehavior(MaxItemsInObjectGraph = int.MaxValue)]
     public class JMMServiceImplementation : IJMMServer
     {
+
+        //TODO Split this file into subfiles with partial class, Move #region funcionality from the interface to those subfiles. Also move this to API folder
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public List<CL_AnimeGroup_User> GetAllGroups(int userID)
@@ -2168,24 +2171,20 @@ namespace Shoko.Server
             return ls;
         }
 
-        public void SetResumePosition(int videolocalid, int jmmuserID, long position)
+        public string SetResumePosition(int videolocalid, int userID, long position)
         {
             try
             {
-                VideoLocal_User vlu= RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(jmmuserID, videolocalid);
-                if (vlu == null)
-                {
-                    vlu = new VideoLocal_User();
-                    vlu.JMMUserID = jmmuserID;
-                    vlu.VideoLocalID = videolocalid;
-                    vlu.WatchedDate = null;                 
-                }
-                vlu.ResumePosition = position;
-                RepoFactory.VideoLocalUser.Save(vlu);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videolocalid);
+                if (vid == null)
+                    return "Could not find video local record";
+                vid.SetResumePosition(position, userID);
+                return "";
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
             }
         }
 
@@ -2835,23 +2834,7 @@ namespace Shoko.Server
             return contract;
         }
 
-        public string SetResumePositionOnVideo(int videoLocalID, long resumeposition, int userID)
-        {
-            try
-            {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-                if (vid == null)
-                    return "Could not find video local record";
-                vid.SetResumePosition(resumeposition, userID);
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error( ex,ex.ToString());
-                return ex.Message;
-            }
 
-        }
         public string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID)
         {
             try
@@ -8390,6 +8373,32 @@ namespace Shoko.Server
             }
 
             return retTitles;
+        }
+
+        public string SetResumePosition(int videoLocalID, long resumeposition, int userID)
+        {
+            throw new NotImplementedException();
+        }
+
+        public CL_Response<bool> TraktFriendRequestDeny(string friendUsername)
+        {
+            throw new NotImplementedException();
+        }
+
+        public CL_Response<bool> TraktFriendRequestApprove(string friendUsername)
+        {
+            throw new NotImplementedException();
+        }
+
+        public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IJMMServer Level(int level)
+        {
+            //This function is for the clients so they can use Fluent Syntax and include the level threshold of data
+            return this;
         }
     }
 }

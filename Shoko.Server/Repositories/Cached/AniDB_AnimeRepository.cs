@@ -323,7 +323,7 @@ namespace Shoko.Server.Repositories
 
         public CL_AniDB_Anime_DefaultImage ToContract()
         {
-            return AniDBImage.ToClient(_parentImage);
+            return SVR_AniDB_Anime_DefaultImage.ToClient(AniDBImage, _parentImage);
         }
 
         public TImageType GetParentImage<TImageType>() where TImageType : class, IImageEntity  => _parentImage as TImageType;

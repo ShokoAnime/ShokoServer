@@ -5,7 +5,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_GroupStatus : AniDB_GroupStatus
     {
-     
+        public SVR_AniDB_GroupStatus() //Empty Constructor for nhibernate
+        {
+
+        }
         public SVR_AniDB_GroupStatus(Raw_AniDB_GroupStatus raw)
         {
             this.AnimeID = raw.AnimeID;

@@ -12,6 +12,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AnimeGroup_User : AnimeGroup_User
     {
+        public SVR_AnimeGroup_User()
+        {
+        }
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         #region DB Columns
@@ -51,9 +55,6 @@ namespace Shoko.Server.Entities
             _plexcontract = null;
         }
 
-        public SVR_AnimeGroup_User()
-        {
-        }
 
         public SVR_AnimeGroup_User(int userID, int groupID)
         {

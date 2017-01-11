@@ -29,6 +29,8 @@ namespace Shoko.Server.Entities
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public SVR_VideoLocal()
+        { }
         #region DB columns
 
         public int MediaVersion { get; set; }

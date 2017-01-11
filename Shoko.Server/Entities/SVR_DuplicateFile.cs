@@ -11,7 +11,9 @@ namespace Shoko.Server.Entities
     public class SVR_DuplicateFile : DuplicateFile
     {
 
-
+        public SVR_DuplicateFile()
+        {
+        }
         public override string ToString()
         {
             return $"{FilePathFile1} --- {FilePathFile2}";

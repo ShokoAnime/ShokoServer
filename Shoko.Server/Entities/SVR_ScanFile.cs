@@ -6,6 +6,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_ScanFile : ScanFile
     {
+        public SVR_ScanFile()
+        {
+        }
         public ScanFileStatus ScanFileStatus  => (ScanFileStatus)Status;
 
         public string StatusText

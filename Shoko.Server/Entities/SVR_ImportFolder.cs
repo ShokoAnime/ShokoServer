@@ -12,6 +12,7 @@ namespace Shoko.Server.Entities
 {
     public class SVR_ImportFolder : ImportFolder, INotifyPropertyChanged
     {
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public new int IsWatched

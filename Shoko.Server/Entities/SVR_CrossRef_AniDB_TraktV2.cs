@@ -9,7 +9,9 @@ namespace Shoko.Server.Entities
     public class SVR_CrossRef_AniDB_TraktV2 : CrossRef_AniDB_TraktV2
     {
 
-
+        public SVR_CrossRef_AniDB_TraktV2()
+        {
+        }
         public Trakt_Show GetByTraktShow()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

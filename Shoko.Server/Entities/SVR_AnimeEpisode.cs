@@ -15,7 +15,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AnimeEpisode : AnimeEpisode
     {
-
+        public SVR_AnimeEpisode()
+        {
+        }
         #region Server DB columns
 
         public int PlexContractVersion { get; set; }

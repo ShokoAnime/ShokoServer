@@ -11,6 +11,9 @@ namespace Shoko.Server.Entities
     {
         public ScanStatus ScanStatus => (ScanStatus)Status;
 
+        public SVR_Scan()
+        {
+        }
         public string StatusText
         {
             get

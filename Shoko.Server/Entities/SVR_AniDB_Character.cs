@@ -14,6 +14,10 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Character : AniDB_Character
     {
+        public SVR_AniDB_Character() //Empty Constructor for nhibernate
+        {
+
+        }
         public string PosterPath
         {
             get

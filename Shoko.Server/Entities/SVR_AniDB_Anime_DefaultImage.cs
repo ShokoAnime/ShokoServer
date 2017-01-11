@@ -11,19 +11,24 @@ namespace Shoko.Server.Entities
     // ReSharper disable once InconsistentNaming
     public class SVR_AniDB_Anime_DefaultImage : AniDB_Anime_DefaultImage
     {
-        public CL_AniDB_Anime_DefaultImage ToClient()
+        public SVR_AniDB_Anime_DefaultImage() //Empty Constructor for nhibernate
+        {
+
+        }
+
+        public static CL_AniDB_Anime_DefaultImage ToClient(SVR_AniDB_Anime_DefaultImage defaultimage)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return ToClient(session.Wrap());
+                return defaultimage.ToClient(session.Wrap());
             }
         }
 
-        public CL_AniDB_Anime_DefaultImage ToClient(IImageEntity parentImage)
+        public static CL_AniDB_Anime_DefaultImage ToClient(SVR_AniDB_Anime_DefaultImage defaultimage, IImageEntity parentImage)
         {
            
-            CL_AniDB_Anime_DefaultImage contract = this.CloneToClient();
-            JMMImageType imgType = (JMMImageType)ImageParentType;
+            CL_AniDB_Anime_DefaultImage contract = defaultimage.CloneToClient();
+            JMMImageType imgType = (JMMImageType) defaultimage.ImageParentType;
 
             switch (imgType)
             {
@@ -83,7 +88,7 @@ namespace Shoko.Server.Entities
                     break;
             }
 
-            return ToClient(parentImage);
+            return ToClient(this, parentImage);
         }
     }
 }

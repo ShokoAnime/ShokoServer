@@ -136,11 +136,9 @@
     </Reference>
     <Reference Include="Nancy, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.1.4.3\lib\net40\Nancy.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="Nancy.Authentication.Stateless, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.Authentication.Stateless.1.4.1\lib\net40\Nancy.Authentication.Stateless.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="Nancy.Gzip, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.Gzip.0.1.0\lib\net45\Nancy.Gzip.dll</HintPath>
@@ -148,11 +146,9 @@
     </Reference>
     <Reference Include="Nancy.Hosting.Self, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.Hosting.Self.1.4.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -175,12 +171,10 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.4.0\lib\net45\NLog.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\NLog.4.4.1\lib\net45\NLog.dll</HintPath>
     </Reference>
-    <Reference Include="Pri.LongPath, Version=2.0.40.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Pri.LongPath.2.0.40\lib\net45\Pri.LongPath.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Pri.LongPath, Version=2.0.42.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Pri.LongPath.2.0.42\lib\net45\Pri.LongPath.dll</HintPath>
     </Reference>
     <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
       <HintPath>..\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
@@ -317,6 +311,8 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="API\APIHelper.cs" />
+    <Compile Include="API\Legacy.cs" />
     <Compile Include="API\Model\common\Art.cs" />
     <Compile Include="API\Model\common\Group.cs" />
     <Compile Include="API\Model\common\ObjectList.cs" />
@@ -330,25 +326,13 @@
     <Compile Include="API\Model\common\Serie.cs" />
     <Compile Include="API\Model\common\Tag.cs" />
     <Compile Include="API\Model\core\WebUI-Settings.cs" />
-    <Compile Include="API\Module\apiv2\Common.cs" />
-    <Compile Include="API\Module\apiv2\Dev.cs" />
-    <Compile Include="API\Module\apiv2\Image.cs" />
-    <Compile Include="API\Module\apiv2\Webui_Redirect.cs" />
-    <Compile Include="API\Module\apiv2\Webui.cs" />
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
-    <Compile Include="API\APIHelper.cs" />
     <Compile Include="Extensions\ModelConversionsExtensions.cs" />
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />
-    <Compile Include="API\Module\apiv1\Legacy.cs" />
-    <Compile Include="API\Module\apiv2\Auth.cs" />
-    <Compile Include="API\Module\apiv2\Core.cs" />
-    <Compile Include="API\Module\apiv2\Database.cs" />
-    <Compile Include="API\Module\apiv2\Unauth.cs" />
-    <Compile Include="API\Module\apiv1\Binary.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\Model\core\APIMessage.cs" />
     <Compile Include="API\Model\core\AuthUser.cs" />
@@ -1087,6 +1071,14 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
+      <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
+      <Name>Nancy.Rest.Annotations</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Module.csproj">
+      <Project>{23ff1900-46ad-4149-80a3-9d442a2059fa}</Project>
+      <Name>Nancy.Rest.Module</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
       <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
@@ -1250,6 +1242,8 @@
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="API\Module\apiv1\" />
+    <Folder Include="API\Module\apiv2\" />
     <Folder Include="API\Views\" />
   </ItemGroup>
   <ItemGroup>
@@ -1281,6 +1275,9 @@
     <Content Include="webui\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\AsyncUsageAnalyzers.1.0.0-alpha003\analyzers\dotnet\AsyncUsageAnalyzers.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

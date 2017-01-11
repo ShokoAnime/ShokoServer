@@ -10,6 +10,10 @@ namespace Shoko.Server.Entities
     [Obsolete]
     public class SVR_CrossRef_AniDB_TvDB 
     {
+        public SVR_CrossRef_AniDB_TvDB()
+        {
+        }
+
         public int CrossRef_AniDB_TvDBID { get; private set; }
         public int AnimeID { get; set; }
         public int TvDBID { get; set; }

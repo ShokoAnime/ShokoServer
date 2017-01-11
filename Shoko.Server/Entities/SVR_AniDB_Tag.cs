@@ -5,7 +5,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_AniDB_Tag : AniDB_Tag
     {
-
+        public SVR_AniDB_Tag()
+        {
+        }
         public void Populate(Raw_AniDB_Tag rawTag)
         {
             this.TagID = rawTag.TagID;

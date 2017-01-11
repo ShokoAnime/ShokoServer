@@ -28,7 +28,9 @@ namespace Shoko.Server.Entities
     public class SVR_VideoLocal_Place : VideoLocal_Place
     {
 
-
+        public SVR_VideoLocal_Place()
+        {
+        }
         public SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
 	    public string FullServerPath

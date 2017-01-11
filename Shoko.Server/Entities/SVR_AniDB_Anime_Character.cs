@@ -9,6 +9,12 @@ namespace Shoko.Server.Entities
     // ReSharper disable once InconsistentNaming
     public class SVR_AniDB_Anime_Character : AniDB_Anime_Character
     {
+
+        public SVR_AniDB_Anime_Character() //Empty Constructor for nhibernate
+        {
+
+        }
+
         public void Populate(Raw_AniDB_Character rawChar)
         {
             CharID = rawChar.CharID;

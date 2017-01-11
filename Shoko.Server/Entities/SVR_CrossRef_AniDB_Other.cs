@@ -7,6 +7,9 @@ namespace Shoko.Server.Entities
 {
     public class SVR_CrossRef_AniDB_Other : CrossRef_AniDB_Other
     {
+        public SVR_CrossRef_AniDB_Other()
+        {
+        }
         public MovieDB_Movie GetMovieDB_Movie()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
