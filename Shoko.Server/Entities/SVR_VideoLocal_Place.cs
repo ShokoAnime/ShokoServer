@@ -124,8 +124,12 @@ namespace Shoko.Server.Entities
 			    {
 				    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
 				    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
-				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-				    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+				    using (var transaction = session.BeginTransaction())
+				    {
+					    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+					    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+					    transaction.Commit();
+				    }
 				    CommandRequest_DeleteFileFromMyList cmdDel =
 					    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
 				    cmdDel.Save();
@@ -134,31 +138,35 @@ namespace Shoko.Server.Entities
 			    {
 				    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
 				    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
-				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+				    using (var transaction = session.BeginTransaction())
+				    {
+					    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+						transaction.Commit();
+				    }
 			    }
-			    episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-			    foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+		    }
+		    episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
+		    foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+		    {
+			    if (ep.AnimeEpisodeID == 0)
 			    {
-				    if (ep.AnimeEpisodeID == 0)
-				    {
-					    ep.PlexContract = null;
-					    RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-				    }
-				    try
-				    {
-					    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-					    RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-				    }
-				    catch (Exception ex)
-				    {
-					    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-				    }
+				    ep.PlexContract = null;
+				    RepoFactory.AnimeEpisode.Save(ep);
 			    }
-			    seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
-			    foreach (SVR_AnimeSeries ser in seriesToUpdate)
+			    try
 			    {
-				    ser.QueueUpdateStats();
+				    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
+				    RepoFactory.AnimeEpisode.Save(ep);
 			    }
+			    catch (Exception ex)
+			    {
+				    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+			    }
+		    }
+		    seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
+		    foreach (SVR_AnimeSeries ser in seriesToUpdate)
+		    {
+			    ser.QueueUpdateStats();
 		    }
 	    }
 
@@ -172,8 +180,12 @@ namespace Shoko.Server.Entities
 		    {
 			    v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
 			    v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
-			    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-			    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+			    using (var transaction = session.BeginTransaction())
+			    {
+				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+			    	RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+				    transaction.Commit();
+			    }
 			    CommandRequest_DeleteFileFromMyList cmdDel =
 				    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
 			    cmdDel.Save();
@@ -182,7 +194,11 @@ namespace Shoko.Server.Entities
 		    {
 			    v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
 			    v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
-			    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+			    using (var transaction = session.BeginTransaction())
+			    {
+				    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+					transaction.Commit();
+			    }
 		    }
 	    }
 
