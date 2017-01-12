@@ -96,6 +96,8 @@ namespace JMMServer.API.Module.apiv2
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
         JMMServiceImplementation _binary = new JMMServiceImplementation();
+
+	    [ThreadStatic]
         internal static Nancy.Request request;
 
         #region 1.Settings
