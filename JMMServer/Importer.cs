@@ -874,7 +874,7 @@ namespace JMMServer
 					        }
 				        }
 			        }
-			        if (places?.Count > 0) continue;
+			        if (v.Places?.Count > 0) continue;
 			        // delete video local record
 			        logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
 			        episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
