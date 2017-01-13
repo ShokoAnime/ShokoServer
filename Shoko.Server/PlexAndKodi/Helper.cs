@@ -878,8 +878,11 @@ namespace Shoko.Server.PlexAndKodi
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
-            p.AirDate = grp.Stat_AirDate_Min.HasValue ? grp.Stat_AirDate_Min.Value : DateTime.MinValue;
-	        p.Year = "" + grp.Stat_AllYears.Min();
+            p.AirDate = grp.Stat_AirDate_Min ?? DateTime.MinValue;
+	        if (grp.Stat_AllYears.Count > 0)
+	        {
+		        p.Year = grp.Stat_AllYears?.Min().ToString();
+	        }
             if (ser != null)
             {
                 p.Thumb = ser.AniDBAnime?.AniDBAnime.DefaultImagePoster.GenPoster(null);
