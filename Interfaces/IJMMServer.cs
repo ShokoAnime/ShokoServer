@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Nancy.Rest.Annotations;
 using Nancy.Rest.Annotations.Atributes;
 using Nancy.Rest.Annotations.Enums;
 using Nancy.Rest.Annotations.Interfaces;

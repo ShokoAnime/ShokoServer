@@ -237,6 +237,12 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
+      <Project>{2B35AE98-E24B-4A09-B1FB-230B90111B46}</Project>
+      <Name>Nancy.Rest.Annotations</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(SolutionDir)DefineSettings.targets" Condition="exists('$(SolutionDir)DefineSettings.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

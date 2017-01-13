@@ -17,10 +17,7 @@ namespace Shoko.Models.Server
         public string SortingCriteria { get; set; }
         public int? Locked { get; set; }
         public int FilterType { get; set; }
-
-        [Level(1)]
         public int? ParentGroupFilterID { get; set; }
-        [Level(2)]
         public int InvisibleInClients { get; set; }
     }
 }
