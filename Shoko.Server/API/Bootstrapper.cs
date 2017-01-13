@@ -19,13 +19,13 @@ namespace Shoko.Server.API
     using Nancy.Gzip;
     using core;
 
-    public class Bootstrapper : DefaultRestBootstrapper
+    public class Bootstrapper : RestBootstrapper
     {
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
 		protected override NancyInternalConfiguration InternalConfiguration
 		{
-			//overwrite bootstrapper to use different json implementation
+			//RestBootstraper with use a custom json.net serializer,no need to readd something in here
 			get
 			{
 			    NancyInternalConfiguration nac = base.InternalConfiguration;
@@ -112,7 +112,7 @@ namespace Shoko.Server.API
 		private Response BeforeProcessing(NancyContext ctx)
 		{
             // Request will always be populated!
-            //Module.apiv2.Core.request = ctx.Request;
+            Module.apiv2.Core.request = ctx.Request;
 			return null;
 		}
 
@@ -126,7 +126,7 @@ namespace Shoko.Server.API
                 ctx.Response.ContentType = "text/plain";
             }
 			// Set to null after request as not to interfere with contract generation
-			//Module.apiv2.Core.request = null;
+			Module.apiv2.Core.request = null;
 		}
 	}
 

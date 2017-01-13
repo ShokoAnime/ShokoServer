@@ -326,6 +326,17 @@
     <Compile Include="API\Model\common\Serie.cs" />
     <Compile Include="API\Model\common\Tag.cs" />
     <Compile Include="API\Model\core\WebUI-Settings.cs" />
+    <Compile Include="API\Module\apiv1\Binary.cs" />
+    <Compile Include="API\Module\apiv1\Legacy.cs" />
+    <Compile Include="API\Module\apiv2\Auth.cs" />
+    <Compile Include="API\Module\apiv2\Common.cs" />
+    <Compile Include="API\Module\apiv2\Core.cs" />
+    <Compile Include="API\Module\apiv2\Database.cs" />
+    <Compile Include="API\Module\apiv2\Dev.cs" />
+    <Compile Include="API\Module\apiv2\Image.cs" />
+    <Compile Include="API\Module\apiv2\Unauth.cs" />
+    <Compile Include="API\Module\apiv2\Webui.cs" />
+    <Compile Include="API\Module\apiv2\Webui_Redirect.cs" />
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
@@ -1071,9 +1082,17 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
+      <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
+      <Name>Nancy.Rest.Annotations</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Module.csproj">
       <Project>{23ff1900-46ad-4149-80a3-9d442a2059fa}</Project>
       <Name>Nancy.Rest.Module</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Nancy.Rest.Module\YAXLib\YAXLib\YAXLib.csproj">
+      <Project>{f1c4d174-c948-4d18-a125-f6855ef55683}</Project>
+      <Name>YAXLib</Name>
     </ProjectReference>
     <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
       <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
@@ -1238,8 +1257,6 @@
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="API\Module\apiv1\" />
-    <Folder Include="API\Module\apiv2\" />
     <Folder Include="API\Views\" />
   </ItemGroup>
   <ItemGroup>
