@@ -1042,31 +1042,22 @@ namespace Shoko.Server.PlexAndKodi
                     .ToDictionary(a => a.Key, a => a.Value);
                 if (eptype.HasValue)
                 {
-                    ret =
-                        new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Episode, ser.GetSeriesName(), true,
-                            true, info));
-                    if (!ret.Init(prov))
-                        return new MediaContainer();
-                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt(prov);
-                    ret.MediaContainer.LeafCount =
-                        (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
-                    ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
                     episodes = episodes.Where(a => a.Key.EpisodeTypeEnum == eptype.Value)
                         .ToDictionary(a => a.Key, a => a.Value);
                 }
                 else
                 {
-                    ret = new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Types", false, true, info));
-                    if (!ret.Init(prov))
-                        return new MediaContainer();
-                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt(prov);
-                    ret.MediaContainer.LeafCount =
-                        (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
-                    ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
                     List<enEpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     if (types.Count > 1)
                     {
-                        List<PlexEpisodeType> eps = new List<PlexEpisodeType>();
+	                    ret = new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Types", false, true, info));
+	                    if (!ret.Init(prov))
+		                    return new MediaContainer();
+	                    ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt(prov);
+	                    ret.MediaContainer.LeafCount =
+		                    (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
+	                    ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
+	                    List<PlexEpisodeType> eps = new List<PlexEpisodeType>();
                         foreach (enEpisodeType ee in types)
                         {
                             PlexEpisodeType k2 = new PlexEpisodeType();
@@ -1099,6 +1090,18 @@ namespace Shoko.Server.PlexAndKodi
                         return ret.GetStream(prov);
                     }
                 }
+	            ret =
+		            new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Episode, ser.GetSeriesName(), true,
+			            true, info));
+	            if (!ret.Init(prov))
+		            return new MediaContainer();
+	            ret.MediaContainer.Art = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart.GenArt(prov);
+	            ret.MediaContainer.LeafCount =
+		            (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
+	            ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
+
+	            // Here we are collapsing to episodes
+
                 List<Video> vids = new List<Video>();
 
                 if ((eptype.HasValue) && (info!=null))
