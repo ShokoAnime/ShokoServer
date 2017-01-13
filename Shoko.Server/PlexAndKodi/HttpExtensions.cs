@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
 using Nancy;
-using Shoko.Server.API.Module.apiv2;
+
 using Shoko.Server.PlexAndKodi.Plex;
 
 namespace Shoko.Server.PlexAndKodi
@@ -26,7 +26,7 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-	        Request req = prov?.Nancy?.Request ?? Core.request;
+            Request req = prov?.Nancy?.Request; //?? Core.request; why this is needed? Request if forwarded inside the provider and the provider instanciated in the NancyModule, having a static variable forwarding a possible multi-tasker provider is a bad idea.
 	        string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Host;
             string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Scheme;
 	        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;

@@ -25,16 +25,13 @@ namespace Shoko.Server.API
 
 		protected override NancyInternalConfiguration InternalConfiguration
 		{
-			//overwrite bootsrapper to use different json implementation
+			//overwrite bootstrapper to use different json implementation
 			get
 			{
-				return Nancy.Bootstrapper.NancyInternalConfiguration.WithOverrides(c =>
-				  {
-					  // Make sure this runs first to override xml or html requests
-					  c.ResponseProcessors.Remove(typeof(BinaryProcessor));
-					  c.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
-//					  c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer));
-				  });
+			    NancyInternalConfiguration nac = base.InternalConfiguration;
+                nac.ResponseProcessors.Remove(typeof(BinaryProcessor));
+                nac.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
+			    return nac;
 			}
 		}
 
@@ -129,7 +126,7 @@ namespace Shoko.Server.API
                 ctx.Response.ContentType = "text/plain";
             }
 			// Set to null after request as not to interfere with contract generation
-			Module.apiv2.Core.request = null;
+			//Module.apiv2.Core.request = null;
 		}
 	}
 

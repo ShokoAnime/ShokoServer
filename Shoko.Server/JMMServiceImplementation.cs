@@ -8395,9 +8395,8 @@ namespace Shoko.Server
             throw new NotImplementedException();
         }
 
-        public IJMMServer Level(int level)
+        public IJMMServer Filter(int level, IEnumerable<string> tags = null)
         {
-            //This function is for the clients so they can use Fluent Syntax and include the level threshold of data
             return this;
         }
     }
