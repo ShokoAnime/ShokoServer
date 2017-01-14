@@ -169,7 +169,7 @@ namespace Shoko.Server.API.Module.apiv1
             Get["/LinkAniDBTvDBEpisode/{a}/{b}/{c}"] = x => { return LinkAniDBTvDBEpisode((int)x.a, (int)x.b, (int)x.c); };
             Get["/MoveSeries/{a}/{b}/{c}"] = x => { return MoveSeries((int)x.a, (int)x.b, (int)x.c); };
             Get["/OnlineAnimeTitleSearch/{a}"] = x => { return OnlineAnimeTitleSearch(x.a); };
-            Get["/PostTraktCommentShow/{a}/{b}/{c}/{d}"] = x => { return PostTraktCommentShow(x.a, x.b, (bool)x.c, x.d); };
+            Get["/PostTraktCommentShow/{a}/{b}/{c}/{d}"] = x => { return PostTraktCommentShow(x.a, x.b, (bool)x.c); };
             Get["/RandomFileRenamePreview/{a}/{b}"] = x => { return RandomFileRenamePreview((int)x.a, (int)x.b); };
             Get["/RecreateAllGroups"] = x => { return RecreateAllGroups(); };
             Get["/ReevaluateDuplicateFiles"] = x => { return ReevaluateDuplicateFiles(); };
@@ -220,8 +220,8 @@ namespace Shoko.Server.API.Module.apiv1
             Get["/TestMALLogin"] = x => { return TestMALLogin(); };
             Get["/ToggleWatchedStatusOnEpisode/{a}/{b}/{c}"] = x => { return ToggleWatchedStatusOnEpisode((int)x.a, (bool)x.b, (int)x.c); };
             Get["/ToggleWatchedStatusOnVideo/{a}/{b}/{c}"] = x => { return ToggleWatchedStatusOnVideo((int)x.a, (bool)x.b, (int)x.c); };
-            Get["/TraktFriendRequestApprove/{a}/{b}"] = x => { return TraktFriendRequestApprove(x.a,x.b); };
-            Get["/TraktFriendRequestDeny/{a}/{b}"] = x => { return TraktFriendRequestDeny(x.a,x.b); };
+            Get["/TraktFriendRequestApprove/{a}/{b}"] = x => { return TraktFriendRequestApprove(x.a); };
+            Get["/TraktFriendRequestDeny/{a}/{b}"] = x => { return TraktFriendRequestDeny(x.a); };
             Get["/UpdateAniDBFileData/{a}/{b}/{c}"] = x => { return UpdateAniDBFileData((bool)x.a, (bool)x.b, (bool)x.c); };
             Get["/UpdateAnimeData/{a}"] = x => { return UpdateAnimeData((int)x.a); };
             Get["/UpdateAnimeDisableExternalLinksFlag/{a}/{b}"] = x => { return UpdateAnimeDisableExternalLinksFlag((int)x.a, (int)x.b); };
@@ -1062,9 +1062,9 @@ namespace Shoko.Server.API.Module.apiv1
            return _impl.OnlineAnimeTitleSearch(a);
         }
 
-        private object PostTraktCommentShow(string a, string b, bool c, string d)
+        private object PostTraktCommentShow(string a, string b, bool c)
         {
-           return _impl.PostTraktCommentShow(a,b,c,ref d);
+           return _impl.PostTraktCommentShow(a,b,c);
         }
 
         private object RandomFileRenamePreview(int a, int b)
@@ -1333,14 +1333,14 @@ namespace Shoko.Server.API.Module.apiv1
            return _impl.ToggleWatchedStatusOnVideo(a,b,c);
         }
 
-        private object TraktFriendRequestApprove(string a, string b)
+        private object TraktFriendRequestApprove(string a)
         {
-           return _impl.TraktFriendRequestApprove(a, ref b);
+           return _impl.TraktFriendRequestApprove(a);
         }
 
-        private object TraktFriendRequestDeny(string a, string b)
+        private object TraktFriendRequestDeny(string a)
         {
-           return _impl.TraktFriendRequestDeny(a, ref b);
+           return _impl.TraktFriendRequestDeny(a);
         }
 
         private object UpdateAniDBFileData(bool a, bool b, bool c)

@@ -2171,22 +2171,7 @@ namespace Shoko.Server
             return ls;
         }
 
-        public string SetResumePosition(int videolocalid, int userID, long position)
-        {
-            try
-            {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videolocalid);
-                if (vid == null)
-                    return "Could not find video local record";
-                vid.SetResumePosition(position, userID);
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
+
 
         public void TraktScrobble(int animeId, int type, int progress, int status)
         {
@@ -3436,9 +3421,9 @@ namespace Shoko.Server
             }
         }
 
-        public bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage)
+        public CL_Response<bool> TraktFriendRequestDeny(string friendUsername)
         {
-            return false;
+            return new CL_Response<bool> {Result = false};
             /*
 			try
 			{
@@ -3452,9 +3437,9 @@ namespace Shoko.Server
 			}*/
         }
 
-        public bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage)
+        public CL_Response<bool> TraktFriendRequestApprove(string friendUsername)
         {
-            return false;
+            return new CL_Response<bool> { Result = false };
             /*
 			try
 			{
@@ -7576,10 +7561,6 @@ namespace Shoko.Server
             }
         }
 
-        public bool PostTraktCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage)
-        {
-            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler, ref returnMessage);
-        }
 
         public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
         {
@@ -8377,27 +8358,30 @@ namespace Shoko.Server
 
         public string SetResumePosition(int videoLocalID, long resumeposition, int userID)
         {
-            throw new NotImplementedException();
+            try
+            {
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                if (vid == null)
+                    return "Could not find video local record";
+                vid.SetResumePosition(resumeposition, userID);
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
         }
 
-        public CL_Response<bool> TraktFriendRequestDeny(string friendUsername)
-        {
-            throw new NotImplementedException();
-        }
 
-        public CL_Response<bool> TraktFriendRequestApprove(string friendUsername)
-        {
-            throw new NotImplementedException();
-        }
+
 
         public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
         {
-            throw new NotImplementedException();
+            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
 
-        public IJMMServer Filter(int level, IEnumerable<string> tags = null)
-        {
-            return this;
-        }
+
     }
 }

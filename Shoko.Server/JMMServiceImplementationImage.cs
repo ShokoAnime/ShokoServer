@@ -4,6 +4,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Repositories.Direct;
 using NLog;
 using Nancy;
+using Nancy.Rest.Module;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Entities;
 using Shoko.Server.Repositories;
@@ -14,16 +15,10 @@ namespace Shoko.Server
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public byte[] GetImage(string entityID, int entityType, bool thumnbnailOnly)
-		{
-			string str;
-			return GetImage(entityID, entityType, thumnbnailOnly, out str);
-		}
-
-        public byte[] GetImage(string entityID, int entityType, bool thumnbnailOnly, out string contentType)
+        public Stream GetImage(string entityID, int entityType, bool thumnbnailOnly)
         {
             JMMImageType imageType = (JMMImageType) entityType;
-			contentType = "";
+	
 
             switch (imageType)
             {
@@ -34,8 +29,7 @@ namespace Shoko.Server
 
 					if (File.Exists(anime.PosterPath))
 					{
-						contentType = MimeTypes.GetMimeType(anime.PosterPath);
-						return File.ReadAllBytes(anime.PosterPath);
+                        return new StreamWithContentType(File.OpenRead(anime.PosterPath), MimeTypes.GetMimeType(anime.PosterPath));
 					}
 					else
 					{
@@ -49,8 +43,7 @@ namespace Shoko.Server
 
                     if (File.Exists(chr.PosterPath))
 					{
-						contentType = MimeTypes.GetMimeType(chr.PosterPath);
-						return File.ReadAllBytes(chr.PosterPath);
+                        return new StreamWithContentType(File.OpenRead(chr.PosterPath), MimeTypes.GetMimeType(chr.PosterPath));
 					}
                     else
                     {
@@ -64,8 +57,7 @@ namespace Shoko.Server
 
 					if (File.Exists(creator.PosterPath))
 					{
-						contentType = MimeTypes.GetMimeType(creator.PosterPath);
-						return File.ReadAllBytes(creator.PosterPath);
+                        return new StreamWithContentType(File.OpenRead(creator.PosterPath), MimeTypes.GetMimeType(creator.PosterPath));
 					}
 					else
 					{
@@ -80,8 +72,7 @@ namespace Shoko.Server
 
 					if (File.Exists(poster.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(poster.GetFullImagePath());
-						return File.ReadAllBytes(poster.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(poster.GetFullImagePath()), MimeTypes.GetMimeType(poster.GetFullImagePath()));
 					}
 					else
 					{
@@ -96,10 +87,9 @@ namespace Shoko.Server
 
 					if (File.Exists(wideBanner.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(wideBanner.GetFullImagePath());
-						return File.ReadAllBytes(wideBanner.GetFullImagePath());
-					}
-					else
+                        return new StreamWithContentType(File.OpenRead(wideBanner.GetFullImagePath()), MimeTypes.GetMimeType(wideBanner.GetFullImagePath()));
+                    }
+                    else
 					{
 						logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
 						return null;
@@ -112,8 +102,7 @@ namespace Shoko.Server
 
 					if (File.Exists(ep.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(ep.GetFullImagePath());
-						return File.ReadAllBytes(ep.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(ep.GetFullImagePath()), MimeTypes.GetMimeType(ep.GetFullImagePath()));
 					}
 					else
 					{
@@ -130,8 +119,7 @@ namespace Shoko.Server
                     {
 						if (File.Exists(fanart.GetFullThumbnailPath()))
 						{
-							contentType = MimeTypes.GetMimeType(fanart.GetFullThumbnailPath());
-							return File.ReadAllBytes(fanart.GetFullThumbnailPath());
+                            return new StreamWithContentType(File.OpenRead(fanart.GetFullThumbnailPath()), MimeTypes.GetMimeType(fanart.GetFullThumbnailPath()));
 						}
 						else
 						{
@@ -143,8 +131,7 @@ namespace Shoko.Server
                     {
 						if (File.Exists(fanart.GetFullImagePath()))
 						{
-							contentType = MimeTypes.GetMimeType(fanart.GetFullImagePath());
-							return File.ReadAllBytes(fanart.GetFullImagePath());
+                            return new StreamWithContentType(File.OpenRead(fanart.GetFullImagePath()), MimeTypes.GetMimeType(fanart.GetFullImagePath()));
 						}
 						else
 						{
@@ -164,8 +151,7 @@ namespace Shoko.Server
 
 					if (File.Exists(mPoster.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(mPoster.GetFullImagePath());
-						return File.ReadAllBytes(mPoster.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(mPoster.GetFullImagePath()), MimeTypes.GetMimeType(mPoster.GetFullImagePath()));
 					}
 					else
 					{
@@ -183,8 +169,7 @@ namespace Shoko.Server
 
 					if (File.Exists(mFanart.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(mFanart.GetFullImagePath());
-						return File.ReadAllBytes(mFanart.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(mFanart.GetFullImagePath()), MimeTypes.GetMimeType(mFanart.GetFullImagePath()));
 					}
 					else
 					{
@@ -199,8 +184,7 @@ namespace Shoko.Server
 
 					if (File.Exists(tFanart.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(tFanart.GetFullImagePath());
-						return File.ReadAllBytes(tFanart.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(tFanart.GetFullImagePath()), MimeTypes.GetMimeType(tFanart.GetFullImagePath()));
 					}
 					else
 					{
@@ -215,8 +199,7 @@ namespace Shoko.Server
 
 					if (File.Exists(tPoster.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(tPoster.GetFullImagePath());
-						return File.ReadAllBytes(tPoster.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(tPoster.GetFullImagePath()), MimeTypes.GetMimeType(tPoster.GetFullImagePath()));
 					}
 					else
 					{
@@ -232,8 +215,7 @@ namespace Shoko.Server
 
 					if (File.Exists(tEpisode.GetFullImagePath()))
 					{
-						contentType = MimeTypes.GetMimeType(tEpisode.GetFullImagePath());
-						return File.ReadAllBytes(tEpisode.GetFullImagePath());
+                        return new StreamWithContentType(File.OpenRead(tEpisode.GetFullImagePath()), MimeTypes.GetMimeType(tEpisode.GetFullImagePath()));
 					}
 					else
 					{
@@ -247,11 +229,11 @@ namespace Shoko.Server
             }
         }
 
-        public byte[] GetImageUsingPath(string serverImagePath)
+        public Stream GetImageUsingPath(string serverImagePath)
         {
 			if (File.Exists(serverImagePath))
 			{
-				return File.ReadAllBytes(serverImagePath);
+			    return new StreamWithContentType(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
 			}
 			else
 			{

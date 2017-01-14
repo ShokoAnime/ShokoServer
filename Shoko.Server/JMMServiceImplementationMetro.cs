@@ -75,9 +75,9 @@ namespace Shoko.Server
             return contract;
         }
 
-        public bool PostCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage)
+        public CL_Response<bool> PostCommentShow(string traktID, string commentText, bool isSpoiler)
         {
-            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler, ref returnMessage);
+            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
 
         public Metro_CommunityLinks GetCommunityLinks(int animeID)

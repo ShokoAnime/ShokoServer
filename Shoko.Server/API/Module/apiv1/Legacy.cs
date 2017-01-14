@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Nancy;
+using Nancy.Rest.Module;
 using Shoko.Models.PlexAndKodi;
 using Stream = System.IO.Stream;
 using Shoko.Server.API.Model.core;
@@ -428,16 +429,12 @@ namespace Shoko.Server.API.Module.apiv1
             bool isthumb = false;
             bool.TryParse(thumb, out isthumb);
 
-            byte[] image = _image.GetImage(id, imgtype, isthumb, out contentType);
-			if(image == null || contentType == "")
+            StreamWithContentType c = (StreamWithContentType)_image.GetImage(id, imgtype, isthumb);
+            if (c == null || c.ContentType == "")
 			{
 				return new APIMessage(500, "Image of type not found for ID");
 			}
-
-            Stream ms = new MemoryStream(image);
-            response = Response.FromStream(ms, contentType);
-            //response = Response.FromByteArray(image, contentType);
-		    return response;
+	        return Response.FromStream(c,c.ContentType);
 	    }
 
 		/// <summary>
@@ -447,12 +444,12 @@ namespace Shoko.Server.API.Module.apiv1
 		/// <returns></returns>
 		private object GetImageUsingPath(string path)
 		{
-			string contentType = MimeTypes.GetMimeType(path);
-			byte[] image = _image.GetImageUsingPath(path);
-            Stream ms = new MemoryStream(image);
-            response = Response.FromStream(ms, contentType);
-            //response = Response.FromByteArray(image, contentType);
-            return response;
+            StreamWithContentType c = (StreamWithContentType)_image.GetImageUsingPath(path);
+            if (c == null || c.ContentType == "")
+            {
+                return new APIMessage(500, "Image of type not found");
+            }
+            return Response.FromStream(c, c.ContentType);
 		}
 
         #endregion

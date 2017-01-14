@@ -11,6 +11,7 @@ using Shoko.Server.Utilities;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
@@ -798,27 +799,29 @@ namespace Shoko.Server.Providers.TraktTV
 
         #region Send Data to Trakt
 
-        public static bool PostCommentShow(string traktSlug, string commentText, bool isSpoiler,
-            ref string returnMessage)
+        public static CL_Response<bool> PostCommentShow(string traktSlug, string commentText, bool isSpoiler)
         {
-            returnMessage = "";
+            CL_Response<bool> ret=new CL_Response<bool>();
             try
             {
                 if (!ServerSettings.Trakt_IsEnabled)
                 {
-                    returnMessage = "Trakt has not been enabled";
-                    return false;
+                    ret.ErrorMessage = "Trakt has not been enabled";
+                    ret.Result = false;
+                    return ret;
                 }
                 if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
-                    returnMessage = "Trakt has not been authorized";
-                    return false;
+                    ret.ErrorMessage = "Trakt has not been authorized";
+                    ret.Result = false;
+                    return ret;
                 }
 
                 if (string.IsNullOrEmpty(commentText))
                 {
-                    returnMessage = "Please enter text for your comment";
-                    return false;
+                    ret.ErrorMessage = "Please enter text for your comment";
+                    ret.Result = false;
+                    return ret;
                 }
 
                 TraktV2CommentShowPost comment = new TraktV2CommentShowPost();
@@ -832,23 +835,24 @@ namespace Shoko.Server.Providers.TraktTV
                 if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post ||
                     response == TraktStatusCodes.Success_Delete)
                 {
-                    returnMessage = "Success";
-                    return true;
+                    ret.ErrorMessage = "Success";
+                    ret.Result = true;
+                    return ret;
                 }
                 else
                 {
-                    returnMessage = string.Format("{0} Error - {1}", response, retData);
-                    return false;
+                    ret.ErrorMessage = string.Format("{0} Error - {1}", response, retData);
+                    ret.Result = false;
+                    return ret;
                 }
             }
             catch (Exception ex)
             {
                 logger.Error( ex,"Error in TraktTVHelper.PostCommentShow: " + ex.ToString());
-                returnMessage = ex.Message;
-                return false;
+                ret.ErrorMessage = ex.Message;
+                ret.Result = false;
+                return ret;
             }
-
-            return true;
         }
 
         private static DateTime GetEpisodeDateForSync(SVR_AnimeEpisode ep, TraktSyncType syncType)
