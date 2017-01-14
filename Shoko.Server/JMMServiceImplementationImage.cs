@@ -4,6 +4,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Repositories.Direct;
 using NLog;
 using Nancy;
+using Shoko.Models.Interfaces;
 using Shoko.Server.Entities;
 using Shoko.Server.Repositories;
 

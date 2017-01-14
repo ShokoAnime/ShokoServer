@@ -4,6 +4,7 @@ using Shoko.Models;
 using Shoko.Models.Server;
 using NLog;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Interfaces;
 using Shoko.Server.Entities;
 
 namespace Shoko.Server

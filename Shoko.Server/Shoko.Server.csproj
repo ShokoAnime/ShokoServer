@@ -380,9 +380,6 @@
     <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
-    <Compile Include="IJMMServerImage.cs" />
-    <Compile Include="IJMMServerMetro.cs" />
-    <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="PlexAndKodi\HttpExtensions.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexClient.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexDeviceInfo.cs" />
