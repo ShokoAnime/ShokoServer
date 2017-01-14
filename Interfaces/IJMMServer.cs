@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Nancy.Rest.Annotations.Atributes;
 using Nancy.Rest.Annotations.Enums;
-using Nancy.Rest.Annotations.Interfaces;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
