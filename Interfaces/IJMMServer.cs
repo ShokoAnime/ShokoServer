@@ -12,7 +12,7 @@ using Shoko.Models.TvDB;
 namespace Shoko.Models.Interfaces
 {
     [RestBasePath("/Legacy")]
-    public interface IJMMServer : IFilter<IJMMServer>
+    public interface IJMMServer 
     {
 
         #region GroupsFilter
