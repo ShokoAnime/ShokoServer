@@ -78,6 +78,9 @@
     <Compile Include="Enums\enEpisodeType.cs" />
     <Compile Include="Interfaces\IHash.cs" />
     <Compile Include="Interfaces\IImageEntity.cs" />
+    <Compile Include="Interfaces\IJMMServerImage.cs" />
+    <Compile Include="Interfaces\IJMMServerMetro.cs" />
+    <Compile Include="Interfaces\IJMMServerStreaming.cs" />
     <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
     <Compile Include="Server\AniDB_Anime.cs" />
     <Compile Include="Constants.cs" />
