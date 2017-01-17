@@ -19,7 +19,7 @@ namespace Shoko.Server.Models
         }
         public new string Provider 
         {
-            get { return Provider; }
+            get { return base.Provider; }
             set
             {
                 base.Provider = value;

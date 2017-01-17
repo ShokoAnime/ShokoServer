@@ -40,12 +40,12 @@ namespace Shoko.Server.PlexAndKodi
     {
         public static string ConstructVideoLocalStream(this IProvider prov, int userid, string vid, string name, bool autowatch)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, prov.IsExternalRequest());
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), "Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name, prov.IsExternalRequest());
         }
 
         public static string ConstructFileStream(this IProvider prov, int userid, string file, bool autowatch)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), prov.IsExternalRequest());
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), "Stream/Filename/" + Base64EncodeUrl(file) + "/" + userid + "/" + autowatch, prov.IsExternalRequest());
         }
 
         public static string ConstructImageLink(this IProvider prov, int type, int id)

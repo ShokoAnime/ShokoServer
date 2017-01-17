@@ -47,7 +47,7 @@ namespace Shoko.Server.PlexAndKodi
                 return new MemoryStream();
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-            return new StreamWithContentType(ms, "image/png");
+            return new StreamWithResponse(ms, "image/png");
         }
 
         public MediaContainer GetFilters(IProvider prov, string uid)

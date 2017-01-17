@@ -27,13 +27,13 @@ namespace Shoko.Server
             string path = GetImagePath(imageId, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
                 return null;
-            return new StreamWithContentType(File.OpenRead(path), MimeTypes.GetMimeType(path));
+            return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
         }
         public Stream GetImageUsingPath(string serverImagePath)
         {
 			if (File.Exists(serverImagePath))
 			{
-			    return new StreamWithContentType(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
+			    return new StreamWithResponse(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
 			}
 			logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
 			return null;
@@ -43,7 +43,7 @@ namespace Shoko.Server
             byte[] dta = Resources.blank;
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-            return new StreamWithContentType(ms, "image/jpeg");
+            return new StreamWithResponse(ms, "image/jpeg");
         }
         internal static Image ReSize(Image im, int width, int height)
         {
@@ -70,7 +70,7 @@ namespace Shoko.Server
                 MemoryStream stream = new MemoryStream();
                 im.Save(stream, ImageFormat.Jpeg);
                 stream.Seek(0, SeekOrigin.Begin);
-                return new StreamWithContentType(stream,"image/jpg");
+                return new StreamWithResponse(stream,"image/jpg");
             }
 
             float nheight = 0;
@@ -103,7 +103,7 @@ namespace Shoko.Server
             MemoryStream ms = new MemoryStream();
             im2.Save(ms, ImageFormat.Jpeg);
             ms.Seek(0, SeekOrigin.Begin);
-            return new StreamWithContentType(ms, "image/jpg");
+            return new StreamWithResponse(ms, "image/jpg");
         }
 
         public System.IO.Stream GetSupportImage(string name, float? ratio)
@@ -120,7 +120,7 @@ namespace Shoko.Server
             ms.Seek(0, SeekOrigin.Begin);
             if (!name.Contains("404") && (ratio==null || ratio.Value == 1.0F || ratio.Value == 0))
             {
-                return new StreamWithContentType(ms, "image/png"); ;
+                return new StreamWithResponse(ms, "image/png"); ;
             }
             Image im = Image.FromStream(ms);
             float w = im.Width;
@@ -174,7 +174,7 @@ namespace Shoko.Server
             im2.Save(ms2, ImageFormat.Png);
             ms2.Seek(0, SeekOrigin.Begin);
             ms.Dispose();
-            return new StreamWithContentType(ms2,"image/png");
+            return new StreamWithResponse(ms2,"image/png");
         }
 
         public System.IO.Stream GetThumb(int imageId, int imageType, float ratio)

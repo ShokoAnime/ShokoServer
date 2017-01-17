@@ -55,16 +55,19 @@ namespace Shoko.Server.Models
             set
             {
                 string nvalue = value;
-                if (nvalue.EndsWith(":"))
-                    nvalue += Path.DirectorySeparatorChar;
-                if (nvalue.Length > 0 && nvalue.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                if (nvalue != null)
                 {
-                    while (nvalue.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                    if (nvalue.EndsWith(":"))
+                        nvalue += Path.DirectorySeparatorChar;
+                    if (nvalue.Length > 0 && nvalue.EndsWith(Path.DirectorySeparatorChar.ToString()))
                     {
-                        nvalue = nvalue.Substring(0, nvalue.Length - 1);
+                        while (nvalue.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                        {
+                            nvalue = nvalue.Substring(0, nvalue.Length - 1);
+                        }
                     }
+                    nvalue += Path.DirectorySeparatorChar;
                 }
-                nvalue += Path.DirectorySeparatorChar;
                 base.ImportFolderLocation = nvalue;
             }
         }

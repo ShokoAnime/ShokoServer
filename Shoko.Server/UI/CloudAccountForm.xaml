@@ -16,7 +16,7 @@
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <DataTemplate x:Key="cmbTemplate">
                 <WrapPanel >
-                    <Image Width="24" Height="24" Stretch="Fill" Source="{Binding Icon}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,10,0"/>
+                    <Image Width="24" Height="24" Stretch="Fill" Source="{Binding Bitmap}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,10,0"/>
                     <Label Content="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" />
                 </WrapPanel>
             </DataTemplate>

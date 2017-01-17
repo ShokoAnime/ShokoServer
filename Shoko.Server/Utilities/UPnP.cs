@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Xml;
 
 namespace UPnP
@@ -50,7 +51,7 @@ namespace UPnP
                     {
                         resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
                         resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
-                        if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                        if (!String.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
                         {
                             _descUrl = resp;
                             return true;
@@ -101,7 +102,7 @@ namespace UPnP
 
         public static void ForwardPort(int port, ProtocolType protocol, string description)
         {
-            if (string.IsNullOrEmpty(_serviceUrl))
+            if (String.IsNullOrEmpty(_serviceUrl))
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -116,7 +117,7 @@ namespace UPnP
 
         public static void DeleteForwardingRule(int port, ProtocolType protocol)
         {
-            if (string.IsNullOrEmpty(_serviceUrl))
+            if (String.IsNullOrEmpty(_serviceUrl))
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -129,7 +130,7 @@ namespace UPnP
 
         public static IPAddress GetExternalIP()
         {
-            if (string.IsNullOrEmpty(_serviceUrl))
+            if (String.IsNullOrEmpty(_serviceUrl))
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -160,6 +161,62 @@ namespace UPnP
             Stream ress = wres.GetResponseStream();
             resp.Load(ress);
             return resp;
+        }
+
+        public static bool UPnPJMMFilePort(int jmmfileport)
+        {
+            try
+            {
+                if (NAT.Discover())
+                {
+                    NAT.ForwardPort(jmmfileport, ProtocolType.Tcp, "JMM File Port");
+                    UPnPPortAvailable = true;
+                }
+                else
+                    UPnPPortAvailable = false;
+            }
+            catch (Exception)
+            {
+                UPnPPortAvailable = false;
+            }
+
+            return UPnPPortAvailable;
+        }
+
+        public static bool UPnPPortAvailable { get; private set; }
+        private static IPAddress CachedAddress;
+        private static DateTime LastChange = DateTime.MinValue;
+        private static bool IPThreadLock;
+        private static bool IPFirstTime;
+
+        public static IPAddress GetExternalAddress()
+        {
+            try
+            {
+                if (LastChange < DateTime.Now)
+                {
+                    if (IPFirstTime)
+                    {
+                        IPFirstTime = false;
+                        CachedAddress = NAT.GetExternalIP();
+                    }
+                    else if (!IPThreadLock)
+                    {
+                        IPThreadLock = true;
+                        LastChange = DateTime.Now.AddMinutes(2);
+                        ThreadPool.QueueUserWorkItem((a) =>
+                        {
+                            CachedAddress = NAT.GetExternalIP();
+                            IPThreadLock = false;
+                        });
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return CachedAddress;
         }
     }
 }

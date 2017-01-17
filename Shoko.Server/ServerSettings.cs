@@ -320,8 +320,6 @@ namespace Shoko.Server
                         }
 
                         logger.Info("Migration setting network requirements..");
-                        Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
-                        logger.Info("Migration set network requirements");
 
                         //m?.Close();
 
@@ -343,8 +341,6 @@ namespace Shoko.Server
                     }
                     disabledSave = false;
 
-                    if (Utils.IsAdministrator())
-                        Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
                     if (Directory.Exists(BaseImagesPath) && string.IsNullOrEmpty(ImagesPath))
                     {
                         ImagesPath = BaseImagesPath;
@@ -692,23 +688,7 @@ namespace Shoko.Server
             set { Set("JMMServerPort", value); }
         }
 
-        public static string JMMServerFilePort
-        {
-            get
-            {
 
-
-                string serverPort = Get("JMMServerFilePort");
-                if (string.IsNullOrEmpty(serverPort))
-                {
-                    serverPort = "8112";
-                    Set("JMMServerFilePort", serverPort);
-                }
-
-                return serverPort;
-            }
-            set { Set("JMMServerFilePort", value); }
-        }
         public static string PluginAutoWatchThreshold
         {
             get

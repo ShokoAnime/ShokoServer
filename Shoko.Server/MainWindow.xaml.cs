@@ -41,7 +41,7 @@ using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.UI;
-using Shoko.Server.WCFCompression;
+using UPnP;
 
 namespace Shoko.Server
 {
@@ -77,20 +77,9 @@ namespace Shoko.Server
         public static string PathAddressPlex = "Plex";
         public static string PathAddressKodi = "Kodi";
 
-        //private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
-        //private static ServiceHost host = null;
-        //private static ServiceHost hostTCP = null;
-        private static ServiceHost hostImage = null;
-        private static ServiceHost hostStreaming = null;
-        private static ServiceHost hostBinary = null;
-        private static ServiceHost hostMetro = null;
-        private static ServiceHost hostMetroImage = null;
-        //private static WebServiceHost hostREST = null;
-        //private static WebServiceHost hostPlex = null;
-        //private static WebServiceHost hostKodi = null;
+
         private static Nancy.Hosting.Self.NancyHost hostNancy = null;
-        //private static MessagingServer hostFile = null;
-        private static FileServer.FileServer hostFile = null;
+
 
         private static BackgroundWorker workerImport = new BackgroundWorker();
         private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -118,39 +107,7 @@ namespace Shoko.Server
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
-
-        public static Uri baseAddressBinary
-        {
-            get { return new Uri(string.Format(baseAddressBinaryString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressImage
-        {
-            get { return new Uri(string.Format(baseAddressImageString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressStreaming
-        {
-            get { return new Uri(string.Format(baseAddressStreamingString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressStreamingMex
-        {
-            get { return new Uri(string.Format(baseAddressStreamingStringMex, ServerSettings.JMMServerFilePort)); }
-        }
-
-        public static Uri baseAddressMetro
-        {
-            get { return new Uri(string.Format(baseAddressMetroString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressMetroImage
-        {
-            get { return new Uri(string.Format(baseAddressMetroImageString, ServerSettings.JMMServerPort)); }
-        }
-
         private Mutex mutex;
-
 
         public MainWindow()
         {
@@ -463,8 +420,7 @@ namespace Shoko.Server
                 if (Utils.IsAdministrator())
                 {
                     MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
-                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort,
-                        ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
+
                     try
                     {
                         action();
@@ -1243,9 +1199,22 @@ namespace Shoko.Server
 
                 ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_DatabaseSetup;
 
-
-                //Moving FileHost up, Mediainfo fill could be trigged from Cache Init
-	            NetPermissionWrapper(StartFileHost);
+                logger.Info("Initializing Hosts...");
+                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingHosts;
+                SetupAniDBProcessor();
+                bool started = true;
+                started &= NetPermissionWrapper(StartNancyHost);
+                /*
+	            started &= NetPermissionWrapper(StartImageHost);
+	            started &= NetPermissionWrapper(StartBinaryHost);
+	            started &= NetPermissionWrapper(StartMetroHost);
+	            started &= NetPermissionWrapper(StartImageHostMetro);
+	            started &= NetPermissionWrapper(StartStreamingHost);*/
+                if (!started)
+                {
+                    StopHost();
+                    throw new Exception("Failed to start all of the network hosts");
+                }
 
                 logger.Info("Setting up database...");
                 if (!DatabaseFactory.InitDB())
@@ -1269,22 +1238,7 @@ namespace Shoko.Server
                 ISessionFactory temp = DatabaseFactory.SessionFactory;
 
 
-                logger.Info("Initializing Hosts...");
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingHosts;
-                SetupAniDBProcessor();
-	            bool started = true;
-                started &= NetPermissionWrapper(StartNancyHost);
-                /*
-	            started &= NetPermissionWrapper(StartImageHost);
-	            started &= NetPermissionWrapper(StartBinaryHost);
-	            started &= NetPermissionWrapper(StartMetroHost);
-	            started &= NetPermissionWrapper(StartImageHostMetro);
-	            started &= NetPermissionWrapper(StartStreamingHost);*/
-	            if (!started)
-	            {
-		            StopHost();
-		            throw new Exception("Failed to start all of the network hosts");
-	            }
+
 
 	            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingQueue;
                 ShokoService.CmdProcessorGeneral.Init();
@@ -1613,24 +1567,9 @@ namespace Shoko.Server
 
                 StopHost();
 
-                if (Utils.SetNetworkRequirements(port.ToString(), (port + 1).ToString(), ServerSettings.JMMServerPort,
-                    ServerSettings.JMMServerFilePort))
-                {
-                    ServerSettings.JMMServerPort = port.ToString();
-                    ServerSettings.JMMServerFilePort = (port + 1).ToString();
-                }
-                else
-                    txtServerPort.Text = ServerSettings.JMMServerPort;
+                txtServerPort.Text = ServerSettings.JMMServerPort;
 
-	            bool started = true;
-	            started &= NetPermissionWrapper(StartFileHost);
-	            started &= NetPermissionWrapper(StartNancyHost);/*
-	            started &= NetPermissionWrapper(StartImageHost);
-	            started &= NetPermissionWrapper(StartBinaryHost);
-	            started &= NetPermissionWrapper(StartMetroHost);
-	            started &= NetPermissionWrapper(StartImageHostMetro);
-	            started &= NetPermissionWrapper(StartStreamingHost);
-                */
+	            bool started = NetPermissionWrapper(StartNancyHost);
                 if (!started)
 	            {
 		            StopHost();
@@ -2621,232 +2560,6 @@ namespace Shoko.Server
             }
         }
 
-        private static void StartBinaryHost()
-        {
-            BinaryMessageEncodingBindingElement encoding = new BinaryMessageEncodingBindingElement();
-            encoding.CompressionFormat = CompressionFormat.GZip;
-            HttpTransportBindingElement transport = new HttpTransportBindingElement();
-            Binding binding = new CustomBinding(encoding, transport);
-            binding.Name = "BinaryBinding";
-            binding.Namespace = "";
-
-
-            //binding.MessageEncoding = WSMessageEncoding.Mtom;
-            //binding.MaxReceivedMessageSize = 2147483647;
-
-
-            // Create the ServiceHost.
-            hostBinary = new ServiceHost(typeof(ShokoServiceImplementation), baseAddressBinary);
-            // Enable metadata publishing.
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-
-            hostBinary.Description.Behaviors.Add(smb);
-            hostBinary.AddServiceEndpoint(typeof(IShokoServer), binding, baseAddressBinary);
-
-
-            // ** DISCOVERY ** //
-            // make the service discoverable by adding the discovery behavior
-            //hostBinary.Description.Behaviors.Add(new ServiceDiscoveryBehavior());
-
-            // ** DISCOVERY ** //
-            // add the discovery endpoint that specifies where to publish the services
-            //hostBinary.AddServiceEndpoint(new UdpDiscoveryEndpoint());
-
-
-            // Open the ServiceHost to start listening for messages. Since
-            // no endpoints are explicitly configured, the runtime will create
-            // one endpoint per base address for each service contract implemented
-            // by the service.
-            hostBinary.Open();
-            logger.Trace("Now Accepting client connections for test host...");
-        }
-
-        private static void StartImageHost()
-        {
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.MessageEncoding = WSMessageEncoding.Mtom;
-            binding.MaxReceivedMessageSize = 2147483647;
-            binding.Name = "httpLargeMessageStream";
-
-            hostImage = new ServiceHost(typeof(ShokoServiceImplementationImage), baseAddressImage);
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            hostImage.Description.Behaviors.Add(smb);
-
-            hostImage.AddServiceEndpoint(typeof(IShokoServerImage), binding, baseAddressImage);
-            hostImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,MetadataExchangeBindings.CreateMexHttpBinding(),      "mex");
-
-            hostImage.Open();
-            logger.Trace("Now Accepting client connections for images...");
-        }
-
-        private static void StartStreamingHost_HTTP()
-        {
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.TransferMode = TransferMode.Streamed;
-            binding.ReceiveTimeout = TimeSpan.MaxValue;
-            binding.SendTimeout = TimeSpan.MaxValue;
-            //binding.MessageEncoding = WSMessageEncoding.Mtom;
-            binding.MaxReceivedMessageSize = Int32.MaxValue;
-            binding.CloseTimeout = TimeSpan.MaxValue;
-            binding.Name = "FileStreaming";
-
-            binding.Security.Mode = BasicHttpSecurityMode.None;
-
-
-            // Create the ServiceHost.
-            hostStreaming = new ServiceHost(typeof(ShokoServiceImplementationDownload), baseAddressStreaming);
-            // Enable metadata publishing.
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            hostStreaming.Description.Behaviors.Add(smb);
-
-            hostStreaming.AddServiceEndpoint(typeof(IShokoServerDownload), binding, baseAddressStreaming);
-            hostStreaming.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
-
-            // Open the ServiceHost to start listening for messages. Since
-            // no endpoints are explicitly configured, the runtime will create
-            // one endpoint per base address for each service contract implemented
-            // by the service.
-            hostStreaming.Open();
-            logger.Trace("Now Accepting client connections for images...");
-        }
-
-        private static void StartStreamingHost()
-        {
-            BinaryOverHTTPBinding binding = new BinaryOverHTTPBinding();
-
-            // Create the ServiceHost.
-            hostStreaming = new ServiceHost(typeof(ShokoServiceImplementationDownload), baseAddressStreaming);
-            // Enable metadata publishing.
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            hostStreaming.Description.Behaviors.Add(smb);
-
-            hostStreaming.AddServiceEndpoint(typeof(IShokoServerDownload), binding, baseAddressStreaming);
-            hostStreaming.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
-
-            // Open the ServiceHost to start listening for messages. Since
-            // no endpoints are explicitly configured, the runtime will create
-            // one endpoint per base address for each service contract implemented
-            // by the service.
-            hostStreaming.Open();
-            logger.Trace("Now Accepting client connections for images...");
-        }
-
-        private static void StartStreamingHost_TCP()
-        {
-            NetTcpBinding netTCPbinding = new NetTcpBinding();
-            netTCPbinding.TransferMode = TransferMode.Streamed;
-            netTCPbinding.ReceiveTimeout = TimeSpan.MaxValue;
-            netTCPbinding.SendTimeout = TimeSpan.MaxValue;
-            netTCPbinding.MaxReceivedMessageSize = Int32.MaxValue;
-            netTCPbinding.CloseTimeout = TimeSpan.MaxValue;
-
-            netTCPbinding.Security.Mode = SecurityMode.Transport;
-            netTCPbinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
-            //netTCPbinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
-            //netTCPbinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.None;
-            //netTCPbinding.Security.Message.ClientCredentialType = MessageCredentialType.None;
-
-            hostStreaming = new ServiceHost(typeof(ShokoServiceImplementationDownload));
-            hostStreaming.AddServiceEndpoint(typeof(IShokoServerDownload), netTCPbinding, baseAddressStreaming);
-            hostStreaming.Description.Behaviors.Add(new ServiceMetadataBehavior());
-
-            Binding mexBinding = MetadataExchangeBindings.CreateMexTcpBinding();
-            hostStreaming.AddServiceEndpoint(typeof(IMetadataExchange), mexBinding, baseAddressStreamingMex);
-
-            hostStreaming.Open();
-            logger.Trace("Now Accepting client connections for streaming...");
-        }
-
-        private static void StartImageHostMetro()
-        {
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.MessageEncoding = WSMessageEncoding.Text;
-            binding.MaxReceivedMessageSize = 2147483647;
-            binding.Name = "httpLargeMessageStream";
-
-
-            hostMetroImage = new ServiceHost(typeof(ShokoServiceImplementationImage), baseAddressMetroImage);
-
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            hostMetroImage.Description.Behaviors.Add(smb);
-
-            hostMetroImage.AddServiceEndpoint(typeof(IShokoServerImage), binding, baseAddressMetroImage);
-            hostMetroImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
-
-            hostMetroImage.Open();
-            logger.Trace("Now Accepting client connections for images (metro)...");
-        }
-
-        private static void StartMetroHost()
-        {
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.MaxReceivedMessageSize = 2147483647;
-            binding.Name = "metroTest";
-
-
-            // Create the ServiceHost.
-            hostMetro = new ServiceHost(typeof(ShokoServiceImplementationMetro), baseAddressMetro);
-            // Enable metadata publishing.
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.HttpGetUrl = baseAddressMetro;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-
-            hostMetro.Description.Behaviors.Add(smb);
-
-            hostMetro.AddServiceEndpoint(typeof(IShokoServerMetro), binding, baseAddressMetro);
-            hostMetro.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(),
-                "mex");
-
-            // Open the ServiceHost to start listening for messages. Since
-            // no endpoints are explicitly configured, the runtime will create
-            // one endpoint per base address for each service contract implemented
-            // by the service.
-            hostMetro.Open();
-            logger.Trace("Now Accepting client connections for metro apps...");
-        }
-
-        private static void AddCompressableEndpoint(ServiceHost host, Type t, SerializationFilter filter, object address = null)
-        {
-            CustomBinding custom = new CustomBinding(new WebHttpBinding() { ContentTypeMapper = new MultiContentTypeMapper() });
-            for (int i = 0; i < custom.Elements.Count; i++)
-            {
-                if (custom.Elements[i] is WebMessageEncodingBindingElement)
-                {
-                    WebMessageEncodingBindingElement webBE = (WebMessageEncodingBindingElement)custom.Elements[i];
-                    custom.Elements[i] = new CompressedMessageEncodingBindingElement(webBE);
-                }
-                else if (custom.Elements[i] is TransportBindingElement)
-                {
-                    ((TransportBindingElement)custom.Elements[i]).MaxReceivedMessageSize = int.MaxValue;
-                }
-            }
-            ServiceEndpoint ep = null;
-            string addr = address as string;
-            if (addr != null)
-                ep = host.AddServiceEndpoint(t, custom, addr);
-            Uri addrurl = address as Uri;
-            if (addrurl != null)
-                ep = host.AddServiceEndpoint(t, custom, addrurl);
-            if (ep == null)
-                ep = host.AddServiceEndpoint(t, custom, "");
-            ep.EndpointBehaviors.Add(new MultiBehavior { HelpEnabled = true, AutomaticFormatSelectionEnabled = true });
-            ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior(filter));
-        }
 
         /// <summary>
         /// Running Nancy and Validating all require aspects before running it
@@ -2870,6 +2583,8 @@ namespace Shoko.Server
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+            if (ServerSettings.ExperimentalUPnP)
+                NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
@@ -2882,15 +2597,6 @@ namespace Shoko.Server
             }
         }
       
-        private static void StartFileHost()
-        {
-            hostFile = new FileServer.FileServer(int.Parse(ServerSettings.JMMServerFilePort));
-            hostFile.Start();
-            if (ServerSettings.ExperimentalUPnP)
-                FileServer.FileServer.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerFilePort));
-            //                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
-            //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
-        }
  
         private static void ReadFiles()
         {
@@ -2933,22 +2639,7 @@ namespace Shoko.Server
 
         private static void StopHost()
         {
-            // Close the ServiceHost.
-            //host.Close();
-
-            hostBinary?.Close();
-            hostMetro?.Close();
-            hostMetroImage?.Close();
-            hostStreaming?.Close();
-            hostImage?.Close();
-            hostFile?.Stop();
-            hostBinary = null;
-            hostMetro = null;
-            hostMetroImage = null;
-            hostStreaming = null;
-            hostImage = null;
-            hostFile = null;
-
+          
             /*if (hostNancy != null)
                 hostNancy.Stop();
             */

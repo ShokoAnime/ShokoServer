@@ -22,7 +22,7 @@
                 <DataTemplate x:Key="CloudTemplate">
 
                     <StackPanel Orientation="Horizontal" Height="24">
-                        <Image Height="24" Width="24" Source="{Binding Path=Icon}" VerticalAlignment="Center"
+                        <Image Height="24" Width="24" Source="{Binding Path=Bitmap}" VerticalAlignment="Center"
                                Margin="0,0,5,0"/>
                         <TextBlock Margin="5,0,10,0" Text="{Binding Path=Name}"
                                    VerticalAlignment="Center" FontWeight="DemiBold" />

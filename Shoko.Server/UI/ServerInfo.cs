@@ -468,8 +468,7 @@ namespace Shoko.Server
         public void RefreshFolderProviders()
         {
             FolderProviders.Clear();
-            SVR_CloudAccount lfs = new SVR_CloudAccount() {Name = "NA", Provider = "Local File System"};
-            FolderProviders.Add(lfs);
+            FolderProviders.Add(SVR_CloudAccount.CreateLocalFileSystemAccount());
             RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
         }
         #endregion

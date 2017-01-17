@@ -9,6 +9,7 @@ using FluentNHibernate.Mapping;
 using Nancy;
 
 using Shoko.Server.PlexAndKodi.Plex;
+using UPnP;
 
 namespace Shoko.Server.PlexAndKodi
 {
@@ -32,7 +33,7 @@ namespace Shoko.Server.PlexAndKodi
 	        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {
-                IPAddress ip = FileServer.FileServer.GetExternalAddress();
+                IPAddress ip = NAT.GetExternalAddress();
                 if (ip != null)
                     host = ip.ToString();
             }
@@ -60,7 +61,7 @@ namespace Shoko.Server.PlexAndKodi
         }
         public static bool IsExternalRequest(this IProvider prov)
         {
-            if (!FileServer.FileServer.UPnPPortAvailable)
+            if (!NAT.UPnPPortAvailable)
                 return false;
             string extarnalhost = prov.GetQueryParameter("externalhost");
             if (extarnalhost == null || extarnalhost == "0")

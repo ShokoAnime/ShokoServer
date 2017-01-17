@@ -91,7 +91,7 @@ namespace Shoko.Server.API
 
         public static string ConstructVideoLocalStream(int userid, string vid, string name, bool autowatch)
         {
-            return ProperURL(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, false);
+            return APIHelper.ProperURL("/Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name);
         }
 
         #endregion
