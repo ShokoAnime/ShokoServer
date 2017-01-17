@@ -103,6 +103,20 @@ namespace JMMServer.Repositories.Cached
 
 
         /// <summary>
+        /// Get the AnimeEpisode 
+        /// </summary>
+        /// <param name="name">The filename of the anime to search for.</param>
+        /// <returns>the AnimeEpisode given the file information</returns>
+        public AnimeEpisode GetByFilename(string name)
+        {
+            return RepoFactory.CrossRef_File_Episode.GetAll()
+                .Where(a => a.FileName.ToLower() == name.ToLower())
+                .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
+                .FirstOrDefault();
+        }
+
+
+        /// <summary>
         /// Get all the AnimeEpisode records associate with an AniDB_File record
         /// AnimeEpisode.AniDB_EpisodeID -> AniDB_Episode.EpisodeID
         /// AniDB_Episode.EpisodeID -> CrossRef_File_Episode.EpisodeID

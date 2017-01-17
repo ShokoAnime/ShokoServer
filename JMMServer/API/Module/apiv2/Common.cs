@@ -15,6 +15,8 @@ using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
 using AniDBAPI;
+using System.Text.RegularExpressions;
+using System.IO;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -102,6 +104,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/ep/vote"] = x => { return VoteOnEpisode(); };
             Get["/ep/unsort"] = _ => { return GetUnsort(); };
             Post["/ep/scrobble"] = x => { return EpisodeScrobble(); };
+            Get["/ep/getbyfilename"] = x => { return GetEpisodeFromName(); };
             #endregion
 
             #region 7. Episodes - [Obsolete]
@@ -891,6 +894,20 @@ namespace JMMServer.API.Module.apiv2
                 return GetEpisodeById(para.id, user.JMMUserID);
             }
         }
+
+        /// <summary>
+        /// handles /api/ep/getbyfilename?filename=...
+        /// </summary>
+        /// <returns>The found Episode given the on system filename.</returns>
+        private object GetEpisodeFromName()
+        {
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            string filename = this.Context.Request.Query.filename;
+            if (String.IsNullOrEmpty(filename)) return new Nancy.Response { StatusCode = HttpStatusCode.BadRequest };
+
+            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(filename);
+            return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+        }
  
         /// <summary>
         /// Handle /api/ep/recent
@@ -1283,7 +1300,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.limit == 0) { para.limit = 100; }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.offset, false, user.JMMUserID, para.nocast, para.notag, para.level);
+                return Search(para.query, para.limit, para.offset, false, user.JMMUserID, para.nocast, para.notag, para.level, this.Request.Query.fuzzy);
             }
             else
             {
@@ -1401,6 +1418,34 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Join a string like string.Join but 
+        /// </summary>
+        /// <param name="seperator"></param>
+        /// <param name="values"></param>
+        /// <param name="replaceinvalid"></param>
+        /// <returns></returns>
+        internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
+        {
+            if (!replaceinvalid) return string.Join(seperator, values);
+            List<string> newItems = new List<string>();
+   
+            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars()) + "()+";
+            Regex remove = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
+            Regex extraSpaces = new Regex(@"[ ]{2,}", RegexOptions.None);
+            Regex replaceWithSpace = new Regex("[\\-\\.]");
+
+            foreach (string s in values)
+            {
+                //This is set up in such this way so that any duplicate spaces created are incedentally removed by the replaceWithSpace.
+                //If there is a better way, feel free to optimise this.
+                var actualItem = extraSpaces.Replace(remove.Replace(replaceWithSpace.Replace(s, " "), ""), "");
+                newItems.Add(actualItem);
+            }
+
+            return string.Join(seperator, newItems);
+        }
+
+        /// <summary>
         /// Internal function that search for given query in name or tag inside series
         /// </summary>
         /// <param name="query">target string</param>
@@ -1409,8 +1454,9 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="tag_search">True for searching in tags, False for searching in name</param>
         /// <param name="uid">user id</param>
         /// <param name="nocast">disable cast</param>
+        /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
-        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level)
+        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, bool fuzzy = false)
         {
             List<object> list = new List<object>();
 
@@ -1427,7 +1473,7 @@ namespace JMMServer.API.Module.apiv2
 		            .Where(
 			            a =>
 				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
-				            string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles)
+				            Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
 					            .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
             foreach (AnimeSeries ser in series)
