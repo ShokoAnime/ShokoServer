@@ -82,7 +82,7 @@
     <Compile Include="Interfaces\IShokoServerImage.cs" />
     <Compile Include="Interfaces\IShokoServerKodi.cs" />
     <Compile Include="Interfaces\IShokoServerMetro.cs" />
-    <Compile Include="Interfaces\IShokoServerDownload.cs" />
+    <Compile Include="Interfaces\IShokoServerStream.cs" />
     <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
     <Compile Include="Server\AniDB_Anime.cs" />
     <Compile Include="Constants.cs" />

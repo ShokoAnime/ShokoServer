@@ -7,7 +7,7 @@ using Shoko.Models.Server;
 
 namespace Shoko.Models
 {
-    [RestBasePath("/Metro")]
+    [RestBasePath("/api/Metro")]
     public interface IShokoServerMetro
     {
         [Rest("Server/Status",Verbs.Get)]

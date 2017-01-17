@@ -4,7 +4,7 @@ using Shoko.Models.PlexAndKodi;
 
 namespace Shoko.Models.Interfaces
 {
-    [RestBasePath("/Kodi")]
+    [RestBasePath("/api/Kodi")]
     public interface IShokoServerKodi
     {
         [Rest("Image/Support/{name}",Verbs.Get)]

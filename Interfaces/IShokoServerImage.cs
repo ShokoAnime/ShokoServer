@@ -4,7 +4,7 @@ using Nancy.Rest.Annotations.Enums;
 
 namespace Shoko.Models.Interfaces
 {
-    [RestBasePath("/Image")]
+    [RestBasePath("/api/Image")]
     public interface IShokoServerImage
     {
         [Rest("{imageid}/{imageType}/{thumnbnailOnly?}", Verbs.Get)]
