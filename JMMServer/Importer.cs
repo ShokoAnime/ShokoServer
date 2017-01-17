@@ -265,7 +265,7 @@ namespace JMMServer
                     if (dictFilesExisting.ContainsKey(fileName))
                     {
                         if (fldr.IsDropSource == 1)
-                            dictFilesExisting[fileName].MoveFileIfRequired();
+                            dictFilesExisting[fileName].RenameAndMoveAsRequired();
                     }
 
                     filesFound++;

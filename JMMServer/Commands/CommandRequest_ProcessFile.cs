@@ -291,9 +291,7 @@ namespace JMMServer.Commands
                 }
                 vidLocal.Places.ForEach(a =>
                 {
-                    a.RenameIfRequired();
-                    a.MoveFileIfRequired();
-
+                    a.RenameAndMoveAsRequired();
                 });
 
 

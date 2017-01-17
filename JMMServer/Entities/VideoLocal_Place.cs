@@ -25,7 +25,20 @@ using Stream = System.IO.Stream;
 
 namespace JMMServer.Entities
 {
-    public class VideoLocal_Place
+	public enum DELAY_IN_USE
+	{
+		FIRST = 750,
+		SECOND = 3000,
+		THIRD = 5000
+	}
+
+	public enum DELAY_NOT_FOUND
+	{
+		FIRST = 750,
+		SECOND = 30000
+	}
+
+	public class VideoLocal_Place
     {
         public int VideoLocal_Place_ID { get; private set; }
         public int VideoLocalID { get; set; }
@@ -329,7 +342,14 @@ namespace JMMServer.Entities
             }
             return false;
         }
-        public void RenameIfRequired()
+
+	    public void RenameAndMoveAsRequired()
+	    {
+		    RenameIfRequired();
+		    MoveFileIfRequired();
+	    }
+
+	    private void RenameIfRequired()
         {
             try
             {
@@ -346,7 +366,7 @@ namespace JMMServer.Entities
             }
         }
 
-        public void MoveFileIfRequired()
+	    private void MoveFileIfRequired()
         {
             try
             {

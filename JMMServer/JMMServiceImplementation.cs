@@ -1231,8 +1231,7 @@ namespace JMMServer
                 cr.Save();
                 vid.Places.ForEach(a =>
                 {
-                    a.RenameIfRequired();
-                    a.MoveFileIfRequired();
+                    a.RenameAndMoveAsRequired();
                 });
 
                 AnimeSeries ser = ep.GetAnimeSeries();
@@ -1298,8 +1297,7 @@ namespace JMMServer
                 }
                 vid.Places.ForEach(a =>
                 {
-                    a.RenameIfRequired();
-                    a.MoveFileIfRequired();
+                    a.RenameAndMoveAsRequired();
                 });
                 ser.EpisodeAddedDate = DateTime.Now;
                 RepoFactory.AnimeSeries.Save(ser, false, true);
@@ -1376,8 +1374,7 @@ namespace JMMServer
                     cr.Save();
                     vid.Places.ForEach(a =>
                     {
-                        a.RenameIfRequired();
-                        a.MoveFileIfRequired();
+                        a.RenameAndMoveAsRequired();
 
                     });
                     count++;

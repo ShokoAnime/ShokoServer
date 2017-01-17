@@ -1499,8 +1499,7 @@ namespace JMMServer
                             RepoFactory.CrossRef_File_Episode.Save(xref);
                             vid.Places.ForEach(a =>
                             {
-                                a.RenameIfRequired();
-                                a.MoveFileIfRequired();
+                                a.RenameAndMoveAsRequired();
                             });
 
                             // update stats for groups and series
