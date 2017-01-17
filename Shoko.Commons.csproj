@@ -41,15 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions\AdminMessageExtensions.cs" />
-    <Compile Include="Extensions\AniDB_AnimeExtensions.cs" />
-    <Compile Include="Extensions\AniDB_Anime_SimilarExtensions.cs" />
-    <Compile Include="Extensions\AniDB_EpisodeExtensions.cs" />
-    <Compile Include="Extensions\AnimeEpisode_UserExtensions.cs" />
-    <Compile Include="Extensions\AnimeGroupExtensions.cs" />
-    <Compile Include="Extensions\AnimeGroup_UserExtensions.cs" />
-    <Compile Include="Extensions\GroupFilterConditionExtensions.cs" />
-    <Compile Include="Extensions\JMMUserExtensions.cs" />
+    <Compile Include="Extensions\Models.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\AniDB.cs" />
   </ItemGroup>
