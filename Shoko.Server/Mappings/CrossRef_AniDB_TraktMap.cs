@@ -1,10 +1,11 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Obsolete;
 
 namespace Shoko.Server.Mappings
 {
-    public class CrossRef_AniDB_TraktMap : ClassMap<SVR_CrossRef_AniDB_Trakt>
+    public class CrossRef_AniDB_TraktMap : ClassMap<CrossRef_AniDB_Trakt>
     {
         public CrossRef_AniDB_TraktMap()
         {

@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class AniDB_Anime_SimilarMap : ClassMap<SVR_AniDB_Anime_Similar>
+    public class AniDB_Anime_SimilarMap : ClassMap<AniDB_Anime_Similar>
     {
         public AniDB_Anime_SimilarMap()
         {

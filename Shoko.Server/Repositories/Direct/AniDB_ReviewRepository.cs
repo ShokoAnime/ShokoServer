@@ -1,11 +1,11 @@
 ﻿using Shoko.Models.Server;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_ReviewRepository : BaseDirectRepository<SVR_AniDB_Review, int>
+    public class AniDB_ReviewRepository : BaseDirectRepository<AniDB_Review, int>
     {
         private AniDB_ReviewRepository()
         {
@@ -16,14 +16,14 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new AniDB_ReviewRepository();
         }
-        public SVR_AniDB_Review GetByReviewID(int id)
+        public AniDB_Review GetByReviewID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SVR_AniDB_Review cr = session
-                    .CreateCriteria(typeof(SVR_AniDB_Review))
+                AniDB_Review cr = session
+                    .CreateCriteria(typeof(AniDB_Review))
                     .Add(Restrictions.Eq("ReviewID", id))
-                    .UniqueResult<SVR_AniDB_Review>();
+                    .UniqueResult<AniDB_Review>();
                 return cr;
             }
         }

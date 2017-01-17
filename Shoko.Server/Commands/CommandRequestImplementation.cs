@@ -90,11 +90,11 @@ namespace Shoko.Server.Commands
             RepoFactory.CommandRequest.Save(cri);
 
             if (CommandType == (int) CommandRequestType.HashFile)
-                JMMService.CmdProcessorHasher.NotifyOfNewCommand();
+                ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
             else if (CommandType == (int) CommandRequestType.ImageDownload)
-                JMMService.CmdProcessorImages.NotifyOfNewCommand();
+                ShokoService.CmdProcessorImages.NotifyOfNewCommand();
             else
-                JMMService.CmdProcessorGeneral.NotifyOfNewCommand();
+                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
         }
 
         protected string TryGetProperty(XmlDocument doc, string keyName, string propertyName)

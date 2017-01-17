@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                JMMService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBAPI.enAniDBVoteType) VoteType);
+                ShokoService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBAPI.enAniDBVoteType) VoteType);
 
                 if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
                     !string.IsNullOrEmpty(ServerSettings.MAL_Password))

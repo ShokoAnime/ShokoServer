@@ -8,7 +8,8 @@ using Shoko.Server.Repositories.Direct;
 using NLog;
 using Shoko.Models;
 using Shoko.Models.Enums;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Obsolete;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -126,10 +127,10 @@ namespace Shoko.Server.Databases
 
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    IReadOnlyList<SVR_CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
-                    foreach (SVR_CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
+                    IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
+                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
                     {
-                        SVR_CrossRef_AniDB_TraktV2 xrefNew = new SVR_CrossRef_AniDB_TraktV2();
+                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
                         xrefNew.AnimeID = xrefTrakt.AnimeID;
                         xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
                         xrefNew.TraktID = xrefTrakt.TraktID;
@@ -152,7 +153,7 @@ namespace Shoko.Server.Databases
                     }
 
                     // create cross ref's for specials
-                    foreach (SVR_CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
+                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
                     {
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTrakt.AnimeID);
                         if (anime == null) continue;
@@ -168,12 +169,12 @@ namespace Shoko.Server.Databases
                         if (!seasons.Contains(0)) continue;
 
                         //make sure we are not doubling up
-                        SVR_CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID, 0, 1,
+                        CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID, 0, 1,
                             xrefTrakt.AnimeID,
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
 
-                        SVR_CrossRef_AniDB_TraktV2 xrefNew = new SVR_CrossRef_AniDB_TraktV2();
+                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
                         xrefNew.AnimeID = xrefTrakt.AnimeID;
                         xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
                         xrefNew.TraktID = xrefTrakt.TraktID;
@@ -201,10 +202,10 @@ namespace Shoko.Server.Databases
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    IReadOnlyList<SVR_CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-                    foreach (SVR_CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
+                    IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
+                    foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
-                        SVR_CrossRef_AniDB_TvDBV2 xrefNew = new SVR_CrossRef_AniDB_TvDBV2();
+                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
                         xrefNew.AnimeID = xrefTvDB.AnimeID;
                         xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
                         xrefNew.TvDBID = xrefTvDB.TvDBID;
@@ -227,7 +228,7 @@ namespace Shoko.Server.Databases
                     }
 
                     // create cross ref's for specials
-                    foreach (SVR_CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
+                    foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTvDB.AnimeID);
                         if (anime == null) continue;
@@ -240,12 +241,12 @@ namespace Shoko.Server.Databases
                         if (!seasons.Contains(0)) continue;
 
                         //make sure we are not doubling up
-                        SVR_CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0, 1,
+                        CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0, 1,
                             xrefTvDB.AnimeID,
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
 
-                        SVR_CrossRef_AniDB_TvDBV2 xrefNew = new SVR_CrossRef_AniDB_TvDBV2();
+                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
                         xrefNew.AnimeID = xrefTvDB.AnimeID;
                         xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
                         xrefNew.TvDBID = xrefTvDB.TvDBID;
@@ -273,14 +274,14 @@ namespace Shoko.Server.Databases
 
             // delete all Trakt link duplicates
 
-            List<SVR_CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<SVR_CrossRef_AniDB_Trakt>();
-            List<SVR_CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<SVR_CrossRef_AniDB_Trakt>();
+            List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
+            List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
 
-            IReadOnlyList<SVR_CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
-            foreach (SVR_CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
+            IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
+            foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
             {
                 bool deleteXref = false;
-                foreach (SVR_CrossRef_AniDB_Trakt xref in xrefsTraktProcessed)
+                foreach (CrossRef_AniDB_Trakt xref in xrefsTraktProcessed)
                 {
                     if (xref.TraktID == xrefTrakt.TraktID && xref.TraktSeasonNumber == xrefTrakt.TraktSeasonNumber)
                     {
@@ -293,7 +294,7 @@ namespace Shoko.Server.Databases
             }
 
 
-            foreach (SVR_CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
+            foreach (CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
             {
                 string msg = "";
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
@@ -312,14 +313,14 @@ namespace Shoko.Server.Databases
             // delete all TvDB link duplicates
 
 
-            List<SVR_CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<SVR_CrossRef_AniDB_TvDB>();
-            List<SVR_CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<SVR_CrossRef_AniDB_TvDB>();
+            List<CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<CrossRef_AniDB_TvDB>();
+            List<CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<CrossRef_AniDB_TvDB>();
 
-            IReadOnlyList<SVR_CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-            foreach (SVR_CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
+            IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
+            foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
             {
                 bool deleteXref = false;
-                foreach (SVR_CrossRef_AniDB_TvDB xref in xrefsTvDBProcessed)
+                foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBProcessed)
                 {
                     if (xref.TvDBID == xrefTvDB.TvDBID && xref.TvDBSeasonNumber == xrefTvDB.TvDBSeasonNumber)
                     {
@@ -332,7 +333,7 @@ namespace Shoko.Server.Databases
             }
 
 
-            foreach (SVR_CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
+            foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
             {
                 string msg = "";
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
@@ -349,7 +350,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                foreach (SVR_AniDB_Anime_Tag atag in RepoFactory.AniDB_Anime_Tag.GetAll())
+                foreach (AniDB_Anime_Tag atag in RepoFactory.AniDB_Anime_Tag.GetAll())
                 {
                     atag.Weight = 0;
                     RepoFactory.AniDB_Anime_Tag.Save(atag);

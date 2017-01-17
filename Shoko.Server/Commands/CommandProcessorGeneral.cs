@@ -54,8 +54,8 @@ namespace Shoko.Server.Commands
                     {
                         QueueState = new QueueStateStruct { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
                         pauseTime = null;
-                        JMMService.AnidbProcessor.IsBanned = false;
-                        JMMService.AnidbProcessor.BanOrigin = "";
+                        ShokoService.AnidbProcessor.IsBanned = false;
+                        ShokoService.AnidbProcessor.BanOrigin = "";
                     }
                     ServerInfo.Instance.GeneralQueuePaused = paused;
                     ServerInfo.Instance.GeneralQueueRunning = !paused;

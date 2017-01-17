@@ -9,17 +9,17 @@ using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Collections;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
-    public class AniDB_Anime_TitleRepository : BaseCachedRepository<SVR_AniDB_Anime_Title, int>
+    public class AniDB_Anime_TitleRepository : BaseCachedRepository<AniDB_Anime_Title, int>
     {
-        private PocoIndex<int, SVR_AniDB_Anime_Title, int> Animes;
+        private PocoIndex<int, AniDB_Anime_Title, int> Animes;
         public override void PopulateIndexes()
         {
-            Animes = new PocoIndex<int, SVR_AniDB_Anime_Title, int>(Cache, a => a.AnimeID);
+            Animes = new PocoIndex<int, AniDB_Anime_Title, int>(Cache, a => a.AnimeID);
         }
 
         private AniDB_Anime_TitleRepository() { }
@@ -28,7 +28,7 @@ namespace Shoko.Server.Repositories
             return new AniDB_Anime_TitleRepository();
         }
 
-        protected override int SelectKey(SVR_AniDB_Anime_Title entity)
+        protected override int SelectKey(AniDB_Anime_Title entity)
         {
             return entity.AniDB_Anime_TitleID;
         }
@@ -37,12 +37,12 @@ namespace Shoko.Server.Repositories
 
 
 
-        public List<SVR_AniDB_Anime_Title> GetByAnimeID(int id)
+        public List<AniDB_Anime_Title> GetByAnimeID(int id)
         {
             return Animes.GetMultiple(id);
         }
 
-        public ILookup<int, SVR_AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
         {
             if (session == null)
                 throw new ArgumentNullException("session");
@@ -51,18 +51,18 @@ namespace Shoko.Server.Repositories
 
             if (ids.Count == 0)
             {
-                return EmptyLookup<int, SVR_AniDB_Anime_Title>.Instance;
+                return EmptyLookup<int, AniDB_Anime_Title>.Instance;
             }
 
-            var titles = session.CreateCriteria<SVR_AniDB_Anime_Title>()
-                .Add(Restrictions.InG(nameof(SVR_AniDB_Anime_Title.AnimeID), ids))
-                .List<SVR_AniDB_Anime_Title>()
+            var titles = session.CreateCriteria<AniDB_Anime_Title>()
+                .Add(Restrictions.InG(nameof(AniDB_Anime_Title.AnimeID), ids))
+                .List<AniDB_Anime_Title>()
                 .ToLookup(t => t.AnimeID);
 
             return titles;
         }
 
-        public List<SVR_AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType,
+        public List<AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType,
             string titleValue)
         {
             return
@@ -92,7 +92,7 @@ namespace Shoko.Server.Repositories
         /// Gets all the anime titles, but only if we have the anime locally
         /// </summary>
         /// <returns></returns>
-        public List<SVR_AniDB_Anime_Title> GetAllForLocalSeries()
+        public List<AniDB_Anime_Title> GetAllForLocalSeries()
         {
             return
                 RepoFactory.AnimeSeries.GetAll()

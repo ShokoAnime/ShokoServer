@@ -20,7 +20,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Repositories.Cached;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Application = System.Windows.Application;
 

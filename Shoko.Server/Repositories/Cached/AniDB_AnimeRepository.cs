@@ -10,7 +10,8 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
@@ -175,7 +176,7 @@ namespace Shoko.Server.Repositories
                         LEFT OUTER JOIN Trakt_ImagePoster AS traktPoster
                             ON traktPoster.Trakt_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = :traktPosterType
                     WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType, :traktFanartType, :traktPosterType)")
-                .AddEntity("defImg", typeof(SVR_AniDB_Anime_DefaultImage))
+                .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
                 .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
                 .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
                 .AddEntity("tvFanart", typeof(TvDB_ImageFanart))
@@ -195,7 +196,7 @@ namespace Shoko.Server.Repositories
 
             foreach (object[] result in results)
             {
-                var aniDbDefImage = (SVR_AniDB_Anime_DefaultImage)result[0];
+                var aniDbDefImage = (AniDB_Anime_DefaultImage)result[0];
                 IImageEntity parentImage = null;
 
                 switch ((JMMImageType)aniDbDefImage.ImageParentType)
@@ -310,7 +311,7 @@ namespace Shoko.Server.Repositories
     {
         private readonly IImageEntity _parentImage;
 
-        public DefaultAnimeImage(SVR_AniDB_Anime_DefaultImage aniDbImage, IImageEntity parentImage)
+        public DefaultAnimeImage(AniDB_Anime_DefaultImage aniDbImage, IImageEntity parentImage)
         {
             if (aniDbImage == null)
                 throw new ArgumentNullException(nameof(aniDbImage));
@@ -323,14 +324,14 @@ namespace Shoko.Server.Repositories
 
         public CL_AniDB_Anime_DefaultImage ToContract()
         {
-            return SVR_AniDB_Anime_DefaultImage.ToClient(AniDBImage, _parentImage);
+            return AniDBImage.ToClient(_parentImage);
         }
 
         public TImageType GetParentImage<TImageType>() where TImageType : class, IImageEntity  => _parentImage as TImageType;
 
         public ImageSizeType AniDBImageSizeType => (ImageSizeType)AniDBImage.ImageType;
 
-        public SVR_AniDB_Anime_DefaultImage AniDBImage { get; private set; }
+        public AniDB_Anime_DefaultImage AniDBImage { get; private set; }
 
         public JMMImageType ParentImageType => (JMMImageType)AniDBImage.ImageParentType;
     }

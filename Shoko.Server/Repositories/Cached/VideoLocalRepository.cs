@@ -8,7 +8,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {

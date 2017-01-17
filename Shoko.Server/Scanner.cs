@@ -7,10 +7,11 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Server.Collections;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Repositories;
 
@@ -56,7 +57,7 @@ namespace Shoko.Server
             {
                 RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a));
             });
-            SVR_Scan runscan = Scans.FirstOrDefault(a => a.ScanStatus == ScanStatus.Running);
+            Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
                 ActiveScan = runscan;
@@ -118,13 +119,13 @@ namespace Shoko.Server
             }
         }
 
-        public bool Finished => (ActiveScan != null && ActiveScan.ScanStatus == ScanStatus.Finish) || ActiveScan==null;
-        public string QueueState => ActiveScan != null ? ActiveScan.StatusText : string.Empty;
-        public bool QueuePaused => ActiveScan != null && ActiveScan.ScanStatus == ScanStatus.Standby;
-        public bool QueueRunning => ActiveScan!=null && ActiveScan.ScanStatus == ScanStatus.Running;
+        public bool Finished => (ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Finish) || ActiveScan==null;
+        public string QueueState => ActiveScan != null ? ActiveScan.GetStatusText() : string.Empty;
+        public bool QueuePaused => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Standby;
+        public bool QueueRunning => ActiveScan!=null && ActiveScan.GetScanStatus() == ScanStatus.Running;
         public bool Exists => (ActiveScan != null);
-        private SVR_Scan activeScan;
-        public SVR_Scan ActiveScan
+        private Scan activeScan;
+        public Scan ActiveScan
         {
             get
             {
@@ -156,11 +157,11 @@ namespace Shoko.Server
             if (activeScan!=null)
                 QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
         }
-        public ObservableCollection<SVR_Scan> Scans { get; set; }=new ObservableCollection<SVR_Scan>();
+        public ObservableCollection<Scan> Scans { get; set; }=new ObservableCollection<Scan>();
 
-        public ObservableCollection<SVR_ScanFile> ActiveErrorFiles { get; set; }=new ObservableCollection<SVR_ScanFile>();
+        public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; }=new ObservableCollection<ScanFile>();
 
-        public void AddErrorScan(SVR_ScanFile file)
+        public void AddErrorScan(ScanFile file)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -170,7 +171,7 @@ namespace Shoko.Server
         }
 
         private bool cancelIntegrityCheck = false;
-        internal SVR_Scan RunScan;
+        internal Scan RunScan;
 
         public static int OnHashProgress(string fileName, int percentComplete)
         {
@@ -178,15 +179,15 @@ namespace Shoko.Server
         }
         private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
         {
-            if (RunScan != null && RunScan.ScanStatus != ScanStatus.Finish)
+            if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
             {
-                SVR_Scan s = RunScan;
+                Scan s = RunScan;
                 s.Status = (int)ScanStatus.Running;
                 RepoFactory.Scan.Save(s);
                 Refresh();
-                List<SVR_ScanFile> files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
+                List<ScanFile> files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
                 int cnt = 0;
-                foreach (SVR_ScanFile sf in files)
+                foreach (ScanFile sf in files)
                 {
                     try
                     {
@@ -229,7 +230,7 @@ namespace Shoko.Server
                     if (cancelIntegrityCheck)
                         break;
                 }
-                if (files.Any(a => a.ScanFileStatus == ScanFileStatus.Waiting))
+                if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
                     s.Status = (int) ScanStatus.Standby;
                 else
                     s.Status = (int) ScanStatus.Finish;

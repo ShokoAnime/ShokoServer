@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -57,11 +57,11 @@ namespace Shoko.Server.Commands
                 {
                     // reviews count will be 0 when the anime is only downloaded via HTTP
                     if (ForceRefresh || anime.AnimeReviews.Count == 0)
-                        anime = JMMService.AnidbProcessor.GetAnimeInfoUDP(AnimeID, true);
+                        anime = ShokoService.AnidbProcessor.GetAnimeInfoUDP(AnimeID, true);
 
                     foreach (AniDB_Anime_Review animeRev in anime.AnimeReviews)
                     {
-                        JMMService.AnidbProcessor.GetReviewUDP(animeRev.ReviewID);
+                        ShokoService.AnidbProcessor.GetReviewUDP(animeRev.ReviewID);
                     }
                 }
             }

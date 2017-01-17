@@ -10,7 +10,8 @@ using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using TMDbLib.Client;
@@ -257,9 +258,9 @@ namespace Shoko.Server.Providers.MovieDB
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
 
-            SVR_CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null)
-                xref = new SVR_CrossRef_AniDB_Other();
+                xref = new CrossRef_AniDB_Other();
 
             xref.AnimeID = animeID;
             if (fromWebCache)
@@ -281,7 +282,7 @@ namespace Shoko.Server.Providers.MovieDB
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            SVR_CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null) return;
 
             RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);

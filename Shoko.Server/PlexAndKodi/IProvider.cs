@@ -25,6 +25,8 @@ namespace Shoko.Server.PlexAndKodi
         bool AddEpisodeNumberToTitlesOnUnsupportedClients { get;  }
         NancyModule Nancy { get; set; }
 
+        string ExcludeTags { get; }
+
 
     }
 }

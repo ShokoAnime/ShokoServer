@@ -12,7 +12,7 @@ using File = Pri.LongPath.File;
 using FileInfo = Pri.LongPath.FileInfo;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
@@ -200,7 +200,7 @@ namespace Shoko.Server.Commands
                 // try getting the hash from the CrossRef
                 if (!ForceHash)
                 {
-                    List<SVR_CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
+                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                     if (crossRefs.Count == 1)
                     {
                         vlocal.Hash = crossRefs[0].Hash;
@@ -245,7 +245,7 @@ namespace Shoko.Server.Commands
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
-	                JMMService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
+	                ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
 	                DateTime start = DateTime.Now;
                     logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
@@ -278,7 +278,7 @@ namespace Shoko.Server.Commands
                     logger.Warn("---------------------------------------------");
 
                     // check if we have a record of this in the database, if not create one
-                    List<SVR_DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
+                    List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
                         prep.FilePath,
                         vlocalplace.ImportFolderID, prep.ImportFolderID);
                     if (dupFiles.Count == 0)
@@ -286,7 +286,7 @@ namespace Shoko.Server.Commands
 
                     if (dupFiles.Count == 0)
                     {
-                        SVR_DuplicateFile dup = new SVR_DuplicateFile();
+                        DuplicateFile dup = new DuplicateFile();
                         dup.DateTimeUpdated = DateTime.Now;
                         dup.FilePathFile1 = vlocalplace.FilePath;
                         dup.FilePathFile2 = prep.FilePath;
@@ -374,7 +374,7 @@ namespace Shoko.Server.Commands
             needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
             if (needcrc32 || needmd5 || needsha1)
             {
-	            JMMService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
+	            ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
                 DateTime start = DateTime.Now;
                 List<string> tp = new List<string>();
                 if (needsha1)

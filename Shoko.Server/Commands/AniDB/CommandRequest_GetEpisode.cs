@@ -6,7 +6,7 @@ using System.Xml;
 using AniDBAPI;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.AniDB
@@ -54,10 +54,10 @@ namespace Shoko.Server.Commands.AniDB
                 // and we only use it for the "Other Episodes" section of the FILE command
                 // because that field doesn't tell you what anime it belongs to
 
-                List<SVR_CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
+                List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
                 if (xrefs.Count == 0) return;
 
-                Raw_AniDB_Episode epInfo = JMMService.AnidbProcessor.GetEpisodeInfo(EpisodeID);
+                Raw_AniDB_Episode epInfo = ShokoService.AnidbProcessor.GetEpisodeInfo(EpisodeID);
 
                 if (epInfo != null)
                 {
@@ -65,7 +65,7 @@ namespace Shoko.Server.Commands.AniDB
                     //Change, AniDB_File do not create Series Episodes does.
 
 
-                    foreach (SVR_CrossRef_File_Episode xref in xrefs)
+                    foreach (CrossRef_File_Episode xref in xrefs)
                     {
                         int oldAnimeID = xref.AnimeID;
                         xref.AnimeID = epInfo.AnimeID;

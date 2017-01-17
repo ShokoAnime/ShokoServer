@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Threading;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands

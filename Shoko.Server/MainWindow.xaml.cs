@@ -32,7 +32,8 @@ using Shoko.Models.Interfaces;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.MyAnime2Helper;
@@ -72,9 +73,9 @@ namespace Shoko.Server
         //private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
         //private static string baseAddressKodiString = @"http://localhost:{0}/JMMServerKodi";
 
-        public static string PathAddressREST = "JMMServerREST";
-        public static string PathAddressPlex = "JMMServerPlex";
-        public static string PathAddressKodi = "JMMServerKodi";
+        public static string PathAddressREST = "Image";
+        public static string PathAddressPlex = "Plex";
+        public static string PathAddressKodi = "Kodi";
 
         //private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
         //private static ServiceHost host = null;
@@ -666,10 +667,10 @@ namespace Shoko.Server
             try
             {
                 this.Cursor = Cursors.Wait;
-                JMMService.CmdProcessorImages.Stop();
+                ShokoService.CmdProcessorImages.Stop();
 
                 // wait until the queue stops
-                while (JMMService.CmdProcessorImages.ProcessingCommands)
+                while (ShokoService.CmdProcessorImages.ProcessingCommands)
                 {
                     Thread.Sleep(200);
                 }
@@ -677,7 +678,7 @@ namespace Shoko.Server
 
                 RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
 
-                JMMService.CmdProcessorImages.Init();
+                ShokoService.CmdProcessorImages.Init();
             }
             catch (Exception ex)
             {
@@ -691,10 +692,10 @@ namespace Shoko.Server
             try
             {
                 this.Cursor = Cursors.Wait;
-                JMMService.CmdProcessorGeneral.Stop();
+                ShokoService.CmdProcessorGeneral.Stop();
 
                 // wait until the queue stops
-                while (JMMService.CmdProcessorGeneral.ProcessingCommands)
+                while (ShokoService.CmdProcessorGeneral.ProcessingCommands)
                 {
                     Thread.Sleep(200);
                 }
@@ -702,7 +703,7 @@ namespace Shoko.Server
 
                 RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
 
-                JMMService.CmdProcessorGeneral.Init();
+                ShokoService.CmdProcessorGeneral.Init();
             }
             catch (Exception ex)
             {
@@ -716,10 +717,10 @@ namespace Shoko.Server
             try
             {
                 this.Cursor = Cursors.Wait;
-                JMMService.CmdProcessorHasher.Stop();
+                ShokoService.CmdProcessorHasher.Stop();
 
                 // wait until the queue stops
-                while (JMMService.CmdProcessorHasher.ProcessingCommands)
+                while (ShokoService.CmdProcessorHasher.ProcessingCommands)
                 {
                     Thread.Sleep(200);
                 }
@@ -727,7 +728,7 @@ namespace Shoko.Server
 
                 RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
 
-                JMMService.CmdProcessorHasher.Init();
+                ShokoService.CmdProcessorHasher.Init();
             }
             catch (Exception ex)
             {
@@ -1218,17 +1219,17 @@ namespace Shoko.Server
                 AniDBDispose();
                 StopHost();
 
-                JMMService.CmdProcessorGeneral.Stop();
-                JMMService.CmdProcessorHasher.Stop();
-                JMMService.CmdProcessorImages.Stop();
+                ShokoService.CmdProcessorGeneral.Stop();
+                ShokoService.CmdProcessorHasher.Stop();
+                ShokoService.CmdProcessorImages.Stop();
 
 
                 // wait until the queue count is 0
                 // ie the cancel has actuall worked
                 while (true)
                 {
-                    if (JMMService.CmdProcessorGeneral.QueueCount == 0 && JMMService.CmdProcessorHasher.QueueCount == 0 &&
-                        JMMService.CmdProcessorImages.QueueCount == 0) break;
+                    if (ShokoService.CmdProcessorGeneral.QueueCount == 0 && ShokoService.CmdProcessorHasher.QueueCount == 0 &&
+                        ShokoService.CmdProcessorImages.QueueCount == 0) break;
                     Thread.Sleep(250);
                 }
 
@@ -1286,9 +1287,9 @@ namespace Shoko.Server
 	            }
 
 	            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingQueue;
-                JMMService.CmdProcessorGeneral.Init();
-                JMMService.CmdProcessorHasher.Init();
-                JMMService.CmdProcessorImages.Init();
+                ShokoService.CmdProcessorGeneral.Init();
+                ShokoService.CmdProcessorHasher.Init();
+                ShokoService.CmdProcessorImages.Init();
 
 
                 // timer for automatic updates
@@ -1439,11 +1440,11 @@ namespace Shoko.Server
                             // so now we have all the needed details we can link the file to the episode
                             // as long as wehave the details in JMM
                             SVR_AniDB_Anime anime = null;
-                            SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID);
+                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID);
                             if (ep == null)
                             {
                                 logger.Debug("Getting Anime record from AniDB....");
-                                anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
+                                anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
                                     ServerSettings.AutoGroupSeries);
                             }
                             else
@@ -1486,8 +1487,8 @@ namespace Shoko.Server
 
 
                             SVR_AnimeEpisode epAnime = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
-                            SVR_CrossRef_File_Episode xref =
-                                new SVR_CrossRef_File_Episode();
+                            CrossRef_File_Episode xref =
+                                new CrossRef_File_Episode();
 
                             try
                             {
@@ -1606,9 +1607,9 @@ namespace Shoko.Server
             {
                 this.Cursor = Cursors.Wait;
 
-                JMMService.CmdProcessorGeneral.Paused = true;
-                JMMService.CmdProcessorHasher.Paused = true;
-                JMMService.CmdProcessorImages.Paused = true;
+                ShokoService.CmdProcessorGeneral.Paused = true;
+                ShokoService.CmdProcessorHasher.Paused = true;
+                ShokoService.CmdProcessorImages.Paused = true;
 
                 StopHost();
 
@@ -1636,9 +1637,9 @@ namespace Shoko.Server
 		            throw new Exception("Failed to start all of the network hosts");
 	            }
 
-	            JMMService.CmdProcessorGeneral.Paused = false;
-                JMMService.CmdProcessorHasher.Paused = false;
-                JMMService.CmdProcessorImages.Paused = false;
+	            ShokoService.CmdProcessorGeneral.Paused = false;
+                ShokoService.CmdProcessorHasher.Paused = false;
+                ShokoService.CmdProcessorImages.Paused = false;
 
                 this.Cursor = Cursors.Arrow;
             }
@@ -2231,32 +2232,32 @@ namespace Shoko.Server
 
         void btnGeneralResume_Click(object sender, RoutedEventArgs e)
         {
-            JMMService.CmdProcessorGeneral.Paused = false;
+            ShokoService.CmdProcessorGeneral.Paused = false;
         }
 
         void btnGeneralPause_Click(object sender, RoutedEventArgs e)
         {
-            JMMService.CmdProcessorGeneral.Paused = true;
+            ShokoService.CmdProcessorGeneral.Paused = true;
         }
 
         void btnHasherResume_Click(object sender, RoutedEventArgs e)
         {
-            JMMService.CmdProcessorHasher.Paused = false;
+            ShokoService.CmdProcessorHasher.Paused = false;
         }
 
         void btnHasherPause_Click(object sender, RoutedEventArgs e)
         {
-            JMMService.CmdProcessorHasher.Paused = true;
+            ShokoService.CmdProcessorHasher.Paused = true;
         }
 
         void btnImagesResume_Click(object sender, RoutedEventArgs e)
         {
-            JMMService.CmdProcessorImages.Paused = false;
+            ShokoService.CmdProcessorImages.Paused = false;
         }
 
         void btnImagesPause_Click(object sender, RoutedEventArgs e)
         {
-            JMMService.CmdProcessorImages.Paused = true;
+            ShokoService.CmdProcessorImages.Paused = true;
         }
 
         void btnToolbarShutdown_Click(object sender, RoutedEventArgs e)
@@ -2294,7 +2295,7 @@ namespace Shoko.Server
         void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             autoUpdateTimerShort.Enabled = false;
-            JMMService.CmdProcessorImages.NotifyOfNewCommand();
+            ShokoService.CmdProcessorImages.NotifyOfNewCommand();
 
             CheckForAdminMesages();
 
@@ -2635,14 +2636,14 @@ namespace Shoko.Server
 
 
             // Create the ServiceHost.
-            hostBinary = new ServiceHost(typeof(JMMServiceImplementation), baseAddressBinary);
+            hostBinary = new ServiceHost(typeof(ShokoServiceImplementation), baseAddressBinary);
             // Enable metadata publishing.
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
 
             hostBinary.Description.Behaviors.Add(smb);
-            hostBinary.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressBinary);
+            hostBinary.AddServiceEndpoint(typeof(IShokoServer), binding, baseAddressBinary);
 
 
             // ** DISCOVERY ** //
@@ -2669,13 +2670,13 @@ namespace Shoko.Server
             binding.MaxReceivedMessageSize = 2147483647;
             binding.Name = "httpLargeMessageStream";
 
-            hostImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressImage);
+            hostImage = new ServiceHost(typeof(ShokoServiceImplementationImage), baseAddressImage);
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
             hostImage.Description.Behaviors.Add(smb);
 
-            hostImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressImage);
+            hostImage.AddServiceEndpoint(typeof(IShokoServerImage), binding, baseAddressImage);
             hostImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,MetadataExchangeBindings.CreateMexHttpBinding(),      "mex");
 
             hostImage.Open();
@@ -2697,14 +2698,14 @@ namespace Shoko.Server
 
 
             // Create the ServiceHost.
-            hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming), baseAddressStreaming);
+            hostStreaming = new ServiceHost(typeof(ShokoServiceImplementationDownload), baseAddressStreaming);
             // Enable metadata publishing.
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
             hostStreaming.Description.Behaviors.Add(smb);
 
-            hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), binding, baseAddressStreaming);
+            hostStreaming.AddServiceEndpoint(typeof(IShokoServerDownload), binding, baseAddressStreaming);
             hostStreaming.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
                 MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
 
@@ -2721,14 +2722,14 @@ namespace Shoko.Server
             BinaryOverHTTPBinding binding = new BinaryOverHTTPBinding();
 
             // Create the ServiceHost.
-            hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming), baseAddressStreaming);
+            hostStreaming = new ServiceHost(typeof(ShokoServiceImplementationDownload), baseAddressStreaming);
             // Enable metadata publishing.
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
             hostStreaming.Description.Behaviors.Add(smb);
 
-            hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), binding, baseAddressStreaming);
+            hostStreaming.AddServiceEndpoint(typeof(IShokoServerDownload), binding, baseAddressStreaming);
             hostStreaming.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
                 MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
 
@@ -2755,8 +2756,8 @@ namespace Shoko.Server
             //netTCPbinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.None;
             //netTCPbinding.Security.Message.ClientCredentialType = MessageCredentialType.None;
 
-            hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming));
-            hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), netTCPbinding, baseAddressStreaming);
+            hostStreaming = new ServiceHost(typeof(ShokoServiceImplementationDownload));
+            hostStreaming.AddServiceEndpoint(typeof(IShokoServerDownload), netTCPbinding, baseAddressStreaming);
             hostStreaming.Description.Behaviors.Add(new ServiceMetadataBehavior());
 
             Binding mexBinding = MetadataExchangeBindings.CreateMexTcpBinding();
@@ -2774,14 +2775,14 @@ namespace Shoko.Server
             binding.Name = "httpLargeMessageStream";
 
 
-            hostMetroImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressMetroImage);
+            hostMetroImage = new ServiceHost(typeof(ShokoServiceImplementationImage), baseAddressMetroImage);
 
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
             hostMetroImage.Description.Behaviors.Add(smb);
 
-            hostMetroImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressMetroImage);
+            hostMetroImage.AddServiceEndpoint(typeof(IShokoServerImage), binding, baseAddressMetroImage);
             hostMetroImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
                 MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
 
@@ -2797,7 +2798,7 @@ namespace Shoko.Server
 
 
             // Create the ServiceHost.
-            hostMetro = new ServiceHost(typeof(JMMServiceImplementationMetro), baseAddressMetro);
+            hostMetro = new ServiceHost(typeof(ShokoServiceImplementationMetro), baseAddressMetro);
             // Enable metadata publishing.
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
@@ -2806,7 +2807,7 @@ namespace Shoko.Server
 
             hostMetro.Description.Behaviors.Add(smb);
 
-            hostMetro.AddServiceEndpoint(typeof(IJMMServerMetro), binding, baseAddressMetro);
+            hostMetro.AddServiceEndpoint(typeof(IShokoServerMetro), binding, baseAddressMetro);
             hostMetro.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
                 MetadataExchangeBindings.CreateMexHttpBinding(),
                 "mex");
@@ -2955,7 +2956,7 @@ namespace Shoko.Server
             
         private static void SetupAniDBProcessor()
         {
-            JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
+            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
                 ServerSettings.AniDB_ServerAddress,
                 ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
         }
@@ -2963,10 +2964,10 @@ namespace Shoko.Server
         private static void AniDBDispose()
         {
             logger.Info("Disposing...");
-            if (JMMService.AnidbProcessor != null)
+            if (ShokoService.AnidbProcessor != null)
             {
-                JMMService.AnidbProcessor.ForceLogout();
-                JMMService.AnidbProcessor.Dispose();
+                ShokoService.AnidbProcessor.ForceLogout();
+                ShokoService.AnidbProcessor.Dispose();
                 Thread.Sleep(1000);
             }
         }

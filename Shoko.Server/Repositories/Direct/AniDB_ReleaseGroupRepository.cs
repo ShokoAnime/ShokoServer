@@ -2,11 +2,11 @@
 using NHibernate.Criterion;
 using NLog;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_ReleaseGroupRepository : BaseDirectRepository<SVR_AniDB_ReleaseGroup, int>
+    public class AniDB_ReleaseGroupRepository : BaseDirectRepository<AniDB_ReleaseGroup, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -17,14 +17,14 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new AniDB_ReleaseGroupRepository();
         }
-        public SVR_AniDB_ReleaseGroup GetByGroupID(int id)
+        public AniDB_ReleaseGroup GetByGroupID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SVR_AniDB_ReleaseGroup cr = session
-                    .CreateCriteria(typeof(SVR_AniDB_ReleaseGroup))
+                AniDB_ReleaseGroup cr = session
+                    .CreateCriteria(typeof(AniDB_ReleaseGroup))
                     .Add(Restrictions.Eq("GroupID", id))
-                    .UniqueResult<SVR_AniDB_ReleaseGroup>();
+                    .UniqueResult<AniDB_ReleaseGroup>();
                 return cr;
             }
         }

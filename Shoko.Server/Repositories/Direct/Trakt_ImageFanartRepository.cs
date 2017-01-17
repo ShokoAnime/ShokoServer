@@ -4,7 +4,7 @@ using Shoko.Server.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {

@@ -12,7 +12,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Cached

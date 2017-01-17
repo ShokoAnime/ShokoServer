@@ -2,11 +2,11 @@
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class CrossRef_AniDB_TvDBRepository : BaseDirectRepository<SVR_CrossRef_AniDB_TvDB, int>
+    public class CrossRef_AniDB_TvDBRepository : BaseDirectRepository<CrossRef_AniDB_TvDB, int>
     {
         private CrossRef_AniDB_TvDBRepository()
         {
@@ -17,7 +17,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new CrossRef_AniDB_TvDBRepository();
         }
-        public SVR_CrossRef_AniDB_TvDB GetByAnimeID(int id)
+        public CrossRef_AniDB_TvDB GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -25,24 +25,24 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public SVR_CrossRef_AniDB_TvDB GetByAnimeID(ISession session, int id)
+        public CrossRef_AniDB_TvDB GetByAnimeID(ISession session, int id)
         {
-            SVR_CrossRef_AniDB_TvDB cr = session
-                .CreateCriteria(typeof(SVR_CrossRef_AniDB_TvDB))
+            CrossRef_AniDB_TvDB cr = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDB))
                 .Add(Restrictions.Eq("AnimeID", id))
-                .UniqueResult<SVR_CrossRef_AniDB_TvDB>();
+                .UniqueResult<CrossRef_AniDB_TvDB>();
             return cr;
         }
 
-        public SVR_CrossRef_AniDB_TvDB GetByTvDBID(int id, int season)
+        public CrossRef_AniDB_TvDB GetByTvDBID(int id, int season)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SVR_CrossRef_AniDB_TvDB cr = session
-                    .CreateCriteria(typeof(SVR_CrossRef_AniDB_TvDB))
+                CrossRef_AniDB_TvDB cr = session
+                    .CreateCriteria(typeof(CrossRef_AniDB_TvDB))
                     .Add(Restrictions.Eq("TvDBID", id))
                     .Add(Restrictions.Eq("TvDBSeasonNumber", season))
-                    .UniqueResult<SVR_CrossRef_AniDB_TvDB>();
+                    .UniqueResult<CrossRef_AniDB_TvDB>();
                 return cr;
             }
         }

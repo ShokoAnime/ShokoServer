@@ -22,6 +22,9 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         public bool EnableAnimeTitlesInLists { get; } = true;
         public bool EnableGenresInLists { get; } = true;
 
+
+        public string ExcludeTags => "Plex";
+
         public string Proxyfy(string url)
         {
             return url;

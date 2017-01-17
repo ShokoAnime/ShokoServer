@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class AniDB_ReleaseGroupMap : ClassMap<SVR_AniDB_ReleaseGroup>
+    public class AniDB_ReleaseGroupMap : ClassMap<AniDB_ReleaseGroup>
     {
         public AniDB_ReleaseGroupMap()
         {

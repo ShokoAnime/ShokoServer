@@ -93,8 +93,8 @@ namespace AniDBAPI.Commands
 
         public virtual enHelperActivityType Process()
         {
-            JMMService.LastAniDBMessage = DateTime.Now;
-            JMMService.LastAniDBHTTPMessage = DateTime.Now;
+            ShokoService.LastAniDBMessage = DateTime.Now;
+            ShokoService.LastAniDBHTTPMessage = DateTime.Now;
 
             XmlDocument docAnime = AniDBHTTPHelper.GetMyListXMLFromAPI(username, password, ref xmlResult);
             //XmlDocument docAnime = LoadAnimeMyListFromFile();

@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class AniDB_MylistStatsMap : ClassMap<SVR_AniDB_MylistStats>
+    public class AniDB_MylistStatsMap : ClassMap<AniDB_MylistStats>
     {
         public AniDB_MylistStatsMap()
         {

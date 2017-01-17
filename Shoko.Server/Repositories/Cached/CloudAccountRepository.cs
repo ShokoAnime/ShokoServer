@@ -1,6 +1,6 @@
 ﻿using System;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {

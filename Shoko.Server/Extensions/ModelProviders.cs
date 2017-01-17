@@ -1,0 +1,773 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml;
+using AniDBAPI;
+using Force.DeepCloner;
+using NHibernate;
+using NLog;
+using Shoko.Models;
+using Shoko.Models.Azure;
+using Shoko.Models.Metro;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
+using Shoko.Models.TvDB;
+using Shoko.Server.AniDB_API.Raws;
+using Shoko.Server.Models;
+using Shoko.Server.LZ4;
+using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TraktTV.Contracts;
+
+namespace Shoko.Server.Extensions
+{
+    public static class ModelProviders
+    {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
+
+        public static Azure_CrossRef_AniDB_MAL_Request ToRequest(this CrossRef_AniDB_MAL c)
+        {
+            return new Azure_CrossRef_AniDB_MAL_Request
+            {
+                CrossRef_AniDB_MALID=c.CrossRef_AniDB_MALID,
+                AnimeID=c.AnimeID,
+                MALID =c.MALID,
+                MALTitle =c.MALTitle,
+                StartEpisodeType=c.StartEpisodeType,
+                StartEpisodeNumber = c.StartEpisodeNumber,
+                CrossRefSource = c.CrossRefSource
+            };
+        }
+
+        public static Azure_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
+        {
+            return new Azure_CrossRef_AniDB_Other_Request
+            {
+                CrossRef_AniDB_OtherID=c.CrossRef_AniDB_OtherID,
+                AnimeID=c.AnimeID,
+                CrossRefID =c.CrossRefID,
+                CrossRefSource = c.CrossRefSource,
+                CrossRefType = c.CrossRefType,
+            };
+        }
+
+        public static Azure_FileHash_Request ToHashRequest(this AniDB_File anifile)
+        {
+            Azure_FileHash_Request r = new Azure_FileHash_Request
+            {
+                ED2K = anifile.Hash,
+                CRC32 = anifile.CRC,
+                MD5 = anifile.MD5,
+                SHA1 = anifile.SHA1,
+                FileSize = anifile.FileSize
+            };
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+
+            return r;
+        }
+
+        public static Azure_FileHash_Request ToHashRequest(this SVR_VideoLocal vl)
+        {
+            Azure_FileHash_Request r = new Azure_FileHash_Request
+            {
+                ED2K = vl.Hash,
+                CRC32 = vl.CRC32,
+                MD5 = vl.MD5,
+                SHA1 = vl.SHA1,
+                FileSize = vl.FileSize
+            };
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+
+            return r;
+        }
+
+        public static Media ToMedia(this Azure_Media m)
+        {
+            int size = m.MediaInfo[0] << 24 | m.MediaInfo[1] << 16 | m.MediaInfo[2] << 8 | m.MediaInfo[3];
+            byte[] data = new byte[m.MediaInfo.Length - 4];
+            Array.Copy(m.MediaInfo, 4, data, 0, data.Length);
+            return CompressionHelper.DeserializeObject<Media>(data, size);
+
+        }
+
+        public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
+        {
+            Azure_Media_Request r=new Azure_Media_Request();
+            r.ED2K = v.ED2KHash;
+            //Cleanup any File subtitles from media information.
+            Media m = v.Media.DeepClone();
+            if (m.Parts != null && m.Parts.Count > 0)
+            {
+                foreach (Part p in m.Parts)
+                {
+                    if (p.Streams != null)
+                    {
+                        List<Stream> streams = p.Streams.Where(a => a.StreamType == "3" && !String.IsNullOrEmpty(a.File)).ToList();
+                        if (streams.Count > 0)
+                            streams.ForEach(a => p.Streams.Remove(a));
+                    }
+                }
+            }
+            //Cleanup the VideoLocal id
+            m.Id = null;
+            int outsize;
+            byte[] data = CompressionHelper.SerializeObject(m, out outsize);
+            r.ED2K = v.ED2KHash;
+            r.MediaInfo = new byte[data.Length + 4];
+            r.MediaInfo[0] = (byte)(outsize >> 24);
+            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
+            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
+            r.MediaInfo[3] = (byte)(outsize & 0xFF);
+            Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
+            r.Version = SVR_VideoLocal.MEDIA_VERSION;
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+
+            return r;
+        }
+
+        public static Azure_Media_Request ToMediaRequest(this Media m, string ed2k)
+        {
+            Azure_Media_Request r = new Azure_Media_Request();
+            int outsize;
+            byte[] data = CompressionHelper.SerializeObject(m, out outsize);
+            r.ED2K = ed2k;
+            r.MediaInfo = new byte[data.Length + 4];
+            r.MediaInfo[0] = (byte)(outsize >> 24);
+            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
+            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
+            r.MediaInfo[3] = (byte)(outsize & 0xFF);
+            Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
+            r.Version = SVR_VideoLocal.MEDIA_VERSION;
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            return r;
+        }
+
+        public static Azure_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
+        {
+            Azure_CrossRef_AniDB_Trakt_Request r=new Azure_CrossRef_AniDB_Trakt_Request();
+            r.AnimeID = xref.AnimeID;
+            r.AnimeName = animeName;
+            r.AniDBStartEpisodeType = xref.AniDBStartEpisodeType;
+            r.AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber;
+            r.TraktID = xref.TraktID;
+            r.TraktSeasonNumber = xref.TraktSeasonNumber;
+            r.TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber;
+            r.TraktTitle = xref.TraktTitle;
+            r.CrossRefSource = xref.CrossRefSource;
+
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+
+            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            return r;
+        }
+
+        public static Azure_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
+        {
+            Azure_CrossRef_AniDB_TvDB_Request r =new Azure_CrossRef_AniDB_TvDB_Request();
+            r.AnimeID = xref.AnimeID;
+            r.AnimeName = animeName;
+            r.AniDBStartEpisodeType = xref.AniDBStartEpisodeType;
+            r.AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber;
+            r.TvDBID = xref.TvDBID;
+            r.TvDBSeasonNumber = xref.TvDBSeasonNumber;
+            r.TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber;
+            r.TvDBTitle = xref.TvDBTitle;
+            r.CrossRefSource = xref.CrossRefSource;
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            return r;
+        }
+
+        public static Azure_CrossRef_File_Episode_Request ToRequest(this CrossRef_File_Episode xref)
+        {
+            Azure_CrossRef_File_Episode_Request r=new Azure_CrossRef_File_Episode_Request();
+            r.Hash = xref.Hash;
+            r.AnimeID = xref.AnimeID;
+            r.EpisodeID = xref.EpisodeID;
+            r.Percentage = xref.Percentage;
+            r.EpisodeOrder = xref.EpisodeOrder;
+
+            r.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                r.Username = Constants.AnonWebCacheUsername;
+            return r;
+        }
+
+        public static FileNameHash ToFileNameHash(this CrossRef_File_Episode cfe)
+        {
+            return new FileNameHash
+            {
+                FileName = cfe.FileName,
+                FileSize = cfe.FileSize,
+                Hash = cfe.Hash,
+                DateTimeUpdated = DateTime.Now,
+            };
+        }
+
+        public static void Populate(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
+        {
+            m.MovieId = movieID;
+            m.ImageID = result.ImageID;
+            m.ImageType = result.ImageType;
+            m.ImageSize = result.ImageSize;
+            m.ImageWidth = result.ImageWidth;
+            m.ImageHeight = result.ImageHeight;
+            m.Enabled = 1;
+        }
+
+        public static void Populate(this MovieDB_Movie m, MovieDB_Movie_Result result)
+        {
+            m.MovieId = result.MovieID;
+            m.MovieName = result.MovieName;
+            m.OriginalName = result.OriginalName;
+            m.Overview = result.Overview;            
+        }
+
+        public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
+        {
+            m.MovieId = movieID;
+            m.ImageID = result.ImageID;
+            m.ImageType = result.ImageType;
+            m.ImageSize = result.ImageSize;
+            m.URL = result.URL;
+            m.ImageWidth = result.ImageWidth;
+            m.ImageHeight = result.ImageHeight;
+            m.Enabled = 1;
+        }
+
+        public static void Populate(this Trakt_Friend friend, TraktV2User user)
+        {
+            friend.Username = user.username;
+            friend.FullName = user.name;
+            friend.LastAvatarUpdate = DateTime.Now;
+        }
+
+        public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvshow)
+        {
+            show.Overview = tvshow.overview;
+            show.Title = tvshow.title;
+            show.TraktID = tvshow.ids.slug;
+            show.TvDB_ID = tvshow.ids.tvdb;
+            show.URL = tvshow.ShowURL;
+            show.Year = tvshow.year.ToString();
+        }
+
+        public static void Populate(this Trakt_Show show, TraktV2Show tvshow)
+        {
+            show.Overview = tvshow.Overview;
+            show.Title = tvshow.Title;
+            show.TraktID = tvshow.ids.slug;
+            show.TvDB_ID = tvshow.ids.tvdb;
+            show.URL = tvshow.ShowURL;
+            show.Year = tvshow.Year.ToString();
+        }
+
+        public static void Populate(this TvDB_Episode episode, XmlDocument doc)
+        {
+            // used when getting information from episode info
+            // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
+
+            episode.Id = Int32.Parse(TryGetProperty(doc, "id"));
+            episode.SeriesID = Int32.Parse(TryGetProperty(doc, "seriesid"));
+            episode.SeasonID = Int32.Parse(TryGetProperty(doc, "seasonid"));
+            episode.SeasonNumber = Int32.Parse(TryGetProperty(doc, "SeasonNumber"));
+            episode.EpisodeNumber = Int32.Parse(TryGetProperty(doc, "EpisodeNumber"));
+
+            int flag = 0;
+            if (Int32.TryParse(TryGetProperty(doc, "EpImgFlag"), out flag))
+                episode.EpImgFlag = flag;
+
+            int abnum = 0;
+            if (Int32.TryParse(TryGetProperty(doc, "absolute_number"), out abnum))
+                episode.AbsoluteNumber = abnum;
+
+            episode.EpisodeName = TryGetProperty(doc, "EpisodeName");
+            episode.Overview = TryGetProperty(doc, "Overview");
+            episode.Filename = TryGetProperty(doc, "filename");
+            //this.FirstAired = TryGetProperty(doc, "FirstAired");
+
+            int aas = 0;
+            if (Int32.TryParse(TryGetProperty(doc, "airsafter_season"), out aas))
+                episode.AirsAfterSeason = aas;
+            else
+                episode.AirsAfterSeason = null;
+
+            int abe = 0;
+            if (Int32.TryParse(TryGetProperty(doc, "airsbefore_episode"), out abe))
+                episode.AirsBeforeEpisode = abe;
+            else
+                episode.AirsBeforeEpisode = null;
+
+            int abs = 0;
+            if (Int32.TryParse(TryGetProperty(doc, "airsbefore_season"), out abs))
+                episode.AirsBeforeSeason = abs;
+            else
+                episode.AirsBeforeSeason = null;
+        }
+
+        public static void Populate(this TvDB_Episode episode, XmlNode node)
+        {
+            // used when getting information from full series info
+            // http://thetvdb.com/api/B178B8940CAF4A2C/series/84187/all/en.xml
+
+            episode.Id = Int32.Parse(TryGetProperty(node, "id"));
+            episode.SeriesID = Int32.Parse(TryGetProperty(node, "seriesid"));
+            episode.SeasonID = Int32.Parse(TryGetProperty(node, "seasonid"));
+            episode.SeasonNumber = Int32.Parse(TryGetProperty(node, "SeasonNumber"));
+            episode.EpisodeNumber = Int32.Parse(TryGetProperty(node, "EpisodeNumber"));
+
+            int flag = 0;
+            if (Int32.TryParse(TryGetProperty(node, "EpImgFlag"), out flag))
+                episode.EpImgFlag = flag;
+
+            int abnum = 0;
+            if (Int32.TryParse(TryGetProperty(node, "absolute_number"), out abnum))
+                episode.AbsoluteNumber = abnum;
+
+            episode.EpisodeName = TryGetProperty(node, "EpisodeName");
+            episode.Overview = TryGetProperty(node, "Overview");
+            episode.Filename = TryGetProperty(node, "filename");
+            //this.FirstAired = TryGetProperty(node, "FirstAired");
+
+            int aas = 0;
+            if (Int32.TryParse(TryGetProperty(node, "airsafter_season"), out aas))
+                episode.AirsAfterSeason = aas;
+            else
+                episode.AirsAfterSeason = null;
+
+            int abe = 0;
+            if (Int32.TryParse(TryGetProperty(node, "airsbefore_episode"), out abe))
+                episode.AirsBeforeEpisode = abe;
+            else
+                episode.AirsBeforeEpisode = null;
+
+            int abs = 0;
+            if (Int32.TryParse(TryGetProperty(node, "airsbefore_season"), out abs))
+                episode.AirsBeforeSeason = abs;
+            else
+                episode.AirsBeforeSeason = null;
+        }
+
+        private static string TryGetProperty(XmlNode node, string propertyName)
+        {
+            try
+            {
+                string prop = node[propertyName].InnerText.Trim();
+                return prop;
+            }
+            catch (Exception ex)
+            {
+                //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
+            }
+
+            return "";
+        }
+
+        private static string TryGetProperty(XmlDocument doc, string propertyName)
+        {
+            try
+            {
+                string prop = doc["Data"]["Episode"][propertyName].InnerText.Trim();
+                return prop;
+            }
+            catch (Exception ex)
+            {
+                //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
+            }
+
+            return "";
+        }
+
+        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, XmlNode node)
+        {
+            try
+            {
+                fanart.SeriesID = seriesID;
+                fanart.Id = Int32.Parse(node["id"].InnerText);
+                fanart.BannerPath = node["BannerPath"].InnerText;
+                fanart.BannerType = node["BannerType"].InnerText;
+                fanart.BannerType2 = node["BannerType2"].InnerText;
+                fanart.Colors = node["Colors"].InnerText;
+                fanart.Language = node["Language"].InnerText;
+                fanart.ThumbnailPath = node["ThumbnailPath"].InnerText;
+                fanart.VignettePath = node["VignettePath"].InnerText;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error( ex,"Error in TvDB_ImageFanart.Init: " + ex.ToString());
+                return false;
+            }
+        }
+
+        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, XmlNode node, TvDBImageNodeType nodeType)
+        {
+            try
+            {
+                poster.SeriesID = seriesID;
+
+                if (nodeType == TvDBImageNodeType.Series)
+                    poster.SeasonNumber = null;
+                else
+                    poster.SeasonNumber = Int32.Parse(node["Season"].InnerText);
+
+
+                poster.Id = Int32.Parse(node["id"].InnerText);
+                poster.BannerPath = node["BannerPath"].InnerText;
+                poster.BannerType = node["BannerType"].InnerText;
+                poster.BannerType2 = node["BannerType2"].InnerText;
+                poster.Language = node["Language"].InnerText;
+
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error( ex,"Error in TvDB_ImagePoster.Populate: " + ex.ToString());
+                return false;
+            }
+        }
+
+        public static bool Populate(this TvDB_ImageWideBanner banner, int seriesID, XmlNode node, TvDBImageNodeType nodeType)
+        {
+            try
+            {
+                banner.SeriesID = seriesID;
+
+                if (nodeType == TvDBImageNodeType.Series)
+                    banner.SeasonNumber = null;
+                else
+                    banner.SeasonNumber = Int32.Parse(node["Season"].InnerText);
+
+                banner.Id = Int32.Parse(node["id"].InnerText);
+                banner.BannerPath = node["BannerPath"].InnerText;
+                banner.BannerType = node["BannerType"].InnerText;
+                banner.BannerType2 = node["BannerType2"].InnerText;
+                banner.Language = node["Language"].InnerText;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error( ex,"Error in TvDB_ImageWideBanner.Populate: " + ex.ToString());
+                return false;
+            }
+        }
+
+        public static void PopulateFromSearch(this TvDB_Series series, XmlDocument doc)
+        {
+            series.SeriesID = 0;
+            series.Overview = String.Empty;
+            series.SeriesName = String.Empty;
+            series.Status = String.Empty;
+            series.Banner = String.Empty;
+            series.Fanart = String.Empty;
+            series.Lastupdated = String.Empty;
+            series.Poster = String.Empty;
+            series.SeriesID = Int32.Parse(TryGetProperty(doc, "seriesid"));
+            series.SeriesName = TryGetProperty(doc, "SeriesName");
+            series.Overview = TryGetProperty(doc, "Overview");
+            series.Banner = TryGetProperty(doc, "banner");
+        }
+
+        public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
+        {
+            series.SeriesID = 0;
+            series.Overview = String.Empty;
+            series.SeriesName = String.Empty;
+            series.Status = String.Empty;
+            series.Banner = String.Empty;
+            series.Fanart = String.Empty;
+            series.Lastupdated = String.Empty;
+            series.Poster = String.Empty;
+            series.SeriesID = Int32.Parse(TryGetProperty(doc, "id"));
+            series.SeriesName = TryGetProperty(doc, "SeriesName");
+            series.Overview = TryGetProperty(doc, "Overview");
+            series.Banner = TryGetProperty(doc, "banner");
+
+            series.Status = TryGetProperty(doc, "Status");
+            series.Fanart = TryGetProperty(doc, "fanart");
+            series.Lastupdated = TryGetProperty(doc, "lastupdated");
+            series.Poster = TryGetProperty(doc, "poster");
+        }
+
+        public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
+        {
+            response.Id = String.Empty;
+            response.SeriesID = 0;
+            response.Overview = String.Empty;
+            response.SeriesName = String.Empty;
+            response.Banner = String.Empty;
+            if (series["seriesid"] != null) response.SeriesID = Int32.Parse(series["seriesid"].InnerText);
+            if (series["SeriesName"] != null) response.SeriesName = series["SeriesName"].InnerText;
+            if (series["id"] != null) response.Id = series["id"].InnerText;
+            if (series["Overview"] != null) response.Overview = series["Overview"].InnerText;
+            if (series["banner"] != null) response.Banner = series["banner"].InnerText;
+            if (series["language"] != null) response.Language = series["language"].InnerText;
+        }
+
+        public static void Populate(this AniDB_Anime_Character character, Raw_AniDB_Character rawChar)
+        {
+            character.CharID = rawChar.CharID;
+            character.AnimeID = rawChar.AnimeID;
+            character.CharType = rawChar.CharType;
+            character.EpisodeListRaw = rawChar.EpisodeListRaw;
+        }
+
+        public static void Populate(this AniDB_Anime_Relation rel, Raw_AniDB_RelatedAnime rawRel)
+        {
+            rel.AnimeID = rawRel.AnimeID;
+            rel.RelatedAnimeID = rawRel.RelatedAnimeID;
+            rel.RelationType = rawRel.RelationType;
+        }
+
+        public static void Populate(this AniDB_Anime_Similar similar, Raw_AniDB_SimilarAnime rawSim)
+        {
+            similar.AnimeID = rawSim.AnimeID;
+            similar.Approval = rawSim.Approval;
+            similar.Total = rawSim.Total;
+            similar.SimilarAnimeID = rawSim.SimilarAnimeID;
+        }
+
+        public static void Populate(this AniDB_Anime_Tag tag, Raw_AniDB_Tag rawTag)
+        {
+            tag.AnimeID = rawTag.AnimeID;
+            tag.TagID = rawTag.TagID;
+            tag.Approval = 100;
+            tag.Weight = rawTag.Weight;
+        }
+
+        public static void Populate(this AniDB_Anime_Title title, Raw_AniDB_Anime_Title rawTitle)
+        {
+            title.AnimeID = rawTitle.AnimeID;
+            title.Language = rawTitle.Language;
+            title.Title = rawTitle.Title;
+            title.TitleType = rawTitle.TitleType;
+        }
+
+        private static void Populate(this AniDB_Character character, Raw_AniDB_Character rawChar)
+        {
+            character.CharID = rawChar.CharID;
+            character.CharDescription = rawChar.CharDescription;
+            character.CharKanjiName = rawChar.CharKanjiName;
+            character.CharName = rawChar.CharName;
+            character.PicName = rawChar.PicName;
+            character.CreatorListRaw = rawChar.CreatorListRaw;
+        }
+
+        public static void PopulateFromHTTP(this AniDB_Character character, Raw_AniDB_Character rawChar)
+        {
+            if (character.CharID == 0) // a new object
+            {
+                character.Populate(rawChar);
+            }
+            else
+            {
+                // only update the fields that come from HTTP API
+                character.CharDescription = rawChar.CharDescription;
+                character.CharName = rawChar.CharName;
+                character.CreatorListRaw = rawChar.CreatorListRaw;
+                character.PicName = rawChar.PicName;
+            }
+        }
+
+        public static void PopulateFromUDP(this AniDB_Character character, Raw_AniDB_Character rawChar)
+        {
+            if (character.CharID == 0) // a new object
+            {
+                character.Populate(rawChar);
+            }
+            else
+            {
+                // only update the fields that com from UDP API
+                character.CharKanjiName = rawChar.CharKanjiName;
+                character.CharName = rawChar.CharName;
+                //this.CreatorListRaw = rawChar.CreatorListRaw;
+            }
+        }
+
+        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session, AniDB_Anime_Character charRel)
+        {
+            Metro_AniDB_Character contract = new Metro_AniDB_Character();
+
+            contract.AniDB_CharacterID = character.AniDB_CharacterID;
+            contract.CharID = character.CharID;
+            contract.CharName = character.CharName;
+            contract.CharKanjiName = character.CharKanjiName;
+            contract.CharDescription = character.CharDescription;
+
+            contract.CharType = charRel.CharType;
+
+            contract.ImageType = (int) JMMImageType.AniDB_Character;
+            contract.ImageID = character.AniDB_CharacterID;
+
+            AniDB_Seiyuu seiyuu = character.GetSeiyuu(session);
+            if (seiyuu != null)
+            {
+                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuName = seiyuu.SeiyuuName;
+                contract.SeiyuuImageType = (int) JMMImageType.AniDB_Creator;
+                contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
+            }
+
+            return contract;
+        }
+
+        public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character, AniDB_Anime_Character charRel)
+        {
+            Azure_AnimeCharacter contract = new Azure_AnimeCharacter();
+
+            contract.CharID = character.CharID;
+            contract.CharName = character.CharName;
+            contract.CharKanjiName = character.CharKanjiName;
+            contract.CharDescription = character.CharDescription;
+            contract.CharType = charRel.CharType;
+            contract.CharImageURL = String.Format(Constants.URLS.AniDB_Images, character.PicName);
+
+            AniDB_Seiyuu seiyuu = character.GetSeiyuu();
+            if (seiyuu != null)
+            {
+                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuName = seiyuu.SeiyuuName;
+                contract.SeiyuuImageURL = String.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
+            }
+
+            return contract;
+        }
+
+        public static void Populate(this AniDB_Episode episode, Raw_AniDB_Episode epInfo)
+        {
+            episode.AirDate = epInfo.AirDate;
+            episode.AnimeID = epInfo.AnimeID;
+            episode.DateTimeUpdated = DateTime.Now;
+            episode.EnglishName = epInfo.EnglishName;
+            episode.EpisodeID = epInfo.EpisodeID;
+            episode.EpisodeNumber = epInfo.EpisodeNumber;
+            episode.EpisodeType = epInfo.EpisodeType;
+            episode.LengthSeconds = epInfo.LengthSeconds;
+            episode.Rating = epInfo.Rating.ToString();
+            episode.RomajiName = epInfo.RomajiName;
+            episode.Votes = epInfo.Votes.ToString();
+        }
+
+        public static void Populate(this AniDB_GroupStatus grpstatus, Raw_AniDB_GroupStatus raw)
+        {
+            grpstatus.AnimeID = raw.AnimeID;
+            grpstatus.GroupID = raw.GroupID;
+            grpstatus.GroupName = raw.GroupName;
+            grpstatus.CompletionState = raw.CompletionState;
+            grpstatus.LastEpisodeNumber = raw.LastEpisodeNumber;
+            grpstatus.Rating = raw.Rating;
+            grpstatus.Votes = raw.Votes;
+            grpstatus.EpisodeRange = raw.EpisodeRange;
+        }
+
+        public static void Populate(this AniDB_MylistStats stats, Raw_AniDB_MyListStats raw)
+        {
+            stats.Animes = raw.Animes;
+            stats.Episodes = raw.Episodes;
+            stats.Files = raw.Files;
+            stats.SizeOfFiles = raw.SizeOfFiles;
+            stats.AddedAnimes = raw.AddedAnimes;
+            stats.AddedEpisodes = raw.AddedEpisodes;
+            stats.AddedFiles = raw.AddedFiles;
+            stats.AddedGroups = raw.AddedGroups;
+            stats.LeechPct = raw.LeechPct;
+            stats.GloryPct = raw.GloryPct;
+            stats.ViewedPct = raw.ViewedPct;
+            stats.MylistPct = raw.MylistPct;
+            stats.ViewedMylistPct = raw.ViewedMylistPct;
+            stats.EpisodesViewed = raw.EpisodesViewed;
+            stats.Votes = raw.Votes;
+            stats.Reviews = raw.Reviews;
+            stats.ViewiedLength = raw.ViewiedLength;
+        }
+
+        public static void Populate(this AniDB_Recommendation recommendation, Raw_AniDB_Recommendation rawRec)
+        {
+            recommendation.AnimeID = rawRec.AnimeID;
+            recommendation.UserID = rawRec.UserID;
+            recommendation.RecommendationText = rawRec.RecommendationText;
+
+            recommendation.RecommendationType = (int) AniDBRecommendationType.Recommended;
+
+            if (rawRec.RecommendationTypeText.Equals("recommended", StringComparison.InvariantCultureIgnoreCase))
+                recommendation.RecommendationType = (int) AniDBRecommendationType.Recommended;
+
+            if (rawRec.RecommendationTypeText.Equals("for fans", StringComparison.InvariantCultureIgnoreCase))
+                recommendation.RecommendationType = (int) AniDBRecommendationType.ForFans;
+
+            if (rawRec.RecommendationTypeText.Equals("must see", StringComparison.InvariantCultureIgnoreCase))
+                recommendation.RecommendationType = (int) AniDBRecommendationType.MustSee;
+        }
+
+        public static void Populate(this AniDB_ReleaseGroup releasegroup, Raw_AniDB_Group raw)
+        {
+            releasegroup.GroupID = raw.GroupID;
+            releasegroup.Rating = raw.Rating;
+            releasegroup.Votes = raw.Votes;
+            releasegroup.AnimeCount = raw.AnimeCount;
+            releasegroup.FileCount = raw.FileCount;
+            releasegroup.GroupName = raw.GroupName;
+            releasegroup.GroupNameShort = raw.GroupNameShort;
+            releasegroup.IRCChannel = raw.IRCChannel;
+            releasegroup.IRCServer = raw.IRCServer;
+            releasegroup.URL = raw.URL;
+            releasegroup.Picname = raw.Picname;
+        }
+
+        public static void Populate(this AniDB_Review review, Raw_AniDB_Review rawReview)
+        {
+            review.ReviewID = rawReview.ReviewID;
+            review.AuthorID = rawReview.AuthorID;
+            review.RatingAnimation = rawReview.RatingAnimation;
+            review.RatingSound = rawReview.RatingSound;
+            review.RatingStory = rawReview.RatingStory;
+            review.RatingCharacter = rawReview.RatingCharacter;
+            review.RatingValue = rawReview.RatingValue;
+            review.RatingEnjoyment = rawReview.RatingEnjoyment;
+            review.ReviewText = rawReview.ReviewText;
+        }
+
+        public static void Populate(this AniDB_Tag tag, Raw_AniDB_Tag rawTag)
+        {
+            tag.TagID = rawTag.TagID;
+            tag.GlobalSpoiler = rawTag.GlobalSpoiler;
+            tag.LocalSpoiler = rawTag.LocalSpoiler;
+            tag.Spoiler = 0;
+            tag.TagCount = 0;
+            tag.TagDescription = rawTag.TagDescription;
+            tag.TagName = rawTag.TagName;
+        }
+
+        public static void PopulateManually(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
+        {
+            cross.Hash = vid.ED2KHash;
+            cross.FileName = vid.FileName;
+            cross.FileSize = vid.FileSize;
+            cross.CrossRefSource = (int) Server.CrossRefSource.User;
+            cross.AnimeID = ep.GetAnimeSeries().AniDB_ID;
+            cross.EpisodeID = ep.AniDB_EpisodeID;
+            cross.Percentage = 100;
+            cross.EpisodeOrder = 1;
+        }
+    }
+}

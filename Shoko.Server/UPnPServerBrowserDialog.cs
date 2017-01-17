@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using UPNPLib;
 
 namespace Shoko.Server

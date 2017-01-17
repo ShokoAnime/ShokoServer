@@ -19,7 +19,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.MAL;
 using Shoko.Server.Commands.WebCache;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.MyAnimeList

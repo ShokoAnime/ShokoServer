@@ -3,7 +3,7 @@ using System.Xml;
 using Shoko.Models.Azure;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
@@ -43,7 +43,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                SVR_CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
+                CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
                 if (xref == null) return;
 
                 AzureWebAPI.Send_CrossRefAniDBOther(xref);

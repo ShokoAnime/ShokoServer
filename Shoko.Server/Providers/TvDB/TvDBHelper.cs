@@ -16,9 +16,11 @@ using Shoko.Models.Enums;
 using Shoko.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Extensions;
+using Utils = Shoko.Server.Utils;
 
 namespace Shoko.Models.TvDB
 {
@@ -866,11 +868,11 @@ namespace Shoko.Models.TvDB
                     cmdSeriesEps.Save();
                 }
 
-                SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
                     animeID,
                     (int) aniEpType, aniEpNumber);
                 if (xref == null)
-                    xref = new SVR_CrossRef_AniDB_TvDBV2();
+                    xref = new CrossRef_AniDB_TvDBV2();
 
                 xref.AnimeID = animeID;
                 xref.AniDBStartEpisodeType = (int) aniEpType;
@@ -937,7 +939,7 @@ namespace Shoko.Models.TvDB
         public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber)
         {
-            SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID,
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xref == null) return;
@@ -954,10 +956,10 @@ namespace Shoko.Models.TvDB
 
 	    public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType=-1)
 	    {
-		    List<SVR_CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, animeID);
+		    List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, animeID);
 		    if (xrefs == null || xrefs.Count == 0) return;
 
-		    foreach (SVR_CrossRef_AniDB_TvDBV2 xref in xrefs)
+		    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 		    {
 			    if (aniEpType != -1 && aniEpType == xref.AniDBStartEpisodeType) continue;
 
@@ -1015,9 +1017,9 @@ namespace Shoko.Models.TvDB
         {
             IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            IReadOnlyList<SVR_CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
             List<int> alreadyLinked = new List<int>();
-            foreach (SVR_CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
+            foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
             {
                 alreadyLinked.Add(xref.AnimeID);
             }
@@ -1046,9 +1048,9 @@ namespace Shoko.Models.TvDB
 
         public static void UpdateAllInfo(bool force)
         {
-            IReadOnlyList<SVR_CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
             List<int> alreadyLinked = new List<int>();
-            foreach (SVR_CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
+            foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
             {
                 CommandRequest_TvDBUpdateSeriesAndEpisodes cmd =
                     new CommandRequest_TvDBUpdateSeriesAndEpisodes(xref.TvDBID, force);
@@ -1085,10 +1087,10 @@ namespace Shoko.Models.TvDB
 
                 foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
                 {
-                    List<SVR_CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
+                    List<CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
                     if (xrefs == null) continue;
 
-                    foreach (SVR_CrossRef_AniDB_TvDBV2 xref in xrefs)
+                    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
                     {
                         if (!allTvDBIDs.Contains(xref.TvDBID)) allTvDBIDs.Add(xref.TvDBID);
                     }

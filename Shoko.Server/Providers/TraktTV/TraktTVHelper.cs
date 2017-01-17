@@ -15,7 +15,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 
@@ -351,12 +352,12 @@ namespace Shoko.Server.Providers.TraktTV
         public static string LinkAniDBTrakt(ISession session, int animeID, enEpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            List<SVR_CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
+            List<CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xrefTemps != null && xrefTemps.Count > 0)
             {
-                foreach (SVR_CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
+                foreach (CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
                 {
                     // delete the existing one if we are updating
                     TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
@@ -380,11 +381,11 @@ namespace Shoko.Server.Providers.TraktTV
             // download fanart, posters
             DownloadImagesFromTMDB(traktID);
 
-            SVR_CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID, seasonNumber, traktEpNumber,
+            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID, seasonNumber, traktEpNumber,
                 animeID,
                 (int) aniEpType, aniEpNumber);
             if (xref == null)
-                xref = new SVR_CrossRef_AniDB_TraktV2();
+                xref = new CrossRef_AniDB_TraktV2();
 
             xref.AnimeID = animeID;
             xref.AniDBStartEpisodeType = (int) aniEpType;
@@ -420,7 +421,7 @@ namespace Shoko.Server.Providers.TraktTV
         public static void RemoveLinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber)
         {
-            SVR_CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
+            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xref == null) return;
@@ -489,9 +490,9 @@ namespace Shoko.Server.Providers.TraktTV
         {
             IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            IReadOnlyList<SVR_CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
             List<int> alreadyLinked = new List<int>();
-            foreach (SVR_CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 alreadyLinked.Add(xref.AnimeID);
             }
@@ -514,7 +515,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         private static int? GetTraktEpisodeIdV2(SVR_AnimeEpisode ep, ref string traktID, ref int season, ref int epNumber)
         {
-            SVR_AniDB_Episode aniep = ep?.AniDB_Episode;
+            AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
 
             SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
@@ -524,7 +525,7 @@ namespace Shoko.Server.Providers.TraktTV
             return GetTraktEpisodeIdV2(anime, aniep, ref traktID, ref season, ref epNumber);
         }
 
-        private static int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref string traktID, ref int season,
+        private static int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, AniDB_Episode ep, ref string traktID, ref int season,
             ref int epNumber)
         {
             if (anime == null || ep == null)
@@ -537,7 +538,7 @@ namespace Shoko.Server.Providers.TraktTV
             return GetTraktEpisodeIdV2(traktSummary, anime, ep, ref traktID, ref season, ref epNumber);
         }
 
-        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, SVR_AniDB_Anime anime, SVR_AniDB_Episode ep,
+        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, SVR_AniDB_Anime anime, AniDB_Episode ep,
             ref string traktID, ref int season, ref int epNumber)
         {
             try
@@ -554,12 +555,12 @@ namespace Shoko.Server.Providers.TraktTV
                     {
                         // find the xref that is right
                         // relies on the xref's being sorted by season number and then episode number (desc)
-                        List<SVR_CrossRef_AniDB_TraktV2> traktCrossRef =
+                        List<CrossRef_AniDB_TraktV2> traktCrossRef =
                             traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
 
                         bool foundStartingPoint = false;
-                        SVR_CrossRef_AniDB_TraktV2 xrefBase = null;
-                        foreach (SVR_CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
+                        CrossRef_AniDB_TraktV2 xrefBase = null;
+                        foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                         {
                             if (xrefTrakt.AniDBStartEpisodeType != (int) enEpisodeType.Episode) continue;
                             if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
@@ -612,12 +613,12 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
-                    List<SVR_CrossRef_AniDB_TraktV2> traktCrossRef =
+                    List<CrossRef_AniDB_TraktV2> traktCrossRef =
                         traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
                     
                     bool foundStartingPoint = false;
-                    SVR_CrossRef_AniDB_TraktV2 xrefBase = null;
-                    foreach (SVR_CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
+                    CrossRef_AniDB_TraktV2 xrefBase = null;
+                    foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                     {
                         if (xrefTrakt.AniDBStartEpisodeType != (int) enEpisodeType.Special) continue;
                         if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
@@ -1380,12 +1381,12 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     return ret;
 
-                List<SVR_CrossRef_AniDB_TraktV2> traktXRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
+                List<CrossRef_AniDB_TraktV2> traktXRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
                 if (traktXRefs == null || traktXRefs.Count == 0) return null;
 
                 // get a unique list of trakt id's
                 List<string> ids = new List<string>();
-                foreach (SVR_CrossRef_AniDB_TraktV2 xref in traktXRefs)
+                foreach (CrossRef_AniDB_TraktV2 xref in traktXRefs)
                 {
                     if (!ids.Contains(xref.TraktID))
                         ids.Add(xref.TraktID);
@@ -1576,8 +1577,8 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void UpdateAllInfo()
         {
-            IReadOnlyList<SVR_CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
-            foreach (SVR_CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 CommandRequest_TraktUpdateInfoAndImages cmd = new CommandRequest_TraktUpdateInfoAndImages(xref.TraktID);
                 cmd.Save();
@@ -1719,11 +1720,11 @@ namespace Shoko.Server.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<SVR_CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                    List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
-                        foreach (SVR_CrossRef_AniDB_TraktV2 xref in xrefs)
+                        foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
                             SVR_AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
@@ -1807,11 +1808,11 @@ namespace Shoko.Server.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<SVR_CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                    List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
-                        foreach (SVR_CrossRef_AniDB_TraktV2 xref in xrefs)
+                        foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
                             SVR_AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;

@@ -8,7 +8,7 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -135,8 +135,8 @@ namespace Shoko.Server.Commands
                         else
                         {
                             // look for manually linked files
-                            List<SVR_CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
-                            foreach (SVR_CrossRef_File_Episode xref in xrefs)
+                            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                            foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
                                 {

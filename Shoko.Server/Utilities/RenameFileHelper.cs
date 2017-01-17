@@ -6,7 +6,7 @@ using Shoko.Models.Server;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server
@@ -65,7 +65,7 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestA(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestA(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -136,7 +136,7 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -172,7 +172,7 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -853,7 +853,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestE(string test, SVR_VideoLocal vid, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestE(string test, SVR_VideoLocal vid, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -920,7 +920,7 @@ namespace Shoko.Server
             }
         }
 
-        private static bool EvaluateTestH(string test, SVR_VideoLocal vid, List<SVR_AniDB_Episode> episodes)
+        private static bool EvaluateTestH(string test, SVR_VideoLocal vid, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -1101,7 +1101,7 @@ namespace Shoko.Server
         /// <param name="vid"></param>
         /// <param name="anime"></param>
         /// <returns></returns>
-        private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
+        private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
             try
@@ -1269,7 +1269,7 @@ namespace Shoko.Server
                     Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
+                    foreach (AniDB_Anime_Title ti in anime.GetTitles())
                     {
                         if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
                             StringComparison.InvariantCultureIgnoreCase))
@@ -1299,7 +1299,7 @@ namespace Shoko.Server
                     Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
+                    foreach (AniDB_Anime_Title ti in anime.GetTitles())
                     {
                         if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Kanji,
                             StringComparison.InvariantCultureIgnoreCase))
@@ -1328,7 +1328,7 @@ namespace Shoko.Server
                     Constants.FileRenameTag.AnimeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
+                    foreach (AniDB_Anime_Title ti in anime.GetTitles())
                     {
                         if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
                             StringComparison.InvariantCultureIgnoreCase))
@@ -1726,7 +1726,7 @@ namespace Shoko.Server
             string newFileName = string.Empty;
 
 
-            List<SVR_AniDB_Episode> episodes = new List<SVR_AniDB_Episode>();
+            List<AniDB_Episode> episodes = new List<AniDB_Episode>();
             SVR_AniDB_Anime anime = null;
 
             if (vid == null) return string.Empty;
@@ -1810,7 +1810,7 @@ namespace Shoko.Server
         }
 
         private static void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
-            SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+            SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // find the first test
             int posStart = action.IndexOf(" ");
@@ -1837,7 +1837,7 @@ namespace Shoko.Server
         }
 
         private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, SVR_VideoLocal vid,
-            SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+            SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -1868,7 +1868,7 @@ namespace Shoko.Server
         }
 
         private static void PerformActionOnFileNameADD(ref string newFileName, string action, SVR_VideoLocal vid,
-            SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+            SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // TODO Remove illegal characters
             // TODO check for double episodes
@@ -1893,7 +1893,7 @@ namespace Shoko.Server
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
             {
-                foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
+                foreach (AniDB_Anime_Title ti in anime.GetTitles())
                 {
                     if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
                         StringComparison.InvariantCultureIgnoreCase))
@@ -1916,7 +1916,7 @@ namespace Shoko.Server
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameRomaji.ToLower()))
             {
-                foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
+                foreach (AniDB_Anime_Title ti in anime.GetTitles())
                 {
                     if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
                         StringComparison.InvariantCultureIgnoreCase))
@@ -1939,7 +1939,7 @@ namespace Shoko.Server
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
             {
-                foreach (SVR_AniDB_Anime_Title ti in anime.GetTitles())
+                foreach (AniDB_Anime_Title ti in anime.GetTitles())
                 {
                     if (ti.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Kanji,
                         StringComparison.InvariantCultureIgnoreCase))
@@ -2301,7 +2301,7 @@ namespace Shoko.Server
             return action;
         }
 
-        private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes,
+        private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
             line = line.Trim();
@@ -2382,7 +2382,7 @@ namespace Shoko.Server
         }
 
         private static bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
-            List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+            List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             testCondition = testCondition.Trim();
 

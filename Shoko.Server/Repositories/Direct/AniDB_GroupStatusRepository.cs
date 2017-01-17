@@ -3,11 +3,11 @@ using Shoko.Models.Server;
 using NHibernate.Criterion;
 using NLog;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_GroupStatusRepository : BaseDirectRepository<SVR_AniDB_GroupStatus, int>
+    public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatus, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -29,29 +29,29 @@ namespace Shoko.Server.Repositories.Direct
             };
         }
 
-        public SVR_AniDB_GroupStatus GetByAnimeIDAndGroupID(int animeid, int groupid)
+        public AniDB_GroupStatus GetByAnimeIDAndGroupID(int animeid, int groupid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SVR_AniDB_GroupStatus cr = session
-                    .CreateCriteria(typeof(SVR_AniDB_GroupStatus))
+                AniDB_GroupStatus cr = session
+                    .CreateCriteria(typeof(AniDB_GroupStatus))
                     .Add(Restrictions.Eq("AnimeID", animeid))
                     .Add(Restrictions.Eq("GroupID", groupid))
-                    .UniqueResult<SVR_AniDB_GroupStatus>();
+                    .UniqueResult<AniDB_GroupStatus>();
                 return cr;
             }
         }
 
-        public List<SVR_AniDB_GroupStatus> GetByAnimeID(int id)
+        public List<AniDB_GroupStatus> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
-                    .CreateCriteria(typeof(SVR_AniDB_GroupStatus))
+                    .CreateCriteria(typeof(AniDB_GroupStatus))
                     .Add(Restrictions.Eq("AnimeID", id))
-                    .List<SVR_AniDB_GroupStatus>();
+                    .List<AniDB_GroupStatus>();
 
-                return new List<SVR_AniDB_GroupStatus>(objs);
+                return new List<AniDB_GroupStatus>(objs);
             }
         }
 

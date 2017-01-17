@@ -4,7 +4,7 @@ using Shoko.Server.PlexAndKodi;
 using System;
 using System.Collections.Generic;
 using Shoko.Server.API.Model.common;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
 

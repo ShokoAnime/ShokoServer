@@ -26,7 +26,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
@@ -49,39 +50,39 @@ namespace Shoko.Server.PlexAndKodi
 
         public static string ConstructImageLink(this IProvider prov, int type, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/" + id + "/" + type);
         }
 
         public static string ConstructSupportImageLink(this IProvider prov, string name)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/Support/" + name + "/" + relation);
         }
 
         public static string ConstructSupportImageLinkTV(this IProvider prov, string name)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/Support/" + name);
         }
 
         public static string ConstructThumbLink(this IProvider prov, int type, int id)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/Thumb/" + id + "/" + type + "/" + relation);
         }
 
         public static string ConstructTVThumbLink(this IProvider prov, int type, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/1.3333");
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/Thumb/" + type + "/" + id + "/1.3333");
         }
 
         public static string ConstructCharacterImage(this IProvider prov, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/2/" + id);
         }
 
         public static string ConstructSeiyuuImage(this IProvider prov, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/3/" + id);
         }
 
         public static Lazy<Dictionary<string, double>> _relations = new Lazy<Dictionary<string, double>>(CreateRelationsMap, isThreadSafe: true);
@@ -356,7 +357,7 @@ namespace Shoko.Server.PlexAndKodi
 
 		        }
 
-		        SVR_AniDB_Episode aep = ep?.AniDB_Episode;
+		        AniDB_Episode aep = ep?.AniDB_Episode;
 		        if (aep != null)
 		        {
 			        l.EpisodeNumber = aep.EpisodeNumber.ToString();
@@ -375,7 +376,7 @@ namespace Shoko.Server.PlexAndKodi
 
 			        using (var session = DatabaseFactory.SessionFactory.OpenSession())
 			        {
-				        List<SVR_CrossRef_AniDB_TvDBV2> xref_tvdb2 =
+				        List<CrossRef_AniDB_TvDBV2> xref_tvdb2 =
 					        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
 						        aep.EpisodeType, aep.EpisodeNumber);
 				        if (xref_tvdb2 != null && xref_tvdb2.Count > 0)
@@ -428,7 +429,7 @@ namespace Shoko.Server.PlexAndKodi
             return l;
         }
 
-	    private static TvDB_Episode GetTvDBEpisodeFromAniDB(ISession session, SVR_AniDB_Episode aep, SVR_CrossRef_AniDB_TvDBV2 xref_tvdb2)
+	    private static TvDB_Episode GetTvDBEpisodeFromAniDB(ISession session, AniDB_Episode aep, CrossRef_AniDB_TvDBV2 xref_tvdb2)
 	    {
 	        int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
 		                   (xref_tvdb2.AniDBStartEpisodeNumber - 1);
@@ -466,10 +467,10 @@ namespace Shoko.Server.PlexAndKodi
 
         private static void AddCrossRef_AniDB_TvDBV2(ISession session, int animeID, int anistart, int tvdbID, int tvdbSeason, string title)
         {
-            SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
                 animeID, (int) enEpisodeType.Episode, anistart);
             if (xref != null) return;
-            xref = new SVR_CrossRef_AniDB_TvDBV2();
+            xref = new CrossRef_AniDB_TvDBV2();
 
             xref.AnimeID = animeID;
             xref.AniDBStartEpisodeType = (int)enEpisodeType.Episode;
@@ -722,7 +723,7 @@ namespace Shoko.Server.PlexAndKodi
 
             if ((cgrp.Stat_SeriesCount == 1) && (subgrpcnt == 0))
             {
-                SVR_AnimeSeries ser = JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                SVR_AnimeSeries ser = ShokoServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
                     CL_AnimeSeries_User cserie = ser.GetUserContract(userid);
@@ -752,7 +753,7 @@ namespace Shoko.Server.PlexAndKodi
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
 	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1).ToLowerInvariantString();
 	            List<Tag> newTags = new List<Tag>();
-	            foreach (SVR_AniDB_Tag tag in grp.Tags)
+	            foreach (AniDB_Tag tag in grp.Tags)
 	            {
 		            Tag newTag = new Tag();
 		            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
@@ -763,7 +764,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (ser != null)
                 {
                     List<AnimeTitle> newTitles = new List<AnimeTitle>();
-                    foreach (SVR_AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+                    foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
                     {
                         AnimeTitle newTitle = new AnimeTitle();
                         newTitle.Title = title.Title;
@@ -1023,7 +1024,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                 }
                 p.Titles = new List<AnimeTitle>();
-                foreach (SVR_AniDB_Anime_Title title in anidb.GetTitles())
+                foreach (AniDB_Anime_Title title in anidb.GetTitles())
                 {
                     p.Titles.Add(new AnimeTitle {Language = title.Language, Title = title.Title, Type = title.TitleType});
                 }

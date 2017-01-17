@@ -80,7 +80,7 @@ namespace AniDBAPI
 
                 DateTime start = DateTime.Now;
                 string msg = string.Format(Shoko.Server.Properties.Resources.AniDB_GettingAnimeXML, animeID);
-                JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
+                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 rawXML = APIUtils.DownloadWebPage(uri);
                 TimeSpan ts = DateTime.Now - start;
@@ -88,7 +88,7 @@ namespace AniDBAPI
                 if (content.Length > 100) content = content.Substring(0, 100);
                 msg = string.Format(Shoko.Server.Properties.Resources.AniDB_GotAnimeXML, animeID, ts.TotalMilliseconds,
                     content);
-                JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
+                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 //APIUtils.WriteToLog("GetAnimeXMLFromAPI result: " + rawXML);
 

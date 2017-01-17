@@ -8,7 +8,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -71,7 +71,7 @@ namespace Shoko.Server.Commands
                             if (ts.TotalDays > 50)
                             {
                                 // don't skip if we have never downloaded this info before
-                                List<SVR_AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
+                                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
                                 if (grpStatuses != null && grpStatuses.Count > 0)
                                 {
                                     skip = true;
@@ -87,7 +87,7 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                GroupStatusCollection grpCol = JMMService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
+                GroupStatusCollection grpCol = ShokoService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
 
                 if (ServerSettings.AniDB_DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
                     grpCol.Groups.Count > 0)

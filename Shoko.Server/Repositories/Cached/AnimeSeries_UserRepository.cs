@@ -10,7 +10,7 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Client;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Repositories.Cached

@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Shoko.Models.Server;
 using Shoko.Server.UI;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server
 {

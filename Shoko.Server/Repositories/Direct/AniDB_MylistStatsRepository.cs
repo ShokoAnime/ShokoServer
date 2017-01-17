@@ -1,9 +1,9 @@
 ﻿using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_MylistStatsRepository : BaseDirectRepository<SVR_AniDB_MylistStats, int>
+    public class AniDB_MylistStatsRepository : BaseDirectRepository<AniDB_MylistStats, int>
     {
 
         private AniDB_MylistStatsRepository()

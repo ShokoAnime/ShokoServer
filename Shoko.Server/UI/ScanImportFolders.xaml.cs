@@ -15,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Shoko.Models.Server;
 using Shoko.Models;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.UI
@@ -25,7 +25,7 @@ namespace Shoko.Server.UI
     /// </summary>
     public partial class ScanImportFolders : Window
     {
-        public SVR_Scan SelectedScan { get; private set; }
+        public Scan SelectedScan { get; private set; }
         public class CheckedImportFolder : SVR_ImportFolder
         {
             public bool Checked { get; set; }
@@ -67,7 +67,7 @@ namespace Shoko.Server.UI
             }
             if (ids.Count == 0)
                 return;
-            SVR_Scan s=new SVR_Scan();
+            Scan s=new Scan();
             s.Status = (int) ScanStatus.Standby;
             s.CreationTIme = DateTime.Now;
             s.ImportFolders = string.Join(",", ids.Select(a => a.ToString()));

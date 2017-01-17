@@ -20,10 +20,12 @@ using Shoko.Models.Server;
 using Shoko.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.UI;
+
 
 namespace Shoko.Server
 {
@@ -72,7 +74,7 @@ namespace Shoko.Server
                 ServerInfo.Instance.IsBanned = isBanned;
                 if (isBanned)
                 {
-                    JMMService.CmdProcessorGeneral.Paused = true;
+                    ShokoService.CmdProcessorGeneral.Paused = true;
                     ServerInfo.Instance.BanReason = BanTime.ToString();
                 }
                 else
@@ -214,7 +216,7 @@ namespace Shoko.Server
 
         void logoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            TimeSpan tsAniDBUDPTemp = DateTime.Now - JMMService.LastAniDBUDPMessage;
+            TimeSpan tsAniDBUDPTemp = DateTime.Now - ShokoService.LastAniDBUDPMessage;
             if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
                 ResetExtendPause();
 
@@ -242,9 +244,9 @@ namespace Shoko.Server
 
             lock (lockAniDBConnections)
             {
-                TimeSpan tsAniDBNonPing = DateTime.Now - JMMService.LastAniDBMessageNonPing;
-                TimeSpan tsPing = DateTime.Now - JMMService.LastAniDBPing;
-                TimeSpan tsAniDBUDP = DateTime.Now - JMMService.LastAniDBUDPMessage;
+                TimeSpan tsAniDBNonPing = DateTime.Now - ShokoService.LastAniDBMessageNonPing;
+                TimeSpan tsPing = DateTime.Now - ShokoService.LastAniDBPing;
+                TimeSpan tsAniDBUDP = DateTime.Now - ShokoService.LastAniDBUDPMessage;
 
                 // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
                 if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency && tsPing.TotalSeconds >= Constants.PingFrequency &&
@@ -457,10 +459,10 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
-                    SVR_AniDB_MylistStats stat = null;
-                    IReadOnlyList<SVR_AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
+                    AniDB_MylistStats stat = null;
+                    IReadOnlyList<AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
                     if (allStats.Count == 0)
-                        stat = new SVR_AniDB_MylistStats();
+                        stat = new AniDB_MylistStats();
                     else
                         stat = allStats[0];
 
@@ -761,7 +763,7 @@ namespace Shoko.Server
             return anime;
         }
 
-        public SVR_AniDB_Character GetCharacterInfoUDP(int charID)
+        public AniDB_Character GetCharacterInfoUDP(int charID)
         {
             if (!Login()) return null;
 
@@ -776,11 +778,11 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            SVR_AniDB_Character chr = null;
+            AniDB_Character chr = null;
             if (ev == enHelperActivityType.GotCharInfo && getCharCmd.CharInfo != null)
             {
                 chr = RepoFactory.AniDB_Character.GetByCharID(charID);
-                if (chr == null) chr = new SVR_AniDB_Character();
+                if (chr == null) chr = new AniDB_Character();
 
                 chr.PopulateFromUDP(getCharCmd.CharInfo);
                 RepoFactory.AniDB_Character.Save(chr);
@@ -819,7 +821,7 @@ namespace Shoko.Server
 			return chr;
 		}*/
 
-        public SVR_AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
+        public AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
         {
             if (!Login()) return null;
 
@@ -834,11 +836,11 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            SVR_AniDB_ReleaseGroup relGroup = null;
+            AniDB_ReleaseGroup relGroup = null;
             if (ev == enHelperActivityType.GotGroup && getCmd.Group != null)
             {
                 relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID);
-                if (relGroup == null) relGroup = new SVR_AniDB_ReleaseGroup();
+                if (relGroup == null) relGroup = new AniDB_ReleaseGroup();
 
                 relGroup.Populate(getCmd.Group);
                 RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
@@ -872,7 +874,8 @@ namespace Shoko.Server
                 // save the records
                 foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
                 {
-                    SVR_AniDB_GroupStatus grpstat = new SVR_AniDB_GroupStatus(raw);
+                    AniDB_GroupStatus grpstat = new AniDB_GroupStatus();
+                    grpstat.Populate(raw);
                     RepoFactory.AniDB_GroupStatus.Save(grpstat);
                 }
 
@@ -896,7 +899,7 @@ namespace Shoko.Server
 
                         // check if we have this episode in the database
                         // if not get it now by updating the anime record
-                        List<SVR_AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                        List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
                             getCmd.GrpStatusCollection.LatestEpisodeNumber);
                         if (eps.Count == 0)
                         {
@@ -938,7 +941,7 @@ namespace Shoko.Server
             return null;
         }
 
-        public SVR_AniDB_Review GetReviewUDP(int reviewID)
+        public AniDB_Review GetReviewUDP(int reviewID)
         {
             if (!Login()) return null;
 
@@ -954,11 +957,11 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            SVR_AniDB_Review review = null;
+            AniDB_Review review = null;
             if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
             {
                 review = RepoFactory.AniDB_Review.GetByReviewID(reviewID);
-                if (review == null) review = new SVR_AniDB_Review();
+                if (review == null) review = new AniDB_Review();
 
                 review.Populate(cmd.ReviewInfo);
                 RepoFactory.AniDB_Review.Save(review);
@@ -1125,18 +1128,18 @@ namespace Shoko.Server
             //StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
             // download character images
-            foreach (SVR_AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
+            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
             {
-                SVR_AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
+                AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
                 if (chr == null) continue;
 
                 if (ServerSettings.AniDB_DownloadCharacters)
                 {
-                    if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
+                    if (!string.IsNullOrEmpty(chr.GetPosterPath()) && !File.Exists(chr.GetPosterPath()))
                     {
                         logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName,
                             chr.CharID,
-                            chr.PosterPath);
+                            chr.GetPosterPath());
                         cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character,
                             false);
                         cmd.Save();
@@ -1145,14 +1148,14 @@ namespace Shoko.Server
 
                 if (ServerSettings.AniDB_DownloadCreators)
                 {
-                    SVR_AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
-                    if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
+                    AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
+                    if (seiyuu == null || string.IsNullOrEmpty(seiyuu.GetPosterPath())) continue;
 
-                    if (!File.Exists(seiyuu.PosterPath))
+                    if (!File.Exists(seiyuu.GetPosterPath()))
                     {
                         logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle,
                             seiyuu.SeiyuuName, seiyuu.SeiyuuID,
-                            seiyuu.PosterPath);
+                            seiyuu.GetPosterPath());
                         cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
                         cmd.Save();
                     }

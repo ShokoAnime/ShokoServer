@@ -8,19 +8,19 @@ using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Collections;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
-    public class AniDB_TagRepository : BaseCachedRepository<SVR_AniDB_Tag, int>
+    public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
     {
 
-        private PocoIndex<int, SVR_AniDB_Tag, int> Tags;
+        private PocoIndex<int, AniDB_Tag, int> Tags;
 
         public override void PopulateIndexes()
         {
-            Tags = new PocoIndex<int, SVR_AniDB_Tag, int>(Cache, a => a.TagID);
+            Tags = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
         }
 
         private AniDB_TagRepository()
@@ -33,7 +33,7 @@ namespace Shoko.Server.Repositories
             return new AniDB_TagRepository();
         }
 
-        protected override int SelectKey(SVR_AniDB_Tag entity)
+        protected override int SelectKey(AniDB_Tag entity)
         {
             return entity.AniDB_TagID;
         }
@@ -42,7 +42,7 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        public List<SVR_AniDB_Tag> GetByAnimeID(int animeID)
+        public List<AniDB_Tag> GetByAnimeID(int animeID)
         {
             return RepoFactory.AniDB_Anime_Tag.GetByAnimeID(animeID).Select(a => GetByTagID(a.TagID)).Where(a=>a!=null).ToList();
             /*
@@ -60,7 +60,7 @@ namespace Shoko.Server.Repositories
 
 
 
-        public ILookup<int, SVR_AniDB_Tag> GetByAnimeIDs(ISessionWrapper session, int[] ids)
+        public ILookup<int, AniDB_Tag> GetByAnimeIDs(ISessionWrapper session, int[] ids)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -69,20 +69,20 @@ namespace Shoko.Server.Repositories
 
             if (ids.Length == 0)
             {
-                return EmptyLookup<int, SVR_AniDB_Tag>.Instance;
+                return EmptyLookup<int, AniDB_Tag>.Instance;
             }
 
             var tags = session
                 .CreateQuery("Select xref.AnimeID, tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID IN (:animeIDs)")
                 .SetParameterList("animeIDs", ids)
                 .List<object[]>()
-                .ToLookup(t => (int)t[0], t => (SVR_AniDB_Tag)t[1]);
+                .ToLookup(t => (int)t[0], t => (AniDB_Tag)t[1]);
 
             return tags;
         }
 
 
-        public SVR_AniDB_Tag GetByTagID(int id)
+        public AniDB_Tag GetByTagID(int id)
         {
             return Tags.GetOne(id);
             /*
@@ -103,7 +103,7 @@ namespace Shoko.Server.Repositories
         /// Gets all the tags, but only if we have the anime locally
         /// </summary>
         /// <returns></returns>
-        public List<SVR_AniDB_Tag> GetAllForLocalSeries()
+        public List<AniDB_Tag> GetAllForLocalSeries()
         {
             return RepoFactory.AnimeSeries.GetAll().SelectMany(a=> RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID)).Where(a=>a!=null).Select(a=>GetByTagID(a.TagID)).Distinct().ToList();
             /*

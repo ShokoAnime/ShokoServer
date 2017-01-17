@@ -8,7 +8,8 @@ using System.Xml;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
 
@@ -160,14 +161,14 @@ namespace Shoko.Server.Commands
                         break;
 
                     case JMMImageType.AniDB_Character:
-                        SVR_AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
+                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
                         if (chr == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
                         break;
 
                     case JMMImageType.AniDB_Creator:
-                        SVR_AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
+                        AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
                         if (creator == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
@@ -344,11 +345,11 @@ namespace Shoko.Server.Commands
                     return traktEp.EpisodeImage;
 
                 case JMMImageType.AniDB_Character:
-                    SVR_AniDB_Character chr = req.ImageData as SVR_AniDB_Character;
+                    AniDB_Character chr = req.ImageData as AniDB_Character;
                     return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
 
                 case JMMImageType.AniDB_Creator:
-                    SVR_AniDB_Seiyuu creator = req.ImageData as SVR_AniDB_Seiyuu;
+                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
                     return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
 
                 default:
@@ -415,12 +416,12 @@ namespace Shoko.Server.Commands
                     return traktEp.GetFullImagePath();
 
                 case JMMImageType.AniDB_Character:
-                    SVR_AniDB_Character chr = req.ImageData as SVR_AniDB_Character;
-                    return chr.PosterPath;
+                    AniDB_Character chr = req.ImageData as AniDB_Character;
+                    return chr.GetPosterPath();
 
                 case JMMImageType.AniDB_Creator:
-                    SVR_AniDB_Seiyuu creator = req.ImageData as SVR_AniDB_Seiyuu;
-                    return creator.PosterPath;
+                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
+                    return creator.GetPosterPath();
 
                 default:
                     return "";

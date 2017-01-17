@@ -7,7 +7,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Commons.Utils;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -92,7 +92,7 @@ namespace Shoko.Server.Commands
 
                 // get a list of updates from AniDB
                 // startTime will contain the date/time from which the updates apply to
-                JMMService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
+                ShokoService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
 
                 // now save the update time from AniDB
                 // we will use this next time as a starting point when querying the web cache

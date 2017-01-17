@@ -8,7 +8,7 @@ using NutzCode.CloudFileSystem;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -87,7 +87,7 @@ namespace Shoko.Server.Commands
 
                     Raw_AniDB_File fileInfo = null;
                     if (aniFile == null || ForceAniDB)
-                        fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
+                        fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
 
                     if (fileInfo != null)
                     {

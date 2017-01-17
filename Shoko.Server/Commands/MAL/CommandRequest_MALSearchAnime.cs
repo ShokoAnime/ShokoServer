@@ -6,7 +6,7 @@ using AniDBAPI;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Repositories;

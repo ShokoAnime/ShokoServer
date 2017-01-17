@@ -11,7 +11,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
@@ -100,10 +100,10 @@ namespace Shoko.Server.Commands
 
                     // lets try to see locally if we have a tvDB link for this anime
                     // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                    List<SVR_CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(sessionWrapper, AnimeID);
+                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(sessionWrapper, AnimeID);
                     if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                     {
-                        foreach (SVR_CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                        foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
                         {
                             // first search for this show by the TvDB ID
                             List<TraktV2SearchTvDBIDShowResult> searchResults =
@@ -167,7 +167,7 @@ namespace Shoko.Server.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (SVR_AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
                             if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
 

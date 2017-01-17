@@ -4,7 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Server.Repositories;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Commands
 {
@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
+                SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
 
                 // NOTE - related anime are downloaded when the relations are created
 

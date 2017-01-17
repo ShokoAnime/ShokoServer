@@ -13,7 +13,7 @@ using NHibernate.Criterion;
 using NHibernate.Criterion.Lambda;
 using Shoko.Models.Client;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories.NHibernate;
 

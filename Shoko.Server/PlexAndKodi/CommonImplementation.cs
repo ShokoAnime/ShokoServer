@@ -7,6 +7,7 @@ using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
 using FluentNHibernate.Conventions;
+using Nancy.Rest.Module;
 using Shoko.Models.PlexAndKodi;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -16,7 +17,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi.Plex;
 using Shoko.Server.Properties;
@@ -46,7 +47,7 @@ namespace Shoko.Server.PlexAndKodi
                 return new MemoryStream();
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-            return ms;
+            return new StreamWithContentType(ms, "image/png");
         }
 
         public MediaContainer GetFilters(IProvider prov, string uid)
@@ -143,13 +144,11 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
 
-        public MediaContainer GetMetadata(IProvider prov, string UserId, string TypeId, string Id, string historyinfo, bool nocast=false, int? filter=null)
+        public MediaContainer GetMetadata(IProvider prov, string UserId, int type, string Id, string historyinfo, bool nocast=false, int? filter=null)
         {
             try
             {
                 BreadCrumbs his = prov.UseBreadCrumbs ? BreadCrumbs.FromKey(historyinfo) : null;
-                int type;
-                int.TryParse(TypeId, out type);
                 SVR_JMMUser user = Helper.GetJMMUser(UserId);
 
                 switch ((JMMType)type)
@@ -362,7 +361,7 @@ namespace Shoko.Server.PlexAndKodi
                         e.GetUserContract(userid));
                 if (ep.Value != null && ep.Value.LocalFileCount == 0)
                     return new MediaContainer() { ErrorString = "Episode do not have videolocals" };
-                SVR_AniDB_Episode aep = ep.Key.AniDB_Episode;
+                AniDB_Episode aep = ep.Key.AniDB_Episode;
                 if (aep == null)
                     return new MediaContainer() { ErrorString = "Invalid Episode AniDB link not found" };
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
@@ -462,12 +461,12 @@ namespace Shoko.Server.PlexAndKodi
             return rsp;
         }
 
-        public MediaContainer Search(IProvider prov, string UserId, string limit, string query, bool searchTag, bool nocast = false)
+        public MediaContainer Search(IProvider prov, string UserId, int lim, string query, bool searchTag, bool nocast = false)
         {
             BreadCrumbs info = prov.UseBreadCrumbs
                 ? new BreadCrumbs
                 {
-                    Key = prov.ConstructSearchUrl(UserId, limit, query, searchTag),
+                    Key = prov.ConstructSearchUrl(UserId, lim, query, searchTag),
                     Title = "Search for '" + query + "'"
                 }
                 : null;
@@ -475,10 +474,9 @@ namespace Shoko.Server.PlexAndKodi
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Search for '" + query + "'", true, true,
                     info));
- 
-            int lim;
-            if (!int.TryParse(limit, out lim))
+            if (lim == 0)
                 lim = 100;
+
             SVR_JMMUser user = Helper.GetUser(UserId);
             if (user == null) return new MediaContainer() { ErrorString = "User Not Found" };
             List<Video> ls = new List<Video>();
@@ -615,23 +613,17 @@ namespace Shoko.Server.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-        public Response ToggleWatchedStatusOnEpisode(IProvider prov, string userid, string episodeid, string watchedstatus)
+        public Response ToggleWatchedStatusOnEpisode(IProvider prov, string userid, int aep, bool wstatus)
         {
             Response rsp = new Response();
             rsp.Code = "400";
             rsp.Message = "Bad Request";
             try
             {
-                int aep = 0;
                 int usid = 0;
-                bool wstatus = false;
-                if (!int.TryParse(episodeid, out aep))
-                    return rsp;
+
                 if (!int.TryParse(userid, out usid))
                     return rsp;
-                wstatus = false;
-                if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
-                    wstatus = true;
 
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
                 if (ep == null)
@@ -654,8 +646,8 @@ namespace Shoko.Server.PlexAndKodi
             return rsp;
         }
 
-		public Response ToggleWatchedStatusOnSeries(IProvider prov, string userid, string seriesid,
-			string watchedstatus)
+		public Response ToggleWatchedStatusOnSeries(IProvider prov, string userid, int aep,
+            bool wstatus)
 		{
 			//prov.AddResponseHeaders();
 
@@ -664,16 +656,9 @@ namespace Shoko.Server.PlexAndKodi
 			rsp.Message = "Bad Request";
 			try
 			{
-				int aep = 0;
 				int usid = 0;
-				bool wstatus = false;
-				if (!int.TryParse(seriesid, out aep))
-					return rsp;
 				if (!int.TryParse(userid, out usid))
 					return rsp;
-				wstatus = false;
-				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
-					wstatus = true;
 
 				SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(aep);
 				if (series == null)
@@ -705,8 +690,8 @@ namespace Shoko.Server.PlexAndKodi
 			return rsp;
 		}
 
-		public Response ToggleWatchedStatusOnGroup(IProvider prov, string userid, string groupid,
-			string watchedstatus)
+		public Response ToggleWatchedStatusOnGroup(IProvider prov, string userid, int aep,
+            bool wstatus)
 		{
 			//prov.AddResponseHeaders();
 
@@ -715,16 +700,9 @@ namespace Shoko.Server.PlexAndKodi
 			rsp.Message = "Bad Request";
 			try
 			{
-				int aep = 0;
 				int usid = 0;
-				bool wstatus = false;
-				if (!int.TryParse(groupid, out aep))
-					return rsp;
 				if (!int.TryParse(userid, out usid))
 					return rsp;
-				wstatus = false;
-				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
-					wstatus = true;
 
 				SVR_AnimeGroup group = RepoFactory.AnimeGroup.GetByID(aep);
 				if (group == null)
@@ -759,25 +737,16 @@ namespace Shoko.Server.PlexAndKodi
 			return rsp;
 		}
 
-		public Response VoteAnime(IProvider prov, string userid, string objectid, string votevalue,
-            string votetype)
+		public Response VoteAnime(IProvider prov, string userid, int objid, float vvalue,
+            int vt)
         {
             Response rsp = new Response();
             rsp.Code = "400";
             rsp.Message = "Bad Request";
             try
             {
-                int objid = 0;
                 int usid = 0;
-                int vt = 0;
-                double vvalue = 0;
-                if (!int.TryParse(objectid, out objid))
-                    return rsp;
                 if (!int.TryParse(userid, out usid))
-                    return rsp;
-                if (!int.TryParse(votetype, out vt))
-                    return rsp;
-                if (!double.TryParse(votevalue, NumberStyles.Any, CultureInfo.InvariantCulture, out vvalue))
                     return rsp;
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -904,21 +873,15 @@ namespace Shoko.Server.PlexAndKodi
             return rsp;
         }
 
-        public Response TraktScrobble(IProvider prov, string animeId, string type, string progress, string status)
+        public Response TraktScrobble(IProvider prov, string animeId, int typeTrakt, float progressTrakt, int status)
         {
             Response rsp = new Response();
             rsp.Code = "400";
             rsp.Message = "Bad Request";
             try
             {
-                int typeTrakt;
-                int statusTrakt;
                 Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
-                float progressTrakt;
-
-                int.TryParse(status, out statusTrakt);
-
-                switch (statusTrakt)
+                switch (status)
                 {
                     case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
                         statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
@@ -931,9 +894,8 @@ namespace Shoko.Server.PlexAndKodi
                         break;
                 }
 
-                float.TryParse(progress, out progressTrakt);
                 progressTrakt = progressTrakt / 10;
-                int.TryParse(type, out typeTrakt);
+
                 switch (typeTrakt)
                 {
                     // Movie

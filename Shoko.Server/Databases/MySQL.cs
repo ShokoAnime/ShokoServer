@@ -535,7 +535,7 @@ namespace Shoko.Server.Databases
                         .Server(ServerSettings.MySQL_Hostname)
                         .Username(ServerSettings.MySQL_Username)
                         .Password(ServerSettings.MySQL_Password)))
-                .Mappings(m => m.FluentMappings.AddFromAssemblyOf<JMMService>())
+                .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
                 .BuildSessionFactory();
         }
 

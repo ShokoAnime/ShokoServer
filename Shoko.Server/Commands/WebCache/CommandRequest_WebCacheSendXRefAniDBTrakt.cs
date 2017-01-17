@@ -3,7 +3,7 @@ using System.Xml;
 using Shoko.Models.Azure;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
@@ -43,7 +43,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                SVR_CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
+                CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
                 if (xref == null) return;
 
                 Trakt_Show tvShow = RepoFactory.Trakt_Show.GetByTraktSlug(xref.TraktID);

@@ -5,7 +5,7 @@ using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Collections;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
@@ -37,7 +37,7 @@ namespace Shoko.Server.Repositories.Direct
                 .UniqueResult<TvDB_Series>();
         }
 
-        public ILookup<int, Tuple<SVR_CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session, int[] animeIds)
+        public ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session, int[] animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -46,7 +46,7 @@ namespace Shoko.Server.Repositories.Direct
 
             if (animeIds.Length == 0)
             {
-                return EmptyLookup<int, Tuple<SVR_CrossRef_AniDB_TvDBV2, TvDB_Series>>.Instance;
+                return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>>.Instance;
             }
 
             var tvDbSeriesByAnime = session.CreateSQLQuery(@"
@@ -55,12 +55,12 @@ namespace Shoko.Server.Repositories.Direct
                         INNER JOIN TvDB_Series series
                             ON series.SeriesID = cr.TvDBID
                     WHERE cr.AnimeID IN (:animeIds)")
-                .AddEntity("cr", typeof(SVR_CrossRef_AniDB_TvDBV2))
+                .AddEntity("cr", typeof(CrossRef_AniDB_TvDBV2))
                 .AddEntity("series", typeof(TvDB_Series))
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .ToLookup(r => ((SVR_CrossRef_AniDB_TvDBV2)r[0]).AnimeID,
-                    r => new Tuple<SVR_CrossRef_AniDB_TvDBV2, TvDB_Series>((SVR_CrossRef_AniDB_TvDBV2)r[0], (TvDB_Series)r[1]));
+                .ToLookup(r => ((CrossRef_AniDB_TvDBV2)r[0]).AnimeID,
+                    r => new Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>((CrossRef_AniDB_TvDBV2)r[0], (TvDB_Series)r[1]));
 
             return tvDbSeriesByAnime;
         }

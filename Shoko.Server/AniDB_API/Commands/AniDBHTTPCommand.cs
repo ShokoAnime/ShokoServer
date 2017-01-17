@@ -15,8 +15,8 @@ namespace AniDBAPI.Commands
             int index = xmlresult.IndexOf(@">banned<", 0, StringComparison.InvariantCultureIgnoreCase);
             if (index > -1)
             {
-                JMMService.AnidbProcessor.IsBanned = true;
-                JMMService.AnidbProcessor.BanOrigin = "HTTP";
+                ShokoService.AnidbProcessor.IsBanned = true;
+                ShokoService.AnidbProcessor.BanOrigin = "HTTP";
                 return true;
             }
 

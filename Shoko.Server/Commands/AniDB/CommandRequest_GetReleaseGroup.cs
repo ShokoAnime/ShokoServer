@@ -4,7 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -48,12 +48,12 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_AniDB_ReleaseGroup relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
+                AniDB_ReleaseGroup relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
 
                 if (ForceRefresh || relGroup == null)
                 {
                     // redownload anime details from http ap so we can get an update character list
-                    JMMService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
+                    ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
                 }
             }
             catch (Exception ex)

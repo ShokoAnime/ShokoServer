@@ -5,7 +5,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
@@ -38,7 +38,7 @@ namespace Shoko.Server.Repositories.Direct
             return cr;
         }
 
-        public Dictionary<int, Tuple<SVR_CrossRef_AniDB_Other, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
+        public Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -47,7 +47,7 @@ namespace Shoko.Server.Repositories.Direct
 
             if (animeIds.Length == 0)
             {
-                return new Dictionary<int, Tuple<SVR_CrossRef_AniDB_Other, MovieDB_Movie>>();
+                return new Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>();
             }
 
             var movieByAnime = session.CreateSQLQuery(@"
@@ -57,13 +57,13 @@ namespace Shoko.Server.Repositories.Direct
                             ON cr.CrossRefType = :crossRefType
                                 AND movie.MovieId = cr.CrossRefID
                     WHERE cr.AnimeID IN (:animeIds)")
-                .AddEntity("cr", typeof(SVR_CrossRef_AniDB_Other))
+                .AddEntity("cr", typeof(CrossRef_AniDB_Other))
                 .AddEntity("movie", typeof(MovieDB_Movie))
                 .SetInt32("crossRefType", (int)CrossRefType.MovieDB)
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .ToDictionary(r => ((SVR_CrossRef_AniDB_Other)r[0]).AnimeID,
-                    r => new Tuple<SVR_CrossRef_AniDB_Other, MovieDB_Movie>((SVR_CrossRef_AniDB_Other)r[0], (MovieDB_Movie)r[1]));
+                .ToDictionary(r => ((CrossRef_AniDB_Other)r[0]).AnimeID,
+                    r => new Tuple<CrossRef_AniDB_Other, MovieDB_Movie>((CrossRef_AniDB_Other)r[0], (MovieDB_Movie)r[1]));
 
             return movieByAnime;
         }

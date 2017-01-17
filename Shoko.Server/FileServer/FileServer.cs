@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Shoko.Models.Server;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Repositories;
 using UPnP;

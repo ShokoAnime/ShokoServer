@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server
 {

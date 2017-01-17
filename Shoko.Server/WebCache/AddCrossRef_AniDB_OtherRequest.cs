@@ -2,7 +2,7 @@
 using System.Xml.Serialization;
 using AniDBAPI;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.WebCache
 {
@@ -48,7 +48,7 @@ namespace Shoko.Server.WebCache
         }
 
         // default constructor
-        public AddCrossRef_AniDB_OtherRequest(SVR_CrossRef_AniDB_Other data)
+        public AddCrossRef_AniDB_OtherRequest(CrossRef_AniDB_Other data)
         {
             this.AnimeID = data.AnimeID;
             this.CrossRefID = data.CrossRefID;

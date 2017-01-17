@@ -6,7 +6,7 @@ using FluentNHibernate.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 //using System.Windows.Media;
 //using System.Windows.Media.Imaging;
@@ -154,7 +154,7 @@ namespace Shoko.Server
                     contract.CloudID = null;
                 else
                     contract.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
-                JMMServiceImplementation imp = new JMMServiceImplementation();
+                ShokoServiceImplementation imp = new ShokoServiceImplementation();
                 CL_Response<ImportFolder> response = imp.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
                     MessageBox.Show(response.ErrorMessage, Shoko.Server.Properties.Resources.Error, MessageBoxButton.OK,

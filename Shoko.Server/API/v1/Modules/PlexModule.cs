@@ -1,0 +1,19 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Nancy.Rest.Module;
+using Shoko.Server.API.v1.Implementations;
+
+namespace Shoko.Server.API.v1.Modules
+{
+    
+    public class PlexModule : RestModule
+    {
+        public PlexModule()
+        {
+            SetRestImplementation(new ShokoServiceImplementationPlex());
+        }
+    }
+}

@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.MAL

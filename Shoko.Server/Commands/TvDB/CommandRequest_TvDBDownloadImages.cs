@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                JMMService.TvdbHelper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
+                ShokoService.TvdbHelper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
             }
             catch (Exception ex)
             {

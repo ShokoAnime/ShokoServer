@@ -5,7 +5,8 @@ using System.Threading;
 using System.Xml;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.MAL;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -64,7 +65,7 @@ namespace Shoko.Server.Commands
                     // if the file is already on the user's list
 
                     bool isManualLink = false;
-                    List<SVR_CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
+                    List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
                     if (xrefs.Count > 0)
                         isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
@@ -73,11 +74,11 @@ namespace Shoko.Server.Commands
                     bool newWatchedStatus = false;
 
                     if (isManualLink)
-                        newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
-                            xrefs[0].Episode.EpisodeNumber,
+                        newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
+                            xrefs[0].GetEpisode().EpisodeNumber,
                             ref watchedDate);
                     else
-                        newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
+                        newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
 
                     // do for all AniDB users
                     List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();

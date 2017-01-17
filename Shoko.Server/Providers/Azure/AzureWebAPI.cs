@@ -12,7 +12,8 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.Azure
@@ -52,7 +53,7 @@ namespace Shoko.Server.Providers.Azure
             string json = DeleteDataJson(uri);
         }
 
-        public static void Send_CrossRefAniDBTvDB(SVR_CrossRef_AniDB_TvDBV2 data, string animeName)
+        public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
@@ -75,13 +76,13 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/TvDB Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<Azure_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_TvDB>>(json);
 
@@ -103,20 +104,20 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting AniDB/Trakt Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/Trakt Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<Azure_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_Trakt>>(json);
 
             return xrefs;
         }
 
-        public static void Send_CrossRefAniDBTrakt(SVR_CrossRef_AniDB_TraktV2 data, string animeName)
+        public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
         {
             if (!ServerSettings.WebCache_Trakt_Send) return;
 
@@ -165,7 +166,7 @@ namespace Shoko.Server.Providers.Azure
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL", azureHostBaseAddress);
 
-            Azure_CrossRef_AniDB_MAL_Request input = data.CloneToRequest();
+            Azure_CrossRef_AniDB_MAL_Request input = data.ToRequest();
             input.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 input.Username = Constants.AnonWebCacheUsername;
@@ -187,13 +188,13 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting AniDB/MAL Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             Azure_CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_MAL>(json);
             xref.Self = string.Format(CultureInfo.CurrentCulture, "api/crossRef_anidb_mal/{0}", xref.CrossRef_AniDB_MALID);
@@ -237,26 +238,26 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting AniDB/Other Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             Azure_CrossRef_AniDB_Other xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_Other>(json);
 
             return xref;
         }
 
-        public static void Send_CrossRefAniDBOther(SVR_CrossRef_AniDB_Other data)
+        public static void Send_CrossRefAniDBOther(CrossRef_AniDB_Other data)
         {
             if (!ServerSettings.WebCache_TvDB_Send) return;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other", azureHostBaseAddress);
 
-            Azure_CrossRef_AniDB_Other_Request input = data.CloneToRequest();
+            Azure_CrossRef_AniDB_Other_Request input = data.ToRequest();
             string json = JSONHelper.Serialize<Azure_CrossRef_AniDB_Other_Request>(input);
 
             SendData(uri, json, "POST");
@@ -325,20 +326,20 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting File/Episode Cross Ref From Cache: {0}", vid.Hash);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got File/Episode Cross Ref From Cache: {0} - {1}", vid.Hash, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<Azure_CrossRef_File_Episode> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_File_Episode>>(json);
 
             return xrefs;
         }
 
-        public static void Send_CrossRefFileEpisode(SVR_CrossRef_File_Episode data)
+        public static void Send_CrossRefFileEpisode(CrossRef_File_Episode data)
         {
             if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
@@ -377,7 +378,7 @@ namespace Shoko.Server.Providers.Azure
 
             DateTime start = DateTime.Now;
             string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string xml = GetDataXML(uri);
 
@@ -397,7 +398,7 @@ namespace Shoko.Server.Providers.Azure
             string content = xml;
             if (content.Length > 100) content = content.Substring(0, 100);
             msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             return xml;
         }
@@ -441,13 +442,13 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got Anime Title Data From Cache: {0} - {1}", query, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<Azure_AnimeIDTitle> titles = JSONHelper.Deserialize<List<Azure_AnimeIDTitle>>(json);
 
@@ -962,13 +963,13 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting File Hash From Cache: {0} - {1}", hashType, hashDetails);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<Azure_FileHash> hashes = JsonConvert.DeserializeObject<List<Azure_FileHash>>(json) ?? new List<Azure_FileHash>();
             return hashes;
@@ -1028,13 +1029,13 @@ namespace Shoko.Server.Providers.Azure
             string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,SVR_VideoLocal.MEDIA_VERSION);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Getting Media Info From Cache for ED2K: {0} - {1}", ed2k, ts.TotalMilliseconds);
-            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<Azure_Media> medias = JsonConvert.DeserializeObject<List<Azure_Media>>(json) ?? new List<Azure_Media>();
             

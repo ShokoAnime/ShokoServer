@@ -10,7 +10,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Models.TvDB;
 using Shoko.Server.Repositories;
@@ -69,7 +69,7 @@ namespace Shoko.Server.Commands
                             {
                                 // check again to see if there are any links, user may have manually added links while
                                 // this command was in the queue
-                                List<SVR_CrossRef_AniDB_TvDBV2> xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+                                List<CrossRef_AniDB_TvDBV2> xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
                                 if (xrefTemp != null && xrefTemp.Count > 0) return;
 
                                 foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
@@ -111,20 +111,20 @@ namespace Shoko.Server.Commands
                     searchCriteria = anime.MainTitle;
 
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<TVDB_Series_Search_Response> results = JMMService.TvdbHelper.SearchSeries(searchCriteria);
+                    List<TVDB_Series_Search_Response> results = ShokoService.TvdbHelper.SearchSeries(searchCriteria);
                     logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
                     if (ProcessSearchResults(results, searchCriteria)) return;
 
 
                     if (results.Count == 0)
                     {
-                        foreach (SVR_AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
                             if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
-                            results = JMMService.TvdbHelper.SearchSeries(title.Title);
+                            results = ShokoService.TvdbHelper.SearchSeries(title.Title);
                             logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
                             if (ProcessSearchResults(results, title.Title)) return;
                         }
@@ -204,11 +204,11 @@ namespace Shoko.Server.Commands
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason,
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason,
                     1,
                     animeID, (int) enEpisodeType.Episode, anistart);
                 if (xref != null) return;
-                xref = new SVR_CrossRef_AniDB_TvDBV2();
+                xref = new CrossRef_AniDB_TvDBV2();
 
                 xref.AnimeID = animeID;
                 xref.AniDBStartEpisodeType = (int) enEpisodeType.Episode;

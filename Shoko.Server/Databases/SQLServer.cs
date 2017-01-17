@@ -59,7 +59,7 @@ namespace Shoko.Server.Databases
             return Fluently.Configure()
                 .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
                 .Mappings(m =>
-                    m.FluentMappings.AddFromAssemblyOf<JMMService>())
+                    m.FluentMappings.AddFromAssemblyOf<ShokoService>())
                 .BuildSessionFactory();
         }
 

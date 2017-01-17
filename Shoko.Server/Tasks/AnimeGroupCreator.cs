@@ -10,7 +10,7 @@ using NHibernate;
 using NLog;
 using Shoko.Models;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
@@ -398,16 +398,16 @@ namespace Shoko.Server.Tasks
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
 
-            bool cmdProcGeneralPaused = JMMService.CmdProcessorGeneral.Paused;
-            bool cmdProcHasherPaused = JMMService.CmdProcessorHasher.Paused;
-            bool cmdProcImagesPaused = JMMService.CmdProcessorImages.Paused;
+            bool cmdProcGeneralPaused = ShokoService.CmdProcessorGeneral.Paused;
+            bool cmdProcHasherPaused = ShokoService.CmdProcessorHasher.Paused;
+            bool cmdProcImagesPaused = ShokoService.CmdProcessorImages.Paused;
 
             try
             {
                 // Pause queues
-                JMMService.CmdProcessorGeneral.Paused = true;
-                JMMService.CmdProcessorHasher.Paused = true;
-                JMMService.CmdProcessorImages.Paused = true;
+                ShokoService.CmdProcessorGeneral.Paused = true;
+                ShokoService.CmdProcessorHasher.Paused = true;
+                ShokoService.CmdProcessorImages.Paused = true;
 
                 _log.Info("Beginning re-creation of all groups");
 
@@ -486,9 +486,9 @@ namespace Shoko.Server.Tasks
             finally
             {
                 // Un-pause queues (if they were previously running)
-                JMMService.CmdProcessorGeneral.Paused = cmdProcGeneralPaused;
-                JMMService.CmdProcessorHasher.Paused = cmdProcHasherPaused;
-                JMMService.CmdProcessorImages.Paused = cmdProcImagesPaused;
+                ShokoService.CmdProcessorGeneral.Paused = cmdProcGeneralPaused;
+                ShokoService.CmdProcessorHasher.Paused = cmdProcHasherPaused;
+                ShokoService.CmdProcessorImages.Paused = cmdProcImagesPaused;
             }
         }
 

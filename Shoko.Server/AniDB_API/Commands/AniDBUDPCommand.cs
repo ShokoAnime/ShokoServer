@@ -79,7 +79,7 @@ namespace AniDBAPI.Commands
                 if (commandType != enAniDBCommandType.Login)
                 {
                     string msg = string.Format("UDP_COMMAND: {0}", mcommandText);
-                    JMMService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+                    ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
                 }
                 else
                 {
@@ -98,12 +98,12 @@ namespace AniDBAPI.Commands
 
                     try
                     {
-                        JMMService.LastAniDBMessage = DateTime.Now;
-                        JMMService.LastAniDBUDPMessage = DateTime.Now;
+                        ShokoService.LastAniDBMessage = DateTime.Now;
+                        ShokoService.LastAniDBUDPMessage = DateTime.Now;
                         if (commandType != enAniDBCommandType.Ping)
-                            JMMService.LastAniDBMessageNonPing = DateTime.Now;
+                            ShokoService.LastAniDBMessageNonPing = DateTime.Now;
                         else
-                            JMMService.LastAniDBPing = DateTime.Now;
+                            ShokoService.LastAniDBPing = DateTime.Now;
 
                         soUDP.SendTo(SendByteAdd, remoteIpEndPoint);
                     }
@@ -124,12 +124,12 @@ namespace AniDBAPI.Commands
 
 
                         received = soUDP.ReceiveFrom(byReceivedAdd, ref RemotePoint);
-                        JMMService.LastAniDBMessage = DateTime.Now;
-                        JMMService.LastAniDBUDPMessage = DateTime.Now;
+                        ShokoService.LastAniDBMessage = DateTime.Now;
+                        ShokoService.LastAniDBUDPMessage = DateTime.Now;
                         if (commandType != enAniDBCommandType.Ping)
-                            JMMService.LastAniDBMessageNonPing = DateTime.Now;
+                            ShokoService.LastAniDBMessageNonPing = DateTime.Now;
                         else
-                            JMMService.LastAniDBPing = DateTime.Now;
+                            ShokoService.LastAniDBPing = DateTime.Now;
 
                         //MyAnimeLog.Write("Buffer length = {0}", received.ToString());
                         if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
@@ -250,7 +250,7 @@ namespace AniDBAPI.Commands
 
                     TimeSpan ts = DateTime.Now - start;
                     string msg = string.Format("UDP_RESPONSE in {0} ms - {1} ", ts.TotalMilliseconds, socketResponse);
-                    JMMService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+                    ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
                 }
                 else
                 {
@@ -259,7 +259,7 @@ namespace AniDBAPI.Commands
                     TimeSpan ts = DateTime.Now - start;
                     string msg = string.Format("UDP_RESPONSE_TRUNC in {0}ms - {1} ", ts.TotalMilliseconds,
                         socketResponse);
-                    JMMService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+                    ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
                 }
             }
             int val = 0;
@@ -271,13 +271,13 @@ namespace AniDBAPI.Commands
             // so we don't make the ban worse
             if (ResponseCode == 555)
             {
-                JMMService.AnidbProcessor.IsBanned = true;
-                JMMService.AnidbProcessor.BanOrigin = "UDP";
+                ShokoService.AnidbProcessor.IsBanned = true;
+                ShokoService.AnidbProcessor.BanOrigin = "UDP";
             }
             else
             {
-                JMMService.AnidbProcessor.IsBanned = false;
-                JMMService.AnidbProcessor.BanOrigin = "";
+                ShokoService.AnidbProcessor.IsBanned = false;
+                ShokoService.AnidbProcessor.BanOrigin = "";
             }
 
             // 598 UNKNOWN COMMAND usually means we had connections issue
@@ -286,7 +286,7 @@ namespace AniDBAPI.Commands
             // reset login status to start again
             if (ResponseCode == 598 || ResponseCode == 506 || ResponseCode == 506)
             {
-                JMMService.AnidbProcessor.IsInvalidSession = true;
+                ShokoService.AnidbProcessor.IsInvalidSession = true;
                 logger.Trace("FORCING Logout because of invalid session");
                 ForceReconnection();
             }
@@ -314,7 +314,7 @@ namespace AniDBAPI.Commands
                         break;
                 }
                 logger.Trace("FORCING Logout because of invalid session");
-                JMMService.AnidbProcessor.ExtendPause(300, errormsg);
+                ShokoService.AnidbProcessor.ExtendPause(300, errormsg);
             }
         }
 
@@ -327,13 +327,13 @@ namespace AniDBAPI.Commands
         {
             try
             {
-                if (JMMService.AnidbProcessor != null)
+                if (ShokoService.AnidbProcessor != null)
                 {
                     logger.Info("Forcing reconnection to AniDB");
-                    JMMService.AnidbProcessor.Dispose();
+                    ShokoService.AnidbProcessor.Dispose();
                     AniDBRateLimiter.GetInstance().ensureRate();
 
-                    JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
+                    ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
                         ServerSettings.AniDB_ServerAddress,
                         ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
                 }

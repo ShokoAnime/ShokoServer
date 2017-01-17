@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class CrossRef_File_EpisodeMap : ClassMap<SVR_CrossRef_File_Episode>
+    public class CrossRef_File_EpisodeMap : ClassMap<CrossRef_File_Episode>
     {
         public CrossRef_File_EpisodeMap()
         {

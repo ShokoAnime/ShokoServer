@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class ScanMap : ClassMap<SVR_Scan>
+    public class ScanMap : ClassMap<Scan>
     {
         public ScanMap()
         {

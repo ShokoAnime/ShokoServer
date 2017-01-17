@@ -54,22 +54,22 @@ namespace Shoko.Server.UI
             try
             {
                 workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_Disposing);
-                JMMService.AnidbProcessor.ForceLogout();
-                JMMService.AnidbProcessor.CloseConnections();
+                ShokoService.AnidbProcessor.ForceLogout();
+                ShokoService.AnidbProcessor.CloseConnections();
                 Thread.Sleep(1000);
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.Server_Initializing);
-                JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
+                ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
                     ServerSettings.AniDB_ServerAddress,
                     ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
 
                 workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_Login);
-                if (JMMService.AnidbProcessor.Login())
+                if (ShokoService.AnidbProcessor.Login())
                 {
                     workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_LoginPass1);
-                    JMMService.AnidbProcessor.ForceLogout();
+                    ShokoService.AnidbProcessor.ForceLogout();
                     workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_LoginPass2);
                 }
                 else

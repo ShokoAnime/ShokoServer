@@ -9,7 +9,8 @@ using Shoko.Server.Collections;
 using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Azure;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
@@ -57,21 +58,21 @@ namespace Shoko.Server
         {
             //RefreshImportFolders();
 
-            JMMService.CmdProcessorGeneral.OnQueueCountChangedEvent +=
+            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent +=
                 new Commands.CommandProcessorGeneral.QueueCountChangedHandler(
                     CmdProcessorGeneral_OnQueueCountChangedEvent);
-            JMMService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
                 new Commands.CommandProcessorGeneral.QueueStateChangedHandler(
                     CmdProcessorGeneral_OnQueueStateChangedEvent);
 
-            JMMService.CmdProcessorHasher.OnQueueCountChangedEvent +=
+            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent +=
                 new Commands.CommandProcessorHasher.QueueCountChangedHandler(CmdProcessorHasher_OnQueueCountChangedEvent);
-            JMMService.CmdProcessorHasher.OnQueueStateChangedEvent +=
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent +=
                 new Commands.CommandProcessorHasher.QueueStateChangedHandler(CmdProcessorHasher_OnQueueStateChangedEvent);
 
-            JMMService.CmdProcessorImages.OnQueueCountChangedEvent +=
+            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent +=
                 new Commands.CommandProcessorImages.QueueCountChangedHandler(CmdProcessorImages_OnQueueCountChangedEvent);
-            JMMService.CmdProcessorImages.OnQueueStateChangedEvent +=
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent +=
                 new Commands.CommandProcessorImages.QueueStateChangedHandler(CmdProcessorImages_OnQueueStateChangedEvent);
 
 

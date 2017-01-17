@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                JMMService.TvdbHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh, true);
+                ShokoService.TvdbHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh, true);
             }
             catch (Exception ex)
             {

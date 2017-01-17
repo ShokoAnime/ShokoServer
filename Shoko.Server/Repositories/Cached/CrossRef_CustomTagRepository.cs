@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 

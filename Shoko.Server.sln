@@ -31,8 +31,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nancy.Rest.Module", "Nancy.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nancy.Rest.Annotations", "Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj", "{2B35AE98-E24B-4A09-B1FB-230B90111B46}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAXLib", "Nancy.Rest.Module\YAXLib\YAXLib\YAXLib.csproj", "{F1C4D174-C948-4D18-A125-F6855EF55683}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -232,22 +230,6 @@ Global
 		{2B35AE98-E24B-4A09-B1FB-230B90111B46}.Release|Win32.Build.0 = Release|Any CPU
 		{2B35AE98-E24B-4A09-B1FB-230B90111B46}.Release|x64.ActiveCfg = Release|Any CPU
 		{2B35AE98-E24B-4A09-B1FB-230B90111B46}.Release|x64.Build.0 = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|Win32.Build.0 = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Debug|x64.Build.0 = Debug|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|Win32.ActiveCfg = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|Win32.Build.0 = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|x64.ActiveCfg = Release|Any CPU
-		{F1C4D174-C948-4D18-A125-F6855EF55683}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -261,7 +243,6 @@ Global
 		{D24D15AA-3E71-45A5-B2AF-7490681DEF68} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{23FF1900-46AD-4149-80A3-9D442A2059FA} = {3EAF5680-6830-4EB9-AC94-E15EC2217E54}
 		{2B35AE98-E24B-4A09-B1FB-230B90111B46} = {3EAF5680-6830-4EB9-AC94-E15EC2217E54}
-		{F1C4D174-C948-4D18-A125-F6855EF55683} = {3EAF5680-6830-4EB9-AC94-E15EC2217E54}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		RESX_ExcelExportMode = MultipleSheets

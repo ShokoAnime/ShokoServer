@@ -5,7 +5,8 @@ using System.Threading;
 using System.Xml;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -62,14 +63,14 @@ namespace Shoko.Server.Commands
                 if (vid != null)
                 {
                     bool isManualLink = false;
-                    List<SVR_CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
+                    List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
                     if (xrefs.Count > 0)
                         isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
                     if (isManualLink)
                     {
-                        JMMService.AnidbProcessor.UpdateMyListFileStatus(xrefs[0].AnimeID,
-                            xrefs[0].Episode.EpisodeNumber, this.Watched);
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(xrefs[0].AnimeID,
+                            xrefs[0].GetEpisode().EpisodeNumber, this.Watched);
                         logger.Info("Updating file list status (GENERIC): {0} - {1}", vid.ToString(), this.Watched);
                     }
                     else
@@ -77,10 +78,10 @@ namespace Shoko.Server.Commands
                         if (WatchedDateAsSecs > 0)
                         {
                             DateTime? watchedDate = Shoko.Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, watchedDate);
+                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, watchedDate);
                         }
                         else
-                            JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, null);
+                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, null);
                         logger.Info("Updating file list status: {0} - {1}", vid.ToString(), this.Watched);
                     }
 

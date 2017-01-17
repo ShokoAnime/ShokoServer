@@ -62,9 +62,9 @@ namespace Shoko.Server.Commands
                 {
                     case AniDBAPI.AniDBFileDeleteType.Delete:
                         if (FileID > 0)
-                            JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
+                            ShokoService.AnidbProcessor.DeleteFileFromMyList(FileID);
                         else
-                            JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
+                            ShokoService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
 
                         logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
                         break;
@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
                     case AniDBAPI.AniDBFileDeleteType.MarkDeleted:
                         if (FileID < 0)
                         {
-                            JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
+                            ShokoService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
                             logger.Info("Marking file as deleted from list: {0}_{1}", Hash, FileID);
                         }
                         break;
@@ -80,7 +80,7 @@ namespace Shoko.Server.Commands
                     case AniDBAPI.AniDBFileDeleteType.MarkUnknown:
                         if (FileID < 0)
                         {
-                            JMMService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
+                            ShokoService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
                             logger.Info("Marking file as unknown: {0}_{1}", Hash, FileID);
                         }
                         break;
@@ -93,7 +93,7 @@ namespace Shoko.Server.Commands
                     default:
                         if (FileID < 0)
                         {
-                            JMMService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
+                            ShokoService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
                             logger.Info("Moving file to external storage: {0}_{1}", Hash, FileID);
                         }
                         break;

@@ -51,7 +51,7 @@ namespace Shoko.Server.Databases
                 .Database(SQLiteConfiguration.Standard
                     .UsingFile(GetDatabaseFilePath()))
                 .Mappings(m =>
-                        m.FluentMappings.AddFromAssemblyOf<JMMService>())
+                        m.FluentMappings.AddFromAssemblyOf<ShokoService>())
                 .BuildSessionFactory();
         }
 

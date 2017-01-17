@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class AniDB_CharacterMap : ClassMap<SVR_AniDB_Character>
+    public class AniDB_CharacterMap : ClassMap<AniDB_Character>
     {
         public AniDB_CharacterMap()
         {

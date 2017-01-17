@@ -3,7 +3,7 @@ using System.Xml;
 using Shoko.Models.Azure;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
             {
                 //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
-                SVR_CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null) return;
 
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);

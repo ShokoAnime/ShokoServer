@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
@@ -41,7 +41,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                SVR_CrossRef_File_Episode xref = RepoFactory.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
+                CrossRef_File_Episode xref = RepoFactory.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
                 if (xref == null) return;
 
                 AzureWebAPI.Send_CrossRefFileEpisode(xref);

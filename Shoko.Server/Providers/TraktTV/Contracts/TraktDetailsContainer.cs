@@ -4,7 +4,7 @@ using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV

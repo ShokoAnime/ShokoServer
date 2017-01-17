@@ -53,6 +53,7 @@ namespace Shoko.Server.PlexAndKodi.Plex
             return m;
         }
 
+        public string ExcludeTags => "Kodi";
 
         public string ServiceAddress => MainWindow.PathAddressPlex;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);

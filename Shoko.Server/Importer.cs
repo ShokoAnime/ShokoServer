@@ -18,7 +18,7 @@ using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Server.Commands.AniDB;
  using Shoko.Server.Commands.Azure;
  using Shoko.Server.Databases;
- using Shoko.Server.Entities;
+ using Shoko.Server.Models;
  using Shoko.Server.FileHelper;
  using Shoko.Server.PlexAndKodi;
  using Shoko.Server.Providers.Azure;
@@ -26,6 +26,7 @@ using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Server.Providers.MyAnimeList;
  using Shoko.Server.Providers.TraktTV;
  using Shoko.Models.TvDB;
+ using Shoko.Server.Extensions;
  using Shoko.Server.Repositories;
  using File = Pri.LongPath.File;
 
@@ -102,7 +103,7 @@ namespace Shoko.Server
             {
                 // if the file is not manually associated, then check for AniDB_File info
                 SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
-                foreach (SVR_CrossRef_File_Episode xref in vl.EpisodeCrossRefs)
+                foreach (CrossRef_File_Episode xref in vl.EpisodeCrossRefs)
                 {
                     if (xref.CrossRefSource != (int)CrossRefSource.AniDB) continue;
                     if (aniFile == null)
@@ -118,9 +119,9 @@ namespace Shoko.Server
                 // the cross ref is created before the actually episode data is downloaded
                 // so lets check for that
                 bool missingEpisodes = false;
-                foreach (SVR_CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
+                foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                 {
-                    SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                    AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                     if (ep == null) missingEpisodes = true;
                 }
 
@@ -746,15 +747,15 @@ namespace Shoko.Server
             // AniDB Characters
             if (ServerSettings.AniDB_DownloadCharacters)
             {
-                foreach (SVR_AniDB_Character chr in RepoFactory.AniDB_Character.GetAll())
+                foreach (AniDB_Character chr in RepoFactory.AniDB_Character.GetAll())
                 {
                     if (chr.CharID == 75250)
                     {
                         Console.WriteLine("test");
                     }
 
-                    if (string.IsNullOrEmpty(chr.PosterPath)) continue;
-                    bool fileExists = File.Exists(chr.PosterPath);
+                    if (string.IsNullOrEmpty(chr.GetPosterPath())) continue;
+                    bool fileExists = File.Exists(chr.GetPosterPath());
                     if (!fileExists)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID,
@@ -767,10 +768,10 @@ namespace Shoko.Server
             // AniDB Creators
             if (ServerSettings.AniDB_DownloadCreators)
             {
-                foreach (SVR_AniDB_Seiyuu seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
+                foreach (AniDB_Seiyuu seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
                 {
-                    if (string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
-                    bool fileExists = File.Exists(seiyuu.PosterPath);
+                    if (string.IsNullOrEmpty(seiyuu.GetPosterPath())) continue;
+                    bool fileExists = File.Exists(seiyuu.GetPosterPath());
                     if (!fileExists)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID,
@@ -1119,7 +1120,7 @@ namespace Shoko.Server
 
             List<int> tvDBIDs = new List<int>();
             bool tvDBOnline = false;
-            string serverTime = JMMService.TvdbHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
+            string serverTime = ShokoService.TvdbHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
 
             if (tvDBOnline)
             {

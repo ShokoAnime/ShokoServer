@@ -2,12 +2,12 @@
 using Shoko.Models.Server;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_Anime_DefaultImageRepository : BaseDirectRepository<SVR_AniDB_Anime_DefaultImage, int>
+    public class AniDB_Anime_DefaultImageRepository : BaseDirectRepository<AniDB_Anime_DefaultImage, int>
     {
         private AniDB_Anime_DefaultImageRepository()
         {
@@ -18,7 +18,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new AniDB_Anime_DefaultImageRepository();
         }
-        public SVR_AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -26,26 +26,26 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public SVR_AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISessionWrapper session, int animeid, int imageType)
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISessionWrapper session, int animeid, int imageType)
         {
-            SVR_AniDB_Anime_DefaultImage cr = session
-                .CreateCriteria(typeof(SVR_AniDB_Anime_DefaultImage))
+            AniDB_Anime_DefaultImage cr = session
+                .CreateCriteria(typeof(AniDB_Anime_DefaultImage))
                 .Add(Restrictions.Eq("AnimeID", animeid))
                 .Add(Restrictions.Eq("ImageType", imageType))
-                .UniqueResult<SVR_AniDB_Anime_DefaultImage>();
+                .UniqueResult<AniDB_Anime_DefaultImage>();
             return cr;
         }
 
-        public List<SVR_AniDB_Anime_DefaultImage> GetByAnimeID(int id)
+        public List<AniDB_Anime_DefaultImage> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var cats = session
-                    .CreateCriteria(typeof(SVR_AniDB_Anime_DefaultImage))
+                    .CreateCriteria(typeof(AniDB_Anime_DefaultImage))
                     .Add(Restrictions.Eq("AnimeID", id))
-                    .List<SVR_AniDB_Anime_DefaultImage>();
+                    .List<AniDB_Anime_DefaultImage>();
 
-                return new List<SVR_AniDB_Anime_DefaultImage>(cats);
+                return new List<AniDB_Anime_DefaultImage>(cats);
             }
         }
 

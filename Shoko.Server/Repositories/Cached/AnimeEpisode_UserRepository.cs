@@ -7,7 +7,7 @@ using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 
@@ -165,7 +165,7 @@ namespace Shoko.Server.Repositories.Cached
             SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
             if (ep == null)
                 return;
-            SVR_AniDB_Episode aniEp = ep.AniDB_Episode;
+            AniDB_Episode aniEp = ep.AniDB_Episode;
             caep.AniDB_EpisodeID = ep.AniDB_EpisodeID;
             caep.AnimeEpisodeID = ep.AnimeEpisodeID;
             caep.AnimeSeriesID = ep.AnimeSeriesID;

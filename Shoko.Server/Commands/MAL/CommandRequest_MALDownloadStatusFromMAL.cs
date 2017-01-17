@@ -6,7 +6,7 @@ using System.Xml;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Repositories;
 
@@ -81,8 +81,8 @@ namespace Shoko.Server.Commands.MAL
                     int startEpNumber = xref.StartEpisodeNumber;
                     int endEpNumber = GetUpperEpisodeLimit(allXrefs, xref);
 
-                    List<SVR_AniDB_Episode> aniEps = RepoFactory.AniDB_Episode.GetByAnimeID(xref.AnimeID);
-                    foreach (SVR_AniDB_Episode aniep in aniEps)
+                    List<AniDB_Episode> aniEps = RepoFactory.AniDB_Episode.GetByAnimeID(xref.AnimeID);
+                    foreach (AniDB_Episode aniep in aniEps)
                     {
                         if (aniep.EpisodeType != xref.StartEpisodeType) continue;
 

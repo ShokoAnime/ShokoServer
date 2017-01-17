@@ -2,7 +2,7 @@
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.FileHelper.Subtitles
 {

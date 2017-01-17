@@ -4,12 +4,12 @@ using NHibernate;
 using NHibernate.Criterion;
 using NLog;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_RecommendationRepository : BaseDirectRepository<SVR_AniDB_Recommendation, int>
+    public class AniDB_RecommendationRepository : BaseDirectRepository<AniDB_Recommendation, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -22,7 +22,7 @@ namespace Shoko.Server.Repositories.Direct
             return new AniDB_RecommendationRepository();
         }
 
-        public List<SVR_AniDB_Recommendation> GetByAnimeID(int id)
+        public List<AniDB_Recommendation> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -30,23 +30,23 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public List<SVR_AniDB_Recommendation> GetByAnimeID(ISessionWrapper session, int id)
+        public List<AniDB_Recommendation> GetByAnimeID(ISessionWrapper session, int id)
         {
             var votes = session
-                .CreateCriteria(typeof(SVR_AniDB_Recommendation))
+                .CreateCriteria(typeof(AniDB_Recommendation))
                 .Add(Restrictions.Eq("AnimeID", id))
-                .List<SVR_AniDB_Recommendation>();
+                .List<AniDB_Recommendation>();
 
-            return new List<SVR_AniDB_Recommendation>(votes);
+            return new List<AniDB_Recommendation>(votes);
         }
 
-        public SVR_AniDB_Recommendation GetByAnimeIDAndUserID(ISession session, int animeid, int userid)
+        public AniDB_Recommendation GetByAnimeIDAndUserID(ISession session, int animeid, int userid)
         {
             return session
-                .CreateCriteria(typeof(SVR_AniDB_Recommendation))
+                .CreateCriteria(typeof(AniDB_Recommendation))
                 .Add(Restrictions.Eq("AnimeID", animeid))
                 .Add(Restrictions.Eq("UserID", userid))
-                .UniqueResult<SVR_AniDB_Recommendation>();
+                .UniqueResult<AniDB_Recommendation>();
         }
 
     }

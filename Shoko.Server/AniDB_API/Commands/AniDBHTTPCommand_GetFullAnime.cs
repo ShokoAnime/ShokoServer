@@ -184,8 +184,8 @@ namespace AniDBAPI.Commands
         {
             if (!CacheOnly)
             {
-                JMMService.LastAniDBMessage = DateTime.Now;
-                JMMService.LastAniDBHTTPMessage = DateTime.Now;
+                ShokoService.LastAniDBMessage = DateTime.Now;
+                ShokoService.LastAniDBHTTPMessage = DateTime.Now;
             }
 
             XmlDocument docAnime = null;

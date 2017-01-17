@@ -6,7 +6,7 @@ using AniDBAPI;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
 
-                CalendarCollection colCalendars = JMMService.AnidbProcessor.GetCalendarUDP();
+                CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)
                 {
                     logger.Error("Could not get calendar from AniDB");

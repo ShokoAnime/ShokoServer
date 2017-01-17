@@ -10,23 +10,23 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
 {
-    public class AniDB_EpisodeRepository : BaseCachedRepository<SVR_AniDB_Episode, int>
+    public class AniDB_EpisodeRepository : BaseCachedRepository<AniDB_Episode, int>
     {
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
 
-        private PocoIndex<int, SVR_AniDB_Episode, int> EpisodesIds;
-        private PocoIndex<int, SVR_AniDB_Episode, int> Animes;
+        private PocoIndex<int, AniDB_Episode, int> EpisodesIds;
+        private PocoIndex<int, AniDB_Episode, int> Animes;
 
         public override void PopulateIndexes()
         {
-            EpisodesIds = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.EpisodeID);
-            Animes = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.AnimeID);
+            EpisodesIds = new PocoIndex<int, AniDB_Episode, int>(Cache, a => a.EpisodeID);
+            Animes = new PocoIndex<int, AniDB_Episode, int>(Cache, a => a.AnimeID);
         }
 
         private AniDB_EpisodeRepository()
@@ -39,7 +39,7 @@ namespace Shoko.Server.Repositories
             return new AniDB_EpisodeRepository();
         }
 
-        protected override int SelectKey(SVR_AniDB_Episode entity)
+        protected override int SelectKey(AniDB_Episode entity)
         {
             return entity.AniDB_EpisodeID;
         }
@@ -52,7 +52,7 @@ namespace Shoko.Server.Repositories
 
 
 
-        public SVR_AniDB_Episode GetByEpisodeID(int id)
+        public AniDB_Episode GetByEpisodeID(int id)
         {
             return EpisodesIds.GetOne(id);
             /*
@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories
             }*/
         }
 
-        public List<SVR_AniDB_Episode> GetByAnimeID(int id)
+        public List<AniDB_Episode> GetByAnimeID(int id)
         {
             return Animes.GetMultiple(id);
             /*
@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories
             }*/
         }
 
-        public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
+        public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
             return Animes.GetMultiple(animeid).Where(a=>a.EpisodeNumber==epnumber && a.GetEpisodeTypeEnum()==enEpisodeType.Episode).ToList();
             /*
@@ -93,7 +93,7 @@ namespace Shoko.Server.Repositories
             }*/
         }
 
-        public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, enEpisodeType epType, int epnumber)
+        public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, enEpisodeType epType, int epnumber)
         {
             return Animes.GetMultiple(animeid).Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType).ToList();
 /*            using (var session = JMMService.SessionFactory.OpenSession())
@@ -109,7 +109,7 @@ namespace Shoko.Server.Repositories
             }*/
         }
 
-        public List<SVR_AniDB_Episode> GetEpisodesWithMultipleFiles()
+        public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
         {
             return
                 RepoFactory.CrossRef_File_Episode.GetAll()

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.AniDB
@@ -70,7 +70,7 @@ namespace Shoko.Server.Commands.AniDB
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
 
-                JMMService.AnidbProcessor.UpdateMyListStats();
+                ShokoService.AnidbProcessor.UpdateMyListStats();
             }
             catch (Exception ex)
             {

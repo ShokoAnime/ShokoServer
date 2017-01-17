@@ -24,10 +24,11 @@ namespace Shoko.Server.WCFCompression
 
         public void AfterCall(string operationName, object[] outputs, object returnValue, object correlationState)
         {
+            /*
             if (_filter==SerializationFilter.Kodi)
                returnValue.NullPropertiesWithAttribute(typeof(Shoko.Models.PlexAndKodi.Plex));
             else if (_filter==SerializationFilter.Plex)
-                returnValue.NullPropertiesWithAttribute(typeof(Shoko.Models.PlexAndKodi.Kodi));
+                returnValue.NullPropertiesWithAttribute(typeof(Shoko.Models.PlexAndKodi.Kodi));*/
         }
     }
     public static class ClassExtensions

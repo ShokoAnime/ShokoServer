@@ -5,7 +5,7 @@ using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Repositories.Cached

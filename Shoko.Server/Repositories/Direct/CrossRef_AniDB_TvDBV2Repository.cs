@@ -6,12 +6,12 @@ using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Collections;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class CrossRef_AniDB_TvDBV2Repository : BaseDirectRepository<SVR_CrossRef_AniDB_TvDBV2, int>
+    public class CrossRef_AniDB_TvDBV2Repository : BaseDirectRepository<CrossRef_AniDB_TvDBV2, int>
     {
         private CrossRef_AniDB_TvDBV2Repository()
         {
@@ -22,7 +22,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new CrossRef_AniDB_TvDBV2Repository();
         }
-        public List<SVR_CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
+        public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -30,19 +30,19 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public List<SVR_CrossRef_AniDB_TvDBV2> GetByAnimeID(ISessionWrapper session, int id)
+        public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(ISessionWrapper session, int id)
         {
             var xrefs = session
-                .CreateCriteria(typeof(SVR_CrossRef_AniDB_TvDBV2))
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
                 .Add(Restrictions.Eq("AnimeID", id))
                 .AddOrder(Order.Asc("AniDBStartEpisodeType"))
                 .AddOrder(Order.Asc("AniDBStartEpisodeNumber"))
-                .List<SVR_CrossRef_AniDB_TvDBV2>();
+                .List<CrossRef_AniDB_TvDBV2>();
 
-            return new List<SVR_CrossRef_AniDB_TvDBV2>(xrefs);
+            return new List<CrossRef_AniDB_TvDBV2>(xrefs);
         }
 
-        public ILookup<int, SVR_CrossRef_AniDB_TvDBV2> GetByAnimeIDs(ISessionWrapper session, IReadOnlyCollection<int> animeIds)
+        public ILookup<int, CrossRef_AniDB_TvDBV2> GetByAnimeIDs(ISessionWrapper session, IReadOnlyCollection<int> animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -51,49 +51,49 @@ namespace Shoko.Server.Repositories.Direct
 
             if (animeIds.Count == 0)
             {
-                return EmptyLookup<int, SVR_CrossRef_AniDB_TvDBV2>.Instance;
+                return EmptyLookup<int, CrossRef_AniDB_TvDBV2>.Instance;
             }
 
             var xrefs = session
-                .CreateCriteria(typeof(SVR_CrossRef_AniDB_TvDBV2))
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
                 .Add(Restrictions.InG("AnimeID", animeIds))
                 .AddOrder(Order.Asc("AniDBStartEpisodeType"))
                 .AddOrder(Order.Asc("AniDBStartEpisodeNumber"))
-                .List<SVR_CrossRef_AniDB_TvDBV2>()
+                .List<CrossRef_AniDB_TvDBV2>()
                 .ToLookup(cr => cr.AnimeID);
 
             return xrefs;
         }
 
-        public List<SVR_CrossRef_AniDB_TvDBV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType,
+        public List<CrossRef_AniDB_TvDBV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType,
             int aniEpisodeNumber)
         {
             var xrefs = session
-                .CreateCriteria(typeof(SVR_CrossRef_AniDB_TvDBV2))
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
                 .Add(Restrictions.Eq("AnimeID", id))
                 .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
                 .Add(Restrictions.Le("AniDBStartEpisodeNumber", aniEpisodeNumber))
-                .List<SVR_CrossRef_AniDB_TvDBV2>();
+                .List<CrossRef_AniDB_TvDBV2>();
 
-            return new List<SVR_CrossRef_AniDB_TvDBV2>(xrefs);
+            return new List<CrossRef_AniDB_TvDBV2>(xrefs);
         }
 
-        public SVR_CrossRef_AniDB_TvDBV2 GetByTvDBID(ISession session, int id, int season, int episodeNumber, int animeID,
+        public CrossRef_AniDB_TvDBV2 GetByTvDBID(ISession session, int id, int season, int episodeNumber, int animeID,
             int aniEpType, int aniEpisodeNumber)
         {
-            SVR_CrossRef_AniDB_TvDBV2 cr = session
-                .CreateCriteria(typeof(SVR_CrossRef_AniDB_TvDBV2))
+            CrossRef_AniDB_TvDBV2 cr = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
                 .Add(Restrictions.Eq("TvDBID", id))
                 .Add(Restrictions.Eq("TvDBSeasonNumber", season))
                 .Add(Restrictions.Eq("TvDBStartEpisodeNumber", episodeNumber))
                 .Add(Restrictions.Eq("AnimeID", animeID))
                 .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
                 .Add(Restrictions.Eq("AniDBStartEpisodeNumber", aniEpisodeNumber))
-                .UniqueResult<SVR_CrossRef_AniDB_TvDBV2>();
+                .UniqueResult<CrossRef_AniDB_TvDBV2>();
             return cr;
         }
 
-        public SVR_CrossRef_AniDB_TvDBV2 GetByTvDBID(int id, int season, int episodeNumber, int animeID, int aniEpType,
+        public CrossRef_AniDB_TvDBV2 GetByTvDBID(int id, int season, int episodeNumber, int animeID, int aniEpType,
             int aniEpisodeNumber)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

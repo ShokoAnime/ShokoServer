@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class DuplicateFileMap : ClassMap<SVR_DuplicateFile>
+    public class DuplicateFileMap : ClassMap<DuplicateFile>
     {
         public DuplicateFileMap()
         {

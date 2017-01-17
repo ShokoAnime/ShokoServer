@@ -10,7 +10,7 @@ using Shoko.Server.Repositories.Direct;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
@@ -103,7 +103,7 @@ namespace Shoko.Server.Commands
                 {
                     // get info from AniDB
                     logger.Debug("Getting AniDB_File record from AniDB....");
-                    Raw_AniDB_File fileInfo = JMMService.AnidbProcessor.GetFileInfo(vidLocal);
+                    Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                     if (fileInfo != null)
                     {
                         // check if we already have a record
@@ -146,7 +146,7 @@ namespace Shoko.Server.Commands
                 if (aniFile == null)
                 {
                     // check if we have any records from previous imports
-                    List<SVR_CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                     if (crossRefs == null || crossRefs.Count == 0)
                     {
                         // lets see if we can find the episode/anime info from the web cache
@@ -155,7 +155,7 @@ namespace Shoko.Server.Commands
                             List<Shoko.Models.Azure.Azure_CrossRef_File_Episode> xrefs =
                                 AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
 
-                            crossRefs = new List<SVR_CrossRef_File_Episode>();
+                            crossRefs = new List<CrossRef_File_Episode>();
                             if (xrefs == null || xrefs.Count == 0)
                             {
                                 logger.Debug(
@@ -167,7 +167,7 @@ namespace Shoko.Server.Commands
                             {
                                 foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
                                 {
-                                    SVR_CrossRef_File_Episode xrefEnt = new SVR_CrossRef_File_Episode();
+                                    CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
                                     xrefEnt.Hash = vidLocal.ED2KHash;
                                     xrefEnt.FileName = vidLocal.FileName;
                                     xrefEnt.FileSize = vidLocal.FileSize;
@@ -179,7 +179,7 @@ namespace Shoko.Server.Commands
 
                                     bool duplicate = false;
 
-                                    foreach (SVR_CrossRef_File_Episode xrefcheck in crossRefs)
+                                    foreach (CrossRef_File_Episode xrefcheck in crossRefs)
                                     {
                                         if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
                                             xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
@@ -204,11 +204,11 @@ namespace Shoko.Server.Commands
                     }
 
                     // we assume that all episodes belong to the same anime
-                    foreach (SVR_CrossRef_File_Episode xref in crossRefs)
+                    foreach (CrossRef_File_Episode xref in crossRefs)
                     {
                         animeID = xref.AnimeID;
 
-                        SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                        AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                         if (ep == null) missingEpisodes = true;
                     }
                 }
@@ -227,9 +227,9 @@ namespace Shoko.Server.Commands
                     }
                     else
                     {
-                        foreach (SVR_CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
+                        foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                         {
-                            SVR_AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null)
                                 missingEpisodes = true;
 
@@ -253,7 +253,7 @@ namespace Shoko.Server.Commands
                 if (missingEpisodes && !animeRecentlyUpdated)
                 {
                     logger.Debug("Getting Anime record from AniDB....");
-                    anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
+                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
                 }
 
                 // create the group/series/episode records if needed

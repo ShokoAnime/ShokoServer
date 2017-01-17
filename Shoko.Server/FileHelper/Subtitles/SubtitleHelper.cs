@@ -2,7 +2,7 @@
 using System.Linq;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 // ReSharper disable InconsistentNaming
 

@@ -179,7 +179,7 @@ namespace Shoko.Server.API.Module.apiv1
         /// <param name="query">Query</param>
         /// <param name="searchTag">Searching for Tag?</param>
         /// <returns></returns>
-        private object Search_Kodi(string uid, string limit, string query, bool nocast = false)
+        private object Search_Kodi(string uid, int limit, string query, bool nocast = false)
         {
             return _impl.Search(new KodiProvider { Nancy = this }, uid, limit, query, false, nocast);
         }

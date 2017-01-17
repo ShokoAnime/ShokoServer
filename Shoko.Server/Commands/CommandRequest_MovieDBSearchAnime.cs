@@ -8,7 +8,7 @@ using NHibernate;
 using Shoko.Models.Azure;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
@@ -106,7 +106,7 @@ namespace Shoko.Server.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (SVR_AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
                             if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
 

@@ -2,11 +2,11 @@
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_SeiyuuRepository : BaseDirectRepository<SVR_AniDB_Seiyuu, int>
+    public class AniDB_SeiyuuRepository : BaseDirectRepository<AniDB_Seiyuu, int>
     {
 
         private AniDB_SeiyuuRepository()
@@ -18,24 +18,24 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new AniDB_SeiyuuRepository();
         }
-        public SVR_AniDB_Seiyuu GetBySeiyuuID(int id)
+        public AniDB_Seiyuu GetBySeiyuuID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SVR_AniDB_Seiyuu cr = session
-                    .CreateCriteria(typeof(SVR_AniDB_Seiyuu))
+                AniDB_Seiyuu cr = session
+                    .CreateCriteria(typeof(AniDB_Seiyuu))
                     .Add(Restrictions.Eq("SeiyuuID", id))
-                    .UniqueResult<SVR_AniDB_Seiyuu>();
+                    .UniqueResult<AniDB_Seiyuu>();
                 return cr;
             }
         }
 
-        public SVR_AniDB_Seiyuu GetBySeiyuuID(ISession session, int id)
+        public AniDB_Seiyuu GetBySeiyuuID(ISession session, int id)
         {
-            SVR_AniDB_Seiyuu cr = session
-                .CreateCriteria(typeof(SVR_AniDB_Seiyuu))
+            AniDB_Seiyuu cr = session
+                .CreateCriteria(typeof(AniDB_Seiyuu))
                 .Add(Restrictions.Eq("SeiyuuID", id))
-                .UniqueResult<SVR_AniDB_Seiyuu>();
+                .UniqueResult<AniDB_Seiyuu>();
             return cr;
         }
     }

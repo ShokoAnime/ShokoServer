@@ -3,12 +3,12 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Entities;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Anime_Relation, int>
+    public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_Relation, int>
     {
         private AniDB_Anime_RelationRepository()
         {
@@ -19,7 +19,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new AniDB_Anime_RelationRepository();
         }
-        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
+        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -27,17 +27,17 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
+        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
         {
-            SVR_AniDB_Anime_Relation cr = session
-                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
+            AniDB_Anime_Relation cr = session
+                .CreateCriteria(typeof(AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", animeid))
                 .Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
-                .UniqueResult<SVR_AniDB_Anime_Relation>();
+                .UniqueResult<AniDB_Anime_Relation>();
             return cr;
         }
 
-        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(int id)
+        public List<AniDB_Anime_Relation> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -45,14 +45,14 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
+        public List<AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
         {
             var cats = session
-                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
+                .CreateCriteria(typeof(AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", id))
-                .List<SVR_AniDB_Anime_Relation>();
+                .List<AniDB_Anime_Relation>();
 
-            return new List<SVR_AniDB_Anime_Relation>(cats);
+            return new List<AniDB_Anime_Relation>(cats);
         }
     }
 }
