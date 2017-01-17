@@ -15,6 +15,7 @@ namespace JMMServer.API.Model.common
         public string summary { get; set; }
         public string year { get; set; }
         public string air { get; set; }
+	    public string season { get; set; }
         public string size { get; set; }
         public string viewed { get; set; }
         public string rating { get; set; }
@@ -60,6 +61,7 @@ namespace JMMServer.API.Model.common
             sr.rating = nv.Rating;
             sr.titles = nv.Titles;
             sr.title = nv.Title;
+	        sr.season = nv.Season;
 
             // until fanart refactor this will be good for start
             if (!String.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
