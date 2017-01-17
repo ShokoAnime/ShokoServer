@@ -10,7 +10,10 @@
         public int ImageParentType { get; set; }
         public int ImageType { get; set; }
 
-        #endregion  
+        #endregion
+        public AniDB_Anime_DefaultImage() //Empty Constructor for nhibernate
+        {
 
+        }
     }
 }

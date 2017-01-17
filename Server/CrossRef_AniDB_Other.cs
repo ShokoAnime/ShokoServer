@@ -13,5 +13,9 @@ namespace Shoko.Models.Server
         public string CrossRefID { get; set; }
         public int CrossRefSource { get; set; }
         public int CrossRefType { get; set; }
+
+        public CrossRef_AniDB_Other()
+        {
+        }
     }
 }

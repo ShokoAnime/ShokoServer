@@ -14,5 +14,10 @@
         public string IRCServer { get; set; }
         public string URL { get; set; }
         public string Picname { get; set; }
+
+
+        public AniDB_ReleaseGroup()
+        {
+        }
     }
 }

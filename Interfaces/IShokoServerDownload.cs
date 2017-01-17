@@ -3,10 +3,10 @@ using Nancy.Rest.Annotations.Enums;
 
 namespace Shoko.Models.Interfaces
 {
-    [RestBasePath("/MetroDownload")]
-    public interface IJMMServerStreaming
+    [RestBasePath("/Download")]
+    public interface IShokoServerDownload
     {
-        [Rest("Download/{filename}",Verbs.Get)]
+        [Rest("Download/{fileName}",Verbs.Get)]
         System.IO.Stream Download(string fileName);
     }
 }

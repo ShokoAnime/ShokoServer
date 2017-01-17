@@ -13,6 +13,9 @@ namespace Shoko.Models.Server
 
         #endregion
 
+        public AniDB_Anime_Relation() //Empty Constructor for nhibernate
+        {
 
+        }
     }
 }

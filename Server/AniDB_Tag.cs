@@ -12,5 +12,9 @@ namespace Shoko.Models.Server
         public string TagName { get; set; }
         public int TagCount { get; set; }
         public string TagDescription { get; set; }
+
+        public AniDB_Tag()
+        {
+        }
     }
 }

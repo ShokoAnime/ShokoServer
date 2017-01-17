@@ -13,5 +13,10 @@ namespace Shoko.Models.Server
         public int RatingValue { get; set; }
         public int RatingEnjoyment { get; set; }
         public string ReviewText { get; set; }
+
+        public AniDB_Review() //Empty Constructor for nhibernate
+        {
+
+        }
     }
 }

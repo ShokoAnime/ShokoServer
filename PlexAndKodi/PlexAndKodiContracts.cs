@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-
+using Nancy.Rest.Annotations.Atributes;
 using Shoko.Models.Client;
+
 
 namespace Shoko.Models.PlexAndKodi
 {
@@ -15,22 +16,23 @@ namespace Shoko.Models.PlexAndKodi
  
     public class MediaContainer : Video
     {
+
         [XmlElement(typeof(Video), ElementName = "Video")]
         [XmlElement(typeof(Directory), ElementName = "Directory")]
         [DataMember(EmitDefaultValue = false, Order = 1)]
         public List<Video> Childrens { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [XmlAttribute("viewGroup")]
         [DataMember(EmitDefaultValue = false, Order = 2)]
         public string ViewGroup { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [XmlAttribute("viewMode")]
         [DataMember(EmitDefaultValue = false, Order = 3)]
         public string ViewMode { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 4)]
         [XmlAttribute("contenttype")]
         public string ContentType { get; set; }
@@ -43,17 +45,17 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("identifier")]
         public string Identifier { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 7)]
         [XmlAttribute("mediaTagPrefix")]
         public string MediaTagPrefix { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 8)]
         [XmlAttribute("mediaTagVersion")]
         public string MediaTagVersion { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 9)]
         [XmlAttribute("allowSync")]
         public string AllowSync { get; set; }
@@ -62,7 +64,7 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("totalSize")]
         public string TotalSize { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 11)]
         [XmlAttribute("nocache")]
         public string NoCache { get; set; }
@@ -71,17 +73,17 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("offset")]
         public string Offset { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 13)]
         [XmlAttribute("librarySectionUUID")]
         public string LibrarySectionUUID { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 14)]
         [XmlAttribute("librarySectionTitle")]
         public string LibrarySectionTitle { get; set; }
 
-        [Plex]
+        [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 15)]
         [XmlAttribute("librarySectionID")]
         public string LibrarySectionID { get; set; }
@@ -145,9 +147,11 @@ namespace Shoko.Models.PlexAndKodi
     public class Video
     {
         [XmlIgnore]
+        [Ignore]
         public DateTime AirDate { get; set; }
 
         [XmlIgnore]
+        [Ignore]
         public bool IsMovie { get; set; }
 
         [XmlAttribute("GenericId")]
@@ -220,7 +224,7 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("index")]
         public string Index { get; set; }
 
-	    [Plex]
+	    [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 37)]
         [XmlAttribute("parentIndex")]
         public string ParentIndex { get; set; }
@@ -261,7 +265,7 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("year")]
         public string Year { get; set; }
 
-	    [Plex]
+	    [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 47)]
         [XmlAttribute("duration")]
         public string Duration { get; set; }
@@ -290,7 +294,7 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("leafCount")]
         public string LeafCount { get; set; }
 
-	    [Plex]
+	    [Tags("Plex")]
         [DataMember(EmitDefaultValue = false, Order = 54)]
         [XmlAttribute("childCount")]
         public string ChildCount { get; set; }
@@ -356,42 +360,49 @@ namespace Shoko.Models.PlexAndKodi
         public string EpisodeNumber { get; set; }
 
         [XmlIgnore]
+        [Ignore]
         public Client.CL_AnimeGroup_User Group { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 100)]
         [XmlElement("Media")]
         public List<Media> Medias { get; set; }
 
+        [Tags("Role")]
         [DataMember(EmitDefaultValue = false, Order = 101)]
         [XmlElement("Role")]
         public List<RoleTag> Roles { get; set; }
 
+        [Tags("Extras")]
         [DataMember(EmitDefaultValue = false, Order = 102)]
         [XmlElement("Extras")]
         public Extras Extras { get; set; }
 
+        [Tags("Related")]
         [DataMember(EmitDefaultValue = false, Order = 103)]
         [XmlElement("Related")]
         public List<Hub> Related { get; set; }
 
+        [Tags("Tags")]
         [DataMember(EmitDefaultValue = false, Order = 104)]
         [XmlElement("Tag")]
         public List<Tag> Tags { get; set; }
 
+        [Tags("Genres")]
         [DataMember(EmitDefaultValue = false, Order = 105)]
         [XmlElement("Genre")]
         public List<Tag> Genres { get; set; }
 
+        [Tags("Titles")]
         [DataMember(EmitDefaultValue = false, Order = 106)]
         [XmlElement("AnimeTitle")]
         public List<AnimeTitle> Titles { get; set; }
 
-	    [XmlIgnore]
+        [Tags("Fanarts")]
 	    [DataMember(EmitDefaultValue = false, Order = 107)]
 	    [XmlElement("Fanarts")]
 	    public List<Contract_ImageDetails> Fanarts { get; set; }
 
-	    [XmlIgnore]
+        [Tags("Banners")]
 	    [DataMember(EmitDefaultValue = false, Order = 108)]
 	    [XmlElement("Banners")]
 	    public List<Contract_ImageDetails> Banners { get; set; }
@@ -605,6 +616,7 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
 
+        [Ignore]
         [XmlIgnore]
         public string Extension { get; set; }
 
@@ -714,7 +726,9 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("index")]
         public string Index { get; set; }
 
-        [XmlIgnore] public int idx;
+        [XmlIgnore]
+        [Ignore]
+        public int idx;
 
         [DataMember(EmitDefaultValue = false, Order = 25)]
         [XmlAttribute("codec")]
@@ -781,6 +795,7 @@ namespace Shoko.Models.PlexAndKodi
         public string PixelAspectRatio { get; set; }
 
         [XmlIgnore]
+        [Ignore]
         public float PA { get; set; }
     }
 
@@ -878,13 +893,5 @@ namespace Shoko.Models.PlexAndKodi
         FakeIosThumb
     }
 
-    public class Plex : Attribute
-    {
-        
-    }
 
-    public class Kodi : Attribute
-    {
-        
-    }
 }

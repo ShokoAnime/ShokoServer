@@ -78,9 +78,11 @@
     <Compile Include="Enums\enEpisodeType.cs" />
     <Compile Include="Interfaces\IHash.cs" />
     <Compile Include="Interfaces\IImageEntity.cs" />
-    <Compile Include="Interfaces\IJMMServerImage.cs" />
-    <Compile Include="Interfaces\IJMMServerMetro.cs" />
-    <Compile Include="Interfaces\IJMMServerStreaming.cs" />
+    <Compile Include="Interfaces\IShokoServerPlex.cs" />
+    <Compile Include="Interfaces\IShokoServerImage.cs" />
+    <Compile Include="Interfaces\IShokoServerKodi.cs" />
+    <Compile Include="Interfaces\IShokoServerMetro.cs" />
+    <Compile Include="Interfaces\IShokoServerDownload.cs" />
     <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
     <Compile Include="Server\AniDB_Anime.cs" />
     <Compile Include="Constants.cs" />
@@ -146,7 +148,7 @@
     <Compile Include="Enums\ImportFolderType.cs" />
     <Compile Include="Enums\JMMImageType.cs" />
     <Compile Include="Server\Hashes.cs" />
-    <Compile Include="Interfaces\IJMMServer.cs" />
+    <Compile Include="Interfaces\IShokoServer.cs" />
     <Compile Include="Metro\Metro_AniDB_Character.cs" />
     <Compile Include="Metro\Metro_Anime_Detail.cs" />
     <Compile Include="Metro\Metro_Anime_Episode.cs" />

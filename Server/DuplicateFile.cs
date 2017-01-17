@@ -15,5 +15,9 @@ namespace Shoko.Models.Server
         public int ImportFolderIDFile1 { get; set; }
         public int ImportFolderIDFile2 { get; set; }
         public DateTime DateTimeUpdated { get; set; }
+
+        public DuplicateFile()
+        {
+        }
     }
 }

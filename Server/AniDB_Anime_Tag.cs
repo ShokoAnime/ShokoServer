@@ -13,5 +13,10 @@ namespace Shoko.Models.Server
         public int Weight { get; set; }
 
         #endregion
+
+        public AniDB_Anime_Tag() //Empty Constructor for nhibernate
+        {
+
+        }
     }
 }

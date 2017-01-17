@@ -21,5 +21,10 @@ namespace Shoko.Models.Server
         public DateTime DateTimeUpdated { get; set; }
 
         #endregion
+
+        public AniDB_Episode() //Empty Constructor for nhibernate
+        {
+
+        }
     }
 }

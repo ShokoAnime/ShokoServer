@@ -8,7 +8,7 @@ using Shoko.Models.Server;
 namespace Shoko.Models
 {
     [RestBasePath("/Metro")]
-    public interface IJMMServerMetro
+    public interface IShokoServerMetro
     {
         [Rest("Server/Status",Verbs.Get)]
         CL_ServerStatus GetServerStatus();
@@ -31,7 +31,7 @@ namespace Shoko.Models
         [Rest("User", Verbs.Get)]
         List<JMMUser> GetAllUsers();
 
-        [Rest("Group", Verbs.Get)]
+        [Rest("Group/{userID}", Verbs.Get)]
         List<CL_AnimeGroup_User> GetAllGroups(int userID);
 
         [Rest("Anime/New/{maxRecords}/{userID}", Verbs.Get)]
@@ -59,7 +59,7 @@ namespace Shoko.Models
         List<Metro_Anime_Summary> GetSimilarAnimeForAnime(int animeID, int maxRecords, int userID);
 
         [Rest("Anime/Calendar/{userID}/{startDateSecs}/{endDateSecs}/{maxRecords}", Verbs.Get)]
-        List<Metro_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs, int maxRecords);
+        List<Metro_Anime_Summary> GetAnimeCalendar(int userID, int startDateSecs, int endDateSecs, int maxRecords);
 
         [Rest("Episode/Files/{episodeID}/{userID}", Verbs.Get)]
         List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID);

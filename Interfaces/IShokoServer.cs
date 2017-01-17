@@ -10,8 +10,8 @@ using Shoko.Models.TvDB;
 // ReSharper disable InconsistentNaming
 namespace Shoko.Models.Interfaces
 {
-    [RestBasePath("/Legacy")]
-    public interface IJMMServer 
+    [RestBasePath("/")]
+    public interface IShokoServer 
     {
 
         #region GroupsFilter

@@ -12,5 +12,10 @@ namespace Shoko.Models.Server
         public string Title { get; set; }
 
         #endregion
+
+        public AniDB_Anime_Title() //Empty Constructor for nhibernate
+        {
+
+        }
     }
 }

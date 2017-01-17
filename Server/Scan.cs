@@ -12,5 +12,10 @@ namespace Shoko.Models.Server
         public DateTime CreationTIme { get; set; }
         public string ImportFolders { get; set; }
         public int Status { get; set; }
+
+        public Scan()
+        {
+            
+        }
     }
 }

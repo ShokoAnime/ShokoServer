@@ -10,5 +10,9 @@ namespace Shoko.Models.Server
         public int SeiyuuID { get; set; }
         public string SeiyuuName { get; set; }
         public string PicName { get; set; }
+
+        public AniDB_Seiyuu()
+        {
+        }
     }
 }

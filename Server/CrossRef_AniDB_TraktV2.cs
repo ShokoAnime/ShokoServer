@@ -17,5 +17,9 @@ namespace Shoko.Models.Server
         public int TraktStartEpisodeNumber { get; set; }
         public string TraktTitle { get; set; }
         public int CrossRefSource { get; set; }
+
+        public CrossRef_AniDB_TraktV2()
+        {
+        }
     }
 }

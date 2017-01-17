@@ -1,4 +1,5 @@
-﻿using Shoko.Models;
+﻿using Nancy.Rest.Annotations.Atributes;
+using Shoko.Models;
 
 namespace Shoko.Models.Server
 {

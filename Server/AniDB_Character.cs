@@ -15,5 +15,10 @@ namespace Shoko.Models.Server
         public string CharDescription { get; set; }
 
         #endregion
+
+        public AniDB_Character() //Empty Constructor for nhibernate
+        {
+
+        }
     }
 }

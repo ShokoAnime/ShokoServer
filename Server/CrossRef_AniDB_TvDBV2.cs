@@ -19,5 +19,9 @@ namespace Shoko.Models.Server
 
         public int CrossRefSource { get; set; }
 
+        public CrossRef_AniDB_TvDBV2()
+        {
+        }
+
     }
 }
