@@ -99,8 +99,8 @@ namespace JMMServer.API.Module.apiv2
             #region 7. Episodes
             Get["/ep"] = x => { return GetEpisode(); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(); };
-            Post["/ep/watch"] = x => { return MarkEpisodeAsWatched(); };
-            Post["/ep/unwatch"] = x => { return MarkEpisodeAsUnwatched(); };
+            Get["/ep/watch"] = x => { return MarkEpisodeAsWatched(); };
+            Get["/ep/unwatch"] = x => { return MarkEpisodeAsUnwatched(); };
             Get["/ep/vote"] = x => { return VoteOnEpisode(); };
             Get["/ep/unsort"] = _ => { return GetUnsort(); };
             Post["/ep/scrobble"] = x => { return EpisodeScrobble(); };
@@ -111,7 +111,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/ep/list"] = _ => { return GetAllEpisodes(); ; }; // [Obsolete] use /ep
             Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); }; // [Obsolete] use /ep?id=
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); }; // [Obsolete] use /ep/recent?limit=
-            Post["/ep/vote"] = x => { return VoteOnEpisode(); }; // [Obsolete] use /ep/vote?id=&score={1-10}
+            Get["/ep/vote"] = x => { return VoteOnEpisode(); }; // [Obsolete] use /ep/vote?id=&score={1-10}
             Get["/ep/unsort/{max}"] = x => { return GetUnsort((int)x.max); }; // [Obsolete] use /ep/unsort?limit=
             #endregion
 
@@ -122,9 +122,9 @@ namespace JMMServer.API.Module.apiv2
             Get["/serie/search"] = x => { return SearchForSerie(); };
             Get["/serie/tag"] = x => { return SearchForTag(); };
             Get["/serie/byfolder"] = x => { return GetSeriesByFolderId(); };
-            Post["/serie/watch"] = x => { return MarkSerieAsWatched(); };
-            Post["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
-            Post["/serie/vote"] = x => { return VoteOnSerie(); };
+            Get["/serie/watch"] = x => { return MarkSerieAsWatched(); };
+            Get["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
+            Get["/serie/vote"] = x => { return VoteOnSerie(); };
             #endregion
 
             #region 8. Series - [Obsolete]
