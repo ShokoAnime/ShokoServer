@@ -298,6 +298,14 @@ namespace JMMServer.PlexAndKodi
                 {
                     v.ParentIndex = null;
                 }
+
+                if (e.Key.EpisodeTypeEnum == enEpisodeType.Episode)
+                {
+                    string client = prov.GetPlexClient().Product;
+                    if (client == "Plex for Windows" || client == "Plex Home Theater")
+                        v.Title = $"{v.EpisodeNumber}. {v.Title}";
+                }
+
                 if (cross != null && cross.Count > 0)
                 {
                     Contract_CrossRef_AniDB_TvDBV2 c2 =
