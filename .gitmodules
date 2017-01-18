@@ -1,0 +1,3 @@
+[submodule "Nancy.Rest.Annotations"]
+	path = Nancy.Rest.Annotations
+	url = https://github.com/maxpiva/Nancy.Rest.Annotations
