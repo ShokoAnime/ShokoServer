@@ -124,7 +124,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/serie/byfolder"] = x => { return GetSeriesByFolderId(); };
             Get["/serie/watch"] = x => { return MarkSerieAsWatched(); };
             Get["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
-            Get["/serie/vote"] = x => { return VoteOnSerie(); };
+            Post["/serie/vote"] = x => { return VoteOnSerie(); };
             #endregion
 
             #region 8. Series - [Obsolete]
