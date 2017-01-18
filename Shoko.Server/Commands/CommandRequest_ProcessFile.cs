@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                         if (aniFile == null)
                             aniFile = new SVR_AniDB_File();
 
-                        aniFile.Populate(fileInfo);
+                        SVR_AniDB_File.Populate(aniFile, fileInfo);
 
                         //overwrite with local file name
                         string localFileName = vidLocal.FileName;

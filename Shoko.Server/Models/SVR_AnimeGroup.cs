@@ -219,7 +219,7 @@ namespace Shoko.Server.Models
                 if (relAnime != null)
                 {
                     // Don't include movies or OVA's if excluded
-                    if (SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.AnimeTypeDescription.ToLower())) continue;
+                    if (SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower())) continue;
                 }
 
                 // we actually need to get the series, because it might have been added to another group already
@@ -254,42 +254,6 @@ namespace Shoko.Server.Models
         public SVR_AnimeGroup_User GetUserRecord(int userID)
         {
             return RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, this.AnimeGroupID);
-        }
-
-        public void Populate(SVR_AnimeSeries series)
-        {
-             Populate(series, DateTime.Now);
-        }
-
-        public void Populate(SVR_AnimeSeries series, DateTime now)
-        {
-            SVR_AniDB_Anime anime = series.GetAnime();
-
-            Populate(anime, now);
-        }
-
-        public void Populate(SVR_AniDB_Anime anime, DateTime now)
-        {
-            Description = anime.Description;
-            GroupName = anime.PreferredTitle;
-            SortName = anime.PreferredTitle;
-            DateTimeUpdated = now;
-            DateTimeCreated = now;
-        }
-
-        public bool HasMissingEpisodesAny
-        {
-            get { return MissingEpisodeCount > 0 || MissingEpisodeCountGroups > 0; }
-        }
-
-        public bool HasMissingEpisodesGroups
-        {
-            get { return MissingEpisodeCountGroups > 0; }
-        }
-
-        public bool HasMissingEpisodes
-        {
-            get { return MissingEpisodeCountGroups > 0; }
         }
 
         /*

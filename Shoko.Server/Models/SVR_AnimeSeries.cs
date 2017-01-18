@@ -64,7 +64,7 @@ namespace Shoko.Server.Models
         }
 
 
-        public string Year => GetAnime().Year;
+        public string Year => GetAnime().GetYear();
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -168,8 +168,7 @@ namespace Shoko.Server.Models
             {
                 if (GetAnime() == null)
                     return "";
-                else
-                    return GetAnime().TagsString;
+                return GetAnime().TagsString;
             }
         }
 

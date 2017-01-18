@@ -10,6 +10,7 @@ using NHibernate;
 using NLog;
 using Shoko.Models;
 using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -231,7 +232,7 @@ namespace Shoko.Server.Tasks
                 SVR_AnimeGroup group = new SVR_AnimeGroup();
                 SVR_AnimeSeries series = seriesList[grp];
 
-                group.Populate(series, now);
+                @group.Populate(series, now);
                 newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
             }
 

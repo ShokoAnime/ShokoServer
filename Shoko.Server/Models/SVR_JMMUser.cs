@@ -20,13 +20,6 @@ namespace Shoko.Server.Models
         /// </summary>
         /// <param name="ser"></param>
         /// <returns></returns>
-        public bool AllowedSeries(ISession session, SVR_AnimeSeries ser)
-        {
-            if (this.GetHideCategories().Count == 0) return true;
-            if (ser?.Contract?.AniDBAnime == null) return false;
-            return !this.GetHideCategories().FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.GetAllTags());
-        }
-
         public bool AllowedSeries(SVR_AnimeSeries ser)
         {
             if (this.GetHideCategories().Count == 0) return true;

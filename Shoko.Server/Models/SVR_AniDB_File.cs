@@ -8,7 +8,6 @@ using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.WebCache;
 
 namespace Shoko.Server.Models
 {
@@ -266,77 +265,43 @@ namespace Shoko.Server.Models
         }
 
 
-        public void Populate(Raw_AniDB_File fileInfo)
+        public static void Populate(SVR_AniDB_File anidbfile, Raw_AniDB_File fileInfo)
         {
-            this.Anime_GroupName = fileInfo.Anime_GroupName;
-            this.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
-            this.AnimeID = fileInfo.AnimeID;
-            this.CRC = fileInfo.CRC;
-            this.DateTimeUpdated = DateTime.Now;
-            this.Episode_Rating = fileInfo.Episode_Rating;
-            this.Episode_Votes = fileInfo.Episode_Votes;
-            this.File_AudioCodec = fileInfo.File_AudioCodec;
-            this.File_Description = fileInfo.File_Description;
-            this.File_FileExtension = fileInfo.File_FileExtension;
-            this.File_LengthSeconds = fileInfo.File_LengthSeconds;
-            this.File_ReleaseDate = fileInfo.File_ReleaseDate;
-            this.File_Source = fileInfo.File_Source;
-            this.File_VideoCodec = fileInfo.File_VideoCodec;
-            this.File_VideoResolution = fileInfo.File_VideoResolution;
-            this.FileID = fileInfo.FileID;
-            this.FileName = fileInfo.FileName;
-            this.FileSize = fileInfo.FileSize;
-            this.GroupID = fileInfo.GroupID;
-            this.Hash = fileInfo.ED2KHash;
-            this.IsWatched = fileInfo.IsWatched;
-            this.MD5 = fileInfo.MD5;
-            this.SHA1 = fileInfo.SHA1;
-            this.FileVersion = fileInfo.FileVersion;
-            this.IsCensored = fileInfo.IsCensored;
-            this.IsDeprecated = fileInfo.IsDeprecated;
-            this.InternalVersion = fileInfo.InternalVersion;
+            anidbfile.Anime_GroupName = fileInfo.Anime_GroupName;
+            anidbfile.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
+            anidbfile.AnimeID = fileInfo.AnimeID;
+            anidbfile.CRC = fileInfo.CRC;
+            anidbfile.DateTimeUpdated = DateTime.Now;
+            anidbfile.Episode_Rating = fileInfo.Episode_Rating;
+            anidbfile.Episode_Votes = fileInfo.Episode_Votes;
+            anidbfile.File_AudioCodec = fileInfo.File_AudioCodec;
+            anidbfile.File_Description = fileInfo.File_Description;
+            anidbfile.File_FileExtension = fileInfo.File_FileExtension;
+            anidbfile.File_LengthSeconds = fileInfo.File_LengthSeconds;
+            anidbfile.File_ReleaseDate = fileInfo.File_ReleaseDate;
+            anidbfile.File_Source = fileInfo.File_Source;
+            anidbfile.File_VideoCodec = fileInfo.File_VideoCodec;
+            anidbfile.File_VideoResolution = fileInfo.File_VideoResolution;
+            anidbfile.FileID = fileInfo.FileID;
+            anidbfile.FileName = fileInfo.FileName;
+            anidbfile.FileSize = fileInfo.FileSize;
+            anidbfile.GroupID = fileInfo.GroupID;
+            anidbfile.Hash = fileInfo.ED2KHash;
+            anidbfile.IsWatched = fileInfo.IsWatched;
+            anidbfile.MD5 = fileInfo.MD5;
+            anidbfile.SHA1 = fileInfo.SHA1;
+            anidbfile.FileVersion = fileInfo.FileVersion;
+            anidbfile.IsCensored = fileInfo.IsCensored;
+            anidbfile.IsDeprecated = fileInfo.IsDeprecated;
+            anidbfile.InternalVersion = fileInfo.InternalVersion;
 
-            this.languagesRAW = fileInfo.LanguagesRAW;
-            this.subtitlesRAW = fileInfo.SubtitlesRAW;
-            this.episodesPercentRAW = fileInfo.EpisodesPercentRAW;
-            this.episodesRAW = fileInfo.EpisodesRAW;
+            anidbfile.languagesRAW = fileInfo.LanguagesRAW;
+            anidbfile.subtitlesRAW = fileInfo.SubtitlesRAW;
+            anidbfile.episodesPercentRAW = fileInfo.EpisodesPercentRAW;
+            anidbfile.episodesRAW = fileInfo.EpisodesRAW;
         }
 
-        public void Populate(AniDB_FileRequest fileInfo)
-        {
-            this.Anime_GroupName = fileInfo.Anime_GroupName;
-            this.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
-            this.AnimeID = fileInfo.AnimeID;
-            this.CRC = fileInfo.CRC;
-            this.DateTimeUpdated = DateTime.Now;
-            this.Episode_Rating = fileInfo.Episode_Rating;
-            this.Episode_Votes = fileInfo.Episode_Votes;
-            this.File_AudioCodec = fileInfo.File_AudioCodec;
-            this.File_Description = fileInfo.File_Description;
-            this.File_FileExtension = fileInfo.File_FileExtension;
-            this.File_LengthSeconds = fileInfo.File_LengthSeconds;
-            this.File_ReleaseDate = fileInfo.File_ReleaseDate;
-            this.File_Source = fileInfo.File_Source;
-            this.File_VideoCodec = fileInfo.File_VideoCodec;
-            this.File_VideoResolution = fileInfo.File_VideoResolution;
-            this.FileID = fileInfo.FileID;
-            this.FileName = fileInfo.FileName;
-            this.FileSize = fileInfo.FileSize;
-            this.GroupID = fileInfo.GroupID;
-            this.Hash = fileInfo.Hash;
-            this.MD5 = fileInfo.MD5;
-            this.SHA1 = fileInfo.SHA1;
-
-            this.FileVersion = 1;
-            this.IsCensored = 0;
-            this.IsDeprecated = 0;
-            this.InternalVersion = 0;
-
-            this.languagesRAW = fileInfo.LanguagesRAW;
-            this.subtitlesRAW = fileInfo.SubtitlesRAW;
-            this.episodesPercentRAW = fileInfo.EpisodesPercentRAW;
-            this.episodesRAW = fileInfo.EpisodesRAW;
-        }
+       
 
         public void CreateLanguages()
         {

@@ -34,6 +34,7 @@ namespace Shoko.Server.Models
             }
         }
         public BitmapImage Bitmap { get;  set; }
+        public byte[] Icon => _plugin?.Icon;
         private ICloudPlugin _plugin;
 
 
@@ -64,17 +65,6 @@ namespace Shoko.Server.Models
         public bool NeedSave { get; set; } = false;
 
 
-
-        public CL_CloudAccount ToClient()
-        {
-            return new CL_CloudAccount
-            {
-                Provider = Provider,
-                Name = Name,
-                CloudID = CloudID,
-                Icon = _plugin.Icon
-            };
-        }
         private static AuthorizationFactory AuthInstance = new AuthorizationFactory("AppGlue.dll");
 
         public IFileSystem Connect(Window owner)

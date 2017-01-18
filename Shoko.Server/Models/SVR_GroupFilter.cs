@@ -201,15 +201,15 @@ namespace Shoko.Server.Models
             return gf;
         }
 
-        public CL_GroupFilterExtended ToContractExtended(SVR_JMMUser user)
+        public CL_GroupFilterExtended ToClientExtended(SVR_JMMUser user)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return ToContractExtended(session, user);
+                return ToClientExtended(session, user);
             }
         }
 
-        public CL_GroupFilterExtended ToContractExtended(ISession session, SVR_JMMUser user)
+        public CL_GroupFilterExtended ToClientExtended(ISession session, SVR_JMMUser user)
         {
             CL_GroupFilterExtended contract = new CL_GroupFilterExtended();
             contract.GroupFilter = this.ToClient();

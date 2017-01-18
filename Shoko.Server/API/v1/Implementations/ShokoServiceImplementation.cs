@@ -38,7 +38,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
-using Shoko.Server.WebCache;
+
 
 
 namespace Shoko.Server
@@ -293,7 +293,7 @@ namespace Shoko.Server
                     SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return null;
 
-                    CL_GroupFilterExtended contract = gf.ToContractExtended(session, user);
+                    CL_GroupFilterExtended contract = gf.ToClientExtended(session, user);
 
                     return contract;
                 }
@@ -7833,10 +7833,9 @@ namespace Shoko.Server
         {
             try
             {
-                AppVersionsResult appv = XMLService.GetAppVersions();
-                if (appv == null) return null;
+                //TODO WHEN WE HAVE A STABLE VERSION REPO, WE NEED TO CODE THE RETRIEVAL HERE.
+                return new CL_AppVersions();
 
-                return appv.ToContract();
             }
             catch (Exception ex)
             {

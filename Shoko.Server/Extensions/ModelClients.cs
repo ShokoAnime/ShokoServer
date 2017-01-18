@@ -383,5 +383,30 @@ namespace Shoko.Server.Extensions
 
             return cl;
         }
+
+        public static CL_VideoLocal_Place ToClient(this SVR_VideoLocal_Place vlocalplace)
+        {
+            CL_VideoLocal_Place v = new CL_VideoLocal_Place
+            {
+                FilePath = vlocalplace.FilePath,
+                ImportFolderID = vlocalplace.ImportFolderID,
+                ImportFolderType = vlocalplace.ImportFolderType,
+                VideoLocalID = vlocalplace.VideoLocalID,
+                ImportFolder = vlocalplace.ImportFolder,
+                VideoLocal_Place_ID = vlocalplace.VideoLocal_Place_ID
+            };
+            return v;
+        }
+
+        public static CL_CloudAccount ToClient(this SVR_CloudAccount cloud)
+        {
+            return new CL_CloudAccount
+            {
+                Provider = cloud.Provider,
+                Name = cloud.Name,
+                CloudID = cloud.CloudID,
+                Icon = cloud.Icon
+            };
+        }
     }
 }

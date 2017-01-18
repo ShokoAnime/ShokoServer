@@ -4,9 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Pri.LongPath;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Properties;
 using File = System.IO.File;
 
 namespace Shoko.Server.Extensions
@@ -185,6 +188,27 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(seiyuu.PicName)) return "";
 
             return System.IO.Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.SeiyuuID), seiyuu.PicName);
+        }
+        //The resources need to be moved
+        public static string GetAnimeTypeDescription(this AniDB_Anime anidbanime)
+        {
+            switch (anidbanime.GetAnimeTypeEnum())
+            {
+                case enAnimeType.Movie:
+                    return Resources.AnimeType_Movie;
+                case enAnimeType.Other:
+                    return Resources.AnimeType_Other;
+                case enAnimeType.OVA:
+                    return Resources.AnimeType_OVA;
+                case enAnimeType.TVSeries:
+                    return Resources.AnimeType_TVSeries;
+                case enAnimeType.TVSpecial:
+                    return Resources.AnimeType_TVSpecial;
+                case enAnimeType.Web:
+                    return Resources.AnimeType_Web;
+                default:
+                    return Resources.AnimeType_Other;
+            }
         }
     }
 }

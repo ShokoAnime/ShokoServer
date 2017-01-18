@@ -69,13 +69,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        public void Populate(AniDB_Episode anidbEp)
-        {
-            this.AniDB_EpisodeID = anidbEp.EpisodeID;
-            this.DateTimeUpdated = DateTime.Now;
-            this.DateTimeCreated = DateTime.Now;
-        }
-
         public SVR_AnimeEpisode_User GetUserRecord(int userID)
         {
             return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);

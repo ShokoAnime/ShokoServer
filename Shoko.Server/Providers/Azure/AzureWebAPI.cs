@@ -408,7 +408,7 @@ namespace Shoko.Server.Providers.Azure
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = string.Format(@"http://{0}/api/animefull", azureHostBaseAddress);
-            Azure_AnimeFull obj = data.ToContractAzure();
+            Azure_AnimeFull obj = data.ToAzure();
             string json = JSONHelper.Serialize<Azure_AnimeFull>(obj);
             SendData(uri, json, "POST");
         }

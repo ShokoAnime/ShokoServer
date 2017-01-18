@@ -201,7 +201,7 @@ namespace Shoko.Server
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
-                        if (!user.AllowedSeries(session, ser)) continue;
+                        if (!user.AllowedSeries(ser)) continue;
 
 
                         List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
@@ -258,7 +258,7 @@ namespace Shoko.Server
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
-                        if (!user.AllowedSeries(session, ser)) continue;
+                        if (!user.AllowedSeries( ser)) continue;
 
                         SVR_AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
 
@@ -335,7 +335,7 @@ namespace Shoko.Server
                         SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
                         if (series == null) continue;
 
-                        if (!user.AllowedSeries(session, series))
+                        if (!user.AllowedSeries( series))
                         {
                             logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - not allowed: {0}",
                                 series.AniDB_ID));
@@ -640,7 +640,7 @@ namespace Shoko.Server
                         ret.FanartImageID = 0;
                     }
 
-                    ret.AnimeType = anime.AnimeTypeDescription;
+                    ret.AnimeType = anime.GetAnimeTypeDescription();
                     ret.Description = anime.Description;
                     ret.EpisodeCountNormal = anime.EpisodeCountNormal;
                     ret.EpisodeCountSpecial = anime.EpisodeCountSpecial;

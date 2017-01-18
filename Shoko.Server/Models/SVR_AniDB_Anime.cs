@@ -74,35 +74,6 @@ namespace Shoko.Server.Models
         private string reviewIDListRAW;
 
 
-
-
-        public string AnimeTypeDescription
-        {
-            get
-            {
-                switch (this.GetAnimeTypeEnum())
-                {
-                    case enAnimeType.Movie:
-                        return Resources.AnimeType_Movie;
-                    case enAnimeType.Other:
-                        return Resources.AnimeType_Other;
-                    case enAnimeType.OVA:
-                        return Resources.AnimeType_OVA;
-                    case enAnimeType.TVSeries:
-                        return Resources.AnimeType_TVSeries;
-                    case enAnimeType.TVSpecial:
-                        return Resources.AnimeType_TVSpecial;
-                    case enAnimeType.Web:
-                        return Resources.AnimeType_Web;
-                    default:
-                        return Resources.AnimeType_Other;
-                }
-            }
-        }
-
-        
-        public const int LastYear = 2050;
-
         [XmlIgnore]
         public string PosterPath
         {
@@ -114,22 +85,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        [XmlIgnore]
-        public string Year
-        {
-            get
-            {
-                string y = BeginYear.ToString();
-                if (BeginYear != EndYear)
-                {
-                    if (EndYear == LastYear)
-                        y += "-Ongoing";
-                    else
-                        y += "-" + EndYear.ToString();
-                }
-                return y;
-            }
-        }
 
         public List<TvDB_Episode> GetTvDBEpisodes()
         {
@@ -1152,47 +1107,47 @@ namespace Shoko.Server.Models
             this.DisableExternalLinksFlag = 0;
         }
 
-        private void Populate(Raw_AniDB_Anime animeInfo)
+        private static void Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
         {
-            this.AirDate = animeInfo.AirDate;
-            this.AllCinemaID = animeInfo.AllCinemaID;
-            this.AnimeID = animeInfo.AnimeID;
+            adnidbanime.AirDate = animeInfo.AirDate;
+            adnidbanime.AllCinemaID = animeInfo.AllCinemaID;
+            adnidbanime.AnimeID = animeInfo.AnimeID;
             //this.AnimeNfo = animeInfo.AnimeNfoID;
-            this.AnimePlanetID = animeInfo.AnimePlanetID;
-            this.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW);
-            this.ANNID = animeInfo.ANNID;
-            this.AvgReviewRating = animeInfo.AvgReviewRating;
-            this.AwardList = animeInfo.AwardList;
-            this.BeginYear = animeInfo.BeginYear;
-            this.DateTimeDescUpdated = DateTime.Now;
-            this.DateTimeUpdated = DateTime.Now;
-            this.Description = animeInfo.Description;
-            this.EndDate = animeInfo.EndDate;
-            this.EndYear = animeInfo.EndYear;
-            this.MainTitle = animeInfo.MainTitle;
-            this.AllTitles = "";
-            this.AllTags = "";
+            adnidbanime.AnimePlanetID = animeInfo.AnimePlanetID;
+            adnidbanime.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW);
+            adnidbanime.ANNID = animeInfo.ANNID;
+            adnidbanime.AvgReviewRating = animeInfo.AvgReviewRating;
+            adnidbanime.AwardList = animeInfo.AwardList;
+            adnidbanime.BeginYear = animeInfo.BeginYear;
+            adnidbanime.DateTimeDescUpdated = DateTime.Now;
+            adnidbanime.DateTimeUpdated = DateTime.Now;
+            adnidbanime.Description = animeInfo.Description;
+            adnidbanime.EndDate = animeInfo.EndDate;
+            adnidbanime.EndYear = animeInfo.EndYear;
+            adnidbanime.MainTitle = animeInfo.MainTitle;
+            adnidbanime.AllTitles = "";
+            adnidbanime.AllTags = "";
             //this.EnglishName = animeInfo.EnglishName;
-            this.EpisodeCount = animeInfo.EpisodeCount;
-            this.EpisodeCountNormal = animeInfo.EpisodeCountNormal;
-            this.EpisodeCountSpecial = animeInfo.EpisodeCountSpecial;
+            adnidbanime.EpisodeCount = animeInfo.EpisodeCount;
+            adnidbanime.EpisodeCountNormal = animeInfo.EpisodeCountNormal;
+            adnidbanime.EpisodeCountSpecial = animeInfo.EpisodeCountSpecial;
             //this.genre
-            this.ImageEnabled = 1;
+            adnidbanime.ImageEnabled = 1;
             //this.KanjiName = animeInfo.KanjiName;
-            this.LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
+            adnidbanime.LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
             //this.OtherName = animeInfo.OtherName;
-            this.Picname = animeInfo.Picname;
-            this.Rating = animeInfo.Rating;
+            adnidbanime.Picname = animeInfo.Picname;
+            adnidbanime.Rating = animeInfo.Rating;
             //this.relations
-            this.Restricted = animeInfo.Restricted;
-            this.ReviewCount = animeInfo.ReviewCount;
+            adnidbanime.Restricted = animeInfo.Restricted;
+            adnidbanime.ReviewCount = animeInfo.ReviewCount;
             //this.RomajiName = animeInfo.RomajiName;
             //this.ShortNames = animeInfo.ShortNames.Replace("'", "|");
             //this.Synonyms = animeInfo.Synonyms.Replace("'", "|");
-            this.TempRating = animeInfo.TempRating;
-            this.TempVoteCount = animeInfo.TempVoteCount;
-            this.URL = animeInfo.URL;
-            this.VoteCount = animeInfo.VoteCount;
+            adnidbanime.TempRating = animeInfo.TempRating;
+            adnidbanime.TempVoteCount = animeInfo.TempVoteCount;
+            adnidbanime.URL = animeInfo.URL;
+            adnidbanime.VoteCount = animeInfo.VoteCount;
         }
 
         public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
@@ -1208,7 +1163,7 @@ namespace Shoko.Server.Models
             Stopwatch taskTimer = new Stopwatch();
             Stopwatch totalTimer = Stopwatch.StartNew();
 
-            Populate(animeInfo);
+            Populate(this, animeInfo);
 
             // save now for FK purposes
             RepoFactory.AniDB_Anime.Save(this);
@@ -1922,15 +1877,15 @@ namespace Shoko.Server.Models
         }
 
 
-        public Azure_AnimeFull ToContractAzure()
+        public Azure_AnimeFull ToAzure()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return ToContractAzure(session.Wrap());
+                return ToAzure(session.Wrap());
             }
         }
 
-        public Azure_AnimeFull ToContractAzure(ISessionWrapper session)
+        public Azure_AnimeFull ToAzure(ISessionWrapper session)
         {
             Azure_AnimeFull contract = new Azure_AnimeFull();
             contract.Detail = new Azure_AnimeDetail();
@@ -1941,7 +1896,7 @@ namespace Shoko.Server.Models
             contract.Detail.AllCategories = this.TagsString;
             contract.Detail.AnimeID = this.AnimeID;
             contract.Detail.AnimeName = this.MainTitle;
-            contract.Detail.AnimeType = this.AnimeTypeDescription;
+            contract.Detail.AnimeType = this.GetAnimeTypeDescription();
             contract.Detail.Description = this.Description;
             contract.Detail.EndDateLong = AniDB.GetAniDBDateAsSeconds(this.EndDate);
             contract.Detail.StartDateLong = AniDB.GetAniDBDateAsSeconds(this.AirDate);
@@ -2070,7 +2025,7 @@ namespace Shoko.Server.Models
                 SVR_AniDB_Anime relAnime = RepoFactory.AniDB_Anime.GetByAnimeID(session, rel.RelatedAnimeID);
                 if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
                 {
-	                if(SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.AnimeTypeDescription.ToLower())) continue;
+	                if(SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower())) continue;
                     relList.Add(relAnime);
                     relListIDs.Add(relAnime.AnimeID);
                     if (!searchedIDs.Contains(rel.RelatedAnimeID))

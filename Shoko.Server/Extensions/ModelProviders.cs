@@ -763,11 +763,39 @@ namespace Shoko.Server.Extensions
             cross.Hash = vid.ED2KHash;
             cross.FileName = vid.FileName;
             cross.FileSize = vid.FileSize;
-            cross.CrossRefSource = (int) Server.CrossRefSource.User;
+            cross.CrossRefSource = (int) CrossRefSource.User;
             cross.AnimeID = ep.GetAnimeSeries().AniDB_ID;
             cross.EpisodeID = ep.AniDB_EpisodeID;
             cross.Percentage = 100;
             cross.EpisodeOrder = 1;
+        }
+
+        public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series)
+        {
+            agroup.Populate(series, DateTime.Now);
+        }
+
+        public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series, DateTime now)
+        {
+            SVR_AniDB_Anime anime = series.GetAnime();
+
+            agroup.Populate(anime, now);
+        }
+
+        public static void Populate(this SVR_AnimeGroup agroup, SVR_AniDB_Anime anime, DateTime now)
+        {
+            agroup.Description = anime.Description;
+            agroup.GroupName = anime.PreferredTitle;
+            agroup.SortName = anime.PreferredTitle;
+            agroup.DateTimeUpdated = now;
+            agroup.DateTimeCreated = now;
+        }
+
+        public static void Populate(this SVR_AnimeEpisode animeep, AniDB_Episode anidbEp)
+        {
+            animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
+            animeep.DateTimeUpdated = DateTime.Now;
+            animeep.DateTimeCreated = DateTime.Now;
         }
     }
 }

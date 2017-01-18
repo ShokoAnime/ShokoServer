@@ -599,19 +599,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        public CL_VideoLocal_Place ToContract()
-        {
-            CL_VideoLocal_Place v = new CL_VideoLocal_Place
-            {
-                FilePath = FilePath,
-                ImportFolderID = ImportFolderID,
-                ImportFolderType = ImportFolderType,
-                VideoLocalID = VideoLocalID,
-                ImportFolder = ImportFolder,
-                VideoLocal_Place_ID = VideoLocal_Place_ID
-            };
-            return v;
-        }
         private void RecursiveDeleteEmptyDirectories(IDirectory dir, bool importfolder)
         {
             FileSystemResult fr = dir.Populate();

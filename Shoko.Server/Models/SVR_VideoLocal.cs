@@ -472,7 +472,7 @@ namespace Shoko.Server.Models
             cl.MD5 = this.MD5;
             cl.SHA1 = this.SHA1;
             cl.VideoLocalID = this.VideoLocalID;
-            cl.Places = Places.Select(a => a.ToContract()).ToList();
+            cl.Places = Places.Select(a => a.ToClient()).ToList();
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
@@ -556,7 +556,7 @@ namespace Shoko.Server.Models
             cl.VideoLocalID = this.VideoLocalID;
             cl.VideoLocal_IsIgnored = this.IsIgnored;
             cl.VideoLocal_IsVariation = this.IsVariation;
-            cl.Places = Places.Select(a => a.ToContract()).ToList();
+            cl.Places = Places.Select(a => a.ToClient()).ToList();
 
             cl.VideoLocal_MD5 = this.MD5;
             cl.VideoLocal_SHA1 = this.SHA1;
@@ -658,7 +658,7 @@ namespace Shoko.Server.Models
             cl.MD5 = this.MD5;
             cl.SHA1 = this.SHA1;
             cl.VideoLocalID = this.VideoLocalID;
-            cl.Places = Places.Select(a => a.ToContract()).ToList();
+            cl.Places = Places.Select(a => a.ToClient()).ToList();
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
