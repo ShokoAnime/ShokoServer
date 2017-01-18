@@ -99,8 +99,8 @@ namespace JMMServer.API.Module.apiv2
             #region 7. Episodes
             Get["/ep"] = x => { return GetEpisode(); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(); };
-            Get["/ep/watch"] = x => { return MarkEpisodeAsWatched(); };
-            Get["/ep/unwatch"] = x => { return MarkEpisodeAsUnwatched(); };
+            Post["/ep/watch"] = x => { return MarkEpisodeAsWatched(); };
+            Post["/ep/unwatch"] = x => { return MarkEpisodeAsUnwatched(); };
             Get["/ep/vote"] = x => { return VoteOnEpisode(); };
             Get["/ep/unsort"] = _ => { return GetUnsort(); };
             Post["/ep/scrobble"] = x => { return EpisodeScrobble(); };
@@ -122,8 +122,8 @@ namespace JMMServer.API.Module.apiv2
             Get["/serie/search"] = x => { return SearchForSerie(); };
             Get["/serie/tag"] = x => { return SearchForTag(); };
             Get["/serie/byfolder"] = x => { return GetSeriesByFolderId(); };
-            Get["/serie/watch"] = x => { return MarkSerieAsWatched(); };
-            Get["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
+            Post["/serie/watch"] = x => { return MarkSerieAsWatched(); };
+            Post["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
             Post["/serie/vote"] = x => { return VoteOnSerie(); };
             #endregion
 
