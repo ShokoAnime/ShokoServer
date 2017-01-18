@@ -17,6 +17,7 @@ namespace JMMServer.API.Model.common
         public string air { get; set; }
 	    public string season { get; set; }
         public string size { get; set; }
+        public string localsize { get; set; }
         public string viewed { get; set; }
         public string rating { get; set; }
         public List<Role> roles { get; set; }
@@ -57,6 +58,7 @@ namespace JMMServer.API.Model.common
             sr.year = nv.Year;
             sr.air = nv.AirDate.ToString();
             sr.size = nv.LeafCount;
+            sr.localsize = nv.ChildCount;
             sr.viewed = nv.ViewedLeafCount;
             sr.rating = nv.Rating;
             sr.titles = nv.Titles;
