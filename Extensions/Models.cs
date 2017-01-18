@@ -396,5 +396,35 @@ namespace Shoko.Commons.Extensions
                     return "Processed";
             }
         }
+
+        public static bool HasMissingEpisodesAny(this AnimeGroup agroup)
+        {
+            return agroup.MissingEpisodeCount > 0 || agroup.MissingEpisodeCountGroups > 0;
+        }
+
+        public static bool HasMissingEpisodesGroups(this AnimeGroup agroup)
+        {
+            return agroup.MissingEpisodeCountGroups > 0;
+        }
+
+        public static bool HasMissingEpisodes(this AnimeGroup agroup)
+        {
+            return agroup.MissingEpisodeCountGroups > 0;
+        }
+
+        public const int LastYear = 2050;
+
+        public static string GetYear(this AniDB_Anime anidbanime)
+        {
+            string y = anidbanime.BeginYear.ToString();
+            if (anidbanime.BeginYear != anidbanime.EndYear)
+            {
+                if (anidbanime.EndYear == LastYear)
+                    y += "-Ongoing";
+                else
+                    y += "-" + anidbanime.EndYear.ToString();
+            }
+            return y;
+        }
     }
 }
