@@ -488,13 +488,19 @@ namespace JMMServer.Entities
                     if (!dirn.IsOk)
                     {
                         dirn = f.Resolve(destFolder.ImportFolderLocation);
-                        if (dirn.IsOk)
-                        {
-                            IDirectory d = (IDirectory)dirn.Result;
-                            FileSystemResult<IDirectory> d2 = Task.Run(async () => await d.CreateDirectoryAsync(newFolderName, null)).Result;
-                            destination = d2.Result;
+	                    if (dirn.IsOk)
+	                    {
+		                    IDirectory d = (IDirectory) dirn.Result;
+		                    FileSystemResult<IDirectory> d2 = Task
+			                    .Run(async () => await d.CreateDirectoryAsync(newFolderName, null))
+			                    .Result;
+		                    destination = d2.Result;
 
-                        }
+	                    }
+	                    else
+	                    {
+		                    logger.Error("Import folder couldn't be resolved: {0}", destFolder.ImportFolderLocation);
+	                    }
                     }
                     else if (dirn.Result is IFile)
                     {
@@ -505,7 +511,13 @@ namespace JMMServer.Entities
                         destination = (IDirectory) dirn.Result;
                     }
                 }
-                
+
+	            if (string.IsNullOrEmpty(newFullPath))
+	            {
+		            return;
+	            }
+
+	            // We've already resolved FullServerPath, so it doesn't need to be checked
                 string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
                 Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
                 if (tup == null)
