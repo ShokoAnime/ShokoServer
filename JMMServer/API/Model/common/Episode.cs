@@ -15,6 +15,7 @@ namespace JMMServer.API.Model.common
         public string air { get; set; }
 	    public string season { get; set; }
         public string rating { get; set; }
+        public string votes { get; set; }
         public int view { get; set; }
         public int eptype { get; set; }
         public int epnumber { get; set; }
@@ -45,15 +46,18 @@ namespace JMMServer.API.Model.common
                 JMMContracts.Contract_AnimeEpisode cae = aep.GetUserContract(uid);
                 if (cae != null)
                 {
+                    
                     ep.id = aep.AniDB_EpisodeID;
                     ep.art = new ArtCollection();
-                    ep.id = aep.AnimeEpisodeID;
+                    // ep.id = aep.AnimeEpisodeID;
                     ep.type = aep.EpisodeTypeEnum.ToString();
                     ep.title = aep.PlexContract?.Title;
                     ep.summary = aep.PlexContract?.Summary;
                     ep.year = aep.PlexContract?.Year;
                     ep.air = aep.PlexContract?.AirDate.ToString();
-                    ep.rating = aep.PlexContract?.Rating;
+                    ep.rating = cae.AniDB_Rating;
+                    ep.votes = cae.AniDB_Votes;
+                    
                     double rating;
                     if (double.TryParse(ep.rating, out rating))
                     {
@@ -71,7 +75,7 @@ namespace JMMServer.API.Model.common
 
                     if (level != 1)
                     {
-                        List<VideoLocal> vls = aep.GetVideoLocals();
+                        List<VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(aep.AnimeEpisodeID);
                         if (vls.Count > 0)
                         {
                             ep.files = new List<RawFile>();
