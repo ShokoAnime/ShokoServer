@@ -49,7 +49,6 @@ namespace JMMServer.API.Model.common
                     
                     ep.id = aep.AniDB_EpisodeID;
                     ep.art = new ArtCollection();
-                    // ep.id = aep.AnimeEpisodeID;
                     ep.type = aep.EpisodeTypeEnum.ToString();
                     ep.title = aep.PlexContract?.Title;
                     ep.summary = aep.PlexContract?.Summary;
@@ -75,7 +74,7 @@ namespace JMMServer.API.Model.common
 
                     if (level != 1)
                     {
-                        List<VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(aep.AnimeEpisodeID);
+                        List<VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(ep.id);
                         if (vls.Count > 0)
                         {
                             ep.files = new List<RawFile>();
