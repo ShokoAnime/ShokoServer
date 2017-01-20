@@ -1,1 +1,1 @@
-Previously JMMContracts, this repository handles poco (primitive only container object) representations of various entities in Shoko. These are mainly used to simply networking.
+Previously JMMContracts, this repository handles poco (primitive only container object) representations of various entities in Shoko, as well as constants, enums, and base objects. These are mainly used to simplify networking.
