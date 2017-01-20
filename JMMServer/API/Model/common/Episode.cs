@@ -77,7 +77,7 @@ namespace JMMServer.API.Model.common
 
                     if (level != 1)
                     {
-                        List<VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(ep.id);
+                        List<VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
                         if (vls.Count > 0)
                         {
                             ep.files = new List<RawFile>();
