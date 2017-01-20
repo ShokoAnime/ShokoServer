@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Models
+namespace Shoko.Models.Enums
 {
     [Flags]
     public enum AniDBFileState

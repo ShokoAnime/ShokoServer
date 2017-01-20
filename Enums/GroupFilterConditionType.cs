@@ -1,4 +1,4 @@
-namespace Shoko.Models
+namespace Shoko.Models.Enums
 {
     public enum GroupFilterConditionType
     {
