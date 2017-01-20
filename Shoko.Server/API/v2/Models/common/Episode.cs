@@ -18,6 +18,8 @@ namespace Shoko.Server.API.Model.common
         public string air { get; set; }
 	    public string season { get; set; }
         public string rating { get; set; }
+        public string votes { get; set; }
+        public string userrating { get; set; }
         public int view { get; set; }
         public int eptype { get; set; }
         public int epnumber { get; set; }
@@ -48,19 +50,23 @@ namespace Shoko.Server.API.Model.common
                 CL_AnimeEpisode_User cae = aep.GetUserContract(uid);
                 if (cae != null)
                 {
+
                     ep.id = aep.AniDB_EpisodeID;
                     ep.art = new ArtCollection();
-                    ep.id = aep.AnimeEpisodeID;
                     ep.type = aep.EpisodeTypeEnum.ToString();
                     ep.title = aep.PlexContract?.Title;
                     ep.summary = aep.PlexContract?.Summary;
                     ep.year = aep.PlexContract?.Year;
                     ep.air = aep.PlexContract?.AirDate.ToString();
+                    ep.votes = cae.AniDB_Votes;
+
                     ep.rating = aep.PlexContract?.Rating;
+                    ep.userrating = aep.PlexContract?.UserRating;
                     double rating;
                     if (double.TryParse(ep.rating, out rating))
                     {
-                        ep.rating = (rating / 100).ToString().Replace(',','.');
+                        // 0.1 should be the absolute lowest rating
+                        if (rating > 10) ep.rating = (rating / 100).ToString().Replace(',','.');
                     }
 
                     ep.view = cae.IsWatched() ? 1 : 0;
@@ -74,7 +80,7 @@ namespace Shoko.Server.API.Model.common
 
                     if (level != 1)
                     {
-                        List<SVR_VideoLocal> vls = aep.GetVideoLocals();
+                        List<SVR_VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(ep.id);
                         if (vls.Count > 0)
                         {
                             ep.files = new List<RawFile>();

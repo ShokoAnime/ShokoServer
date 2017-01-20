@@ -35,16 +35,17 @@ namespace Shoko.Server.API.Model.common
                 if (groupsh.Count != 0)
                 {
                     filter.size = groupsh.Count;
+                    bool image_found = false;
 
                     foreach (int gp in groupsh)
                     {
-                        SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.First<int>());
+                        SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
 
                         if (ag != null)
                         {
                             Shoko.Models.PlexAndKodi.Video v = ag.GetPlexContract(uid);
                             
-                            if (v.Art != null)
+                            if (v.Art != null && !image_found)
                             {
                                 filter.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Art), index = filter.art.fanart.Count });
 
@@ -59,15 +60,31 @@ namespace Shoko.Server.API.Model.common
                                 }
                             }
 
-                            if (filter.art.fanart.Count > 0)
+                                if (filter.art.fanart.Count > 0)
+                                {
+                                    image_found = true;
+                                }
+                            }
+
+                            // only scan deeper if the level is correct
+                            if (level > 1)
                             {
-                                break;
+                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1)));
+                            }
+                            else
+                            {
+                                // if we have image for filter and we dont wan't include series inside filter then break
+                                if (image_found)
+                                {
+                                    break;
+                                }
                             }
                         }
-                        if (level != 1)
-                        {
-                            groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1)));
-                        }
+
+                    // save groups
+                    if (groups.Count > 0)
+                    {
+                        filter.groups = groups;
                     }
                 }
             }
