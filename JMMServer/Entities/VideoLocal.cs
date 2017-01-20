@@ -220,7 +220,7 @@ namespace JMMServer.Entities
             catch (Exception)
             {
                 logger.Warn("File with Exception: " + fullname);
-                throw;
+                return null;
             }
         }
         public IFile GetBestFileLink()
@@ -241,7 +241,7 @@ namespace JMMServer.Entities
         {
             foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
-                if (p != null)
+                if (p?.FullServerPath != null && p?.ImportFolder != null)
                 {
                     if (ResolveFile(p.FullServerPath) != null)
                         return p;
@@ -514,10 +514,10 @@ namespace JMMServer.Entities
             if (Media == null)
             {
                 VideoLocal_Place pl = GetBestVideoLocalPlace();
-                if (pl != null)
+                if (pl?.FullServerPath != null && pl.ImportFolder != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
-                    FileSystemResult<IObject> src = f.Resolve(pl.FullServerPath);
+                    FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
                     if (src != null && src.IsOk && src.Result is IFile)
                     {
                         if (pl.RefreshMediaInfo())
@@ -527,29 +527,22 @@ namespace JMMServer.Entities
                     }
                 }
             }
-            if (Media != null)
+            if (Media == null) return null;
+            n = Media.DeepClone();
+            if (n?.Parts == null) return n;
+            foreach (Part p in n.Parts)
             {
-
-                n = Media.DeepClone();
-                if (n?.Parts != null)
+                string name = UrlSafe.Replace(Path.GetFileName(FileName)," ").Replace("  "," ").Replace("  "," ").Trim();
+                name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_").Replace("_.",".");
+                while (name.StartsWith("_"))
+                    name = name.Substring(1);
+                while (name.StartsWith("."))
+                    name = name.Substring(1);
+                p.Key = ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
+                if (p.Streams == null) continue;
+                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                 {
-                    foreach (Part p in n?.Parts)
-                    {
-                        string name = UrlSafe.Replace(Path.GetFileName(FileName)," ").Replace("  "," ").Replace("  "," ").Trim();
-                        name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_").Replace("_.",".");
-                        while (name.StartsWith("_"))
-                            name = name.Substring(1);
-                        while (name.StartsWith("."))
-                            name = name.Substring(1);
-                        p.Key = ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
-                        if (p.Streams != null)
-                        {
-                            foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
-                            {
-                                s.Key = ((PlexAndKodi.IProvider)null).ReplaceSchemeHost(((PlexAndKodi.IProvider)null).ConstructFileStream(userID, s.File, false));
-                            }
-                        }
-                    }
+                    s.Key = ((PlexAndKodi.IProvider)null).ReplaceSchemeHost(((PlexAndKodi.IProvider)null).ConstructFileStream(userID, s.File, false));
                 }
             }
             return n;

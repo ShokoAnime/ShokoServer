@@ -16,6 +16,7 @@ namespace JMMServer.API.Model.common
 	    public string season { get; set; }
         public string rating { get; set; }
         public string votes { get; set; }
+        public string userrating { get; set; }
         public int view { get; set; }
         public int eptype { get; set; }
         public int epnumber { get; set; }
@@ -46,7 +47,7 @@ namespace JMMServer.API.Model.common
                 JMMContracts.Contract_AnimeEpisode cae = aep.GetUserContract(uid);
                 if (cae != null)
                 {
-                    
+
                     ep.id = aep.AniDB_EpisodeID;
                     ep.art = new ArtCollection();
                     ep.type = aep.EpisodeTypeEnum.ToString();
@@ -54,13 +55,15 @@ namespace JMMServer.API.Model.common
                     ep.summary = aep.PlexContract?.Summary;
                     ep.year = aep.PlexContract?.Year;
                     ep.air = aep.PlexContract?.AirDate.ToString();
-                    ep.rating = cae.AniDB_Rating;
                     ep.votes = cae.AniDB_Votes;
-                    
+
+                    ep.rating = aep.PlexContract?.Rating;
+                    ep.userrating = aep.PlexContract?.UserRating;
                     double rating;
                     if (double.TryParse(ep.rating, out rating))
                     {
-                        ep.rating = (rating / 100).ToString().Replace(',','.');
+                        // 0.1 should be the absolute lowest rating
+                        if (rating > 10) ep.rating = (rating / 100).ToString().Replace(',','.');
                     }
 
                     ep.view = cae.IsWatched;

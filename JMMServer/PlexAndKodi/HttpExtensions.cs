@@ -16,7 +16,7 @@ namespace JMMServer.PlexAndKodi
     {
         public static string ServerUrl(this IProvider prov, int port, string path, bool externalip = false)
         {
-            Tuple<string, string> scheme_host = prov.GetSchemeHost(externalip);
+            Tuple<string, string> scheme_host = prov?.GetSchemeHost(externalip);
             if (scheme_host==null)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;

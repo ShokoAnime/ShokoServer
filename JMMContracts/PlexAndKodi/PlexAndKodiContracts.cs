@@ -357,6 +357,10 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute]
         public string EpisodeNumber { get; set; }
 
+        [DataMember(EmitDefaultValue = false, Order = 70)]
+        [XmlAttribute("UserRating")]
+        public string UserRating { get; set; }
+
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
 

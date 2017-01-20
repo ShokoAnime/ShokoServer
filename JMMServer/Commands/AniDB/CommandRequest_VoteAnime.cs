@@ -2,8 +2,10 @@
 using System.Globalization;
 using System.Threading;
 using System.Xml;
+using AniDBAPI;
 using JMMServer.Commands.MAL;
 using JMMServer.Entities;
+using JMMServer.Repositories;
 
 namespace JMMServer.Commands
 {
@@ -56,6 +58,24 @@ namespace JMMServer.Commands
                 {
                     CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(AnimeID);
                     cmdMAL.Save();
+                }
+                switch (VoteType)
+                {
+                    case (int)enAniDBVoteType.Episode:
+                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(AnimeID);
+                        if (ep != null)
+                        {
+                            RepoFactory.AnimeEpisode.Save(ep);
+                        }
+                        break;
+                    case (int)enAniDBVoteType.Anime:
+                    case (int)enAniDBVoteType.AnimeTemp:
+                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                        if (ser != null)
+                        {
+                            RepoFactory.AnimeSeries.Save(ser, false);
+                        }
+                        break;
                 }
             }
             catch (Exception ex)

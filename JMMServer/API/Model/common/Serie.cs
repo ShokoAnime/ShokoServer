@@ -20,6 +20,7 @@ namespace JMMServer.API.Model.common
         public string localsize { get; set; }
         public string viewed { get; set; }
         public string rating { get; set; }
+        public string userrating { get; set; }
         public List<Role> roles { get; set; }
         public List<Tag> tags { get; set; }
         public List<Episode> eps { get; set; }
@@ -61,6 +62,7 @@ namespace JMMServer.API.Model.common
             sr.localsize = nv.ChildCount;
             sr.viewed = nv.ViewedLeafCount;
             sr.rating = nv.Rating;
+            sr.userrating = nv.UserRating;
             sr.titles = nv.Titles;
             sr.title = nv.Title;
 	        sr.season = nv.Season;

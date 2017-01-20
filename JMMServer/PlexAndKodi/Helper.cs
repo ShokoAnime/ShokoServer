@@ -369,6 +369,9 @@ namespace JMMServer.PlexAndKodi
 			        l.OriginalTitle = aep.RomajiName;
 			        l.EpisodeType = aep.EpisodeType.ToString();
 			        l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+		            AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
+		            if (vote != null) l.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
+
 			        if (aep.AirDateAsDate.HasValue)
 			        {
 				        l.Year = aep.AirDateAsDate.Value.Year.ToString();
@@ -961,7 +964,11 @@ namespace JMMServer.PlexAndKodi
                 p.LeafCount = anime.EpisodeCount.ToString();
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = Math.Round((double) (anime.Rating / 100), 1).ToLowerInvariantString();
+                p.Rating = Math.Round((anime.Rating / 100D), 1).ToLowerInvariantString();
+                AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime);
+                if (vote == null) vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
+                if (vote != null) p.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
+
                 List<Contract_CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
                 {
