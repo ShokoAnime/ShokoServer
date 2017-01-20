@@ -48,7 +48,7 @@ namespace JMMServer.API.Model.common
                 if (cae != null)
                 {
 
-                    ep.id = aep.AniDB_EpisodeID;
+                    ep.id = aep.AnimeEpisodeID;
                     ep.art = new ArtCollection();
                     ep.type = aep.EpisodeTypeEnum.ToString();
                     ep.title = aep.PlexContract?.Title;
