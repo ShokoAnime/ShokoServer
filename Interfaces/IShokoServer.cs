@@ -46,7 +46,6 @@ namespace Shoko.Models.Interfaces
         [Rest("GroupFilter/{groupFilterID}", Verbs.Delete)]
         string DeleteGroupFilter(int groupFilterID);
 
- 
         #endregion
 
         #region Groups
@@ -90,6 +89,8 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/Recreate", Verbs.Post)]
         void RecreateAllGroups(bool resume = false);
 
+        [Rest("Group/Summary/{animeID}", Verbs.Get)]
+        List<CL_GroupFileSummary> GetGroupFileSummary(int animeID);
 
         #endregion
 
