@@ -128,8 +128,8 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 8. Series - [Obsolete]
-            Get["/serie/list"] = _ => { return GetAllSeries(1,0,0,0,0); }; // [Obsolete] use /serie
-            Get["/serie/{id}"] = x => { return GetSerieById(x.id, 1,0,0); }; // [Obsolete] use /serie?id=
+            Get["/serie/list"] = _ => { return GetAllSeries(1,0,0,0,0,0); }; // [Obsolete] use /serie
+            Get["/serie/{id}"] = x => { return GetSerieById(x.id, 1,0,0,0); }; // [Obsolete] use /serie?id=
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); }; // [Obsolete] use /serie/recent?limit=
             Get["/serie/byfolder/{id}"] = x => { return GetSerieByFolderId(x.id, 10); }; // [Obsolete] use /serie/byfolder/id=
             Get["/serie/byfolder/{id}/{max}"] = x => { return GetSerieByFolderId(x.id, x.max); }; // [Obsolete] use /serie/byfolder/id=&limit=
@@ -887,7 +887,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllEpisodes(user.JMMUserID, para.limit, para.offset, para.level);
+                return GetAllEpisodes(user.JMMUserID, para.limit, para.offset, para.level, para.all);
             }
             else
             {
@@ -906,7 +906,7 @@ namespace JMMServer.API.Module.apiv2
             if (String.IsNullOrEmpty(filename)) return new Nancy.Response { StatusCode = HttpStatusCode.BadRequest };
 
             AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(filename);
-            return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+            return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0, 0);
         }
  
         /// <summary>
@@ -928,8 +928,11 @@ namespace JMMServer.API.Module.apiv2
             {
                 foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level);
-                    lst.Add(ep);
+                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level, para.all);
+                    if (ep != null)
+                    {
+                        lst.Add(ep);
+                    }
                 }
             }
 
@@ -1039,7 +1042,7 @@ namespace JMMServer.API.Module.apiv2
         /// Internal function returning episodes
         /// </summary>
         /// <returns></returns>
-        internal object GetAllEpisodes(int uid, int limit, int offset, int level)
+        internal object GetAllEpisodes(int uid, int limit, int offset, int level, int all)
         {
             List<Episode> eps = new List<Episode>();
             List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
@@ -1047,7 +1050,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset == 0)
                 {
-                    eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, uid, level));
+                    eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, uid, level, all));
                     if (limit != 0) { if (eps.Count >= limit) { break; } }
                 }
                 else { offset -= 1; }
@@ -1148,11 +1151,11 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllSeries(para.nocast, para.limit, para.offset, para.notag, para.level);
+                return GetAllSeries(para.nocast, para.limit, para.offset, para.notag, para.level, para.all);
             }
             else
             {
-                return GetSerieById(para.id, para.nocast, para.notag, para.level);
+                return GetSerieById(para.id, para.nocast, para.notag, para.level, para.all);
             }
         }
 
@@ -1186,7 +1189,7 @@ namespace JMMServer.API.Module.apiv2
                 if (para.limit == 0) { para.limit = 10; }
                 foreach (VideoLocal vl in vlpall)
                 {
-                    Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, para.nocast, para.notag, para.level);
+                    Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
                     allseries.Add(ser);
                     if (allseries.Count >= para.limit) { break; }
                 }
@@ -1216,7 +1219,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (AnimeSeries aser in series)
             {
-                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast, para.notag, para.level));
+                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast, para.notag, para.level, para.all));
             }
 
             return allseries;
@@ -1321,7 +1324,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.limit == 0) { para.limit = 100; }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.offset, true, user.JMMUserID, para.nocast, para.notag, para.level);
+                return Search(para.query, para.limit, para.offset, true, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
             }
             else
             {
@@ -1338,7 +1341,7 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="limit">number of return items</param>
         /// <param name="offset">offset to start from</param>
         /// <returns>List<Serie></returns>
-        internal object GetAllSeries(int nocast, int limit, int offset, int notag, int level)
+        internal object GetAllSeries(int nocast, int limit, int offset, int notag, int level, int all)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
@@ -1349,7 +1352,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset <= 0)
                 {
-                    allseries.Add(new Serie().GenerateFromAnimeSeries(asi, user.JMMUserID, nocast, notag, level));
+                    allseries.Add(new Serie().GenerateFromAnimeSeries(asi, user.JMMUserID, nocast, notag, level, all));
                     if (limit != 0) { if (allseries.Count >= limit) { break; } }
                 }
                 else { offset -= 1; }
@@ -1364,11 +1367,11 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="series_id">serie id</param>
         /// <param name="nocast">disable cast</param>
         /// <returns></returns>
-        internal object GetSerieById(int series_id, int nocast, int notag, int level)
+        internal object GetSerieById(int series_id, int nocast, int notag, int level, int all)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            Serie ser = new Serie().GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID, nocast, notag, level);
+            Serie ser = new Serie().GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID, nocast, notag, level, all);
             return ser;
         }
        
@@ -1456,7 +1459,7 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="nocast">disable cast</param>
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
-        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, bool fuzzy = false)
+        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, int all, bool fuzzy = false)
         {
             List<object> list = new List<object>();
 
@@ -1480,7 +1483,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset == 0)
                 {
-                    list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level));
+                    list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                     if (list.Count >= limit) { break; }
                 }
                 else { offset -= 1; }
@@ -1593,11 +1596,11 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllFilters(user.JMMUserID, para.nocast, para.notag, para.level);
+                return GetAllFilters(user.JMMUserID, para.nocast, para.notag, para.level, para.all);
             }
             else
             {
-                return GetFilter(para.id, user.JMMUserID, para.nocast, para.notag, para.level);;
+                return GetFilter(para.id, user.JMMUserID, para.nocast, para.notag, para.level, para.all);;
             }           
         }
 
@@ -1611,14 +1614,14 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="notag">disable tag/genre</param>
         /// <param name="level">deep level</param>
         /// <returns>List<Filter></returns>
-        internal object GetAllFilters(int uid, int nocast, int notag, int level)
+        internal object GetAllFilters(int uid, int nocast, int notag, int level, int all)
         {
             List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 && ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)).ToList();
             List<Filter> filters = new List<Filter>();
 
             foreach (GroupFilter gf in allGfs)
             {
-                Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level);
+                Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
                 filters.Add(filter);
             }
 
@@ -1650,10 +1653,10 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="notag">disable tag/genre</param>
         /// <param name="level">deep level</param>
         /// <returns>Filter</returns>
-        internal object GetFilter(int id, int uid, int nocast, int notag, int level)
+        internal object GetFilter(int id, int uid, int nocast, int notag, int level, int all)
         {
             GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
-            Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level);
+            Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
 
             return filter;
         }
@@ -1866,7 +1869,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 try
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(epi.Key, uid,0);
+                    Episode ep = new Episode().GenerateFromAnimeEpisode(epi.Key, uid, 0, 0);
                     lep.Add(ep);
                 }
                 catch (Exception e)
@@ -1911,7 +1914,7 @@ namespace JMMServer.API.Module.apiv2
 
                 try
                 {
-                    Episode epi = new Episode().GenerateFromAnimeEpisode(e, uid,0);
+                    Episode epi = new Episode().GenerateFromAnimeEpisode(e, uid, 0, 0);
                     return epi;
                 }
                 catch (Exception ex)
@@ -1958,7 +1961,7 @@ namespace JMMServer.API.Module.apiv2
                 }
                 foreach (AnimeSeries ser in seriesList)
                 {
-                    Serie seri = new Serie().GenerateFromAnimeSeries(ser, uid, 0,0,0);
+                    Serie seri = new Serie().GenerateFromAnimeSeries(ser, uid, 0, 0, 0, 0);
                     obl.list.Add(seri);
                 }
             }
@@ -2106,7 +2109,7 @@ namespace JMMServer.API.Module.apiv2
             List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(user.JMMUserID).Select(a => a.AnimeEpisodeID).ToList();
             foreach (int id in aepul)
             {
-                eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, user.JMMUserID,0));
+                eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, user.JMMUserID, 0, 0));
             }
             ob.Add(eps);
 
@@ -2141,7 +2144,7 @@ namespace JMMServer.API.Module.apiv2
         {
             AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(ep_id);
 
-            Episode ep = new Episode().GenerateFromAnimeEpisode(aep, uid, 0);
+            Episode ep = new Episode().GenerateFromAnimeEpisode(aep, uid, 0, 0);
             return ep;
         }
         [Obsolete]
@@ -2164,7 +2167,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0, 0);
                     lst.Add(ep);
                 }
             }
@@ -2210,7 +2213,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (VideoLocal vl in vlpall)
             {
-                Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, 1,0,0);
+                Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, 1, 0, 0, 0);
                 allseries.Add(ser);
                 if (allseries.Count >= max) { break; }
             }
@@ -2232,7 +2235,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (AnimeSeries aser in series)
             {
-                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, 1,0,0));
+                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, 1,0,0,0));
             }
 
             ob.Add(allseries);

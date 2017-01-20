@@ -20,7 +20,7 @@ namespace JMMServer.API.Model.common
             groups = new List<Group>();
         }
 
-        internal Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, int nocast, int notag, int level)
+        internal Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, int nocast, int notag, int level, int all)
         {
             Filter filter = new Filter();
             filter.name = gf.GroupFilterName;
@@ -67,7 +67,7 @@ namespace JMMServer.API.Model.common
                             // only scan deeper if the level is correct
                             if (level > 1)
                             {
-                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1)));
+                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all));
                             }
                             else
                             {

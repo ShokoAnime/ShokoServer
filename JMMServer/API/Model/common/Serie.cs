@@ -32,7 +32,7 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast, int notag, int level)
+        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast, int notag, int level, int all)
         {
             Serie sr = new Serie();
 
@@ -40,14 +40,14 @@ namespace JMMServer.API.Model.common
             {
                 foreach (AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast, notag, level);
+                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast, notag, level, all);
                 }
             }
 
             return sr;
         }
 
-        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast, int notag, int level)
+        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast, int notag, int level, int all)
         {
             Serie sr = new Serie();
 
@@ -110,7 +110,11 @@ namespace JMMServer.API.Model.common
                     sr.eps = new List<Episode>();
                     foreach (AnimeEpisode ae in ael)
                     {
-                        sr.eps.Add(new Episode().GenerateFromAnimeEpisode(ae, uid, (level - 1)));
+                        Episode new_ep = new Episode().GenerateFromAnimeEpisode(ae, uid, (level - 1), all);
+                        if (new_ep != null)
+                        {
+                            sr.eps.Add(new_ep);
+                        }
                     }
                 }
             }

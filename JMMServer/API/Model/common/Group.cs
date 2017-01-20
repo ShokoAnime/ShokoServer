@@ -16,7 +16,7 @@ namespace JMMServer.API.Model.common
         }
 
 
-        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, int nocast, int notag, int level)
+        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, int nocast, int notag, int level, int all)
         {
             Group g = new Group();
 
@@ -29,7 +29,7 @@ namespace JMMServer.API.Model.common
             {
                 foreach (Entities.AniDB_Anime ada in ag.Anime)
                 {
-                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1)));
+                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
                 }
             }
 
