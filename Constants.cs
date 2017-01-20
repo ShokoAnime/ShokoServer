@@ -34,5 +34,30 @@ namespace Shoko.Models
             public static readonly string Thumb = "thumb";
             public static readonly string Cover = "cover";
         }
+
+        public struct URLS
+        {
+            public static readonly string MAL_Series = @"http://myanimelist.net/anime/{0}";
+            public static readonly string MAL_SeriesDiscussion = @"http://myanimelist.net/anime/{0}/{1}/forum";
+
+            public static readonly string AniDB_File = @"http://anidb.net/perl-bin/animedb.pl?show=file&fid={0}";
+            public static readonly string AniDB_Episode = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
+            public static readonly string AniDB_Series = @"http://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
+            public static readonly string AniDB_SeriesDiscussion = @"http://anidb.net/perl-bin/animedb.pl?show=threads&do=anime&id={0}";
+            public static readonly string AniDB_ReleaseGroup = @"http://anidb.net/perl-bin/animedb.pl?show=group&gid={0}";
+            public static readonly string AniDB_Images = @"http://img7.anidb.net/pics/anime/{0}";
+            public static readonly string AniDB_Series_NewRelease = @"http://anidb.net/perl-bin/animedb.pl?show=addfilem&aid={0}";
+
+            public static readonly string TvDB_Series = @"http://thetvdb.com/?tab=series&id={0}";
+            //public static readonly string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
+            public static readonly string TvDB_Images = @"http://thetvdb.com/banners/{0}";
+
+            public static readonly string MovieDB_Series = @"http://www.themoviedb.org/movie/{0}";
+            public static readonly string Trakt_Series = @"http://trakt.tv/show/{0}";
+
+            public static readonly string Blank = @"http://blank";
+
+
+        }
     }
 }
