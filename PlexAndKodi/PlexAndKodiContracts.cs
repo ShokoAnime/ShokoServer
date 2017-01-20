@@ -359,6 +359,10 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute]
         public string EpisodeNumber { get; set; }
 
+        [DataMember(EmitDefaultValue = false, Order = 70)]
+        [XmlAttribute("UserRating")]
+        public string UserRating { get; set; }
+
         [XmlIgnore]
         [Ignore]
         public Client.CL_AnimeGroup_User Group { get; set; }
