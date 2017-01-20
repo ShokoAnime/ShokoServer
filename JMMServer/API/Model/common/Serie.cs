@@ -57,7 +57,7 @@ namespace JMMServer.API.Model.common
             sr.type = nv.Type;
             sr.summary = nv.Summary;
             sr.year = nv.Year;
-            sr.air = nv.AirDate.ToString();
+            sr.air = nv.AirDate.ToString("dd-MM-yyyy");
             sr.size = nv.LeafCount;
             sr.localsize = nv.ChildCount;
             sr.viewed = nv.ViewedLeafCount;
