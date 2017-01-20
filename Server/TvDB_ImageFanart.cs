@@ -9,7 +9,7 @@ namespace Shoko.Models.Server
         public TvDB_ImageFanart()
         {
         }
-        public int TvDB_ImageFanartID { get; private set; }
+        public int TvDB_ImageFanartID { get; set; }
         public int Id { get; set; }
         public int SeriesID { get; set; }
         public string BannerPath { get; set; }

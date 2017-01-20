@@ -7,7 +7,7 @@ namespace Shoko.Models.Server
         public Playlist()
         {
         }
-        public int PlaylistID { get; private set; }
+        public int PlaylistID { get; set; }
         public string PlaylistName { get; set; }
         public string PlaylistItems { get; set; }
         public int DefaultPlayOrder { get; set; }

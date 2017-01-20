@@ -10,7 +10,7 @@ namespace Shoko.Models.Server
         {
         }
 
-        public int Trakt_ImageFanartID { get; private set; }
+        public int Trakt_ImageFanartID { get; set; }
         public int Trakt_ShowID { get; set; }
         public int Season { get; set; }
         public string ImageURL { get; set; }
