@@ -776,6 +776,12 @@ namespace JMMServer.PlexAndKodi
                     return rsp;
                 if (!double.TryParse(votevalue, NumberStyles.Any, CultureInfo.InvariantCulture, out vvalue))
                     return rsp;
+                List<AniDB_Vote> oldVotes = RepoFactory.AniDB_Vote.GetByEntity(objid);
+                foreach(var oldVote in oldVotes)
+                {
+                    if (oldVote.VoteType != vt) continue;
+                    RepoFactory.AniDB_Vote.Delete(oldVote);
+                }
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
@@ -829,7 +835,6 @@ namespace JMMServer.PlexAndKodi
                         logger.Info(msg);
                         thisVote.VoteValue = iVoteValue;
                         RepoFactory.AniDB_Vote.Save(thisVote);
-                        RepoFactory.AnimeEpisode.Save(ep);
 
                         CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
                             Convert.ToDecimal(vvalue));
@@ -886,7 +891,6 @@ namespace JMMServer.PlexAndKodi
                         logger.Info(msg);
                         thisVote.VoteValue = iVoteValue;
                         RepoFactory.AniDB_Vote.Save(thisVote);
-                        RepoFactory.AnimeSeries.Save(ser, false);
                         CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
                             Convert.ToDecimal(vvalue));
                         cmdVote.Save();

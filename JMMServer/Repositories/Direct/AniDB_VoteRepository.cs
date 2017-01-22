@@ -18,6 +18,10 @@ namespace JMMServer.Repositories.Direct
                 if (cr.VoteType == (int) AniDBVoteType.Anime || cr.VoteType == (int) AniDBVoteType.AnimeTemp)
                 {
                     AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                } else if (cr.VoteType == (int) AniDBVoteType.Episode)
+                {
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    RepoFactory.AnimeEpisode.Save(ep);
                 }
             };
             EndDeleteCallback = (cr) =>
@@ -25,6 +29,10 @@ namespace JMMServer.Repositories.Direct
                 if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {
                     AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                } else if (cr.VoteType == (int) AniDBVoteType.Episode)
+                {
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    RepoFactory.AnimeEpisode.Save(ep);
                 }
 
             };
