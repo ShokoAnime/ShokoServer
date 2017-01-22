@@ -829,6 +829,8 @@ namespace JMMServer.PlexAndKodi
                         logger.Info(msg);
                         thisVote.VoteValue = iVoteValue;
                         RepoFactory.AniDB_Vote.Save(thisVote);
+                        RepoFactory.AnimeEpisode.Save(ep);
+
                         CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
                             Convert.ToDecimal(vvalue));
                         cmdVote.Save();
@@ -884,6 +886,7 @@ namespace JMMServer.PlexAndKodi
                         logger.Info(msg);
                         thisVote.VoteValue = iVoteValue;
                         RepoFactory.AniDB_Vote.Save(thisVote);
+                        RepoFactory.AnimeSeries.Save(ser, false);
                         CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
                             Convert.ToDecimal(vvalue));
                         cmdVote.Save();
