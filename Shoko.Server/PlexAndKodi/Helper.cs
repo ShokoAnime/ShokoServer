@@ -303,14 +303,6 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     v.ParentIndex = null;
                 }
-
-                if (e.Key.EpisodeTypeEnum == enEpisodeType.Episode)
-                {
-                    string client = prov.GetPlexClient().Product;
-                    if (client == "Plex for Windows" || client == "Plex Home Theater")
-                        v.Title = $"{v.EpisodeNumber}. {v.Title}";
-                }
-
                 if (cross != null && cross.Count > 0)
                 {
                     CrossRef_AniDB_TvDBV2 c2 =
@@ -374,10 +366,7 @@ namespace Shoko.Server.PlexAndKodi
 			        l.OriginalTitle = aep.RomajiName;
 			        l.EpisodeType = aep.EpisodeType.ToString();
 			        l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-		            AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
-		            if (vote != null) l.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
-
-		            if (aep.GetAirDateAsDate().HasValue)
+			        if (aep.GetAirDateAsDate().HasValue)
 			        {
 				        l.Year = aep.GetAirDateAsDate().Value.Year.ToString();
 				        l.OriginallyAvailableAt = aep.GetAirDateAsDate().Value.ToPlexDate();
@@ -969,11 +958,7 @@ namespace Shoko.Server.PlexAndKodi
                 p.LeafCount = anime.EpisodeCount.ToString();
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = Math.Round((anime.Rating / 100D), 1).ToLowerInvariantString();
-                AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime);
-                if (vote == null) vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
-                if (vote != null) p.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
-
+                p.Rating = Math.Round((double) (anime.Rating / 100), 1).ToLowerInvariantString();
                 List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
                 {

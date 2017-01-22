@@ -16,12 +16,9 @@ namespace Shoko.Server.API.Model.common
         public string summary { get; set; }
         public string year { get; set; }
         public string air { get; set; }
-        public string season { get; set; }
         public string size { get; set; }
-        public string localsize { get; set; }
         public string viewed { get; set; }
         public string rating { get; set; }
-        public string userrating { get; set; }
         public List<Role> roles { get; set; }
         public List<Tag> tags { get; set; }
         public List<Episode> eps { get; set; }
@@ -60,13 +57,10 @@ namespace Shoko.Server.API.Model.common
             sr.year = nv.Year;
             sr.air = nv.AirDate.ToString();
             sr.size = nv.LeafCount;
-            sr.localsize = nv.ChildCount;
             sr.viewed = nv.ViewedLeafCount;
             sr.rating = nv.Rating;
-            sr.userrating = nv.UserRating;
             sr.titles = nv.Titles;
             sr.title = nv.Title;
-            sr.season = nv.Season;
 
             // until fanart refactor this will be good for start
             if (!String.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }

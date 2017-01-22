@@ -114,7 +114,7 @@ namespace Shoko.Server.API.Module.apiv2
             Get["/ep/list"] = _ => { return GetAllEpisodes(); ; }; // [Obsolete] use /ep
             Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); }; // [Obsolete] use /ep?id=
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); }; // [Obsolete] use /ep/recent?limit=
-            Get["/ep/vote"] = x => { return VoteOnEpisode(); }; // [Obsolete] use /ep/vote?id=&score={1-10}
+            Post["/ep/vote"] = x => { return VoteOnEpisode(); }; // [Obsolete] use /ep/vote?id=&score={1-10}
             Get["/ep/unsort/{max}"] = x => { return GetUnsort((int)x.max); }; // [Obsolete] use /ep/unsort?limit=
             #endregion
 

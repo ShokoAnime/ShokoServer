@@ -2,11 +2,8 @@
 using System.Globalization;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.MAL;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
@@ -59,24 +56,6 @@ namespace Shoko.Server.Commands
                 {
                     CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(AnimeID);
                     cmdMAL.Save();
-                }
-                switch (VoteType)
-                {
-                    case (int)enAniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(AnimeID);
-                        if (ep != null)
-                        {
-                            RepoFactory.AnimeEpisode.Save(ep);
-                        }
-                        break;
-                    case (int)enAniDBVoteType.Anime:
-                    case (int)enAniDBVoteType.AnimeTemp:
-                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-                        if (ser != null)
-                        {
-                            RepoFactory.AnimeSeries.Save(ser, false);
-                        }
-                        break;
                 }
             }
             catch (Exception ex)
