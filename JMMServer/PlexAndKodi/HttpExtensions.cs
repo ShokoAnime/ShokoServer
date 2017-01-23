@@ -26,7 +26,7 @@ namespace JMMServer.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-	        Request req = prov?.Nancy?.Request ?? Core.request;
+	        Request req = prov?.Nancy?.Request;
 	        string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Host;
             string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Scheme;
 	        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
