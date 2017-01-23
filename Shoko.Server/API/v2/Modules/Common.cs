@@ -165,6 +165,10 @@ namespace Shoko.Server.API.Module.apiv2
 
             #endregion
 
+            #region 12. Groups
+            Get["/group"] = _ => { return GetGroups(); };
+            #endregion
+
         }
 
         #region 1.Import Folders
@@ -1944,7 +1948,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         #region Obsolete
 
-        #region 12 only
+        #region 11 only
         IProvider _prov_kodi = new PlexAndKodi.Kodi.KodiProvider();
         CommonImplementation _impl = new CommonImplementation();
         #endregion
@@ -2234,5 +2238,51 @@ namespace Shoko.Server.API.Module.apiv2
         #endregion
 
         #endregion
+
+        #region 12. Group
+
+        public object GetGroups()
+        {
+            Request request = this.Request;
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            if (para.id == 0)
+            {
+                return GetAllGroups(user.JMMUserID, para.nocast, para.notag, para.level);
+            }
+            else
+            {
+                return GetGroup(para.id, user.JMMUserID, para.nocast, para.notag, para.level);
+            }
+        }
+
+        #region internal function
+
+        internal object GetAllGroups(int uid, int nocast, int notag, int level)
+        {
+            List<Group> grps = new List<Group>();
+            List<SVR_AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
+            foreach (SVR_AnimeGroup_User gr in allGrps)
+            {
+                SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
+                Group grp = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level);
+                grps.Add(grp);
+            }
+            return grps;
+        }
+
+        internal object GetGroup(int id, int uid, int nocast, int notag, int level)
+        {
+            //SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
+            SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
+            Group gr = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level);
+            return gr;
+        }
+
+        #endregion
+
+        #endregion
+
     }
 }
