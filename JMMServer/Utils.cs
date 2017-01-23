@@ -20,6 +20,7 @@ using Directory = Pri.LongPath.Directory;
 using DirectoryInfo = Pri.LongPath.DirectoryInfo;
 using File = Pri.LongPath.File;
 using NutzCode.CloudFileSystem;
+using System.Net.Cache;
 
 namespace JMMServer
 {
@@ -441,7 +442,7 @@ namespace JMMServer
         }
 
 
-        public static string DownloadWebPage(string url, Encoding forceEncoding = null)
+        public static string DownloadWebPage(string url, Encoding forceEncoding = null, bool noCache = false)
         {
             try
             {
@@ -452,6 +453,11 @@ namespace JMMServer
                 webReq.Proxy = null;
                 webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                if (noCache == true)
+                {
+                    HttpRequestCachePolicy noCachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
+                    webReq.CachePolicy = noCachePolicy;
+                }
 
                 HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse();
 
