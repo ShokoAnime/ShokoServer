@@ -17,7 +17,7 @@ namespace JMMServer.API.Model.common
         public string votes { get; set; }
         public string userrating { get; set; }
         public int view { get; set; }
-        public int eptype { get; set; }
+        public string eptype { get; set; }
         public int epnumber { get; set; }
         public List<RawFile> files { get; set; }
         public readonly string type = "ep";
@@ -67,8 +67,9 @@ namespace JMMServer.API.Model.common
 
                     ep.view = cae.IsWatched;
                     ep.epnumber = cae.EpisodeNumber;
-                    ep.eptype = cae.EpisodeType;
-	                ep.season = aep.PlexContract?.Season;
+                    ep.eptype = aep.EpisodeTypeEnum.ToString();
+
+                    ep.season = aep.PlexContract?.Season;
 
                     // until fanart refactor this will be good for start
                     if (aep.PlexContract?.Thumb != null) { ep.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Thumb), index = 0 }); }
