@@ -484,7 +484,7 @@ namespace JMMServer.API.Module.apiv2
             var client = new System.Net.WebClient();
             client.Headers.Add("User-Agent", "jmmserver");
             client.Headers.Add("Accept", "application/json");
-            var response = client.DownloadString(new Uri("http://jmediamanager.org/wp-json/wp/v2/posts"));
+            var response = client.DownloadString(new Uri("http://shokoanime.com/wp-json/wp/v2/posts"));
             List<dynamic> news_feed = JsonConvert.DeserializeObject<List<dynamic>>(response);
             List<WebNews> news = new List<WebNews>();
             int limit = 0;
