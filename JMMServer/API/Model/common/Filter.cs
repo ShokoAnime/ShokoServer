@@ -42,20 +42,24 @@ namespace JMMServer.API.Model.common
                     Video contract = randGrp?.GetPlexContract(uid);
                     if (contract != null)
                     {
-                        Random rand = new Random();
-                        Contract_ImageDetails art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
-                        filter.art.fanart.Add(new Art()
+                        // contract.Fanarts can be null even if contract isn't
+                        if (contract.Fanarts != null)
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
-                            index = 0
-                        });
-                        art = contract.Banners[rand.Next(contract.Banners.Count)];
-                        filter.art.banner.Add(new Art()
-                        {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
-                            index = 0
-                        });
-                        if (!string.IsNullOrEmpty(contract.Thumb)) { filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(contract.Thumb), index = 0 }); }
+                            Random rand = new Random();
+                            Contract_ImageDetails art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
+                            filter.art.fanart.Add(new Art()
+                            {
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                                index = 0
+                            });
+                            art = contract.Banners[rand.Next(contract.Banners.Count)];
+                            filter.art.banner.Add(new Art()
+                            {
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                                index = 0
+                            });
+                            if (!string.IsNullOrEmpty(contract.Thumb)) { filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(contract.Thumb), index = 0 }); }
+                        }
                     }
 
                     if (level > 1)
