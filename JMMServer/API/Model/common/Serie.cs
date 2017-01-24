@@ -9,7 +9,6 @@ namespace JMMServer.API.Model.common
     {
         public int id { get; set; }
         public ArtCollection art { get; set; }
-        public string type { get; set; }
         public string title { get; set; }
         public List<AnimeTitle> titles { get; set; }
         public string summary { get; set; }
@@ -24,6 +23,7 @@ namespace JMMServer.API.Model.common
         public List<Role> roles { get; set; }
         public List<Tag> tags { get; set; }
         public List<Episode> eps { get; set; }
+        public readonly string type = "serie";
 
         public Serie()
         {
@@ -54,7 +54,6 @@ namespace JMMServer.API.Model.common
             Video nv = ser.GetPlexContract(uid);
 
             sr.id = ser.AnimeSeriesID;
-            sr.type = nv.Type;
             sr.summary = nv.Summary;
             sr.year = nv.Year;
             sr.air = nv.AirDate.ToString("dd-MM-yyyy");

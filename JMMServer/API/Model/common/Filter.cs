@@ -11,7 +11,7 @@ namespace JMMServer.API.Model.common
         public int size { get; set; }
         public int viewed { get; set;}
         public string url { get; set; }
-        public string type { get; set; }
+        public readonly string type = "filter";
         public List<Group> groups { get; set; }
 
         public Filter()
@@ -26,7 +26,6 @@ namespace JMMServer.API.Model.common
             filter.name = gf.GroupFilterName;
             filter.id = gf.GroupFilterID;
             filter.size = 0;
-            filter.type = gf.FilterType.ToString();
 
             if (gf.GroupsIds.ContainsKey(uid))
             {

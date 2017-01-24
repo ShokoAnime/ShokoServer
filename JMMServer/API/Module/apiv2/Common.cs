@@ -1855,7 +1855,6 @@ namespace JMMServer.API.Module.apiv2
                         ob.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 });
                         ob.art.thumb.Add(new Art() { url = APIHelper.ConstructSupportImageLink(ee.Image), index = 0 });
                         ob.titles.Add(new AnimeTitle() { Title = ee.Name });
-                        ob.type = "AnimeType";
                         ob.size = ee.Count.ToString();
                         ob.viewed = "0";
                         // ob.url = APIHelper.ConstructSerieIdUrl(ee.Type + "_" + ser.AnimeSeriesID);
@@ -1953,7 +1952,6 @@ namespace JMMServer.API.Module.apiv2
                     var v = grpChild.GetPlexContract(uid);
                     if (v != null)
                     {
-                        fr.type = "show";
                         fr.url = APIHelper.ConstructGroupIdUrl(gid.ToString());
 
                         fr.art.fanart.Add(new Art() { url = Helper.GetRandomFanartFromVideo(v,null) ?? v.Art, index = 0 });

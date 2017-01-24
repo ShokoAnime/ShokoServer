@@ -130,7 +130,6 @@ namespace JMMServer.API
         public static Filter FilterFromGroupFilter(GroupFilter gg, int uid)
         {
             Filter ob = new Filter();
-            ob.type = "show";
             ob.name = gg.GroupFilterName;
             ob.id = gg.GroupFilterID;
             ob.url = APIHelper.ConstructFilterIdUrl(gg.GroupFilterID);
@@ -162,7 +161,6 @@ namespace JMMServer.API
         public static Filter FilterFromAnimeGroup(AnimeGroup grp, int uid)
         {
             Filter ob = new Filter();
-            ob.type = "show";
             ob.name = grp.GroupName;
             ob.id = grp.AnimeGroupID;
             ob.url = APIHelper.ConstructFilterIdUrl(grp.AnimeGroupID);

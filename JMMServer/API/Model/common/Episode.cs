@@ -7,7 +7,6 @@ namespace JMMServer.API.Model.common
     public class Episode
     {
         public int id { get; set; }
-        public string type { get; set; }
         public ArtCollection art { get; set; }
         public string title { get; set; }
         public string summary { get; set; }
@@ -21,6 +20,7 @@ namespace JMMServer.API.Model.common
         public int eptype { get; set; }
         public int epnumber { get; set; }
         public List<RawFile> files { get; set; }
+        public readonly string type = "ep";
 
         public Episode()
         {
@@ -50,7 +50,6 @@ namespace JMMServer.API.Model.common
 
                     ep.id = aep.AnimeEpisodeID;
                     ep.art = new ArtCollection();
-                    ep.type = aep.EpisodeTypeEnum.ToString();
                     ep.title = aep.PlexContract?.Title;
                     ep.summary = aep.PlexContract?.Summary;
                     ep.year = aep.PlexContract?.Year;
