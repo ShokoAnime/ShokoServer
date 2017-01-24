@@ -46,7 +46,7 @@ namespace JMMServer.API.Model.common
             if (!String.IsNullOrEmpty(vag.Banner)) { g.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Banner), index = 0 }); }
             if (!String.IsNullOrEmpty(vag.Art)) { g.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Art), index = 0 }); }
 
-            g.size = int.Parse(vag.LeafCount);
+            g.size = int.Parse(vag.ChildCount);
             g.rating = vag.Rating;
             g.userrating = vag.UserRating;
 
