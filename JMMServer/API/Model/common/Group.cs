@@ -48,7 +48,7 @@ namespace JMMServer.API.Model.common
             Random rand = new Random();
             Contract_ImageDetails art = new Contract_ImageDetails();
             // vag.Fanarts can be null even if contract isn't
-            if (vag.Fanarts != null)
+            if (vag.Fanarts != null && vag.Fanarts.Count > 0)
             {
                 art = vag.Fanarts[rand.Next(vag.Fanarts.Count)];
                 g.art.fanart.Add(new Art()
@@ -58,7 +58,7 @@ namespace JMMServer.API.Model.common
                 });
             }
 
-            if (vag.Banners != null)
+            if (vag.Banners != null && vag.Banners.Count > 0)
             { 
                 art = vag.Banners[rand.Next(vag.Banners.Count)];
                 g.art.banner.Add(new Art()

@@ -68,7 +68,7 @@ namespace JMMServer.API.Model.common
 
             Random rand = new Random();
             Contract_ImageDetails art = new Contract_ImageDetails();
-            if (nv.Fanarts != null)
+            if (nv.Fanarts != null && nv.Fanarts.Count > 0)
             {
                 art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
                 sr.art.fanart.Add(new Art()
@@ -78,7 +78,7 @@ namespace JMMServer.API.Model.common
                 });
             }
 
-            if (nv.Banner != null)
+            if (nv.Banner != null && nv.Fanarts.Count > 0)
             {
                 art = nv.Banners[rand.Next(nv.Banners.Count)];
 
