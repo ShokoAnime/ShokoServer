@@ -15,7 +15,6 @@ using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
 using AniDBAPI;
-using System.Text.RegularExpressions;
 using System.IO;
 
 namespace JMMServer.API.Module.apiv2
@@ -160,6 +159,10 @@ namespace JMMServer.API.Module.apiv2
             Get["/metadata2/{type}/{id}"] = x => { return GetMetadata((int)x.type, x.id); };
             #endregion
 
+            #endregion
+			
+			#region 12. Groups
+            Get["/group"] = _ => { return GetGroups(); };
             #endregion
 
         }
@@ -1433,9 +1436,9 @@ namespace JMMServer.API.Module.apiv2
             List<string> newItems = new List<string>();
    
             string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars()) + "()+";
-            Regex remove = new Regex(string.Format("[{0}]", Regex.Escape(regexSearch)));
-            Regex extraSpaces = new Regex(@"[ ]{2,}", RegexOptions.None);
-            Regex replaceWithSpace = new Regex("[\\-\\.]");
+            System.Text.RegularExpressions.Regex remove = new System.Text.RegularExpressions.Regex(string.Format("[{0}]", System.Text.RegularExpressions.Regex.Escape(regexSearch)));
+            System.Text.RegularExpressions.Regex extraSpaces = new System.Text.RegularExpressions.Regex(@"[ ]{2,}", System.Text.RegularExpressions.RegexOptions.None);
+            System.Text.RegularExpressions.Regex replaceWithSpace = new System.Text.RegularExpressions.Regex("[\\-\\.]");
 
             foreach (string s in values)
             {
@@ -1987,7 +1990,7 @@ namespace JMMServer.API.Module.apiv2
 
         #region Obsolete
 
-        #region 12 only
+        #region 11 only
         IProvider _prov_kodi = new PlexAndKodi.Kodi.KodiProvider();
         CommonImplementation _impl = new CommonImplementation();
         #endregion
@@ -2274,6 +2277,51 @@ namespace JMMServer.API.Module.apiv2
 
             return APIStatus.statusOK();
         }
+        #endregion
+
+        #endregion
+		
+		#region 12. Group
+
+        public object GetGroups()
+        {
+            Request request = this.Request;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            if (para.id == 0)
+            {
+                return GetAllGroups(user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+            }
+            else
+            {
+                return GetGroup(para.id, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+            }
+        }
+
+        #region internal function
+
+        internal object GetAllGroups(int uid, int nocast, int notag, int level, int all)
+        {
+            List<API.Model.common.Group> grps = new List<API.Model.common.Group>();
+            List<AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
+            foreach (AnimeGroup_User gr in allGrps)
+            {
+                AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
+                Group grp = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all);
+                grps.Add(grp);
+            }
+            return grps;
+        }
+
+        internal object GetGroup(int id, int uid, int nocast, int notag, int level, int all)
+        {
+            //SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
+            AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
+            API.Model.common.Group gr = new API.Model.common.Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all);
+            return gr;
+        }
+
         #endregion
 
         #endregion
