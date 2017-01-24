@@ -330,6 +330,7 @@
     <Compile Include="API\Model\common\Role.cs" />
     <Compile Include="API\Model\common\Serie.cs" />
     <Compile Include="API\Model\common\Tag.cs" />
+    <Compile Include="API\Model\core\OSFile.cs" />
     <Compile Include="API\Model\core\WebUI-Settings.cs" />
     <Compile Include="API\Module\apiv2\Common.cs" />
     <Compile Include="API\Module\apiv2\Dev.cs" />

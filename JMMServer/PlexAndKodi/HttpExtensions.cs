@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.ServiceModel.Channels;
 using System.ServiceModel.Web;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,10 +15,10 @@ namespace JMMServer.PlexAndKodi
 {
     public static class HttpExtensions
     {
-        public static string ServerUrl(this IProvider prov, int port, string path, bool externalip = false)
+        public static string ServerUrl(this IProvider prov, int port, string path, bool externalip = false, bool forcescheme=false)
         {
             Tuple<string, string> scheme_host = prov?.GetSchemeHost(externalip);
-            if (scheme_host==null)
+            if (scheme_host==null || forcescheme)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;
             }
@@ -26,10 +27,21 @@ namespace JMMServer.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-	        Request req = prov?.Nancy?.Request ?? Core.request;
-	        string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Host;
+	        Request req = prov?.Nancy?.Request;
+            
+            string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Host;
             string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Scheme;
-	        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
+            if (host == null)
+            {
+                var context = System.ServiceModel.OperationContext.Current;
+                if (context != null && context.IncomingMessageHeaders?.To!=null)
+                {
+                    Uri ur = context.IncomingMessageHeaders?.To;
+                    host = ur.Host;
+                    scheme = ur.Scheme;
+                }
+            }
+            if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {
                 IPAddress ip = FileServer.FileServer.GetExternalAddress();

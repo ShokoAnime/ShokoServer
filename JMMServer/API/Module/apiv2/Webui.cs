@@ -4,6 +4,7 @@ using Nancy.Security;
 using Newtonsoft.Json;
 using Pri.LongPath;
 using System;
+using System.Collections.Generic;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -22,6 +23,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
             Get["/config"] = _ => { return GetWebUIConfig(); };
             Post["/config"] = _ => { return SetWebUIConfig(); };
+            Get["/theme"] = _ => { return GetWebUIThemes(); };
         }
 
         /// <summary>
@@ -328,6 +330,26 @@ namespace JMMServer.API.Module.apiv2
             {
                 return new APIMessage(400, "Config is not a Valid.");
             }
+        }
+
+        /// <summary>
+        /// List all available themes to use inside webui
+        /// </summary>
+        /// <returns>List<OSFile> with 'name' of css files</returns>
+        private object GetWebUIThemes()
+        {
+            List<Shoko.Server.API.v2.Models.core.OSFile> files = new List<Shoko.Server.API.v2.Models.core.OSFile>();
+            if (Directory.Exists("webui\\tweak"))
+            {
+                DirectoryInfo dir_info = new DirectoryInfo("webui\\tweak");
+                foreach (FileInfo info in dir_info.GetFiles("*.css"))
+                {
+                    Shoko.Server.API.v2.Models.core.OSFile file = new Shoko.Server.API.v2.Models.core.OSFile();
+                    file.name = info.Name;
+                    files.Add(file);
+                }
+            }
+            return files;
         }
     }
 }

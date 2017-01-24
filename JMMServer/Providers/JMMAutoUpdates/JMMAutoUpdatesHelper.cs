@@ -52,7 +52,7 @@ namespace JMMServer.Providers.JMMAutoUpdates
             {
                 // get the latest version as according to the release
                 string uri = "http://shokoanime.com/files/versions.xml";
-                string xml = Utils.DownloadWebPage(uri);
+                string xml = Utils.DownloadWebPage(uri, null, true);
 
                 XmlDocument xmldoc = new XmlDocument();
                 xmldoc.LoadXml(xml);
