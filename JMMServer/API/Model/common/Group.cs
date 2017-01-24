@@ -45,21 +45,24 @@ namespace JMMServer.API.Model.common
             g.summary = ag.Description;
 
             JMMContracts.PlexAndKodi.Video vag = ag.GetPlexContract(uid);
-
-            Random rand = new Random();
-            Contract_ImageDetails art = vag.Fanarts[rand.Next(vag.Fanarts.Count)];
-            g.art.fanart.Add(new Art()
+            // vag.Fanarts can be null even if contract isn't
+            if (vag.Fanarts != null)
             {
-                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
-                index = 0
-            });
-            art = vag.Banners[rand.Next(vag.Banners.Count)];
-            g.art.banner.Add(new Art()
-            {
-                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
-                index = 0
-            });
-            if (!string.IsNullOrEmpty(vag.Thumb)) { g.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0 }); }
+                Random rand = new Random();
+                Contract_ImageDetails art = vag.Fanarts[rand.Next(vag.Fanarts.Count)];
+                g.art.fanart.Add(new Art()
+                {
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                    index = 0
+                });
+                art = vag.Banners[rand.Next(vag.Banners.Count)];
+                g.art.banner.Add(new Art()
+                {
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                    index = 0
+                });
+                if (!string.IsNullOrEmpty(vag.Thumb)) { g.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0 }); }
+            }
 
 
             g.size = int.Parse(vag.ChildCount);
