@@ -1639,6 +1639,8 @@ namespace JMMServer.API.Module.apiv2
                 filters.Add(filter);
             }
 
+            filters = filters.OrderBy(a => a.name).ToList();
+
             // Unsort
             List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
             if (vids.Count > 0)
