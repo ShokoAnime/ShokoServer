@@ -66,10 +66,20 @@ namespace JMMServer.API.Model.common
             sr.title = nv.Title;
 	        sr.season = nv.Season;
 
-            // until fanart refactor this will be good for start
-            if (!String.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
-            if (!String.IsNullOrEmpty(nv.Banner)) { sr.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Banner), index = 0 }); }
-            if (!String.IsNullOrEmpty(nv.Art)) { sr.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 }); }
+            Random rand = new Random();
+            Contract_ImageDetails art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
+            sr.art.fanart.Add(new Art()
+            {
+                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                index = 0
+            });
+            art = nv.Banners[rand.Next(nv.Banners.Count)];
+            sr.art.banner.Add(new Art()
+            {
+                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                index = 0
+            });
+            if (!string.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
 
             if (nocast == 0)
             {

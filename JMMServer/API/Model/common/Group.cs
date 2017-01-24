@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using JMMContracts.PlexAndKodi;
+using JMMServer.Entities;
+using JMMServer.Repositories;
 
 namespace JMMServer.API.Model.common
 {
@@ -28,7 +32,7 @@ namespace JMMServer.API.Model.common
         }
 
 
-        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, int nocast, int notag, int level, int all)
+        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, int nocast, int notag, int level, int all, int filterid)
         {
             Group g = new Group();
 
@@ -39,12 +43,24 @@ namespace JMMServer.API.Model.common
             g.added = ag.DateTimeCreated;
             g.edited = ag.DateTimeUpdated;
             g.summary = ag.Description;
-            
+
             JMMContracts.PlexAndKodi.Video vag = ag.GetPlexContract(uid);
 
-            if (!String.IsNullOrEmpty(vag.Thumb)) { g.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0 }); }
-            if (!String.IsNullOrEmpty(vag.Banner)) { g.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Banner), index = 0 }); }
-            if (!String.IsNullOrEmpty(vag.Art)) { g.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Art), index = 0 }); }
+            Random rand = new Random();
+            Contract_ImageDetails art = vag.Fanarts[rand.Next(vag.Fanarts.Count)];
+            g.art.fanart.Add(new Art()
+            {
+                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                index = 0
+            });
+            art = vag.Banners[rand.Next(vag.Banners.Count)];
+            g.art.banner.Add(new Art()
+            {
+                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                index = 0
+            });
+            if (!string.IsNullOrEmpty(vag.Thumb)) { g.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0 }); }
+
 
             g.size = int.Parse(vag.ChildCount);
             g.rating = vag.Rating;
@@ -52,9 +68,23 @@ namespace JMMServer.API.Model.common
 
             if (level != 1)
             {
+                List<int> series = null;
+                if (filterid > 0)
+                {
+                    GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterid);
+                    if (filter?.ApplyToSeries > 0)
+                    {
+                        if (filter.SeriesIds.ContainsKey(uid))
+                            series = filter.SeriesIds[uid].ToList();
+                    }
+                }
                 foreach (Entities.AniDB_Anime ada in ag.Anime)
                 {
-                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
+                    if (series != null && series.Count > 0)
+                    {
+                        if (series.Contains(ada.AniDB_AnimeID)) continue;
+                    }
+                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AniDB_AnimeID), uid,nocast, notag, (level-1), all));
                 }
             }
 

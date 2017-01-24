@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.API.Model.common
 {
@@ -33,48 +35,40 @@ namespace JMMServer.API.Model.common
                 if (groupsh.Count != 0)
                 {
                     filter.size = groupsh.Count;
-                    bool image_found = false;
 
-                    foreach (int gp in groupsh)
+                    // Populate Random Art
+                    int index = new Random().Next(groupsh.Count);
+                    Entities.AnimeGroup randGrp = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.ToList()[index]);
+                    Video contract = randGrp?.GetPlexContract(uid);
+                    if (contract != null)
                     {
-                        Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
-
-                        if (ag != null)
+                        Random rand = new Random();
+                        Contract_ImageDetails art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
+                        filter.art.fanart.Add(new Art()
                         {
-                            JMMContracts.PlexAndKodi.Video v = ag.GetPlexContract(uid);
-                            
-                            if (v.Art != null && !image_found)
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                            index = 0
+                        });
+                        art = contract.Banners[rand.Next(contract.Banners.Count)];
+                        filter.art.banner.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                            index = 0
+                        });
+                        if (!string.IsNullOrEmpty(contract.Thumb)) { filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(contract.Thumb), index = 0 }); }
+                    }
+
+                    if (level > 1)
+                    {
+                        foreach (int gp in groupsh)
+                        {
+                            Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
+
+                            if (ag != null)
                             {
-                                filter.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Art), index = filter.art.fanart.Count });
-
-                                if (v.Banner != null)
-                                {
-                                    filter.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Banner), index = filter.art.banner.Count });
-                                }
-
-                                if (v.Thumb != null)
-                                {
-                                    filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Thumb), index = filter.art.thumb.Count });
-                                }
-
-                                if (filter.art.fanart.Count > 0)
-                                {
-                                    image_found = true;
-                                }
-                            }
-
-                            // only scan deeper if the level is correct
-                            if (level > 1)
-                            {
-                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all));
-                            }
-                            else
-                            {
-                                // if we have image for filter and we dont wan't include series inside filter then break
-                                if (image_found)
-                                {
-                                    break;
-                                }
+                                JMMContracts.PlexAndKodi.Video v = ag.GetPlexContract(uid);
+                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
+                                    filter.id));
                             }
                         }
                     }

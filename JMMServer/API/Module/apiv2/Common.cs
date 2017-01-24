@@ -2293,7 +2293,7 @@ namespace JMMServer.API.Module.apiv2
             }
             else
             {
-                return GetGroup(para.id, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+                return GetGroup(para.id, user.JMMUserID, para.nocast, para.notag, para.level, para.all, para.filter);
             }
         }
 
@@ -2306,17 +2306,17 @@ namespace JMMServer.API.Module.apiv2
             foreach (AnimeGroup_User gr in allGrps)
             {
                 AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
-                Group grp = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all);
+                Group grp = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, 0);
                 grps.Add(grp);
             }
             return grps;
         }
 
-        internal object GetGroup(int id, int uid, int nocast, int notag, int level, int all)
+        internal object GetGroup(int id, int uid, int nocast, int notag, int level, int all, int filterid)
         {
             //SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
             AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
-            API.Model.common.Group gr = new API.Model.common.Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all);
+            API.Model.common.Group gr = new API.Model.common.Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
             return gr;
         }
 
