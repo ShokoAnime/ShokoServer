@@ -84,7 +84,7 @@ namespace JMMServer.API.Model.common
                     {
                         if (series.Contains(ada.AniDB_AnimeID)) continue;
                     }
-                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AniDB_AnimeID), uid,nocast, notag, (level-1), all));
+                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
                 }
             }
 
