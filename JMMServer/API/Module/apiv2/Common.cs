@@ -1464,11 +1464,13 @@ namespace JMMServer.API.Module.apiv2
         /// <returns>List<Serie></returns>
         internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, int all, bool fuzzy = false)
         {
-            Group search_result = new Group();
-            search_result.name = "Search";
-            search_result.series = new List<Serie>();
-            search_result.id = 0;
-            search_result.summary = query;
+            Filter search_filter = new Filter();
+            search_filter.name = "Search";
+            search_filter.groups = new List<Group>();
+
+            Group search_group = new Group();
+            search_group.name = query;
+            search_group.series = new List<Serie>();
             
             IEnumerable<AnimeSeries> series = tag_search
 	            ? RepoFactory.AnimeSeries.GetAll()
@@ -1490,14 +1492,17 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset == 0)
                 {
-                    search_result.series.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
-                    if (search_result.series.Count >= limit) { break; }
+                    search_group.series.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                    if (search_group.series.Count >= limit) { break; }
                 }
                 else { offset -= 1; }
             }
 
-            search_result.size = search_result.series.Count();
-            return search_result;
+            search_group.size = search_group.series.Count();
+            search_filter.groups.Add(search_group);
+            search_filter.size = search_filter.groups.Count();
+
+            return search_filter;
         }
 
         /// <summary>
