@@ -67,16 +67,19 @@ namespace JMMServer.API.Model.common
 	        sr.season = nv.Season;
 
             Random rand = new Random();
-            // contract.Fanarts can be null even if contract isn't
+            Contract_ImageDetails art = new Contract_ImageDetails();
             if (nv.Fanarts != null)
             {
-                Contract_ImageDetails art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
+                art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
                 sr.art.fanart.Add(new Art()
                 {
                     url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
                     index = 0
                 });
+            }
 
+            if (nv.Banner != null)
+            {
                 art = nv.Banners[rand.Next(nv.Banners.Count)];
 
                 sr.art.banner.Add(new Art()
@@ -85,6 +88,7 @@ namespace JMMServer.API.Model.common
                     index = 0
                 });
             }
+            
             if (!string.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
 
             if (nocast == 0)

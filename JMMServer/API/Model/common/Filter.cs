@@ -42,16 +42,21 @@ namespace JMMServer.API.Model.common
                     Video contract = randGrp?.GetPlexContract(uid);
                     if (contract != null)
                     {
+                        Random rand = new Random();
+                        Contract_ImageDetails art = new Contract_ImageDetails();
                         // contract.Fanarts can be null even if contract isn't
                         if (contract.Fanarts != null)
                         {
-                            Random rand = new Random();
-                            Contract_ImageDetails art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
+                            art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
                             filter.art.fanart.Add(new Art()
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
                                 index = 0
                             });
+                        }
+
+                        if (contract.Banners != null)
+                        {
                             art = contract.Banners[rand.Next(contract.Banners.Count)];
                             filter.art.banner.Add(new Art()
                             {
