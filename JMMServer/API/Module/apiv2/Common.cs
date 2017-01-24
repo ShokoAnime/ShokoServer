@@ -1464,8 +1464,12 @@ namespace JMMServer.API.Module.apiv2
         /// <returns>List<Serie></returns>
         internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, int all, bool fuzzy = false)
         {
-            List<object> list = new List<object>();
-
+            Group search_result = new Group();
+            search_result.name = "Search";
+            search_result.series = new List<Serie>();
+            search_result.id = 0;
+            search_result.summary = query;
+            
             IEnumerable<AnimeSeries> series = tag_search
 	            ? RepoFactory.AnimeSeries.GetAll()
 		            .Where(
@@ -1486,12 +1490,14 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset == 0)
                 {
-                    list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
-                    if (list.Count >= limit) { break; }
+                    search_result.series.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                    if (search_result.series.Count >= limit) { break; }
                 }
                 else { offset -= 1; }
             }
-            return list;
+
+            search_result.size = search_result.series.Count();
+            return search_result;
         }
 
         /// <summary>
