@@ -776,128 +776,118 @@ namespace JMMServer.PlexAndKodi
                     return rsp;
                 if (!double.TryParse(votevalue, NumberStyles.Any, CultureInfo.InvariantCulture, out vvalue))
                     return rsp;
-                List<AniDB_Vote> oldVotes = RepoFactory.AniDB_Vote.GetByEntity(objid);
-                foreach(var oldVote in oldVotes)
-                {
-                    if (oldVote.VoteType != vt) continue;
-                    RepoFactory.AniDB_Vote.Delete(oldVote);
-                }
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    ISessionWrapper sessionWrapper = session.Wrap();
 
-                    if (vt == (int) enAniDBVoteType.Episode)
+                if (vt == (int) enAniDBVoteType.Episode)
+                {
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(objid);
+                    if (ep == null)
                     {
-                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(objid);
-                        if (ep == null)
-                        {
-                            rsp.Code = "404";
-                            rsp.Message = "Episode Not Found";
-                            return rsp;
-                        }
-                        AniDB_Anime anime = ep.GetAnimeSeries().GetAnime();
-                        if (anime == null)
-                        {
-                            rsp.Code = "404";
-                            rsp.Message = "Anime Not Found";
-                            return rsp;
-                        }
-                        string msg = string.Format("Voting for anime episode: {0} - Value: {1}", ep.AnimeEpisodeID,
-                            vvalue);
-                        logger.Info(msg);
+                        rsp.Code = "404";
+                        rsp.Message = "Episode Not Found";
+                        return rsp;
+                    }
+                    AniDB_Anime anime = ep.GetAnimeSeries().GetAnime();
+                    if (anime == null)
+                    {
+                        rsp.Code = "404";
+                        rsp.Message = "Anime Not Found";
+                        return rsp;
+                    }
+                    string msg = string.Format("Voting for anime episode: {0} - Value: {1}", ep.AnimeEpisodeID,
+                        vvalue);
+                    logger.Info(msg);
 
-                        // lets save to the database and assume it will work
-                        List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(ep.AnimeEpisodeID);
-                        AniDB_Vote thisVote = null;
-                        foreach (AniDB_Vote dbVote in dbVotes)
+                    // lets save to the database and assume it will work
+                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(ep.AnimeEpisodeID);
+                    AniDB_Vote thisVote = null;
+                    foreach (AniDB_Vote dbVote in dbVotes)
+                    {
+                        if (dbVote.VoteType == (int)enAniDBVoteType.Episode)
                         {
-                            if (dbVote.VoteType == (int)enAniDBVoteType.Episode)
+                            thisVote = dbVote;
+                        }
+                    }
+
+                    if (thisVote == null)
+                    {
+                        thisVote = new AniDB_Vote();
+                        thisVote.EntityID = ep.AnimeEpisodeID;
+                    }
+                    thisVote.VoteType = vt;
+
+                    int iVoteValue = 0;
+                    if (vvalue > 0)
+                        iVoteValue = (int)(vvalue * 100);
+                    else
+                        iVoteValue = (int)vvalue;
+
+                    msg = string.Format("Voting for anime episode Formatted: {0} - Value: {1}", ep.AnimeEpisodeID,
+                        iVoteValue);
+                    logger.Info(msg);
+                    thisVote.VoteValue = iVoteValue;
+                    RepoFactory.AniDB_Vote.Save(thisVote);
+
+                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
+                        Convert.ToDecimal(vvalue));
+                    cmdVote.Save();
+                }
+
+                if (vt == (int)enAniDBVoteType.Anime)
+                {
+                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(objid);
+                    AniDB_Anime anime = ser.GetAnime();
+                    if (anime == null)
+                    {
+                        rsp.Code = "404";
+                        rsp.Message = "Anime Not Found";
+                        return rsp;
+                    }
+                    string msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);
+                    logger.Info(msg);
+
+                    // lets save to the database and assume it will work
+                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(anime.AnimeID);
+                    AniDB_Vote thisVote = null;
+                    foreach (AniDB_Vote dbVote in dbVotes)
+                    {
+                        // we can only have anime permanent or anime temp but not both
+                        if (vt == (int)enAniDBVoteType.Anime || vt == (int)enAniDBVoteType.AnimeTemp)
+                        {
+                            if (dbVote.VoteType == (int)enAniDBVoteType.Anime ||
+                                dbVote.VoteType == (int)enAniDBVoteType.AnimeTemp)
                             {
                                 thisVote = dbVote;
                             }
                         }
-
-                        if (thisVote == null)
-                        {
-                            thisVote = new AniDB_Vote();
-                            thisVote.EntityID = ep.AnimeEpisodeID;
-                        }
-                        thisVote.VoteType = vt;
-
-                        int iVoteValue = 0;
-                        if (vvalue > 0)
-                            iVoteValue = (int)(vvalue * 100);
                         else
-                            iVoteValue = (int)vvalue;
-
-                        msg = string.Format("Voting for anime episode Formatted: {0} - Value: {1}", ep.AnimeEpisodeID,
-                            iVoteValue);
-                        logger.Info(msg);
-                        thisVote.VoteValue = iVoteValue;
-                        RepoFactory.AniDB_Vote.Save(thisVote);
-
-                        CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
-                            Convert.ToDecimal(vvalue));
-                        cmdVote.Save();
+                        {
+                            thisVote = dbVote;
+                        }
                     }
 
-                    if (vt == (int)enAniDBVoteType.Anime)
+                    if (thisVote == null)
                     {
-                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(objid);
-                        AniDB_Anime anime = ser.GetAnime();
-                        if (anime == null)
-                        {
-                            rsp.Code = "404";
-                            rsp.Message = "Anime Not Found";
-                            return rsp;
-                        }
-                        string msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);
-                        logger.Info(msg);
-
-                        // lets save to the database and assume it will work
-                        List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(anime.AnimeID);
-                        AniDB_Vote thisVote = null;
-                        foreach (AniDB_Vote dbVote in dbVotes)
-                        {
-                            // we can only have anime permanent or anime temp but not both
-                            if (vt == (int)enAniDBVoteType.Anime || vt == (int)enAniDBVoteType.AnimeTemp)
-                            {
-                                if (dbVote.VoteType == (int)enAniDBVoteType.Anime ||
-                                    dbVote.VoteType == (int)enAniDBVoteType.AnimeTemp)
-                                {
-                                    thisVote = dbVote;
-                                }
-                            }
-                            else
-                            {
-                                thisVote = dbVote;
-                            }
-                        }
-
-                        if (thisVote == null)
-                        {
-                            thisVote = new AniDB_Vote();
-                            thisVote.EntityID = anime.AnimeID;
-                        }
-                        thisVote.VoteType = vt;
-
-                        int iVoteValue = 0;
-                        if (vvalue > 0)
-                            iVoteValue = (int)(vvalue * 100);
-                        else
-                            iVoteValue = (int)vvalue;
-
-                        msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", anime.AnimeID, iVoteValue);
-                        logger.Info(msg);
-                        thisVote.VoteValue = iVoteValue;
-                        RepoFactory.AniDB_Vote.Save(thisVote);
-                        CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
-                            Convert.ToDecimal(vvalue));
-                        cmdVote.Save();
+                        thisVote = new AniDB_Vote();
+                        thisVote.EntityID = anime.AnimeID;
                     }
-                    rsp.Code = "200";
-                    rsp.Message = null;
+                    thisVote.VoteType = vt;
+
+                    int iVoteValue = 0;
+                    if (vvalue > 0)
+                        iVoteValue = (int)(vvalue * 100);
+                    else
+                        iVoteValue = (int)vvalue;
+
+                    msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", anime.AnimeID, iVoteValue);
+                    logger.Info(msg);
+                    thisVote.VoteValue = iVoteValue;
+                    RepoFactory.AniDB_Vote.Save(thisVote);
+                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
+                        Convert.ToDecimal(vvalue));
+                    cmdVote.Save();
                 }
+                rsp.Code = "200";
+                rsp.Message = null;
             }
             catch (Exception ex)
             {
