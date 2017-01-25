@@ -145,7 +145,7 @@ namespace JMMServer.API.Module.apiv2
 
                 // 2
                 case JMMImageType.AniDB_Character:
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(id);
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(id);
                     if (chr == null) { return null; }
 
                     path = chr.PosterPath;
@@ -162,7 +162,7 @@ namespace JMMServer.API.Module.apiv2
 
                 // 3
                 case JMMImageType.AniDB_Creator:
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(id);
+                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(id);
                     if (creator == null) { return null; }
 
                     path = creator.PosterPath;
