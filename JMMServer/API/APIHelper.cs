@@ -15,7 +15,7 @@ namespace JMMServer.API
 
         public static string ConstructUnsortUrl(bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/filter?id=" + (int)JMMType.GroupUnsort,  short_url);
+            return APIHelper.ProperURL("/api/file/unsort",  short_url);
         }
 
         [Obsolete]
