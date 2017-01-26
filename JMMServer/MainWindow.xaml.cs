@@ -38,6 +38,7 @@ using Microsoft.Win32.TaskScheduler;
 using Nancy.Hosting.Self;
 using Action = System.Action;
 using System.Net.NetworkInformation;
+using JMMServer.API.core;
 
 namespace JMMServer
 {
@@ -2672,6 +2673,7 @@ namespace JMMServer
             {
                 logger.Error(ex);
             }
+            UserDatabase.Refresh();
         }
 
         private static void StartFileHost()

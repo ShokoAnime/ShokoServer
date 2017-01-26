@@ -16,6 +16,7 @@ using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
 using AniDBAPI;
 using System.IO;
+using NHibernate.Util;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -1306,7 +1307,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.limit == 0) { para.limit = 100; }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.offset, false, user.JMMUserID, para.nocast, para.notag, para.level, this.Request.Query.fuzzy);
+                return Search(para.query, para.limit, para.offset, para.tags, user.JMMUserID, para.nocast, para.notag, para.level, this.Request.Query.fuzzy);
             }
             else
             {
@@ -1327,7 +1328,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.limit == 0) { para.limit = 100; }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.offset, true, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+                return Search(para.query, para.limit, para.offset, 1, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
             }
             else
             {
@@ -1411,6 +1412,7 @@ namespace JMMServer.API.Module.apiv2
                     }
                 }
 
+                // TODO BigRetroMike WTF?
                 if (ser != null)
                 {
                     ser.UpdateStats(true, true, true);
@@ -1451,19 +1453,65 @@ namespace JMMServer.API.Module.apiv2
             return string.Join(seperator, newItems);
         }
 
+        private static void CheckTitlesFuzzy(AnimeSeries a, string query, ref LinkedHashMap<AnimeSeries, int> distLevenshtein)
+        {
+            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
+            int dist = int.MaxValue;
+            foreach (string title in a.Contract.AniDBAnime.AniDBAnime.AllTitles)
+            {
+                if (string.IsNullOrEmpty(title)) continue;
+                int newDist;
+                int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
+                if (Utils.BitapFuzzySearch(title.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                if (newDist < dist) dist = newDist;
+            }
+            if (dist < int.MaxValue) distLevenshtein.Add(a, dist);
+        }
+
+        private static void CheckTagsFuzzy(AnimeSeries a, string query, ref LinkedHashMap<AnimeSeries, int> distLevenshtein)
+        {
+            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTags == null) return;
+            int dist = int.MaxValue;
+            foreach (string tag in a.Contract.AniDBAnime.AniDBAnime.AllTags)
+            {
+                if (string.IsNullOrEmpty(tag)) continue;
+                int newDist;
+                int k = Math.Min((int) (tag.Length / 6D), (int) (query.Length / 6D));
+                if (Utils.BitapFuzzySearch(tag.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                if (newDist < dist) dist = newDist;
+            }
+            if (dist < int.MaxValue) distLevenshtein.Add(a, dist);
+        }
+
+        private static void CheckCustomTagsFuzzy(AnimeSeries a, string query, ref LinkedHashMap<AnimeSeries, int> distLevenshtein)
+        {
+            if (a?.Contract?.AniDBAnime?.CustomTags == null) return;
+            int dist = int.MaxValue;
+            foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName))
+            {
+                if (string.IsNullOrEmpty(customTag)) continue;
+                int newDist;
+                int k = Math.Min((int) (customTag.Length / 6D), (int) (query.Length / 6D));
+                if (Utils.BitapFuzzySearch(customTag.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                if (newDist < dist) dist = newDist;
+            }
+            if (dist < int.MaxValue) distLevenshtein.Add(a, dist);
+        }
+
         /// <summary>
         /// Internal function that search for given query in name or tag inside series
         /// </summary>
         /// <param name="query">target string</param>
         /// <param name="limit">number of return items</param>
         /// <param name="offset">offset to start from</param>
-        /// <param name="tag_search">True for searching in tags, False for searching in name</param>
+        /// <param name="tagSearch">True for searching in tags, False for searching in name</param>
         /// <param name="uid">user id</param>
         /// <param name="nocast">disable cast</param>
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
-        internal object Search(string query, int limit, int offset, bool tag_search, int uid, int nocast, int notag, int level, int all, bool fuzzy = false)
+        internal object Search(string query, int limit, int offset, int tagSearch, int uid, int nocast, int notag, int level, int all, bool fuzzy = false)
         {
+            query = query.ToLowerInvariant();
             Filter search_filter = new Filter();
             search_filter.name = "Search";
             search_filter.groups = new List<Group>();
@@ -1471,22 +1519,93 @@ namespace JMMServer.API.Module.apiv2
             Group search_group = new Group();
             search_group.name = query;
             search_group.series = new List<Serie>();
-            
-            IEnumerable<AnimeSeries> series = tag_search
-	            ? RepoFactory.AnimeSeries.GetAll()
-		            .Where(
-			            a =>
-				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
-				            (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
-					             StringComparer.InvariantCultureIgnoreCase) ||
-				             a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
-					             .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
-	            : RepoFactory.AnimeSeries.GetAll()
-		            .Where(
-			            a =>
-				            a.Contract?.AniDBAnime?.AniDBAnime != null &&
-				            Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
-					            .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
+
+            List<AnimeSeries> series = new List<AnimeSeries>();
+            ParallelQuery<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel();
+            if (tagSearch == 0) // Search Title Only
+            {
+                if (query.Length >= (IntPtr.Size * 8))
+                {
+                    series = allSeries
+                        .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                                Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
+                                    .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                        .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                        .ToList();
+                }
+                else
+                {
+                    LinkedHashMap<AnimeSeries,int> distLevenshtein = new LinkedHashMap<AnimeSeries, int>();
+                    allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein));
+
+                    series = distLevenshtein.Keys.Where(a => a != null)
+                        .OrderBy(a => distLevenshtein[a])
+                        .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                        .ToList();
+                }
+            }
+            else if (tagSearch == 1) // Search Tag Only
+            {
+                if (query.Length >= IntPtr.Size)
+                {
+                    series = allSeries
+                        .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                                    (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+                                         StringComparer.InvariantCultureIgnoreCase) || a.Contract.AniDBAnime.CustomTags
+                                         .Select(b => b.TagName)
+                                         .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
+                        .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                        .ToList();
+                }
+                else
+                {
+                    LinkedHashMap<AnimeSeries,int> distLevenshtein = new LinkedHashMap<AnimeSeries, int>();
+
+                    allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein));
+                    allSeries.ForAll(a => CheckCustomTagsFuzzy(a, query, ref distLevenshtein));
+
+                    series = distLevenshtein.Keys.Where(a => a != null)
+                        .OrderBy(a => distLevenshtein[a])
+                        .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                        .ToList();
+                }
+            }
+            else // Search Both
+            {
+                if (query.Length >= (IntPtr.Size * 8))
+                {
+                    series = allSeries
+                        .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                                    Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
+                                        .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                        .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                        .ToList();
+                    series.AddRange(allSeries.Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                                                         (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+                                                              StringComparer.InvariantCultureIgnoreCase) || a.Contract
+                                                              .AniDBAnime.CustomTags.Select(b => b.TagName)
+                                                              .Contains(query,
+                                                                  StringComparer.InvariantCultureIgnoreCase)))
+                        .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle));
+                }
+                else
+                {
+                    LinkedHashMap<AnimeSeries,int> distLevenshtein = new LinkedHashMap<AnimeSeries, int>();
+                    allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein));
+
+                    series.AddRange(distLevenshtein.Keys.Where(a => a != null)
+                        .OrderBy(a => distLevenshtein[a])
+                        .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle));
+                    distLevenshtein = new LinkedHashMap<AnimeSeries, int>();
+
+                    allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein));
+                    allSeries.ForAll(a => CheckCustomTagsFuzzy(a, query, ref distLevenshtein));
+
+                    series.AddRange(distLevenshtein.Keys.Where(a => a != null)
+                        .OrderBy(a => distLevenshtein[a])
+                        .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle));
+                }
+            }
 
             foreach (AnimeSeries ser in series)
             {

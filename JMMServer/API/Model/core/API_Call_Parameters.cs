@@ -15,7 +15,15 @@
         /// </summary>
         public int limit { get; set; }
 
+        /// <summary>
+        /// the id of the filter 'this' is or resides in
+        /// </summary>
         public int filter { get; set; }
+
+        /// <summary>
+        /// whether or not to search tags as well in search
+        /// </summary>
+        public int tags { get; set; }
         
         /// <summary>
         /// Disable cast in Serie result

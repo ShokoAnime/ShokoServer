@@ -161,6 +161,83 @@ namespace JMMServer
             return d[n, m];
         }
 
+        private static Regex ASCII = new Regex(@"[^ -~]", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Use the Bitap Fuzzy Algorithm to search for a string
+        /// This is used in grep, for an easy understanding
+        /// ref: https://en.wikipedia.org/wiki/Bitap_algorithm
+        /// source: https://www.programmingalgorithms.com/algorithm/fuzzy-bitap-algorithm
+        /// </summary>
+        /// <param name="text">The string to search</param>
+        /// <param name="pattern">The query to search for</param>
+        /// <param name="k">The maximum distance (in Levenshtein) to be allowed</param>
+        /// <returns></returns>
+        public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
+        {
+            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+            // No it's not perfect, but it works better for those who just want to do lazy searching
+            string inputString = ASCII.Replace(text, "");
+            string query = ASCII.Replace(pattern, "");
+            int result = -1;
+            int m = query.Length;
+            int[] R;
+            int[] patternMask = new int[128];
+            int i, d;
+            dist = k + 1;
+
+            // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
+            int WORD_SIZE = 31;
+            if (IntPtr.Size == 8)
+            {
+                WORD_SIZE = 63;
+            }
+
+            if (string.IsNullOrEmpty(query)) return -1;
+            if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
+
+            R = new int[(k + 1) * sizeof(int)];
+            for (i = 0; i <= k; ++i)
+                R[i] = ~1;
+
+            for (i = 0; i <= 127; ++i)
+                patternMask[i] = ~0;
+
+            for (i = 0; i < m; ++i)
+                patternMask[query[i]] &= ~(1 << i);
+
+            for (i = 0; i < inputString.Length; ++i)
+            {
+                int oldRd1 = R[0];
+
+                R[0] |= patternMask[inputString[i]];
+                R[0] <<= 1;
+
+                for (d = 1; d <= k; ++d)
+                {
+                    int tmp = R[d];
+
+                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
+                    oldRd1 = tmp;
+                }
+
+                if (0 == (R[k] & (1 << m)))
+                {
+                    dist = R[k];
+                    result = (i - m) + 1;
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        public static bool FuzzyMatches(this string text, string query)
+        {
+            int dist;
+            return BitapFuzzySearch(text, query, 2, out dist) > -1;
+        }
+
         /// <summary>
         /// Setup system with needed network settings for JMMServer operation. Will invoke an escalation prompt to user. If changing port numbers please give new and old port.
         /// Do NOT add nancy hosted URLs to this. Nancy has an issue with ServiceHost stealing the reservations, and will handle its URLs itself.
