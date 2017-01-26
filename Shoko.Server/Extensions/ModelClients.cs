@@ -9,6 +9,7 @@ using Pri.LongPath;
 using Shoko.Models;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;

@@ -4861,7 +4861,7 @@ namespace Shoko.Server
                     foreach (Azure_CrossRef_AniDB_TvDB xref in linksToApprove)
                     {
                         AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(
-                            xref.CrossRef_AniDB_TvDBId.Value);
+                            xref.CrossRef_AniDB_TvDBV2ID);
                     }
                     return "Success";
                 }

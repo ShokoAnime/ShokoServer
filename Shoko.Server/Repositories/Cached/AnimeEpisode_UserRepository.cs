@@ -189,10 +189,10 @@ namespace Shoko.Server.Repositories.Cached
                 caep.EpisodeType = aniEp.EpisodeType;
             }
 
-
+            /*
             //TODO if this is needed, calculating it in here will not affect performance
             caep.ReleaseGroups = new List<CL_AniDB_GroupStatus>();
-
+            */
             aeu.Contract = caep;
         }
 

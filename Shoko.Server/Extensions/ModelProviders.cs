@@ -10,6 +10,7 @@ using NHibernate;
 using NLog;
 using Shoko.Models;
 using Shoko.Models.Azure;
+using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;

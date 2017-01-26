@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Server.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.Models;

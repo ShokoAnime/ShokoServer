@@ -1024,7 +1024,7 @@ namespace Shoko.Server.PlexAndKodi
                         {
                             PlexEpisodeType k2 = new PlexEpisodeType();
                             PlexEpisodeType.EpisodeTypeTranslated(k2, ee,
-                                (Shoko.Models.AnimeTypes) cseries.AniDBAnime.AniDBAnime.AnimeType,
+                                (Shoko.Models.Enums.AnimeTypes) cseries.AniDBAnime.AniDBAnime.AnimeType,
                                 episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                             eps.Add(k2);
                         }
@@ -1042,7 +1042,7 @@ namespace Shoko.Server.PlexAndKodi
                             v.ViewedLeafCount = "0";
                             v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
                             v.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
-                            if ((ee.AnimeType == Shoko.Models.AnimeTypes.Movie) || (ee.AnimeType == Shoko.Models.AnimeTypes.OVA))
+                            if ((ee.AnimeType == Shoko.Models.Enums.AnimeTypes.Movie) || (ee.AnimeType == Shoko.Models.Enums.AnimeTypes.OVA))
                             {
                                 v = Helper.MayReplaceVideo(v, ser, cseries, userid, false, nv);
                             }

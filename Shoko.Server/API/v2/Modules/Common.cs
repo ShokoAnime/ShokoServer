@@ -1797,7 +1797,7 @@ namespace Shoko.Server.API.Module.apiv2
                     foreach (enEpisodeType ee in types)
                     {
                         PlexEpisodeType k2 = new PlexEpisodeType();
-                        PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (Shoko.Models.AnimeTypes)cseries.AniDBAnime.AniDBAnime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
+                        PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (Shoko.Models.Enums.AnimeTypes)cseries.AniDBAnime.AniDBAnime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                         eps.Add(k2);
                     }
 

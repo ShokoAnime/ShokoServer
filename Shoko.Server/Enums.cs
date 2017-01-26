@@ -128,11 +128,7 @@ namespace Shoko.Server
 
 
 
-    public enum ImageDownloadEventType
-    {
-        Started = 1,
-        Complete = 2
-    }
+
 
 
     public enum TvDBImageNodeType
@@ -141,27 +137,9 @@ namespace Shoko.Server
         Season = 2
     }
 
-    public enum CrossRefType
-    {
-        MovieDB = 1,
-        MyAnimeList = 2,
-        AnimePlanet = 3,
-        BakaBT = 4,
-        TraktTV = 5,
-        AnimeNano = 6,
-        CrunchRoll = 7,
-        Konachan = 8
-    }
 
-    public enum ScheduledUpdateFrequency
-    {
-        Never = 1,
-        HoursSix = 2,
-        HoursTwelve = 3,
-        Daily = 4,
-        WeekOne = 5,
-        MonthOne = 6
-    }
+
+
 
 
     public enum StatCountType
@@ -171,23 +149,7 @@ namespace Shoko.Server
         Stopped = 3
     }
 
-    public enum DataSourceType
-    {
-        AniDB = 1,
-        TheTvDB = 2
-    }
 
-    public enum TraktActivityAction
-    {
-        Scrobble = 1,
-        Comment = 2
-    }
-
-    public enum TraktActivityType
-    {
-        Episode = 1,
-        Show = 2
-    }
 
     public enum TraktSyncAction
     {
@@ -201,13 +163,6 @@ namespace Shoko.Server
         Short = 2
     }
 
-    public enum FileSearchCriteria
-    {
-        Name = 1,
-        Size = 2,
-        LastOneHundred = 3,
-        ED2KHash = 4
-    }
 
     public enum FileHashType
     {

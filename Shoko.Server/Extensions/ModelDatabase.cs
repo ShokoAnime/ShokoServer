@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using NHibernate;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;

@@ -14,6 +14,7 @@ using Shoko.Server.Repositories.NHibernate;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Commons.Extensions;
+ using Shoko.Models.Enums;
  using Shoko.Server.Commands;
  using Shoko.Server.Commands.AniDB;
  using Shoko.Server.Commands.Azure;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Models.Azure;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 

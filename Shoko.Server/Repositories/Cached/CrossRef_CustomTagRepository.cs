@@ -7,6 +7,7 @@ using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Models;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server.Repositories
 {

@@ -15,6 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Shoko.Models.Server;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 

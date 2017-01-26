@@ -5,6 +5,7 @@ using System.Windows;
 using FluentNHibernate.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 

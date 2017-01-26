@@ -11,6 +11,7 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;

@@ -28,6 +28,7 @@ using Nancy.Hosting.Self;
 using Action = System.Action;
 using System.Net.NetworkInformation;
 using Nancy.Rest.Module;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;

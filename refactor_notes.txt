@@ -1,2 +1,4 @@
 AniDB_Vote for client are multipled by 10.
 Azure_CrossRef_AniDB_MAL -> ID Changed From CrossRef_AniDB_MALId to CrossRef_AniDB_MALID
+Azure_CrossRef_AniDB_TVDB2 -> From Id -> ID
+

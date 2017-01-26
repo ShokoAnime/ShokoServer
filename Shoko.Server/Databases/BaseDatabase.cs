@@ -9,6 +9,7 @@ using Shoko.Models.Server;
 using NHibernate.Util;
 using NLog;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 

@@ -15,6 +15,7 @@ using NHibernate;
 using NLog;
 using System.Windows;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server;

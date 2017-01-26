@@ -20,6 +20,7 @@ using Directory = Pri.LongPath.Directory;
 using DirectoryInfo = Pri.LongPath.DirectoryInfo;
 using File = Pri.LongPath.File;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server
 {

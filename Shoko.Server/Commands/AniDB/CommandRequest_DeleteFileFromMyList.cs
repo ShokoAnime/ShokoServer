@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Threading;
 using System.Xml;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
@@ -60,7 +61,7 @@ namespace Shoko.Server.Commands
             {
                 switch (ServerSettings.AniDB_MyList_DeleteType)
                 {
-                    case AniDBAPI.AniDBFileDeleteType.Delete:
+                    case AniDBFileDeleteType.Delete:
                         if (FileID > 0)
                             ShokoService.AnidbProcessor.DeleteFileFromMyList(FileID);
                         else
@@ -69,7 +70,7 @@ namespace Shoko.Server.Commands
                         logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
                         break;
 
-                    case AniDBAPI.AniDBFileDeleteType.MarkDeleted:
+                    case AniDBFileDeleteType.MarkDeleted:
                         if (FileID < 0)
                         {
                             ShokoService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
@@ -77,7 +78,7 @@ namespace Shoko.Server.Commands
                         }
                         break;
 
-                    case AniDBAPI.AniDBFileDeleteType.MarkUnknown:
+                    case AniDBFileDeleteType.MarkUnknown:
                         if (FileID < 0)
                         {
                             ShokoService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
@@ -85,7 +86,7 @@ namespace Shoko.Server.Commands
                         }
                         break;
 
-                    case AniDBAPI.AniDBFileDeleteType.DeleteLocalOnly:
+                    case AniDBFileDeleteType.DeleteLocalOnly:
                         logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}",
                             Hash, FileID);
                         break;
@@ -100,8 +101,8 @@ namespace Shoko.Server.Commands
                 }
 
 
-                if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete ||
-                    ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.MarkDeleted)
+                if (ServerSettings.AniDB_MyList_DeleteType == AniDBFileDeleteType.Delete ||
+                    ServerSettings.AniDB_MyList_DeleteType == AniDBFileDeleteType.MarkDeleted)
                 {
                     /*VideoLocalRepository repVids = new VideoLocalRepository();
                     VideoLocal vid = repVids.GetByHash(this.Hash);

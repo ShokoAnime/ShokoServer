@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;

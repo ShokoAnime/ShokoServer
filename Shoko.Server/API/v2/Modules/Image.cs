@@ -7,6 +7,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Server.API.Model.core;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;

@@ -8,6 +8,7 @@ using NHibernate;
 using NHibernate.Persister.Entity;
 using Shoko.Models;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Server.Models;
 
 namespace Shoko.Server
