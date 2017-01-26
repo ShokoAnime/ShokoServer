@@ -1457,7 +1457,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID,
-                    para.nocast, para.notag, para.level, para.fuzzy);
+                    para.nocast, para.notag, para.level, para.all, para.fuzzy);
             }
             else
             {
@@ -1482,7 +1482,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, 1, user.JMMUserID, para.nocast,
-                    para.notag, para.level, para.all);
+                    para.notag, para.level, para.all, para.fuzzy);
             }
             else
             {
@@ -1683,7 +1683,7 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
         internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast,
-            bool notag, int level, bool all, bool fuzzy = false)
+            bool notag, int level, bool all, bool fuzzy)
         {
             query = query.ToLowerInvariant();
             Filter search_filter = new Filter();
