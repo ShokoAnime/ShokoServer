@@ -17,6 +17,7 @@ using JMMContracts.PlexAndKodi;
 using AniDBAPI;
 using System.IO;
 using NHibernate.Util;
+using NLog;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -164,6 +165,8 @@ namespace JMMServer.API.Module.apiv2
 			
 			#region 12. Groups
             Get["/group"] = _ => { return GetGroups(); };
+            Get["/group/watch"] = _ => { return MarkGroupAsWatched(); };
+            Get["/group/unwatch"] = _ => { return MarkGroupAsUnwatched(); };
             #endregion
 
         }
@@ -1033,7 +1036,7 @@ namespace JMMServer.API.Module.apiv2
                 AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (ep == null) { return APIStatus.notFound404(); }
                 ep.ToggleWatchedStatus(status, true, DateTime.Now, false, false, uid, true);
-                ep.GetAnimeSeries().UpdateStats(true, false, true);
+                ep.GetAnimeSeries()?.UpdateStats(true, false, true);
                 return APIStatus.statusOK();
             }
             catch (Exception ex)
@@ -1232,7 +1235,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Handle /api/serie/watch
         /// </summary>
-        /// <returns>APIStatus<Serie></returns>  
+        /// <returns>APIStatus</returns>
         private object MarkSerieAsWatched()
         {
             Request request = this.Request;
@@ -1249,7 +1252,7 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
-        /// Handle /api/serie/watch
+        /// Handle /api/serie/unwatch
         /// </summary>
         /// <returns>APIStatus</returns>  
         private object MarkSerieAsUnwatched()
@@ -1390,9 +1393,10 @@ namespace JMMServer.API.Module.apiv2
         {
             try
             {
-                List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(id);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+                if (ser == null) return APIStatus.badRequest("Series not Found");
 
-                foreach (AnimeEpisode ep in eps)
+                foreach (AnimeEpisode ep in ser.GetAnimeEpisodes())
                 {
                     AnimeEpisode_User epUser = ep.GetUserRecord(uid);
                     if (epUser != null)
@@ -1410,6 +1414,8 @@ namespace JMMServer.API.Module.apiv2
                         }
                     }
                 }
+
+                ser.UpdateStats(true, true, true);
 
                 return APIStatus.statusOK();
             }
@@ -2423,6 +2429,44 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
+        /// <summary>
+        /// Handle /api/group/watch
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object MarkGroupAsWatched()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            if (para.id != 0)
+            {
+                return MarkWatchedStatusOnGroup(para.id, user.JMMUserID, true);
+            }
+            else
+            {
+                return APIStatus.badRequest("missing 'id'");
+            }
+        }
+
+        /// <summary>
+        /// Handle /api/group/unwatch
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object MarkGroupAsUnwatched()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            if (para.id != 0)
+            {
+                return MarkWatchedStatusOnGroup(para.id, user.JMMUserID, false);
+            }
+            else
+            {
+                return APIStatus.badRequest("missing 'id'");
+            }
+        }
+
         #region internal function
 
         internal object GetAllGroups(int uid, int nocast, int notag, int level, int all)
@@ -2444,6 +2488,40 @@ namespace JMMServer.API.Module.apiv2
             AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
             API.Model.common.Group gr = new API.Model.common.Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
             return gr;
+        }
+
+        internal object MarkWatchedStatusOnGroup(int groupid, int userid,
+            bool watchedstatus)
+        {
+            try
+            {
+                AnimeGroup group = RepoFactory.AnimeGroup.GetByID(groupid);
+                if (group == null)
+                {
+                    return APIStatus.notFound404("Group not Found");
+                }
+
+                foreach(AnimeSeries series in group.GetAllSeries())
+                {
+                    foreach(AnimeEpisode ep in series.GetAnimeEpisodes())
+                    {
+                        if (ep?.EpisodeTypeEnum == enEpisodeType.Credits) continue;
+                        if (ep?.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+
+                        ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, false, userid, true);
+                    }
+                    series.UpdateStats(true, false, false);
+                }
+                group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+
+                return APIStatus.statusOK();
+            }
+            catch (Exception ex)
+            {
+                APIStatus.internalError("Internal Error : " + ex);
+                LogManager.GetCurrentClassLogger().Error( ex,ex.ToString());
+            }
+            return APIStatus.badRequest();
         }
 
         #endregion
