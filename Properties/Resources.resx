@@ -1,0 +1,4477 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AirDate" xml:space="preserve">
+    <value>Air Date</value>
+  </data>
+  <data name="AniDBRating" xml:space="preserve">
+    <value>AniDB Rating</value>
+  </data>
+  <data name="AniDBVoteCount" xml:space="preserve">
+    <value>AniDB Vote Count</value>
+  </data>
+  <data name="Anime_Episodes" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="EpisodeType" xml:space="preserve">
+    <value>Episode Type</value>
+  </data>
+  <data name="EpisodeType_Credits" xml:space="preserve">
+    <value>Credits</value>
+  </data>
+  <data name="EpisodeType_Normal" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="EpisodeType_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="EpisodeType_Parody" xml:space="preserve">
+    <value>Parody</value>
+  </data>
+  <data name="EpisodeType_Specials" xml:space="preserve">
+    <value>Specials</value>
+  </data>
+  <data name="EpisodeType_Trailer" xml:space="preserve">
+    <value>Trailers</value>
+  </data>
+  <data name="Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="GroupFilter_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="GroupFilter_Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="IsWatched" xml:space="preserve">
+    <value>Is Watched</value>
+  </data>
+  <data name="MyRating" xml:space="preserve">
+    <value>MyRating</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="RunTime" xml:space="preserve">
+    <value>Run Time</value>
+  </data>
+  <data name="SortName" xml:space="preserve">
+    <value>Sort Name</value>
+  </data>
+  <data name="Series" xml:space="preserve">
+    <value>Series</value>
+  </data>
+  <data name="TAB_Config" xml:space="preserve">
+    <value>Config</value>
+  </data>
+  <data name="TAB_Episodes" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="TAB_FileManager" xml:space="preserve">
+    <value>File Manager</value>
+  </data>
+  <data name="TAB_Images" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="TAB_Relations" xml:space="preserve">
+    <value>Relations</value>
+  </data>
+  <data name="TAB_SeriesEpisodes" xml:space="preserve">
+    <value>Collection</value>
+  </data>
+  <data name="TAB_Server" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="TAB_TvDB" xml:space="preserve">
+    <value>TvDB</value>
+  </data>
+  <data name="ViewLabel" xml:space="preserve">
+    <value>View:</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="RunImport" xml:space="preserve">
+    <value>Run Import</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="AnimeTitles" xml:space="preserve">
+    <value>Titles</value>
+  </data>
+  <data name="AnimeTitlesMain" xml:space="preserve">
+    <value>Main Title</value>
+  </data>
+  <data name="AnimeTitlesOfficial" xml:space="preserve">
+    <value>Official</value>
+  </data>
+  <data name="AnimeTitlesShort" xml:space="preserve">
+    <value>Short</value>
+  </data>
+  <data name="AnimeTitlesSynonym" xml:space="preserve">
+    <value>Synonym</value>
+  </data>
+  <data name="Categories" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>Tags ( May Contain Spoilers )</value>
+  </data>
+  <data name="CategoryWeighting" xml:space="preserve">
+    <value>Weighting</value>
+  </data>
+  <data name="TagApproval" xml:space="preserve">
+    <value>Approval</value>
+  </data>
+  <data name="Episodes_AvAll" xml:space="preserve">
+    <value>All Episodes</value>
+  </data>
+  <data name="Episodes_AvMissing" xml:space="preserve">
+    <value>No Files Aavailable</value>
+  </data>
+  <data name="Episodes_AvOnly" xml:space="preserve">
+    <value>Available Files Only</value>
+  </data>
+  <data name="Episodes_Watched_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Episodes_Watched_Unwatched" xml:space="preserve">
+    <value>Unwatched</value>
+  </data>
+  <data name="Episodes_Watched_Watched" xml:space="preserve">
+    <value>Watched</value>
+  </data>
+  <data name="Play" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="Tooltip_FileFound" xml:space="preserve">
+    <value>This file is available</value>
+  </data>
+  <data name="Tooltip_FileNotFound" xml:space="preserve">
+    <value>This file does not exist</value>
+  </data>
+  <data name="Tooltip_FutureDated" xml:space="preserve">
+    <value>This episode has not aired yet</value>
+  </data>
+  <data name="Tooltip_Unwatched" xml:space="preserve">
+    <value>Unwatched - Click to mark as watched</value>
+  </data>
+  <data name="Tooltip_Watched" xml:space="preserve">
+    <value>Watched - Click to mark as unwatched</value>
+  </data>
+  <data name="Tooltip_ZeroFiles" xml:space="preserve">
+    <value>There are no files available for this episode</value>
+  </data>
+  <data name="Unwatched" xml:space="preserve">
+    <value>Unwatched</value>
+  </data>
+  <data name="Watched" xml:space="preserve">
+    <value>Watched</value>
+  </data>
+  <data name="Rating" xml:space="preserve">
+    <value>Rating</value>
+  </data>
+  <data name="Votes" xml:space="preserve">
+    <value>Votes</value>
+  </data>
+  <data name="AnimeType_Movie" xml:space="preserve">
+    <value>Movie</value>
+  </data>
+  <data name="AnimeType_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="AnimeType_OVA" xml:space="preserve">
+    <value>OVA</value>
+  </data>
+  <data name="AnimeType_TVSeries" xml:space="preserve">
+    <value>TV Series</value>
+  </data>
+  <data name="AnimeType_TVSpecial" xml:space="preserve">
+    <value>TV Special</value>
+  </data>
+  <data name="AnimeType_Web" xml:space="preserve">
+    <value>Web</value>
+  </data>
+  <data name="Ongoing" xml:space="preserve">
+    <value>Ongoing</value>
+  </data>
+  <data name="To" xml:space="preserve">
+    <value>to</value>
+  </data>
+  <data name="LastWatched" xml:space="preserve">
+    <value>Last Watched</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Yesterday" xml:space="preserve">
+    <value>Yesterday</value>
+  </data>
+  <data name="GroupsAvailableFrom" xml:space="preserve">
+    <value>Available from:</value>
+  </data>
+  <data name="Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="Tooltip_MissingEps" xml:space="preserve">
+    <value>Missing episodes from all release groups</value>
+  </data>
+  <data name="Tooltip_MissingEpsGroups" xml:space="preserve">
+    <value>Missing episodes from release groups that I am collecting</value>
+  </data>
+  <data name="Tooltip_QueueImages" xml:space="preserve">
+    <value>Images Awaiting Download</value>
+  </data>
+  <data name="Anime_Specials" xml:space="preserve">
+    <value>Specials</value>
+  </data>
+  <data name="GroupFilter_Missing" xml:space="preserve">
+    <value>Missing Episodes</value>
+  </data>
+  <data name="RemoveMissingFiles" xml:space="preserve">
+    <value>Remove Missing Files</value>
+  </data>
+  <data name="ServerActions" xml:space="preserve">
+    <value>Server Actions</value>
+  </data>
+  <data name="NewGroup" xml:space="preserve">
+    <value>New Group</value>
+  </data>
+  <data name="AllFilters" xml:space="preserve">
+    <value>All Filters</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Group" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="AddSubGroup" xml:space="preserve">
+    <value>New Sub Group</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SubGroup" xml:space="preserve">
+    <value>Sub Group</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="NewSeries" xml:space="preserve">
+    <value>New Series</value>
+  </data>
+  <data name="MoveSeries" xml:space="preserve">
+    <value>Move Series</value>
+  </data>
+  <data name="MoveToGroup" xml:space="preserve">
+    <value>Move to the Selected Group</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="QueueGeneral" xml:space="preserve">
+    <value>AniDB Queue</value>
+  </data>
+  <data name="QueueHasher" xml:space="preserve">
+    <value>Hasher Queue</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>AniDB Commands in Queue</value>
+  </data>
+  <data name="Tooltip_QueueHasher" xml:space="preserve">
+    <value>Files Waiting to be Hashed</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Video_Bluray" xml:space="preserve">
+    <value>Bluray</value>
+  </data>
+  <data name="Video_DVD" xml:space="preserve">
+    <value>DVD</value>
+  </data>
+  <data name="Video_FullHD" xml:space="preserve">
+    <value>Full HD</value>
+  </data>
+  <data name="Video_HD" xml:space="preserve">
+    <value>HD</value>
+  </data>
+  <data name="NewFolder" xml:space="preserve">
+    <value>New Folder</value>
+  </data>
+  <data name="DropDestination" xml:space="preserve">
+    <value>Drop Destination</value>
+  </data>
+  <data name="DropSource" xml:space="preserve">
+    <value>Drop Source</value>
+  </data>
+  <data name="ImportFolderName" xml:space="preserve">
+    <value>Import Folder Name</value>
+  </data>
+  <data name="ImportFolderPath" xml:space="preserve">
+    <value>Import Folder Path</value>
+  </data>
+  <data name="LocalMapping" xml:space="preserve">
+    <value>Local Mapping</value>
+  </data>
+  <data name="LocalPath" xml:space="preserve">
+    <value>Local Path</value>
+  </data>
+  <data name="ServerDetails" xml:space="preserve">
+    <value>Server Details</value>
+  </data>
+  <data name="MSG_ERR_DropSourceDestCheck" xml:space="preserve">
+    <value>An import folder cannot be both the drop source and the drop destination</value>
+  </data>
+  <data name="MSG_ERR_ImportFolderLocationCheck" xml:space="preserve">
+    <value>The import folder location cannot be blank. Enter a valid path on Shoko Server</value>
+  </data>
+  <data name="TAB_UnrecognisedFiles" xml:space="preserve">
+    <value>Unrecognized</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="NothingSelected" xml:space="preserve">
+    <value>Nothing Selected</value>
+  </data>
+  <data name="SelectSeriesEp" xml:space="preserve">
+    <value>Select a Series and Episode</value>
+  </data>
+  <data name="AssociateFile" xml:space="preserve">
+    <value>Link a file with an episode</value>
+  </data>
+  <data name="Ignore" xml:space="preserve">
+    <value>Ignore</value>
+  </data>
+  <data name="OpenFolder" xml:space="preserve">
+    <value>Open Folder</value>
+  </data>
+  <data name="MSG_ERR_FileNotFound" xml:space="preserve">
+    <value>The file could not be found</value>
+  </data>
+  <data name="FilesSelected" xml:space="preserve">
+    <value>Files Selected</value>
+  </data>
+  <data name="StartingEpisodeNumber" xml:space="preserve">
+    <value>Starting Episode Number</value>
+  </data>
+  <data name="Existing" xml:space="preserve">
+    <value>Existing</value>
+  </data>
+  <data name="SelectGroup" xml:space="preserve">
+    <value>Select Group Type</value>
+  </data>
+  <data name="SelectAnime" xml:space="preserve">
+    <value>Select Anime from AniDB</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="GroupName" xml:space="preserve">
+    <value>Group Name</value>
+  </data>
+  <data name="AniDBID" xml:space="preserve">
+    <value>AniDB ID</value>
+  </data>
+  <data name="MSG_ERR_AnimeIDRequired" xml:space="preserve">
+    <value>Please enter a valid AniDB Anime ID</value>
+  </data>
+  <data name="MSG_ERR_AnimeSelectionRequired" xml:space="preserve">
+    <value>Please select an existing anime</value>
+  </data>
+  <data name="MSG_ERR_GroupNameRequired" xml:space="preserve">
+    <value>Please enter a group name</value>
+  </data>
+  <data name="MSG_ERR_GroupSelectionRequired" xml:space="preserve">
+    <value>Please select an existing group</value>
+  </data>
+  <data name="MSG_ERR_InvalidEpGetAnime" xml:space="preserve">
+    <value>The episode number range you entered is not valid, do you want to refresh the data from AniDB?</value>
+  </data>
+  <data name="MSG_ERR_InvalidEp" xml:space="preserve">
+    <value>The Episode range you have entered is not valid.</value>
+  </data>
+  <data name="DeleteLink" xml:space="preserve">
+    <value>Delete Link</value>
+  </data>
+  <data name="Tooltip_DeleteLink" xml:space="preserve">
+    <value>Remove link between this file and the episode.</value>
+  </data>
+  <data name="TAB_IgnoredFiles" xml:space="preserve">
+    <value>Ignored</value>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="TAB_ManuallyLinked" xml:space="preserve">
+    <value>Manually Linked</value>
+  </data>
+  <data name="AniDBLogin" xml:space="preserve">
+    <value>AniDB Login</value>
+  </data>
+  <data name="Client" xml:space="preserve">
+    <value>Client</value>
+  </data>
+  <data name="ImportFolders" xml:space="preserve">
+    <value>Import Folders</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Server</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Server" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="ServerPath" xml:space="preserve">
+    <value>Server Path</value>
+  </data>
+  <data name="TAB_SettingsAniDB" xml:space="preserve">
+    <value>AniDB</value>
+  </data>
+  <data name="TAB_SettingsDisplay" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="TAB_SettingsEssential" xml:space="preserve">
+    <value>Essential</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB" xml:space="preserve">
+    <value>Community Sites</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="TestAndSave" xml:space="preserve">
+    <value>Test And Save</value>
+  </data>
+  <data name="Success" xml:space="preserve">
+    <value>Success!</value>
+  </data>
+  <data name="Info_SettingsEssential" xml:space="preserve">
+    <value>The essentials panel contains all settings that are required to run Shoko. For the Shoko Server and AniDB Login sections, you'll need to click the "Test And Save" button to save any changes you make. </value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Tooltip_GroupSearch" xml:space="preserve">
+    <value>Search groups by name (in any language), category or tag</value>
+  </data>
+  <data name="AniDBDownloadChar" xml:space="preserve">
+    <value>Download Characters/Creators</value>
+  </data>
+  <data name="AniDBDownloadOptions" xml:space="preserve">
+    <value>AniDB Download Options</value>
+  </data>
+  <data name="AniDBDownloadRelated" xml:space="preserve">
+    <value>Download Related Anime</value>
+  </data>
+  <data name="AniDBDownloadReleaseGroups" xml:space="preserve">
+    <value>Download Release Groups</value>
+  </data>
+  <data name="AniDBDownloadReviews" xml:space="preserve">
+    <value>Download Reviews</value>
+  </data>
+  <data name="AniDBDownloadSimilar" xml:space="preserve">
+    <value>Download Similar Anime</value>
+  </data>
+  <data name="AniDBMyListAddFiles" xml:space="preserve">
+    <value>Add Files</value>
+  </data>
+  <data name="AniDBMylistOptions" xml:space="preserve">
+    <value>AniDB MyList Options</value>
+  </data>
+  <data name="AniDBMyListReadUnwatched" xml:space="preserve">
+    <value>Read Unwatched</value>
+  </data>
+  <data name="AniDBMyListReadWatched" xml:space="preserve">
+    <value>Read Watched</value>
+  </data>
+  <data name="AniDBMyListSetUnwatched" xml:space="preserve">
+    <value>Set Unwatched</value>
+  </data>
+  <data name="AniDBMyListSetWatched" xml:space="preserve">
+    <value>Set Watched</value>
+  </data>
+  <data name="AniDBMyListState" xml:space="preserve">
+    <value>Storage State</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadChar" xml:space="preserve">
+    <value>Download information and images about the characters and seiyuu that appear in anime</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadRelated" xml:space="preserve">
+    <value>When downloading information about an anime, also download information about all the related anime. This is needed to properly group related anime during the import process.</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadReleaseGroups" xml:space="preserve">
+    <value>Download detailed information about the release/subbing groups for your anime</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadReviews" xml:space="preserve">
+    <value>Downloaded anime reviews by AniDB users</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadSimilar" xml:space="preserve">
+    <value>When downloading information about an anime, also download information about similar and recommended titles</value>
+  </data>
+  <data name="Tooltip_AniDBMyListAddFiles" xml:space="preserve">
+    <value>If selected when importing files, the files will be added to your AniDB account</value>
+  </data>
+  <data name="Tooltip_AniDBMyListReadUnwatched" xml:space="preserve">
+    <value>If the file is set as un-watched on AniDB, it will also be set as un-watched on your local collection</value>
+  </data>
+  <data name="Tooltip_AniDBMyListReadWatched" xml:space="preserve">
+    <value>If the file is set as watched on AniDB, it will also be set as watched on your local collection</value>
+  </data>
+  <data name="Tooltip_AniDBMyListSetUnwatched" xml:space="preserve">
+    <value>When you manually mark a video as watched, AniDB will also be updated</value>
+  </data>
+  <data name="Tooltip_AniDBMyListSetWatched" xml:space="preserve">
+    <value>When you finish watching a video, or manually mark a video as watched, AniDB will also be updated</value>
+  </data>
+  <data name="Tooltip_AniDBMyListState" xml:space="preserve">
+    <value>The storage state files will be set to when added to your list</value>
+  </data>
+  <data name="SyncMyList" xml:space="preserve">
+    <value>Sync AniDB MyList</value>
+  </data>
+  <data name="Rehash" xml:space="preserve">
+    <value>Rehash</value>
+  </data>
+  <data name="MSG_INFO_AddedQueueCmds" xml:space="preserve">
+    <value>Command(s) have been added to queue</value>
+  </data>
+  <data name="MultiTypeRange" xml:space="preserve">
+    <value>Episode Range</value>
+    <comment>Used when associating multiple files to an episode</comment>
+  </data>
+  <data name="MultiTypeSingle" xml:space="preserve">
+    <value>Single Episode</value>
+    <comment>Used when associating multiple files to an episode</comment>
+  </data>
+  <data name="AniDBScheduleCalendar" xml:space="preserve">
+    <value>Automatically Update Calendar</value>
+  </data>
+  <data name="AniDBScheduleHTTP" xml:space="preserve">
+    <value>Automatically Update Anime and Episode Information</value>
+  </data>
+  <data name="AniDBScheduleMyList" xml:space="preserve">
+    <value>Automatically Sync MyList information</value>
+  </data>
+  <data name="AniDBScheduleOptions" xml:space="preserve">
+    <value>Scheduled Updates</value>
+  </data>
+  <data name="Tooltip_AniDBScheduleCalendar" xml:space="preserve">
+    <value>Download information about upcoming anime.</value>
+  </data>
+  <data name="Tooltip_AniDBScheduleHTTP" xml:space="preserve">
+    <value>Update information about anime, and get new episode information. Only data which has changed since the last updated will be downloaded.</value>
+  </data>
+  <data name="Tooltip_AniDBScheduleMyList" xml:space="preserve">
+    <value>Sync information from AniDB according to the options specified in the MyList section.</value>
+  </data>
+  <data name="TAB_SettingsWebCache" xml:space="preserve">
+    <value>Web Cache</value>
+  </data>
+  <data name="DetailedInformationLink" xml:space="preserve">
+    <value>Follow this link for an in depth explanation</value>
+  </data>
+  <data name="Get" xml:space="preserve">
+    <value>Get</value>
+  </data>
+  <data name="Info_SettingsWebCache" xml:space="preserve">
+    <value>The web cache is an online database created by the developers of Shoko and MyAnime. It's purpose is to fill in the gaps which other databases don't cater for, and also make the import process quicker by sharing information with other users of Shoko.</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Tooltip_WebCache_Anonymous" xml:space="preserve">
+    <value>By selecting this option your AniDB username will not be sent to the web cache. However this means you will not get the benefit of remembering your own personal selections.</value>
+  </data>
+  <data name="Tooltip_WebCache_FileEpisodes" xml:space="preserve">
+    <value>When files do not appear in AniDB, the web cache may have information about the episode relating to that file. This is especially useful when you manually link files and don't want to lose that information.</value>
+  </data>
+  <data name="Tooltip_WebCache_FileHashes" xml:space="preserve">
+    <value>Try getting the file hash from the web cache before hashing locally. This can save a lot of time when importing.</value>
+  </data>
+  <data name="Tooltip_WebCache_TvDBAssociations" xml:space="preserve">
+    <value>Use the web cache to look up links between AniDB and TvDB. If not selected you will need to manually search for all TvDB links.</value>
+  </data>
+  <data name="TvDB_FanartAutoDownload" xml:space="preserve">
+    <value>Auto Download Fanart</value>
+  </data>
+  <data name="TvDB_FanartCount" xml:space="preserve">
+    <value>Maximum Fanarts</value>
+  </data>
+  <data name="TvDB_PosterAutoDownload" xml:space="preserve">
+    <value>Auto Download Posters</value>
+  </data>
+  <data name="TvDB_WideBannerAutoDownload" xml:space="preserve">
+    <value>Auto Download Wide Banners</value>
+  </data>
+  <data name="WebCache_Anonymous" xml:space="preserve">
+    <value>Stay Anonymous</value>
+  </data>
+  <data name="WebCache_FileEpisodes" xml:space="preserve">
+    <value>File to Episode Links</value>
+  </data>
+  <data name="WebCache_FileHashes" xml:space="preserve">
+    <value>File Hashes</value>
+  </data>
+  <data name="WebCache_TvDBAssociations" xml:space="preserve">
+    <value>TvDB Links</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_MovieDB" xml:space="preserve">
+    <value>The Movie DB</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_TvDB" xml:space="preserve">
+    <value>The TvDB</value>
+  </data>
+  <data name="Tooltip_TvDB_FanartAutoDownload" xml:space="preserve">
+    <value>Automatically download new fanart whenever a import is performed.</value>
+  </data>
+  <data name="Tooltip_TvDB_FanartCount" xml:space="preserve">
+    <value>The maximum amount of fanart images to download</value>
+  </data>
+  <data name="Tooltip_TvDB_PosterAutoDownload" xml:space="preserve">
+    <value>Automatically download new posters whenever a import is performed.</value>
+  </data>
+  <data name="Tooltip_TvDB_WideBannerAutoDownload" xml:space="preserve">
+    <value>Automatically download new wide banners whenever a import is performed.</value>
+  </data>
+  <data name="ImportSettings_ImportOnStart" xml:space="preserve">
+    <value>Import on start</value>
+  </data>
+  <data name="ImportSettings_VideoExtensions" xml:space="preserve">
+    <value>Video Extensions</value>
+  </data>
+  <data name="ImportSettings_WatchFiles" xml:space="preserve">
+    <value>Watch For New Files</value>
+  </data>
+  <data name="MovieDB_FanartAutoDownload" xml:space="preserve">
+    <value>Auto Download Fanart</value>
+  </data>
+  <data name="MovieDB_FanartCount" xml:space="preserve">
+    <value>Maximum Fanarts</value>
+  </data>
+  <data name="MovieDB_PosterAutoDownload" xml:space="preserve">
+    <value>Auto Download Posters</value>
+  </data>
+  <data name="TAB_Settings_ImportSettings" xml:space="preserve">
+    <value>Import Settings</value>
+  </data>
+  <data name="Tooltip_MovieDB_FanartAutoDownload" xml:space="preserve">
+    <value>Automatically download new fanart whenever a import is performed.</value>
+  </data>
+  <data name="Tooltip_MovieDB_FanartCount" xml:space="preserve">
+    <value>The maximum amount of fanart images to download</value>
+  </data>
+  <data name="Tooltip_MovieDB_PosterAutoDownload" xml:space="preserve">
+    <value>Automatically download new posters whenever a import is performed.</value>
+  </data>
+  <data name="Down" xml:space="preserve">
+    <value>Down</value>
+  </data>
+  <data name="Language_UseSynonyms" xml:space="preserve">
+    <value>Also Use Synonyms</value>
+  </data>
+  <data name="TAB_Settings_Language" xml:space="preserve">
+    <value>Language Preference for Group/Series Naming</value>
+  </data>
+  <data name="Tooltip_LanguageUseSynonyms" xml:space="preserve">
+    <value>Also use synonyms from selected preferred language for display of series and groups. English and Romaji synonyms will not be used</value>
+  </data>
+  <data name="Up" xml:space="preserve">
+    <value>Up</value>
+  </data>
+  <data name="GroupFilterConditions" xml:space="preserve">
+    <value>Filter Conditions</value>
+  </data>
+  <data name="GroupFilterConditionType" xml:space="preserve">
+    <value>Condition Type</value>
+  </data>
+  <data name="GroupFilterConditionType_AirDate" xml:space="preserve">
+    <value>AirDate</value>
+  </data>
+  <data name="GroupFilterConditionType_AllEpisodesWatched" xml:space="preserve">
+    <value>All Episodes Watched</value>
+  </data>
+  <data name="GroupFilterConditionType_AnimeGroup" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="GroupFilterConditionType_AnimeType" xml:space="preserve">
+    <value>Anime Type</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedTvDBInfo" xml:space="preserve">
+    <value>Has TvDB Link</value>
+  </data>
+  <data name="GroupFilterConditionType_Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="GroupFilterConditionType_CompletedSeries" xml:space="preserve">
+    <value>Completed Series</value>
+  </data>
+  <data name="GroupFilterConditionType_Favourite" xml:space="preserve">
+    <value>Favourite</value>
+  </data>
+  <data name="GroupFilterConditionType_HasUnwatchedEpisodes" xml:space="preserve">
+    <value>Has Unwatched Episodes</value>
+  </data>
+  <data name="GroupFilterConditionType_MissingEpisodes" xml:space="preserve">
+    <value>Missing Episodes</value>
+  </data>
+  <data name="GroupFilterConditionType_ReleaseGroup" xml:space="preserve">
+    <value>Release Group</value>
+  </data>
+  <data name="GroupFilterConditionType_Studio" xml:space="preserve">
+    <value>Studio</value>
+  </data>
+  <data name="GroupFilterConditionType_Tag" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="GroupFilterConditionType_UserVoted" xml:space="preserve">
+    <value>User Voted (Perm)</value>
+  </data>
+  <data name="GroupFilterConditionType_VideoQuality" xml:space="preserve">
+    <value>Video Quality</value>
+  </data>
+  <data name="GroupFilterOperator" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="GroupFilterOperator_Equals" xml:space="preserve">
+    <value>Equals</value>
+  </data>
+  <data name="GroupFilterOperator_Exclude" xml:space="preserve">
+    <value>Exclude</value>
+  </data>
+  <data name="GroupFilterOperator_GreaterThan" xml:space="preserve">
+    <value>Greater Than or Equal To</value>
+  </data>
+  <data name="GroupFilterOperator_Include" xml:space="preserve">
+    <value>Include</value>
+  </data>
+  <data name="GroupFilterOperator_LessThan" xml:space="preserve">
+    <value>Less Than or Equal To</value>
+  </data>
+  <data name="GroupFilterOperator_NotEquals" xml:space="preserve">
+    <value>Not Equals</value>
+  </data>
+  <data name="GroupFilterSorting" xml:space="preserve">
+    <value>Sorting</value>
+  </data>
+  <data name="ImageSize_GroupList" xml:space="preserve">
+    <value>Group and Series List</value>
+  </data>
+  <data name="ImageSize_SeriesPoster" xml:space="preserve">
+    <value>Series Poster</value>
+  </data>
+  <data name="ImageSize_SubGroupList" xml:space="preserve">
+    <value>Sub Groups List and Series</value>
+  </data>
+  <data name="Info_SettingsLanguage" xml:space="preserve">
+    <value>Set the language or languages used for naming when groups or series are added to your collection. These titles are pulled directly from AniDB so outside of English, Romaji or Kanji; not all groups or series will have additional titles available. To use synonyms listed on AniDB make sure to check “Also Use Synonyms” and to rename existing groups and series make sure to click “Rename All Groups/Series” once you’re done.</value>
+  </data>
+  <data name="MSG_ERR_SelectDate" xml:space="preserve">
+    <value>Select a date first</value>
+  </data>
+  <data name="NewGroupFilter" xml:space="preserve">
+    <value>New Group Filter</value>
+  </data>
+  <data name="Language_Rename" xml:space="preserve">
+    <value>Rename All Groups/Series</value>
+  </data>
+  <data name="Style_GroupList" xml:space="preserve">
+    <value>Group List</value>
+  </data>
+  <data name="Style_GroupList_MediumDetail" xml:space="preserve">
+    <value>Medium Detail</value>
+  </data>
+  <data name="Style_GroupList_Simple" xml:space="preserve">
+    <value>Simple</value>
+  </data>
+  <data name="TAB_SettingsImageSizes" xml:space="preserve">
+    <value>Image Sizes</value>
+  </data>
+  <data name="TAB_SettingsStyle" xml:space="preserve">
+    <value>Styles</value>
+  </data>
+  <data name="Tooltip_ImageSize_GroupList" xml:space="preserve">
+    <value>The images shown in the main list when viewing the groups and series</value>
+  </data>
+  <data name="Tooltip_ImageSize_SeriesPoster" xml:space="preserve">
+    <value>The images shown in the right pane for all the series belonging to a group</value>
+  </data>
+  <data name="Tooltip_ImageSize_SubGroupList" xml:space="preserve">
+    <value>The images shown in the main list when viewing sub groups or series</value>
+  </data>
+  <data name="Tooltip_Style_GroupList" xml:space="preserve">
+    <value>The style of groups when displayed in the main list (also sub groups)</value>
+  </data>
+  <data name="FilterValue" xml:space="preserve">
+    <value>Filter Value</value>
+  </data>
+  <data name="MSG_ERR_EnterValue" xml:space="preserve">
+    <value>Please enter a value</value>
+  </data>
+  <data name="PreviewFilter" xml:space="preserve">
+    <value>Preview of Filter Results</value>
+  </data>
+  <data name="GroupFilter_ApplyToSeries" xml:space="preserve">
+    <value>Apply filter at series level instead of group level</value>
+  </data>
+  <data name="GroupFilter_BaseCondition" xml:space="preserve">
+    <value>Base Condition</value>
+  </data>
+  <data name="GroupFilter_BaseCondition_ExcludeAll" xml:space="preserve">
+    <value>Exclude All</value>
+  </data>
+  <data name="GroupFilter_BaseCondition_IncludeAll" xml:space="preserve">
+    <value>Include All</value>
+  </data>
+  <data name="Tooltip_GroupFilter_BaseCondition" xml:space="preserve">
+    <value>Include All so that all groups are included by default. Exclude All so that no groups are included, this is meant to be used when you want to manually specify groups on an indvidual basis.</value>
+  </data>
+  <data name="GroupFilterOperator_In" xml:space="preserve">
+    <value>In</value>
+  </data>
+  <data name="GroupFilterOperator_NotIn" xml:space="preserve">
+    <value>Not In</value>
+  </data>
+  <data name="GroupFilter_Category_Help" xml:space="preserve">
+    <value>Double click on catgeories to add them to the selected list</value>
+  </data>
+  <data name="GroupFilterConditionType_AniDBRating" xml:space="preserve">
+    <value>Rating - AniDB</value>
+  </data>
+  <data name="GroupFilterConditionType_UserRating" xml:space="preserve">
+    <value>Rating - User</value>
+  </data>
+  <data name="MSG_ERR_RatingValue" xml:space="preserve">
+    <value>Rating must be a value between 0 and 10. Decimal points are allowed.</value>
+  </data>
+  <data name="ScanFolder" xml:space="preserve">
+    <value>Scan this folder now</value>
+  </data>
+  <data name="GroupFilterConditionType_EpisodeAddedDate" xml:space="preserve">
+    <value>Episode Added Date</value>
+  </data>
+  <data name="GroupFilterConditionType_EpisodeWatchedDate" xml:space="preserve">
+    <value>Episode Watched Date</value>
+  </data>
+  <data name="GroupFilterConditionType_SeriesDate" xml:space="preserve">
+    <value>Series Added Date</value>
+  </data>
+  <data name="GroupFilterOperator_LastXDays" xml:space="preserve">
+    <value>Last 'X' Days</value>
+  </data>
+  <data name="SelectDate" xml:space="preserve">
+    <value>Select Date</value>
+  </data>
+  <data name="MSG_ERR_DaysValue" xml:space="preserve">
+    <value>Please enter the numbers of days as an integer (Minimum is 1)</value>
+  </data>
+  <data name="SyncVotes" xml:space="preserve">
+    <value>Sync AniDB Votes</value>
+  </data>
+  <data name="UserVote" xml:space="preserve">
+    <value>My Vote</value>
+  </data>
+  <data name="VoteNow" xml:space="preserve">
+    <value>Vote Now</value>
+  </data>
+  <data name="VoteRevoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="GroupFilterConditionType_FinishedAiring" xml:space="preserve">
+    <value>Finished Airing</value>
+  </data>
+  <data name="VoteTypeAnimePermanent" xml:space="preserve">
+    <value>Permanent</value>
+  </data>
+  <data name="VoteTypeAnimeTemporary" xml:space="preserve">
+    <value>Temporary</value>
+  </data>
+  <data name="AniDBMyListLocalActions" xml:space="preserve">
+    <value>Local Actions</value>
+  </data>
+  <data name="AniDBMyListSyncAndImport" xml:space="preserve">
+    <value>MyList Sync and Import Options</value>
+  </data>
+  <data name="EpisodeMarkAllUnwatched" xml:space="preserve">
+    <value>Mark ALL Unwatched</value>
+  </data>
+  <data name="EpisodeMarkAllWatched" xml:space="preserve">
+    <value>Mark ALL Watched</value>
+  </data>
+  <data name="EpisodeMarkAllWatchedPrevious" xml:space="preserve">
+    <value>Mark All Previous Watched Including EP#</value>
+  </data>
+  <data name="GroupFilter_VideoQuality_Help" xml:space="preserve">
+    <value>Double click on the entries to add them to the list</value>
+  </data>
+  <data name="GroupFilterConditionType_MissingEpisodesCollecting" xml:space="preserve">
+    <value>Missing Episodes (Collecting)</value>
+  </data>
+  <data name="GroupFilterOperator_InAllEpisodes" xml:space="preserve">
+    <value>In (All Episodes)</value>
+  </data>
+  <data name="GroupFilterOperator_NotInAllEpisodes" xml:space="preserve">
+    <value>Not In (All Episodes)</value>
+  </data>
+  <data name="GroupFilterConditionType_AudioLanguage" xml:space="preserve">
+    <value>Audio Language</value>
+  </data>
+  <data name="GroupFilterConditionType_SubtitleLanguage" xml:space="preserve">
+    <value>Subtitle Language</value>
+  </data>
+  <data name="GroupFilterSortDirection_Asc" xml:space="preserve">
+    <value>Asc</value>
+  </data>
+  <data name="GroupFilterSortDirection_Desc" xml:space="preserve">
+    <value>Desc</value>
+  </data>
+  <data name="GroupFilterSorting_AniDBRating" xml:space="preserve">
+    <value>AniDB Rating</value>
+  </data>
+  <data name="GroupFilterSorting_EpisodeAddedDate" xml:space="preserve">
+    <value>Episode Added Date</value>
+  </data>
+  <data name="GroupFilterSorting_EpisodeAirDate" xml:space="preserve">
+    <value>Episode Air Date</value>
+  </data>
+  <data name="GroupFilterSorting_EpisodeWatchedDate" xml:space="preserve">
+    <value>Episode Watched Date</value>
+  </data>
+  <data name="GroupFilterSorting_GroupName" xml:space="preserve">
+    <value>Group Name</value>
+  </data>
+  <data name="GroupFilterSorting_MissingEpisodeCount" xml:space="preserve">
+    <value>Missing Episode Count</value>
+  </data>
+  <data name="GroupFilterSorting_SeriesAddedDate" xml:space="preserve">
+    <value>Series Added Date</value>
+  </data>
+  <data name="GroupFilterSorting_SeriesCount" xml:space="preserve">
+    <value>Series Count</value>
+  </data>
+  <data name="GroupFilterSorting_UnwatchedEpisodeCount" xml:space="preserve">
+    <value>Unwatched Episode Count</value>
+  </data>
+  <data name="GroupFilterSorting_UserRating" xml:space="preserve">
+    <value>User Rating</value>
+  </data>
+  <data name="GroupFilterSorting_Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="GroupFilterSorting_SortName" xml:space="preserve">
+    <value>Sort Name</value>
+  </data>
+  <data name="GroupFilterDirection" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+  <data name="GroupFilterSortType" xml:space="preserve">
+    <value>Sort Type</value>
+  </data>
+  <data name="QuickSort" xml:space="preserve">
+    <value>Quick Sort</value>
+  </data>
+  <data name="TAB_DuplicateFiles" xml:space="preserve">
+    <value>Duplicate Files</value>
+  </data>
+  <data name="Info_DuplicateFiles" xml:space="preserve">
+    <value>This utility will show all instances where there are two or more files with the same hash. Shoko only allows you to have one file with the same hash in your collection.</value>
+  </data>
+  <data name="Tooltip_DeleteDuplicateFileAll" xml:space="preserve">
+    <value>Delete the database entry and the selected file on disk.</value>
+  </data>
+  <data name="Tooltip_DeleteDuplicateFileEntry" xml:space="preserve">
+    <value>Delete the database entry only. Files on disk will not be affected.</value>
+  </data>
+  <data name="Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="ReevaluateDuplicateFiles" xml:space="preserve">
+    <value>Re-evaluate All Entries</value>
+  </data>
+  <data name="Tooltip_ReevaluateDuplicateFiles" xml:space="preserve">
+    <value>Check all duplicate files entries to see whether the files still exist. If not delete the database entry</value>
+  </data>
+  <data name="TAB_MultipleFiles" xml:space="preserve">
+    <value>Multiple Files</value>
+  </data>
+  <data name="Info_MultipleFiles" xml:space="preserve">
+    <value>This utility will show all instances where you have multiple files for the same episode. You will be able to view each instance and decide which ones you'd like to keep.</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="TotalFileCount" xml:space="preserve">
+    <value>Total File Count:</value>
+  </data>
+  <data name="ImportSettings_UseEpisodeStatus" xml:space="preserve">
+    <value>Set file as watched if episode is watched</value>
+  </data>
+  <data name="Tooltip_TvDB_Schedule_Updates" xml:space="preserve">
+    <value>Update series and episode information every 12 hours, and also download any new fanart, posters and wide banners</value>
+  </data>
+  <data name="TvDB_Schedule_Updates" xml:space="preserve">
+    <value>Update Info every 12 hours</value>
+  </data>
+  <data name="RescanAll" xml:space="preserve">
+    <value>Rescan All</value>
+  </data>
+  <data name="DeleteAll" xml:space="preserve">
+    <value>Delete All</value>
+  </data>
+  <data name="CrossRefSummary" xml:space="preserve">
+    <value>TvDB and Other Non AniDB Links</value>
+  </data>
+  <data name="FileSummary" xml:space="preserve">
+    <value>File Summary</value>
+  </data>
+  <data name="TheTvDB" xml:space="preserve">
+    <value>The TvDB</value>
+  </data>
+  <data name="SeasonNumber" xml:space="preserve">
+    <value>Season #</value>
+  </data>
+  <data name="CommunityRecommendation" xml:space="preserve">
+    <value>Community Recommendation</value>
+  </data>
+  <data name="TvDB_SearchPrompt" xml:space="preserve">
+    <value>Search on the TvDB or enter TvDB Series ID</value>
+  </data>
+  <data name="TvDB_Show" xml:space="preserve">
+    <value>Go To TvDB</value>
+  </data>
+  <data name="UseThis" xml:space="preserve">
+    <value>Use This</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SwitchSeason" xml:space="preserve">
+    <value>Switch Season</value>
+  </data>
+  <data name="AniDB" xml:space="preserve">
+    <value>AniDB</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="UpdateAniDBInfo" xml:space="preserve">
+    <value>Update AniDB Info</value>
+  </data>
+  <data name="UpdateInfo" xml:space="preserve">
+    <value>Update Info</value>
+  </data>
+  <data name="ImageSize_EpisodeImage" xml:space="preserve">
+    <value>Episode Image</value>
+  </data>
+  <data name="Tooltip_ImageSize_EpisodeImage" xml:space="preserve">
+    <value>The images show in the episode detail</value>
+  </data>
+  <data name="EpisodeDetailStyle" xml:space="preserve">
+    <value>Episode Detail Style</value>
+  </data>
+  <data name="EpisodeDetailStyle_Option1" xml:space="preserve">
+    <value>Images/Overview in Summary</value>
+  </data>
+  <data name="EpisodeDetailStyle_Option2" xml:space="preserve">
+    <value>Images/Overview When Expanded Only</value>
+  </data>
+  <data name="EpisodeDetailStyle_Option3" xml:space="preserve">
+    <value>Images/Overview Disabled</value>
+  </data>
+  <data name="HideEpisodeImageWhenUnwatched" xml:space="preserve">
+    <value>Hide Episode Image When Unwatched</value>
+  </data>
+  <data name="HideEpisodeOverviewWhenUnwatched" xml:space="preserve">
+    <value>Hide Episode Overview When Unwatched</value>
+  </data>
+  <data name="Tooltip_HideEpisodeImageWhenUnwatched" xml:space="preserve">
+    <value>The episode image will be hidden until the episode is watched</value>
+  </data>
+  <data name="Tooltip_HideEpisodeOverviewWhenUnwatched" xml:space="preserve">
+    <value>The episode overview (description) will be hidden until the episode is watched</value>
+  </data>
+  <data name="Fanart" xml:space="preserve">
+    <value>Fanart</value>
+  </data>
+  <data name="Images" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="Image_Disabled" xml:space="preserve">
+    <value>Image is currently disabled</value>
+  </data>
+  <data name="Image_Dynamic" xml:space="preserve">
+    <value>Set this image as the only image that will be shown</value>
+  </data>
+  <data name="Image_Enabled" xml:space="preserve">
+    <value>Image is currently ENABLED</value>
+  </data>
+  <data name="Image_Static" xml:space="preserve">
+    <value>This image is the only image that will be shown</value>
+  </data>
+  <data name="Image_View" xml:space="preserve">
+    <value>View Image</value>
+  </data>
+  <data name="Posters" xml:space="preserve">
+    <value>Posters</value>
+  </data>
+  <data name="WideBanners" xml:space="preserve">
+    <value>Wide Banners</value>
+  </data>
+  <data name="TheMovieDB" xml:space="preserve">
+    <value>The Movie DB</value>
+  </data>
+  <data name="MovieDBShow" xml:space="preserve">
+    <value>Go To MovieDB</value>
+  </data>
+  <data name="MovieDBSearchPrompt" xml:space="preserve">
+    <value>Search on the MovieDB or enter MovieDB ID</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedTvDBOrMovieDBInfo" xml:space="preserve">
+    <value>Has TvDB Or MovieDB Link</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedMovieDBInfo" xml:space="preserve">
+    <value>Has MovieDB Link</value>
+  </data>
+  <data name="Image_Default" xml:space="preserve">
+    <value>Only this image will be used</value>
+  </data>
+  <data name="Image_NotDefault" xml:space="preserve">
+    <value>This image is not the default</value>
+  </data>
+  <data name="PlayNextEpisode" xml:space="preserve">
+    <value>Play Next Episode</value>
+  </data>
+  <data name="AllEpisodesWatched" xml:space="preserve">
+    <value>All episodes have already been watched</value>
+  </data>
+  <data name="FinishEditing" xml:space="preserve">
+    <value>Finish Editing</value>
+  </data>
+  <data name="TAB_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Dash_WatchNextEp_Recent" xml:space="preserve">
+    <value>Continue Watching... (Recently Watched)</value>
+  </data>
+  <data name="DeleteSeries" xml:space="preserve">
+    <value>Delete Series</value>
+  </data>
+  <data name="DeleteSeriesConfirm" xml:space="preserve">
+    <value>Are you sure you want to delete this series/group?</value>
+  </data>
+  <data name="DeleteSeriesConfirm_Files" xml:space="preserve">
+    <value>Also delete all the physical files?</value>
+  </data>
+  <data name="Dash_SeriesMissingEps" xml:space="preserve">
+    <value>Missing Episodes (By Recently Watched)</value>
+  </data>
+  <data name="LatestEp_Anime" xml:space="preserve">
+    <value>Latest Episode</value>
+  </data>
+  <data name="LatestEp_Yours" xml:space="preserve">
+    <value>Your Latest Episode</value>
+  </data>
+  <data name="MissingEpisodeCount" xml:space="preserve">
+    <value>Episodes Missing</value>
+  </data>
+  <data name="Dash_MiniCalendar" xml:space="preserve">
+    <value>Mini Calendar</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="ImageSize" xml:space="preserve">
+    <value>Image Size</value>
+  </data>
+  <data name="Info_SettingsUserAdmin" xml:space="preserve">
+    <value>Users are stored in your database and can be accessed by any client that connects to your database. When adding a new user or updating an existing one, you must click the Save button otherwise your changes will not take effect. Shoko requires at least one user with administrator rights selected.</value>
+  </data>
+  <data name="TAB_SettingsUsers" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="User_HideCategories" xml:space="preserve">
+    <value>Hide Categories</value>
+  </data>
+  <data name="User_IsAdmin" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="User_Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="User_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="Days" xml:space="preserve">
+    <value>Days</value>
+  </data>
+  <data name="DashWatchNextStyle_Detailed" xml:space="preserve">
+    <value>Detailed</value>
+  </data>
+  <data name="DashWatchNextStyle_Simple" xml:space="preserve">
+    <value>Simple</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_Trakt" xml:space="preserve">
+    <value>Trakt TV</value>
+  </data>
+  <data name="Trakt_Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Trakt_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="UpdateFrequency" xml:space="preserve">
+    <value>Automatically Update Data</value>
+  </data>
+  <data name="UpdateFrequency_12Hours" xml:space="preserve">
+    <value>Every 12 Hours</value>
+  </data>
+  <data name="UpdateFrequency_6Hours" xml:space="preserve">
+    <value>Every 6 Hours</value>
+  </data>
+  <data name="UpdateFrequency_Daily" xml:space="preserve">
+    <value>Every 24 Hours</value>
+  </data>
+  <data name="UpdateFrequency_Never" xml:space="preserve">
+    <value>Never</value>
+  </data>
+  <data name="TraktSyncFrequency" xml:space="preserve">
+    <value>Automatically Sync Collection</value>
+  </data>
+  <data name="TraktSearchPrompt" xml:space="preserve">
+    <value>Search on Trakt or enter Trakt ID (slug)</value>
+  </data>
+  <data name="TraktShow" xml:space="preserve">
+    <value>Go To Trakt</value>
+  </data>
+  <data name="TAB_Pinned" xml:space="preserve">
+    <value>Pinned</value>
+  </data>
+  <data name="Tooltip_PinSeries" xml:space="preserve">
+    <value>Pin This Anime</value>
+  </data>
+  <data name="GroupFilterConditionType_UserVotedAny" xml:space="preserve">
+    <value>User Voted (Any)</value>
+  </data>
+  <data name="Tooltip_User_IsAniDB" xml:space="preserve">
+    <value>Any user marked as an AniDB user will be kept in sync with other AniDB users. If the user is not an AniDB user watched episodes will not be reflected on the AniDB website.</value>
+  </data>
+  <data name="User_IsAniDB" xml:space="preserve">
+    <value>AniDB User</value>
+  </data>
+  <data name="User_IsTrakt" xml:space="preserve">
+    <value>Trakt User</value>
+  </data>
+  <data name="ERROR_SeriesExists" xml:space="preserve">
+    <value>A series already exists for this anime</value>
+  </data>
+  <data name="Tooltip_CreateSeries" xml:space="preserve">
+    <value>Create series for this anime</value>
+  </data>
+  <data name="SimilarAnime" xml:space="preserve">
+    <value>Similar Anime</value>
+  </data>
+  <data name="RelatedAndSimilar" xml:space="preserve">
+    <value>Related And Similar</value>
+  </data>
+  <data name="GetMissingData" xml:space="preserve">
+    <value>Get Missing Data Now</value>
+  </data>
+  <data name="NoSimilarAnime" xml:space="preserve">
+    <value>does not have any similar anime listed on AniDB</value>
+  </data>
+  <data name="NoRelatedAnime" xml:space="preserve">
+    <value>does not have any related anime listed on AniDB</value>
+  </data>
+  <data name="RelatedAnime" xml:space="preserve">
+    <value>Related Anime</value>
+  </data>
+  <data name="Dash_RecWatch" xml:space="preserve">
+    <value>Recommendations To Watch</value>
+  </data>
+  <data name="Dash_RecDownload" xml:space="preserve">
+    <value>Recommendations to Download</value>
+  </data>
+  <data name="ImportSettings_AutoGroupSeries" xml:space="preserve">
+    <value>Automatically place related series into the same group</value>
+  </data>
+  <data name="GroupFilterConditionType_HasWatchedEpisodes" xml:space="preserve">
+    <value>Has Watched Episodes</value>
+  </data>
+  <data name="MyList" xml:space="preserve">
+    <value>MyList</value>
+  </data>
+  <data name="Tooltip_MyList" xml:space="preserve">
+    <value>Forcefully add this file to your List on AniDB</value>
+  </data>
+  <data name="TAB_MissingFiles" xml:space="preserve">
+    <value>Missing MyList Files</value>
+  </data>
+  <data name="TAB_Utilities" xml:space="preserve">
+    <value>Utilities</value>
+  </data>
+  <data name="TAB_SeriesWithoutFiles" xml:space="preserve">
+    <value>Series Without Files</value>
+  </data>
+  <data name="DeleteSeriesConfirm_Groups" xml:space="preserve">
+    <value>Delete any parent groups if they are empty</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="TAB_MissingEpisodes" xml:space="preserve">
+    <value>Missing Episodes</value>
+  </data>
+  <data name="MyGroupsOnly" xml:space="preserve">
+    <value>Only Release Groups I Am Collecting</value>
+  </data>
+  <data name="RegularEpisodesOnly" xml:space="preserve">
+    <value>Regular Episodes Only</value>
+  </data>
+  <data name="Dash_TraktFriends" xml:space="preserve">
+    <value>Friends Activity (Trakt TV)</value>
+  </data>
+  <data name="Tooltip_IgnoreAnimeDownload" xml:space="preserve">
+    <value>Ignore this Anime for Download Recommendations</value>
+  </data>
+  <data name="Tooltip_IgnoreAnimeWatch" xml:space="preserve">
+    <value>Ignore this Anime for Watch Recommendations</value>
+  </data>
+  <data name="VisitWebsite" xml:space="preserve">
+    <value>Visit Website</value>
+  </data>
+  <data name="AniDBSignup" xml:space="preserve">
+    <value>Signup for AniDB Now</value>
+  </data>
+  <data name="AvdumpHeader" xml:space="preserve">
+    <value>AVDump2 (Optional)</value>
+  </data>
+  <data name="AvdumpInfoLink" xml:space="preserve">
+    <value>More Info on AVDump2</value>
+  </data>
+  <data name="AvdumpKey" xml:space="preserve">
+    <value>API Key</value>
+  </data>
+  <data name="AvdumpKeyEditLink" xml:space="preserve">
+    <value>Edit your AVDump2 UDP API Key here</value>
+  </data>
+  <data name="Avdump" xml:space="preserve">
+    <value>Avdump2</value>
+  </data>
+  <data name="AvdumpRequiredFilesLink" xml:space="preserve">
+    <value>Make sure you have all the required files in the same folder as Shoko Desktop</value>
+  </data>
+  <data name="AvdumpSettingsError" xml:space="preserve">
+    <value>You haven't specified your API Key and/or Client Port</value>
+  </data>
+  <data name="AvdumpAddRelease" xml:space="preserve">
+    <value>Add New Release</value>
+  </data>
+  <data name="CopyED2KClipboard" xml:space="preserve">
+    <value>Copy ED2K Dump</value>
+  </data>
+  <data name="Tooltip_CopyED2KClipboard" xml:space="preserve">
+    <value>Copy the ED2K Dump to the Clipboard</value>
+  </data>
+  <data name="TAB_IgnoredAnime" xml:space="preserve">
+    <value>Ignored Anime</value>
+  </data>
+  <data name="Anime" xml:space="preserve">
+    <value>Anime</value>
+  </data>
+  <data name="RemoveDefaultSeries" xml:space="preserve">
+    <value>Remove Default Series</value>
+  </data>
+  <data name="DefaultSeries_Select" xml:space="preserve">
+    <value>Select Default Series</value>
+  </data>
+  <data name="DefaultSeries_Info" xml:space="preserve">
+    <value>If a default series is selected for a group, only that series images will be displayed instead of randomly selecting images from the different series within the group.</value>
+  </data>
+  <data name="ChangeLanguage" xml:space="preserve">
+    <value>Change Language</value>
+  </data>
+  <data name="EpisodeTitleSourceStyle" xml:space="preserve">
+    <value>Episode Title Source</value>
+  </data>
+  <data name="SeriesNameSourceStyle" xml:space="preserve">
+    <value>Series Name Source</value>
+  </data>
+  <data name="SeriesOverviewSourceStyle" xml:space="preserve">
+    <value>Series Overview Source</value>
+  </data>
+  <data name="Tooltip_EpisodeTitleSourceStyle" xml:space="preserve">
+    <value>Preferred source of information when displaying the title of an episode</value>
+  </data>
+  <data name="Tooltip_SeriesNameSourceStyle" xml:space="preserve">
+    <value>Preferred source of information when displaying the series name for an anime</value>
+  </data>
+  <data name="Tooltip_SeriesOverviewSourceStyle" xml:space="preserve">
+    <value>Preferred source of information when displaying the overview (description) for an anime series</value>
+  </data>
+  <data name="User_EditSettings" xml:space="preserve">
+    <value>Edit Server Settings</value>
+  </data>
+  <data name="Tooltip_RemoveMissingFiles" xml:space="preserve">
+    <value>This will remove any video files entries from your database, where the file cannot be physically found. Make sure all your network shares are available or USB drives plugged before you run this.</value>
+  </data>
+  <data name="Tooltip_UpdateMediaInfo" xml:space="preserve">
+    <value>The Media Info is the information about your files such as bit rate, resolution codecs etc which is read and stored the first time you import a file</value>
+  </data>
+  <data name="UpdateMediaInfo" xml:space="preserve">
+    <value>Update All Media Info</value>
+  </data>
+  <data name="Video_Hi10P" xml:space="preserve">
+    <value>10bit</value>
+  </data>
+  <data name="Video_Hi08P" xml:space="preserve">
+    <value>8bit</value>
+  </data>
+  <data name="Tooltip_TraktAnimeOnly" xml:space="preserve">
+    <value>Only show activity is related to anime (ie exclude other tv series)</value>
+  </data>
+  <data name="TraktAnimeOnly" xml:space="preserve">
+    <value>Anime Only</value>
+  </data>
+  <data name="ForceRefresh" xml:space="preserve">
+    <value>Force Refresh</value>
+  </data>
+  <data name="TraktFriendNotes" xml:space="preserve">
+    <value>Information is updated on server every 20 minutes</value>
+  </data>
+  <data name="Dash_RecentEpisodes" xml:space="preserve">
+    <value>Recently Watched Episodes</value>
+  </data>
+  <data name="PromptRateSeries" xml:space="preserve">
+    <value>Prompt to rate series on completion</value>
+  </data>
+  <data name="Tooltip_PromptRateSeries" xml:space="preserve">
+    <value>Whenever you watch the final episode in a series, a prompt will appear to ask you for a rating</value>
+  </data>
+  <data name="MALSearchPrompt" xml:space="preserve">
+    <value>Search on MyAnimelist or enter MAL ID</value>
+  </data>
+  <data name="MALShow" xml:space="preserve">
+    <value>Go To MyAnimeList</value>
+  </data>
+  <data name="Tooltip_WebCache_MALAssociations" xml:space="preserve">
+    <value>Use the web cache to look up links between AniDB and MyAnimeList. If not selected you will need to manually search for all MAL links.</value>
+  </data>
+  <data name="WebCache_MALAssociations" xml:space="preserve">
+    <value>MyAnimeList Links</value>
+  </data>
+  <data name="Tooltip_MAL_UpdateFrequency" xml:space="preserve">
+    <value>How often data is updated, and how often an automatic search is performed to look for anime in your collection which doesn't have a MAL link</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedMALInfo" xml:space="preserve">
+    <value>Has MAL Link</value>
+  </data>
+  <data name="Tooltip_UseFanartOnSeries" xml:space="preserve">
+    <value>User Fanart instead of posters (where available) on Series Display</value>
+  </data>
+  <data name="UseFanartOnSeries" xml:space="preserve">
+    <value>User Fanart On Series Display</value>
+  </data>
+  <data name="MAL_NeverDecrease" xml:space="preserve">
+    <value>Never Decrease Series Status</value>
+  </data>
+  <data name="Tooltip_MAL_NeverDecrease" xml:space="preserve">
+    <value>Make sure that watched counts are always kept. This requires downloading your full list each time you watch an episode, so may be time consuming</value>
+  </data>
+  <data name="GroupFilterConditionType_EpisodeCount" xml:space="preserve">
+    <value>Episode Count</value>
+  </data>
+  <data name="SyncMalDown" xml:space="preserve">
+    <value>Download Watched States from MAL</value>
+  </data>
+  <data name="SyncMalUp" xml:space="preserve">
+    <value>Upload Watched States to MAL</value>
+  </data>
+  <data name="Tooltip_SyncMalDown" xml:space="preserve">
+    <value>Download watched states from MAL, and update your local collection and AniDB.</value>
+  </data>
+  <data name="Tooltip_SyncMalUp" xml:space="preserve">
+    <value>Update MAL using the watched stats from your local collection</value>
+  </data>
+  <data name="Tooltip_WebCache_AniDB_File" xml:space="preserve">
+    <value>This is the data associated with each individual file. Recommended for large collections</value>
+  </data>
+  <data name="WebCache_AniDB_File" xml:space="preserve">
+    <value>AniDB File Data</value>
+  </data>
+  <data name="PlaylistPlayOrderRandom" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="PlaylistPlayOrderSeq" xml:space="preserve">
+    <value>Sequential</value>
+  </data>
+  <data name="AniDBScheduleMyListStats" xml:space="preserve">
+    <value>Automatically Get MyList Stats From AniDB</value>
+  </data>
+  <data name="GroupFilter_Predefined" xml:space="preserve">
+    <value>Predefined Filters</value>
+  </data>
+  <data name="BakaBTResetBody" xml:space="preserve">
+    <value>Reset the cookie if you are not getting any results from BakaBT when you should be. This will force a login to BakaBT again.</value>
+  </data>
+  <data name="BakaBTResetTitle" xml:space="preserve">
+    <value>Reset Cookie</value>
+  </data>
+  <data name="BakaBTSeriesBody" xml:space="preserve">
+    <value>When searching for a series, BakaBT (and AnimeBytes) will be the only torrent source used in the initial search</value>
+  </data>
+  <data name="BakaBTSeriesTitle" xml:space="preserve">
+    <value>BakaBT (and AnimeBytes) Only</value>
+  </data>
+  <data name="AnimeBytesResetBody" xml:space="preserve">
+    <value>Reset the cookie if you are not getting any results from AnimeBytes when you should be. This will force a login to AnimeBytes again.</value>
+  </data>
+  <data name="AnimeBytesResetTitle" xml:space="preserve">
+    <value>Reset cookie</value>
+  </data>
+  <data name="AnimeBytesSeriesBody" xml:space="preserve">
+    <value>When searching for a series, AnimeBytes (and BakaBT) will be the only torrent source used in the initial search</value>
+  </data>
+  <data name="AnimeBytesSeriesTitle" xml:space="preserve">
+    <value>AnimeBytes (and BakaBT) Only</value>
+  </data>
+  <data name="IsVariation" xml:space="preserve">
+    <value>Is Variation</value>
+  </data>
+  <data name="Tooltip_IsVariation" xml:space="preserve">
+    <value>Use this when you don't want a file to show up in the Multiple Files Control. This may be the case where you have multiple versions of an OP/ED for clean/no clean, director's cut and other types of variations</value>
+  </data>
+  <data name="AniDBDownloadCharacters" xml:space="preserve">
+    <value>Download Character Images</value>
+  </data>
+  <data name="AniDBDownloadCreators" xml:space="preserve">
+    <value>Download Creator Images</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadCharacters" xml:space="preserve">
+    <value>These images are shown in MyAnime 3 and Anime Buddy</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadCreators" xml:space="preserve">
+    <value>These images are shown in MyAnime 3 and Anime Buddy (Voice Actors)</value>
+  </data>
+  <data name="AniDBMyListDeleteAction" xml:space="preserve">
+    <value>Delete Action</value>
+  </data>
+  <data name="Tooltip_AniDBMyListDeleteAction" xml:space="preserve">
+    <value>What action to take for a file when you delete it from you local collection.
+Delete File (AniDB) - Removes file from your AniDB MyList.
+Delete File (Local DB) - Remove file from your local DB only.
+Mark Deleted - Leaves the file on your list, but changes the state to deleted.
+Mark External (CD/DVD) - Leaves the file on your list, but changes the state to external storage.
+Mark Unknown - Leaves the file on your list, but changes the state to unkown.</value>
+  </data>
+  <data name="GroupFilterConditionType_CustomTag" xml:space="preserve">
+    <value>Custom Tag</value>
+  </data>
+  <data name="Tooltip_WebCache_UserInfo" xml:space="preserve">
+    <value>Sends anonymous usage info to the web cache like Database Type, Windows version etc. See the help link for all the data that is sent</value>
+  </data>
+  <data name="WebCache_UserInfo" xml:space="preserve">
+    <value>Send Anonymous Usage Info</value>
+  </data>
+  <data name="NewSeries_Search" xml:space="preserve">
+    <value>Search By Title or ID</value>
+  </data>
+  <data name="Tooltip_NewSeries_Search" xml:space="preserve">
+    <value>Enter part of the name of the anime, or if you know the AniDB ID just enter that directly</value>
+  </data>
+  <data name="Link_CommunityRecommendation" xml:space="preserve">
+    <value>http://shokoanime.com/faq/#what-are-community-recommendations</value>
+  </data>
+  <data name="WhatsThis" xml:space="preserve">
+    <value>What's This?</value>
+  </data>
+  <data name="Override" xml:space="preserve">
+    <value>Override</value>
+  </data>
+  <data name="Tooltip_NameOverride" xml:space="preserve">
+    <value>You can manually type the preferred name or use the green arrows to the right to select a name from AniDB</value>
+  </data>
+  <data name="Tooltip_NameOverride2" xml:space="preserve">
+    <value>Select a name from the list of available AniDB names</value>
+  </data>
+  <data name="AdminMessageTitle" xml:space="preserve">
+    <value>Admin Message</value>
+  </data>
+  <data name="CheckForUpdate" xml:space="preserve">
+    <value>Check For Updates</value>
+  </data>
+  <data name="Link_Blog" xml:space="preserve">
+    <value>http://shokoanime.com/blog</value>
+  </data>
+  <data name="Link_AniDBBanned" xml:space="preserve">
+    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
+  </data>
+  <data name="Link_AniDBSettings" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#anidb</value>
+  </data>
+  <data name="Link_FileRenaming" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/utilities/file-renaming/</value>
+  </data>
+  <data name="Link_GroupFilters" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/collection/filters/#what-are-filters</value>
+  </data>
+  <data name="Link_ImportFolders" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/server/#import-folders</value>
+  </data>
+  <data name="Link_MAL" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_TMDb" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_Trakt" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_TvDB" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_Downloads" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/downloads/</value>
+  </data>
+  <data name="Link_WebCache" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#web-cache</value>
+  </data>
+  <data name="UpdateFrequency_OneMonth" xml:space="preserve">
+    <value>Once a Month</value>
+  </data>
+  <data name="UpdateFrequency_OneWeek" xml:space="preserve">
+    <value>Once a Week</value>
+  </data>
+  <data name="SettingAlwaysAniDBPoster" xml:space="preserve">
+    <value>Always use the AniDB Poster</value>
+  </data>
+  <data name="Tooltip_SettingAlwaysAniDBPoster" xml:space="preserve">
+    <value>This setting will over-ride any other Poster settings so that only the AniDB Poster is used. This is generally faster than using random posters</value>
+  </data>
+  <data name="MoreInfo" xml:space="preserve">
+    <value>More Info</value>
+  </data>
+  <data name="Link_Changelog" xml:space="preserve">
+    <value>http://shokoanime.com/changelog/</value>
+  </data>
+  <data name="Link_Download" xml:space="preserve">
+    <value>http://shokoanime.com/downloads/</value>
+  </data>
+  <data name="Link_Site" xml:space="preserve">
+    <value>http://shokoanime.com/</value>
+  </data>
+  <data name="ReenterPassword" xml:space="preserve">
+    <value>Re-enter Password</value>
+  </data>
+  <data name="ChangePassword" xml:space="preserve">
+    <value>Change Password</value>
+  </data>
+  <data name="ChangingPassword" xml:space="preserve">
+    <value>Changing Password For:</value>
+  </data>
+  <data name="WhatDoesThisMean" xml:space="preserve">
+    <value>What Does This Mean?</value>
+  </data>
+  <data name="DetailedExplanation" xml:space="preserve">
+    <value>Click here for detailed explanation of options</value>
+  </data>
+  <data name="CustomTag_Name" xml:space="preserve">
+    <value>Tag Name</value>
+  </data>
+  <data name="CustomTag_Description" xml:space="preserve">
+    <value>Tag Description</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="MissingEpisodes_AnimeName" xml:space="preserve">
+    <value>Anime Name</value>
+  </data>
+  <data name="MissingEpisodes_AnimeID" xml:space="preserve">
+    <value>Anime ID</value>
+  </data>
+  <data name="MissingEpisodes_EpisodeNumber" xml:space="preserve">
+    <value>Episode Number</value>
+  </data>
+  <data name="MissingEpisodes_EpisodeID" xml:space="preserve">
+    <value>Episode ID</value>
+  </data>
+  <data name="MissingEpisodes_GroupSummary" xml:space="preserve">
+    <value>Group Summary</value>
+  </data>
+  <data name="MissingEpisodes_AnimeLink" xml:space="preserve">
+    <value>Link to Anime</value>
+  </data>
+  <data name="MissingEpisodes_EpisodeLink" xml:space="preserve">
+    <value>Link to Episode</value>
+  </data>
+  <data name="MissingEpisodes_FileSummary" xml:space="preserve">
+    <value>File Summary</value>
+  </data>
+  <data name="NewSeries_AlreadyAttached" xml:space="preserve">
+    <value>A series is already attached to this anime</value>
+  </data>
+  <data name="NewSeries_Step1" xml:space="preserve">
+    <value>Step 1 - Select an Anime</value>
+  </data>
+  <data name="NewSeries_SearchBy" xml:space="preserve">
+    <value>Search by Title or ID</value>
+  </data>
+  <data name="NewSeries_Step2" xml:space="preserve">
+    <value>Select a Local Group</value>
+  </data>
+  <data name="NewSeries_BackToStep1" xml:space="preserve">
+    <value>Back to Step 1</value>
+  </data>
+  <data name="TryAgain" xml:space="preserve">
+    <value>Try Again!</value>
+  </data>
+  <data name="Random_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Finish" xml:space="preserve">
+    <value>Finish</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Matches" xml:space="preserve">
+    <value>Matches</value>
+  </data>
+  <data name="Random_Watched" xml:space="preserve">
+    <value>Watched</value>
+  </data>
+  <data name="Random_Unwatched" xml:space="preserve">
+    <value>Unwatched</value>
+  </data>
+  <data name="Random_PartiallyWatched" xml:space="preserve">
+    <value>Partially Watched</value>
+  </data>
+  <data name="Random_CompleteOnly" xml:space="preserve">
+    <value>Complete ONLY</value>
+  </data>
+  <data name="Random_View" xml:space="preserve">
+    <value>View Series</value>
+  </data>
+  <data name="RateSeries_Rate" xml:space="preserve">
+    <value>Rate Series:</value>
+  </data>
+  <data name="RateSeries_TraktShout" xml:space="preserve">
+    <value>Have your say on Trakt</value>
+  </data>
+  <data name="Search_Episodes" xml:space="preserve">
+    <value>Episodes:</value>
+  </data>
+  <data name="Search_StartingAt" xml:space="preserve">
+    <value>Starting At</value>
+  </data>
+  <data name="Search_ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="Search_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Search_AniDBStart" xml:space="preserve">
+    <value>AniDB Start:</value>
+  </data>
+  <data name="Search_Trakt" xml:space="preserve">
+    <value>Trakt:</value>
+  </data>
+  <data name="Search_Approved" xml:space="preserve">
+    <value>Admin Approved</value>
+  </data>
+  <data name="Search_TvDB" xml:space="preserve">
+    <value>TvDB:</value>
+  </data>
+  <data name="Search_MAL" xml:space="preserve">
+    <value>MAL:</value>
+  </data>
+  <data name="SelectAniDBTitle_SelectName" xml:space="preserve">
+    <value>Select an override name</value>
+  </data>
+  <data name="SelectGroupSeries_Select" xml:space="preserve">
+    <value>Select a</value>
+  </data>
+  <data name="Select_MyAnimeList" xml:space="preserve">
+    <value>MyAnimeList</value>
+  </data>
+  <data name="Select_StartingEpisode" xml:space="preserve">
+    <value>Starting Episode #</value>
+  </data>
+  <data name="Select_EpisodeType" xml:space="preserve">
+    <value>Episode Type:</value>
+  </data>
+  <data name="Select_TraktTV" xml:space="preserve">
+    <value>Trakt TV</value>
+  </data>
+  <data name="Select_TvDBDetails" xml:space="preserve">
+    <value>Select TvDB Details</value>
+  </data>
+  <data name="Select_Season" xml:space="preserve">
+    <value>Season</value>
+  </data>
+  <data name="TvDB_DefaultLanguage" xml:space="preserve">
+    <value>Select the language you'd like episode titles and descriptions to be downloaded in from The TvDB. Please note that if an episode title or description is not available in the language you've selected, the default English version will be downloaded.</value>
+  </data>
+  <data name="Update_Update" xml:space="preserve">
+    <value>Shoko Desktop Update Available!</value>
+  </data>
+  <data name="Update_UpdatePage" xml:space="preserve">
+    <value>Update Page</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Update_AvailableVersion" xml:space="preserve">
+    <value>Available Version</value>
+  </data>
+  <data name="Update_YourVersion" xml:space="preserve">
+    <value>Your Version</value>
+  </data>
+  <data name="ViewComments_FromTrakt" xml:space="preserve">
+    <value>From Trakt</value>
+  </data>
+  <data name="ViewComments_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="ViewComments_CommentDate" xml:space="preserve">
+    <value>Comment Date</value>
+  </data>
+  <data name="ViewComments_Comments" xml:space="preserve">
+    <value>Comments</value>
+  </data>
+  <data name="ViewComments_Website" xml:space="preserve">
+    <value>View on Website</value>
+  </data>
+  <data name="ShokoDesktop" xml:space="preserve">
+    <value>Shoko Desktop</value>
+  </data>
+  <data name="MoreInformation" xml:space="preserve">
+    <value>More Information</value>
+  </data>
+  <data name="Metro_Continue" xml:space="preserve">
+    <value>Continue Watching</value>
+  </data>
+  <data name="Metro_New" xml:space="preserve">
+    <value>New Episodes</value>
+  </data>
+  <data name="Metro_Random" xml:space="preserve">
+    <value>Random Series</value>
+  </data>
+  <data name="Metro_Trakt" xml:space="preserve">
+    <value>Trakt Activity</value>
+  </data>
+  <data name="MarkedFavorite" xml:space="preserve">
+    <value>This group is marked as a favorite</value>
+  </data>
+  <data name="Community_TraktValid" xml:space="preserve">
+    <value>Check my links are still valid on Trakt</value>
+  </data>
+  <data name="Community_TraktRemoveBad" xml:space="preserve">
+    <value>Automatically remove bad information from the database (highly recommended)</value>
+  </data>
+  <data name="Community_CommunityCheck" xml:space="preserve">
+    <value>Check if my links are different from the community recommendations</value>
+  </data>
+  <data name="Community_ProblemStop" xml:space="preserve">
+    <value>Stop after finding this many problems</value>
+  </data>
+  <data name="Trakt" xml:space="preserve">
+    <value>Trakt</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Community_Filter" xml:space="preserve">
+    <value>Filter:</value>
+  </data>
+  <data name="Community_Refresh" xml:space="preserve">
+    <value>Refresh data for this series</value>
+  </data>
+  <data name="Community_SeriesName" xml:space="preserve">
+    <value>Series Name</value>
+  </data>
+  <data name="Community_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Community_ValidTraktLink" xml:space="preserve">
+    <value>Valid Trakt Link</value>
+  </data>
+  <data name="Community_HasTraktLink" xml:space="preserve">
+    <value>Has Trakt Link</value>
+  </data>
+  <data name="Community_CommunityLink" xml:space="preserve">
+    <value>Community Link</value>
+  </data>
+  <data name="Community_Match" xml:space="preserve">
+    <value>Links Match?</value>
+  </data>
+  <data name="Download_Bookmark" xml:space="preserve">
+    <value>Bookmark this anime to download later</value>
+  </data>
+  <data name="Download_SeriesSearch" xml:space="preserve">
+    <value>Search for downloads for this series</value>
+  </data>
+  <data name="Download_Approval" xml:space="preserve">
+    <value>Approval</value>
+  </data>
+  <data name="Download_YourVote" xml:space="preserve">
+    <value>Your Vote</value>
+  </data>
+  <data name="Download_RecommendPrompt" xml:space="preserve">
+    <value>This utility shows you a list of recommended anime which are not in your collection based on your own ratings and feedback from AniDB users</value>
+  </data>
+  <data name="Torrent" xml:space="preserve">
+    <value>Torrent</value>
+  </data>
+  <data name="Torrents" xml:space="preserve">
+    <value>Torrents</value>
+  </data>
+  <data name="Download_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Download_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Download_Seeders" xml:space="preserve">
+    <value>Seeders</value>
+  </data>
+  <data name="Download_Leechers" xml:space="preserve">
+    <value>Leechers</value>
+  </data>
+  <data name="Download_ExtraInfo" xml:space="preserve">
+    <value>Extra Info</value>
+  </data>
+  <data name="Download_WrongSeries" xml:space="preserve">
+    <value>Wrong Series?</value>
+  </data>
+  <data name="Tooltip_WrongSeries" xml:space="preserve">
+    <value>This is Shokos attempt to guess which series you are looking at so you can compare to your local collection. If you do not have the series in your collection it will be incorrect.</value>
+  </data>
+  <data name="Download_ResetCookie" xml:space="preserve">
+    <value>Reset Cookie</value>
+  </data>
+  <data name="Download_AnimeBytesOnly" xml:space="preserve">
+    <value>AnimeBytes ONLY for Series</value>
+  </data>
+  <data name="Download_BakaBTOnly" xml:space="preserve">
+    <value>BakaBT ONLY for Series</value>
+  </data>
+  <data name="Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="Selected" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="Download_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Download_Server" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="Download_RefreshInterval" xml:space="preserve">
+    <value>Refresh Interval (seconds)</value>
+  </data>
+  <data name="Download_AutoRefresh" xml:space="preserve">
+    <value>Auto Refresh</value>
+  </data>
+  <data name="Download_UseBlackHole" xml:space="preserve">
+    <value>Use Torrent Black Hole</value>
+  </data>
+  <data name="Download_FolderLocation" xml:space="preserve">
+    <value>Folder Location</value>
+  </data>
+  <data name="Download_Queue" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="Download_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Download_Peers" xml:space="preserve">
+    <value>Peers</value>
+  </data>
+  <data name="Download_DownSpeed" xml:space="preserve">
+    <value>Down Speed</value>
+  </data>
+  <data name="Download_UpSpeed" xml:space="preserve">
+    <value>Upload Speed</value>
+  </data>
+  <data name="Download_Ratio" xml:space="preserve">
+    <value>Ratio</value>
+  </data>
+  <data name="Download_InvalidCred" xml:space="preserve">
+    <value>You haven't specified valid uTorrent credentials</value>
+  </data>
+  <data name="Download_EnterCred" xml:space="preserve">
+    <value>Please enter your credentials on the setting tab and then return</value>
+  </data>
+  <data name="Download_Priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="Download_Downloaded" xml:space="preserve">
+    <value>Downloaded</value>
+  </data>
+  <data name="Settings_DeleteAction" xml:space="preserve">
+    <value>Delete Action</value>
+  </data>
+  <data name="Settings_AutoUpdateInfo" xml:space="preserve">
+    <value>Automatically Update Files With Missing Info</value>
+  </data>
+  <data name="Settings_HideDownloadButton" xml:space="preserve">
+    <value>Hide Episode Download Button When You Already Have Files</value>
+  </data>
+  <data name="Settings_RecreateGroups" xml:space="preserve">
+    <value>Recreate All Groups</value>
+  </data>
+  <data name="Settings_ScanOnStart" xml:space="preserve">
+    <value>Scan Drop Folders On Start</value>
+  </data>
+  <data name="Settings_ImagePath" xml:space="preserve">
+    <value>Image Path</value>
+  </data>
+  <data name="Settings_SelectFolder" xml:space="preserve">
+    <value>Select Custom Folder</value>
+  </data>
+  <data name="Settings_FilePort" xml:space="preserve">
+    <value>File Port</value>
+  </data>
+  <data name="WebCache_TraktLinks" xml:space="preserve">
+    <value>Trakt Links</value>
+  </data>
+  <data name="VideoPlayer_MPC" xml:space="preserve">
+    <value>Media Player Classic</value>
+  </data>
+  <data name="VideoPlayer_VLC" xml:space="preserve">
+    <value>VLC</value>
+  </data>
+  <data name="VideoPlayer_VLCInfo" xml:space="preserve">
+    <value>In order to integrate VLC with Shoko Desktop, you must enable the Web UI via the following option in Tools &gt; Preferences (select All radio-button) &gt; Interface &gt; Main interfaces &gt; Web.</value>
+  </data>
+  <data name="VideoPlayer_PotPlayer" xml:space="preserve">
+    <value>PotPlayer</value>
+  </data>
+  <data name="VideoPlayer_PotPlayerNote" xml:space="preserve">
+    <value>PotPlayer is capable of local files and streaming playback.</value>
+  </data>
+  <data name="VideoPlayer_AutoMark" xml:space="preserve">
+    <value>Automatically Mark Files As Watched When The Following Percentage Is Watched</value>
+  </data>
+  <data name="VideoPlayer_AutoFileNote1" xml:space="preserve">
+    <value>You can setup how Shoko will handle playback for episodes with more then one file. These settings are automatically applied to playlist playback but can be applied to single episode playback by enabling the option below.  </value>
+  </data>
+  <data name="VideoPlayer_AutoFileNote2" xml:space="preserve">
+    <value>Please note, if 'Release Group From Previously Played Episode' for 'Automatic File Selection - Subsequent Episodes In Series' is selected and you want to mark the file as watched instead of the episode. You'll need to uncheck 'Set File As Watched If Episode Is Watched" under Settings - Essental - Import Settings and then manually mark the file as watched, not episode as watched.</value>
+  </data>
+  <data name="VideoPlayer_AutoFileFirstEpisode" xml:space="preserve">
+    <value>Automatic File Selection - First Episode In Series</value>
+  </data>
+  <data name="VideoPlayer_AutoFileNextEpisode" xml:space="preserve">
+    <value>Automatic File Selection - Subsequent Episodes In Series</value>
+  </data>
+  <data name="VideoPlayer_AutoFileEnable" xml:space="preserve">
+    <value>Enable auto file selection on single episodes</value>
+  </data>
+  <data name="TvDB_WideBannerMax" xml:space="preserve">
+    <value>Maximum Wide Banners</value>
+  </data>
+  <data name="TvDB_PostersMax" xml:space="preserve">
+    <value>Maximum Posters</value>
+  </data>
+  <data name="Trakt_Enable" xml:space="preserve">
+    <value>Enable Trakt</value>
+  </data>
+  <data name="Trakt_PIN" xml:space="preserve">
+    <value>Trakt PIN</value>
+  </data>
+  <data name="Trakt_GetPIN" xml:space="preserve">
+    <value>Get Pin</value>
+  </data>
+  <data name="Trakt_Authorize" xml:space="preserve">
+    <value>Authorize Shoko</value>
+  </data>
+  <data name="Trakt_CurrentToken" xml:space="preserve">
+    <value>Current token is valid until:</value>
+  </data>
+  <data name="Trakt_AutoFanart" xml:space="preserve">
+    <value>Auto Download Fanart</value>
+  </data>
+  <data name="Trakt_AutoPosters" xml:space="preserve">
+    <value>Auto Download Posters</value>
+  </data>
+  <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
+    <value>Auto Download Episode Images</value>
+  </data>
+  <data name="MovieDB_MaxPosters" xml:space="preserve">
+    <value>Maximum Posters</value>
+  </data>
+  <data name="AnimeGroup_Random" xml:space="preserve">
+    <value>Random Episode</value>
+  </data>
+  <data name="AnimeGroup_AllSeries" xml:space="preserve">
+    <value>All Series</value>
+  </data>
+  <data name="AnimeGroup_DoubleClick" xml:space="preserve">
+    <value>Double click on a series to view it directly</value>
+  </data>
+  <data name="PinnedSeries_Simple" xml:space="preserve">
+    <value>Show Simplified View</value>
+  </data>
+  <data name="Playlist_Add" xml:space="preserve">
+    <value>Add to Playlist</value>
+  </data>
+  <data name="Series_Overview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="Series_MoreInfo" xml:space="preserve">
+    <value>More Information</value>
+  </data>
+  <data name="Series_CustomTags" xml:space="preserve">
+    <value>Custom Tags</value>
+  </data>
+  <data name="Series_ManageCustom" xml:space="preserve">
+    <value>Manage Custom Tags</value>
+  </data>
+  <data name="Series_Tag" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Series_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Series_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Series_Folder" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="SeriesSimple_TraktLink" xml:space="preserve">
+    <value>Go this episode on Trakt.TV</value>
+  </data>
+  <data name="SeriesSimple_Comments" xml:space="preserve">
+    <value>Comments</value>
+  </data>
+  <data name="SeriesSimple_Play" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="SeriesSimple_Watched" xml:space="preserve">
+    <value>Watched:</value>
+  </data>
+  <data name="SeriesSimple_From" xml:space="preserve">
+    <value>From:</value>
+  </data>
+  <data name="SeriesSimple_AlreadyHave" xml:space="preserve">
+    <value>You already have this anime in your collection</value>
+  </data>
+  <data name="SeriesSimple_ViewSeries" xml:space="preserve">
+    <value>View Series</value>
+  </data>
+  <data name="SeriesSimple_Voteup" xml:space="preserve">
+    <value>Vote Up</value>
+  </data>
+  <data name="SeriesSimple_VoteDown" xml:space="preserve">
+    <value>Vote Down</value>
+  </data>
+  <data name="SeriesSimple_FromTrakt" xml:space="preserve">
+    <value>From Trakt</value>
+  </data>
+  <data name="SeriesSimple_View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="SeriesSimple_FromAniDB" xml:space="preserve">
+    <value>From AniDB</value>
+  </data>
+  <data name="SeriesSimple_Aired" xml:space="preserve">
+    <value>Aired</value>
+  </data>
+  <data name="SeriesSimple_Episodes" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="SeriesSimple_MyVote" xml:space="preserve">
+    <value>My Vote</value>
+  </data>
+  <data name="SeriesSimple_PlayNext" xml:space="preserve">
+    <value>Play Next Episode</value>
+  </data>
+  <data name="SeriesSimple_PlayUnwatched" xml:space="preserve">
+    <value>Play All Unwatched</value>
+  </data>
+  <data name="SeriesSimple_YourSay" xml:space="preserve">
+    <value>Have Your Say...</value>
+  </data>
+  <data name="SeriesSimple_Spoiler" xml:space="preserve">
+    <value>Spoiler</value>
+  </data>
+  <data name="SeriesSimple_CommentTrakt" xml:space="preserve">
+    <value>Comment on Trakt</value>
+  </data>
+  <data name="SeriesSimple_Characters" xml:space="preserve">
+    <value>Characters</value>
+  </data>
+  <data name="SeriesSimple_AlsoLike" xml:space="preserve">
+    <value>You may also like</value>
+  </data>
+  <data name="SeriesSimple_PeopleSaying" xml:space="preserve">
+    <value>What People Are Saying</value>
+  </data>
+  <data name="SeriesSimple_Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="AvDump_Remove" xml:space="preserve">
+    <value>Remove from list</value>
+  </data>
+  <data name="AvDump_Clear" xml:space="preserve">
+    <value>Clear list</value>
+  </data>
+  <data name="AvDump_Dump" xml:space="preserve">
+    <value>Dump files</value>
+  </data>
+  <data name="Bookmarks_Downloading" xml:space="preserve">
+    <value>Downloading</value>
+  </data>
+  <data name="Bookmarks_NotDownloading" xml:space="preserve">
+    <value>Not Downloading</value>
+  </data>
+  <data name="Dashboard_YourVote" xml:space="preserve">
+    <value>Your Vote</value>
+  </data>
+  <data name="Dashboard_Bookmark" xml:space="preserve">
+    <value>Bookmark this anime to download later</value>
+  </data>
+  <data name="Dashboard_Download" xml:space="preserve">
+    <value>Search for downloads for this series</value>
+  </data>
+  <data name="Dashboard_NoRecommend" xml:space="preserve">
+    <value>No recommendations could be found.</value>
+  </data>
+  <data name="Dashboard_DownloadVotes" xml:space="preserve">
+    <value>Download your votes now, or vote on an anime to start getting recommendations.</value>
+  </data>
+  <data name="Dashboard_SyncVotes" xml:space="preserve">
+    <value>Sync Votes</value>
+  </data>
+  <data name="Dashboard_Added" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="Dashboard_Metro" xml:space="preserve">
+    <value>Metro Dashboard</value>
+  </data>
+  <data name="Dashboard_UpdateCalendar" xml:space="preserve">
+    <value>Update Calendar Data</value>
+  </data>
+  <data name="Dashboard_Recent" xml:space="preserve">
+    <value>Recent Additions</value>
+  </data>
+  <data name="Metro_Options" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="Metro_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Metro_ImageType" xml:space="preserve">
+    <value>Image Type</value>
+  </data>
+  <data name="Metro_Sections" xml:space="preserve">
+    <value>Sections</value>
+  </data>
+  <data name="Metro_Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="Metro_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="PlayVideo" xml:space="preserve">
+    <value>Play Video</value>
+  </data>
+  <data name="Episode_MoreInfo" xml:space="preserve">
+    <value>More Info..</value>
+  </data>
+  <data name="Episode_LessInfo" xml:space="preserve">
+    <value>Less Info..</value>
+  </data>
+  <data name="Episode_Manual" xml:space="preserve">
+    <value>Manual Link</value>
+  </data>
+  <data name="Episode_ForceAniDBUpdate" xml:space="preserve">
+    <value>Force update information from AniDB</value>
+  </data>
+  <data name="Episode_RecalculateHash" xml:space="preserve">
+    <value>Re-Calculate Hash</value>
+  </data>
+  <data name="Episode_DownloadSearch" xml:space="preserve">
+    <value>Search downloads for this episode</value>
+  </data>
+  <data name="Episode_PlaylistAdd" xml:space="preserve">
+    <value>Add to Playlist</value>
+  </data>
+  <data name="Episode_TvDBOverride" xml:space="preserve">
+    <value>Override the TvDB link for this episode</value>
+  </data>
+  <data name="Episode_TvDBRemove" xml:space="preserve">
+    <value>Remove the TvDB link for this episode</value>
+  </data>
+  <data name="Episode_AniDBForceUpdate" xml:space="preserve">
+    <value>Force update information from AniDB</value>
+  </data>
+  <data name="Episode_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Episode_Availability" xml:space="preserve">
+    <value>Availability</value>
+  </data>
+  <data name="Episode_WatchedState" xml:space="preserve">
+    <value>Watched State</value>
+  </data>
+  <data name="Rename_Script" xml:space="preserve">
+    <value>Script</value>
+  </data>
+  <data name="Rename_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Rename_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Rename_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Rename_Tag" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Rename_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Rename_Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="Rename_ScriptingHelp" xml:space="preserve">
+    <value>Help With Scripting</value>
+  </data>
+  <data name="Rename_ImportRun" xml:space="preserve">
+    <value>Run this script when importing files into collection</value>
+  </data>
+  <data name="Rename_Filter" xml:space="preserve">
+    <value>Filter:</value>
+  </data>
+  <data name="Rename_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Rename_AddFiles" xml:space="preserve">
+    <value>Add Files</value>
+  </data>
+  <data name="Rename_Rename" xml:space="preserve">
+    <value>Rename Now</value>
+  </data>
+  <data name="Rename_Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Search_Rescan" xml:space="preserve">
+    <value>Rescan</value>
+  </data>
+  <data name="Search_AniDBForceUpdate" xml:space="preserve">
+    <value>Force update information from AniDB</value>
+  </data>
+  <data name="GroupFilter_RandomSeries" xml:space="preserve">
+    <value>Random Series</value>
+  </data>
+  <data name="GroupFilter_RandomEpisode" xml:space="preserve">
+    <value>Random Episode</value>
+  </data>
+  <data name="IgnoredAnime_Delete" xml:space="preserve">
+    <value>Delete this entry</value>
+  </data>
+  <data name="IgnoredAnime_Note" xml:space="preserve">
+    <value>This utility will show all anime series you have marked as ignored from the recommendations section. If you delete a series from this list, it's possible for it to show up in the recommendations section again.</value>
+  </data>
+  <data name="ImportFolder_Watched" xml:space="preserve">
+    <value>This folder is being watched for new files</value>
+  </data>
+  <data name="MissingEpisodes_SelectColumns" xml:space="preserve">
+    <value>Select the columns to be used in the import</value>
+  </data>
+  <data name="MissingEpisodes_AiringState" xml:space="preserve">
+    <value>Airing State</value>
+  </data>
+  <data name="MissingEpisodes_Note" xml:space="preserve">
+    <value>This utility will show you a summary of all episodes you are missing from series in your collection. This utility runs in the background so you do not need to wait for the results. It may also take some time depending on how many missing episodes there are so please be patient.</value>
+  </data>
+  <data name="MissingMyList_Missing" xml:space="preserve">
+    <value>View Missing Files</value>
+  </data>
+  <data name="MissingMyList_RemoveAll" xml:space="preserve">
+    <value>Remove All Entries From AniDB</value>
+  </data>
+  <data name="MissingMyList_Note" xml:space="preserve">
+    <value>This utility will compare your current collection with your AniDB MyList and display any file discrepancies between the two. You can review the results and have Shoko automatically remove all file discrepancies. Please note that Shoko will use your current collection as the base and remove all entries in your AniDB MyList that are not present in your current collection. This utility runs in the background so you do not need to wait for the results. It may also take some time depending on how many file discrepancies there are so please be patient.</value>
+  </data>
+  <data name="Episode" xml:space="preserve">
+    <value>Episode</value>
+  </data>
+  <data name="Playlist_Random" xml:space="preserve">
+    <value>Random Episode</value>
+  </data>
+  <data name="Playlist_Default" xml:space="preserve">
+    <value>Default Play Order</value>
+  </data>
+  <data name="Playlist_Items" xml:space="preserve">
+    <value>Playlist Items</value>
+  </data>
+  <data name="PlayNext_Hidden" xml:space="preserve">
+    <value>Hidden to prevent spoilers</value>
+  </data>
+  <data name="Rankings_Overall" xml:space="preserve">
+    <value>By Overall User Rating</value>
+  </data>
+  <data name="Rankings_GroupedByYear" xml:space="preserve">
+    <value>Grouped By Year</value>
+  </data>
+  <data name="Rankings_CollectionState" xml:space="preserve">
+    <value>Collection State</value>
+  </data>
+  <data name="Rankings_Voted" xml:space="preserve">
+    <value>Voted</value>
+  </data>
+  <data name="Rankings_Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Rankings_Anime" xml:space="preserve">
+    <value>Anime</value>
+  </data>
+  <data name="Rankings_AniDB" xml:space="preserve">
+    <value>AniDB Rating</value>
+  </data>
+  <data name="Rankings_User" xml:space="preserve">
+    <value>Your Rating</value>
+  </data>
+  <data name="Rankings_Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="Rankings_View" xml:space="preserve">
+    <value>View Series</value>
+  </data>
+  <data name="Rankings_MyVote" xml:space="preserve">
+    <value>My Vote</value>
+  </data>
+  <data name="Related_Bookmark" xml:space="preserve">
+    <value>Bookmark this anime to download later</value>
+  </data>
+  <data name="Related_Search" xml:space="preserve">
+    <value>Search for downloads for this series</value>
+  </data>
+  <data name="SeriesWithoutFiles_Delete" xml:space="preserve">
+    <value>Delete this series from the database</value>
+  </data>
+  <data name="SeriesWithoutFiles_Note" xml:space="preserve">
+    <value>This utility will show all the series in your collection that do not have any files. Deleting the series from your collection will also delete the group if there are no other series in that group or if any additional series in that group do not have files. </value>
+  </data>
+  <data name="TraktShouts_View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="TraktShouts_FromAniDB" xml:space="preserve">
+    <value>From AniDB</value>
+  </data>
+  <data name="TraktShouts_Spoiler" xml:space="preserve">
+    <value>Spoiler</value>
+  </data>
+  <data name="TraktShouts_Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="TraktShouts_Comments" xml:space="preserve">
+    <value>Comments</value>
+  </data>
+  <data name="CommunityLinks_Start" xml:space="preserve">
+    <value>Start:</value>
+  </data>
+  <data name="CommunityLinks_Edit" xml:space="preserve">
+    <value>Edit Details</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB Start:</value>
+  </data>
+  <data name="CommunityLinks_TvDB" xml:space="preserve">
+    <value>TvDB:</value>
+  </data>
+  <data name="CommunityLinks_Trakt" xml:space="preserve">
+    <value>Trakt:</value>
+  </data>
+  <data name="CommunityLinks_TMDb" xml:space="preserve">
+    <value>The Movie DB</value>
+  </data>
+  <data name="CommunityLinks_MAL" xml:space="preserve">
+    <value>MyAnimeList</value>
+  </data>
+  <data name="CommunityLinks_AutoLink" xml:space="preserve">
+    <value>Auto Link</value>
+  </data>
+  <data name="Tooltip_DeleteTitle" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Tooltip_DeleteInfo" xml:space="preserve">
+    <value>Delete this Link</value>
+  </data>
+  <data name="Tooltip_EditTitle" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Tooltip_EditInfo" xml:space="preserve">
+    <value>Edit the details of this Link</value>
+  </data>
+  <data name="Tooltip_UpdateTitle" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="Tooltip_UpdateTvDB" xml:space="preserve">
+    <value>Download fresh data from The TvDB and update the local database</value>
+  </data>
+  <data name="Tooltip_ReportLinkTitle" xml:space="preserve">
+    <value>Report Linking Error</value>
+  </data>
+  <data name="Tooltip_ReportLinkInfo" xml:space="preserve">
+    <value>If this is linked to the wrong series click here to let the developers know</value>
+  </data>
+  <data name="Tooltip_UpdateTrakt" xml:space="preserve">
+    <value>Download fresh data from Trakt and update the local database</value>
+  </data>
+  <data name="Tooltip_Sync" xml:space="preserve">
+    <value>Sync</value>
+  </data>
+  <data name="Tooltip_SyncTrakt" xml:space="preserve">
+    <value>Sync your collection and history data with Trakt</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTitle" xml:space="preserve">
+    <value>Auto Linking Disabled</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTvDB" xml:space="preserve">
+    <value>Auto linking from this anime to a TvDB series is currently disabled</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTitle" xml:space="preserve">
+    <value>Auto Linking Enabled</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTvDB" xml:space="preserve">
+    <value>Auto linking from this anime to a TvDB series is currently enabled. If Shoko Server finds a close match or community recommendation it will automatically create a link</value>
+  </data>
+  <data name="CommunityLinks_TraktTV" xml:space="preserve">
+    <value>Trakt TV</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTrakt" xml:space="preserve">
+    <value>Auto linking from this anime to a Trakt series is currently disabled</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTrakt" xml:space="preserve">
+    <value>Auto linking from this anime to a Trakt series is currently enabled. If Shoko Server finds a close match or community recommendation it will automatically create a link</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledMAL" xml:space="preserve">
+    <value>Auto linking from this anime to a MAL series is currently disabled</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledMAL" xml:space="preserve">
+    <value>Auto linking from this anime to a MAL series is currently enabled. If Shoko Server finds a close match or community recommendation it will automatically create a link</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTMDb" xml:space="preserve">
+    <value>Auto linking from this anime to a MovieDB series is currently disabled</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTMDb" xml:space="preserve">
+    <value>Auto linking from this anime to a MovieDB series is currently enabled. If Shoko Server finds a close match or community recommendation it will automatically create a link</value>
+  </data>
+  <data name="Tooltip_CommunityAdminTitle" xml:space="preserve">
+    <value>Community Admin</value>
+  </data>
+  <data name="Tooltip_CommunityAdminInfo" xml:space="preserve">
+    <value>Go to the Community admin tab and edit the recommended links for this anime</value>
+  </data>
+  <data name="Unrecognized_Rescan" xml:space="preserve">
+    <value>Rescan</value>
+  </data>
+  <data name="Unrecognized_ForceAniDB" xml:space="preserve">
+    <value>Force update information from AniDB</value>
+  </data>
+  <data name="Hash" xml:space="preserve">
+    <value>Hash</value>
+  </data>
+  <data name="CRC32" xml:space="preserve">
+    <value>CRC32</value>
+  </data>
+  <data name="Unrecognized_Rehash" xml:space="preserve">
+    <value>Rehash All</value>
+  </data>
+  <data name="Unrecognized_Logs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="Unrecognized_NA" xml:space="preserve">
+    <value>NA</value>
+  </data>
+  <data name="Unrecognized_RefreshSeries" xml:space="preserve">
+    <value>Refresh Series List</value>
+  </data>
+  <data name="Unrecognized_To" xml:space="preserve">
+    <value>to</value>
+  </data>
+  <data name="UpdateAniDB_UpdateLocal" xml:space="preserve">
+    <value>Update Local AniDB File Data</value>
+  </data>
+  <data name="UpdateAniDB_Info1" xml:space="preserve">
+    <value>Data that's related to files in your collection is automatically downloaded and stored in your local database when Shoko first imports files. This process is only run once so if specific file data is missing on AniDB at the time of download, if will be missing in your database. Additionally, it's possible that future versions of Shoko might use additional file data that’s available but was not downloaded when Shoko initially imported your files. This utility will update and replace all stored file data with what's currently available on AniDB.</value>
+  </data>
+  <data name="UpdateAniDB_MissingInfo" xml:space="preserve">
+    <value>Update Files with Missing Info</value>
+  </data>
+  <data name="UpdateAniDB_Info2" xml:space="preserve">
+    <value>Missing data usually relates to missing codec and resolution information. You may see Resolution: 0x0 next to these files</value>
+  </data>
+  <data name="UpdateAniDB_Version" xml:space="preserve">
+    <value>Update files to Internal Version 2</value>
+  </data>
+  <data name="UpdateAniDB_Info3" xml:space="preserve">
+    <value>Internal Version 2 added the following information - File version (v2, v3 etc), Is Censored, Is Deprecated</value>
+  </data>
+  <data name="UpdateAniDB_Info4" xml:space="preserve">
+    <value>Sending too many commands to AniDB, may cause a temporary ban. Use at your own risk</value>
+  </data>
+  <data name="UpdateAniDB_HowManyQueued" xml:space="preserve">
+    <value>How Many Commands Will Be Queued?</value>
+  </data>
+  <data name="UpdateAniDB_Queued" xml:space="preserve">
+    <value>Queue Commands</value>
+  </data>
+  <data name="User_HideTags" xml:space="preserve">
+    <value>Hide Tags</value>
+  </data>
+  <data name="User_ChangePassword" xml:space="preserve">
+    <value>Change Password</value>
+  </data>
+  <data name="Sort_Error" xml:space="preserve">
+    <value>Error trying to sort list of</value>
+  </data>
+  <data name="Sort_Using" xml:space="preserve">
+    <value>using</value>
+  </data>
+  <data name="Sort_Property" xml:space="preserve">
+    <value>property</value>
+  </data>
+  <data name="Sort_Field" xml:space="preserve">
+    <value>field</value>
+  </data>
+  <data name="Sort_Exception" xml:space="preserve">
+    <value>Exception in MultiSort while sorting a list of</value>
+  </data>
+  <data name="Sort_PassedEmpty" xml:space="preserve">
+    <value>MultiSort parameter rgSortBy was passed an empty field name in rgSortBy[</value>
+  </data>
+  <data name="Selected_DoesNotExist" xml:space="preserve">
+    <value>The specified file or folder doesn't exists :</value>
+  </data>
+  <data name="ValueCompare_PropertyName" xml:space="preserve">
+    <value>Property name</value>
+  </data>
+  <data name="ValueCompare_NotFound" xml:space="preserve">
+    <value>not found while trying to compare objects of type</value>
+  </data>
+  <data name="ValueCompare_FieldName" xml:space="preserve">
+    <value>Field name</value>
+  </data>
+  <data name="Video_VLCError1" xml:space="preserve">
+    <value>Unable to parse URI in VLC ini file</value>
+  </data>
+  <data name="Video_VLCError2" xml:space="preserve">
+    <value>The count of Recent Files and Timestamps in the VLC ini file differ</value>
+  </data>
+  <data name="Video_Complete" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="Video_Position" xml:space="preserve">
+    <value>Video position for</value>
+  </data>
+  <data name="Video_HasChanged" xml:space="preserve">
+    <value>has changed to</value>
+  </data>
+  <data name="Video_Updating" xml:space="preserve">
+    <value>Updating to watched by media player:</value>
+  </data>
+  <data name="AniDB_DataMissing" xml:space="preserve">
+    <value>Data Missing</value>
+  </data>
+  <data name="AniDB_Votes" xml:space="preserve">
+    <value>Votes</value>
+  </data>
+  <data name="AniDB_GotVids" xml:space="preserve">
+    <value>Got vids for anime from service:</value>
+  </data>
+  <data name="AniDB_In" xml:space="preserve">
+    <value>in</value>
+  </data>
+  <data name="AniDB_ForFans" xml:space="preserve">
+    <value>For Fans</value>
+  </data>
+  <data name="AniDB_Recommended" xml:space="preserve">
+    <value>Recommended</value>
+  </data>
+  <data name="AniDB_MustSee" xml:space="preserve">
+    <value>Must See</value>
+  </data>
+  <data name="AniDB_Collecting" xml:space="preserve">
+    <value>Collecting:</value>
+  </data>
+  <data name="AniDB_Files" xml:space="preserve">
+    <value>Files:</value>
+  </data>
+  <data name="AnimeEpisode_Previous" xml:space="preserve">
+    <value>Previous Episode</value>
+  </data>
+  <data name="AnimeEpisode_Next" xml:space="preserve">
+    <value>Next Episode</value>
+  </data>
+  <data name="AnimeEpisode_NoOverview" xml:space="preserve">
+    <value>Episode Overview Not Available</value>
+  </data>
+  <data name="Anime_Groups" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Anime_Series" xml:space="preserve">
+    <value>Series</value>
+  </data>
+  <data name="Anime_GroupName" xml:space="preserve">
+    <value>Group name must be populated</value>
+  </data>
+  <data name="Anime_SortName" xml:space="preserve">
+    <value>Sort name must be populated</value>
+  </data>
+  <data name="Anime_GotVids" xml:space="preserve">
+    <value>Got vids for anime from service:</value>
+  </data>
+  <data name="Anime_GotEpisodes" xml:space="preserve">
+    <value>Got episode data from service:</value>
+  </data>
+  <data name="Anime_In" xml:space="preserve">
+    <value>in</value>
+  </data>
+  <data name="Anime_Contracts" xml:space="preserve">
+    <value>Got episode contracts:</value>
+  </data>
+  <data name="Anime_Sorted" xml:space="preserve">
+    <value>Sorted episode contracts:</value>
+  </data>
+  <data name="AVDump_ToBe" xml:space="preserve">
+    <value>To be processed</value>
+  </data>
+  <data name="Group_Groups" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Group_FilterName" xml:space="preserve">
+    <value>Filter Name must be populated</value>
+  </data>
+  <data name="Ignore_RecDown" xml:space="preserve">
+    <value>Recommendations - Download</value>
+  </data>
+  <data name="Ignore_RecWatch" xml:space="preserve">
+    <value>Recommendations - Watch</value>
+  </data>
+  <data name="Ignore_AnimeID" xml:space="preserve">
+    <value>Anime ID:</value>
+  </data>
+  <data name="ShokoServer_TraktAuth" xml:space="preserve">
+    <value>Trakt Authorization Status</value>
+  </data>
+  <data name="ShokoServer_Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="ShokoServer_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Missing_Episode" xml:space="preserve">
+    <value>Episode</value>
+  </data>
+  <data name="Missing_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Playlist_Name" xml:space="preserve">
+    <value>Enter playlist name:</value>
+  </data>
+  <data name="Playlist_NameBlank" xml:space="preserve">
+    <value>Please enter a playlist name</value>
+  </data>
+  <data name="Recommendation_Missing" xml:space="preserve">
+    <value>Data Missing</value>
+  </data>
+  <data name="Recommendation_NoOverview" xml:space="preserve">
+    <value>Overview not available</value>
+  </data>
+  <data name="uTorrent_NotConnected" xml:space="preserve">
+    <value>Not Connected</value>
+  </data>
+  <data name="uTorrent_Connecting" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+  <data name="Constants_Continue" xml:space="preserve">
+    <value>Continue Watching (SYSTEM)</value>
+  </data>
+  <data name="Constants_MainCharacter" xml:space="preserve">
+    <value>main character in</value>
+  </data>
+  <data name="Group_GroupCount" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Tab_Playlists" xml:space="preserve">
+    <value>Playlists</value>
+  </data>
+  <data name="Playlist_NewPlaylist" xml:space="preserve">
+    <value>New Playlist</value>
+  </data>
+  <data name="Tab_Bookmarks" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="ShokoServer_ImportFolders" xml:space="preserve">
+    <value>Import Folders</value>
+  </data>
+  <data name="ShokoServer_ServerStatus" xml:space="preserve">
+    <value>Server Status</value>
+  </data>
+  <data name="Tooltip_ClearHash" xml:space="preserve">
+    <value>Clear all queued hash commands</value>
+  </data>
+  <data name="ShokoServer_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="ShokoServer_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Tooltip_ClearGeneral" xml:space="preserve">
+    <value>Clear all queued general commands</value>
+  </data>
+  <data name="Tooltip_ClearImages" xml:space="preserve">
+    <value>Clear all queued server image download commands</value>
+  </data>
+  <data name="ShokoServer_ServerImage" xml:space="preserve">
+    <value>Server Images Queue</value>
+  </data>
+  <data name="Tab_AniDBAVDump" xml:space="preserve">
+    <value>AniDB AV Dump</value>
+  </data>
+  <data name="Tab_FileSearch" xml:space="preserve">
+    <value>File Search</value>
+  </data>
+  <data name="Tab_FileRename" xml:space="preserve">
+    <value>File Renaming</value>
+  </data>
+  <data name="Tab_UpdateAniDB" xml:space="preserve">
+    <value>Update AniDB Data</value>
+  </data>
+  <data name="Tab_CommunityData" xml:space="preserve">
+    <value>Community Data</value>
+  </data>
+  <data name="Tab_MyVotes" xml:space="preserve">
+    <value>My Votes</value>
+  </data>
+  <data name="VideoPlayer_VideoPlayer" xml:space="preserve">
+    <value>Video Player</value>
+  </data>
+  <data name="VideoPlayer_AutoFile" xml:space="preserve">
+    <value>Automatic File Selection</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_MAL" xml:space="preserve">
+    <value>My Anime List</value>
+  </data>
+  <data name="Tab_Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Info_Downloads" xml:space="preserve">
+    <value>Here you can configure your torrent program settings, what sites to use for searching and input your login information for supported sites.</value>
+  </data>
+  <data name="Downloads_uTorrentWebUI" xml:space="preserve">
+    <value>uTorrent WebUI details</value>
+  </data>
+  <data name="Downloads_TorrentBlackHole" xml:space="preserve">
+    <value>Torrent Black Hole Settings</value>
+  </data>
+  <data name="Downloads_TorrentDefault" xml:space="preserve">
+    <value>Default Torrent Sources for Searching</value>
+  </data>
+  <data name="Downloads_BakaBT" xml:space="preserve">
+    <value>BakaBT Settings</value>
+  </data>
+  <data name="Downloads_AnimeBytes" xml:space="preserve">
+    <value>AnimeBytes Settings</value>
+  </data>
+  <data name="Downloads_BakaBTInfo" xml:space="preserve">
+    <value>BakaBT is an anime torrent site which specializes in full series downloads, however it requires an account first</value>
+  </data>
+  <data name="Downloads_AnimeBytesInfo" xml:space="preserve">
+    <value>AnimeBytes is an anime torrent site which specializes in full series downloads, however it requires an account first</value>
+  </data>
+  <data name="Downloads_GoTo" xml:space="preserve">
+    <value>Go to Website</value>
+  </data>
+  <data name="Tab_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Tab_Community" xml:space="preserve">
+    <value>Community</value>
+  </data>
+  <data name="Main_Messages" xml:space="preserve">
+    <value>Messages</value>
+  </data>
+  <data name="Main_Paused" xml:space="preserve">
+    <value>Paused due to BAN from AniDB</value>
+  </data>
+  <data name="Main_User" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Main_Feed" xml:space="preserve">
+    <value>News</value>
+  </data>
+  <data name="Main_About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Tab_uTorrent" xml:space="preserve">
+    <value>uTorrent</value>
+  </data>
+  <data name="Tab_BrowseTorrents" xml:space="preserve">
+    <value>Browse Torrents</value>
+  </data>
+  <data name="Tab_SearchTorrents" xml:space="preserve">
+    <value>Search Torrents</value>
+  </data>
+  <data name="Tab_Recommendations" xml:space="preserve">
+    <value>Recommendations</value>
+  </data>
+  <data name="Tab_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Tab_SeriesInfo" xml:space="preserve">
+    <value>Series Info</value>
+  </data>
+  <data name="Tab_Comments" xml:space="preserve">
+    <value>Comments From Users</value>
+  </data>
+  <data name="Tab_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Download_TorrentFolder" xml:space="preserve">
+    <value>Torrent Folder Location</value>
+  </data>
+  <data name="Search_TitleOnly" xml:space="preserve">
+    <value>Title Only</value>
+  </data>
+  <data name="Tooltip_User_PlexUsers" xml:space="preserve">
+    <value>Maps this comma separated users from plex to this Shoko User. if the plex user is a friend (not home user), use 'External' as Plex User</value>
+  </data>
+  <data name="User_Hide_Tags" xml:space="preserve">
+    <value>Hide Tags</value>
+  </data>
+  <data name="User_PlexUsers" xml:space="preserve">
+    <value>Plex Users</value>
+  </data>
+  <data name="Tooltip_PlayAll" xml:space="preserve">
+    <value>Play all episodes (sent as a playlist to the default player)</value>
+  </data>
+  <data name="VideoPlayer_Default" xml:space="preserve">
+    <value>Default Video Player</value>
+  </data>
+  <data name="VideoPlayer_DefaultNote" xml:space="preserve">
+    <value>Shoko Desktop is capable of using a variety of different video players for file playback. Listed below are supported video players and limited video players that are available for use with Shoko Desktop. You can change the video player Shoko Desktop uses by selecting one of the players from the list below. No configuration is required as Shoko Desktop pulls the video player's .exe file location from your registry.</value>
+  </data>
+  <data name="VideoPlayer_DefaultPlayer" xml:space="preserve">
+    <value>Default Player</value>
+  </data>
+  <data name="Link_VideoPlayer" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#video-player</value>
+  </data>
+  <data name="Search_Everything" xml:space="preserve">
+    <value>Everything</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="TvDB_NoSeasons" xml:space="preserve">
+    <value>No seasons available, check the TvDB ID again</value>
+  </data>
+  <data name="TvDB_NoAniDB" xml:space="preserve">
+    <value>There are no episodes available on AniDB</value>
+  </data>
+  <data name="TvDB_NoTvDB" xml:space="preserve">
+    <value>There are no episodes available on The TvDB</value>
+  </data>
+  <data name="Trakt_NoSeasons" xml:space="preserve">
+    <value>No seasons available, check the Trakt ID again</value>
+  </data>
+  <data name="Filter_New" xml:space="preserve">
+    <value>New Filter</value>
+  </data>
+  <data name="Import_Running" xml:space="preserve">
+    <value>Process is Running</value>
+  </data>
+  <data name="Filter_DeleteGroup" xml:space="preserve">
+    <value>Are you sure you want to delete the Group Filter: {0}</value>
+  </data>
+  <data name="Filter_DeleteCondition" xml:space="preserve">
+    <value>Are you sure you want to delete the Filter Condition: {0}</value>
+  </data>
+  <data name="Filter_DeleteSort" xml:space="preserve">
+    <value>Are you sure you want to delete the sorting?</value>
+  </data>
+  <data name="Playlist_Delete" xml:space="preserve">
+    <value>Are you sure you want to delete the playlist: {0}</value>
+  </data>
+  <data name="Filter_PlaylistMissing" xml:space="preserve">
+    <value>Could not find playlist</value>
+  </data>
+  <data name="Process_Running" xml:space="preserve">
+    <value>Process is Running</value>
+  </data>
+  <data name="Process_Queued" xml:space="preserve">
+    <value>Process is Queued</value>
+  </data>
+  <data name="MultipleFiles_Ignore" xml:space="preserve">
+    <value>Ignore Variations</value>
+  </data>
+  <data name="MultipleFiles_Finished" xml:space="preserve">
+    <value>Only Finished Airing</value>
+  </data>
+  <data name="Playlist_PlayAll" xml:space="preserve">
+    <value>Play All</value>
+  </data>
+  <data name="Playlist_PlayWatched" xml:space="preserve">
+    <value>Play Watched</value>
+  </data>
+  <data name="Playlist_PlayUnwatched" xml:space="preserve">
+    <value>Play Unwatched</value>
+  </data>
+  <data name="Playlist_UseFanart" xml:space="preserve">
+    <value>Use Fanart</value>
+  </data>
+  <data name="Random_Any" xml:space="preserve">
+    <value>Any</value>
+  </data>
+  <data name="Random_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Rankings_InCollection" xml:space="preserve">
+    <value>In My Collection</value>
+  </data>
+  <data name="Rankings_AllEpisodes" xml:space="preserve">
+    <value>All Episodes In My Collection</value>
+  </data>
+  <data name="Rankings_NotInCollection" xml:space="preserve">
+    <value>Not In My Collection</value>
+  </data>
+  <data name="Rankings_AllWatched" xml:space="preserve">
+    <value>All Episodes Watched</value>
+  </data>
+  <data name="Rankings_NotWatched" xml:space="preserve">
+    <value>Not Watched</value>
+  </data>
+  <data name="Rankings_Votes" xml:space="preserve">
+    <value>Voted</value>
+  </data>
+  <data name="Rankings_NotVoted" xml:space="preserve">
+    <value>Not Voted</value>
+  </data>
+  <data name="Rankings_AnimeNotInCollection" xml:space="preserve">
+    <value>This anime is not in your collection</value>
+  </data>
+  <data name="MissingEpisodes_StillAiring" xml:space="preserve">
+    <value>Still Aring</value>
+  </data>
+  <data name="MissingEpisodes_FinishedAiring" xml:space="preserve">
+    <value>Finished Airing</value>
+  </data>
+  <data name="Exporting" xml:space="preserve">
+    <value>Exporting...</value>
+  </data>
+  <data name="Rename_Files" xml:space="preserve">
+    <value>{0} Files</value>
+  </data>
+  <data name="Rename_Random" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="Rename_Series" xml:space="preserve">
+    <value>Series</value>
+  </data>
+  <data name="Rename_All" xml:space="preserve">
+    <value>Entire Collection</value>
+  </data>
+  <data name="Rename_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Rename_Passed" xml:space="preserve">
+    <value>Passed</value>
+  </data>
+  <data name="Rename_DeleteScript" xml:space="preserve">
+    <value>Are you sure you want to delete the script: {0}</value>
+  </data>
+  <data name="Rename_EnterScriptName" xml:space="preserve">
+    <value>Enter Script Name:</value>
+  </data>
+  <data name="Rename_BlankScript" xml:space="preserve">
+    <value>Please enter a script name</value>
+  </data>
+  <data name="Rename_Changed" xml:space="preserve">
+    <value>{0} of {1}</value>
+  </data>
+  <data name="Rename_Confirm" xml:space="preserve">
+    <value>Are you sure you want to rename the files below?</value>
+  </data>
+  <data name="Community_LinkMissing" xml:space="preserve">
+    <value>Missing a Link</value>
+  </data>
+  <data name="Community_LinkDifferent" xml:space="preserve">
+    <value>Link is Different to Approved Link</value>
+  </data>
+  <data name="Community_GettingData" xml:space="preserve">
+    <value>Getting all series data...</value>
+  </data>
+  <data name="Complete" xml:space="preserve">
+    <value>Complete!</value>
+  </data>
+  <data name="Community_TraktProgress" xml:space="preserve">
+    <value>{0}: {1} of {2} - {3}</value>
+  </data>
+  <data name="Community_TraktRef" xml:space="preserve">
+    <value>Getting all Trakt Cross Ref data...</value>
+  </data>
+  <data name="Community_TraktPopulating" xml:space="preserve">
+    <value>Populating series data</value>
+  </data>
+  <data name="Community_TraktSeriesCheck" xml:space="preserve">
+    <value>Checking series</value>
+  </data>
+  <data name="Community_TraktDataCheck" xml:space="preserve">
+    <value>Checking if Trakt data is valid...</value>
+  </data>
+  <data name="Community_TraktCompare" xml:space="preserve">
+    <value>Checking Trakt link against community recommendation...</value>
+  </data>
+  <data name="Tooltip_RecreateAllGroups" xml:space="preserve">
+    <value>This will delete all your current groups and then re-organize all your series into new groups based on your import settings</value>
+  </data>
+  <data name="Rename_Title" xml:space="preserve">
+    <value>Renaming Rules</value>
+  </data>
+  <data name="Search_FileName" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="Search_Last100" xml:space="preserve">
+    <value>Last 100</value>
+  </data>
+  <data name="Search_FileSize" xml:space="preserve">
+    <value>File Size</value>
+  </data>
+  <data name="ShokoServer_ProcessRunning" xml:space="preserve">
+    <value>Process is currnetly running on Shoko Server, please wait and refresh once done.</value>
+  </data>
+  <data name="ShokoServer_ProcessQueued" xml:space="preserve">
+    <value>Process is queued on server, please try refreshing in a few seconds.</value>
+  </data>
+  <data name="Downloads_Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Anime_QualityRanking" xml:space="preserve">
+    <value>By Quality Ranking</value>
+  </data>
+  <data name="Anime_ReleaseGroup" xml:space="preserve">
+    <value>By Release Group</value>
+  </data>
+  <data name="Anime_GroupDetails" xml:space="preserve">
+    <value>Quality/Release Group Details</value>
+  </data>
+  <data name="Anime_GroupSummary" xml:space="preserve">
+    <value>Release Group Summary</value>
+  </data>
+  <data name="ImportSettings_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="ImportSettings_Server" xml:space="preserve">
+    <value>Local Server</value>
+  </data>
+  <data name="ImportSettings_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="AniDBMyListDeleteLocal" xml:space="preserve">
+    <value>Delete File (Local DB)</value>
+  </data>
+  <data name="AniDBMyListMarkDeleted" xml:space="preserve">
+    <value>Mark Deleted</value>
+  </data>
+  <data name="AniDBMyListMarkUnknown" xml:space="preserve">
+    <value>Mark Unknown</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark External (CD/DVD)</value>
+  </data>
+  <data name="AniDBMyListHDD" xml:space="preserve">
+    <value>HDD</value>
+  </data>
+  <data name="AniDBMyListUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="AniDBMyListDVD" xml:space="preserve">
+    <value>CD/DVD</value>
+  </data>
+  <data name="AniDBMyListDelete" xml:space="preserve">
+    <value>Delete File (AniDB)</value>
+  </data>
+  <data name="DeleteFiles_Name" xml:space="preserve">
+    <value>Delete Files</value>
+  </data>
+  <data name="ManualLink" xml:space="preserve">
+    <value>MANUAL LINK</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Done!</value>
+  </data>
+  <data name="DeleteFiles_Deleting" xml:space="preserve">
+    <value>Deleting file {0} of {1}</value>
+  </data>
+  <data name="DeleteFiles_Wait" xml:space="preserve">
+    <value>Please wait until the process is complete</value>
+  </data>
+  <data name="DeleteFiles_Confirm" xml:space="preserve">
+    <value>Are you sure you want to delete these {0} file/s, the physical video files will also be deleted</value>
+  </data>
+  <data name="DuplicateFiles_ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete this file, the physical video file will also be deleted</value>
+  </data>
+  <data name="DuplicateFiles_DeleteEntry" xml:space="preserve">
+    <value>Are you sure you want to delete this entry?</value>
+  </data>
+  <data name="Unrecognized_AniDBQueue" xml:space="preserve">
+    <value>files queued for AniDB rehash</value>
+  </data>
+  <data name="Unrecognized_AniDBScan" xml:space="preserve">
+    <value>files queued for AniDB scan</value>
+  </data>
+  <data name="Unrecognized_ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete this file: {0}</value>
+  </data>
+  <data name="Unrecognized_DeleteSelected" xml:space="preserve">
+    <value>Are you sure you want to delete the {0} selected files</value>
+  </data>
+  <data name="MultipleFiles_ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete this file, the physical video file will also be deleted</value>
+  </data>
+  <data name="EpisodeDetail_TvDBLink" xml:space="preserve">
+    <value>The series must be linked to a TvDB series first</value>
+  </data>
+  <data name="EpisodeDetail_NewPlaylist" xml:space="preserve">
+    <value>New Playlist</value>
+  </data>
+  <data name="EpisodeDetail_PlaylistMenu" xml:space="preserve">
+    <value>Playlist Menu:</value>
+  </data>
+  <data name="EpisodeDetail_PlaylistMissing" xml:space="preserve">
+    <value>Could not find playlist</value>
+  </data>
+  <data name="EpisodeDetail_ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete this file, the physical video file will also be deleted</value>
+  </data>
+  <data name="EpisodeDetail_CommandQueued" xml:space="preserve">
+    <value>Command has been queued for processing on the server</value>
+  </data>
+  <data name="Utilities_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Unrecognized_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Utilities_FileName" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="Utilities_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Unrecognized_CRC" xml:space="preserve">
+    <value>CRC</value>
+  </data>
+  <data name="Dashboard_Regular" xml:space="preserve">
+    <value>Regular Dashboard</value>
+  </data>
+  <data name="Dashboard_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="RateSeries_Title" xml:space="preserve">
+    <value>Rate Series</value>
+  </data>
+  <data name="NewSeries_CreateNew" xml:space="preserve">
+    <value>Create New Series</value>
+  </data>
+  <data name="NewSeries_SelectAnime" xml:space="preserve">
+    <value>Please select an anime first</value>
+  </data>
+  <data name="MissingEpisodes_Columns" xml:space="preserve">
+    <value>Select Columns</value>
+  </data>
+  <data name="GroupFilter_Sorting" xml:space="preserve">
+    <value>Group Filter Sorting</value>
+  </data>
+  <data name="GroupFilter_Condition" xml:space="preserve">
+    <value>Group Filter Condition</value>
+  </data>
+  <data name="GroupFilter_IntegerOnly" xml:space="preserve">
+    <value>Please enter an integer value only</value>
+  </data>
+  <data name="Recommendation_Overview" xml:space="preserve">
+    <value>Overview not available</value>
+  </data>
+  <data name="Login_UserLogin" xml:space="preserve">
+    <value>User Login</value>
+  </data>
+  <data name="Login_IncorrectPassword" xml:space="preserve">
+    <value>Incorrect Password</value>
+  </data>
+  <data name="ImportFolder" xml:space="preserve">
+    <value>Import Folder</value>
+  </data>
+  <data name="DeleteSeriesGroup" xml:space="preserve">
+    <value>Delete Series/Group</value>
+  </data>
+  <data name="About_Home" xml:space="preserve">
+    <value>Home Page</value>
+  </data>
+  <data name="About_Project" xml:space="preserve">
+    <value>Project Page</value>
+  </data>
+  <data name="About_Blog" xml:space="preserve">
+    <value>Shoko Blog</value>
+  </data>
+  <data name="About_MediaPortal" xml:space="preserve">
+    <value>MediaPortal Forum</value>
+  </data>
+  <data name="ViewComment_Comment" xml:space="preserve">
+    <value>Comment View</value>
+  </data>
+  <data name="ViewComment_FromTrakt" xml:space="preserve">
+    <value>From Trakt</value>
+  </data>
+  <data name="ViewComment_FromAniDB" xml:space="preserve">
+    <value>From AniDB</value>
+  </data>
+  <data name="CommunityLinks_ShowAdmin" xml:space="preserve">
+    <value>Show Community Admin</value>
+  </data>
+  <data name="CommunityLins_UseMyLinks" xml:space="preserve">
+    <value>Use My Links</value>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="CommunityLinks_NoLinks" xml:space="preserve">
+    <value>You don't have any links</value>
+  </data>
+  <data name="CommunityLinks_NoLinksAvailable" xml:space="preserve">
+    <value>No Community Links Available</value>
+  </data>
+  <data name="CommunityLinks_NeedApproval" xml:space="preserve">
+    <value>Links Need Approval</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Approval Exists</value>
+  </data>
+  <data name="CommunityLinks_DeleteLink" xml:space="preserve">
+    <value>Are you sure you want to delete this link?</value>
+  </data>
+  <data name="CommunityLinks_CommandQueued" xml:space="preserve">
+    <value>Command has been queued</value>
+  </data>
+  <data name="CommunityLinks_CheckingOnline" xml:space="preserve">
+    <value>Checking Online...</value>
+  </data>
+  <data name="Update_ShokoDesktop" xml:space="preserve">
+    <value>Shoko Desktop Updates</value>
+  </data>
+  <data name="Select_TvDBSeason" xml:space="preserve">
+    <value>Switch TvDB Season</value>
+  </data>
+  <data name="Select_TvDBLanguage" xml:space="preserve">
+    <value>Select TvDB Language</value>
+  </data>
+  <data name="Select_TvDBEpisode" xml:space="preserve">
+    <value>Search Episode</value>
+  </data>
+  <data name="Select_TraktSeason" xml:space="preserve">
+    <value>Switch Trakt Season</value>
+  </data>
+  <data name="Select_MALStart" xml:space="preserve">
+    <value>Change MAL Starting Episode</value>
+  </data>
+  <data name="Select_ValidEpisode" xml:space="preserve">
+    <value>Please enter a valid episode number</value>
+  </data>
+  <data name="Select_DefaultSeries" xml:space="preserve">
+    <value>Select Default Series</value>
+  </data>
+  <data name="Select_Title" xml:space="preserve">
+    <value>Select Title</value>
+  </data>
+  <data name="Search_TraktForm" xml:space="preserve">
+    <value>Search Trakt TV</value>
+  </data>
+  <data name="Search_TMDBForm" xml:space="preserve">
+    <value>Search The MovieDB</value>
+  </data>
+  <data name="Search_InvalidMovieID" xml:space="preserve">
+    <value>Please enter a valid number as the movie ID</value>
+  </data>
+  <data name="ShokoServer_Complete" xml:space="preserve">
+    <value>Complete!</value>
+  </data>
+  <data name="Trakt_TokenValid" xml:space="preserve">
+    <value>Current token is valid until: {0}</value>
+  </data>
+  <data name="Trakt_TokenExpired" xml:space="preserve">
+    <value>Your token has expired, please get a new one.</value>
+  </data>
+  <data name="Trakt_ShokoNotAuth" xml:space="preserve">
+    <value>You have not authorized Shoko to access your Trakt account!</value>
+  </data>
+  <data name="User_EnterUsername" xml:space="preserve">
+    <value>Please enter a username</value>
+  </data>
+  <data name="User_PlexAssigned" xml:space="preserve">
+    <value>The Plex User '{0}' is already asigned to the Shoko User '{1}'</value>
+  </data>
+  <data name="User_Delete" xml:space="preserve">
+    <value>Are you sure you want to delete the User: {0}</value>
+  </data>
+  <data name="User_DeleteError" xml:space="preserve">
+    <value>Cannot delete currently logged in user</value>
+  </data>
+  <data name="Seach_Criteria" xml:space="preserve">
+    <value>Please enter search criteria</value>
+  </data>
+  <data name="Downloads_uTorrentDetails" xml:space="preserve">
+    <value>Please enter all uTorrent details</value>
+  </data>
+  <data name="Downloads_Connected" xml:space="preserve">
+    <value>Connected sucessfully</value>
+  </data>
+  <data name="Downloads_Failed" xml:space="preserve">
+    <value>Failed! See log for more details if needed</value>
+  </data>
+  <data name="Community_Searching" xml:space="preserve">
+    <value>Searching...</value>
+  </data>
+  <data name="Community_TvDBApproval" xml:space="preserve">
+    <value>{0} Anime still need TvDB approval</value>
+  </data>
+  <data name="Community_TraktApproval" xml:space="preserve">
+    <value>{0} Anime still need Trakt approval</value>
+  </data>
+  <data name="Community_AniDBID" xml:space="preserve">
+    <value>AniDB ID</value>
+  </data>
+  <data name="Community_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Community_Random" xml:space="preserve">
+    <value>Random Anime</value>
+  </data>
+  <data name="Community_Filters" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="Community_StartEp" xml:space="preserve">
+    <value>Start Ep Type</value>
+  </data>
+  <data name="Community_StartEpNumber" xml:space="preserve">
+    <value>Start Ep #</value>
+  </data>
+  <data name="Community_TvDBID" xml:space="preserve">
+    <value>TvDB ID</value>
+  </data>
+  <data name="Community_TvDBTitle" xml:space="preserve">
+    <value>TvDB Title</value>
+  </data>
+  <data name="Community_SeasonNumber" xml:space="preserve">
+    <value>Season #</value>
+  </data>
+  <data name="Community_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Community_AdminApproved" xml:space="preserve">
+    <value>Admin Approved</value>
+  </data>
+  <data name="Community_Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
+  <data name="Community_Revoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="Community_Trakt" xml:space="preserve">
+    <value>Trakt</value>
+  </data>
+  <data name="Community_TraktID" xml:space="preserve">
+    <value>Trakt ID</value>
+  </data>
+  <data name="Community_TraktTitle" xml:space="preserve">
+    <value>Trakt Title</value>
+  </data>
+  <data name="Bookmarks_Delete" xml:space="preserve">
+    <value>Are you sure you want to delete this bookmark: {0}</value>
+  </data>
+  <data name="Bookmarks_Notes" xml:space="preserve">
+    <value>Notes:</value>
+  </data>
+  <data name="Bookmarks_Priority" xml:space="preserve">
+    <value>Priority:</value>
+  </data>
+  <data name="Bookmarks_DownloadNow" xml:space="preserve">
+    <value>Download Now</value>
+  </data>
+  <data name="Bookmarks_CurrentlyDownloading" xml:space="preserve">
+    <value>Currently Downloading</value>
+  </data>
+  <data name="Bookmarks_EditNotes" xml:space="preserve">
+    <value>Edit Notes</value>
+  </data>
+  <data name="Input_Number" xml:space="preserve">
+    <value>Input Number</value>
+  </data>
+  <data name="Input_Text" xml:space="preserve">
+    <value>Input Text</value>
+  </data>
+  <data name="Downloads_BakaBTDetails" xml:space="preserve">
+    <value>Please enter BakaBT login details</value>
+  </data>
+  <data name="Downloads_AnimeBytesDetails" xml:space="preserve">
+    <value>Please enter Anime Bytes login details</value>
+  </data>
+  <data name="Anime_Message" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="Anime_TraktNotEnabled" xml:space="preserve">
+    <value>You have not enabled Trakt, for more info go to 'Settings - Community Sites - Trakt TV'</value>
+  </data>
+  <data name="Anime_ShokoAuth" xml:space="preserve">
+    <value>You have not authorized Shoko to use your Trakt account, for more info go to 'Settings - Community Sites - Trakt TV'</value>
+  </data>
+  <data name="Anime_SeriesNotFound" xml:space="preserve">
+    <value>Anime series info not found</value>
+  </data>
+  <data name="Anime_EnterText" xml:space="preserve">
+    <value>Please enter text for your comment</value>
+  </data>
+  <data name="Anime_CommentText" xml:space="preserve">
+    <value>Comment text must be less than 2000 characters ({0})</value>
+  </data>
+  <data name="Anime_NoTrakt" xml:space="preserve">
+    <value>Cannot comment where a series does not have a Trakt show linked</value>
+  </data>
+  <data name="Anime_MultiTrakt" xml:space="preserve">
+    <value>Cannot comment where a series has more than one Trakt show linked</value>
+  </data>
+  <data name="Anime_YourSay" xml:space="preserve">
+    <value>Have Your Say...</value>
+  </data>
+  <data name="AVDump_WorkerRunning" xml:space="preserve">
+    <value>Worker is already running</value>
+  </data>
+  <data name="AVDump_Processing" xml:space="preserve">
+    <value>Processing...</value>
+  </data>
+  <data name="AVDump_Missing" xml:space="preserve">
+    <value>Could not find AvDump2 CLI:</value>
+  </data>
+  <data name="AVDump_Error" xml:space="preserve">
+    <value>Error!</value>
+  </data>
+  <data name="AVDump_VideoMissing" xml:space="preserve">
+    <value>Could not find Video File:</value>
+  </data>
+  <data name="AVDump_Complete" xml:space="preserve">
+    <value>Complete!</value>
+  </data>
+  <data name="Anime_AddSeries" xml:space="preserve">
+    <value>Add Series</value>
+  </data>
+  <data name="Anime_NewPlaylists" xml:space="preserve">
+    <value>New Playlist</value>
+  </data>
+  <data name="Anime_AddAllEpisodes" xml:space="preserve">
+    <value>Add All Episodes</value>
+  </data>
+  <data name="Anime_AddUnwatched" xml:space="preserve">
+    <value>Add Unwatched Episodes</value>
+  </data>
+  <data name="Anime_PlaylistMenu" xml:space="preserve">
+    <value>Playlist Menu:</value>
+  </data>
+  <data name="Anime_PlaylistMissing" xml:space="preserve">
+    <value>Could not find playlist</value>
+  </data>
+  <data name="Anime_RenameParent" xml:space="preserve">
+    <value>Do you also want to rename the parent group?</value>
+  </data>
+  <data name="Anime_DisabledImage" xml:space="preserve">
+    <value>Cannot set a disabled image as the default</value>
+  </data>
+  <data name="Main_ProcessRunning" xml:space="preserve">
+    <value>Process is Running</value>
+  </data>
+  <data name="Main_RunProcess" xml:space="preserve">
+    <value>Are you sure you want run this process?</value>
+  </data>
+  <data name="Search_InvalidTvDB" xml:space="preserve">
+    <value>Please enter a valid number as the series ID</value>
+  </data>
+  <data name="Search_InvalidMAL" xml:space="preserve">
+    <value>Please enter a valid number as the MAL ID</value>
+  </data>
+  <data name="Search_EnterTitle" xml:space="preserve">
+    <value>Please enter a title for the show</value>
+  </data>
+  <data name="Search_MyAnimeList" xml:space="preserve">
+    <value>Search MyAnimeList</value>
+  </data>
+  <data name="CustomTag_EnterName" xml:space="preserve">
+    <value>Please enter a tag name</value>
+  </data>
+  <data name="User_PasswordMatch" xml:space="preserve">
+    <value>Passwords must match</value>
+  </data>
+  <data name="Search_TheTVDB" xml:space="preserve">
+    <value>Search The TvDB</value>
+  </data>
+  <data name="Files_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Files_SetDefault" xml:space="preserve">
+    <value>Set this folder as your default folder, where all new files will be moved to on import</value>
+  </data>
+  <data name="Files_DefaultRemoved" xml:space="preserve">
+    <value>Removed this folder as your default</value>
+  </data>
+  <data name="Files_SelectDefault" xml:space="preserve">
+    <value>Select a default Folder</value>
+  </data>
+  <data name="Downloads_Searching" xml:space="preserve">
+    <value>Searching...</value>
+  </data>
+  <data name="Downloads_Results" xml:space="preserve">
+    <value>{0} Results</value>
+  </data>
+  <data name="Downloads_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Downloads_GoWebsite" xml:space="preserve">
+    <value>Go to Website</value>
+  </data>
+  <data name="Tooltip_BookmarksSearch" xml:space="preserve">
+    <value>Search for downloads for this series</value>
+  </data>
+  <data name="Tooltip_BookmarksToggle" xml:space="preserve">
+    <value>Toggle downloading status</value>
+  </data>
+  <data name="Tooltip_BookmarksPriority" xml:space="preserve">
+    <value>Edit the priority</value>
+  </data>
+  <data name="Tooltip_StylesCloseTab" xml:space="preserve">
+    <value>Close Tab</value>
+  </data>
+  <data name="Tooltip_StylesFullScreen" xml:space="preserve">
+    <value>Full Screen</value>
+  </data>
+  <data name="Tooltip_StylesMinimize" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="Tooltip_StylesNormal" xml:space="preserve">
+    <value>Normal Window</value>
+  </data>
+  <data name="Tooltip_StylesExit" xml:space="preserve">
+    <value>Exit Shoko Desktop</value>
+  </data>
+  <data name="Tooltip_AnimeFull" xml:space="preserve">
+    <value>Full Series View</value>
+  </data>
+  <data name="Tooltip_AnimeUpdateAniDBInfo" xml:space="preserve">
+    <value>Update Info from AniDB and Refresh</value>
+  </data>
+  <data name="Tooltip_MetroEnable" xml:space="preserve">
+    <value>Enable Section</value>
+  </data>
+  <data name="Rename_OldName" xml:space="preserve">
+    <value>Old Name</value>
+  </data>
+  <data name="Rename_NewName" xml:space="preserve">
+    <value>New Name</value>
+  </data>
+  <data name="Rename_AnimeID" xml:space="preserve">
+    <value>Anime ID</value>
+  </data>
+  <data name="Rename_GroupID" xml:space="preserve">
+    <value>Group ID</value>
+  </data>
+  <data name="Rename_FileVersion" xml:space="preserve">
+    <value>File Version</value>
+  </data>
+  <data name="Rename_EpisodeNumber" xml:space="preserve">
+    <value>Episode Number</value>
+  </data>
+  <data name="Rename_EpisodeCount" xml:space="preserve">
+    <value>Episode Count</value>
+  </data>
+  <data name="Rename_RipSource" xml:space="preserve">
+    <value>Rip Source</value>
+  </data>
+  <data name="Rename_AnimeType" xml:space="preserve">
+    <value>Anime Type</value>
+  </data>
+  <data name="Rename_Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="Rename_DubLanguage" xml:space="preserve">
+    <value>Dub Language</value>
+  </data>
+  <data name="Rename_SubLanguage" xml:space="preserve">
+    <value>Sub Language</value>
+  </data>
+  <data name="Rename_Codec" xml:space="preserve">
+    <value>Codec</value>
+  </data>
+  <data name="Rename_VideoBitDepth" xml:space="preserve">
+    <value>Video Bit Depth</value>
+  </data>
+  <data name="Rename_VideoResolutionWidth" xml:space="preserve">
+    <value>Video Res Width</value>
+  </data>
+  <data name="Rename_VideoResolutionHeight" xml:space="preserve">
+    <value>Video Res Height</value>
+  </data>
+  <data name="Rename_ManuallyLinked" xml:space="preserve">
+    <value>Is Manually Linked</value>
+  </data>
+  <data name="Rename_HasEpisodes" xml:space="preserve">
+    <value>Has Episodes</value>
+  </data>
+  <data name="Rename_Deprecated" xml:space="preserve">
+    <value>Deprecated</value>
+  </data>
+  <data name="Rename_Censored" xml:space="preserve">
+    <value>Censored</value>
+  </data>
+  <data name="Rename_OriginalFileName" xml:space="preserve">
+    <value>Sub Group File Name</value>
+  </data>
+  <data name="Rename_AudioCodec" xml:space="preserve">
+    <value>Audio Codecs</value>
+  </data>
+  <data name="Rename_VideoCodec" xml:space="preserve">
+    <value>Video Codecs</value>
+  </data>
+  <data name="Rename_EpisodeID" xml:space="preserve">
+    <value>Episode ID</value>
+  </data>
+  <data name="Rename_FileID" xml:space="preserve">
+    <value>File ID</value>
+  </data>
+  <data name="Rename_Type" xml:space="preserve">
+    <value>Anime Type</value>
+  </data>
+  <data name="Rename_Episodes" xml:space="preserve">
+    <value>Episode Count</value>
+  </data>
+  <data name="Rename_Resolution" xml:space="preserve">
+    <value>Video Resolution</value>
+  </data>
+  <data name="Rename_Source" xml:space="preserve">
+    <value>Video Source</value>
+  </data>
+  <data name="Rename_CRCUpper" xml:space="preserve">
+    <value>CRC - Upper</value>
+  </data>
+  <data name="Rename_CRCLower" xml:space="preserve">
+    <value>CRC - Lower</value>
+  </data>
+  <data name="Rename_ED2KUpper" xml:space="preserve">
+    <value>ED2K - Upper</value>
+  </data>
+  <data name="Rename_ED2KLower" xml:space="preserve">
+    <value>ED2K - Lower</value>
+  </data>
+  <data name="Rename_GroupLongName" xml:space="preserve">
+    <value>Group Name - Long</value>
+  </data>
+  <data name="Rename_GroupShortName" xml:space="preserve">
+    <value>Group Name - Short</value>
+  </data>
+  <data name="Rename_EpisodeNameEnglish" xml:space="preserve">
+    <value>Episode Name - English</value>
+  </data>
+  <data name="Rename_EpisodeNameRomaji" xml:space="preserve">
+    <value>Episode Name - Romaji</value>
+  </data>
+  <data name="Rename_AnimeNameEnglish" xml:space="preserve">
+    <value>Anime Name - English</value>
+  </data>
+  <data name="Rename_AnimeNameKanji" xml:space="preserve">
+    <value>Anime Name - Kanji</value>
+  </data>
+  <data name="Rename_AnimeNameRomaji" xml:space="preserve">
+    <value>Anime Name - Romaji</value>
+  </data>
+  <data name="GroupFilterConditionType_LatestEpisodeAirDate" xml:space="preserve">
+    <value>Latest Episode Air Date</value>
+  </data>
+  <data name="GroupFilterConditionType_Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="GroupFilterSorting_GroupFilter" xml:space="preserve">
+    <value>Group Filter Name</value>
+  </data>
+  <data name="RelationSetting_AltSetting" xml:space="preserve">
+    <value>Alternative Setting</value>
+  </data>
+  <data name="RelationSetting_SameSetting" xml:space="preserve">
+    <value>Same Setting</value>
+  </data>
+  <data name="RelationSetting_Character" xml:space="preserve">
+    <value>Character</value>
+  </data>
+  <data name="RelationSetting_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="RelationSetting_ParentStory" xml:space="preserve">
+    <value>Parent Story</value>
+  </data>
+  <data name="RelationSetting_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="RelationSetting_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="RelationSetting_FullStory" xml:space="preserve">
+    <value>Full Story</value>
+  </data>
+  <data name="RelationSetting_AltVersion" xml:space="preserve">
+    <value>Alternative Version</value>
+  </data>
+  <data name="TAB_Settings_RelationSettings" xml:space="preserve">
+    <value>Relation Settings</value>
+  </data>
+  <data name="RelationSettings_Info" xml:space="preserve">
+    <value>If enabled, Shoko will group all related series in your collection based on the series relation graphs on AniDB. You can exclude certain types of relations by clicking the relation you don't want grouped.</value>
+  </data>
+  <data name="Link_RelationSettings" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#essential</value>
+  </data>
+  <data name="MAL_LoginCorrect" xml:space="preserve">
+    <value>MAL login successful, settings saved.</value>
+  </data>
+  <data name="MAL_SearchInfo" xml:space="preserve">
+    <value>Valid MAL credentials are required in order to use this feature.</value>
+  </data>
+  <data name="CheckCred" xml:space="preserve">
+    <value>Check Credentials</value>
+  </data>
+  <data name="MAL_CheckCred" xml:space="preserve">
+    <value>Check MAL Credentials</value>
+  </data>
+  <data name="Trakt_SearchInfo" xml:space="preserve">
+    <value>Valid Trakt credentials are required in order to use this feature.</value>
+  </data>
+  <data name="Trakt_CheckCred" xml:space="preserve">
+    <value>Check Trakt Credentials</value>
+  </data>
+  <data name="Video_Hi12P" xml:space="preserve">
+    <value>12bit</value>
+  </data>
+  <data name="VideoPlayer_MPCWebUIPort" xml:space="preserve">
+    <value>MPC Web UI Port</value>
+  </data>
+  <data name="VideoPlayer_MPCInfo" xml:space="preserve">
+    <value>In order to integrate MPC with Shoko Desktop, you must enable the Web UI via the following option in View &gt; Options &gt; Player &gt; Web Interface &gt; Listen On Port. The default listening port is 13579 which you can use, if you decide to change it make sure you change it in the box below.</value>
+  </data>
+  <data name="AniDB_GetTitles" xml:space="preserve">
+    <value>Getting AniDB Titles</value>
+  </data>
+  <data name="AniDB_MyListAdd" xml:space="preserve">
+    <value>Adding file to MyList: {0}</value>
+  </data>
+  <data name="AniDB_MyListDelete" xml:space="preserve">
+    <value>Deleting file from MyList: {0}_{1}</value>
+  </data>
+  <data name="Command_AnimeInfo" xml:space="preserve">
+    <value>Getting anime info from HTTP API: {0}</value>
+  </data>
+  <data name="Command_DeleteError" xml:space="preserve">
+    <value>Error deleting image: ({0}) - {1}</value>
+  </data>
+  <data name="Command_DownloadImage" xml:space="preserve">
+    <value>Downloading Image: {0}</value>
+  </data>
+  <data name="Command_DownloadMalWatched" xml:space="preserve">
+    <value>Downloading watched states from MAL</value>
+  </data>
+  <data name="Command_DownloadTvDBImages" xml:space="preserve">
+    <value>Getting images from The TvDB: {0}</value>
+  </data>
+  <data name="Command_FileInfo" xml:space="preserve">
+    <value>Getting file info from UDP API: {0}</value>
+  </data>
+  <data name="Command_GetCalendar" xml:space="preserve">
+    <value>Getting calendar info from UDP API</value>
+  </data>
+  <data name="Command_GetEpisodeList" xml:space="preserve">
+    <value>Getting episode info from UDP API: {0}</value>
+  </data>
+  <data name="Command_GetFileInfo" xml:space="preserve">
+    <value>Getting file info from UDP API: {0}</value>
+  </data>
+  <data name="Command_GetReleaseGroup" xml:space="preserve">
+    <value>Getting group status info from UDP API for Anime: {0}</value>
+  </data>
+  <data name="Command_GetReleaseInfo" xml:space="preserve">
+    <value>Getting release group info from UDP API: {0}</value>
+  </data>
+  <data name="Command_GetReviewInfo" xml:space="preserve">
+    <value>Getting review info from UDP API for Anime: {0}</value>
+  </data>
+  <data name="Command_GettingTvDB" xml:space="preserve">
+    <value>Getting episodes from The TvDB: {0}</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Getting list of updated animes from UDP API</value>
+  </data>
+  <data name="Command_HashingFile" xml:space="preserve">
+    <value>Hashing File: {0}</value>
+  </data>
+  <data name="Command_Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="Command_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Command_Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Command_ReadingMedia" xml:space="preserve">
+    <value>Reading Media Info for File: {0}</value>
+  </data>
+  <data name="Command_Refresh" xml:space="preserve">
+    <value>Refreshing Anime Stats: {0}</value>
+  </data>
+  <data name="Command_SearchMal" xml:space="preserve">
+    <value>Searching for anime on MAL: {0}</value>
+  </data>
+  <data name="Command_SearchTMDb" xml:space="preserve">
+    <value>Searching for anime on The MovieDB: {0}</value>
+  </data>
+  <data name="Command_SearchTrakt" xml:space="preserve">
+    <value>Searching for anime on Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SearchTvDB" xml:space="preserve">
+    <value>Searching for anime on The TvDB: {0}</value>
+  </data>
+  <data name="Command_SendAnimeAzure" xml:space="preserve">
+    <value>Sending anime xml to azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeFull" xml:space="preserve">
+    <value>Sending anime full to azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeTitle" xml:space="preserve">
+    <value>Sending anime title to azure: {0}</value>
+  </data>
+  <data name="Command_SendAnonymousData" xml:space="preserve">
+    <value>Sending anonymous usage data to azure</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>Starting command worker (general)...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>Starting command worker (hasher)...</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Starting command worker (images)...</value>
+  </data>
+  <data name="Command_SyncMyList" xml:space="preserve">
+    <value>Syncing MyList info from HTTP API</value>
+  </data>
+  <data name="Command_SyncTrakt" xml:space="preserve">
+    <value>Syncing Trakt Collection</value>
+  </data>
+  <data name="Command_SyncTraktEpisodes" xml:space="preserve">
+    <value>Sync episode to collection on Trakt: {0} - {1}</value>
+  </data>
+  <data name="Command_SyncTraktSeries" xml:space="preserve">
+    <value>Syncing Trakt Collection for series: {0}</value>
+  </data>
+  <data name="Command_SyncVotes" xml:space="preserve">
+    <value>Syncing Vote info from HTTP API</value>
+  </data>
+  <data name="Command_TraktAddHistory" xml:space="preserve">
+    <value>Add episode to history on Trakt: {0}</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Updating status on MAL: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListInfo" xml:space="preserve">
+    <value>Updating MyList info from UDP API for File: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListStats" xml:space="preserve">
+    <value>Updating AniDB MyListStats</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Updating all Trakt Series Info</value>
+  </data>
+  <data name="Command_UpdateTraktData" xml:space="preserve">
+    <value>Updating info/images on Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_UploadMALWatched" xml:space="preserve">
+    <value>Uploading watched states to MAL</value>
+  </data>
+  <data name="Command_VoteAnime" xml:space="preserve">
+    <value>Voting: {0} - {1}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to MAL from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to Other from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to Trakt from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to TvDB from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>Deleting cross ref for file to episode to web cache: {0}-{1}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Sending cross ref for Anidb to MAL from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Sending cross ref for Anidb to Other from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Sending cross ref for Anidb to Trakt from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Sending cross ref for Anidb to TvDB from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Sending cross ref for file to episode to web cache: {0}</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Sync Votes</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Language_RenameComplete" xml:space="preserve">
+    <value>All groups and series have been successfully renamed!</value>
+  </data>
+  <data name="Language_Switch" xml:space="preserve">
+    <value>Switch Language</value>
+  </data>
+  <data name="Language_Info" xml:space="preserve">
+    <value>Shoko Desktop needs to restart to change the language, click OK to auto restart or Cancel to manually restart.</value>
+  </data>
+  <data name="UpdateAniDB_QueueCount" xml:space="preserve">
+    <value>{0} Files will be queued for processing</value>
+  </data>
+  <data name="UpdateAniDB_QueueActual" xml:space="preserve">
+    <value>{0} Files queued for processing</value>
+  </data>
+  <data name="UpdateAniDB_UpdateAniDB" xml:space="preserve">
+    <value>Update Local AniDB Metadata</value>
+  </data>
+  <data name="VideoPlayer_Installed" xml:space="preserve">
+    <value>Installed</value>
+  </data>
+  <data name="VideoPlayer_MPV" xml:space="preserve">
+    <value>MPV</value>
+  </data>
+  <data name="VideoPlayer_NotInstalled" xml:space="preserve">
+    <value>Not Installed</value>
+  </data>
+  <data name="VideoPlayer_DefaultPlayerEnabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Video_Player_DefaultPlayerNotConfigured" xml:space="preserve">
+    <value>Not Configured</value>
+  </data>
+  <data name="VideoPlayer_Configured" xml:space="preserve">
+    <value>Configured</value>
+  </data>
+  <data name="VideoPlayer_NotConfigured" xml:space="preserve">
+    <value>NOT Configured Please Resolve</value>
+  </data>
+  <data name="Link_EnableStreaming" xml:space="preserve">
+    <value>http://shokoanime.com/streaming/</value>
+  </data>
+  <data name="VideoPlayer_MPVInstall" xml:space="preserve">
+    <value>MPV Install Instructions</value>
+  </data>
+  <data name="Link_MPV" xml:space="preserve">
+    <value>https://github.com/rossy/mpv-install/blob/master/README.md</value>
+  </data>
+  <data name="VideoPlayer_MPVNote" xml:space="preserve">
+    <value>If you decide to use your own version of MPV instead of the built-in version, make sure to associate playback with MPV. Otherwise Shoko Desktop will not be able to use it. External MPV also supports streaming playback and is the recommend Limited Video Player to use.</value>
+  </data>
+  <data name="Tooltip_WebCache_TraktAssociations" xml:space="preserve">
+    <value>Use the web cache to look up links between AniDB and Trakt. If not selected you will need to manually search for all Trakt links.</value>
+  </data>
+  <data name="Tab_Help" xml:space="preserve">
+    <value>Help!</value>
+  </data>
+  <data name="Link_Help" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/</value>
+  </data>
+  <data name="Main_Discord" xml:space="preserve">
+    <value>Discord</value>
+  </data>
+  <data name="Server_AutoStart" xml:space="preserve">
+    <value>AutoStart Local Shoko Server</value>
+  </data>
+  <data name="TvDB_SearchInfo" xml:space="preserve">
+    <value>The TvDB prohibits adult content, do not add adult related series to The TvDB or attempt to link them.</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Updating Changed TvDB association: {0}</value>
+  </data>
+  <data name="CommunityLinks_Movie" xml:space="preserve">
+    <value>Movie:</value>
+  </data>
+  <data name="Tooltip_UpdateMovieDB" xml:space="preserve">
+    <value>Download fresh data from The Movie DB and update the local database</value>
+  </data>
+  <data name="LearnMore_AniDBOptions" xml:space="preserve">
+    <value>Learn more about AniDB options</value>
+  </data>
+  <data name="LearnMore_GroupFilters" xml:space="preserve">
+    <value>What are Group Filters?</value>
+  </data>
+  <data name="LearnMore_VideoPlayer" xml:space="preserve">
+    <value>Learn more about configuring a video player for use with Shoko</value>
+  </data>
+  <data name="LearnMore_ImportFolders" xml:space="preserve">
+    <value>Learn more about import folders</value>
+  </data>
+  <data name="ShokoServer_ImportFoldersInfo" xml:space="preserve">
+    <value>Fill out the form below to add an import folder. Input the folder's location, select the import type and then click Save to add the import folder.</value>
+  </data>
+  <data name="LearnMore_RelationSettings" xml:space="preserve">
+    <value>Learn more about relation settings</value>
+  </data>
+  <data name="LearnMore_WebCache" xml:space="preserve">
+    <value>Learn more about the web cache</value>
+  </data>
+  <data name="Info_SettingsDisplay" xml:space="preserve">
+    <value>The display panel allows you to customize how series images and information is displayed.</value>
+  </data>
+  <data name="LearnMore_Downloads" xml:space="preserve">
+    <value>Learn more about using Shoko to download anime</value>
+  </data>
+  <data name="ShokoServer_DDInfo" xml:space="preserve">
+    <value>Please note, updating your drop destination will only affect new series being added. Series you've already imported will not be affected.</value>
+  </data>
+  <data name="MovieDB_Info" xml:space="preserve">
+    <value>While The Movie DB does index TV Series, Shoko only supports linking movies.</value>
+  </data>
+  <data name="LearnMore_ComLinking" xml:space="preserve">
+    <value>Learn more about series linking</value>
+  </data>
+  <data name="Link_Linking" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/collection/collection-overview/#linking</value>
+  </data>
+  <data name="Anime_Filters" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="Anime_FilterName" xml:space="preserve">
+    <value>Filter Name must be populated</value>
+  </data>
+  <data name="Anime_Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Anime_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Anime_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Anime_Group" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="Anime_Episode" xml:space="preserve">
+    <value>Episode</value>
+  </data>
+  <data name="Anime_Special" xml:space="preserve">
+    <value>Special</value>
+  </data>
+  <data name="TvDB_ManualLink" xml:space="preserve">
+    <value>If fixing an incorrect linking, please add it to the community links so other users can benefit from your correct link. </value>
+  </data>
+  <data name="RelationSetting_OVA" xml:space="preserve">
+    <value>OVA</value>
+  </data>
+  <data name="RelationSetting_Movie" xml:space="preserve">
+    <value>Movie</value>
+  </data>
+  <data name="ImportFolder_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Select in which providers you want to Delete</value>
+  </data>
+  <data name="DeleteFile_Multiple" xml:space="preserve">
+    <value>Delete Multiple Files?</value>
+  </data>
+  <data name="DeleteFile_Title" xml:space="preserve">
+    <value>Delete File '{0}'?</value>
+  </data>
+  <data name="Resume_Cancel" xml:space="preserve">
+    <value>Play from the begining</value>
+  </data>
+  <data name="Resume_Message" xml:space="preserve">
+    <value>Do you want to resume the video at {0}?</value>
+  </data>
+  <data name="Resume_OK" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Resume_Title" xml:space="preserve">
+    <value>Do you want to resume the video?</value>
+  </data>
+  <data name="ImportFolder_SelectImportFolder" xml:space="preserve">
+    <value>Select Import Folder...</value>
+  </data>
+  <data name="VideoPlayer_ZoomPlayer" xml:space="preserve">
+    <value>Zoom Player</value>
+  </data>
+  <data name="VideoPlayer_ZoomPlayerInfo" xml:space="preserve">
+    <value>No setup required, simply select Zoom Player as your Video Player.</value>
+  </data>
+  <data name="VideoPlayer_ZoomPlayerNotFound" xml:space="preserve">
+    <value>Zoom Player not found</value>
+  </data>
+  <data name="RelationSettings_Exclude" xml:space="preserve">
+    <value>Exclude The Following Relations</value>
+  </data>
+  <data name="TvDB_UpdateImages" xml:space="preserve">
+    <value>Update Local Images</value>
+  </data>
+  <data name="TvDB_UpdateImages_Desc" xml:space="preserve">
+    <value>This will update all local images from every source, excluding AniDB. Do not run this command if Server and Desktop are using the same folder as it will delete all your images.</value>
+  </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Use Default</value>
+  </data>
+  <data name="Settings_SetShokoServer" xml:space="preserve">
+    <value>Use Shoko Server Folder</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>Migration Status</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>Shoko Desktop is unable to migrate your settings using the current user access. Run Shoko Desktop as an Administrator to start the migration.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>Shoko Desktop will now start migrating your settings from this location to</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>once this process is complete Shoko Desktop will close and no longer need Administrative Privileges to run.</value>
+  </data>
+  <data name="Migration_Error" xml:space="preserve">
+    <value>Error Migrating Settings:</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Error Loading Settings:</value>
+  </data>
+  <data name="Downloads_DisableRefresh" xml:space="preserve">
+    <value>Only use when auto refresh is disabled</value>
+  </data>
+  <data name="IgnoredAnime_DeleteMessage" xml:space="preserve">
+    <value>Are you sure you want to delete this?</value>
+  </data>
+  <data name="ImportFolder_Delete" xml:space="preserve">
+    <value>Are you sure you want to delete the Import Folder: {0}? Any files in this folder will also be removed from the database.</value>
+  </data>
+  <data name="VideoPlayer_WindowsDefault" xml:space="preserve">
+    <value>Windows Default</value>
+  </data>
+  <data name="VideoPlayer_WindowsDefaultNote" xml:space="preserve">
+    <value>If selected, will use the video player listed by Windows as the default player. Because of the wide range of players that can be used, only local playback of files is supported.</value>
+  </data>
+  <data name="VideoPlayer_LimitedPlayers" xml:space="preserve">
+    <value>Limited Players</value>
+  </data>
+  <data name="VideoPlayer_LimitedNote" xml:space="preserve">
+    <value>The video players listed below are not fully supported and are included for legacy reasons. These video players only support the playback of files.</value>
+  </data>
+  <data name="VideoPlayer_InternalMPV" xml:space="preserve">
+    <value>Internal MPV</value>
+  </data>
+  <data name="VideoPlayer_InternalMPVNote" xml:space="preserve">
+    <value>Our built-in video player, MPV is a lightweight media player developed to run on a multitude of different operating systems removing bloat to provide a fast and powerful video player. No additional setup is required to use the built-in MPV player.</value>
+  </data>
+  <data name="VideoPlayer_SupportedPlayers" xml:space="preserve">
+    <value>Supported Players</value>
+  </data>
+  <data name="VideoPlayer_SupportedNote" xml:space="preserve">
+    <value>The video players listed below are fully supported within Shoko Desktop, each video player is capable of resuming playback, updating watched states and Trakt scrobbling. Please read the information below the video players name for any additional setup required.</value>
+  </data>
+  <data name="MD5" xml:space="preserve">
+    <value>MD5</value>
+  </data>
+  <data name="SHA1" xml:space="preserve">
+    <value>SHA1</value>
+  </data>
+  <data name="RelationSetting_AllowDissimilarExclusion" xml:space="preserve">
+    <value>Exclude Dissimilar Titles</value>
+  </data>
+  <data name="ImportSettings_AutoGroupSeriesUseScoreAlgorithm" xml:space="preserve">
+    <value>Use Relation Weighting to Determine Main Series</value>
+  </data>
+  <data name="Migration_ProgramDataError" xml:space="preserve">
+    <value>Error occurred during migration of programdata folder!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Locate settings file</value>
+  </data>
+  <data name="LocateSettingsFileQuestion" xml:space="preserve">
+    <value>No previous configuration found, do you want to manually locate an existing configuration?</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Duplicate install detected</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>You have both Shoko Desktop and JMM Desktop installed. Do you want to uninstall JMM Desktop?</value>
+  </data>
+  <data name="Settings_SetShokoServerFolderNonExistent" xml:space="preserve">
+    <value>Shoko image path doesn't exist: {0}</value>
+  </data>
+</root>

@@ -1,0 +1,4475 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AirDate" xml:space="preserve">
+    <value>Дата эфира</value>
+  </data>
+  <data name="AniDBRating" xml:space="preserve">
+    <value>Рейтинг AniDB</value>
+  </data>
+  <data name="AniDBVoteCount" xml:space="preserve">
+    <value>Количество голосов AniDB</value>
+  </data>
+  <data name="Anime_Episodes" xml:space="preserve">
+    <value>Эпизоды</value>
+  </data>
+  <data name="EpisodeType" xml:space="preserve">
+    <value>Тип эпизода</value>
+  </data>
+  <data name="EpisodeType_Credits" xml:space="preserve">
+    <value>Титры</value>
+  </data>
+  <data name="EpisodeType_Normal" xml:space="preserve">
+    <value>Эпизоды</value>
+  </data>
+  <data name="EpisodeType_Other" xml:space="preserve">
+    <value>Прочее</value>
+  </data>
+  <data name="EpisodeType_Parody" xml:space="preserve">
+    <value>Пародия</value>
+  </data>
+  <data name="EpisodeType_Specials" xml:space="preserve">
+    <value>Специальные</value>
+  </data>
+  <data name="EpisodeType_Trailer" xml:space="preserve">
+    <value>Трейлеры</value>
+  </data>
+  <data name="Favorite" xml:space="preserve">
+    <value>Любимый</value>
+  </data>
+  <data name="GroupFilter_All" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="GroupFilter_Favorites" xml:space="preserve">
+    <value>Избранное</value>
+  </data>
+  <data name="IsWatched" xml:space="preserve">
+    <value>Просмотренное</value>
+  </data>
+  <data name="MyRating" xml:space="preserve">
+    <value>Мой рейтинг</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="RunTime" xml:space="preserve">
+    <value>Длительность</value>
+  </data>
+  <data name="SortName" xml:space="preserve">
+    <value>Название для сортировки</value>
+  </data>
+  <data name="Series" xml:space="preserve">
+    <value>Сериал</value>
+  </data>
+  <data name="TAB_Config" xml:space="preserve">
+    <value>Конфигурация</value>
+  </data>
+  <data name="TAB_Episodes" xml:space="preserve">
+    <value>Эпизоды</value>
+  </data>
+  <data name="TAB_FileManager" xml:space="preserve">
+    <value>Файловый менеджер</value>
+  </data>
+  <data name="TAB_Images" xml:space="preserve">
+    <value>Изображения</value>
+  </data>
+  <data name="TAB_Relations" xml:space="preserve">
+    <value>Связи</value>
+  </data>
+  <data name="TAB_SeriesEpisodes" xml:space="preserve">
+    <value>Коллекция</value>
+  </data>
+  <data name="TAB_Server" xml:space="preserve">
+    <value>Сервер</value>
+  </data>
+  <data name="TAB_TvDB" xml:space="preserve">
+    <value>TvDB</value>
+  </data>
+  <data name="ViewLabel" xml:space="preserve">
+    <value>Вид: </value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Назад</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="RunImport" xml:space="preserve">
+    <value>Выполнить импорт</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="AnimeTitles" xml:space="preserve">
+    <value>Названия</value>
+  </data>
+  <data name="AnimeTitlesMain" xml:space="preserve">
+    <value>Основное название</value>
+  </data>
+  <data name="AnimeTitlesOfficial" xml:space="preserve">
+    <value>Официальное</value>
+  </data>
+  <data name="AnimeTitlesShort" xml:space="preserve">
+    <value>Короткое</value>
+  </data>
+  <data name="AnimeTitlesSynonym" xml:space="preserve">
+    <value>Синоним</value>
+  </data>
+  <data name="Categories" xml:space="preserve">
+    <value>Категории</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>Теги (может содержать спойлеры)</value>
+  </data>
+  <data name="CategoryWeighting" xml:space="preserve">
+    <value>Вес</value>
+  </data>
+  <data name="TagApproval" xml:space="preserve">
+    <value>Одобрение</value>
+  </data>
+  <data name="Episodes_AvAll" xml:space="preserve">
+    <value>Все эпизоды</value>
+  </data>
+  <data name="Episodes_AvMissing" xml:space="preserve">
+    <value>Нет доступных файлов</value>
+  </data>
+  <data name="Episodes_AvOnly" xml:space="preserve">
+    <value>Только доступные файлы</value>
+  </data>
+  <data name="Episodes_Watched_All" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="Episodes_Watched_Unwatched" xml:space="preserve">
+    <value>Непросмотренные</value>
+  </data>
+  <data name="Episodes_Watched_Watched" xml:space="preserve">
+    <value>Просмотренные</value>
+  </data>
+  <data name="Play" xml:space="preserve">
+    <value>Играть</value>
+  </data>
+  <data name="Tooltip_FileFound" xml:space="preserve">
+    <value>Этот файл доступен</value>
+  </data>
+  <data name="Tooltip_FileNotFound" xml:space="preserve">
+    <value>Этот файл не существует</value>
+  </data>
+  <data name="Tooltip_FutureDated" xml:space="preserve">
+    <value>Этот эпизод не выходил в эфир</value>
+  </data>
+  <data name="Tooltip_Unwatched" xml:space="preserve">
+    <value>Непросмотрен - щелкните что пометить как просмотрено</value>
+  </data>
+  <data name="Tooltip_Watched" xml:space="preserve">
+    <value>Просмотрен - щелкните чтобы пометить как непросмотрено</value>
+  </data>
+  <data name="Tooltip_ZeroFiles" xml:space="preserve">
+    <value>Нет файлов доступных для этого эпизода</value>
+  </data>
+  <data name="Unwatched" xml:space="preserve">
+    <value>Непросмотренные</value>
+  </data>
+  <data name="Watched" xml:space="preserve">
+    <value>Просмотренные</value>
+  </data>
+  <data name="Rating" xml:space="preserve">
+    <value>Рейтинг</value>
+  </data>
+  <data name="Votes" xml:space="preserve">
+    <value>Голоса</value>
+  </data>
+  <data name="AnimeType_Movie" xml:space="preserve">
+    <value>Фильм</value>
+  </data>
+  <data name="AnimeType_Other" xml:space="preserve">
+    <value>Прочие</value>
+  </data>
+  <data name="AnimeType_OVA" xml:space="preserve">
+    <value>OVA</value>
+  </data>
+  <data name="AnimeType_TVSeries" xml:space="preserve">
+    <value>Сериал</value>
+  </data>
+  <data name="AnimeType_TVSpecial" xml:space="preserve">
+    <value>Специальный ТВ</value>
+  </data>
+  <data name="AnimeType_Web" xml:space="preserve">
+    <value>Веб</value>
+  </data>
+  <data name="Ongoing" xml:space="preserve">
+    <value>Текущие</value>
+  </data>
+  <data name="To" xml:space="preserve">
+    <value>до</value>
+  </data>
+  <data name="LastWatched" xml:space="preserve">
+    <value>Последний просмотр</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>Сегодня</value>
+  </data>
+  <data name="Yesterday" xml:space="preserve">
+    <value>Вчера</value>
+  </data>
+  <data name="GroupsAvailableFrom" xml:space="preserve">
+    <value>Доступно с:</value>
+  </data>
+  <data name="Missing" xml:space="preserve">
+    <value>Отсутствует</value>
+  </data>
+  <data name="Tooltip_MissingEps" xml:space="preserve">
+    <value>Отсутствуют эпизоды у всех релиз групп</value>
+  </data>
+  <data name="Tooltip_MissingEpsGroups" xml:space="preserve">
+    <value>Отсутствуют эпизоды от релиз группы, которые я собираю</value>
+  </data>
+  <data name="Anime_Specials" xml:space="preserve">
+    <value>Специальные</value>
+  </data>
+  <data name="GroupFilter_Missing" xml:space="preserve">
+    <value>Отсутствующие эпизоды</value>
+  </data>
+  <data name="RemoveMissingFiles" xml:space="preserve">
+    <value>Удалить отсутствующие файлы</value>
+  </data>
+  <data name="ServerActions" xml:space="preserve">
+    <value>Серверные действия</value>
+  </data>
+  <data name="NewGroup" xml:space="preserve">
+    <value>Новая группа</value>
+  </data>
+  <data name="AllFilters" xml:space="preserve">
+    <value>Все фильтры</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Фильтр</value>
+  </data>
+  <data name="Group" xml:space="preserve">
+    <value>Группа</value>
+  </data>
+  <data name="AddSubGroup" xml:space="preserve">
+    <value>Новая подгруппа</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Редактировать</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="SubGroup" xml:space="preserve">
+    <value>Подгруппа</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Параметры</value>
+  </data>
+  <data name="NewSeries" xml:space="preserve">
+    <value>Новый сериал</value>
+  </data>
+  <data name="MoveSeries" xml:space="preserve">
+    <value>Перемещение серила</value>
+  </data>
+  <data name="MoveToGroup" xml:space="preserve">
+    <value>Перейти к выбранной группе</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>ОК</value>
+  </data>
+  <data name="QueueGeneral" xml:space="preserve">
+    <value>Очередь AniDB</value>
+  </data>
+  <data name="QueueHasher" xml:space="preserve">
+    <value>Очередь хэширования</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>AniDB команды в очереди</value>
+  </data>
+  <data name="Tooltip_QueueHasher" xml:space="preserve">
+    <value>Файлы ожидающие хэширования</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Пауза</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Продолжить</value>
+  </data>
+  <data name="Video_Bluray" xml:space="preserve">
+    <value>BluRay</value>
+  </data>
+  <data name="Video_DVD" xml:space="preserve">
+    <value>DVD</value>
+  </data>
+  <data name="Video_FullHD" xml:space="preserve">
+    <value>Full HD</value>
+  </data>
+  <data name="Video_HD" xml:space="preserve">
+    <value>HD</value>
+  </data>
+  <data name="NewFolder" xml:space="preserve">
+    <value>Новая папка</value>
+  </data>
+  <data name="DropDestination" xml:space="preserve">
+    <value>Папка назначения</value>
+  </data>
+  <data name="DropSource" xml:space="preserve">
+    <value>Папка источник</value>
+  </data>
+  <data name="ImportFolderName" xml:space="preserve">
+    <value>Имя папки импорта</value>
+  </data>
+  <data name="ImportFolderPath" xml:space="preserve">
+    <value>Путь к папке импорта</value>
+  </data>
+  <data name="LocalMapping" xml:space="preserve">
+    <value>Локальное сопоставление</value>
+  </data>
+  <data name="LocalPath" xml:space="preserve">
+    <value>Локальный путь</value>
+  </data>
+  <data name="ServerDetails" xml:space="preserve">
+    <value>Подробные сведения о сервере</value>
+  </data>
+  <data name="MSG_ERR_DropSourceDestCheck" xml:space="preserve">
+    <value>Папка импорта не может быть источником и назначением</value>
+  </data>
+  <data name="MSG_ERR_ImportFolderLocationCheck" xml:space="preserve">
+    <value>Местоположение папки импорта не может быть пустым. Введите допустимый путь на сервере Shoko</value>
+  </data>
+  <data name="TAB_UnrecognisedFiles" xml:space="preserve">
+    <value>Нераспознанные</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Подтвердить</value>
+  </data>
+  <data name="NothingSelected" xml:space="preserve">
+    <value>Ничего не выбрано</value>
+  </data>
+  <data name="SelectSeriesEp" xml:space="preserve">
+    <value>Выберите сериал и эпизод</value>
+  </data>
+  <data name="AssociateFile" xml:space="preserve">
+    <value>Связывание файла с эпизодом</value>
+  </data>
+  <data name="Ignore" xml:space="preserve">
+    <value>Игнорировать</value>
+  </data>
+  <data name="OpenFolder" xml:space="preserve">
+    <value>Открыть папку</value>
+  </data>
+  <data name="MSG_ERR_FileNotFound" xml:space="preserve">
+    <value>Не удалось найти файл</value>
+  </data>
+  <data name="FilesSelected" xml:space="preserve">
+    <value>Выбранные файлы</value>
+  </data>
+  <data name="StartingEpisodeNumber" xml:space="preserve">
+    <value>Стартовый номер эпизода</value>
+  </data>
+  <data name="Existing" xml:space="preserve">
+    <value>Существующие</value>
+  </data>
+  <data name="SelectAnime" xml:space="preserve">
+    <value>Выберите аниме из AniDB</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>Новая</value>
+  </data>
+  <data name="GroupName" xml:space="preserve">
+    <value>Имя группы</value>
+  </data>
+  <data name="AniDBID" xml:space="preserve">
+    <value>AniDB ID</value>
+  </data>
+  <data name="MSG_ERR_AnimeIDRequired" xml:space="preserve">
+    <value>Пожалуйста, введите AniDB аниме ID</value>
+  </data>
+  <data name="MSG_ERR_AnimeSelectionRequired" xml:space="preserve">
+    <value>Пожалуйста, выберите существующее аниме</value>
+  </data>
+  <data name="MSG_ERR_GroupNameRequired" xml:space="preserve">
+    <value>Пожалуйста, введите имя группы</value>
+  </data>
+  <data name="MSG_ERR_GroupSelectionRequired" xml:space="preserve">
+    <value>Пожалуйста, выберите существующую группу</value>
+  </data>
+  <data name="MSG_ERR_InvalidEpGetAnime" xml:space="preserve">
+    <value>Недопустимый диапазон номеров эпизодов, вы хотите обновить данные из AniDB?</value>
+  </data>
+  <data name="MSG_ERR_InvalidEp" xml:space="preserve">
+    <value>Недопустимый диапазон номеров эпизодов.</value>
+  </data>
+  <data name="DeleteLink" xml:space="preserve">
+    <value>Удалить связь</value>
+  </data>
+  <data name="Tooltip_DeleteLink" xml:space="preserve">
+    <value>Удалить связь между этим файлом и эпизодом.</value>
+  </data>
+  <data name="TAB_IgnoredFiles" xml:space="preserve">
+    <value>Игнорировать</value>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>Восстановить</value>
+  </data>
+  <data name="TAB_ManuallyLinked" xml:space="preserve">
+    <value>Связанное вручную</value>
+  </data>
+  <data name="AniDBLogin" xml:space="preserve">
+    <value>AniDB логин</value>
+  </data>
+  <data name="Client" xml:space="preserve">
+    <value>Клиент</value>
+  </data>
+  <data name="ImportFolders" xml:space="preserve">
+    <value>Импорт папки</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko сервер</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Пароль</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Порт</value>
+  </data>
+  <data name="Server" xml:space="preserve">
+    <value>Сервер</value>
+  </data>
+  <data name="ServerPath" xml:space="preserve">
+    <value>Путь на сервере</value>
+  </data>
+  <data name="TAB_SettingsAniDB" xml:space="preserve">
+    <value>AniDB</value>
+  </data>
+  <data name="TAB_SettingsDisplay" xml:space="preserve">
+    <value>Отображение</value>
+  </data>
+  <data name="TAB_SettingsEssential" xml:space="preserve">
+    <value>Основные</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB" xml:space="preserve">
+    <value>Сайты сообществ</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Тест</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>Имя пользователя</value>
+  </data>
+  <data name="TestAndSave" xml:space="preserve">
+    <value>Проверить и сохранить</value>
+  </data>
+  <data name="Success" xml:space="preserve">
+    <value>Успешно!</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Поиск</value>
+  </data>
+  <data name="Tooltip_GroupSearch" xml:space="preserve">
+    <value>Поиск группы по имени (на любом языке), категории или тегу</value>
+  </data>
+  <data name="AniDBDownloadChar" xml:space="preserve">
+    <value>Загрузка Героев/Авторов</value>
+  </data>
+  <data name="AniDBDownloadOptions" xml:space="preserve">
+    <value>Опции загрузки AniDB</value>
+  </data>
+  <data name="AniDBDownloadRelated" xml:space="preserve">
+    <value>Скачать связанные аниме</value>
+  </data>
+  <data name="AniDBDownloadReleaseGroups" xml:space="preserve">
+    <value>Скачать релиз группы</value>
+  </data>
+  <data name="AniDBDownloadReviews" xml:space="preserve">
+    <value>Скачать отзывы</value>
+  </data>
+  <data name="AniDBDownloadSimilar" xml:space="preserve">
+    <value>Скачать похожие аниме</value>
+  </data>
+  <data name="AniDBMyListAddFiles" xml:space="preserve">
+    <value>Добавление файлов</value>
+  </data>
+  <data name="AniDBMylistOptions" xml:space="preserve">
+    <value>Параметры AniDB MyList</value>
+  </data>
+  <data name="AniDBMyListReadUnwatched" xml:space="preserve">
+    <value>Считывать непросмотренные</value>
+  </data>
+  <data name="AniDBMyListReadWatched" xml:space="preserve">
+    <value>Считывать просмотренные</value>
+  </data>
+  <data name="AniDBMyListSetUnwatched" xml:space="preserve">
+    <value>Записывать непросмотренные</value>
+  </data>
+  <data name="AniDBMyListSetWatched" xml:space="preserve">
+    <value>Записывать просмотренные</value>
+  </data>
+  <data name="AniDBMyListState" xml:space="preserve">
+    <value>Состояние хранения</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadChar" xml:space="preserve">
+    <value>Скачать информацию и изображения о персонажах и сэйю, которые появляются в аниме</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadRelated" xml:space="preserve">
+    <value>При загрузке сведений о аниме, также скачивать информацию о всех связанных аниме. Это необходимо для правильной группировки аниме во время процесса импорта.</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadReleaseGroups" xml:space="preserve">
+    <value>Скачать подробную информацию о релиз группах и субтитрах для вашего аниме</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadReviews" xml:space="preserve">
+    <value>Скачать отзывы пользователей AniDB</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadSimilar" xml:space="preserve">
+    <value>При загрузке сведений о аниме, также скачивать информацию о подобных аниме и рекомендуемые названия</value>
+  </data>
+  <data name="Tooltip_AniDBMyListAddFiles" xml:space="preserve">
+    <value>Добавлять файлы будут в учетную запись AniDB</value>
+  </data>
+  <data name="Tooltip_AniDBMyListReadUnwatched" xml:space="preserve">
+    <value>Если файл помечен как "непросмотрен" на AniDB, он  будет также помечен и в локальной коллекции</value>
+  </data>
+  <data name="Tooltip_AniDBMyListReadWatched" xml:space="preserve">
+    <value>Если файл помечен как "просмотрен" на AniDB, он будет также помечен и в локальной коллекции</value>
+  </data>
+  <data name="Tooltip_AniDBMyListSetUnwatched" xml:space="preserve">
+    <value>Когда вы вручную отмечаете видео как просмотрено, также будут обновлено AniDB</value>
+  </data>
+  <data name="Tooltip_AniDBMyListSetWatched" xml:space="preserve">
+    <value>Когда вы закончите просмотр видео, или вручную отметите видео как просмотрено, также будут обновлено AniDB</value>
+  </data>
+  <data name="Tooltip_AniDBMyListState" xml:space="preserve">
+    <value>Состояния хранения которое  будет присвоено файлу при добавлении в список</value>
+  </data>
+  <data name="SyncMyList" xml:space="preserve">
+    <value>Синхронизация AniDB MyList</value>
+  </data>
+  <data name="Rehash" xml:space="preserve">
+    <value>Перехэшировать</value>
+  </data>
+  <data name="MSG_INFO_AddedQueueCmds" xml:space="preserve">
+    <value>Команды были добавлены в очередь</value>
+  </data>
+  <data name="MultiTypeRange" xml:space="preserve">
+    <value>Диапазон эпизодов</value>
+  </data>
+  <data name="MultiTypeSingle" xml:space="preserve">
+    <value>Один эпизод</value>
+  </data>
+  <data name="AniDBScheduleCalendar" xml:space="preserve">
+    <value>Автоматически обновлять календарь</value>
+  </data>
+  <data name="AniDBScheduleHTTP" xml:space="preserve">
+    <value>Автоматически обновлять информацию об эпизодах и аниме</value>
+  </data>
+  <data name="AniDBScheduleMyList" xml:space="preserve">
+    <value>Автоматически синхронизировать MyList информацию</value>
+  </data>
+  <data name="AniDBScheduleOptions" xml:space="preserve">
+    <value>Обновление по расписанию</value>
+  </data>
+  <data name="Tooltip_AniDBScheduleCalendar" xml:space="preserve">
+    <value>Скачивать информацию о предстоящих аниме</value>
+  </data>
+  <data name="Tooltip_AniDBScheduleHTTP" xml:space="preserve">
+    <value>Обновить сведения об аниме и получить информацию о новых эпизодах. Будут загружены только те данные, которые изменились с момента последнего обновления.</value>
+  </data>
+  <data name="Tooltip_AniDBScheduleMyList" xml:space="preserve">
+    <value>Синхронизировать информацию от AniDB согласно параметрам, указанным в разделе MyList.</value>
+  </data>
+  <data name="TAB_SettingsWebCache" xml:space="preserve">
+    <value>Веб-кэш</value>
+  </data>
+  <data name="DetailedInformationLink" xml:space="preserve">
+    <value>Следуйте по этой ссылке для подробного объяснения</value>
+  </data>
+  <data name="Get" xml:space="preserve">
+    <value>Получить</value>
+  </data>
+  <data name="Info_SettingsWebCache" xml:space="preserve">
+    <value>Веб-кэш это онлайн база данных, созданная разработчиками Shoko и MyAnime. Его цель заключается в том, чтобы заполнить пробелы, которые другие базы не обеспечивают, а также ускорить процесс импорта путем обмена информацией с другими пользователями Shoko.</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Отправить</value>
+  </data>
+  <data name="Tooltip_WebCache_Anonymous" xml:space="preserve">
+    <value>При выборе этого параметра AniDB пользователя не будет направляться в веб-кэш. Однако это означает, что вы не сможете сохранять свои предпочтения.</value>
+  </data>
+  <data name="Tooltip_WebCache_FileEpisodes" xml:space="preserve">
+    <value>Когда файлы не отображаются в AniDB, веб-кэш может иметь информацию об эпизодах относящихся к этому файлу. Это особенно полезно, когда вы связали файлы вручную и не хотите потерять эту информацию.</value>
+  </data>
+  <data name="Tooltip_WebCache_FileHashes" xml:space="preserve">
+    <value>Пробовать получить хэш файла из веб-кэша перед локальным хэшированием. Это может сэкономить много времени при импорте.</value>
+  </data>
+  <data name="Tooltip_WebCache_TvDBAssociations" xml:space="preserve">
+    <value>Использовать веб-кэш для поиска связи между AniDB и TvDB. Если не выбран вам будет нужно вручную выполнить поиск всех TvDB ссылок.</value>
+  </data>
+  <data name="TvDB_FanartAutoDownload" xml:space="preserve">
+    <value>Автоматическая загрузка фанарта</value>
+  </data>
+  <data name="TvDB_FanartCount" xml:space="preserve">
+    <value>Максимальный размер фанарт</value>
+  </data>
+  <data name="TvDB_PosterAutoDownload" xml:space="preserve">
+    <value>Автоматическая загрузка плакаты</value>
+  </data>
+  <data name="TvDB_WideBannerAutoDownload" xml:space="preserve">
+    <value>Автоматическая загрузка широких баннеров</value>
+  </data>
+  <data name="WebCache_Anonymous" xml:space="preserve">
+    <value>Оставаться анонимным</value>
+  </data>
+  <data name="WebCache_FileEpisodes" xml:space="preserve">
+    <value>Связи между файлами и эпизодами</value>
+  </data>
+  <data name="WebCache_FileHashes" xml:space="preserve">
+    <value>Хэши файлов</value>
+  </data>
+  <data name="WebCache_TvDBAssociations" xml:space="preserve">
+    <value>TvDB ссылки</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_MovieDB" xml:space="preserve">
+    <value>The Movie DB</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_TvDB" xml:space="preserve">
+    <value>The TvDB</value>
+  </data>
+  <data name="Tooltip_TvDB_FanartAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать новый фанарт всякий раз, когда выполняется импорт.</value>
+  </data>
+  <data name="Tooltip_TvDB_FanartCount" xml:space="preserve">
+    <value>Максимальное количество фанарт изображений для загрузки</value>
+  </data>
+  <data name="Tooltip_TvDB_PosterAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать новые плакаты всякий раз, когда выполняется импорт.</value>
+  </data>
+  <data name="Tooltip_TvDB_WideBannerAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать новые широкие баннеры, всякий раз, когда выполняется импорт.</value>
+  </data>
+  <data name="ImportSettings_ImportOnStart" xml:space="preserve">
+    <value>Импорт на старте</value>
+  </data>
+  <data name="ImportSettings_VideoExtensions" xml:space="preserve">
+    <value>Расширения видео-файлов</value>
+  </data>
+  <data name="ImportSettings_WatchFiles" xml:space="preserve">
+    <value>Следить за новыми файлами</value>
+  </data>
+  <data name="MovieDB_FanartAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать фанарт</value>
+  </data>
+  <data name="MovieDB_FanartCount" xml:space="preserve">
+    <value>Максимальный размер фанарт</value>
+  </data>
+  <data name="MovieDB_PosterAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать плакаты</value>
+  </data>
+  <data name="TAB_Settings_ImportSettings" xml:space="preserve">
+    <value>Настройки импорта</value>
+  </data>
+  <data name="Tooltip_MovieDB_FanartAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать новый фанарт, всякий раз, когда выполняется импорт.</value>
+  </data>
+  <data name="Tooltip_MovieDB_FanartCount" xml:space="preserve">
+    <value>Максимальное количество фанарт изображений для загрузки</value>
+  </data>
+  <data name="Tooltip_MovieDB_PosterAutoDownload" xml:space="preserve">
+    <value>Автоматически загружать новые плакаты, всякий раз, когда выполняется импорт.</value>
+  </data>
+  <data name="Down" xml:space="preserve">
+    <value>Вниз</value>
+  </data>
+  <data name="Language_UseSynonyms" xml:space="preserve">
+    <value>Также использовать синонимы</value>
+  </data>
+  <data name="Tooltip_LanguageUseSynonyms" xml:space="preserve">
+    <value>Также использовать синонимы из выбранных предпочтительных языков для отображения сериалов и групп. Не будут использоваться английские и ромадзи синонимы</value>
+  </data>
+  <data name="Up" xml:space="preserve">
+    <value>Вверх</value>
+  </data>
+  <data name="GroupFilterConditions" xml:space="preserve">
+    <value>Условия фильтра</value>
+  </data>
+  <data name="GroupFilterConditionType" xml:space="preserve">
+    <value>Тип условия</value>
+  </data>
+  <data name="GroupFilterConditionType_AirDate" xml:space="preserve">
+    <value>Эфир</value>
+  </data>
+  <data name="GroupFilterConditionType_AllEpisodesWatched" xml:space="preserve">
+    <value>Все эпизоды просмотрены</value>
+  </data>
+  <data name="GroupFilterConditionType_AnimeGroup" xml:space="preserve">
+    <value>Группа</value>
+  </data>
+  <data name="GroupFilterConditionType_AnimeType" xml:space="preserve">
+    <value>Тип аниме</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedTvDBInfo" xml:space="preserve">
+    <value>Есть TvDB ссылка</value>
+  </data>
+  <data name="GroupFilterConditionType_Category" xml:space="preserve">
+    <value>Категория</value>
+  </data>
+  <data name="GroupFilterConditionType_CompletedSeries" xml:space="preserve">
+    <value>Завершенные серии</value>
+  </data>
+  <data name="GroupFilterConditionType_Favourite" xml:space="preserve">
+    <value>Любимый</value>
+  </data>
+  <data name="GroupFilterConditionType_HasUnwatchedEpisodes" xml:space="preserve">
+    <value>Непросмотренные эпизоды</value>
+  </data>
+  <data name="GroupFilterConditionType_MissingEpisodes" xml:space="preserve">
+    <value>Отсутствующие эпизоды</value>
+  </data>
+  <data name="GroupFilterConditionType_ReleaseGroup" xml:space="preserve">
+    <value>Релиз группа</value>
+  </data>
+  <data name="GroupFilterConditionType_Studio" xml:space="preserve">
+    <value>Студия</value>
+  </data>
+  <data name="GroupFilterConditionType_Tag" xml:space="preserve">
+    <value>Тег</value>
+  </data>
+  <data name="GroupFilterConditionType_UserVoted" xml:space="preserve">
+    <value>Пользовательская оценка (пост.)</value>
+  </data>
+  <data name="GroupFilterConditionType_VideoQuality" xml:space="preserve">
+    <value>Качество видео</value>
+  </data>
+  <data name="GroupFilterOperator" xml:space="preserve">
+    <value>Оператор</value>
+  </data>
+  <data name="GroupFilterOperator_Equals" xml:space="preserve">
+    <value>Равно</value>
+  </data>
+  <data name="GroupFilterOperator_Exclude" xml:space="preserve">
+    <value>Исключить</value>
+  </data>
+  <data name="GroupFilterOperator_GreaterThan" xml:space="preserve">
+    <value>Больше или равно</value>
+  </data>
+  <data name="GroupFilterOperator_Include" xml:space="preserve">
+    <value>Включить</value>
+  </data>
+  <data name="GroupFilterOperator_LessThan" xml:space="preserve">
+    <value>Меньше или равно</value>
+  </data>
+  <data name="GroupFilterOperator_NotEquals" xml:space="preserve">
+    <value>Не равно</value>
+  </data>
+  <data name="GroupFilterSorting" xml:space="preserve">
+    <value>Сортировка</value>
+  </data>
+  <data name="ImageSize_GroupList" xml:space="preserve">
+    <value>Список группы и серий</value>
+  </data>
+  <data name="ImageSize_SeriesPoster" xml:space="preserve">
+    <value>Плакат сериала</value>
+  </data>
+  <data name="ImageSize_SubGroupList" xml:space="preserve">
+    <value>Список подгрупп и сериалов</value>
+  </data>
+  <data name="MSG_ERR_SelectDate" xml:space="preserve">
+    <value>Сначала выберите дату</value>
+  </data>
+  <data name="NewGroupFilter" xml:space="preserve">
+    <value>Новый групповой фильтр</value>
+  </data>
+  <data name="Style_GroupList" xml:space="preserve">
+    <value>Список групп</value>
+  </data>
+  <data name="Style_GroupList_MediumDetail" xml:space="preserve">
+    <value>Средняя детализация</value>
+  </data>
+  <data name="Style_GroupList_Simple" xml:space="preserve">
+    <value>Простой</value>
+  </data>
+  <data name="TAB_SettingsImageSizes" xml:space="preserve">
+    <value>Размеры изображения</value>
+  </data>
+  <data name="TAB_SettingsStyle" xml:space="preserve">
+    <value>Стили</value>
+  </data>
+  <data name="Tooltip_ImageSize_GroupList" xml:space="preserve">
+    <value>Изображения используемые в основном списке групп и сериалов </value>
+  </data>
+  <data name="Tooltip_ImageSize_SeriesPoster" xml:space="preserve">
+    <value>Изображения используемые в правой панели для всех сериалов принадлежащих группе</value>
+  </data>
+  <data name="Tooltip_ImageSize_SubGroupList" xml:space="preserve">
+    <value>Изображения используемые в основном списке при просмотре подгрупп или сериалов</value>
+  </data>
+  <data name="Tooltip_Style_GroupList" xml:space="preserve">
+    <value>Стиль групп (и подгрупп) при отображении основном списке </value>
+  </data>
+  <data name="FilterValue" xml:space="preserve">
+    <value>Значение фильтра</value>
+  </data>
+  <data name="MSG_ERR_EnterValue" xml:space="preserve">
+    <value>Введите значение</value>
+  </data>
+  <data name="PreviewFilter" xml:space="preserve">
+    <value>Предварительный просмотр результатов фильтра</value>
+  </data>
+  <data name="GroupFilter_ApplyToSeries" xml:space="preserve">
+    <value>Применить фильтр на уровне сериала, а не группы</value>
+  </data>
+  <data name="GroupFilter_BaseCondition" xml:space="preserve">
+    <value>Базовое условие</value>
+  </data>
+  <data name="GroupFilter_BaseCondition_ExcludeAll" xml:space="preserve">
+    <value>Исключить все</value>
+  </data>
+  <data name="GroupFilter_BaseCondition_IncludeAll" xml:space="preserve">
+    <value>Включить все</value>
+  </data>
+  <data name="Tooltip_GroupFilter_BaseCondition" xml:space="preserve">
+    <value>Включите все так, что все группы включены по умолчанию. Исключить все так, что группы не включены, это предназначено для случаев когда вы хотите указать отдельные группы вручную.</value>
+  </data>
+  <data name="GroupFilterOperator_In" xml:space="preserve">
+    <value>В</value>
+  </data>
+  <data name="GroupFilterOperator_NotIn" xml:space="preserve">
+    <value>Не в</value>
+  </data>
+  <data name="GroupFilter_Category_Help" xml:space="preserve">
+    <value>Дважды щелкните по категориям, чтобы добавить их в список выбранных</value>
+  </data>
+  <data name="GroupFilterConditionType_AniDBRating" xml:space="preserve">
+    <value>Рейтинг - AniDB</value>
+  </data>
+  <data name="GroupFilterConditionType_UserRating" xml:space="preserve">
+    <value>Рейтинг - пользователя</value>
+  </data>
+  <data name="MSG_ERR_RatingValue" xml:space="preserve">
+    <value>Рейтинг должен быть значением от 0 до 10. Разрешены десятичные точки.</value>
+  </data>
+  <data name="ScanFolder" xml:space="preserve">
+    <value>Сканировать эту папку сейчас</value>
+  </data>
+  <data name="GroupFilterConditionType_EpisodeAddedDate" xml:space="preserve">
+    <value>Эпизод Дата Добавления</value>
+  </data>
+  <data name="GroupFilterConditionType_EpisodeWatchedDate" xml:space="preserve">
+    <value>Эпизод Дата Просмотра</value>
+  </data>
+  <data name="GroupFilterConditionType_SeriesDate" xml:space="preserve">
+    <value>Дата добавления сериала</value>
+  </data>
+  <data name="GroupFilterOperator_LastXDays" xml:space="preserve">
+    <value>Последние X дней</value>
+  </data>
+  <data name="SelectDate" xml:space="preserve">
+    <value>Выберите дату</value>
+  </data>
+  <data name="MSG_ERR_DaysValue" xml:space="preserve">
+    <value>Пожалуйста, введите число дней, как целое число (минимальное значение 1)</value>
+  </data>
+  <data name="SyncVotes" xml:space="preserve">
+    <value>Синхронизация AniDB голосов</value>
+  </data>
+  <data name="UserVote" xml:space="preserve">
+    <value>Мой голос</value>
+  </data>
+  <data name="VoteNow" xml:space="preserve">
+    <value>Голосовать сейчас</value>
+  </data>
+  <data name="VoteRevoke" xml:space="preserve">
+    <value>Отозвать</value>
+  </data>
+  <data name="GroupFilterConditionType_FinishedAiring" xml:space="preserve">
+    <value>Показ по ТВ завершен</value>
+  </data>
+  <data name="VoteTypeAnimePermanent" xml:space="preserve">
+    <value>Постоянный</value>
+  </data>
+  <data name="VoteTypeAnimeTemporary" xml:space="preserve">
+    <value>Временный</value>
+  </data>
+  <data name="AniDBMyListLocalActions" xml:space="preserve">
+    <value>Местные действия</value>
+  </data>
+  <data name="AniDBMyListSyncAndImport" xml:space="preserve">
+    <value>MyList Sync и параметры импорта</value>
+  </data>
+  <data name="EpisodeMarkAllUnwatched" xml:space="preserve">
+    <value>Пометить все как непросмотренные</value>
+  </data>
+  <data name="EpisodeMarkAllWatched" xml:space="preserve">
+    <value>Пометить все как просмотренные</value>
+  </data>
+  <data name="EpisodeMarkAllWatchedPrevious" xml:space="preserve">
+    <value>Пометить все предыдущие как просмотренные, включая эп. #</value>
+  </data>
+  <data name="GroupFilter_VideoQuality_Help" xml:space="preserve">
+    <value>Дважды щелкните на записи, чтобы добавить в список</value>
+  </data>
+  <data name="GroupFilterConditionType_MissingEpisodesCollecting" xml:space="preserve">
+    <value>Отсутствующие эпизоды (собираемые)</value>
+  </data>
+  <data name="GroupFilterOperator_InAllEpisodes" xml:space="preserve">
+    <value>В (все эпизоды)</value>
+  </data>
+  <data name="GroupFilterOperator_NotInAllEpisodes" xml:space="preserve">
+    <value>Не в (все эпизоды)</value>
+  </data>
+  <data name="GroupFilterConditionType_AudioLanguage" xml:space="preserve">
+    <value>Язык аудио</value>
+  </data>
+  <data name="GroupFilterConditionType_SubtitleLanguage" xml:space="preserve">
+    <value>Язык субтитров</value>
+  </data>
+  <data name="GroupFilterSortDirection_Asc" xml:space="preserve">
+    <value>По возрастанию</value>
+  </data>
+  <data name="GroupFilterSortDirection_Desc" xml:space="preserve">
+    <value>По убыванию</value>
+  </data>
+  <data name="GroupFilterSorting_AniDBRating" xml:space="preserve">
+    <value>Рейтинг AniDB</value>
+  </data>
+  <data name="GroupFilterSorting_EpisodeAddedDate" xml:space="preserve">
+    <value>Эпизод Дата Добавления</value>
+  </data>
+  <data name="GroupFilterSorting_EpisodeAirDate" xml:space="preserve">
+    <value>Эпизод Дата Эфира</value>
+  </data>
+  <data name="GroupFilterSorting_EpisodeWatchedDate" xml:space="preserve">
+    <value>Эпизод Дата Просмотра</value>
+  </data>
+  <data name="GroupFilterSorting_GroupName" xml:space="preserve">
+    <value>Название группы</value>
+  </data>
+  <data name="GroupFilterSorting_MissingEpisodeCount" xml:space="preserve">
+    <value>Количество недостающих эпизодов</value>
+  </data>
+  <data name="GroupFilterSorting_SeriesAddedDate" xml:space="preserve">
+    <value>Дата добавления сериала</value>
+  </data>
+  <data name="GroupFilterSorting_SeriesCount" xml:space="preserve">
+    <value>Количество сериалов</value>
+  </data>
+  <data name="GroupFilterSorting_UnwatchedEpisodeCount" xml:space="preserve">
+    <value>Количество непросмотренных эписзодов</value>
+  </data>
+  <data name="GroupFilterSorting_UserRating" xml:space="preserve">
+    <value>Пользовательский рейтинг</value>
+  </data>
+  <data name="GroupFilterSorting_Year" xml:space="preserve">
+    <value>Год</value>
+  </data>
+  <data name="GroupFilterSorting_SortName" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="GroupFilterDirection" xml:space="preserve">
+    <value>Направление</value>
+  </data>
+  <data name="GroupFilterSortType" xml:space="preserve">
+    <value>Тип сортировки</value>
+  </data>
+  <data name="QuickSort" xml:space="preserve">
+    <value>Быстрая сортировка</value>
+  </data>
+  <data name="TAB_DuplicateFiles" xml:space="preserve">
+    <value>Дубликаты файлов</value>
+  </data>
+  <data name="Tooltip_DeleteDuplicateFileAll" xml:space="preserve">
+    <value>Удаляет записи из базы данных и  файл на диске.</value>
+  </data>
+  <data name="Tooltip_DeleteDuplicateFileEntry" xml:space="preserve">
+    <value>Удалите только записи базы данных. Файлы на диске не будут затронуты.</value>
+  </data>
+  <data name="Files" xml:space="preserve">
+    <value>Файлы</value>
+  </data>
+  <data name="ReevaluateDuplicateFiles" xml:space="preserve">
+    <value>Пересмотреть все записи</value>
+  </data>
+  <data name="Tooltip_ReevaluateDuplicateFiles" xml:space="preserve">
+    <value>Проверить что дублирующиеся файлы по прежнему существуют на диске. Если нет то удалить записи базы данных</value>
+  </data>
+  <data name="TAB_MultipleFiles" xml:space="preserve">
+    <value>Несколько файлов</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Загрузка...</value>
+  </data>
+  <data name="TotalFileCount" xml:space="preserve">
+    <value>Общее количество файлов:</value>
+  </data>
+  <data name="ImportSettings_UseEpisodeStatus" xml:space="preserve">
+    <value>Пометить файл как просмотренный, если эпизод просмотрен</value>
+  </data>
+  <data name="Tooltip_TvDB_Schedule_Updates" xml:space="preserve">
+    <value>Обновлять информацию по сериалам и эпизодам каждые 12 часов, также скачивать любой новый фанарт, плакаты и баннеры</value>
+  </data>
+  <data name="TvDB_Schedule_Updates" xml:space="preserve">
+    <value>Обновлять информацию каждые 12 часов</value>
+  </data>
+  <data name="DeleteAll" xml:space="preserve">
+    <value>Удалить все</value>
+  </data>
+  <data name="CrossRefSummary" xml:space="preserve">
+    <value>TvDB и прочие не AniDB ссылки</value>
+  </data>
+  <data name="FileSummary" xml:space="preserve">
+    <value>Резюме файла</value>
+  </data>
+  <data name="TheTvDB" xml:space="preserve">
+    <value>TvDB</value>
+  </data>
+  <data name="SeasonNumber" xml:space="preserve">
+    <value>Сезон #</value>
+  </data>
+  <data name="CommunityRecommendation" xml:space="preserve">
+    <value>Рекомендации сообщества</value>
+  </data>
+  <data name="TvDB_SearchPrompt" xml:space="preserve">
+    <value>Поиск по TvDB или введите ID серии TvDB</value>
+  </data>
+  <data name="TvDB_Show" xml:space="preserve">
+    <value>Перейти к TvDB</value>
+  </data>
+  <data name="UseThis" xml:space="preserve">
+    <value>Использовать этот</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="SwitchSeason" xml:space="preserve">
+    <value>Переключить сезон</value>
+  </data>
+  <data name="AniDB" xml:space="preserve">
+    <value>AniDB</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="UpdateAniDBInfo" xml:space="preserve">
+    <value>Обновить информацию из AniDB</value>
+  </data>
+  <data name="UpdateInfo" xml:space="preserve">
+    <value>Обновление информацию</value>
+  </data>
+  <data name="ImageSize_EpisodeImage" xml:space="preserve">
+    <value>Изображение эпизода</value>
+  </data>
+  <data name="Tooltip_ImageSize_EpisodeImage" xml:space="preserve">
+    <value>Изображения используемые в подробном описании эпизода</value>
+  </data>
+  <data name="EpisodeDetailStyle" xml:space="preserve">
+    <value>Стиль описания эпизода</value>
+  </data>
+  <data name="EpisodeDetailStyle_Option1" xml:space="preserve">
+    <value>Изображения/обзор в резюме</value>
+  </data>
+  <data name="EpisodeDetailStyle_Option2" xml:space="preserve">
+    <value>Изображения/обзор только когда развернут </value>
+  </data>
+  <data name="EpisodeDetailStyle_Option3" xml:space="preserve">
+    <value>Изображения/обзор когда выключен</value>
+  </data>
+  <data name="HideEpisodeImageWhenUnwatched" xml:space="preserve">
+    <value>Скрыть изображение эпизода если непросмотрен</value>
+  </data>
+  <data name="HideEpisodeOverviewWhenUnwatched" xml:space="preserve">
+    <value>Скрыть обзор эпизода если непросмотрен</value>
+  </data>
+  <data name="Tooltip_HideEpisodeImageWhenUnwatched" xml:space="preserve">
+    <value>Изображение эпизода будет скрыто до тех пор пока он не будет просмотрен</value>
+  </data>
+  <data name="Tooltip_HideEpisodeOverviewWhenUnwatched" xml:space="preserve">
+    <value>Обзор (описание) эпизода  будут скрыты до тех пор пока он не будет просмотрен</value>
+  </data>
+  <data name="Fanart" xml:space="preserve">
+    <value>Фанарт</value>
+  </data>
+  <data name="Images" xml:space="preserve">
+    <value>Изображения</value>
+  </data>
+  <data name="Image_Disabled" xml:space="preserve">
+    <value>Изображения в настоящее время отключены</value>
+  </data>
+  <data name="Image_Dynamic" xml:space="preserve">
+    <value>Установить это изображение как единственное показываемое</value>
+  </data>
+  <data name="Image_Enabled" xml:space="preserve">
+    <value>Изображения в настоящее время ВКЛЮЧЕНЫ</value>
+  </data>
+  <data name="Image_Static" xml:space="preserve">
+    <value>Это изображение является единственным показываемым</value>
+  </data>
+  <data name="Image_View" xml:space="preserve">
+    <value>Просмотр изображения</value>
+  </data>
+  <data name="Posters" xml:space="preserve">
+    <value>Плакаты</value>
+  </data>
+  <data name="WideBanners" xml:space="preserve">
+    <value>Широкие баннеры</value>
+  </data>
+  <data name="TheMovieDB" xml:space="preserve">
+    <value>Movie DB</value>
+  </data>
+  <data name="MovieDBShow" xml:space="preserve">
+    <value>Перейти к MovieDB</value>
+  </data>
+  <data name="MovieDBSearchPrompt" xml:space="preserve">
+    <value>Поиск по MovieDB или введите MovieDB ID</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedTvDBOrMovieDBInfo" xml:space="preserve">
+    <value>Есть TvDB или MovieDB ссылка</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedMovieDBInfo" xml:space="preserve">
+    <value>Ссылка MovieDB</value>
+  </data>
+  <data name="Image_Default" xml:space="preserve">
+    <value>Только этот изображение будет использоваться</value>
+  </data>
+  <data name="Image_NotDefault" xml:space="preserve">
+    <value>Это изображение не является исаользуемым по умолчанию</value>
+  </data>
+  <data name="PlayNextEpisode" xml:space="preserve">
+    <value>Играть следующий эпизод</value>
+  </data>
+  <data name="AllEpisodesWatched" xml:space="preserve">
+    <value>Все эпизоды просмотрены</value>
+  </data>
+  <data name="FinishEditing" xml:space="preserve">
+    <value>Завершить редактирование</value>
+  </data>
+  <data name="TAB_Dashboard" xml:space="preserve">
+    <value>Панель мониторинга</value>
+  </data>
+  <data name="Dash_WatchNextEp_Recent" xml:space="preserve">
+    <value>Продолжить просмотр... (Недавно просмотренные)</value>
+  </data>
+  <data name="DeleteSeries" xml:space="preserve">
+    <value>Удалить сериал</value>
+  </data>
+  <data name="DeleteSeriesConfirm" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить этот сериал/группу?</value>
+  </data>
+  <data name="DeleteSeriesConfirm_Files" xml:space="preserve">
+    <value>Также удалить все физические файлы?</value>
+  </data>
+  <data name="Dash_SeriesMissingEps" xml:space="preserve">
+    <value>Отсутствующие эпизоды (Недавно просмотренные)</value>
+  </data>
+  <data name="LatestEp_Anime" xml:space="preserve">
+    <value>Последний эпизод</value>
+  </data>
+  <data name="LatestEp_Yours" xml:space="preserve">
+    <value>Ваш последний эпизод</value>
+  </data>
+  <data name="MissingEpisodeCount" xml:space="preserve">
+    <value>Отсутствующие эпизоды</value>
+  </data>
+  <data name="Dash_MiniCalendar" xml:space="preserve">
+    <value>Мини-календарь</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Логин</value>
+  </data>
+  <data name="ImageSize" xml:space="preserve">
+    <value>Размер изображения</value>
+  </data>
+  <data name="TAB_SettingsUsers" xml:space="preserve">
+    <value>Пользователи</value>
+  </data>
+  <data name="User_HideCategories" xml:space="preserve">
+    <value>Скрыть категории</value>
+  </data>
+  <data name="User_IsAdmin" xml:space="preserve">
+    <value>Администратор</value>
+  </data>
+  <data name="User_Password" xml:space="preserve">
+    <value>Пароль</value>
+  </data>
+  <data name="User_Username" xml:space="preserve">
+    <value>Имя пользователя</value>
+  </data>
+  <data name="Items" xml:space="preserve">
+    <value>Элементы</value>
+  </data>
+  <data name="Days" xml:space="preserve">
+    <value>Дни</value>
+  </data>
+  <data name="DashWatchNextStyle_Detailed" xml:space="preserve">
+    <value>Подробно</value>
+  </data>
+  <data name="DashWatchNextStyle_Simple" xml:space="preserve">
+    <value>Простой</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_Trakt" xml:space="preserve">
+    <value>Trakt TV</value>
+  </data>
+  <data name="Trakt_Password" xml:space="preserve">
+    <value>Пароль</value>
+  </data>
+  <data name="Trakt_Username" xml:space="preserve">
+    <value>Имя пользователя</value>
+  </data>
+  <data name="UpdateFrequency" xml:space="preserve">
+    <value>Автоматически обновлять данные</value>
+  </data>
+  <data name="UpdateFrequency_12Hours" xml:space="preserve">
+    <value>Каждые 12 часов</value>
+  </data>
+  <data name="UpdateFrequency_6Hours" xml:space="preserve">
+    <value>Каждые 6 часов</value>
+  </data>
+  <data name="UpdateFrequency_Daily" xml:space="preserve">
+    <value>Каждые 24 часа</value>
+  </data>
+  <data name="UpdateFrequency_Never" xml:space="preserve">
+    <value>Никогда</value>
+  </data>
+  <data name="TraktSyncFrequency" xml:space="preserve">
+    <value>Автоматически синхронизировать коллекцию</value>
+  </data>
+  <data name="TraktSearchPrompt" xml:space="preserve">
+    <value>Поиск на Trakt или введите Trakt ID (ссылку)</value>
+  </data>
+  <data name="TraktShow" xml:space="preserve">
+    <value>Перейти к Trakt</value>
+  </data>
+  <data name="TAB_Pinned" xml:space="preserve">
+    <value>Удержал</value>
+  </data>
+  <data name="GroupFilterConditionType_UserVotedAny" xml:space="preserve">
+    <value>Пользовательская оценка (любое)</value>
+  </data>
+  <data name="Tooltip_User_IsAniDB" xml:space="preserve">
+    <value>Любой пользователь, помеченный как AniDB пользователь будет синхронизирован с другими пользователями AniDB. Если пользователь не является пользователем AniDB то просмотренные эпизоды не будут отражены на веб-сайте AniDB.</value>
+  </data>
+  <data name="User_IsAniDB" xml:space="preserve">
+    <value>Пользователь AniDB</value>
+  </data>
+  <data name="User_IsTrakt" xml:space="preserve">
+    <value>Trakt пользователь</value>
+  </data>
+  <data name="ERROR_SeriesExists" xml:space="preserve">
+    <value>Серия уже существует для этого аниме</value>
+  </data>
+  <data name="Tooltip_CreateSeries" xml:space="preserve">
+    <value>Создание серии для этого аниме</value>
+  </data>
+  <data name="SimilarAnime" xml:space="preserve">
+    <value>Подобные аниме</value>
+  </data>
+  <data name="RelatedAndSimilar" xml:space="preserve">
+    <value>Связанные и аналогичные</value>
+  </data>
+  <data name="GetMissingData" xml:space="preserve">
+    <value>Получить недостающие данные</value>
+  </data>
+  <data name="RelatedAnime" xml:space="preserve">
+    <value>Связанные аниме</value>
+  </data>
+  <data name="Dash_RecWatch" xml:space="preserve">
+    <value>Рекомендовано к просмотру</value>
+  </data>
+  <data name="Dash_RecDownload" xml:space="preserve">
+    <value>Рекомендовано для загрузки</value>
+  </data>
+  <data name="ImportSettings_AutoGroupSeries" xml:space="preserve">
+    <value>Автоматически поместить связанные серии в той же группе</value>
+  </data>
+  <data name="GroupFilterConditionType_HasWatchedEpisodes" xml:space="preserve">
+    <value>Просмотрено эпизодов</value>
+  </data>
+  <data name="MyList" xml:space="preserve">
+    <value>MyList</value>
+  </data>
+  <data name="Tooltip_MyList" xml:space="preserve">
+    <value>Принудительно добавить этот файл в ваш список на AniDB</value>
+  </data>
+  <data name="TAB_MissingFiles" xml:space="preserve">
+    <value>Отсутствующие файлы MyList</value>
+  </data>
+  <data name="TAB_Utilities" xml:space="preserve">
+    <value>Утилиты</value>
+  </data>
+  <data name="TAB_SeriesWithoutFiles" xml:space="preserve">
+    <value>Сериал без файлов</value>
+  </data>
+  <data name="DeleteSeriesConfirm_Groups" xml:space="preserve">
+    <value>Удалять любые родительские группы, если они пусты</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="TAB_MissingEpisodes" xml:space="preserve">
+    <value>Отсутствующие эпизоды</value>
+  </data>
+  <data name="MyGroupsOnly" xml:space="preserve">
+    <value>Только от релиз групп, которые я собираю</value>
+  </data>
+  <data name="RegularEpisodesOnly" xml:space="preserve">
+    <value>Только регулярные эпизоды</value>
+  </data>
+  <data name="Dash_TraktFriends" xml:space="preserve">
+    <value>Активность друзей (Trakt TV)</value>
+  </data>
+  <data name="Tooltip_IgnoreAnimeDownload" xml:space="preserve">
+    <value>Игнорировать это аниме в "Рекомендовано для загрузки"</value>
+  </data>
+  <data name="Tooltip_IgnoreAnimeWatch" xml:space="preserve">
+    <value>Игнорировать это аниме в "Рекомендовано к просмотру"</value>
+  </data>
+  <data name="VisitWebsite" xml:space="preserve">
+    <value>Посетите веб-сайт</value>
+  </data>
+  <data name="AniDBSignup" xml:space="preserve">
+    <value>Зарегистрироваться на AniDB</value>
+  </data>
+  <data name="AvdumpHeader" xml:space="preserve">
+    <value>AVDump2 (опционально)</value>
+  </data>
+  <data name="AvdumpInfoLink" xml:space="preserve">
+    <value>Более подробная информация о AVDump2</value>
+  </data>
+  <data name="AvdumpKey" xml:space="preserve">
+    <value>Ключ API</value>
+  </data>
+  <data name="AvdumpKeyEditLink" xml:space="preserve">
+    <value>Редактировать AVDump2 UDP API ключ здесь</value>
+  </data>
+  <data name="Avdump" xml:space="preserve">
+    <value>Avdump2</value>
+  </data>
+  <data name="AvdumpRequiredFilesLink" xml:space="preserve">
+    <value>Убедитесь, что все необходимые файлы находятся в папке Shoko Desktop</value>
+  </data>
+  <data name="AvdumpSettingsError" xml:space="preserve">
+    <value>Не указан ваш ключ API и/или порт клиента</value>
+  </data>
+  <data name="AvdumpAddRelease" xml:space="preserve">
+    <value>Добавить новый релиз</value>
+  </data>
+  <data name="CopyED2KClipboard" xml:space="preserve">
+    <value>Скопировать ED2K дамп</value>
+  </data>
+  <data name="Tooltip_CopyED2KClipboard" xml:space="preserve">
+    <value>Скопировать ED2K дамп в буфер обмена </value>
+  </data>
+  <data name="TAB_IgnoredAnime" xml:space="preserve">
+    <value>Игнорируемые аниме</value>
+  </data>
+  <data name="Anime" xml:space="preserve">
+    <value>Аниме</value>
+  </data>
+  <data name="RemoveDefaultSeries" xml:space="preserve">
+    <value>Удалить сериал по умолчанию</value>
+  </data>
+  <data name="ChangeLanguage" xml:space="preserve">
+    <value>Изменение языка</value>
+  </data>
+  <data name="EpisodeTitleSourceStyle" xml:space="preserve">
+    <value>Источник названия эпизода</value>
+  </data>
+  <data name="SeriesNameSourceStyle" xml:space="preserve">
+    <value>Источник названия сериала</value>
+  </data>
+  <data name="SeriesOverviewSourceStyle" xml:space="preserve">
+    <value>Источник обзора сериала</value>
+  </data>
+  <data name="Tooltip_EpisodeTitleSourceStyle" xml:space="preserve">
+    <value>Предпочтительный источник информации при отображении названия эпизода</value>
+  </data>
+  <data name="Tooltip_SeriesNameSourceStyle" xml:space="preserve">
+    <value>Предпочтительный источник информации при отображении названия сериала</value>
+  </data>
+  <data name="Tooltip_SeriesOverviewSourceStyle" xml:space="preserve">
+    <value>Предпочтительный источник информации при отображении обзора (описания) для сериала</value>
+  </data>
+  <data name="User_EditSettings" xml:space="preserve">
+    <value>Редактировать параметры сервера</value>
+  </data>
+  <data name="Tooltip_RemoveMissingFiles" xml:space="preserve">
+    <value>Это удалит все записи о видео файлах из вашей базы данных, где не удается найти файл. Убедитесь, что все общие сетевые ресурсы доступны или USB накопители подключены перед запуском.</value>
+  </data>
+  <data name="Tooltip_UpdateMediaInfo" xml:space="preserve">
+    <value>СМИ информация-это информация о ваших файлов, такие как битрейт, резолюции кодеки и т.д., который считывается и сохраняется впервые вы импортировать файл</value>
+  </data>
+  <data name="UpdateMediaInfo" xml:space="preserve">
+    <value>Обновление всех метаданных</value>
+  </data>
+  <data name="Video_Hi10P" xml:space="preserve">
+    <value>10 бит</value>
+  </data>
+  <data name="Tooltip_TraktAnimeOnly" xml:space="preserve">
+    <value>Показать только активность связаннуюа с аниме (т.е. исключить другие сериалы)</value>
+  </data>
+  <data name="TraktAnimeOnly" xml:space="preserve">
+    <value>Только аниме </value>
+  </data>
+  <data name="ForceRefresh" xml:space="preserve">
+    <value>Принудительно обновить</value>
+  </data>
+  <data name="TraktFriendNotes" xml:space="preserve">
+    <value>Информация обновляется на сервере каждые 20 минут</value>
+  </data>
+  <data name="Dash_RecentEpisodes" xml:space="preserve">
+    <value>Недавно просмотренные эпизоды</value>
+  </data>
+  <data name="PromptRateSeries" xml:space="preserve">
+    <value>Запросить оценку серии по завершении</value>
+  </data>
+  <data name="Tooltip_PromptRateSeries" xml:space="preserve">
+    <value>Всякий раз, когда вы просмотрите последний эпизод в серии, появится запрос на указание рейтинга</value>
+  </data>
+  <data name="MALSearchPrompt" xml:space="preserve">
+    <value>Поиск по MyAnimelist или введите MAL ID</value>
+  </data>
+  <data name="MALShow" xml:space="preserve">
+    <value>Перейти к MyAnimeList</value>
+  </data>
+  <data name="Tooltip_WebCache_MALAssociations" xml:space="preserve">
+    <value>Использовать веб-кэша для поиска связи между AniDB и MyAnimeList. Если не выбрано вам будет нужно вручную выполнить поиск всех ссылок MAL.</value>
+  </data>
+  <data name="WebCache_MALAssociations" xml:space="preserve">
+    <value>MyAnimeList ссылки</value>
+  </data>
+  <data name="Tooltip_MAL_UpdateFrequency" xml:space="preserve">
+    <value>Как часто обновляются данные, и как часто выполняется автоматический поиск ссылок для аниме в вашей коллекции, у которых нет ссылки MAL</value>
+  </data>
+  <data name="GroupFilterConditionType_AssignedMALInfo" xml:space="preserve">
+    <value>MAL ссылка</value>
+  </data>
+  <data name="Tooltip_UseFanartOnSeries" xml:space="preserve">
+    <value>Пользовательский фанарт вместо плакатов (где доступно) при показе сериалов</value>
+  </data>
+  <data name="UseFanartOnSeries" xml:space="preserve">
+    <value>Пользовательский фанарт при показе сериалов</value>
+  </data>
+  <data name="Tooltip_MAL_NeverDecrease" xml:space="preserve">
+    <value>Гарантирует что счетчики просмотров будут сохраненны. Это требует загрузки всего списка каждый раз, когда вы просматриваете эпизод, так что может занять много времени</value>
+  </data>
+  <data name="GroupFilterConditionType_EpisodeCount" xml:space="preserve">
+    <value>Количество эпизодов</value>
+  </data>
+  <data name="SyncMalDown" xml:space="preserve">
+    <value>Получить состояние просмотра из MAL</value>
+  </data>
+  <data name="SyncMalUp" xml:space="preserve">
+    <value>Загрузить состояние просмотра в MAL</value>
+  </data>
+  <data name="Tooltip_SyncMalDown" xml:space="preserve">
+    <value>Получить состояние просмотра из MAL и обновить локальную коллекцию и AniDB.</value>
+  </data>
+  <data name="Tooltip_SyncMalUp" xml:space="preserve">
+    <value>Обновить MAL используя статистику просмотров из локальной коллекции</value>
+  </data>
+  <data name="Tooltip_WebCache_AniDB_File" xml:space="preserve">
+    <value>Данные связанные с каждым отдельным файлом. Рекомендуется для больших коллекций</value>
+  </data>
+  <data name="WebCache_AniDB_File" xml:space="preserve">
+    <value>Данные файла AniDB</value>
+  </data>
+  <data name="PlaylistPlayOrderRandom" xml:space="preserve">
+    <value>Случайный</value>
+  </data>
+  <data name="PlaylistPlayOrderSeq" xml:space="preserve">
+    <value>Последовательный</value>
+  </data>
+  <data name="AniDBScheduleMyListStats" xml:space="preserve">
+    <value>Автоматически получить статистику MyList от AniDB</value>
+  </data>
+  <data name="GroupFilter_Predefined" xml:space="preserve">
+    <value>Встроенные фильтры</value>
+  </data>
+  <data name="BakaBTResetBody" xml:space="preserve">
+    <value>Сбросьте cookie, если вы не получаете никаких результатов от BakaBT. Это потребует повторно подключиться к BakaBT.</value>
+  </data>
+  <data name="BakaBTResetTitle" xml:space="preserve">
+    <value>Сбросить Cookie</value>
+  </data>
+  <data name="BakaBTSeriesBody" xml:space="preserve">
+    <value>При поиске для сериала BakaBT (и AnimeBytes) являются единственным источником первоначального поиска</value>
+  </data>
+  <data name="BakaBTSeriesTitle" xml:space="preserve">
+    <value>Только BakaBT (и AnimeBytes) </value>
+  </data>
+  <data name="AnimeBytesResetBody" xml:space="preserve">
+    <value>Сбросьте cookie, если вы не получаете никаких результатов от AnimeBytes. Это потребует повторно подключиться к AnimeBytes.</value>
+  </data>
+  <data name="AnimeBytesResetTitle" xml:space="preserve">
+    <value>Сбросить cookie</value>
+  </data>
+  <data name="AnimeBytesSeriesBody" xml:space="preserve">
+    <value>При поиске для серии, AnimeBytes (и BakaBT) будет только торрент источник, используемый в первоначальный Поиск</value>
+  </data>
+  <data name="AnimeBytesSeriesTitle" xml:space="preserve">
+    <value>AnimeBytes (и BakaBT) только</value>
+  </data>
+  <data name="IsVariation" xml:space="preserve">
+    <value>Вариация</value>
+  </data>
+  <data name="Tooltip_IsVariation" xml:space="preserve">
+    <value>Если вы не хотите чтобы файл показывался в окне выбора файлов. Полезно в случае нескольких версий OP/ED для разных вариаций сериала</value>
+  </data>
+  <data name="AniDBDownloadCharacters" xml:space="preserve">
+    <value>Скачать изображения героев</value>
+  </data>
+  <data name="AniDBDownloadCreators" xml:space="preserve">
+    <value>Скачать изображения авторов</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadCharacters" xml:space="preserve">
+    <value>Изображения используемые в MyAnime 3 и Anime Buddy</value>
+  </data>
+  <data name="Tooltip_AniDBDownloadCreators" xml:space="preserve">
+    <value>Изображения используемые в MyAnime 3 и Anime Buddy (актеры)</value>
+  </data>
+  <data name="AniDBMyListDeleteAction" xml:space="preserve">
+    <value>Действие при удалении</value>
+  </data>
+  <data name="Tooltip_AniDBMyListDeleteAction" xml:space="preserve">
+    <value>Какое действие будет производиться при удалении файла из локальной коллекции.
+Удалить файл (AniDB) - удаляет файл из вашего AniDB MyList.
+Удалить файл (локально) - удалить файл только из локальной БД.
+Пометить удаленным - оставляет файл в MyList, изменяет состояние на удален.
+Пометить как внешний (CD/DVD) - оставляет файл в MyList, изменяет состояние на внешнее хранилище.
+Пометить как неизвестно - оставляет файл в MyList, изменяет состояние на неизвестно.</value>
+  </data>
+  <data name="GroupFilterConditionType_CustomTag" xml:space="preserve">
+    <value>Пользовательский тег</value>
+  </data>
+  <data name="Tooltip_WebCache_UserInfo" xml:space="preserve">
+    <value>Анонимно посылает информацию об использовании в веб кэш такую как: тип базы данных, версия Windows и т.д. По ссылке находится список всех отправляемых данных</value>
+  </data>
+  <data name="WebCache_UserInfo" xml:space="preserve">
+    <value>Отправить анонимное использование информация</value>
+  </data>
+  <data name="NewSeries_Search" xml:space="preserve">
+    <value>Поиск по названию или ID</value>
+  </data>
+  <data name="Tooltip_NewSeries_Search" xml:space="preserve">
+    <value>Введите часть названия аниме, или AniDB ID</value>
+  </data>
+  <data name="Link_CommunityRecommendation" xml:space="preserve">
+    <value>http://shokoanime.com/faq/#what-are-community-recommendations</value>
+  </data>
+  <data name="WhatsThis" xml:space="preserve">
+    <value>Что это?</value>
+  </data>
+  <data name="Override" xml:space="preserve">
+    <value>Переопределить</value>
+  </data>
+  <data name="AdminMessageTitle" xml:space="preserve">
+    <value>Сообщение от администрации</value>
+  </data>
+  <data name="CheckForUpdate" xml:space="preserve">
+    <value>Проверить наличие обновлений</value>
+  </data>
+  <data name="Link_Blog" xml:space="preserve">
+    <value>http://shokoanime.com/blog</value>
+  </data>
+  <data name="Link_AniDBBanned" xml:space="preserve">
+    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
+  </data>
+  <data name="Link_AniDBSettings" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#anidb</value>
+  </data>
+  <data name="Link_FileRenaming" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/utilities/file-renaming/</value>
+  </data>
+  <data name="Link_GroupFilters" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/collection/filters/#what-are-filters</value>
+  </data>
+  <data name="Link_ImportFolders" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/server/#import-folders</value>
+  </data>
+  <data name="Link_MAL" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_TMDb" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_Trakt" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_TvDB" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+  </data>
+  <data name="Link_Downloads" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/downloads/</value>
+  </data>
+  <data name="Link_WebCache" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#web-cache</value>
+  </data>
+  <data name="UpdateFrequency_OneMonth" xml:space="preserve">
+    <value>Раз в месяц</value>
+  </data>
+  <data name="UpdateFrequency_OneWeek" xml:space="preserve">
+    <value>Раз в неделю</value>
+  </data>
+  <data name="SettingAlwaysAniDBPoster" xml:space="preserve">
+    <value>Всегда использовать AniDB плакат</value>
+  </data>
+  <data name="Tooltip_SettingAlwaysAniDBPoster" xml:space="preserve">
+    <value>Этот параметр переопределяет любые другие настройки плакатов, так что используется только AniDB плакат. Это обычно быстрее, чем Случайные плакаты</value>
+  </data>
+  <data name="MoreInfo" xml:space="preserve">
+    <value>Подробная информация</value>
+  </data>
+  <data name="Link_Changelog" xml:space="preserve">
+    <value>http://shokoanime.com/changelog/</value>
+  </data>
+  <data name="Link_Download" xml:space="preserve">
+    <value>http://shokoanime.com/downloads/</value>
+  </data>
+  <data name="Link_Site" xml:space="preserve">
+    <value>http://shokoanime.com/</value>
+  </data>
+  <data name="ReenterPassword" xml:space="preserve">
+    <value>Введите пароль повторно</value>
+  </data>
+  <data name="ChangePassword" xml:space="preserve">
+    <value>Смена пароля</value>
+  </data>
+  <data name="ChangingPassword" xml:space="preserve">
+    <value>Смена пароля для: </value>
+  </data>
+  <data name="WhatDoesThisMean" xml:space="preserve">
+    <value>Что это значит?</value>
+  </data>
+  <data name="CustomTag_Name" xml:space="preserve">
+    <value>Название тега</value>
+  </data>
+  <data name="CustomTag_Description" xml:space="preserve">
+    <value>Описание тега</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="MissingEpisodes_AnimeName" xml:space="preserve">
+    <value>Название аниме</value>
+  </data>
+  <data name="MissingEpisodes_AnimeID" xml:space="preserve">
+    <value>Аниме ID</value>
+  </data>
+  <data name="MissingEpisodes_EpisodeNumber" xml:space="preserve">
+    <value>Номер эпизода</value>
+  </data>
+  <data name="MissingEpisodes_EpisodeID" xml:space="preserve">
+    <value>ID эпизода</value>
+  </data>
+  <data name="MissingEpisodes_GroupSummary" xml:space="preserve">
+    <value>Описание группы</value>
+  </data>
+  <data name="MissingEpisodes_AnimeLink" xml:space="preserve">
+    <value>Ссылка на аниме</value>
+  </data>
+  <data name="MissingEpisodes_EpisodeLink" xml:space="preserve">
+    <value>Ссылка на эпизод</value>
+  </data>
+  <data name="MissingEpisodes_FileSummary" xml:space="preserve">
+    <value>Описание файла</value>
+  </data>
+  <data name="NewSeries_AlreadyAttached" xml:space="preserve">
+    <value>Серия уже привязага к этому аниме</value>
+  </data>
+  <data name="NewSeries_Step1" xml:space="preserve">
+    <value>Шаг 1 - выбор аниме</value>
+  </data>
+  <data name="NewSeries_SearchBy" xml:space="preserve">
+    <value>Поиск по названию или ID</value>
+  </data>
+  <data name="NewSeries_Step2" xml:space="preserve">
+    <value>Выберите локальную группу</value>
+  </data>
+  <data name="NewSeries_BackToStep1" xml:space="preserve">
+    <value>Возвращается к шагу 1</value>
+  </data>
+  <data name="TryAgain" xml:space="preserve">
+    <value>Повторить!</value>
+  </data>
+  <data name="Random_Tags" xml:space="preserve">
+    <value>Теги</value>
+  </data>
+  <data name="Finish" xml:space="preserve">
+    <value>Завершить</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Очистить</value>
+  </data>
+  <data name="Matches" xml:space="preserve">
+    <value>Совпадения</value>
+  </data>
+  <data name="Random_Watched" xml:space="preserve">
+    <value>Просмотрено</value>
+  </data>
+  <data name="Random_Unwatched" xml:space="preserve">
+    <value>Непросмотрено</value>
+  </data>
+  <data name="Random_PartiallyWatched" xml:space="preserve">
+    <value>Частично просмотрено</value>
+  </data>
+  <data name="Random_CompleteOnly" xml:space="preserve">
+    <value>ТОЛЬКО полные</value>
+  </data>
+  <data name="RateSeries_Rate" xml:space="preserve">
+    <value>Оценить сериал:</value>
+  </data>
+  <data name="RateSeries_TraktShout" xml:space="preserve">
+    <value>Сказать свое слово на Trakt</value>
+  </data>
+  <data name="Search_Episodes" xml:space="preserve">
+    <value>Эпизоды:</value>
+  </data>
+  <data name="Search_StartingAt" xml:space="preserve">
+    <value>Начиная с</value>
+  </data>
+  <data name="Search_ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="Search_Title" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="Search_AniDBStart" xml:space="preserve">
+    <value>AniDB начало:</value>
+  </data>
+  <data name="Search_Trakt" xml:space="preserve">
+    <value>Тракт: </value>
+  </data>
+  <data name="Search_Approved" xml:space="preserve">
+    <value>Администратор утвердил</value>
+  </data>
+  <data name="Search_TvDB" xml:space="preserve">
+    <value>TvDB: </value>
+  </data>
+  <data name="Search_MAL" xml:space="preserve">
+    <value>MAL: </value>
+  </data>
+  <data name="SelectAniDBTitle_SelectName" xml:space="preserve">
+    <value>Переопределить название</value>
+  </data>
+  <data name="Select_MyAnimeList" xml:space="preserve">
+    <value>MyAnimeList</value>
+  </data>
+  <data name="Select_StartingEpisode" xml:space="preserve">
+    <value>Начиная с эпизода #</value>
+  </data>
+  <data name="Select_EpisodeType" xml:space="preserve">
+    <value>Тип эпизода:</value>
+  </data>
+  <data name="Select_TraktTV" xml:space="preserve">
+    <value>Trakt TV</value>
+  </data>
+  <data name="Select_TvDBDetails" xml:space="preserve">
+    <value>Выберите подробности TvDB</value>
+  </data>
+  <data name="Select_Season" xml:space="preserve">
+    <value>Сезон</value>
+  </data>
+  <data name="Update_Update" xml:space="preserve">
+    <value>Доступно обновление Shoko Desktop!</value>
+  </data>
+  <data name="Update_UpdatePage" xml:space="preserve">
+    <value>Cтраница обновлений</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>История изменений</value>
+  </data>
+  <data name="Update_AvailableVersion" xml:space="preserve">
+    <value>Доступные версии</value>
+  </data>
+  <data name="Update_YourVersion" xml:space="preserve">
+    <value>Ваша версия</value>
+  </data>
+  <data name="ViewComments_FromTrakt" xml:space="preserve">
+    <value>От Trakt</value>
+  </data>
+  <data name="ViewComments_Username" xml:space="preserve">
+    <value>Имя пользователя</value>
+  </data>
+  <data name="ViewComments_CommentDate" xml:space="preserve">
+    <value>Дата комментария</value>
+  </data>
+  <data name="ViewComments_Comments" xml:space="preserve">
+    <value>Комментарии</value>
+  </data>
+  <data name="ViewComments_Website" xml:space="preserve">
+    <value>Просмотреть на веб-сайте</value>
+  </data>
+  <data name="ShokoDesktop" xml:space="preserve">
+    <value>Shoko Desktop</value>
+  </data>
+  <data name="MoreInformation" xml:space="preserve">
+    <value>Дополнительная информация</value>
+  </data>
+  <data name="Metro_Continue" xml:space="preserve">
+    <value>Продолжить просмотр</value>
+  </data>
+  <data name="Metro_New" xml:space="preserve">
+    <value>Новые эпизоды</value>
+  </data>
+  <data name="Metro_Random" xml:space="preserve">
+    <value>Случайная серия</value>
+  </data>
+  <data name="Metro_Trakt" xml:space="preserve">
+    <value>Trakt активность</value>
+  </data>
+  <data name="MarkedFavorite" xml:space="preserve">
+    <value>Эта группа помечена как избранное</value>
+  </data>
+  <data name="Community_TraktValid" xml:space="preserve">
+    <value>Проверить что Trakt ссылки являются рабочими</value>
+  </data>
+  <data name="Community_TraktRemoveBad" xml:space="preserve">
+    <value>Автоматически удалять неверную информацию из базы данных (рекомендуется)</value>
+  </data>
+  <data name="Community_CommunityCheck" xml:space="preserve">
+    <value>Проверить, если мои ссылки отличаются от рекомендаций сообщества</value>
+  </data>
+  <data name="Community_ProblemStop" xml:space="preserve">
+    <value>Остановиться после нахождения этогоколичества проблем</value>
+  </data>
+  <data name="Trakt" xml:space="preserve">
+    <value>Trakt</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Начало</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Остановить</value>
+  </data>
+  <data name="Community_Filter" xml:space="preserve">
+    <value>Фильтр:</value>
+  </data>
+  <data name="Community_Refresh" xml:space="preserve">
+    <value>Обновить данные для этой серии</value>
+  </data>
+  <data name="Community_SeriesName" xml:space="preserve">
+    <value>Название серии</value>
+  </data>
+  <data name="Community_Status" xml:space="preserve">
+    <value>Статус</value>
+  </data>
+  <data name="Community_ValidTraktLink" xml:space="preserve">
+    <value>Рабочая Trakt ссылка</value>
+  </data>
+  <data name="Community_HasTraktLink" xml:space="preserve">
+    <value>Есть Trakt ссылка</value>
+  </data>
+  <data name="Community_CommunityLink" xml:space="preserve">
+    <value>Сылка от сообщества</value>
+  </data>
+  <data name="Community_Match" xml:space="preserve">
+    <value>Ссылки совпали?</value>
+  </data>
+  <data name="Download_Bookmark" xml:space="preserve">
+    <value>Запомнить это аниме в скачать позже</value>
+  </data>
+  <data name="Download_SeriesSearch" xml:space="preserve">
+    <value>Поиск загрузок для этого сериала</value>
+  </data>
+  <data name="Download_Approval" xml:space="preserve">
+    <value>Одобрение</value>
+  </data>
+  <data name="Download_YourVote" xml:space="preserve">
+    <value>Ваш голос</value>
+  </data>
+  <data name="Download_RecommendPrompt" xml:space="preserve">
+    <value>Эта утилита показывает список рекомендованных аниме которых нет в вашей коллекции. Список составлен на основе ваших рейтингов и отзывов пользователей AniDB</value>
+  </data>
+  <data name="Torrent" xml:space="preserve">
+    <value>Торрент</value>
+  </data>
+  <data name="Torrents" xml:space="preserve">
+    <value>Торренты</value>
+  </data>
+  <data name="Download_Name" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="Download_Size" xml:space="preserve">
+    <value>Размер</value>
+  </data>
+  <data name="Download_Seeders" xml:space="preserve">
+    <value>Сиды</value>
+  </data>
+  <data name="Download_Leechers" xml:space="preserve">
+    <value>Личи</value>
+  </data>
+  <data name="Download_ExtraInfo" xml:space="preserve">
+    <value>Дополнительная информация</value>
+  </data>
+  <data name="Download_WrongSeries" xml:space="preserve">
+    <value>Неправильный сериал?</value>
+  </data>
+  <data name="Tooltip_WrongSeries" xml:space="preserve">
+    <value>Shoko попытался угадать к какому сериалу относится то что вы смотрите для сравнения с локальной коллекцией. Если в коллекции нет сериала то результат будет неверным.</value>
+  </data>
+  <data name="Download_ResetCookie" xml:space="preserve">
+    <value>Сбросить Cookie</value>
+  </data>
+  <data name="Download_AnimeBytesOnly" xml:space="preserve">
+    <value>ТОЛЬКО AnimeBytes для сериалов</value>
+  </data>
+  <data name="Download_BakaBTOnly" xml:space="preserve">
+    <value>ТОЛЬКО BakaBT для сериалов</value>
+  </data>
+  <data name="Available" xml:space="preserve">
+    <value>Доступно</value>
+  </data>
+  <data name="Selected" xml:space="preserve">
+    <value>Выбранные</value>
+  </data>
+  <data name="Download_Source" xml:space="preserve">
+    <value>Источник</value>
+  </data>
+  <data name="Download_Server" xml:space="preserve">
+    <value>Сервер</value>
+  </data>
+  <data name="Download_RefreshInterval" xml:space="preserve">
+    <value>Интервал обновления  (сек) </value>
+  </data>
+  <data name="Download_AutoRefresh" xml:space="preserve">
+    <value>Автоматическое обновление</value>
+  </data>
+  <data name="Download_UseBlackHole" xml:space="preserve">
+    <value>Использовать Torrent Black Hole</value>
+  </data>
+  <data name="Download_FolderLocation" xml:space="preserve">
+    <value>Местоположение папки</value>
+  </data>
+  <data name="Download_Queue" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="Download_Done" xml:space="preserve">
+    <value>Завершено</value>
+  </data>
+  <data name="Download_Peers" xml:space="preserve">
+    <value>Пиры</value>
+  </data>
+  <data name="Download_DownSpeed" xml:space="preserve">
+    <value>Скорость загрузки</value>
+  </data>
+  <data name="Download_UpSpeed" xml:space="preserve">
+    <value>Скорость отсылки</value>
+  </data>
+  <data name="Download_Ratio" xml:space="preserve">
+    <value>Коэффициент</value>
+  </data>
+  <data name="Download_InvalidCred" xml:space="preserve">
+    <value>Вы не указали учетные данные uTorrent</value>
+  </data>
+  <data name="Download_EnterCred" xml:space="preserve">
+    <value>Пожалуйста, введите ваши учетные данные на вкладке Настройка, после чего вернитесь сюда</value>
+  </data>
+  <data name="Download_Priority" xml:space="preserve">
+    <value>Приоритет</value>
+  </data>
+  <data name="Download_Downloaded" xml:space="preserve">
+    <value>Загружено</value>
+  </data>
+  <data name="Settings_DeleteAction" xml:space="preserve">
+    <value>Действие при удалении</value>
+  </data>
+  <data name="Settings_AutoUpdateInfo" xml:space="preserve">
+    <value>Автоматически обновлять файлы без информации</value>
+  </data>
+  <data name="Settings_HideDownloadButton" xml:space="preserve">
+    <value>Скрыть кнопку Загрузить эпизод, когда у вас уже есть файлы</value>
+  </data>
+  <data name="Settings_RecreateGroups" xml:space="preserve">
+    <value>Пересоздать все группы</value>
+  </data>
+  <data name="Settings_ScanOnStart" xml:space="preserve">
+    <value>Сканировать папки назначения на старте</value>
+  </data>
+  <data name="Settings_ImagePath" xml:space="preserve">
+    <value>Путь к изображению</value>
+  </data>
+  <data name="Settings_SelectFolder" xml:space="preserve">
+    <value>Выберите папку</value>
+  </data>
+  <data name="Settings_FilePort" xml:space="preserve">
+    <value>Порт</value>
+  </data>
+  <data name="WebCache_TraktLinks" xml:space="preserve">
+    <value>Trakt ссылки</value>
+  </data>
+  <data name="VideoPlayer_MPC" xml:space="preserve">
+    <value>Media Player Classic</value>
+  </data>
+  <data name="VideoPlayer_VLC" xml:space="preserve">
+    <value>VLC</value>
+  </data>
+  <data name="VideoPlayer_PotPlayer" xml:space="preserve">
+    <value>PotPlayer</value>
+  </data>
+  <data name="VideoPlayer_AutoFileEnable" xml:space="preserve">
+    <value>Включить автоматический выбор файлов для единичных эпизодов</value>
+  </data>
+  <data name="TvDB_WideBannerMax" xml:space="preserve">
+    <value>Максимальное кол-во широких баннеров</value>
+  </data>
+  <data name="TvDB_PostersMax" xml:space="preserve">
+    <value>Максимальное кол-во  плакатов</value>
+  </data>
+  <data name="Trakt_Enable" xml:space="preserve">
+    <value>Включить Trakt</value>
+  </data>
+  <data name="Trakt_PIN" xml:space="preserve">
+    <value>Trakt PIN</value>
+  </data>
+  <data name="Trakt_GetPIN" xml:space="preserve">
+    <value>Получить PIN</value>
+  </data>
+  <data name="Trakt_Authorize" xml:space="preserve">
+    <value>Авторизовать Shoko</value>
+  </data>
+  <data name="Trakt_CurrentToken" xml:space="preserve">
+    <value>Текущий токен действителен до:</value>
+  </data>
+  <data name="Trakt_AutoFanart" xml:space="preserve">
+    <value>Автоматически загружать фанарт</value>
+  </data>
+  <data name="Trakt_AutoPosters" xml:space="preserve">
+    <value>Автоматически загружать плакаты</value>
+  </data>
+  <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
+    <value>Автоматически загружать изображения эпизода</value>
+  </data>
+  <data name="MovieDB_MaxPosters" xml:space="preserve">
+    <value>Максимально плакатов</value>
+  </data>
+  <data name="AnimeGroup_Random" xml:space="preserve">
+    <value>Случайный эпизод</value>
+  </data>
+  <data name="AnimeGroup_AllSeries" xml:space="preserve">
+    <value>Все сериалы</value>
+  </data>
+  <data name="AnimeGroup_DoubleClick" xml:space="preserve">
+    <value>Дважды щелкните на сериал для просмотра</value>
+  </data>
+  <data name="PinnedSeries_Simple" xml:space="preserve">
+    <value>Упрощенное представление</value>
+  </data>
+  <data name="Playlist_Add" xml:space="preserve">
+    <value>Добавить в плейлист</value>
+  </data>
+  <data name="Series_Overview" xml:space="preserve">
+    <value>Обзор</value>
+  </data>
+  <data name="Series_MoreInfo" xml:space="preserve">
+    <value>Дополнительная информация</value>
+  </data>
+  <data name="Series_CustomTags" xml:space="preserve">
+    <value>Пользовательские теги</value>
+  </data>
+  <data name="Series_ManageCustom" xml:space="preserve">
+    <value>Управление пользовательсими тегами</value>
+  </data>
+  <data name="Series_Tag" xml:space="preserve">
+    <value>Тег</value>
+  </data>
+  <data name="Series_Add" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="Series_Files" xml:space="preserve">
+    <value>Файлы</value>
+  </data>
+  <data name="SeriesSimple_TraktLink" xml:space="preserve">
+    <value>Перейти к этотому эпизоду на Trakt.TV</value>
+  </data>
+  <data name="SeriesSimple_Comments" xml:space="preserve">
+    <value>Комментарии</value>
+  </data>
+  <data name="SeriesSimple_Play" xml:space="preserve">
+    <value>Играть</value>
+  </data>
+  <data name="SeriesSimple_Watched" xml:space="preserve">
+    <value>Просмотры:</value>
+  </data>
+  <data name="SeriesSimple_From" xml:space="preserve">
+    <value>От:</value>
+  </data>
+  <data name="SeriesSimple_AlreadyHave" xml:space="preserve">
+    <value>У вас уже есть это аниме</value>
+  </data>
+  <data name="SeriesSimple_Voteup" xml:space="preserve">
+    <value>Голосовать за</value>
+  </data>
+  <data name="SeriesSimple_VoteDown" xml:space="preserve">
+    <value>Голосовать против</value>
+  </data>
+  <data name="SeriesSimple_FromTrakt" xml:space="preserve">
+    <value>От Trakt</value>
+  </data>
+  <data name="SeriesSimple_View" xml:space="preserve">
+    <value>Вид</value>
+  </data>
+  <data name="SeriesSimple_FromAniDB" xml:space="preserve">
+    <value>От AniDB</value>
+  </data>
+  <data name="SeriesSimple_Aired" xml:space="preserve">
+    <value>Эфир</value>
+  </data>
+  <data name="SeriesSimple_Episodes" xml:space="preserve">
+    <value>Эпизоды</value>
+  </data>
+  <data name="SeriesSimple_MyVote" xml:space="preserve">
+    <value>Мой голос</value>
+  </data>
+  <data name="SeriesSimple_PlayNext" xml:space="preserve">
+    <value>Играть следующий эпизод</value>
+  </data>
+  <data name="SeriesSimple_YourSay" xml:space="preserve">
+    <value>Сказать свое слово...</value>
+  </data>
+  <data name="SeriesSimple_Spoiler" xml:space="preserve">
+    <value>Спойлер</value>
+  </data>
+  <data name="SeriesSimple_CommentTrakt" xml:space="preserve">
+    <value>Комментарий на Trakt</value>
+  </data>
+  <data name="SeriesSimple_Characters" xml:space="preserve">
+    <value>Персонажи</value>
+  </data>
+  <data name="SeriesSimple_AlsoLike" xml:space="preserve">
+    <value>Вам также может понравиться</value>
+  </data>
+  <data name="SeriesSimple_PeopleSaying" xml:space="preserve">
+    <value>Что люди говорят</value>
+  </data>
+  <data name="SeriesSimple_Loading" xml:space="preserve">
+    <value>Загрузка...</value>
+  </data>
+  <data name="AvDump_Remove" xml:space="preserve">
+    <value>Удалить из списка</value>
+  </data>
+  <data name="AvDump_Clear" xml:space="preserve">
+    <value>Очистить список</value>
+  </data>
+  <data name="AvDump_Dump" xml:space="preserve">
+    <value>Файлы дампов</value>
+  </data>
+  <data name="Bookmarks_Downloading" xml:space="preserve">
+    <value>Загружается</value>
+  </data>
+  <data name="Bookmarks_NotDownloading" xml:space="preserve">
+    <value>Не загружается</value>
+  </data>
+  <data name="Dashboard_YourVote" xml:space="preserve">
+    <value>Ваш голос</value>
+  </data>
+  <data name="Dashboard_Bookmark" xml:space="preserve">
+    <value>Запомнить это аниме чтобы скачать позже</value>
+  </data>
+  <data name="Dashboard_Download" xml:space="preserve">
+    <value>Поиск загрузок для этого сериала</value>
+  </data>
+  <data name="Dashboard_NoRecommend" xml:space="preserve">
+    <value>Нет рекомендаций.</value>
+  </data>
+  <data name="Dashboard_DownloadVotes" xml:space="preserve">
+    <value>Загрузите ваши оценки, или оцените аниме, чтобы начать получать рекомендации.</value>
+  </data>
+  <data name="Dashboard_SyncVotes" xml:space="preserve">
+    <value>Синхронизировать оценки</value>
+  </data>
+  <data name="Dashboard_Added" xml:space="preserve">
+    <value>Добавлено</value>
+  </data>
+  <data name="Dashboard_Metro" xml:space="preserve">
+    <value>Метро-панель</value>
+  </data>
+  <data name="Dashboard_UpdateCalendar" xml:space="preserve">
+    <value>Обновление данных календаря</value>
+  </data>
+  <data name="Dashboard_Recent" xml:space="preserve">
+    <value>Последние добавления</value>
+  </data>
+  <data name="Metro_Options" xml:space="preserve">
+    <value>Параметры</value>
+  </data>
+  <data name="Metro_General" xml:space="preserve">
+    <value>Общие</value>
+  </data>
+  <data name="Metro_ImageType" xml:space="preserve">
+    <value>Тип изображения</value>
+  </data>
+  <data name="Metro_Sections" xml:space="preserve">
+    <value>Разделы</value>
+  </data>
+  <data name="Metro_Items" xml:space="preserve">
+    <value>Элементы</value>
+  </data>
+  <data name="Metro_Refresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="PlayVideo" xml:space="preserve">
+    <value>Воспроизведение видео</value>
+  </data>
+  <data name="Episode_MoreInfo" xml:space="preserve">
+    <value>Подробнее...</value>
+  </data>
+  <data name="Episode_LessInfo" xml:space="preserve">
+    <value>Скрыть...</value>
+  </data>
+  <data name="Episode_Manual" xml:space="preserve">
+    <value>Связано вручную</value>
+  </data>
+  <data name="Episode_ForceAniDBUpdate" xml:space="preserve">
+    <value>Принудительно обновить данные из AniDB</value>
+  </data>
+  <data name="Episode_RecalculateHash" xml:space="preserve">
+    <value>Повторно вычислить хэш</value>
+  </data>
+  <data name="Episode_DownloadSearch" xml:space="preserve">
+    <value>Поиск загрузок для этого эпизода</value>
+  </data>
+  <data name="Episode_PlaylistAdd" xml:space="preserve">
+    <value>Добавить в плейлист</value>
+  </data>
+  <data name="Episode_TvDBOverride" xml:space="preserve">
+    <value>Переопределить TvDB ссылку для этого эпизода</value>
+  </data>
+  <data name="Episode_TvDBRemove" xml:space="preserve">
+    <value>Удалить ссылку TvDB для этого эпизода</value>
+  </data>
+  <data name="Episode_AniDBForceUpdate" xml:space="preserve">
+    <value>Принудительно обновить данные из AniDB</value>
+  </data>
+  <data name="Episode_Type" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="Episode_Availability" xml:space="preserve">
+    <value>Доступность</value>
+  </data>
+  <data name="Episode_WatchedState" xml:space="preserve">
+    <value>Состояние просмотра</value>
+  </data>
+  <data name="Rename_Script" xml:space="preserve">
+    <value>Сценарий</value>
+  </data>
+  <data name="Rename_New" xml:space="preserve">
+    <value>Создать</value>
+  </data>
+  <data name="Rename_Save" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="Rename_Delete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Rename_Tag" xml:space="preserve">
+    <value>Тег</value>
+  </data>
+  <data name="Rename_Add" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="Rename_Test" xml:space="preserve">
+    <value>Проверить</value>
+  </data>
+  <data name="Rename_ScriptingHelp" xml:space="preserve">
+    <value>Помощь с использованием сценариев</value>
+  </data>
+  <data name="Rename_ImportRun" xml:space="preserve">
+    <value>Запустите этот сценарий при импорте файлов в коллекцию</value>
+  </data>
+  <data name="Rename_Filter" xml:space="preserve">
+    <value>Фильтр:</value>
+  </data>
+  <data name="Rename_Clear" xml:space="preserve">
+    <value>Очистить</value>
+  </data>
+  <data name="Rename_AddFiles" xml:space="preserve">
+    <value>Добавить файлы</value>
+  </data>
+  <data name="Rename_Rename" xml:space="preserve">
+    <value>Переименовать сразу</value>
+  </data>
+  <data name="Rename_Preview" xml:space="preserve">
+    <value>Предварительный просмотр</value>
+  </data>
+  <data name="Search_Rescan" xml:space="preserve">
+    <value>Проверка (Rescan)</value>
+  </data>
+  <data name="Search_AniDBForceUpdate" xml:space="preserve">
+    <value>Принудительно обновить данные из AniDB</value>
+  </data>
+  <data name="GroupFilter_RandomSeries" xml:space="preserve">
+    <value>Случайный сериал</value>
+  </data>
+  <data name="GroupFilter_RandomEpisode" xml:space="preserve">
+    <value>Случайный эпизод</value>
+  </data>
+  <data name="IgnoredAnime_Delete" xml:space="preserve">
+    <value>Удалить эту запись</value>
+  </data>
+  <data name="ImportFolder_Watched" xml:space="preserve">
+    <value>В настоящее время смотрел эту папку для новых файлов</value>
+  </data>
+  <data name="MissingEpisodes_SelectColumns" xml:space="preserve">
+    <value>Выберите столбцы, которые будут использоваться при импорте</value>
+  </data>
+  <data name="MissingMyList_RemoveAll" xml:space="preserve">
+    <value>Удалить все записи из AniDB</value>
+  </data>
+  <data name="Episode" xml:space="preserve">
+    <value>Эпизод</value>
+  </data>
+  <data name="Playlist_Random" xml:space="preserve">
+    <value>Случайный эпизод</value>
+  </data>
+  <data name="Playlist_Default" xml:space="preserve">
+    <value>Порядок воспроизведения по умолчанию</value>
+  </data>
+  <data name="Playlist_Items" xml:space="preserve">
+    <value>Элементы списка воспроизведения</value>
+  </data>
+  <data name="PlayNext_Hidden" xml:space="preserve">
+    <value>Скрыто, чтобы предотвратить спойлеры</value>
+  </data>
+  <data name="Rankings_Overall" xml:space="preserve">
+    <value>Общий пользовательский рейтинг</value>
+  </data>
+  <data name="Rankings_GroupedByYear" xml:space="preserve">
+    <value>Сгруппированы по годам</value>
+  </data>
+  <data name="Rankings_CollectionState" xml:space="preserve">
+    <value>Коллекция государственного</value>
+  </data>
+  <data name="Rankings_Voted" xml:space="preserve">
+    <value>Проголосовали</value>
+  </data>
+  <data name="Rankings_Completed" xml:space="preserve">
+    <value>Завершено</value>
+  </data>
+  <data name="Rankings_AniDB" xml:space="preserve">
+    <value>Рейтинг AniDB</value>
+  </data>
+  <data name="Rankings_User" xml:space="preserve">
+    <value>Ваш рейтинг</value>
+  </data>
+  <data name="Rankings_Year" xml:space="preserve">
+    <value>Год</value>
+  </data>
+  <data name="Rankings_View" xml:space="preserve">
+    <value>Просмотр сериала</value>
+  </data>
+  <data name="Rankings_MyVote" xml:space="preserve">
+    <value>Мой голос</value>
+  </data>
+  <data name="Related_Bookmark" xml:space="preserve">
+    <value>Запомнить это аниме чтобы скачать позже</value>
+  </data>
+  <data name="Related_Search" xml:space="preserve">
+    <value>Поиск загрузок для этого сериала</value>
+  </data>
+  <data name="SeriesWithoutFiles_Delete" xml:space="preserve">
+    <value>Удалить этот сериал из базы данных</value>
+  </data>
+  <data name="TraktShouts_View" xml:space="preserve">
+    <value>Вид</value>
+  </data>
+  <data name="TraktShouts_FromAniDB" xml:space="preserve">
+    <value>От AniDB</value>
+  </data>
+  <data name="TraktShouts_Spoiler" xml:space="preserve">
+    <value>Спойлер</value>
+  </data>
+  <data name="TraktShouts_Loading" xml:space="preserve">
+    <value>Загрузка...</value>
+  </data>
+  <data name="TraktShouts_Comments" xml:space="preserve">
+    <value>Комментарии</value>
+  </data>
+  <data name="CommunityLinks_Start" xml:space="preserve">
+    <value>Начало:</value>
+  </data>
+  <data name="CommunityLinks_Edit" xml:space="preserve">
+    <value>Редактировать</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB начало:</value>
+  </data>
+  <data name="CommunityLinks_TvDB" xml:space="preserve">
+    <value>TvDB: </value>
+  </data>
+  <data name="CommunityLinks_Trakt" xml:space="preserve">
+    <value>Trakt:</value>
+  </data>
+  <data name="CommunityLinks_TMDb" xml:space="preserve">
+    <value>The Movie DB</value>
+  </data>
+  <data name="CommunityLinks_MAL" xml:space="preserve">
+    <value>MyAnimeList</value>
+  </data>
+  <data name="CommunityLinks_AutoLink" xml:space="preserve">
+    <value>Связать автоматически</value>
+  </data>
+  <data name="Tooltip_DeleteTitle" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Tooltip_DeleteInfo" xml:space="preserve">
+    <value>Удалить эту ссылку</value>
+  </data>
+  <data name="Tooltip_EditTitle" xml:space="preserve">
+    <value>Редактировать</value>
+  </data>
+  <data name="Tooltip_EditInfo" xml:space="preserve">
+    <value>Редактировать подробности этой ссылки</value>
+  </data>
+  <data name="Tooltip_UpdateTitle" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="Tooltip_UpdateTvDB" xml:space="preserve">
+    <value>Скачать свежие данные из TvDB и обновить локальную базу данных</value>
+  </data>
+  <data name="Tooltip_ReportLinkTitle" xml:space="preserve">
+    <value>Отчет об ошибочных ссылках</value>
+  </data>
+  <data name="Tooltip_ReportLinkInfo" xml:space="preserve">
+    <value>Если эта связь неправильная нажмите здесь чтобы сообщить разработчикам</value>
+  </data>
+  <data name="Tooltip_UpdateTrakt" xml:space="preserve">
+    <value>Скачать свежие данные из Trakt и обновить локальную базу данных</value>
+  </data>
+  <data name="Tooltip_Sync" xml:space="preserve">
+    <value>Синхронизация</value>
+  </data>
+  <data name="Tooltip_SyncTrakt" xml:space="preserve">
+    <value>Синхронизировать данные коллекции и истории с Trakt</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTitle" xml:space="preserve">
+    <value>Автоматическое связывание отключено</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTvDB" xml:space="preserve">
+    <value>Автоматическое связывание этого аниме c TvDB отключено</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTitle" xml:space="preserve">
+    <value>Автоматическое связывание включено</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTvDB" xml:space="preserve">
+    <value>Автоматическое связывание от этого аниме с TvDB включено. Shoko будет автоматически создавать ссылки при близком совпадении или используя рекомендации сообщества</value>
+  </data>
+  <data name="CommunityLinks_TraktTV" xml:space="preserve">
+    <value>Тракт ТВ</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTrakt" xml:space="preserve">
+    <value>Автоматическое связывание аниме с Trakt отключено</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTrakt" xml:space="preserve">
+    <value>Автоматическое связывание от этого аниме с Trakt включено. Shoko будет автоматически создавать ссылки при близком совпадении или используя рекомендации сообщества</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledMAL" xml:space="preserve">
+    <value>Автоматическое связывание аниме с MAL отключено</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledMAL" xml:space="preserve">
+    <value>Автоматическое связывание от этого аниме с MAL включено. Shoko будет автоматически создавать ссылки при близком совпадении или используя рекомендации сообщества</value>
+  </data>
+  <data name="Tooltip_AutoLinkDisabledTMDb" xml:space="preserve">
+    <value>Автоматическое связывание аниме с MovieDB отключено</value>
+  </data>
+  <data name="Tooltip_AutoLinkEnabledTMDb" xml:space="preserve">
+    <value>Автоматическое связывание от этого аниме с MovieDB включено. Shoko будет автоматически создавать ссылки при близком совпадении или используя рекомендации сообщества</value>
+  </data>
+  <data name="Tooltip_CommunityAdminTitle" xml:space="preserve">
+    <value>Администрировать сообщество</value>
+  </data>
+  <data name="Tooltip_CommunityAdminInfo" xml:space="preserve">
+    <value>Перейдите на вкладку Администрировать сообщество чтобы редактировать рекомендованные ссылки для этого аниме</value>
+  </data>
+  <data name="Unrecognized_Rescan" xml:space="preserve">
+    <value>Проверка (Rescan)</value>
+  </data>
+  <data name="Unrecognized_ForceAniDB" xml:space="preserve">
+    <value>Принудительно обновить данные из AniDB</value>
+  </data>
+  <data name="Hash" xml:space="preserve">
+    <value>Хэш</value>
+  </data>
+  <data name="CRC32" xml:space="preserve">
+    <value>CRC32</value>
+  </data>
+  <data name="Unrecognized_Logs" xml:space="preserve">
+    <value>Журналы</value>
+  </data>
+  <data name="Unrecognized_NA" xml:space="preserve">
+    <value>NA</value>
+  </data>
+  <data name="Unrecognized_RefreshSeries" xml:space="preserve">
+    <value>Обновить список сериалов</value>
+  </data>
+  <data name="Unrecognized_To" xml:space="preserve">
+    <value>до</value>
+  </data>
+  <data name="UpdateAniDB_UpdateLocal" xml:space="preserve">
+    <value>Обновление данных о локальных файлах AniDB</value>
+  </data>
+  <data name="UpdateAniDB_MissingInfo" xml:space="preserve">
+    <value>Обновление файлов с отсутствует информация</value>
+  </data>
+  <data name="UpdateAniDB_Info2" xml:space="preserve">
+    <value>Недостающие данные обычно относится к отсутствует кодек и резолюции информацию. Вы можете увидеть резолюции: 0x0 рядом с эти файлы</value>
+  </data>
+  <data name="UpdateAniDB_Version" xml:space="preserve">
+    <value>Обновть файлы до внутренней версии 2</value>
+  </data>
+  <data name="UpdateAniDB_Info3" xml:space="preserve">
+    <value>Внутренняя версия 2 добавила следующую информацию - версия файла (v2, v3 и т.д.), цензура, является устаревшим</value>
+  </data>
+  <data name="UpdateAniDB_Info4" xml:space="preserve">
+    <value>Отправка большого числа запросов к AniDB может вызвать временный запрет. Используйте на свой страх и риск</value>
+  </data>
+  <data name="UpdateAniDB_HowManyQueued" xml:space="preserve">
+    <value>Сколько команд будет помещено в очередь?</value>
+  </data>
+  <data name="UpdateAniDB_Queued" xml:space="preserve">
+    <value>Очередь команд</value>
+  </data>
+  <data name="User_HideTags" xml:space="preserve">
+    <value>Скрыть Теги</value>
+  </data>
+  <data name="User_ChangePassword" xml:space="preserve">
+    <value>Изменить пароль</value>
+  </data>
+  <data name="Sort_Error" xml:space="preserve">
+    <value>Ошибка при попытке отсортировать список </value>
+  </data>
+  <data name="Sort_PassedEmpty" xml:space="preserve">
+    <value>MultiSort parameter rgSortBy was passed an empty field name in rgSortBy[</value>
+  </data>
+  <data name="Selected_DoesNotExist" xml:space="preserve">
+    <value>Указанный файл или папка не существует: </value>
+  </data>
+  <data name="Video_VLCError1" xml:space="preserve">
+    <value>Не удается выполнить разбор URI в ini-файле VLC</value>
+  </data>
+  <data name="Video_VLCError2" xml:space="preserve">
+    <value>Количество последних файлов и временных метки в ini-файле VLC различно</value>
+  </data>
+  <data name="Video_Complete" xml:space="preserve">
+    <value>Завершить</value>
+  </data>
+  <data name="Video_Position" xml:space="preserve">
+    <value>Позиция видео для</value>
+  </data>
+  <data name="Video_HasChanged" xml:space="preserve">
+    <value>изменилась</value>
+  </data>
+  <data name="Video_Updating" xml:space="preserve">
+    <value>Обновление до просмотрено из медиа-проигрывателя: </value>
+  </data>
+  <data name="AniDB_DataMissing" xml:space="preserve">
+    <value>Отсутствуют данные</value>
+  </data>
+  <data name="AniDB_Votes" xml:space="preserve">
+    <value>Оценки</value>
+  </data>
+  <data name="AniDB_GotVids" xml:space="preserve">
+    <value>Got vids for anime from service:</value>
+  </data>
+  <data name="AniDB_In" xml:space="preserve">
+    <value>в</value>
+  </data>
+  <data name="AniDB_ForFans" xml:space="preserve">
+    <value>Для фанатов</value>
+  </data>
+  <data name="AniDB_Recommended" xml:space="preserve">
+    <value>Рекомендуется</value>
+  </data>
+  <data name="AniDB_MustSee" xml:space="preserve">
+    <value>Обязательно к просмотру</value>
+  </data>
+  <data name="AniDB_Collecting" xml:space="preserve">
+    <value>Собираемые:</value>
+  </data>
+  <data name="AniDB_Files" xml:space="preserve">
+    <value>Файлов:</value>
+  </data>
+  <data name="AnimeEpisode_Previous" xml:space="preserve">
+    <value>Предыдущий эпизод</value>
+  </data>
+  <data name="AnimeEpisode_Next" xml:space="preserve">
+    <value>Следующий эпизод</value>
+  </data>
+  <data name="AnimeEpisode_NoOverview" xml:space="preserve">
+    <value>Обзор эпизода не доступен</value>
+  </data>
+  <data name="Anime_Groups" xml:space="preserve">
+    <value>Группы</value>
+  </data>
+  <data name="Anime_Series" xml:space="preserve">
+    <value>Сериалы</value>
+  </data>
+  <data name="Anime_GroupName" xml:space="preserve">
+    <value>Имя группы должны быть заполнены</value>
+  </data>
+  <data name="Anime_SortName" xml:space="preserve">
+    <value>Имя сортировки должно быть заполнено</value>
+  </data>
+  <data name="Anime_GotVids" xml:space="preserve">
+    <value>Got vids for anime from service:</value>
+  </data>
+  <data name="Anime_GotEpisodes" xml:space="preserve">
+    <value>Got episode data from service:</value>
+  </data>
+  <data name="Anime_In" xml:space="preserve">
+    <value>в</value>
+  </data>
+  <data name="Anime_Contracts" xml:space="preserve">
+    <value>Got episode contracts:</value>
+  </data>
+  <data name="Anime_Sorted" xml:space="preserve">
+    <value>Sorted episode contracts:</value>
+  </data>
+  <data name="AVDump_ToBe" xml:space="preserve">
+    <value>Для обработки</value>
+  </data>
+  <data name="Group_Groups" xml:space="preserve">
+    <value>Группы</value>
+  </data>
+  <data name="Group_FilterName" xml:space="preserve">
+    <value>Имя фильтра должно быть заполнено</value>
+  </data>
+  <data name="Ignore_RecDown" xml:space="preserve">
+    <value>Рекомендации - скачать</value>
+  </data>
+  <data name="Ignore_RecWatch" xml:space="preserve">
+    <value>Рекомендации - просмотр</value>
+  </data>
+  <data name="Ignore_AnimeID" xml:space="preserve">
+    <value>Аниме ID:</value>
+  </data>
+  <data name="ShokoServer_Success" xml:space="preserve">
+    <value>Успех</value>
+  </data>
+  <data name="ShokoServer_Error" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="Missing_Episode" xml:space="preserve">
+    <value>Эпизод</value>
+  </data>
+  <data name="Missing_File" xml:space="preserve">
+    <value>Файл</value>
+  </data>
+  <data name="Playlist_Name" xml:space="preserve">
+    <value>Введите имя списка воспроизведения: </value>
+  </data>
+  <data name="Playlist_NameBlank" xml:space="preserve">
+    <value>Пожалуйста, введите имя списка воспроизведения</value>
+  </data>
+  <data name="Recommendation_Missing" xml:space="preserve">
+    <value>Отсутствуют данные</value>
+  </data>
+  <data name="Recommendation_NoOverview" xml:space="preserve">
+    <value>Обзор не доступен</value>
+  </data>
+  <data name="uTorrent_NotConnected" xml:space="preserve">
+    <value>Не подключен</value>
+  </data>
+  <data name="uTorrent_Connecting" xml:space="preserve">
+    <value>Подключение...</value>
+  </data>
+  <data name="Constants_Continue" xml:space="preserve">
+    <value>Продолжить просмотр (система)</value>
+  </data>
+  <data name="Constants_MainCharacter" xml:space="preserve">
+    <value>главный герой в</value>
+  </data>
+  <data name="Tab_Playlists" xml:space="preserve">
+    <value>Списки воспроизведения</value>
+  </data>
+  <data name="Playlist_NewPlaylist" xml:space="preserve">
+    <value>Новый список воспроизведения</value>
+  </data>
+  <data name="Tab_Bookmarks" xml:space="preserve">
+    <value>Закладки</value>
+  </data>
+  <data name="ShokoServer_ImportFolders" xml:space="preserve">
+    <value>Импорт папки</value>
+  </data>
+  <data name="ShokoServer_ServerStatus" xml:space="preserve">
+    <value>Статус сервера</value>
+  </data>
+  <data name="Tooltip_ClearHash" xml:space="preserve">
+    <value>Очистить очередь хэш команд</value>
+  </data>
+  <data name="ShokoServer_Running" xml:space="preserve">
+    <value>Запуск</value>
+  </data>
+  <data name="ShokoServer_Paused" xml:space="preserve">
+    <value>Приостановлено</value>
+  </data>
+  <data name="Tooltip_ClearGeneral" xml:space="preserve">
+    <value>Очистить очередь общих команд</value>
+  </data>
+  <data name="Tooltip_ClearImages" xml:space="preserve">
+    <value>Очистить очередь загрузки изображений</value>
+  </data>
+  <data name="ShokoServer_ServerImage" xml:space="preserve">
+    <value>Очереди сервера изображений</value>
+  </data>
+  <data name="Tab_AniDBAVDump" xml:space="preserve">
+    <value>AniDB AV Dump</value>
+  </data>
+  <data name="Tab_FileSearch" xml:space="preserve">
+    <value>Поиск файлов</value>
+  </data>
+  <data name="Tab_FileRename" xml:space="preserve">
+    <value>Переименование файлов</value>
+  </data>
+  <data name="Tab_UpdateAniDB" xml:space="preserve">
+    <value>Обновление данных AniDB</value>
+  </data>
+  <data name="Tab_CommunityData" xml:space="preserve">
+    <value>Данные сообщества</value>
+  </data>
+  <data name="Tab_MyVotes" xml:space="preserve">
+    <value>Мои голоса</value>
+  </data>
+  <data name="VideoPlayer_AutoFile" xml:space="preserve">
+    <value>Автоматический выбор файла</value>
+  </data>
+  <data name="TAB_SettingsOnlineDB_MAL" xml:space="preserve">
+    <value>Мой список аниме</value>
+  </data>
+  <data name="Tab_Downloads" xml:space="preserve">
+    <value>Загрузки</value>
+  </data>
+  <data name="Downloads_uTorrentWebUI" xml:space="preserve">
+    <value>uTorrent WebUI детали</value>
+  </data>
+  <data name="Downloads_TorrentBlackHole" xml:space="preserve">
+    <value>Параметры Torrent Black Hole</value>
+  </data>
+  <data name="Downloads_TorrentDefault" xml:space="preserve">
+    <value>Торрент источники для поиска</value>
+  </data>
+  <data name="Downloads_BakaBT" xml:space="preserve">
+    <value>BakaBT натройки</value>
+  </data>
+  <data name="Downloads_AnimeBytes" xml:space="preserve">
+    <value>AnimeBytes натройки</value>
+  </data>
+  <data name="Downloads_BakaBTInfo" xml:space="preserve">
+    <value>BakaBT это аниме торрент-сайт, который специализируется на полных сериалах, требуется учетная запись</value>
+  </data>
+  <data name="Downloads_AnimeBytesInfo" xml:space="preserve">
+    <value>AnimeBytes это аниме торрент-сайт, который специализируется на полных сериалах, требуется учетная запись</value>
+  </data>
+  <data name="Downloads_GoTo" xml:space="preserve">
+    <value>Перейти на сайт</value>
+  </data>
+  <data name="Tab_Search" xml:space="preserve">
+    <value>Поиск</value>
+  </data>
+  <data name="Tab_Community" xml:space="preserve">
+    <value>Сообщество</value>
+  </data>
+  <data name="Main_Messages" xml:space="preserve">
+    <value>Сообщения</value>
+  </data>
+  <data name="Main_User" xml:space="preserve">
+    <value>Пользователь</value>
+  </data>
+  <data name="Main_About" xml:space="preserve">
+    <value>О программе</value>
+  </data>
+  <data name="Tab_uTorrent" xml:space="preserve">
+    <value>uTorrent</value>
+  </data>
+  <data name="Tab_BrowseTorrents" xml:space="preserve">
+    <value>Смотреть торренты</value>
+  </data>
+  <data name="Tab_SearchTorrents" xml:space="preserve">
+    <value>Искать торренты</value>
+  </data>
+  <data name="Tab_Recommendations" xml:space="preserve">
+    <value>Рекомендации</value>
+  </data>
+  <data name="Tab_Settings" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="Tab_SeriesInfo" xml:space="preserve">
+    <value>Информация о сериале</value>
+  </data>
+  <data name="Tab_Comments" xml:space="preserve">
+    <value>Комментарии пользователей</value>
+  </data>
+  <data name="Tab_Files" xml:space="preserve">
+    <value>Файлы</value>
+  </data>
+  <data name="Download_TorrentFolder" xml:space="preserve">
+    <value>Расположение папки торрент</value>
+  </data>
+  <data name="Search_TitleOnly" xml:space="preserve">
+    <value>Только название</value>
+  </data>
+  <data name="Tooltip_User_PlexUsers" xml:space="preserve">
+    <value>Сопоставляет пользователей Plex указанных через запятую с этим Shoko пользователем. Если пользователь Plex является другом (не домашний пользователь), используйте «External» вместо имени Plex</value>
+  </data>
+  <data name="User_Hide_Tags" xml:space="preserve">
+    <value>Скрыть Теги</value>
+  </data>
+  <data name="User_PlexUsers" xml:space="preserve">
+    <value>Plex пользователи</value>
+  </data>
+  <data name="Tooltip_PlayAll" xml:space="preserve">
+    <value>Играть все эпизоды (отправляет список воспроизведения проигрывателю по умолчанию)</value>
+  </data>
+  <data name="VideoPlayer_Default" xml:space="preserve">
+    <value>Видео проигрыватель по умолчанию</value>
+  </data>
+  <data name="VideoPlayer_DefaultPlayer" xml:space="preserve">
+    <value>Проигрыватель по умолчанию</value>
+  </data>
+  <data name="Link_VideoPlayer" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#video-player</value>
+  </data>
+  <data name="DetailedExplanation" xml:space="preserve">
+    <value>Нажмите здесь для подробного объяснения параметров</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="TvDB_NoSeasons" xml:space="preserve">
+    <value>Сезоны недоступны, проверьте TvDB ID</value>
+  </data>
+  <data name="Search_Everything" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="TvDB_NoAniDB" xml:space="preserve">
+    <value>Нет эпизодов на AniDB</value>
+  </data>
+  <data name="TvDB_NoTvDB" xml:space="preserve">
+    <value>Нет эпизодов на TvDB</value>
+  </data>
+  <data name="Trakt_NoSeasons" xml:space="preserve">
+    <value>Нет сезонов, проверьте Trakt ID</value>
+  </data>
+  <data name="Filter_New" xml:space="preserve">
+    <value>Новый фильтр</value>
+  </data>
+  <data name="Import_Running" xml:space="preserve">
+    <value>Процесс выполняется </value>
+  </data>
+  <data name="Filter_DeleteGroup" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить фильтр группы: {0}</value>
+  </data>
+  <data name="Filter_DeleteCondition" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить условие фильтра: {0}</value>
+  </data>
+  <data name="Filter_DeleteSort" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить сортировку?</value>
+  </data>
+  <data name="Playlist_Delete" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить плейлист: {0}</value>
+  </data>
+  <data name="Filter_PlaylistMissing" xml:space="preserve">
+    <value>Не удалось найти плейлист</value>
+  </data>
+  <data name="Process_Running" xml:space="preserve">
+    <value>Процесс выполняется </value>
+  </data>
+  <data name="Process_Queued" xml:space="preserve">
+    <value>Процесс ожидает в очереди</value>
+  </data>
+  <data name="MultipleFiles_Ignore" xml:space="preserve">
+    <value>Игнорировать вариации</value>
+  </data>
+  <data name="MultipleFiles_Finished" xml:space="preserve">
+    <value>Недавно закончился эфир</value>
+  </data>
+  <data name="Playlist_PlayAll" xml:space="preserve">
+    <value>Играть все</value>
+  </data>
+  <data name="Playlist_PlayWatched" xml:space="preserve">
+    <value>Игарть просмотренные</value>
+  </data>
+  <data name="Playlist_PlayUnwatched" xml:space="preserve">
+    <value>Играть непросмотренные</value>
+  </data>
+  <data name="Playlist_UseFanart" xml:space="preserve">
+    <value>Использовать фанарт</value>
+  </data>
+  <data name="Random_Any" xml:space="preserve">
+    <value>Любой</value>
+  </data>
+  <data name="Random_All" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="Rankings_InCollection" xml:space="preserve">
+    <value>В моей коллекции</value>
+  </data>
+  <data name="Rankings_AllEpisodes" xml:space="preserve">
+    <value>Все эпизоды в моей коллекции</value>
+  </data>
+  <data name="Rankings_NotInCollection" xml:space="preserve">
+    <value>Не в моей коллекции</value>
+  </data>
+  <data name="Rankings_AllWatched" xml:space="preserve">
+    <value>Все эпизоды смотрел</value>
+  </data>
+  <data name="Rankings_NotWatched" xml:space="preserve">
+    <value>Не смотрел</value>
+  </data>
+  <data name="Rankings_Votes" xml:space="preserve">
+    <value>Проголосовал</value>
+  </data>
+  <data name="Rankings_NotVoted" xml:space="preserve">
+    <value>Не голосовал</value>
+  </data>
+  <data name="Rankings_AnimeNotInCollection" xml:space="preserve">
+    <value>Этого аниме нет в коллекции</value>
+  </data>
+  <data name="MissingEpisodes_StillAiring" xml:space="preserve">
+    <value>До сих пор в эфире</value>
+  </data>
+  <data name="MissingEpisodes_FinishedAiring" xml:space="preserve">
+    <value>Эфир окончен</value>
+  </data>
+  <data name="Exporting" xml:space="preserve">
+    <value>Экспортируется...</value>
+  </data>
+  <data name="Rename_Files" xml:space="preserve">
+    <value>{0} файлов</value>
+  </data>
+  <data name="Rename_Random" xml:space="preserve">
+    <value>Случайный</value>
+  </data>
+  <data name="Rename_Series" xml:space="preserve">
+    <value>Сериал</value>
+  </data>
+  <data name="Rename_All" xml:space="preserve">
+    <value>Вся коллекция</value>
+  </data>
+  <data name="Rename_Failed" xml:space="preserve">
+    <value>Не удалось</value>
+  </data>
+  <data name="Rename_Passed" xml:space="preserve">
+    <value>Прошло</value>
+  </data>
+  <data name="Rename_DeleteScript" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить сценарий: {0}</value>
+  </data>
+  <data name="Rename_EnterScriptName" xml:space="preserve">
+    <value>Введите имя сценария:</value>
+  </data>
+  <data name="Rename_BlankScript" xml:space="preserve">
+    <value>Пожалуйста, введите имя сценария</value>
+  </data>
+  <data name="Rename_Changed" xml:space="preserve">
+    <value>{0} из {1}</value>
+  </data>
+  <data name="Rename_Confirm" xml:space="preserve">
+    <value>Вы уверены, что вы хотите переименовать файлы ниже?</value>
+  </data>
+  <data name="Community_LinkMissing" xml:space="preserve">
+    <value>Отсутствует связь</value>
+  </data>
+  <data name="Community_LinkDifferent" xml:space="preserve">
+    <value>Ссылка отличается одобренной ссылки</value>
+  </data>
+  <data name="Community_GettingData" xml:space="preserve">
+    <value>Получение данных о всех сериалах...</value>
+  </data>
+  <data name="Complete" xml:space="preserve">
+    <value>Готово!</value>
+  </data>
+  <data name="Community_TraktProgress" xml:space="preserve">
+    <value>{0}: {1} {2} - {3}</value>
+  </data>
+  <data name="Community_TraktRef" xml:space="preserve">
+    <value>Получение всех данных Ref крест тракт...</value>
+  </data>
+  <data name="Community_TraktPopulating" xml:space="preserve">
+    <value>Заполнение данных ряда</value>
+  </data>
+  <data name="Community_TraktSeriesCheck" xml:space="preserve">
+    <value>Проверка сериала</value>
+  </data>
+  <data name="Community_TraktDataCheck" xml:space="preserve">
+    <value>Проверка данных Trakt...</value>
+  </data>
+  <data name="Community_TraktCompare" xml:space="preserve">
+    <value>Проверка ссылки Trakt с рекомендациями сообщества...</value>
+  </data>
+  <data name="Tooltip_RecreateAllGroups" xml:space="preserve">
+    <value>Это удалит все группы и затем повторно сгруппирует все сериалы в новые группы, на основе ваших параметров импорта</value>
+  </data>
+  <data name="Rename_Title" xml:space="preserve">
+    <value>Правила переименования</value>
+  </data>
+  <data name="Search_FileName" xml:space="preserve">
+    <value>Имя файла</value>
+  </data>
+  <data name="Search_Last100" xml:space="preserve">
+    <value>Последние 100</value>
+  </data>
+  <data name="Search_FileSize" xml:space="preserve">
+    <value>Размер файла</value>
+  </data>
+  <data name="ShokoServer_ProcessQueued" xml:space="preserve">
+    <value>Процесс помещен в очередь на сервере, пожалуйста попробуйте обновить через несколько секунд</value>
+  </data>
+  <data name="Downloads_Details" xml:space="preserve">
+    <value>Подробности</value>
+  </data>
+  <data name="Anime_QualityRanking" xml:space="preserve">
+    <value>По качеству</value>
+  </data>
+  <data name="Anime_ReleaseGroup" xml:space="preserve">
+    <value>Релиз группа</value>
+  </data>
+  <data name="Anime_GroupDetails" xml:space="preserve">
+    <value>Информация о качестве/группе</value>
+  </data>
+  <data name="Anime_GroupSummary" xml:space="preserve">
+    <value>Резюме о релиз группе </value>
+  </data>
+  <data name="ImportSettings_Default" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="ImportSettings_Custom" xml:space="preserve">
+    <value>Пользовательские</value>
+  </data>
+  <data name="Main_Paused" xml:space="preserve">
+    <value>Приостановлено из-за ЗАПРЕТА от AniDB</value>
+  </data>
+  <data name="AniDBMyListDeleteLocal" xml:space="preserve">
+    <value>Удалить файл (локальная БД)</value>
+  </data>
+  <data name="AniDBMyListMarkDeleted" xml:space="preserve">
+    <value>Пометить удален</value>
+  </data>
+  <data name="AniDBMyListMarkUnknown" xml:space="preserve">
+    <value>Пометить неизвестно</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Пометить внешний (CD/DVD)</value>
+  </data>
+  <data name="AniDBMyListHDD" xml:space="preserve">
+    <value>HDD</value>
+  </data>
+  <data name="AniDBMyListUnknown" xml:space="preserve">
+    <value>Неизвестно</value>
+  </data>
+  <data name="AniDBMyListDVD" xml:space="preserve">
+    <value>CD/DVD</value>
+  </data>
+  <data name="AniDBMyListDelete" xml:space="preserve">
+    <value>Удалить файл (AniDB)</value>
+  </data>
+  <data name="DeleteFiles_Name" xml:space="preserve">
+    <value>Удаление файлов</value>
+  </data>
+  <data name="ManualLink" xml:space="preserve">
+    <value>СВЯЗЬ ВРУЧНУЮ</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Готово!</value>
+  </data>
+  <data name="DeleteFiles_Deleting" xml:space="preserve">
+    <value>Удаление файла {0} из {1}</value>
+  </data>
+  <data name="DeleteFiles_Wait" xml:space="preserve">
+    <value>Пожалуйста, подождите завершения процесса</value>
+  </data>
+  <data name="DeleteFiles_Confirm" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить эти {0} файл/ов, физическиt видео файлы будут также удалены</value>
+  </data>
+  <data name="DuplicateFiles_ConfirmDelete" xml:space="preserve">
+    <value>Вы уверены, что хотите удалить этот файл, физический файл видео также будет удален</value>
+  </data>
+  <data name="DuplicateFiles_DeleteEntry" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить эту запись?</value>
+  </data>
+  <data name="Unrecognized_ConfirmDelete" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить этот файл: {0}</value>
+  </data>
+  <data name="Unrecognized_DeleteSelected" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить {0} выбранных файлов</value>
+  </data>
+  <data name="MultipleFiles_ConfirmDelete" xml:space="preserve">
+    <value>Вы уверены, что хотите удалить этот файл, физический файл видео также будет удален</value>
+  </data>
+  <data name="EpisodeDetail_TvDBLink" xml:space="preserve">
+    <value>Сериал должен быть сначала связана с TvDB сериалом </value>
+  </data>
+  <data name="EpisodeDetail_NewPlaylist" xml:space="preserve">
+    <value>Новый список воспроизведения</value>
+  </data>
+  <data name="EpisodeDetail_PlaylistMenu" xml:space="preserve">
+    <value>Меню плейлистов: </value>
+  </data>
+  <data name="EpisodeDetail_PlaylistMissing" xml:space="preserve">
+    <value>Не удалось найти плейлист</value>
+  </data>
+  <data name="EpisodeDetail_ConfirmDelete" xml:space="preserve">
+    <value>Вы уверены, что хотите удалить этот файл, физический файл видео также будет удален</value>
+  </data>
+  <data name="EpisodeDetail_CommandQueued" xml:space="preserve">
+    <value>Команда поставлена в очередь для обработки на сервере</value>
+  </data>
+  <data name="Utilities_Folder" xml:space="preserve">
+    <value>Папка</value>
+  </data>
+  <data name="Unrecognized_Date" xml:space="preserve">
+    <value>Дата</value>
+  </data>
+  <data name="Utilities_FileName" xml:space="preserve">
+    <value>Имя файла</value>
+  </data>
+  <data name="Utilities_Size" xml:space="preserve">
+    <value>Размер</value>
+  </data>
+  <data name="Unrecognized_CRC" xml:space="preserve">
+    <value>CRC</value>
+  </data>
+  <data name="VideoPlayer_VideoPlayer" xml:space="preserve">
+    <value>Видео проигрыватель</value>
+  </data>
+  <data name="Dashboard_Regular" xml:space="preserve">
+    <value>Классическая панель</value>
+  </data>
+  <data name="Dashboard_Settings" xml:space="preserve">
+    <value>Параметры</value>
+  </data>
+  <data name="Rankings_Anime" xml:space="preserve">
+    <value>Аниме</value>
+  </data>
+  <data name="ValueCompare_PropertyName" xml:space="preserve">
+    <value>Название свойства</value>
+  </data>
+  <data name="ValueCompare_NotFound" xml:space="preserve">
+    <value>не найден, при попытке сравнения объектов типа</value>
+  </data>
+  <data name="ValueCompare_FieldName" xml:space="preserve">
+    <value>Название поля </value>
+  </data>
+  <data name="SelectGroupSeries_Select" xml:space="preserve">
+    <value>Выберите</value>
+  </data>
+  <data name="Series_Folder" xml:space="preserve">
+    <value>Папки</value>
+  </data>
+  <data name="RateSeries_Title" xml:space="preserve">
+    <value>Оценить сериал</value>
+  </data>
+  <data name="NewSeries_CreateNew" xml:space="preserve">
+    <value>Создать сериал</value>
+  </data>
+  <data name="NewSeries_SelectAnime" xml:space="preserve">
+    <value>Пожалуйста, сначала выберите аниме</value>
+  </data>
+  <data name="MissingEpisodes_Columns" xml:space="preserve">
+    <value>Выбрать столбцы</value>
+  </data>
+  <data name="GroupFilter_Sorting" xml:space="preserve">
+    <value>Группа фильтра сортировки</value>
+  </data>
+  <data name="GroupFilter_Condition" xml:space="preserve">
+    <value>Условие фильтра группы</value>
+  </data>
+  <data name="GroupFilter_IntegerOnly" xml:space="preserve">
+    <value>Введите целое число</value>
+  </data>
+  <data name="Recommendation_Overview" xml:space="preserve">
+    <value>Обзор не доступен</value>
+  </data>
+  <data name="Sort_Using" xml:space="preserve">
+    <value>используя</value>
+  </data>
+  <data name="Sort_Property" xml:space="preserve">
+    <value>свойство</value>
+  </data>
+  <data name="Sort_Field" xml:space="preserve">
+    <value>поле</value>
+  </data>
+  <data name="Sort_Exception" xml:space="preserve">
+    <value>Exception in MultiSort while sorting a list of</value>
+  </data>
+  <data name="ShokoServer_TraktAuth" xml:space="preserve">
+    <value>Тракт авторизация</value>
+  </data>
+  <data name="Group_GroupCount" xml:space="preserve">
+    <value>Группы</value>
+  </data>
+  <data name="Login_UserLogin" xml:space="preserve">
+    <value>Логин пользователя</value>
+  </data>
+  <data name="Login_IncorrectPassword" xml:space="preserve">
+    <value>Неправильный пароль</value>
+  </data>
+  <data name="ImportFolder" xml:space="preserve">
+    <value>Папка импорта</value>
+  </data>
+  <data name="DeleteSeriesGroup" xml:space="preserve">
+    <value>Удаление группы/сериала</value>
+  </data>
+  <data name="About_Home" xml:space="preserve">
+    <value>Домашняя страница</value>
+  </data>
+  <data name="About_Project" xml:space="preserve">
+    <value>Страница проекта</value>
+  </data>
+  <data name="About_Blog" xml:space="preserve">
+    <value>Shoko блог</value>
+  </data>
+  <data name="About_MediaPortal" xml:space="preserve">
+    <value>MediaPortal форум</value>
+  </data>
+  <data name="ViewComment_Comment" xml:space="preserve">
+    <value>Комментарии</value>
+  </data>
+  <data name="ViewComment_FromTrakt" xml:space="preserve">
+    <value>От тракт</value>
+  </data>
+  <data name="ViewComment_FromAniDB" xml:space="preserve">
+    <value>От AniDB</value>
+  </data>
+  <data name="CommunityLinks_ShowAdmin" xml:space="preserve">
+    <value>Показать администратора сообщества</value>
+  </data>
+  <data name="CommunityLins_UseMyLinks" xml:space="preserve">
+    <value>Использовать мои ссылки</value>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>Результат</value>
+  </data>
+  <data name="CommunityLinks_NoLinks" xml:space="preserve">
+    <value>У вас нет ссылок</value>
+  </data>
+  <data name="CommunityLinks_NoLinksAvailable" xml:space="preserve">
+    <value>Не доступны ссылки на сообщества</value>
+  </data>
+  <data name="CommunityLinks_NeedApproval" xml:space="preserve">
+    <value>Ссылка требует одобрения</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Одобрено</value>
+  </data>
+  <data name="CommunityLinks_DeleteLink" xml:space="preserve">
+    <value>Вы уверены, что хотите удалить эту ссылку?</value>
+  </data>
+  <data name="CommunityLinks_CommandQueued" xml:space="preserve">
+    <value>Команда добавлена в очередь</value>
+  </data>
+  <data name="CommunityLinks_CheckingOnline" xml:space="preserve">
+    <value>Проверка онлайн...</value>
+  </data>
+  <data name="Update_ShokoDesktop" xml:space="preserve">
+    <value>Обновления Shoko Desktop</value>
+  </data>
+  <data name="Select_TvDBSeason" xml:space="preserve">
+    <value>Изменить TvDB сезон</value>
+  </data>
+  <data name="Select_TvDBLanguage" xml:space="preserve">
+    <value>Выберать язык TvDB</value>
+  </data>
+  <data name="Select_TvDBEpisode" xml:space="preserve">
+    <value>Поиск эпизода</value>
+  </data>
+  <data name="Select_TraktSeason" xml:space="preserve">
+    <value>Изменить Trakt сезон</value>
+  </data>
+  <data name="Select_MALStart" xml:space="preserve">
+    <value>Изменить начальный эпизод MAL</value>
+  </data>
+  <data name="Select_ValidEpisode" xml:space="preserve">
+    <value>Пожалуйста, введите существующий номер эпизода</value>
+  </data>
+  <data name="Select_DefaultSeries" xml:space="preserve">
+    <value>Выберите сериал по умолчанию</value>
+  </data>
+  <data name="Select_Title" xml:space="preserve">
+    <value>Выберите название</value>
+  </data>
+  <data name="Search_TraktForm" xml:space="preserve">
+    <value>Поиск на Trakt TV</value>
+  </data>
+  <data name="Search_TMDBForm" xml:space="preserve">
+    <value>Поиск на MovieDB</value>
+  </data>
+  <data name="Search_InvalidMovieID" xml:space="preserve">
+    <value>Пожалуйста, введите существующий идентификатор фильма</value>
+  </data>
+  <data name="ShokoServer_Complete" xml:space="preserve">
+    <value>Готово!</value>
+  </data>
+  <data name="Trakt_TokenValid" xml:space="preserve">
+    <value>Текущий токен действителен до: {0}</value>
+  </data>
+  <data name="Trakt_TokenExpired" xml:space="preserve">
+    <value>Ваш токен истек, пожалуйста, получите новый.</value>
+  </data>
+  <data name="Trakt_ShokoNotAuth" xml:space="preserve">
+    <value>Вы не авторизовали Shoko для доступа к вашей учетной записи Trakt!</value>
+  </data>
+  <data name="User_EnterUsername" xml:space="preserve">
+    <value>Пожалуйста, введите имя пользователя</value>
+  </data>
+  <data name="User_PlexAssigned" xml:space="preserve">
+    <value>Plex пользователь «{0}» уже связан с Shoko пользователем «{1}»</value>
+  </data>
+  <data name="User_Delete" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить пользователя: {0}</value>
+  </data>
+  <data name="User_DeleteError" xml:space="preserve">
+    <value>Нельзя удалить текущего подключенного пользователя</value>
+  </data>
+  <data name="Seach_Criteria" xml:space="preserve">
+    <value>Пожалуйста, введите критерии поиска</value>
+  </data>
+  <data name="Downloads_uTorrentDetails" xml:space="preserve">
+    <value>Пожалуйста, введите все настройки uTorrent</value>
+  </data>
+  <data name="Downloads_Connected" xml:space="preserve">
+    <value>Подключенные успешно</value>
+  </data>
+  <data name="Downloads_Failed" xml:space="preserve">
+    <value>Ошибка! Просмотрите журнал для получения более подробной информации</value>
+  </data>
+  <data name="Community_Searching" xml:space="preserve">
+    <value>Поиск...</value>
+  </data>
+  <data name="Community_TvDBApproval" xml:space="preserve">
+    <value>{0} аниме по-прежнему требуется одобрение TvDB</value>
+  </data>
+  <data name="Community_TraktApproval" xml:space="preserve">
+    <value>{0} аниме еще нужно одобрение Trakt</value>
+  </data>
+  <data name="Community_AniDBID" xml:space="preserve">
+    <value>AniDB ID</value>
+  </data>
+  <data name="Community_Search" xml:space="preserve">
+    <value>Поиск</value>
+  </data>
+  <data name="Community_Random" xml:space="preserve">
+    <value>Случайные аниме</value>
+  </data>
+  <data name="Community_Filters" xml:space="preserve">
+    <value>Фильтры</value>
+  </data>
+  <data name="Community_StartEp" xml:space="preserve">
+    <value>Тип начального эп</value>
+  </data>
+  <data name="Community_StartEpNumber" xml:space="preserve">
+    <value>Начальный эп #</value>
+  </data>
+  <data name="Community_TvDBID" xml:space="preserve">
+    <value>TvDB ID</value>
+  </data>
+  <data name="Community_TvDBTitle" xml:space="preserve">
+    <value>Название TvDB</value>
+  </data>
+  <data name="Community_SeasonNumber" xml:space="preserve">
+    <value>Сезон #</value>
+  </data>
+  <data name="Community_Username" xml:space="preserve">
+    <value>Имя пользователя</value>
+  </data>
+  <data name="Community_AdminApproved" xml:space="preserve">
+    <value>Администратор утвердил</value>
+  </data>
+  <data name="Community_Approve" xml:space="preserve">
+    <value>Утвердить</value>
+  </data>
+  <data name="Community_Revoke" xml:space="preserve">
+    <value>Отозвать</value>
+  </data>
+  <data name="Community_Trakt" xml:space="preserve">
+    <value>Тракт</value>
+  </data>
+  <data name="Community_TraktID" xml:space="preserve">
+    <value>Тракт ID</value>
+  </data>
+  <data name="Community_TraktTitle" xml:space="preserve">
+    <value>Trakt название</value>
+  </data>
+  <data name="Bookmarks_Delete" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить эту закладку: {0}</value>
+  </data>
+  <data name="Bookmarks_Notes" xml:space="preserve">
+    <value>Примечания:</value>
+  </data>
+  <data name="Bookmarks_Priority" xml:space="preserve">
+    <value>Приоритет:</value>
+  </data>
+  <data name="Bookmarks_DownloadNow" xml:space="preserve">
+    <value>Скачать</value>
+  </data>
+  <data name="Bookmarks_CurrentlyDownloading" xml:space="preserve">
+    <value>Загружается</value>
+  </data>
+  <data name="Bookmarks_EditNotes" xml:space="preserve">
+    <value>Редактирование заметок</value>
+  </data>
+  <data name="Input_Number" xml:space="preserve">
+    <value>Введите число</value>
+  </data>
+  <data name="Input_Text" xml:space="preserve">
+    <value>Ввод текста</value>
+  </data>
+  <data name="Downloads_BakaBTDetails" xml:space="preserve">
+    <value>Пожалуйста, введите логин BakaBT</value>
+  </data>
+  <data name="Downloads_AnimeBytesDetails" xml:space="preserve">
+    <value>Пожалуйста, введите логин Anime Bytes</value>
+  </data>
+  <data name="Anime_Message" xml:space="preserve">
+    <value>Сообщение</value>
+  </data>
+  <data name="Anime_TraktNotEnabled" xml:space="preserve">
+    <value>Вы не включили Trakt, подробные сведения «Параметры - Сайты сообщества - Trakt TV»</value>
+  </data>
+  <data name="Anime_ShokoAuth" xml:space="preserve">
+    <value>Вы не авторизовали Shoko для использования вашей учетной записи тракт, подробные сведения «Параметры - Сайты сообщества - Trakt TV»</value>
+  </data>
+  <data name="Anime_SeriesNotFound" xml:space="preserve">
+    <value>Информация по Аниме сериалу  не найдена</value>
+  </data>
+  <data name="Anime_EnterText" xml:space="preserve">
+    <value>Пожалуйста, введите текст для вашего комментария</value>
+  </data>
+  <data name="Anime_CommentText" xml:space="preserve">
+    <value>Текст комментария должен быть меньше чем 2000 символов ({0})</value>
+  </data>
+  <data name="Anime_NoTrakt" xml:space="preserve">
+    <value>Нельзя комментировать если нет Trakt ссылки</value>
+  </data>
+  <data name="Anime_MultiTrakt" xml:space="preserve">
+    <value>Нельзя комментировать если более одной Trakt ссылки</value>
+  </data>
+  <data name="Anime_YourSay" xml:space="preserve">
+    <value>Сказать свое слово...</value>
+  </data>
+  <data name="AVDump_WorkerRunning" xml:space="preserve">
+    <value>Работник уже выполняется</value>
+  </data>
+  <data name="AVDump_Processing" xml:space="preserve">
+    <value>Обработка...</value>
+  </data>
+  <data name="AVDump_Missing" xml:space="preserve">
+    <value>Не удалось найти AvDump2 CLI:</value>
+  </data>
+  <data name="AVDump_Error" xml:space="preserve">
+    <value>Ошибка!</value>
+  </data>
+  <data name="AVDump_VideoMissing" xml:space="preserve">
+    <value>Не удалось найти файл видео:</value>
+  </data>
+  <data name="AVDump_Complete" xml:space="preserve">
+    <value>Готово!</value>
+  </data>
+  <data name="Anime_AddSeries" xml:space="preserve">
+    <value>Добавить сериал</value>
+  </data>
+  <data name="Anime_NewPlaylists" xml:space="preserve">
+    <value>Новый список воспроизведения</value>
+  </data>
+  <data name="Anime_AddAllEpisodes" xml:space="preserve">
+    <value>Добавить все эпизоды</value>
+  </data>
+  <data name="Anime_AddUnwatched" xml:space="preserve">
+    <value>Добавить непросмотренные эпизоды</value>
+  </data>
+  <data name="Anime_PlaylistMenu" xml:space="preserve">
+    <value>Меню плейлистов:</value>
+  </data>
+  <data name="Anime_PlaylistMissing" xml:space="preserve">
+    <value>Не удалось найти плейлист</value>
+  </data>
+  <data name="Anime_RenameParent" xml:space="preserve">
+    <value>Вы также хотите переименовать родительскую группу?</value>
+  </data>
+  <data name="Anime_DisabledImage" xml:space="preserve">
+    <value>Нельзя задать выключанное изображение как изображение по умолчанию</value>
+  </data>
+  <data name="Main_ProcessRunning" xml:space="preserve">
+    <value>Процесс выполняется </value>
+  </data>
+  <data name="Main_RunProcess" xml:space="preserve">
+    <value>Вы уверены, что хотите запустить этот процесс?</value>
+  </data>
+  <data name="Search_InvalidTvDB" xml:space="preserve">
+    <value>Пожалуйста, введите существующий ID сериала</value>
+  </data>
+  <data name="Search_InvalidMAL" xml:space="preserve">
+    <value>Пожалуйста, введите существующий MAL ID</value>
+  </data>
+  <data name="Search_EnterTitle" xml:space="preserve">
+    <value>Пожалуйста, введите название для шоу</value>
+  </data>
+  <data name="Search_MyAnimeList" xml:space="preserve">
+    <value>Поиск MyAnimeList</value>
+  </data>
+  <data name="CustomTag_EnterName" xml:space="preserve">
+    <value>Пожалуйста, введите название тега</value>
+  </data>
+  <data name="User_PasswordMatch" xml:space="preserve">
+    <value>Пароли должны совпадать</value>
+  </data>
+  <data name="Search_TheTVDB" xml:space="preserve">
+    <value>Поиск TvDB</value>
+  </data>
+  <data name="Files_Open" xml:space="preserve">
+    <value>Открыть</value>
+  </data>
+  <data name="Files_SetDefault" xml:space="preserve">
+    <value>Установить эту папку как папку по умолчанию, сюда будут помещаться все новые файлы для импорта</value>
+  </data>
+  <data name="Files_DefaultRemoved" xml:space="preserve">
+    <value>Удалить эту папку по умолчанию</value>
+  </data>
+  <data name="Files_SelectDefault" xml:space="preserve">
+    <value>Выбор папки по умолчанию </value>
+  </data>
+  <data name="Downloads_Searching" xml:space="preserve">
+    <value>Поиск...</value>
+  </data>
+  <data name="Downloads_Download" xml:space="preserve">
+    <value>Скачать</value>
+  </data>
+  <data name="Downloads_GoWebsite" xml:space="preserve">
+    <value>Перейти на сайт</value>
+  </data>
+  <data name="Tooltip_BookmarksSearch" xml:space="preserve">
+    <value>Поиск загрузок для этого сериала</value>
+  </data>
+  <data name="Tooltip_BookmarksToggle" xml:space="preserve">
+    <value>Переключение статуса загрузки</value>
+  </data>
+  <data name="Tooltip_BookmarksPriority" xml:space="preserve">
+    <value>Изменить приоритет</value>
+  </data>
+  <data name="Tooltip_StylesCloseTab" xml:space="preserve">
+    <value>Закрыть вкладку</value>
+  </data>
+  <data name="Tooltip_StylesFullScreen" xml:space="preserve">
+    <value>Весь экран</value>
+  </data>
+  <data name="Tooltip_StylesMinimize" xml:space="preserve">
+    <value>Минимизировать</value>
+  </data>
+  <data name="Tooltip_StylesNormal" xml:space="preserve">
+    <value>Нормальный вид</value>
+  </data>
+  <data name="Tooltip_StylesExit" xml:space="preserve">
+    <value>Выйти из Shoko Desktop</value>
+  </data>
+  <data name="Tooltip_AnimeFull" xml:space="preserve">
+    <value>Вид полнах сериалов</value>
+  </data>
+  <data name="Tooltip_AnimeUpdateAniDBInfo" xml:space="preserve">
+    <value>Обновить данные из AniDB</value>
+  </data>
+  <data name="Tooltip_MetroEnable" xml:space="preserve">
+    <value>Включить раздел</value>
+  </data>
+  <data name="Rename_OldName" xml:space="preserve">
+    <value>Старое имя</value>
+  </data>
+  <data name="Rename_NewName" xml:space="preserve">
+    <value>Новое имя</value>
+  </data>
+  <data name="Rename_AnimeID" xml:space="preserve">
+    <value>Аниме ID</value>
+  </data>
+  <data name="Rename_GroupID" xml:space="preserve">
+    <value>Идентификатор группы</value>
+  </data>
+  <data name="Rename_FileVersion" xml:space="preserve">
+    <value>Версия файла</value>
+  </data>
+  <data name="Rename_EpisodeNumber" xml:space="preserve">
+    <value>Номер эпизода</value>
+  </data>
+  <data name="Rename_EpisodeCount" xml:space="preserve">
+    <value>Количество эпизодов</value>
+  </data>
+  <data name="Rename_RipSource" xml:space="preserve">
+    <value>Источник рипа</value>
+  </data>
+  <data name="Rename_AnimeType" xml:space="preserve">
+    <value>Тип аниме</value>
+  </data>
+  <data name="Rename_Year" xml:space="preserve">
+    <value>Год</value>
+  </data>
+  <data name="Rename_DubLanguage" xml:space="preserve">
+    <value>Язык дубляжа</value>
+  </data>
+  <data name="Rename_SubLanguage" xml:space="preserve">
+    <value>Язык субтитров</value>
+  </data>
+  <data name="Rename_Codec" xml:space="preserve">
+    <value>Кодек</value>
+  </data>
+  <data name="Rename_VideoBitDepth" xml:space="preserve">
+    <value>Битовая глубина</value>
+  </data>
+  <data name="Rename_VideoResolutionWidth" xml:space="preserve">
+    <value>Ширина видео</value>
+  </data>
+  <data name="Rename_VideoResolutionHeight" xml:space="preserve">
+    <value>Высота видео</value>
+  </data>
+  <data name="Rename_ManuallyLinked" xml:space="preserve">
+    <value>Связан вручную</value>
+  </data>
+  <data name="Rename_HasEpisodes" xml:space="preserve">
+    <value>Эпизоды</value>
+  </data>
+  <data name="Rename_Deprecated" xml:space="preserve">
+    <value>Устаревший</value>
+  </data>
+  <data name="Rename_Censored" xml:space="preserve">
+    <value>С цензурой</value>
+  </data>
+  <data name="Rename_OriginalFileName" xml:space="preserve">
+    <value>Группа субтитров</value>
+  </data>
+  <data name="Rename_AudioCodec" xml:space="preserve">
+    <value>Аудио кодеки</value>
+  </data>
+  <data name="Rename_VideoCodec" xml:space="preserve">
+    <value>Видео кодеки</value>
+  </data>
+  <data name="Rename_EpisodeID" xml:space="preserve">
+    <value>ID эпизода</value>
+  </data>
+  <data name="Rename_FileID" xml:space="preserve">
+    <value>ID файла</value>
+  </data>
+  <data name="Rename_Type" xml:space="preserve">
+    <value>Тип аниме</value>
+  </data>
+  <data name="Rename_Episodes" xml:space="preserve">
+    <value>Количество эпизодов</value>
+  </data>
+  <data name="Rename_Resolution" xml:space="preserve">
+    <value>Разрешение видео</value>
+  </data>
+  <data name="Rename_Source" xml:space="preserve">
+    <value>Источник видео</value>
+  </data>
+  <data name="Rename_CRCUpper" xml:space="preserve">
+    <value>CRC - верхняя</value>
+  </data>
+  <data name="Rename_CRCLower" xml:space="preserve">
+    <value>CRC - нижний</value>
+  </data>
+  <data name="Rename_ED2KUpper" xml:space="preserve">
+    <value>Ed2k - верхняя</value>
+  </data>
+  <data name="Rename_ED2KLower" xml:space="preserve">
+    <value>Ed2k - нижний</value>
+  </data>
+  <data name="Rename_GroupLongName" xml:space="preserve">
+    <value>Группа - длинное</value>
+  </data>
+  <data name="Rename_GroupShortName" xml:space="preserve">
+    <value>Группа- короткое</value>
+  </data>
+  <data name="Rename_EpisodeNameEnglish" xml:space="preserve">
+    <value>Название эпизода - английское</value>
+  </data>
+  <data name="Rename_EpisodeNameRomaji" xml:space="preserve">
+    <value>Название эпизода - ромадзи</value>
+  </data>
+  <data name="Rename_AnimeNameEnglish" xml:space="preserve">
+    <value>Название аниме - английское</value>
+  </data>
+  <data name="Rename_AnimeNameKanji" xml:space="preserve">
+    <value>Название аниме - кандзи</value>
+  </data>
+  <data name="Rename_AnimeNameRomaji" xml:space="preserve">
+    <value>Название аниме - ромадзи</value>
+  </data>
+  <data name="UpdateAniDB_Info1" xml:space="preserve">
+    <value>Данные, относящиеся к файлам в вашей коллекции автоматически загружаются и хранятся в локальной базе данных, когда Shoko импортирует файлы. Этот процесс выполняется только один раз так что если информация о файле  отсутствует в AniDB во время загрузки то ее не будет в вашей базе данных. Кроме того вполне возможно, что будущие версии Shoko будут использовать больше данных о файле чем было возможно в момент импорта. Эта утилита может  обновить и заменить все данные  файла теми что доступны на AniDB.</value>
+  </data>
+  <data name="Info_SettingsUserAdmin" xml:space="preserve">
+    <value>Пользователи хранятся в вашей базе данных и доступны любому клиенту, который подключается к базе данных. При добавлении нового пользователя или изменении существующего, необзодимо нажать кнопку "Сохранить" иначе изменения не будут действовать. Shoko требует наличия по крайней мере одного пользователя с правами администратора.</value>
+  </data>
+  <data name="MAL_LoginCorrect" xml:space="preserve">
+    <value>MAL подключение успешно, параметры сохранены.</value>
+  </data>
+  <data name="CheckCred" xml:space="preserve">
+    <value>Проверка учетных данных</value>
+  </data>
+  <data name="MAL_CheckCred" xml:space="preserve">
+    <value>Проверить данные MAL</value>
+  </data>
+  <data name="Trakt_CheckCred" xml:space="preserve">
+    <value>Проверить данные Trakt</value>
+  </data>
+  <data name="RelationSetting_AltSetting" xml:space="preserve">
+    <value>Альтернативная настройка</value>
+  </data>
+  <data name="RelationSetting_SameSetting" xml:space="preserve">
+    <value>Схожий сюжет</value>
+  </data>
+  <data name="RelationSetting_Character" xml:space="preserve">
+    <value>Персонаж</value>
+  </data>
+  <data name="RelationSetting_Other" xml:space="preserve">
+    <value>Прочее</value>
+  </data>
+  <data name="RelationSetting_ParentStory" xml:space="preserve">
+    <value>Родительская история</value>
+  </data>
+  <data name="RelationSetting_SideStory" xml:space="preserve">
+    <value>Побочная история</value>
+  </data>
+  <data name="RelationSetting_Summary" xml:space="preserve">
+    <value>Резюме</value>
+  </data>
+  <data name="RelationSetting_FullStory" xml:space="preserve">
+    <value>Полная история</value>
+  </data>
+  <data name="RelationSetting_AltVersion" xml:space="preserve">
+    <value>Альтернативная версия</value>
+  </data>
+  <data name="TAB_Settings_RelationSettings" xml:space="preserve">
+    <value>Настройки связи</value>
+  </data>
+  <data name="Link_RelationSettings" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/settings/#essential</value>
+  </data>
+  <data name="Video_Hi08P" xml:space="preserve">
+    <value>8 бит</value>
+  </data>
+  <data name="Video_Hi12P" xml:space="preserve">
+    <value>12 бит</value>
+  </data>
+  <data name="VideoPlayer_MPCWebUIPort" xml:space="preserve">
+    <value>MPC Web UI Port</value>
+  </data>
+  <data name="GroupFilterConditionType_LatestEpisodeAirDate" xml:space="preserve">
+    <value>Дата эфира последнего эпизода</value>
+  </data>
+  <data name="GroupFilterConditionType_Year" xml:space="preserve">
+    <value>Год</value>
+  </data>
+  <data name="GroupFilterSorting_GroupFilter" xml:space="preserve">
+    <value>Название фильтра групп</value>
+  </data>
+  <data name="AniDB_GetTitles" xml:space="preserve">
+    <value>Получение звания AniDB</value>
+  </data>
+  <data name="AniDB_MyListAdd" xml:space="preserve">
+    <value>Добавление файла MyList: {0}</value>
+  </data>
+  <data name="AniDB_MyListDelete" xml:space="preserve">
+    <value>Удаление файла из MyList: {0} _ {1}</value>
+  </data>
+  <data name="Command_AnimeInfo" xml:space="preserve">
+    <value>Получение HTTP API аниме информация: {0}</value>
+  </data>
+  <data name="Command_DeleteError" xml:space="preserve">
+    <value>Ошибка при удалении изображения: ({0}) - {1}</value>
+  </data>
+  <data name="Command_DownloadImage" xml:space="preserve">
+    <value>Загрузка изображений: {0}</value>
+  </data>
+  <data name="Command_DownloadMalWatched" xml:space="preserve">
+    <value>Загрузка смотрел государства от MAL</value>
+  </data>
+  <data name="Command_DownloadTvDBImages" xml:space="preserve">
+    <value>Получение изображений из TvDB: {0}</value>
+  </data>
+  <data name="Command_FileInfo" xml:space="preserve">
+    <value>Получение файла информация от UDP API: {0}</value>
+  </data>
+  <data name="Command_GetCalendar" xml:space="preserve">
+    <value>Получение календаря информация от UDP API</value>
+  </data>
+  <data name="Command_GetEpisodeList" xml:space="preserve">
+    <value>Получать информацию эпизод от UDP API: {0}</value>
+  </data>
+  <data name="Command_GetFileInfo" xml:space="preserve">
+    <value>Получение файла информация от UDP API: {0}</value>
+  </data>
+  <data name="Command_GetReleaseGroup" xml:space="preserve">
+    <value>Получать информацию о группе статус от UDP API для аниме: {0}</value>
+  </data>
+  <data name="Command_GetReleaseInfo" xml:space="preserve">
+    <value>Получать информацию о группе выпуска от UDP API: {0}</value>
+  </data>
+  <data name="Command_GetReviewInfo" xml:space="preserve">
+    <value>Получить обзор информация от UDP API для аниме: {0}</value>
+  </data>
+  <data name="Command_GettingTvDB" xml:space="preserve">
+    <value>Получение TvDB эпизоды: {0}</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Получение списка Обновлено аниме от UDP API</value>
+  </data>
+  <data name="Command_HashingFile" xml:space="preserve">
+    <value>Хэширование файла: {0}</value>
+  </data>
+  <data name="Command_Idle" xml:space="preserve">
+    <value>Холостого хода</value>
+  </data>
+  <data name="Command_Paused" xml:space="preserve">
+    <value>Приостановлено</value>
+  </data>
+  <data name="Command_Queued" xml:space="preserve">
+    <value>В очереди</value>
+  </data>
+  <data name="Command_ReadingMedia" xml:space="preserve">
+    <value>Чтение для файла СМИ информация: {0}</value>
+  </data>
+  <data name="Command_Refresh" xml:space="preserve">
+    <value>Освежающий аниме Статистика: {0}</value>
+  </data>
+  <data name="Command_SearchMal" xml:space="preserve">
+    <value>Поиск для аниме на ТЗА: {0}</value>
+  </data>
+  <data name="Command_SearchTMDb" xml:space="preserve">
+    <value>Поиск для аниме на MovieDB: {0}</value>
+  </data>
+  <data name="Command_SearchTrakt" xml:space="preserve">
+    <value>Поиск для аниме на Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SearchTvDB" xml:space="preserve">
+    <value>Поиск для аниме на TvDB: {0}</value>
+  </data>
+  <data name="Command_SendAnimeAzure" xml:space="preserve">
+    <value>Отправка xml аниме в azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeFull" xml:space="preserve">
+    <value>Отправка аниме полный в azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeTitle" xml:space="preserve">
+    <value>Отправка название аниме в azure: {0}</value>
+  </data>
+  <data name="Command_SendAnonymousData" xml:space="preserve">
+    <value>Отправка анонимных данных в azure</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>Запуск команды работника (Общие)...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>Запуск команды работника (hasher)...</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Запуск команды работника (изображения)...</value>
+  </data>
+  <data name="Command_SyncMyList" xml:space="preserve">
+    <value>Синхронизация MyList информация от HTTP API</value>
+  </data>
+  <data name="Command_SyncTrakt" xml:space="preserve">
+    <value>Синхронизация коллекции тракт</value>
+  </data>
+  <data name="Command_SyncTraktEpisodes" xml:space="preserve">
+    <value>Синхронизация эпизод коллекцию на тракт: {0} - {1}</value>
+  </data>
+  <data name="Command_SyncTraktSeries" xml:space="preserve">
+    <value>Синхронизация коллекции тракт для серии: {0}</value>
+  </data>
+  <data name="Command_SyncVotes" xml:space="preserve">
+    <value>Синхронизация голосования информация от HTTP API</value>
+  </data>
+  <data name="Command_TraktAddHistory" xml:space="preserve">
+    <value>Добавить эпизод в истории на тракт: {0}</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Обновление статуса на ТЗА: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListInfo" xml:space="preserve">
+    <value>Обновление MyList информация от UDP API для файла: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListStats" xml:space="preserve">
+    <value>Обновление AniDB MyListStats</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Обновление всех тракт серии информация</value>
+  </data>
+  <data name="Command_UpdateTraktData" xml:space="preserve">
+    <value>Обновление информация/изображений на Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_UploadMALWatched" xml:space="preserve">
+    <value>Загрузка смотрел государства MAL</value>
+  </data>
+  <data name="Command_VoteAnime" xml:space="preserve">
+    <value>Голосование: {0} - {1}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Удаление крест ref Anidb к MAL веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Удаление крест ref Anidb к другой веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Удаление крест ref Anidb тракт из веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Удаление крест ref Anidb к TvDB веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>Удаление крест ref для эпизод в веб кэш файла: {0}-{1}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Отправки перекрестные ссылки для Anidb мал из веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Отправка перекрестные ссылки для Anidb другу из веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Отправки перекрестные ссылки для Anidb тракт из веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Отправки перекрестные ссылки для Anidb TvDB из веб-кэша: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Отправка перекрестные ссылки для эпизод в веб кэш файла: {0}!</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Синхронизация голосов</value>
+  </data>
+  <data name="TAB_Settings_Language" xml:space="preserve">
+    <value>Предпочтительный язык для именования группы/серии</value>
+  </data>
+  <data name="Info_SettingsLanguage" xml:space="preserve">
+    <value>Установите язык или языки, используемые для именования при добавлении групп или серии в вашей коллекции. Эти титулы берутся непосредственно из AniDB так вне английский, ромадзи или кандзи; не все группы или серии будет иметь дополнительные заголовки доступны. Использовать синонимы, перечисленные на AniDB убедитесь, чтобы проверить «Также использовать синонимы» и переименования существующих групп и серии убедитесь, нажмите кнопку «Переименовать все группы/серии», как только вы закончите</value>
+  </data>
+  <data name="Language_Rename" xml:space="preserve">
+    <value>Переименование всех групп/серия</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Language_RenameComplete" xml:space="preserve">
+    <value>Все группы и серии были успешно переименованы!</value>
+  </data>
+  <data name="Language_Switch" xml:space="preserve">
+    <value>Переключение языка</value>
+  </data>
+  <data name="Language_Info" xml:space="preserve">
+    <value>Чтобы изменить язык Shoko Desktop необходимо перезапустить, нажмите кнопку ОК для автоматическиого перезапуска или Отмена, чтобы перезапустить вручную!</value>
+  </data>
+  <data name="Unrecognized_Rehash" xml:space="preserve">
+    <value>Переделывать все</value>
+  </data>
+  <data name="Unrecognized_AniDBQueue" xml:space="preserve">
+    <value>файлы в очереди перепев AniDB</value>
+  </data>
+  <data name="Unrecognized_AniDBScan" xml:space="preserve">
+    <value>файлы в очереди для проверки AniDB</value>
+  </data>
+  <data name="Downloads_Results" xml:space="preserve">
+    <value>Результаты {0}</value>
+  </data>
+  <data name="UpdateAniDB_QueueCount" xml:space="preserve">
+    <value>{0} файлов будут помещаться в очередь для обработки</value>
+  </data>
+  <data name="UpdateAniDB_QueueActual" xml:space="preserve">
+    <value>{0} файлов в очереди для обработки</value>
+  </data>
+  <data name="UpdateAniDB_UpdateAniDB" xml:space="preserve">
+    <value>Обновление локальных метаданных AniDB</value>
+  </data>
+  <data name="SelectGroup" xml:space="preserve">
+    <value>Тип группы выберите</value>
+  </data>
+  <data name="RescanAll" xml:space="preserve">
+    <value>Сканирование всех</value>
+  </data>
+  <data name="DefaultSeries_Select" xml:space="preserve">
+    <value>Выберите сериал по умолчанию</value>
+  </data>
+  <data name="DefaultSeries_Info" xml:space="preserve">
+    <value>Если для группы установлен по умолчанию серии, только что серии изображений будет отображаться вместо случайно выбора изображений из различных серий в рамках группы.</value>
+  </data>
+  <data name="Tooltip_NameOverride" xml:space="preserve">
+    <value>Можно вручную ввести предпочтительное имя или использовать зеленые стрелки вправо для выбора имени из AniDB</value>
+  </data>
+  <data name="Tooltip_NameOverride2" xml:space="preserve">
+    <value>Выберите имя из списка доступных имен AniDB</value>
+  </data>
+  <data name="TvDB_DefaultLanguage" xml:space="preserve">
+    <value>Выберите язык вы хотите эпизод названия и описания для загрузки в с TvDB. Пожалуйста, обратите внимание, что если эпизод название или описание не доступна на языке, который вы выбрали, будут загружены на английском языке по умолчанию.</value>
+  </data>
+  <data name="Info_DuplicateFiles" xml:space="preserve">
+    <value>Эта программа покажет все экземпляры где есть два или более файлов с же хэш-код. Модель памяти Shoko позволяет только один файл с же хэш-код в вашей коллекции.</value>
+  </data>
+  <data name="Info_MultipleFiles" xml:space="preserve">
+    <value>Эта программа покажет все экземпляры, где у вас есть несколько файлов на тот же эпизод. Вы сможете просмотреть каждый экземпляр и решить, какие из них вы хотели бы сохранить.</value>
+  </data>
+  <data name="IgnoredAnime_Note" xml:space="preserve">
+    <value>Эта программа покажет все аниме-сериал, которые вы пометили как игнорировать рекомендации секции. Если вы удаляете серию из этого списка, это возможно для того чтобы показать в разделе рекомендации снова.</value>
+  </data>
+  <data name="MissingEpisodes_AiringState" xml:space="preserve">
+    <value>Проветривание состояние</value>
+  </data>
+  <data name="MissingEpisodes_Note" xml:space="preserve">
+    <value>Эта программа покажет вам резюме всех эпизодов вы пропавши от серии в вашей коллекции. Эта утилита работает в фоновом режиме, так что вам не нужно ждать результатов. Он также может занять некоторое время в зависимости от сколько хватает эпизодов, есть, так что будьте терпеливы.</value>
+  </data>
+  <data name="MissingMyList_Missing" xml:space="preserve">
+    <value>Просмотреть отсутствующие файлы</value>
+  </data>
+  <data name="MissingMyList_Note" xml:space="preserve">
+    <value>Эта утилита будет сравнить вашу текущую коллекцию с AniDB MyList и отображать любой файл расхождений между ними. Вы можете просмотреть результаты и Shoko автоматически удалять все файл расхождений. Пожалуйста, обратите внимание, что модель памяти Shoko будет использовать вашу текущую коллекцию в качестве базы и удалить все записи в вашем AniDB MyList, которые не присутствуют в вашей текущей коллекции. Эта утилита работает в фоновом режиме, так что вам не нужно ждать результатов. Он также может занять некоторое время в зависимости от сколько файл расхождений, есть, так что будьте терпеливы.</value>
+  </data>
+  <data name="SeriesWithoutFiles_Note" xml:space="preserve">
+    <value>Эта программа покажет все серии в вашей коллекции, которые не имеют каких-либо файлов. Удаление серии из вашей коллекции будет также удалить группу, если есть без других серий в этой группе или любые дополнительные серии в этой группе нет файлов. </value>
+  </data>
+  <data name="VideoPlayer_Installed" xml:space="preserve">
+    <value>Установлен</value>
+  </data>
+  <data name="VideoPlayer_MPV" xml:space="preserve">
+    <value>MPV</value>
+  </data>
+  <data name="VideoPlayer_NotInstalled" xml:space="preserve">
+    <value>Не установлен</value>
+  </data>
+  <data name="VideoPlayer_DefaultPlayerEnabled" xml:space="preserve">
+    <value>Включено</value>
+  </data>
+  <data name="Video_Player_DefaultPlayerNotConfigured" xml:space="preserve">
+    <value>Не настроен</value>
+  </data>
+  <data name="VideoPlayer_Configured" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="VideoPlayer_NotConfigured" xml:space="preserve">
+    <value>НЕ настроен пожалуйста решимость</value>
+  </data>
+  <data name="Link_EnableStreaming" xml:space="preserve">
+    <value>http://shokoanime.com/streaming/</value>
+  </data>
+  <data name="Tooltip_QueueImages" xml:space="preserve">
+    <value>Изображения, ожидающих загрузки</value>
+  </data>
+  <data name="Link_MPV" xml:space="preserve">
+    <value>https://github.com/rossy/mpv-install/blob/master/README.md</value>
+  </data>
+  <data name="Tooltip_PinSeries" xml:space="preserve">
+    <value>Закрепить это аниме</value>
+  </data>
+  <data name="SeriesSimple_PlayUnwatched" xml:space="preserve">
+    <value>Играть все непросмотренные</value>
+  </data>
+  <data name="VideoPlayer_MPVInstall" xml:space="preserve">
+    <value>Инструкции по установке MPV</value>
+  </data>
+  <data name="Tooltip_WebCache_TraktAssociations" xml:space="preserve">
+    <value>Используйте Web-кэша для искать связи между AniDB и тракт. Если не выбран вам будет нужно вручную выполнить поиск всех ссылок тракт.</value>
+  </data>
+  <data name="Link_Help" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/</value>
+  </data>
+  <data name="Tab_Help" xml:space="preserve">
+    <value>Справка!</value>
+  </data>
+  <data name="Main_Discord" xml:space="preserve">
+    <value>Discord</value>
+  </data>
+  <data name="Server_AutoStart" xml:space="preserve">
+    <value>AutoStart локального сервера Shoko</value>
+  </data>
+  <data name="Info_SettingsEssential" xml:space="preserve">
+    <value>Панель essentials содержит все параметры, которые требуются для запуска модели памяти Shoko. Для секции Shoko сервера и AniDB входа вам будет нужно нажмите кнопку «Тест и сохранить», чтобы сохранить любые изменения, внесенные. </value>
+  </data>
+  <data name="RelationSettings_Info" xml:space="preserve">
+    <value>Если этот параметр включен, Shoko группы все связанные серии в вашей коллекции, основанные на серии отношение графики на AniDB. Вы можете исключить определенные типы отношений, нажав отношения, что вы не хотите сгруппированы.</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Обновление TvDB ассоциации: {0}!</value>
+  </data>
+  <data name="MAL_NeverDecrease" xml:space="preserve">
+    <value>Никогда не уменьшение серии статус</value>
+  </data>
+  <data name="NoSimilarAnime" xml:space="preserve">
+    <value>делает не имеют каких-либо подобных аниме, перечисленные на AniDB</value>
+  </data>
+  <data name="NoRelatedAnime" xml:space="preserve">
+    <value>делает не имеют какие-либо связанные с аниме, перечисленные на AniDB</value>
+  </data>
+  <data name="MAL_SearchInfo" xml:space="preserve">
+    <value>Действительный MAL учетные данные требуются для того, чтобы использовать эту функцию.</value>
+  </data>
+  <data name="Trakt_SearchInfo" xml:space="preserve">
+    <value>Действительные тракт учетные данные требуются для того, чтобы использовать эту функцию.</value>
+  </data>
+  <data name="TvDB_SearchInfo" xml:space="preserve">
+    <value>TvDB запрещает содержание только для взрослых, не добавить взрослых родственные серии TvDB или пытаться связать их.</value>
+  </data>
+  <data name="CommunityLinks_Movie" xml:space="preserve">
+    <value>Фильм:</value>
+  </data>
+  <data name="Tooltip_UpdateMovieDB" xml:space="preserve">
+    <value>Скачать свежие данные из фильма DB и обновить локальную базу данных</value>
+  </data>
+  <data name="SeriesSimple_ViewSeries" xml:space="preserve">
+    <value>Просмотр сериала</value>
+  </data>
+  <data name="Main_Feed" xml:space="preserve">
+    <value>Новости</value>
+  </data>
+  <data name="LearnMore_AniDBOptions" xml:space="preserve">
+    <value>Узнайте больше о вариантах AniDB</value>
+  </data>
+  <data name="LearnMore_GroupFilters" xml:space="preserve">
+    <value>Что такое группа фильтры?</value>
+  </data>
+  <data name="LearnMore_VideoPlayer" xml:space="preserve">
+    <value>Подробнее о настройке видео проигрыватель для использования с Shoko</value>
+  </data>
+  <data name="LearnMore_ImportFolders" xml:space="preserve">
+    <value>Узнайте больше о импорта папки</value>
+  </data>
+  <data name="ShokoServer_ImportFoldersInfo" xml:space="preserve">
+    <value>Заполните форму ниже, чтобы добавить папку импорта. Введите местоположение папки, выберите тип импорта и затем нажмите кнопку Сохранить, чтобы добавить в папку импорта.</value>
+  </data>
+  <data name="Info_Downloads" xml:space="preserve">
+    <value>Здесь можно настроить параметры программы торрент, какие сайты, чтобы использовать для поиска и ввода регистрационной информации для поддерживаемых сайтов.</value>
+  </data>
+  <data name="LearnMore_RelationSettings" xml:space="preserve">
+    <value>Подробнее о настройках отношения</value>
+  </data>
+  <data name="LearnMore_WebCache" xml:space="preserve">
+    <value>Узнать больше о веб-кэша</value>
+  </data>
+  <data name="Info_SettingsDisplay" xml:space="preserve">
+    <value>Панель дисплея позволяет настраивать способ отображения серии изображений и информации.</value>
+  </data>
+  <data name="LearnMore_Downloads" xml:space="preserve">
+    <value>Дополнительные сведения об использовании модели памяти Shoko Скачать аниме</value>
+  </data>
+  <data name="ShokoServer_DDInfo" xml:space="preserve">
+    <value>Обратите внимание, что обновление вашего назначения перетаскивания будет влиять только на новой серии добавляются. Серии, которые вы уже импортированы не будут затронуты.</value>
+  </data>
+  <data name="Link_Linking" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/collection/collection-overview/#linking</value>
+  </data>
+  <data name="MovieDB_Info" xml:space="preserve">
+    <value>Хотя фильм DB индекса сериал, Shoko только поддерживает связывание фильмов.</value>
+  </data>
+  <data name="LearnMore_ComLinking" xml:space="preserve">
+    <value>Узнайте больше о серии ссылок</value>
+  </data>
+  <data name="Anime_Filters" xml:space="preserve">
+    <value>Фильтры</value>
+  </data>
+  <data name="Anime_FilterName" xml:space="preserve">
+    <value>Имя фильтра должно быть заполнено</value>
+  </data>
+  <data name="Anime_Files" xml:space="preserve">
+    <value>Файлы</value>
+  </data>
+  <data name="Anime_File" xml:space="preserve">
+    <value>Файл</value>
+  </data>
+  <data name="VideoPlayer_AutoMark" xml:space="preserve">
+    <value>Автоматическая пометка файлов как смотрел, когда смотрел следующих процент</value>
+  </data>
+  <data name="VideoPlayer_AutoFileNote1" xml:space="preserve">
+    <value>Вы можете настроить, как модель памяти Shoko будет обрабатывать воспроизведение эпизодов с более одного файла. Эти параметры автоматически применяются к воспроизведения плейлиста, но может применяться для воспроизведения одного эпизода, позволяя вариант ниже.  </value>
+  </data>
+  <data name="VideoPlayer_AutoFileNote2" xml:space="preserve">
+    <value>Обратите внимание, что если «Релиз группы от ранее играл эпизод» для «Автоматический выбор файлов - последующие эпизоды в серии» выбран, и вы хотите пометить файл как наблюдал вместо эпизод. Вам нужно будет снять ' задать файл как смотрел если эпизод смотрят «под параметры импорта параметров - Мехико - и затем вручную пометить файл как смотрел, не эпизод, как наблюдал.</value>
+  </data>
+  <data name="VideoPlayer_AutoFileFirstEpisode" xml:space="preserve">
+    <value>Выбор автоматического файла - первый эпизод в серии</value>
+  </data>
+  <data name="VideoPlayer_AutoFileNextEpisode" xml:space="preserve">
+    <value>Выбор автоматического файла - последующие эпизоды в серии</value>
+  </data>
+  <data name="Anime_Filter" xml:space="preserve">
+    <value>Фильтр</value>
+  </data>
+  <data name="Anime_Group" xml:space="preserve">
+    <value>Группа</value>
+  </data>
+  <data name="Anime_Episode" xml:space="preserve">
+    <value>Эпизод</value>
+  </data>
+  <data name="Anime_Special" xml:space="preserve">
+    <value>Специальные</value>
+  </data>
+  <data name="Random_View" xml:space="preserve">
+    <value>Просмотр сериала</value>
+  </data>
+  <data name="TvDB_ManualLink" xml:space="preserve">
+    <value>Если исправление неправильные ссылки, пожалуйста, добавьте его в сообщество ссылки так другие пользователи могут воспользоваться вашей правильной ссылке. </value>
+  </data>
+  <data name="RelationSetting_OVA" xml:space="preserve">
+    <value>OVA</value>
+  </data>
+  <data name="RelationSetting_Movie" xml:space="preserve">
+    <value>Фильм</value>
+  </data>
+  <data name="ImportFolder_Provider" xml:space="preserve">
+    <value>Провайдер</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Выберите, в которой поставщики необходимо удалить</value>
+  </data>
+  <data name="DeleteFile_Multiple" xml:space="preserve">
+    <value>Удалить несколько файлов?</value>
+  </data>
+  <data name="DeleteFile_Title" xml:space="preserve">
+    <value>Удалить файл {0}?</value>
+  </data>
+  <data name="Resume_Cancel" xml:space="preserve">
+    <value>Играть с самого начала</value>
+  </data>
+  <data name="Resume_Message" xml:space="preserve">
+    <value>Вы хотите возобновить видео в {0}?</value>
+  </data>
+  <data name="Resume_OK" xml:space="preserve">
+    <value>Продолжить</value>
+  </data>
+  <data name="Resume_Title" xml:space="preserve">
+    <value>Вы хотите возобновить видео?</value>
+  </data>
+  <data name="ImportFolder_SelectImportFolder" xml:space="preserve">
+    <value>Выберите импортировать папку...</value>
+  </data>
+  <data name="VideoPlayer_ZoomPlayer" xml:space="preserve">
+    <value>Zoom Player</value>
+  </data>
+  <data name="VideoPlayer_ZoomPlayerNotFound" xml:space="preserve">
+    <value>Zoom Player не найден</value>
+  </data>
+  <data name="RelationSettings_Exclude" xml:space="preserve">
+    <value>Исключить следующие отношения</value>
+  </data>
+  <data name="TvDB_UpdateImages" xml:space="preserve">
+    <value>Обновление локальных изображений</value>
+  </data>
+  <data name="ImportSettings_Server" xml:space="preserve">
+    <value>Локальный сервер</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>Состояние миграции</value>
+  </data>
+  <data name="ShokoServer_ProcessRunning" xml:space="preserve">
+    <value>Процесс является currnetly, запущенный на сервере Shoko, пожалуйста, подождите и обновить один раз сделать.</value>
+  </data>
+  <data name="Migration_Error" xml:space="preserve">
+    <value>Ошибка миграции параметров:</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Ошибка загрузки настройки:</value>
+  </data>
+  <data name="Downloads_DisableRefresh" xml:space="preserve">
+    <value>Используйте только когда автоматическое обновление отключено</value>
+  </data>
+  <data name="IgnoredAnime_DeleteMessage" xml:space="preserve">
+    <value>Вы уверены, что хотите удалить это?</value>
+  </data>
+  <data name="ImportFolder_Delete" xml:space="preserve">
+    <value>Вы действительно хотите удалить папку импорта: {0}? Все файлы в этой папке будут также удалены из базы данных.</value>
+  </data>
+  <data name="TvDB_UpdateImages_Desc" xml:space="preserve">
+    <value>Это обновит все местные изображения из всех источников, за исключением AniDB. Не выполняйте эту команду, если сервер и Desktop используют папку как он удалит все ваши изображения.</value>
+  </data>
+  <data name="VideoPlayer_PotPlayerNote" xml:space="preserve">
+    <value>PotPlayer локальных файлов и потокового воспроизведения.</value>
+  </data>
+  <data name="VideoPlayer_DefaultNote" xml:space="preserve">
+    <value>Shoko Desktop может использовать множество различных видео-проигрыватели для воспроизведения файлов. Ниже перечислены поддерживаемые видео и ограниченные видео проигрыватели, которые доступны для использования с Shoko Desktop. Вы можете изменить видео-плеер, который использует Shoko Desktop, выбрав один из игроков из списка ниже. Никакой настройки не требуется, как Shoko Desktop тянет видео плеер .exe расположение файла из реестра.</value>
+  </data>
+  <data name="VideoPlayer_MPVNote" xml:space="preserve">
+    <value>Если вы решили использовать свою собственную версию MPV вместо встроенной версии, убедитесь, что связать воспроизведение с MPV. В противном случае Shoko Desktop не сможете использовать его. Внешняя MPV также поддерживает потоковое воспроизведение и рекомендуется ограниченное видео-плеер для использования.</value>
+  </data>
+  <data name="VideoPlayer_WindowsDefault" xml:space="preserve">
+    <value>Windows по умолчанию</value>
+  </data>
+  <data name="VideoPlayer_WindowsDefaultNote" xml:space="preserve">
+    <value>Если выбрано, будет использовать видео проигрыватель, перечисленных в Windows в качестве проигрывателя по умолчанию. Из-за широкого круга игроков, которые могут быть использованы только локальное воспроизведение файлов поддерживается.</value>
+  </data>
+  <data name="VideoPlayer_LimitedPlayers" xml:space="preserve">
+    <value>Ограниченные игроки</value>
+  </data>
+  <data name="VideoPlayer_LimitedNote" xml:space="preserve">
+    <value>Видео Игроки, перечисленные ниже не полностью поддерживаются и включены для прежних версий причин. Эти видео-проигрыватели поддерживают только воспроизведение файлов.</value>
+  </data>
+  <data name="VideoPlayer_InternalMPV" xml:space="preserve">
+    <value>Внутренняя MPV</value>
+  </data>
+  <data name="VideoPlayer_InternalMPVNote" xml:space="preserve">
+    <value>Наш встроенный видео-плеер, MPV является легкий медиа-плеер разработан для запуска на множество различных операционных систем, удаление наворотов обеспечить быстрый и мощный видеоплеер. Без дополнительной настройки необходимо использовать встроенный проигрыватель MPV.</value>
+  </data>
+  <data name="VideoPlayer_SupportedPlayers" xml:space="preserve">
+    <value>Поддерживаемые плееры</value>
+  </data>
+  <data name="VideoPlayer_SupportedNote" xml:space="preserve">
+    <value>Видео Игроки, перечисленные ниже, полностью поддерживаются в Shoko Desktop, каждый видео проигрыватель способен возобновлять воспроизведение, обновление наблюдаемых государств и скробблинг Trakt. Пожалуйста, прочитайте информацию ниже название видео-проигрыватели для каких-либо дополнительных настроек требуется.</value>
+  </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Использовать по умолчанию</value>
+  </data>
+  <data name="MD5" xml:space="preserve">
+    <value>MD5</value>
+  </data>
+  <data name="SHA1" xml:space="preserve">
+    <value>SHA1</value>
+  </data>
+  <data name="RelationSetting_AllowDissimilarExclusion" xml:space="preserve">
+    <value>Исключить разнородных наименований!</value>
+  </data>
+  <data name="ImportSettings_AutoGroupSeriesUseScoreAlgorithm" xml:space="preserve">
+    <value>Используйте отношение весов для определения основной серии!</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>Сёко Desktop не удается перенести параметры с помощью доступа текущего пользователя. Запустите клиент Shoko в качестве администратора начать процесс миграции.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>Сёко Desktop теперь будет начать перенос параметров из этого местоположения в</value>
+  </data>
+  <data name="Migration_ProgramDataError" xml:space="preserve">
+    <value>Произошла ошибка при миграции папки programdata!</value>
+  </data>
+  <data name="LocateSettingsFile" xml:space="preserve">
+    <value>Найдите файл параметров</value>
+  </data>
+  <data name="LocateSettingsFileQuestion" xml:space="preserve">
+    <value>Нет предыдущей конфигурации найден, вы хотите, чтобы вручную найти существующую конфигурацию?</value>
+  </data>
+  <data name="DuplicateInstallDetected" xml:space="preserve">
+    <value>Дублирование установки обнаружен!</value>
+  </data>
+  <data name="DuplicateInstallDetectedQuestion" xml:space="preserve">
+    <value>У вас есть как Шоко Desktop и JMM Desktop установлена. Вы хотите, чтобы удалить JMM Desktop ?!</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>как только этот процесс будет завершен Шоко Desktop будет закрыт и больше не требуется прав администратора.!</value>
+  </data>
+  <data name="Settings_SetShokoServer" xml:space="preserve">
+    <value>Используйте папку сервера Шоко</value>
+  </data>
+  <data name="VideoPlayer_VLCInfo" xml:space="preserve">
+    <value>Для того, чтобы интегрировать VLC с Шоко рабочим столом, необходимо включить веб-интерфейса Пользователя через следующий параметр в инструменты &gt; предпочтения (выбрать все радио кнопка) &gt; интерфейс &gt; основные интерфейсы &gt; Web.</value>
+  </data>
+  <data name="VideoPlayer_MPCInfo" xml:space="preserve">
+    <value>Для того, чтобы интегрировать MPC с Шоко рабочим столом, необходимо включить веб-интерфейса Пользователя через следующий параметр в представлении &gt; вариантов &gt; Player &gt; веб-интерфейс &gt; слушать на порту. По умолчанию, прослушивающего порта 13579, который можно использовать, если вы решите изменить это убедитесь, что вы измените его в поле ниже.</value>
+  </data>
+  <data name="VideoPlayer_ZoomPlayerInfo" xml:space="preserve">
+    <value>Нет установки необходимо, просто выберите Zoom Player видео плеер.</value>
+  </data>
+  <data name="Settings_SetShokoServerFolderNonExistent" xml:space="preserve">
+    <value>Сёко изображение путь не существует: {0}</value>
+  </data>
+</root>
