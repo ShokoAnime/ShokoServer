@@ -63,7 +63,7 @@
         /// <summary>
         /// Level of recursive building objects (ex. for Serie with level=2 return will contain serie with all episodes but without rawfile in episodes)
         /// </summary>
-        public int level = 2;
+        public int level = 0;
 
         /// <summary>
         /// If set to 1 then series will contain all known episodes (not only the one in collection)
