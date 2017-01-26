@@ -59,7 +59,7 @@ namespace JMMServer.API.Model.common
 
                 is_ignored = vl.IsIgnored;
 
-                if (vl.Places != null && vl.Places.Count >= 0)
+                if (vl.Places != null && vl.Places.Count > 0)
                 {
                     filename = vl.Places[0].FilePath;
                     videolocal_place_id = vl.Places[0].VideoLocal_Place_ID;
