@@ -1619,9 +1619,9 @@ namespace JMMServer.API.Module.apiv2
         }
 
         private static void CheckTitlesFuzzy(AnimeSeries a, string query,
-            ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, ref int counter, int limit)
+            ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, int limit)
         {
-            if (counter >= limit) return;
+            if (distLevenshtein.Count >= limit) return;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
             int dist = int.MaxValue;
             foreach (string title in a.Contract.AniDBAnime.AniDBAnime.AllTitles)
@@ -1633,13 +1633,12 @@ namespace JMMServer.API.Module.apiv2
                 if (newDist < dist) dist = newDist;
             }
             if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
-            Interlocked.Increment(ref counter);
         }
 
         private static void CheckTagsFuzzy(AnimeSeries a, string query,
-            ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, ref int counter, int limit)
+            ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, int limit)
         {
-            if (counter >= limit) return;
+            if (distLevenshtein.Count >= limit) return;
             int dist = int.MaxValue;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTags != null &&
                 a.Contract.AniDBAnime.AniDBAnime.AllTags.Count > 0)
@@ -1653,22 +1652,21 @@ namespace JMMServer.API.Module.apiv2
                     if (newDist < dist) dist = newDist;
                 }
                 if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
-                Interlocked.Increment(ref counter);
             }
-            if (counter < limit && a?.Contract?.AniDBAnime?.CustomTags != null && a.Contract.AniDBAnime.CustomTags.Count > 0)
+
+            if (distLevenshtein.Count >= limit || a?.Contract?.AniDBAnime?.CustomTags == null ||
+                a.Contract.AniDBAnime.CustomTags.Count <= 0) return;
+
+            dist = int.MaxValue;
+            foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName))
             {
-                dist = int.MaxValue;
-                foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName))
-                {
-                    if (string.IsNullOrEmpty(customTag)) continue;
-                    int newDist;
-                    int k = Math.Min((int) (customTag.Length / 6D), (int) (query.Length / 6D));
-                    if (Utils.BitapFuzzySearch(customTag.ToLowerInvariant(), query, k, out newDist) == -1) continue;
-                    if (newDist < dist) dist = newDist;
-                }
-                if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
-                Interlocked.Increment(ref counter);
+                if (string.IsNullOrEmpty(customTag)) continue;
+                int newDist;
+                int k = Math.Min((int) (customTag.Length / 6D), (int) (query.Length / 6D));
+                if (Utils.BitapFuzzySearch(customTag.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                if (newDist < dist) dist = newDist;
             }
+            if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
         }
 
         /// <summary>
@@ -1693,16 +1691,20 @@ namespace JMMServer.API.Module.apiv2
             Group search_group = new Group();
             search_group.name = query;
             search_group.series = new List<Serie>();
+            JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            if (user?.Contract == null) return APIStatus.unauthorized();
 
             List<AnimeSeries> series = new List<AnimeSeries>();
-            ParallelQuery<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel();
+            ParallelQuery<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                            !a.Contract.AniDBAnime.AniDBAnime.AllTags.FindInEnumerable(user.Contract.HideCategories))
+                .AsParallel();
             if (tagSearch == 0) // Search Title Only
             {
                 if (!fuzzy || query.Length >= (IntPtr.Size * 8))
                 {
                     series = allSeries
-                        .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                                    Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
+                        .Where(a => Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
                                         .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
                         .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                         .ToList();
@@ -1711,8 +1713,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     ConcurrentDictionary<AnimeSeries, int> distLevenshtein =
                         new ConcurrentDictionary<AnimeSeries, int>();
-                    int counter = 0;
-                    allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, ref counter, limit));
+                    allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
 
                     series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
                         .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
@@ -1753,8 +1754,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     ConcurrentDictionary<AnimeSeries, int> distLevenshtein =
                         new ConcurrentDictionary<AnimeSeries, int>();
-                    int counter = 0;
-                    allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, ref counter, realLimit));
+                    allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, realLimit));
 
                     series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
                         .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
@@ -1787,7 +1787,7 @@ namespace JMMServer.API.Module.apiv2
                         .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                                     Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
                                         .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
-                        .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle).Take(limit)
+                        .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                         .ToList();
 
                     int tag_limit = use_extra ? limit_tag : limit - series.Count;
@@ -1820,8 +1820,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     ConcurrentDictionary<AnimeSeries, int> distLevenshtein =
                         new ConcurrentDictionary<AnimeSeries, int>();
-                    int counter = 0;
-                    allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, ref counter, limit));
+                    allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
 
                     series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
                         .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle));
@@ -1829,12 +1828,10 @@ namespace JMMServer.API.Module.apiv2
 
                     int tag_limit = use_extra ? limit_tag : limit - series.Count;
                     if (tag_limit < 0) tag_limit = 0;
-                    series = series.Take(limit).ToList();
 
                     if (tag_limit > 0)
                     {
-                        counter = 0;
-                        allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, ref counter, tag_limit));
+                        allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, tag_limit));
                         series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
                             .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle));
                     }
