@@ -32,7 +32,7 @@ namespace JMMServer.API.Model.common
         }
 
 
-        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, int nocast, int notag, int level, int all, int filterid)
+        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
             Group g = new Group();
 
@@ -96,7 +96,7 @@ namespace JMMServer.API.Model.common
                 }
             }
 
-            if (notag == 0)
+            if (!notag)
             {
                 if (vag.Genres != null)
                 {

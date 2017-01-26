@@ -32,7 +32,7 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, int nocast, int notag, int level, int all)
+        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all)
         {
             Serie sr = new Serie();
 
@@ -47,7 +47,7 @@ namespace JMMServer.API.Model.common
             return sr;
         }
 
-        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, int nocast, int notag, int level, int all)
+        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all)
         {
             Serie sr = new Serie();
 
@@ -91,7 +91,7 @@ namespace JMMServer.API.Model.common
             
             if (!string.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
 
-            if (nocast == 0)
+            if (!nocast)
             {
                 if (nv.Roles != null)
                 {
@@ -108,7 +108,7 @@ namespace JMMServer.API.Model.common
                 }
             }
 
-            if (notag == 0)
+            if (!notag)
             {
                 if (nv.Genres != null)
                 {

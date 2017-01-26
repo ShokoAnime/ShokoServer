@@ -22,7 +22,7 @@ namespace JMMServer.API.Model.common
             groups = new List<Group>();
         }
 
-        internal Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, int nocast, int notag, int level, int all)
+        internal Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, bool nocast, bool notag, int level, bool all)
         {
             Filter filter = new Filter();
             filter.name = gf.GroupFilterName;
