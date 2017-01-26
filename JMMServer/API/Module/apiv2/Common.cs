@@ -1392,7 +1392,6 @@ namespace JMMServer.API.Module.apiv2
             {
                 List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(id);
 
-                AnimeSeries ser = null;
                 foreach (AnimeEpisode ep in eps)
                 {
                     AnimeEpisode_User epUser = ep.GetUserRecord(uid);
@@ -1412,11 +1411,6 @@ namespace JMMServer.API.Module.apiv2
                     }
                 }
 
-                // TODO BigRetroMike WTF?
-                if (ser != null)
-                {
-                    ser.UpdateStats(true, true, true);
-                }
                 return APIStatus.statusOK();
             }
             catch (Exception ex)
