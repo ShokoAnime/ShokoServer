@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Pri.LongPath;
 using System;
 using Shoko.Server.API.Model.core;
+using System.Collections.Generic;
 
 namespace Shoko.Server.API.Module.apiv2
 {
@@ -22,6 +23,7 @@ namespace Shoko.Server.API.Module.apiv2
             Get["/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
             Get["/config"] = _ => { return GetWebUIConfig(); };
             Post["/config"] = _ => { return SetWebUIConfig(); };
+            Get["/theme"] = _ => { return GetWebUIThemes(); };
         }
 
         /// <summary>
@@ -101,7 +103,7 @@ namespace Shoko.Server.API.Module.apiv2
         {
             //list all files from root /webui/ and all directories
             string[] files = Directory.GetFiles("webui");
-            string[] directories = Directory.GetDirectories("webui");
+            string[] directories = Directory.GetDirectories("webui");            
 
             try
             {
@@ -117,7 +119,7 @@ namespace Shoko.Server.API.Module.apiv2
                     //move all directories and files to 'old' folder as fallback recovery
                     foreach (string dir in directories)
                     {
-                        if (Directory.Exists(dir) && dir != "webui\\old")
+                        if (Directory.Exists(dir) && dir != "webui\\old" && dir != "webui\\tweak")
                         {
                             string n_dir = dir.Replace("webui", "webui\\old");
                             Directory.Move(dir, n_dir);
@@ -328,6 +330,26 @@ namespace Shoko.Server.API.Module.apiv2
             {
                 return new APIMessage(400, "Config is not a Valid.");
             }
+        }
+
+        /// <summary>
+        /// List all available themes to use inside webui
+        /// </summary>
+        /// <returns>List<OSFile> with 'name' of css files</returns>
+        private object GetWebUIThemes()
+        {
+            List<v2.Models.core.OSFile> files = new List<v2.Models.core.OSFile>();
+            if (Directory.Exists("webui\\tweak"))
+            {
+                DirectoryInfo dir_info = new DirectoryInfo("webui\\tweak");
+                foreach (FileInfo info in dir_info.GetFiles("*.css"))
+                {
+                    v2.Models.core.OSFile file = new v2.Models.core.OSFile();
+                    file.name = info.Name;
+                    files.Add(file);
+                }
+            }
+            return files;
         }
     }
 }

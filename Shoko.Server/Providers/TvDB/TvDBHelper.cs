@@ -904,17 +904,12 @@ namespace Shoko.Models.TvDB
 
                 if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
-	                // check for Trakt associations
-	                List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
-	                if (trakt.Count != 0)
-	                {
-		                // remove them and rescan
-		                trakt.ForEach(a => RepoFactory.CrossRef_AniDB_TraktV2.Delete(a));
-	                }
-
-                    CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
-                    cmd2.Save(session);
-
+                    if (RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Count == 0)
+                    {
+                        // check for Trakt associations
+                        CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
+                        cmd2.Save(session);
+                    }
                 }
             }
 

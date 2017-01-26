@@ -16,7 +16,6 @@ namespace Shoko.Server.API.Model.common
         public string summary { get; set; }
         public string year { get; set; }
         public string air { get; set; }
-	    public string season { get; set; }
         public string rating { get; set; }
         public int view { get; set; }
         public int eptype { get; set; }
@@ -66,7 +65,6 @@ namespace Shoko.Server.API.Model.common
                     ep.view = cae.IsWatched() ? 1 : 0;
                     ep.epnumber = cae.EpisodeNumber;
                     ep.eptype = cae.EpisodeType;
-	                ep.season = aep.PlexContract?.Season;
 
                     // until fanart refactor this will be good for start
                     if (aep.PlexContract?.Thumb != null) { ep.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Thumb), index = 0 }); }
