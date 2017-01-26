@@ -1,6 +1,4 @@
-﻿using Shoko.Models.Server;
-
-namespace Shoko.Models.Metro
+﻿namespace Shoko.Models.Metro
 {
     public class Metro_AniDB_Character 
     {

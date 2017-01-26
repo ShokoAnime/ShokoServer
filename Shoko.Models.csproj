@@ -74,8 +74,36 @@
     <Compile Include="Client\CL_AnimeGroup_User.cs" />
     <Compile Include="Client\CL_CloudAccount.cs" />
     <Compile Include="Client\CL_Response.cs" />
+    <Compile Include="Enums\AniDBFileDeleteType.cs" />
+    <Compile Include="Enums\AnimeGroupSortMethod.cs" />
+    <Compile Include="Enums\AutoFileSubsequentType.cs" />
+    <Compile Include="Enums\AvailableEpisodeType.cs" />
+    <Compile Include="Enums\CrossrefSource.cs" />
+    <Compile Include="Enums\CrossRefType.cs" />
+    <Compile Include="Enums\DataSourceType.cs" />
+    <Compile Include="Enums\DownloadSearchType.cs" />
     <Compile Include="Enums\enEpisodeSourceType.cs" />
     <Compile Include="Enums\enEpisodeType.cs" />
+    <Compile Include="Enums\EpisodeDisplayStyle.cs" />
+    <Compile Include="Enums\FileSearchCriteria.cs" />
+    <Compile Include="Enums\IgnoreAnimeType.cs" />
+    <Compile Include="Enums\ImageDownloadEventType.cs" />
+    <Compile Include="Enums\PlaylistItemType.cs" />
+    <Compile Include="Enums\PlaylistPlayOrder.cs" />
+    <Compile Include="Enums\RandomSeriesEpisodeLevel.cs" />
+    <Compile Include="Enums\RecentAdditionsType.cs" />
+    <Compile Include="Enums\RecommendationType.cs" />
+    <Compile Include="Enums\ScheduledUpdateFrequency.cs" />
+    <Compile Include="Enums\SeriesSearchType.cs" />
+    <Compile Include="Enums\SeriesWidgets.cs" />
+    <Compile Include="Enums\SortDirection.cs" />
+    <Compile Include="Enums\TorrentDownloadStatus.cs" />
+    <Compile Include="Enums\TorrentFilePriority.cs" />
+    <Compile Include="Enums\TorrentOriginator.cs" />
+    <Compile Include="Enums\TorrentSourceType.cs" />
+    <Compile Include="Enums\TraktActivityAction.cs" />
+    <Compile Include="Enums\TraktActivityType.cs" />
+    <Compile Include="Enums\WatchedStatus.cs" />
     <Compile Include="Interfaces\IHash.cs" />
     <Compile Include="Interfaces\IImageEntity.cs" />
     <Compile Include="Interfaces\IShokoServerPlex.cs" />
@@ -84,6 +112,7 @@
     <Compile Include="Interfaces\IShokoServerMetro.cs" />
     <Compile Include="Interfaces\IShokoServerStream.cs" />
     <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
+    <Compile Include="Queue\QueueStateEnum.cs" />
     <Compile Include="Server\AniDB_Anime.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Client\CL_AniDB_AnimeCrossRefs.cs" />
@@ -243,11 +272,12 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
+    <ProjectReference Include="..\Nancy.Rest.Client\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
       <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
       <Name>Nancy.Rest.Annotations</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(SolutionDir)DefineSettings.targets" Condition="exists('$(SolutionDir)DefineSettings.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

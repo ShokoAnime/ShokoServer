@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Shoko.Models.Client;
 
 
 namespace Shoko.Models.Server

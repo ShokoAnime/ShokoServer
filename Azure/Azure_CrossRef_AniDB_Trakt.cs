@@ -1,5 +1,4 @@
-﻿using Shoko.Models;
-using Shoko.Models.Server;
+﻿using Shoko.Models.Server;
 
 namespace Shoko.Models.Azure
 {

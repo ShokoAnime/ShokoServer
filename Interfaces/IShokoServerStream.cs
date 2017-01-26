@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Nancy.Rest.Annotations.Atributes;
+﻿using Nancy.Rest.Annotations.Atributes;
 using Nancy.Rest.Annotations.Enums;
 
 namespace Shoko.Models.Interfaces

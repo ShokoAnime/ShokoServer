@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Shoko.Models
+﻿namespace Shoko.Models
 {
     public class Constants
     {
@@ -59,5 +53,102 @@ namespace Shoko.Models
 
 
         }
+
+        public struct CharacterType
+        {
+            public static readonly string MAIN = "main character in";
+        }
+
+        public struct DBLogType
+        {
+            public static readonly string APIAniDBHTTP = "AniDB HTTP";
+            public static readonly string APIAniDBUDP = "AniDB UDP";
+            public static readonly string APIAzureHTTP = "Cache HTTP";
+        }
+
+        // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
+
+
+
+        public struct FileRenameTag_Tag
+        {
+            public static readonly string AnimeNameRomaji = "%ann";
+            public static readonly string AnimeNameKanji = "%kan";
+            public static readonly string AnimeNameEnglish = "%eng";
+            public static readonly string EpisodeNameRomaji = "%epn";
+            //public static readonly string EpisodeNameKanji = "%epk";
+            public static readonly string EpisodeNameEnglish = "%epr";
+            public static readonly string EpisodeNumber = "%enr";
+            public static readonly string GroupShortName = "%grp";
+            public static readonly string GroupLongName = "%grl";
+            public static readonly string ED2KLower = "%ed2";
+            public static readonly string ED2KUpper = "%ED2";
+            public static readonly string CRCLower = "%crc";
+            public static readonly string CRCUpper = "%CRC";
+            public static readonly string FileVersion = "%ver";
+            public static readonly string Source = "%src";
+            public static readonly string Resolution = "%res";
+            public static readonly string Year = "%yea";
+            public static readonly string Episodes = "%eps"; // Total number of episodes
+            public static readonly string Type = "%typ"; // Type [unknown, TV, OVA, Movie, TV Special, Other, web]
+            public static readonly string FileID = "%fid";
+            public static readonly string AnimeID = "%aid";
+            public static readonly string EpisodeID = "%eid";
+            public static readonly string GroupID = "%gid";
+            public static readonly string DubLanguage = "%dub";
+            public static readonly string SubLanguage = "%sub";
+            public static readonly string VideoCodec = "%vid"; //tracks separated with '
+            public static readonly string AudioCodec = "%aud"; //tracks separated with '
+            public static readonly string VideoBitDepth = "%bit"; // 8bit, 10bit
+            public static readonly string OriginalFileName = "%sna"; // The original file name as specified by the sub group
+            public static readonly string Censored = "%cen";
+            public static readonly string Deprecated = "%dep";
+
+
+            /*
+			%md5 / %MD5	 md5 sum (lower/upper)
+			%sha / %SHA	 sha1 sum (lower/upper)
+			%inv	 Invalid crc string
+			 * */
+        }
+
+      
+
+        public struct FileRenameTest_Test
+        {
+            public static readonly string AnimeID = "A()";
+            public static readonly string GroupID = "G()";
+            public static readonly string FileVersion = "F()";
+            public static readonly string EpisodeNumber = "E()";
+            public static readonly string EpisodeCount = "X()";
+            public static readonly string RipSource = "R()";
+            public static readonly string AnimeType = "T()";
+            public static readonly string Year = "Y()";
+            public static readonly string DubLanguage = "D()";
+            public static readonly string SubLanguage = "S()";
+            public static readonly string Codec = "C()";
+            public static readonly string Tag = "I()";
+            public static readonly string VideoBitDepth = "Z()";
+            public static readonly string VideoResolutionWidth = "W()";
+            public static readonly string VideoResolutionHeight = "U()";
+            public static readonly string ManuallyLinked = "M()";
+            public static readonly string HasEpisodes = "N()";
+        }
+
+        /*
+		public struct StaticGF
+		{
+			public static readonly int All = -999;
+
+			public static readonly int Predefined = -900;
+
+			public static readonly int Predefined_Years = -901;
+			public static readonly int Predefined_Tags = -902;
+
+			public static readonly int Predefined_Years_Child = -921;
+			public static readonly int Predefined_Tags_Child = -922;
+		}
+		*/
+
     }
 }

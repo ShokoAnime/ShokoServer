@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Nancy.Rest.Annotations;
-using Nancy.Rest.Annotations.Atributes;
-
-namespace Shoko.Models.Server
+﻿namespace Shoko.Models.Server
 {
     public class GroupFilter
     {

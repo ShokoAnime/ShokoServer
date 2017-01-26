@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Shoko.Models;
-using Shoko.Models.PlexAndKodi;
-
-using Shoko.Models.Enums;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Models.Server
 {

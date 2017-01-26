@@ -1,6 +1,4 @@
-﻿using Shoko.Models.Client;
-
-namespace Shoko.Models.Client
+﻿namespace Shoko.Models.Client
 {
     public class CL_MissingEpisode
     {
@@ -12,6 +10,6 @@ namespace Shoko.Models.Client
         public string GroupFileSummary { get; set; }
         public string GroupFileSummarySimple { get; set; }
 
-        public Client.CL_AnimeSeries_User AnimeSeries { get; set; }
+        public CL_AnimeSeries_User AnimeSeries { get; set; }
     }
 }

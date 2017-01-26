@@ -15,7 +15,7 @@ namespace Shoko.Models.Client
 
         public override string ToString()
         {
-            return string.Format("{0} - {1} - {2}", AnimeID, MainTitle, Titles);
+            return $"{AnimeID} - {MainTitle} - {Titles}";
         }
     }
 }

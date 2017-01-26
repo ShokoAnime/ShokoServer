@@ -1,7 +1,4 @@
-﻿using System.Xml;
-using Shoko.Models;
-
-namespace Shoko.Models.TvDB
+﻿namespace Shoko.Models.TvDB
 {
     public class TVDB_Series_Search_Response
     {

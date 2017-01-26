@@ -1,6 +1,4 @@
-﻿using Shoko.Models.Client;
-
-namespace Shoko.Models.Server
+﻿namespace Shoko.Models.Server
 {
     public class AniDB_Character
     {

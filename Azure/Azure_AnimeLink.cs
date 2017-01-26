@@ -1,6 +1,4 @@
-﻿using Shoko.Models;
-
-namespace Shoko.Models.Azure
+﻿namespace Shoko.Models.Azure
 {
     public class Azure_AnimeLink
     {

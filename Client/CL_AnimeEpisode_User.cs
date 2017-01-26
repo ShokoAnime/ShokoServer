@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
@@ -27,7 +23,6 @@ namespace Shoko.Models.Client
         public string AniDB_EnglishName { get; set; }
         public DateTime? AniDB_AirDate { get; set; }
 
-        public List<CL_AniDB_GroupStatus> ReleaseGroups { get; set; }
 
     }
 }

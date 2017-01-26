@@ -1,7 +1,4 @@
-﻿using System.IO;
-
-
-namespace Shoko.Models.Server
+﻿namespace Shoko.Models.Server
 {
     public class Trakt_Episode
     {

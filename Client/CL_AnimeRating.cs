@@ -1,6 +1,4 @@
-﻿using Shoko.Models;
-
-namespace Shoko.Models.Client
+﻿namespace Shoko.Models.Client
 {
     public class CL_AnimeRating
     {

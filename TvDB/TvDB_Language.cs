@@ -1,6 +1,4 @@
-﻿using Shoko.Models;
-
-namespace Shoko.Models.TvDB
+﻿namespace Shoko.Models.TvDB
 {
     public class TvDB_Language
     {

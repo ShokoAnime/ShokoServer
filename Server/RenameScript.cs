@@ -1,6 +1,4 @@
-﻿using Shoko.Models;
-
-namespace Shoko.Models.Server
+﻿namespace Shoko.Models.Server
 {
     public class RenameScript
     {

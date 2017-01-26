@@ -1,12 +1,4 @@
-﻿using Shoko.Models.Server;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-
-namespace Shoko.Models.Azure
+﻿namespace Shoko.Models.Azure
 {
     public class Azure_FileHash_Request
     {

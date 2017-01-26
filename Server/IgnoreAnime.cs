@@ -1,8 +1,4 @@
-﻿using Shoko.Models;
-using Shoko.Models.Server;
-
-
-namespace Shoko.Models.Server
+﻿namespace Shoko.Models.Server
 {
     public class IgnoreAnime
     {

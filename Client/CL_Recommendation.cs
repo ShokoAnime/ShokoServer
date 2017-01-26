@@ -1,7 +1,4 @@
-﻿using Shoko.Models.Client;
-using Shoko.Models.Server;
-
-namespace Shoko.Models.Client
+﻿namespace Shoko.Models.Client
 {
     public class CL_Recommendation
     {
@@ -11,10 +8,10 @@ namespace Shoko.Models.Client
         public int BasedOnVoteValue { get; set; }
         public double RecommendedApproval { get; set; }
 
-        public Client.CL_AniDB_Anime Recommended_AniDB_Anime { get; set; }
-        public Client.CL_AnimeSeries_User Recommended_AnimeSeries { get; set; }
+        public CL_AniDB_Anime Recommended_AniDB_Anime { get; set; }
+        public CL_AnimeSeries_User Recommended_AnimeSeries { get; set; }
 
-        public Client.CL_AniDB_Anime BasedOn_AniDB_Anime { get; set; }
-        public Client.CL_AnimeSeries_User BasedOn_AnimeSeries { get; set; }
+        public CL_AniDB_Anime BasedOn_AniDB_Anime { get; set; }
+        public CL_AnimeSeries_User BasedOn_AnimeSeries { get; set; }
     }
 }

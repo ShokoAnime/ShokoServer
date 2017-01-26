@@ -1,6 +1,4 @@
 ﻿using System;
-using Shoko.Models.Client;
-using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
 {
@@ -24,6 +22,6 @@ namespace Shoko.Models.Client
         // if episode or show
         public CL_TraktTVShowResponse TraktShow { get; set; }
         public int? AnimeSeriesID { get; set; }
-        public Client.CL_AniDB_Anime Anime { get; set; }
+        public CL_AniDB_Anime Anime { get; set; }
     }
 }
