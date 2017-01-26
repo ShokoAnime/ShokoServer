@@ -1003,7 +1003,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllEpisodes(user.JMMUserID, para.limit, para.offset, para.level, para.all);
+                return GetAllEpisodes(user.JMMUserID, para.limit, para.offset, para.level, para.all != 0);
             }
             else
             {
@@ -1047,7 +1047,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level, para.all);
+                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level, para.all != 0);
                     if (ep != null)
                     {
                         lst.Add(ep);
@@ -1288,11 +1288,11 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllSeries(para.nocast, para.limit, para.offset, para.notag, para.level, para.all);
+                return GetAllSeries(para.nocast != 0, para.limit, para.offset, para.notag != 0, para.level, para.all != 0);
             }
             else
             {
-                return GetSerieById(para.id, para.nocast, para.notag, para.level, para.all);
+                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
             }
         }
 
@@ -1331,8 +1331,8 @@ namespace JMMServer.API.Module.apiv2
                 }
                 foreach (VideoLocal vl in vlpall)
                 {
-                    Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, para.nocast, para.notag,
-                        para.level, para.all);
+                    Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, para.nocast != 0, para.notag != 0,
+                        para.level, para.all != 0);
                     allseries.Add(ser);
                     if (allseries.Count >= para.limit)
                     {
@@ -1368,8 +1368,8 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (AnimeSeries aser in series)
             {
-                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast, para.notag,
-                    para.level, para.all));
+                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
+                    para.level, para.all != 0));
             }
 
             return allseries;
@@ -1457,7 +1457,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID,
-                    para.nocast, para.notag, para.level, para.all, para.fuzzy);
+                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
             {
@@ -1481,8 +1481,8 @@ namespace JMMServer.API.Module.apiv2
             }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.limit_tag, para.offset, 1, user.JMMUserID, para.nocast,
-                    para.notag, para.level, para.all, para.fuzzy);
+                return Search(para.query, para.limit, para.limit_tag, para.offset, 1, user.JMMUserID, para.nocast != 0,
+                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
             {
@@ -1962,11 +1962,11 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllFilters(user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
             }
             else
             {
-                return GetFilter(para.id, user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+                return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
                 ;
             }
         }
@@ -2741,11 +2741,11 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllGroups(user.JMMUserID, para.nocast, para.notag, para.level, para.all);
+                return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
             }
             else
             {
-                return GetGroup(para.id, user.JMMUserID, para.nocast, para.notag, para.level, para.all, para.filter);
+                return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.filter);
             }
         }
 
