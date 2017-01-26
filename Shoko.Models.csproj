@@ -111,7 +111,23 @@
     <Compile Include="Interfaces\IShokoServerKodi.cs" />
     <Compile Include="Interfaces\IShokoServerMetro.cs" />
     <Compile Include="Interfaces\IShokoServerStream.cs" />
-    <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
+    <Compile Include="PlexAndKodi\AnimeTitle.cs" />
+    <Compile Include="PlexAndKodi\AnimeTypes.cs" />
+    <Compile Include="PlexAndKodi\Contract_ImageDetails.cs" />
+    <Compile Include="PlexAndKodi\Directory.cs" />
+    <Compile Include="PlexAndKodi\Extras.cs" />
+    <Compile Include="PlexAndKodi\Hub.cs" />
+    <Compile Include="PlexAndKodi\Media.cs" />
+    <Compile Include="PlexAndKodi\MediaContainer.cs" />
+    <Compile Include="PlexAndKodi\Part.cs" />
+    <Compile Include="PlexAndKodi\JMMType.cs" />
+    <Compile Include="PlexAndKodi\PlexContract_User.cs" />
+    <Compile Include="PlexAndKodi\PlexContract_Users.cs" />
+    <Compile Include="PlexAndKodi\Response.cs" />
+    <Compile Include="PlexAndKodi\RoleTag.cs" />
+    <Compile Include="PlexAndKodi\Stream.cs" />
+    <Compile Include="PlexAndKodi\Tag.cs" />
+    <Compile Include="PlexAndKodi\Video.cs" />
     <Compile Include="Queue\QueueStateEnum.cs" />
     <Compile Include="Server\AniDB_Anime.cs" />
     <Compile Include="Constants.cs" />
@@ -272,7 +288,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Nancy.Rest.Client\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
+    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
       <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
       <Name>Nancy.Rest.Annotations</Name>
     </ProjectReference>
