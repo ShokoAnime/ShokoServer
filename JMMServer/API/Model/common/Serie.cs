@@ -24,6 +24,7 @@ namespace JMMServer.API.Model.common
         public List<Tag> tags { get; set; }
         public List<Episode> eps { get; set; }
         public readonly string type = "serie";
+        public int ismovie { get; set; }
 
         public Serie()
         {
@@ -65,6 +66,7 @@ namespace JMMServer.API.Model.common
             sr.titles = nv.Titles;
             sr.title = nv.Title;
 	        sr.season = nv.Season;
+            if (nv.IsMovie ) { sr.ismovie = 1; }
 
             Random rand = new Random();
             Contract_ImageDetails art = new Contract_ImageDetails();

@@ -21,6 +21,7 @@ namespace JMMServer.API.Model.common
         public int epnumber { get; set; }
         public List<RawFile> files { get; set; }
         public readonly string type = "ep";
+   
 
         public Episode()
         {
@@ -55,7 +56,6 @@ namespace JMMServer.API.Model.common
                     ep.year = aep.PlexContract?.Year;
                     ep.air = aep.PlexContract?.AirDate.ToString();
                     ep.votes = cae.AniDB_Votes;
-
                     ep.rating = aep.PlexContract?.Rating;
                     ep.userrating = aep.PlexContract?.UserRating;
                     double rating;
