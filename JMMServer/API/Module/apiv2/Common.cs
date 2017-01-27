@@ -2034,6 +2034,20 @@ namespace JMMServer.API.Module.apiv2
         internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all)
         {
             GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
+
+            if (gf.GroupsIds.Count == 0)
+            {
+                // if filter is empty its probably a filter-inception; that need lower level to cut-time
+                level = 1;
+                List<Filter> filters = new List<Filter>();
+                List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(id).Where(a => a.InvisibleInClients == 0 && ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)).ToList();
+                foreach (GroupFilter cgf in allGfs)
+                {
+                    filters.Add(new Filter().GenerateFromGroupFilter(cgf, uid, nocast, notag, level, all));
+                }
+                return filters;
+            }
+            
             Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
 
             return filter;
