@@ -42,6 +42,11 @@ namespace JMMServer.API
             return APIHelper.ProperURL("/api/filter?id=" + groupfilter_id,  short_url);    
         }
 
+        public static string ConstructFilterUrl(bool short_url = false)
+        {
+            return APIHelper.ProperURL("/api/filter", short_url);
+        }
+
         [Obsolete]
         public static string ConstructFiltersUrl(bool short_url = false)
         {

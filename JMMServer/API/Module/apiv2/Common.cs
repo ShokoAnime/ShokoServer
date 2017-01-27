@@ -131,16 +131,9 @@ namespace JMMServer.API.Module.apiv2
 
             #region 7. Episodes - [Obsolete]
 
-            Get["/ep/list"] = _ =>
-            {
-                return GetAllEpisodes();
-                ;
-            }; // [Obsolete] use /ep
+            Get["/ep/list"] = _ => { return GetAllEpisodes(); }; // [Obsolete] use /ep
             Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); }; // [Obsolete] use /ep?id=
-            Get["/ep/recent/{max}"] = x =>
-            {
-                return GetRecentEpisodes((int) x.max);
-            }; // [Obsolete] use /ep/recent?limit=
+            Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int) x.max); }; // [Obsolete] use /ep/recent?limit=
             Get["/ep/vote"] = x => { return VoteOnEpisode(); }; // [Obsolete] use /ep/vote?id=&score={1-10}
             Get["/ep/unsort/{max}"] = x => { return GetUnsort((int) x.max); }; // [Obsolete] use /ep/unsort?limit=
 
@@ -163,30 +156,12 @@ namespace JMMServer.API.Module.apiv2
             #region 8. Series - [Obsolete]
 
             Get["/serie/list"] = _ => { return GetAllSeries(true, 0, 0, false, 0, false); }; // [Obsolete] use /serie
-            Get["/serie/{id}"] = x =>
-            {
-                return GetSerieById(x.id, true, false, 0, false);
-            }; // [Obsolete] use /serie?id=
-            Get["/serie/recent/{max}"] = x =>
-            {
-                return GetRecentSeries((int) x.max);
-            }; // [Obsolete] use /serie/recent?limit=
-            Get["/serie/byfolder/{id}"] = x =>
-            {
-                return GetSerieByFolderId(x.id, 10);
-            }; // [Obsolete] use /serie/byfolder/id=
-            Get["/serie/byfolder/{id}/{max}"] = x =>
-            {
-                return GetSerieByFolderId(x.id, x.max);
-            }; // [Obsolete] use /serie/byfolder/id=&limit=
-            Post["/serie/watch/{type}/{max}"] = x =>
-            {
-                return MarkSerieWatched(true, x.max, x.type);
-            }; // [Obsolete] use /serie/watch?id=
-            Post["/serie/unwatch/{type}/{max}"] = x =>
-            {
-                return MarkSerieWatched(false, x.max, x.type);
-            }; // [Obsolete] use /serie/unwatch?id=
+            Get["/serie/{id}"] = x => { return GetSerieById(x.id, true, false, 0, false); }; // [Obsolete] use /serie?id=
+            Get["/serie/recent/{max}"] = x =>{ return GetRecentSeries((int) x.max);}; // [Obsolete] use /serie/recent?limit=
+            Get["/serie/byfolder/{id}"] = x =>{ return GetSerieByFolderId(x.id, 10);}; // [Obsolete] use /serie/byfolder/id=
+            Get["/serie/byfolder/{id}/{max}"] = x =>{ return GetSerieByFolderId(x.id, x.max);}; // [Obsolete] use /serie/byfolder/id=&limit=
+            Post["/serie/watch/{type}/{max}"] = x =>{ return MarkSerieWatched(true, x.max, x.type);}; // [Obsolete] use /serie/watch?id=
+            Post["/serie/unwatch/{type}/{max}"] = x => { return MarkSerieWatched(false, x.max, x.type); }; // [Obsolete] use /serie/unwatch?id=
             Post["/serie/vote"] = x => { return VoteOnSerie2(); }; // [Obsolete] use /serie/vote?id=&score={1-10}
 
             #endregion
@@ -2014,17 +1989,22 @@ namespace JMMServer.API.Module.apiv2
         /// <returns>List<Filter></returns>
         internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all)
         {
-            List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
+            Filters filters = new Filters();
+            filters.id = 0;
+            filters.name = "Filters";
+            filters.viewed = 0;
+            filters.url = APIHelper.ConstructFilterUrl();
+            List <GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                              (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))
                 .ToList();
-            List<Filter> filters = new List<Filter>();
+            List<Filter> _filters = new List<Filter>();
 
             foreach (GroupFilter gf in allGfs)
             {
                 Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
-                filters.Add(filter);
+                _filters.Add(filter);
             }
 
             // Unsort
@@ -2045,10 +2025,11 @@ namespace JMMServer.API.Module.apiv2
                 filter.size = vids.Count;
                 filter.viewed = 0;
 
-                filters.Add(filter);
+                _filters.Add(filter);
             }
 
-            filters = filters.OrderBy(a => a.name).ToList();
+            filters.filters = _filters.OrderBy(a => a.name).ToList();
+            filters.size = _filters.Count();
 
             return filters;
         }
@@ -2068,19 +2049,12 @@ namespace JMMServer.API.Module.apiv2
 
             if (gf.GroupsIds.Count == 0)
             {
-                // if filter is empty its probably a filter-inception; that need lower level to cut-time
-                level = 1;
-                List<Filter> filters = new List<Filter>();
-                List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(id).Where(a => a.InvisibleInClients == 0 && ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)).ToList();
-                foreach (GroupFilter cgf in allGfs)
-                {
-                    filters.Add(new Filter().GenerateFromGroupFilter(cgf, uid, nocast, notag, level, all));
-                }
-                return filters;
+                // if GroupsIds is empty its probably a filter-inception;
+                Filters fgs = new Filters().GenerateFromGroupFilter(gf, uid, nocast, notag, all);
+                return fgs;
             }
             
             Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
-
             return filter;
         }
 

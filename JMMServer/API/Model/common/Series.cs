@@ -9,5 +9,7 @@ namespace JMMServer.API.Model.common
         public int viewed { get; set; }
         public string title { get; set; }
         public ArtCollection art { get; set; }
+
+        public readonly string type = "series";
     }
 }
