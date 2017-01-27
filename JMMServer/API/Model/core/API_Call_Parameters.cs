@@ -69,5 +69,20 @@
         /// If set to 1 then series will contain all known episodes (not only the one in collection)
         /// </summary>
         public int all = 0;
+
+        /// <summary>
+        /// passthru progres value (ex. in Trakt)
+        /// </summary>
+        public int progress = -1;
+
+        /// <summary>
+        /// status passthru (ex. in Trakt)
+        /// </summary>
+        public int status = -1;
+
+        /// <summary>
+        /// passthru ismovie mark for function to determinate if object is movie or episode (ex. Trakt)
+        /// </summary>
+        public int ismovie = 0;
     }
 }

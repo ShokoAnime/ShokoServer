@@ -12,12 +12,10 @@ using JMMServer.Repositories;
 using System.Linq;
 using Newtonsoft.Json;
 using JMMServer.API.Model.core;
-using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
 using AniDBAPI;
 using System.IO;
-using NHibernate.Util;
 using NLog;
 
 namespace JMMServer.API.Module.apiv2
@@ -126,7 +124,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/ep/unwatch"] = x => { return MarkEpisodeAsUnwatched(); };
             Get["/ep/vote"] = x => { return VoteOnEpisode(); };
             Get["/ep/unsort"] = _ => { return GetUnsort(); };
-            Post["/ep/scrobble"] = x => { return EpisodeScrobble(); };
+            Get["/ep/scrobble"] = x => { return EpisodeScrobble(); };
             Get["/ep/getbyfilename"] = x => { return GetEpisodeFromName(); };
 
             #endregion
@@ -1129,7 +1127,33 @@ namespace JMMServer.API.Module.apiv2
         /// <returns></returns>
         private object EpisodeScrobble()
         {
-            return APIStatus.notImplemented();
+            try
+            {
+                Request request = this.Request;
+                API_Call_Parameters para = this.Bind();
+
+                // statys 1-start, 2-pause, 3-stop
+                // progres 0-100
+                // type 1-movie, 2-episode
+                if (para.id > 0 & para.progress >= 0 & para.status > 0)
+                {
+                    JMMServiceImplementation impl = new JMMServiceImplementation();
+                    int type = 2;
+                    if (para.ismovie == 0) { type = 2; }
+                    else { type = 1; }
+                    impl.TraktScrobble(para.id, type, para.progress, para.status);
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.badRequest();
+                }
+            }
+            catch
+            {
+                return APIStatus.internalError();
+            }
+            
         }
 
         #region internal function
