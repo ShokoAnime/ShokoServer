@@ -33,17 +33,17 @@
         /// <summary>
         /// For searching, enable or disable fuzzy searching
         /// </summary>
-        public bool fuzzy = true;
+        public int fuzzy = 1;
 
         /// <summary>
         /// Disable cast in Serie result
         /// </summary>
-        public bool nocast = false;
+        public int nocast = 0;
 
         /// <summary>
         /// Disable genres/tags in Serie result
         /// </summary>
-        public bool notag = false;
+        public int notag = 0;
         
         /// <summary>
         /// Identyfication number of object
@@ -68,6 +68,6 @@
         /// <summary>
         /// If set to 1 then series will contain all known episodes (not only the one in collection)
         /// </summary>
-        public bool all = false;
+        public int all = 0;
     }
 }
