@@ -1141,8 +1141,15 @@ namespace JMMServer.API.Module.apiv2
                     int type = 2;
                     if (para.ismovie == 0) { type = 2; }
                     else { type = 1; }
-                    impl.TraktScrobble(para.id, type, para.progress, para.status);
-                    return APIStatus.statusOK();
+                    switch (impl.TraktScrobble(para.id, type, para.progress, para.status))
+                    {
+                        case 200:
+                            return APIStatus.statusOK();
+                        case 404:
+                            return APIStatus.notFound404();
+                        default:
+                            return APIStatus.internalError();
+                    }
                 }
                 else
                 {

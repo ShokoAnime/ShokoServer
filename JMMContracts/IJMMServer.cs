@@ -754,6 +754,6 @@ namespace JMMContracts
         void SetResumePosition(int videolocalid, int jmmuserID, long position);
 
         [OperationContract]
-        void TraktScrobble(int animeId, int type, int progress, int status);
+        int TraktScrobble(int animeId, int type, int progress, int status);
     }
 }

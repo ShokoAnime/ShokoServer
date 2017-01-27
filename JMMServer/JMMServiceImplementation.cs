@@ -2193,7 +2193,7 @@ namespace JMMServer
             }
         }
 
-        public void TraktScrobble(int animeId, int type, int progress, int status)
+        public int TraktScrobble(int animeId, int type, int progress, int status)
         {
             try
             {
@@ -2221,21 +2221,23 @@ namespace JMMServer
                     {
                         // Movie
                         case (int) Providers.TraktTV.ScrobblePlayingType.movie:
-                            Providers.TraktTV.TraktTVHelper.Scrobble(
+                            return Providers.TraktTV.TraktTVHelper.Scrobble(
                                 Providers.TraktTV.ScrobblePlayingType.movie, animeId.ToString(),
                                 statusTraktV2, progressTrakt);
-                            break;
                         // TV episode
                         case (int) Providers.TraktTV.ScrobblePlayingType.episode:
-                            Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
+                            return Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
                                 animeId.ToString(), statusTraktV2, progressTrakt);
-                            break;
+                        default:
+                            return 500;
                     }
                 }
+                else { return 500; }
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
+                return 500;
             }
         }
 
