@@ -32,7 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Pri.LongPath, Version=2.0.42.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Pri.LongPath.2.0.42\lib\net45\Pri.LongPath.dll</HintPath>
+      <HintPath>$(SolutionDir)packages\Pri.LongPath.2.0.42\lib\net45\Pri.LongPath.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -106,12 +106,6 @@
     <Compile Include="Utils\Formatting.cs" />
     <Compile Include="Languages\Languages.cs" />
     <Compile Include="Languages\NamingLanguage.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Shoko.Models\Shoko.Models.csproj">
-      <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
-      <Name>Shoko.Models</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
