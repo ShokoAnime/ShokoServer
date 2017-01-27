@@ -23,6 +23,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type); };
             Get["/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.id, (int)x.type, x.ratio); };
             Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
+            Get["/image/support/{name}/{ratio}"] = x => { return GetSupportImage(x.name, x.ratio); };
         }
 
         /// <summary>
@@ -109,6 +110,31 @@ namespace JMMServer.API.Module.apiv2
       
             response = Response.FromStream(ms, "image/png");
             return response;
+        }
+
+        private object GetSupportImage(string name, string ratio)
+        {
+            Nancy.Response response = new Nancy.Response();
+            if (string.IsNullOrEmpty(name)) { return APIStatus.notFound404(); }
+
+            ratio = ratio.Replace(',', '.');
+            float newratio = 0F;
+            if (!float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
+            {
+                newratio = 1F;
+            }
+            
+            name = Path.GetFileNameWithoutExtension(name);
+            System.Resources.ResourceManager man = Resources.ResourceManager;
+            byte[] dta = (byte[])man.GetObject(name);
+            if ((dta == null) || (dta.Length == 0)) { return APIStatus.notFound404(); }
+            MemoryStream ms = new MemoryStream(dta);
+            ms.Seek(0, SeekOrigin.Begin);
+            System.Drawing.Image im = System.Drawing.Image.FromStream(ms);
+
+            response = Response.FromStream(ResizeToRatio(im, newratio), "image/png");
+            return response;
+
         }
 
         /// <summary>

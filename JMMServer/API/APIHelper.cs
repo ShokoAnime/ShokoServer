@@ -120,6 +120,10 @@ namespace JMMServer.API
                             link = link.Replace(',', '.');
                         }
                     }
+                    else if (link.Contains("getsupportimage"))
+                    {
+                        link = link.Replace("getsupportimage", "/api/image/support");
+                    }
                 }
                 return link;
             }
