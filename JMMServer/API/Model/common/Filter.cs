@@ -84,7 +84,7 @@ namespace JMMServer.API.Model.common
                     // save groups
                     if (groups.Count > 0)
                     {
-                        filter.groups = groups;
+                        filter.groups = groups.OrderBy(a => a.name).ToList();
                     }
                 }
             }

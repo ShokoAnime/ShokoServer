@@ -94,6 +94,8 @@ namespace JMMServer.API.Model.common
                     }
                     g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
                 }
+                g.series = g.series.OrderBy(a => a.title).ToList<Serie>();
+
             }
 
             if (!notag)
@@ -106,6 +108,8 @@ namespace JMMServer.API.Model.common
                         new_tag.tag = otg.Value;
                         g.tags.Add(new_tag);
                     }
+
+                    g.tags = g.tags.OrderBy(a => a.tag).ToList<Tag>();
                 }
             }
 
