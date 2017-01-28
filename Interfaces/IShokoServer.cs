@@ -785,7 +785,7 @@ namespace Shoko.Models.Interfaces
         [Rest("User",Verbs.Get)]
         List<JMMUser> GetAllUsers();
 
-        [Rest("User/{username}/{password}", Verbs.Post)]
+        [Rest("User/{username}/{password?}", Verbs.Post)]
         JMMUser AuthenticateUser(string username, string password);
 
         [Rest("User", Verbs.Post)]
@@ -794,7 +794,7 @@ namespace Shoko.Models.Interfaces
         [Rest("User", Verbs.Delete)]
         string DeleteUser(int userID);
 
-        [Rest("User/ChangePassword/{userID}/{newPassword}", Verbs.Post)]
+        [Rest("User/ChangePassword/{userID}/{newPassword?}", Verbs.Post)]
         string ChangePassword(int userID, string newPassword);
 
         #endregion
