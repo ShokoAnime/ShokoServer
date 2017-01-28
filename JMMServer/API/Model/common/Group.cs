@@ -13,7 +13,6 @@ namespace JMMServer.API.Model.common
         public int id { get; set; }
         public string name { get; set; }
         public List<Entities.AniDB_Anime_Title> titles { get; set; }
-        public HashSet<string> videoqualities { get; set; }
         public DateTime added { get; set; }
         public DateTime edited { get; set; }
         public string summary { get; set; }
@@ -39,7 +38,7 @@ namespace JMMServer.API.Model.common
             g.name = ag.GroupName;
             g.id = ag.AnimeGroupID;
             g.titles = ag.Titles;
-            g.videoqualities = ag.VideoQualities;
+            //g.videoqualities = ag.VideoQualities; <-- deadly trap
             g.added = ag.DateTimeCreated;
             g.edited = ag.DateTimeUpdated;
             g.summary = ag.Description;
@@ -59,7 +58,7 @@ namespace JMMServer.API.Model.common
             }
 
             if (vag.Banners != null && vag.Banners.Count > 0)
-            { 
+            {
                 art = vag.Banners[rand.Next(vag.Banners.Count)];
                 g.art.banner.Add(new Art()
                 {
@@ -74,7 +73,22 @@ namespace JMMServer.API.Model.common
             g.rating = vag.Rating;
             g.userrating = vag.UserRating;
 
-            if (level != 1)
+            if (!notag)
+            {
+                if (vag.Genres != null)
+                {
+                    foreach (JMMContracts.PlexAndKodi.Tag otg in vag.Genres)
+                    {
+                        Tag new_tag = new Tag();
+                        new_tag.tag = otg.Value;
+                        g.tags.Add(new_tag);
+                    }
+
+                    g.tags = g.tags.OrderBy(a => a.tag).ToList<Tag>();
+                }
+            }
+
+            if (level > 0)
             {
                 List<int> series = null;
                 if (filterid > 0)
@@ -96,21 +110,6 @@ namespace JMMServer.API.Model.common
                 }
                 g.series = g.series.OrderBy(a => a.title).ToList<Serie>();
 
-            }
-
-            if (!notag)
-            {
-                if (vag.Genres != null)
-                {
-                    foreach (JMMContracts.PlexAndKodi.Tag otg in vag.Genres)
-                    {
-                        Tag new_tag = new Tag();
-                        new_tag.tag = otg.Value;
-                        g.tags.Add(new_tag);
-                    }
-
-                    g.tags = g.tags.OrderBy(a => a.tag).ToList<Tag>();
-                }
             }
 
             return g;

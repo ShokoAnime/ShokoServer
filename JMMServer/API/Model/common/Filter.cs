@@ -67,24 +67,21 @@ namespace JMMServer.API.Model.common
                         }
                     }
 
-                    if (level > 1)
+                    if (level > 0)
                     {
                         foreach (int gp in groupsh)
                         {
                             Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
-
                             if (ag != null)
                             {
-                                JMMContracts.PlexAndKodi.Video v = ag.GetPlexContract(uid);
-                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
-                                    filter.id));
+                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all, filter.id));
                             }
                         }
                     }
-                    // save groups
+                    
                     if (groups.Count > 0)
                     {
-                        filter.groups = groups.OrderBy(a => a.name).ToList();
+                        filter.groups.AddRange(groups.OrderBy(a => a.name));
                     }
                 }
             }
