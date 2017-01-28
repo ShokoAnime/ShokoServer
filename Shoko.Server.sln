@@ -244,7 +244,4 @@ Global
 		{23FF1900-46AD-4149-80A3-9D442A2059FA} = {3EAF5680-6830-4EB9-AC94-E15EC2217E54}
 		{2B35AE98-E24B-4A09-B1FB-230B90111B46} = {3EAF5680-6830-4EB9-AC94-E15EC2217E54}
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		RESX_ExcelExportMode = MultipleSheets
-	EndGlobalSection
 EndGlobal

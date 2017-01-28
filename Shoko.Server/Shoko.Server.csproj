@@ -32,6 +32,7 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -69,7 +70,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AppGlue">
-      <HintPath>..\Dependencies\AppGlue.dll</HintPath>
+      <HintPath>$(SolutionDir)Dependencies\AppGlue.dll</HintPath>
     </Reference>
     <Reference Include="DeepCloner, Version=0.8.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\DeepCloner.0.9.3\lib\net40\DeepCloner.dll</HintPath>
@@ -90,7 +91,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Infralution.Localization.Wpf">
-      <HintPath>..\Dependencies\Infralution.Localization.Wpf.dll</HintPath>
+      <HintPath>$(SolutionDir)Dependencies\Infralution.Localization.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
@@ -131,7 +132,7 @@
     </Reference>
     <Reference Include="MySqlBackup, Version=2.0.9.2, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\MySqlBackup.dll</HintPath>
+      <HintPath>$(SolutionDir)Dependencies\MySqlBackup.dll</HintPath>
     </Reference>
     <Reference Include="Nancy, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.1.4.3\lib\net40\Nancy.dll</HintPath>
@@ -947,43 +948,43 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
+    <ProjectReference Include="$(SolutionDir)Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
       <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
       <Name>Nancy.Rest.Annotations</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Nancy.Rest.Module\Nancy.Rest.Module.csproj">
+    <ProjectReference Include="$(SolutionDir)Nancy.Rest.Module\Nancy.Rest.Module.csproj">
       <Project>{23ff1900-46ad-4149-80a3-9d442a2059fa}</Project>
       <Name>Nancy.Rest.Module</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
+    <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
       <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
+    <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
       <Project>{d202b61e-a658-4208-83fc-745e04f43bde}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj">
+    <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj">
       <Project>{964a62e6-2dae-4723-926d-d3e9597b5213}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.GoogleDrive</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj">
+    <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj">
       <Project>{2a705c96-21d4-4061-876f-1bb954e39d25}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.LocalFileSystem</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
+    <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
       <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
       <Name>NutzCode.CloudFileSystem</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj">
+    <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj">
       <Project>{865c8b13-eb43-439e-9d69-ce7b54dca4ff}</Project>
       <Name>NutzCode.Libraries.Web</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj">
+    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Commons.csproj">
       <Project>{e0399140-9902-4f38-909d-85e42717ec30}</Project>
       <Name>Shoko.Commons</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj">
+    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Models\Shoko.Models.csproj">
       <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
       <Name>Shoko.Models</Name>
     </ProjectReference>
@@ -1163,7 +1164,7 @@ xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /
 if $(ConfigurationName) == Debug goto :exit
 cd "$(TargetDir)"
 mkdir Merge
-..\..\$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
+$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
 
 del JMMServer.exe
 del JMMServer.pdb
