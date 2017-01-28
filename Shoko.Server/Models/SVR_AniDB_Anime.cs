@@ -37,7 +37,7 @@ namespace Shoko.Server.Models
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }
 
-        public const int CONTRACT_VERSION = 5;
+        public const int CONTRACT_VERSION = 6;
 
 
         #endregion

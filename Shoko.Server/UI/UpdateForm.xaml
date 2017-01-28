@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
-        Title="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Update_UpdateAvailable}" Height="200" Width="600"
+        Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Update_UpdateAvailable}" Height="200" Width="600"
         Icon="/ShokoServer;component/db.ico">
     <Grid>
         <Grid.Resources>
@@ -39,7 +39,7 @@
                 <Image Height="24" Width="24" Source="/Images/db.ico" Margin="5,0,5,0" />
 
                 <TextBlock x:Name="tbUpdateAvailable" Margin="5,0,0,0" FontWeight="DemiBold"
-                           Text="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Update_Available}" FontSize="20"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Update_Available}" FontSize="20"
                            VerticalAlignment="Center" />
 
 
@@ -63,28 +63,28 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="10,6"
-                           Text="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Update_DownloadPage}"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Update_DownloadPage}"
                            VerticalAlignment="Center" />
                 <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="10,6,10,5"
-                                         DisplayText="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Link_Download}"
-                                         URL="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Link_Download}" />
+                                         DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Download}"
+                                         URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Download}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="10,4.864,10,6"
-                           Text="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Update_Changelog}"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Update_Changelog}"
                            VerticalAlignment="Center" />
                 <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5"
-                                         DisplayText="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Link_Changelog}"
-                                         URL="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Link_Changelog}" />
+                                         DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Changelog}"
+                                         URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Changelog}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,4.864,10,6"
-                           Text="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Update_AvailableVersion}"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Update_AvailableVersion}"
                            VerticalAlignment="Center" />
                 <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5"
                            FontWeight="DemiBold"
                            Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersionLatest}" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Margin="10,4.864,10,6"
-                           Text="{Resx ResxName=Shoko.Server.Properties.Resources, Key=Update_YourVersion}"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Update_YourVersion}"
                            VerticalAlignment="Center" />
                 <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5"
                            FontWeight="DemiBold"

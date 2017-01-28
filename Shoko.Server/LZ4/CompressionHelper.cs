@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 #if UNSAFE
 using LZ4pn;
 
@@ -39,10 +40,24 @@ namespace Shoko.Server.LZ4
         {
             if (data == null || data.Length == 0)
                 return null;
-            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize)));
+            try
+            {
+                return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize)), new JsonSerializerSettings
+                {
+                    Error = HandleDeserializationError
+                });
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
 
-
+        public static void HandleDeserializationError(object sender, ErrorEventArgs errorArgs)
+        {
+            var currentError = errorArgs.ErrorContext.Error.Message;
+            errorArgs.ErrorContext.Handled = true;
+        }
         public static byte[] Encode(byte[] input, int inputOffset, int inputLength)
         {
             if (is64bit)

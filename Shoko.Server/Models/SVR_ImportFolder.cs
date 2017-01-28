@@ -5,12 +5,13 @@ using System.Linq;
 using System.Windows.Media.Imaging;
 using NLog;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_ImportFolder : ImportFolder, INotifyPropertyChanged
+    public class SVR_ImportFolder : ImportFolder, INotifyPropertyChangedExt
     {
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -20,9 +21,7 @@ namespace Shoko.Server.Models
             get { return base.IsWatched; }
             set
             {
-                base.IsWatched = value;
-                NotifyPropertyChanged("IsWatched");
-                FolderIsWatched = base.IsWatched == 1;
+                base.IsWatched = this.SetField(base.IsWatched, value, () => IsWatched, () => FolderIsWatched);
             }
         }
 
@@ -31,9 +30,7 @@ namespace Shoko.Server.Models
             get { return base.IsDropSource; }
             set
             {
-                base.IsDropSource = value;
-                NotifyPropertyChanged("IsDropSource");
-                FolderIsDropSource = IsDropSource == 1;
+                base.IsDropSource = this.SetField(base.IsDropSource, value, () => IsDropSource, () => FolderIsDropSource);
             }
         }
 
@@ -44,9 +41,7 @@ namespace Shoko.Server.Models
             get { return base.IsDropDestination; }
             set
             {
-                base.IsDropDestination = value;
-                NotifyPropertyChanged("IsDropDestination");
-                FolderIsDropDestination = IsDropDestination == 1;
+                base.IsDropDestination = this.SetField(base.IsDropDestination, value, ()=>IsDropDestination, ()=>FolderIsDropDestination);
             }
         }
         public new string ImportFolderLocation
@@ -101,15 +96,7 @@ namespace Shoko.Server.Models
         }
 
         private BitmapSource _bitmap;
-        public BitmapSource Bitmap
-        {
-            get
-            {
-                if (_bitmap==null)
-                    _bitmap = CloudID.HasValue ? CloudAccount.Bitmap : SVR_CloudAccount.CreateLocalFileSystemAccount().Bitmap;
-                return _bitmap;
-            }
-        }
+        public BitmapSource Bitmap => _bitmap ?? (_bitmap = CloudID.HasValue ? CloudAccount.Bitmap : SVR_CloudAccount.CreateLocalFileSystemAccount().Bitmap);
 
 
         public IDirectory BaseDirectory
@@ -122,40 +109,15 @@ namespace Shoko.Server.Models
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
             }
         }
-        public SVR_CloudAccount CloudAccount
-        {
-            get
-            {
-                if (CloudID.HasValue)
-                {
-                    return RepoFactory.CloudAccount.GetByID(CloudID.Value);
-                }
-                return null;
-            }
-        }
+        public SVR_CloudAccount CloudAccount => CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null;
 
 
+        public string CloudAccountName => CloudID.HasValue ? CloudAccount.Name : "Local FileSystem";
 
-        public string CloudAccountName
-        {
-            get
-            {
-                if (CloudID.HasValue)
-                    return CloudAccount.Name;
-                return "Local FileSystem";
-            }
-        }
-        private Boolean folderIsWatched = true;
+        public bool FolderIsWatched => IsWatched == 1;
 
-        public Boolean FolderIsWatched
-        {
-            get { return folderIsWatched; }
-            set
-            {
-                folderIsWatched = value;
-                NotifyPropertyChanged("FolderIsWatched");
-            }
-        }
+        public bool FolderIsDropSource => IsDropSource == 1;
+        public bool FolderIsDropDestination => IsDropDestination == 1;
 
         public override string ToString()
         {
@@ -164,43 +126,16 @@ namespace Shoko.Server.Models
 
         public SVR_ImportFolder()
         {
-            FolderIsDropSource = IsDropSource == 1;
-            FolderIsDropDestination = IsDropDestination == 1;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        private void NotifyPropertyChanged(String propertyName)
+        public void NotifyPropertyChanged(string propname)
         {
-            if (PropertyChanged != null)
-            {
-                var args = new PropertyChangedEventArgs(propertyName);
-                PropertyChanged(this, args);
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
         }
 
-        private Boolean folderIsDropSource = true;
 
-        public Boolean FolderIsDropSource
-        {
-            get { return folderIsDropSource; }
-            set
-            {
-                folderIsDropSource = value;
-                NotifyPropertyChanged("FolderIsDropSource");
-            }
-        }
 
-        private Boolean folderIsDropDestination = true;
 
-        public Boolean FolderIsDropDestination
-        {
-            get { return folderIsDropDestination; }
-            set
-            {
-                folderIsDropDestination = value;
-                NotifyPropertyChanged("FolderIsDropDestination");
-            }
-        }
     }
 }

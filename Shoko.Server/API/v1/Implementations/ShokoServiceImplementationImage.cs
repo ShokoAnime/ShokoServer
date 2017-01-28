@@ -10,12 +10,14 @@ using Shoko.Server.Repositories.Direct;
 using NLog;
 using Nancy;
 using Nancy.Rest.Module;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
+using Resources = Shoko.Server.Properties.Resources;
 
 namespace Shoko.Server
 {

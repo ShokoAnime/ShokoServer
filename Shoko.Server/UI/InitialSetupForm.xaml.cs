@@ -53,28 +53,28 @@ namespace Shoko.Server.UI
         {
             try
             {
-                workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_Disposing);
+                workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Disposing);
                 ShokoService.AnidbProcessor.ForceLogout();
                 ShokoService.AnidbProcessor.CloseConnections();
                 Thread.Sleep(1000);
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.Server_Initializing);
+                workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.Server_Initializing);
                 ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
                     ServerSettings.AniDB_ServerAddress,
                     ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
 
-                workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_Login);
+                workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Login);
                 if (ShokoService.AnidbProcessor.Login())
                 {
-                    workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_LoginPass1);
+                    workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_LoginPass1);
                     ShokoService.AnidbProcessor.ForceLogout();
-                    workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_LoginPass2);
+                    workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_LoginPass2);
                 }
                 else
                 {
-                    workerTestLogin.ReportProgress(0, Shoko.Server.Properties.Resources.InitialSetup_LoginFail);
+                    workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_LoginFail);
                 }
             }
             catch (Exception ex)
@@ -95,7 +95,7 @@ namespace Shoko.Server.UI
 
             if (txtUsername.Text.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.InitialSetup_EnterUsername, Shoko.Server.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterUsername, Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtUsername.Focus();
@@ -104,7 +104,7 @@ namespace Shoko.Server.UI
 
             if (txtPassword.Password.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.InitialSetup_EnterPassword, Shoko.Server.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPassword, Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtPassword.Focus();
@@ -113,7 +113,7 @@ namespace Shoko.Server.UI
 
             if (txtClientPort.Text.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.InitialSetup_EnterPort, Shoko.Server.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPort, Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtClientPort.Focus();

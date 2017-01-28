@@ -314,7 +314,7 @@ namespace Shoko.Server
                         }
                         catch (Exception e)
                         {
-                            MessageBox.Show(Shoko.Server.Properties.Resources.Migration_SettingsError + " ", e.ToString());
+                            MessageBox.Show(Shoko.Commons.Properties.Resources.Migration_SettingsError + " ", e.ToString());
                             logger.Error(e);
                             migrationActive = false;
                             migrationError = true;
@@ -331,7 +331,7 @@ namespace Shoko.Server
                         if (migrationError)
                         {
                             MessageBox.Show(
-                                $"{Shoko.Server.Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application.");
+                                $"{Shoko.Commons.Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application.");
                             MainWindow.Instance.ApplicationShutdown();
                         }
                         else
@@ -396,8 +396,8 @@ namespace Shoko.Server
             {
                 migrationError = true;
                 migrationActive = false;
-                MessageBox.Show($"{Shoko.Server.Properties.Resources.Migration_LoadError} {e.Message}",
-                    Shoko.Server.Properties.Resources.Migration_LoadError);
+                MessageBox.Show($"{Shoko.Commons.Properties.Resources.Migration_LoadError} {e.Message}",
+                    Shoko.Commons.Properties.Resources.Migration_LoadError);
                 logger.Error(e);
                 MainWindow.Instance.ApplicationShutdown();
             }
@@ -496,7 +496,7 @@ namespace Shoko.Server
         public static string LocateLegacyConfigFile()
         {
             string configPath = "";
-            MessageBoxResult dr = MessageBox.Show(Shoko.Server.Properties.Resources.LocateSettingsFileDialog, Shoko.Server.Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
+            MessageBoxResult dr = MessageBox.Show(Shoko.Commons.Properties.Resources.LocateSettingsFileDialog, Shoko.Commons.Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
             switch (dr)
             {
                 case MessageBoxResult.Yes:

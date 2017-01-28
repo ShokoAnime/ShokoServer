@@ -228,7 +228,7 @@ namespace Shoko.Server.Commands
                         {
                             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                            string msg = string.Format(Shoko.Server.Properties.Resources.Command_DeleteError, fileName,
+                            string msg = string.Format(Shoko.Commons.Properties.Resources.Command_DeleteError, fileName,
                                 ex.Message);
                             logger.Warn(msg);
                             return;

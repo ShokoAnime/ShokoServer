@@ -30,127 +30,127 @@ namespace Shoko.Server.Commands
         {
             switch (id) {
                 case QueueStateEnum.AnimeInfo:
-                    return Shoko.Server.Properties.Resources.Command_AnimeInfo;
+                    return Shoko.Commons.Properties.Resources.Command_AnimeInfo;
                 case QueueStateEnum.DeleteError:
-                    return Shoko.Server.Properties.Resources.Command_DeleteError;
+                    return Shoko.Commons.Properties.Resources.Command_DeleteError;
                 case QueueStateEnum.DownloadImage:
-                    return Shoko.Server.Properties.Resources.Command_DownloadImage;
+                    return Shoko.Commons.Properties.Resources.Command_DownloadImage;
                 case QueueStateEnum.DownloadMalWatched:
-                    return Shoko.Server.Properties.Resources.Command_DownloadMalWatched;
+                    return Shoko.Commons.Properties.Resources.Command_DownloadMalWatched;
                 case QueueStateEnum.DownloadTvDBImages:
-                    return Shoko.Server.Properties.Resources.Command_DownloadTvDBImages;
+                    return Shoko.Commons.Properties.Resources.Command_DownloadTvDBImages;
                 case QueueStateEnum.FileInfo:
-                    return Shoko.Server.Properties.Resources.Command_FileInfo;
+                    return Shoko.Commons.Properties.Resources.Command_FileInfo;
                 case QueueStateEnum.GetCalendar:
-                    return Shoko.Server.Properties.Resources.Command_GetCalendar;
+                    return Shoko.Commons.Properties.Resources.Command_GetCalendar;
                 case QueueStateEnum.GetEpisodeList:
-                    return Shoko.Server.Properties.Resources.Command_GetEpisodeList;
+                    return Shoko.Commons.Properties.Resources.Command_GetEpisodeList;
                 case QueueStateEnum.GetFileInfo:
-                    return Shoko.Server.Properties.Resources.Command_GetFileInfo;
+                    return Shoko.Commons.Properties.Resources.Command_GetFileInfo;
                 case QueueStateEnum.GetReleaseGroup:
-                    return Shoko.Server.Properties.Resources.Command_GetReleaseGroup;
+                    return Shoko.Commons.Properties.Resources.Command_GetReleaseGroup;
                 case QueueStateEnum.GetReleaseInfo:
-                    return Shoko.Server.Properties.Resources.Command_GetReleaseInfo;
+                    return Shoko.Commons.Properties.Resources.Command_GetReleaseInfo;
                 case QueueStateEnum.GetReviewInfo:
-                    return Shoko.Server.Properties.Resources.Command_GetReviewInfo;
+                    return Shoko.Commons.Properties.Resources.Command_GetReviewInfo;
                 case QueueStateEnum.GettingTvDB:
-                    return Shoko.Server.Properties.Resources.Command_GettingTvDB;
+                    return Shoko.Commons.Properties.Resources.Command_GettingTvDB;
                 case QueueStateEnum.GetUpdatedAnime:
-                    return Shoko.Server.Properties.Resources.Command_GetUpdatedAnime;
+                    return Shoko.Commons.Properties.Resources.Command_GetUpdatedAnime;
                 case QueueStateEnum.HashingFile:
-                    return Shoko.Server.Properties.Resources.Command_HashingFile;
+                    return Shoko.Commons.Properties.Resources.Command_HashingFile;
 	            case QueueStateEnum.CheckingFile:
-		            return Shoko.Server.Properties.Resources.Command_CheckingFile;
+		            return Shoko.Commons.Properties.Resources.Command_CheckingFile;
 	            case QueueStateEnum.Idle:
-                    return Shoko.Server.Properties.Resources.Command_Idle;
+                    return Shoko.Commons.Properties.Resources.Command_Idle;
                 case QueueStateEnum.Paused:
-                    return Shoko.Server.Properties.Resources.Command_Paused;
+                    return Shoko.Commons.Properties.Resources.Command_Paused;
                 case QueueStateEnum.Queued:
-                    return Shoko.Server.Properties.Resources.Command_Queued;
+                    return Shoko.Commons.Properties.Resources.Command_Queued;
                 case QueueStateEnum.ReadingMedia:
-                    return Shoko.Server.Properties.Resources.Command_ReadingMedia;
+                    return Shoko.Commons.Properties.Resources.Command_ReadingMedia;
                 case QueueStateEnum.RefreshAnime:
-                    return Shoko.Server.Properties.Resources.Command_Refresh;
+                    return Shoko.Commons.Properties.Resources.Command_Refresh;
                 case QueueStateEnum.SearchMal:
-                    return Shoko.Server.Properties.Resources.Command_SearchMal;
+                    return Shoko.Commons.Properties.Resources.Command_SearchMal;
                 case QueueStateEnum.SearchTMDb:
-                    return Shoko.Server.Properties.Resources.Command_SearchTMDb;
+                    return Shoko.Commons.Properties.Resources.Command_SearchTMDb;
                 case QueueStateEnum.SearchTrakt:
-                    return Shoko.Server.Properties.Resources.Command_SearchTrakt;
+                    return Shoko.Commons.Properties.Resources.Command_SearchTrakt;
                 case QueueStateEnum.SearchTvDB:
-                    return Shoko.Server.Properties.Resources.Command_SearchTvDB;
+                    return Shoko.Commons.Properties.Resources.Command_SearchTvDB;
                 case QueueStateEnum.SendAnimeAzure:
-                    return Shoko.Server.Properties.Resources.Command_SendAnimeAzure;
+                    return Shoko.Commons.Properties.Resources.Command_SendAnimeAzure;
                 case QueueStateEnum.SendAnimeFull:
-                    return Shoko.Server.Properties.Resources.Command_SendAnimeFull;
+                    return Shoko.Commons.Properties.Resources.Command_SendAnimeFull;
                 case QueueStateEnum.SendAnimeTitle:
-                    return Shoko.Server.Properties.Resources.Command_SendAnimeTitle;
+                    return Shoko.Commons.Properties.Resources.Command_SendAnimeTitle;
                 case QueueStateEnum.SendAnonymousData:
-                    return Shoko.Server.Properties.Resources.Command_SendAnonymousData;
+                    return Shoko.Commons.Properties.Resources.Command_SendAnonymousData;
                 case QueueStateEnum.StartingGeneral:
-                    return Shoko.Server.Properties.Resources.Command_StartingGeneral;
+                    return Shoko.Commons.Properties.Resources.Command_StartingGeneral;
                 case QueueStateEnum.StartingHasher:
-                    return Shoko.Server.Properties.Resources.Command_StartingHasher;
+                    return Shoko.Commons.Properties.Resources.Command_StartingHasher;
                 case QueueStateEnum.StartingImages:
-                    return Shoko.Server.Properties.Resources.Command_StartingImages;
+                    return Shoko.Commons.Properties.Resources.Command_StartingImages;
                 case QueueStateEnum.SyncMyList:
-                    return Shoko.Server.Properties.Resources.Command_SyncMyList;
+                    return Shoko.Commons.Properties.Resources.Command_SyncMyList;
                 case QueueStateEnum.SyncTrakt:
-                    return Shoko.Server.Properties.Resources.Command_SyncTrakt;
+                    return Shoko.Commons.Properties.Resources.Command_SyncTrakt;
                 case QueueStateEnum.SyncTraktEpisodes:
-                    return Shoko.Server.Properties.Resources.Command_SyncTraktEpisodes;
+                    return Shoko.Commons.Properties.Resources.Command_SyncTraktEpisodes;
                 case QueueStateEnum.SyncTraktSeries:
-                    return Shoko.Server.Properties.Resources.Command_SyncTraktSeries;
+                    return Shoko.Commons.Properties.Resources.Command_SyncTraktSeries;
                 case QueueStateEnum.SyncVotes:
-                    return Shoko.Server.Properties.Resources.Command_SyncVotes;
+                    return Shoko.Commons.Properties.Resources.Command_SyncVotes;
                 case QueueStateEnum.TraktAddHistory:
-                    return Shoko.Server.Properties.Resources.Command_TraktAddHistory;
+                    return Shoko.Commons.Properties.Resources.Command_TraktAddHistory;
                 case QueueStateEnum.UpdateMALWatched:
-                    return Shoko.Server.Properties.Resources.Command_UpdateMALWatched;
+                    return Shoko.Commons.Properties.Resources.Command_UpdateMALWatched;
                 case QueueStateEnum.UpdateMyListInfo:
-                    return Shoko.Server.Properties.Resources.Command_UpdateMyListInfo;
+                    return Shoko.Commons.Properties.Resources.Command_UpdateMyListInfo;
                 case QueueStateEnum.UpdateMyListStats:
-                    return Shoko.Server.Properties.Resources.Command_UpdateMyListStats;
+                    return Shoko.Commons.Properties.Resources.Command_UpdateMyListStats;
                 case QueueStateEnum.UpdateTrakt:
-                    return Shoko.Server.Properties.Resources.Command_UpdateTrakt;
+                    return Shoko.Commons.Properties.Resources.Command_UpdateTrakt;
                 case QueueStateEnum.UpdateTraktData:
-                    return Shoko.Server.Properties.Resources.Command_UpdateTraktData;
+                    return Shoko.Commons.Properties.Resources.Command_UpdateTraktData;
                 case QueueStateEnum.UploadMALWatched:
-                    return Shoko.Server.Properties.Resources.Command_UploadMALWatched;
+                    return Shoko.Commons.Properties.Resources.Command_UploadMALWatched;
                 case QueueStateEnum.VoteAnime:
-                    return Shoko.Server.Properties.Resources.Command_VoteAnime;
+                    return Shoko.Commons.Properties.Resources.Command_VoteAnime;
                 case QueueStateEnum.WebCacheDeleteXRefAniDBMAL:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheDeleteXRefAniDBMAL;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheDeleteXRefAniDBMAL;
                 case QueueStateEnum.WebCacheDeleteXRefAniDBOther:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheDeleteXRefAniDBOther;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheDeleteXRefAniDBOther;
                 case QueueStateEnum.WebCacheDeleteXRefAniDBTrakt:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheDeleteXRefAniDBTrakt;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheDeleteXRefAniDBTrakt;
                 case QueueStateEnum.WebCacheDeleteXRefAniDBTvDB:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheDeleteXRefAniDBTvDB;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheDeleteXRefAniDBTvDB;
                 case QueueStateEnum.WebCacheDeleteXRefFileEpisode:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheDeleteXRefFileEpisode;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheDeleteXRefFileEpisode;
                 case QueueStateEnum.WebCacheSendXRefAniDBMAL:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheSendXRefAniDBMAL;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheSendXRefAniDBMAL;
                 case QueueStateEnum.WebCacheSendXRefAniDBOther:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheSendXRefAniDBOther;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheSendXRefAniDBOther;
                 case QueueStateEnum.WebCacheSendXRefAniDBTrakt:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheSendXRefAniDBTrakt;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheSendXRefAniDBTrakt;
                 case QueueStateEnum.WebCacheSendXRefAniDBTvDB:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheSendXRefAniDBTvDB;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheSendXRefAniDBTvDB;
                 case QueueStateEnum.WebCacheSendXRefFileEpisode:
-                    return Shoko.Server.Properties.Resources.Command_WebCacheSendXRefFileEpisode;
+                    return Shoko.Commons.Properties.Resources.Command_WebCacheSendXRefFileEpisode;
                 case QueueStateEnum.AniDB_MyListAdd:
-                    return Shoko.Server.Properties.Resources.AniDB_MyListAdd;
+                    return Shoko.Commons.Properties.Resources.AniDB_MyListAdd;
                 case QueueStateEnum.AniDB_MyListDelete:
-                    return Shoko.Server.Properties.Resources.AniDB_MyListDelete;
+                    return Shoko.Commons.Properties.Resources.AniDB_MyListDelete;
                 case QueueStateEnum.AniDB_GetTitles:
-                    return Shoko.Server.Properties.Resources.AniDB_GetTitles;
+                    return Shoko.Commons.Properties.Resources.AniDB_GetTitles;
                 case QueueStateEnum.Actions_SyncVotes:
-                    return Shoko.Server.Properties.Resources.Actions_SyncVotes;
+                    return Shoko.Commons.Properties.Resources.Actions_SyncVotes;
                 case QueueStateEnum.LinkAniDBTvDB:
-                    return Shoko.Server.Properties.Resources.Command_LinkAniDBTvDB;
+                    return Shoko.Commons.Properties.Resources.Command_LinkAniDBTvDB;
 	            case QueueStateEnum.RefreshGroupFilter:
-		            return Shoko.Server.Properties.Resources.Command_RefreshGroupFilter;
+		            return Shoko.Commons.Properties.Resources.Command_RefreshGroupFilter;
 	            default:
                     throw new System.Exception("Unknown queue state format string"); ;
             }

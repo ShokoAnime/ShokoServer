@@ -25,7 +25,7 @@ namespace Shoko.Server.Repositories
         public virtual void Populate(ISessionWrapper session, bool displayname = true)
         {
             if (displayname)
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(T).Name, string.Empty);
+                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, string.Empty);
 
             Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(), SelectKey);
             PopulateIndexes();
@@ -50,7 +50,7 @@ namespace Shoko.Server.Repositories
         {
             int cnt = 0;
             int max = collection.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen");
 	        if (max <= 0) return;
             foreach (T g in collection)
             {
@@ -66,11 +66,11 @@ namespace Shoko.Server.Repositories
                 {
                     cnt++;
                     if (cnt%10 == 0)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + cnt + "/" + max);
+                        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + cnt + "/" + max);
                 }
             }
             if (displayme)
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + max + "/" + max);
+                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + max + "/" + max);
 
         }
 

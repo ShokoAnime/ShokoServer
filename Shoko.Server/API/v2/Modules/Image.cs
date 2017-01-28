@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Model.core;
@@ -13,6 +14,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
+using Resources = Shoko.Server.Properties.Resources;
 
 namespace Shoko.Server.API.Module.apiv2
 {

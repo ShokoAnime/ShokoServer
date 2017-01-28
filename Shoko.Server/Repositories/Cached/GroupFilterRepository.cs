@@ -84,7 +84,7 @@ namespace Shoko.Server.Repositories.Cached
         public void PostProcess()
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
             {
                 if (g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
@@ -100,8 +100,8 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_GroupFilter gf in PostProcessFilters)
             {
                 cnt++;
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t,
-                    Shoko.Server.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " + gf.GroupFilterName);
+                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
+                    Shoko.Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " + gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
                     gf.EvaluateAnimeGroups();
@@ -112,8 +112,8 @@ namespace Shoko.Server.Repositories.Cached
             }
 
 	        // Clean up. This will populate empty conditions and remove duplicate filters
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t,
-		        " " + Shoko.Server.Properties.Resources.GroupFilter_Cleanup);
+	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
+		        " " + Shoko.Commons.Properties.Resources.GroupFilter_Cleanup);
 	        IReadOnlyList<SVR_GroupFilter> all = GetAll();
 	        HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
 	        List<SVR_GroupFilter> notin = all.Except(set)?.ToList();
@@ -159,7 +159,7 @@ namespace Shoko.Server.Repositories.Cached
                 //Continue Watching
                 // check if it already exists
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t, " " + Shoko.Server.Properties.Resources.Filter_CreateContinueWatching);
+                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
 
                 SVR_GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
@@ -167,13 +167,13 @@ namespace Shoko.Server.Repositories.Cached
                             a.FilterType == (int)GroupFilterType.ContinueWatching);
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t, " " + Shoko.Server.Properties.Resources.Filter_CreateContinueWatching);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
                     cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                     Save(cwatching);
                 }
                 else if (cwatching == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t, " " + Shoko.Server.Properties.Resources.Filter_CreateContinueWatching);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
                     SVR_GroupFilter gf = new SVR_GroupFilter();
                     gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
                     gf.Locked = 1;
@@ -204,10 +204,10 @@ namespace Shoko.Server.Repositories.Cached
                 SVR_GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
                 if (allfilter == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t, " " + Shoko.Server.Properties.Resources.Filter_CreateAll);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateAll);
                     SVR_GroupFilter gf = new SVR_GroupFilter
                     {
-                        GroupFilterName = Shoko.Server.Properties.Resources.Filter_All,
+                        GroupFilterName = Shoko.Commons.Properties.Resources.Filter_All,
                         Locked = 1,
                         InvisibleInClients = 0,
                         FilterType = (int) GroupFilterType.All,
@@ -225,7 +225,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     tagsdirec = new SVR_GroupFilter
                     {
-                        GroupFilterName = Shoko.Server.Properties.Resources.Filter_Tags,
+                        GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Tags,
                         InvisibleInClients = 0,
                         FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Tag),
                         BaseCondition = 1,
@@ -241,7 +241,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     yearsdirec = new SVR_GroupFilter
                     {
-                        GroupFilterName = Shoko.Server.Properties.Resources.Filter_Years,
+                        GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Years,
                         InvisibleInClients = 0,
                         FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Year),
                         BaseCondition = 1,
@@ -282,8 +282,8 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t,
-                                Shoko.Server.Properties.Resources.Filter_CreatingTag + " " + Shoko.Server.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
+                                Shoko.Commons.Properties.Resources.Filter_CreatingTag + " " + Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                         SVR_GroupFilter yf = new SVR_GroupFilter
                         {
                             ParentGroupFilterID = tagsdirec.GroupFilterID,
@@ -344,8 +344,8 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         cnt++;
                         if (frominit)
-		                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, t,
-                                Shoko.Server.Properties.Resources.Filter_CreatingYear + " " + Shoko.Server.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+		                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
+                                Shoko.Commons.Properties.Resources.Filter_CreatingYear + " " + Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
 	                    SVR_GroupFilter yf = new SVR_GroupFilter
                         {
                             ParentGroupFilterID = yearsdirec.GroupFilterID,

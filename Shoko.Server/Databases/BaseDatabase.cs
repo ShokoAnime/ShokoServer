@@ -190,20 +190,20 @@ namespace Shoko.Server.Databases
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_Users;
+            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Users;
             CreateInitialUsers();
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_Filters;
+            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Filters;
             CreateInitialGroupFilters();
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_LockFilters;
+            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_LockFilters;
             CreateOrVerifyLockedFilters();
 
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_RenameScripts;
+            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_RenameScripts;
             CreateInitialRenameScript();
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_CustomTags;
+            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_CustomTags;
             CreateInitialCustomTags();
         }
 
@@ -222,7 +222,7 @@ namespace Shoko.Server.Databases
 
             // Favorites
             SVR_GroupFilter gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Favorites;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Favorites;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -238,7 +238,7 @@ namespace Shoko.Server.Databases
 
             // Missing Episodes
             gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_MissingEpisodes;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_MissingEpisodes;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -255,7 +255,7 @@ namespace Shoko.Server.Databases
 
             // Newly Added Series
             gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Added;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Added;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -271,7 +271,7 @@ namespace Shoko.Server.Databases
 
             // Newly Airing Series
             gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Airing;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Airing;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -287,7 +287,7 @@ namespace Shoko.Server.Databases
 
             // Votes Needed
             gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_Votes;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Votes;
             gf.ApplyToSeries = 1;
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -313,7 +313,7 @@ namespace Shoko.Server.Databases
 
             // Recently Watched
             gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_RecentlyWatched;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_RecentlyWatched;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -329,7 +329,7 @@ namespace Shoko.Server.Databases
 
             // TvDB/MovieDB Link Missing
             gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Server.Properties.Resources.Filter_LinkMissing;
+            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_LinkMissing;
             gf.ApplyToSeries = 1; // This makes far more sense as applied to series
             gf.BaseCondition = 1;
             gf.Locked = 0;
@@ -358,7 +358,7 @@ namespace Shoko.Server.Databases
             defaultUser.IsAniDBUser = 1;
             defaultUser.IsTraktUser = 1;
             defaultUser.Password = "";
-            defaultUser.Username = Shoko.Server.Properties.Resources.Users_Default;
+            defaultUser.Username = Shoko.Commons.Properties.Resources.Users_Default;
             RepoFactory.JMMUser.Save(defaultUser, true);
 
             SVR_JMMUser familyUser = new SVR_JMMUser();
@@ -368,7 +368,7 @@ namespace Shoko.Server.Databases
             familyUser.IsAniDBUser = 1;
             familyUser.IsTraktUser = 1;
             familyUser.Password = "";
-            familyUser.Username = Shoko.Server.Properties.Resources.Users_FamilyFriendly;
+            familyUser.Username = Shoko.Commons.Properties.Resources.Users_FamilyFriendly;
             RepoFactory.JMMUser.Save(familyUser, true);
         }
 
@@ -380,7 +380,7 @@ namespace Shoko.Server.Databases
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            initialScript.ScriptName = Shoko.Server.Properties.Resources.Rename_Default;
+            initialScript.ScriptName = Shoko.Commons.Properties.Resources.Rename_Default;
             initialScript.IsEnabledOnImport = 0;
             initialScript.Script =
                 "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" +
@@ -439,32 +439,32 @@ namespace Shoko.Server.Databases
 
                 // Dropped
                 CustomTag tag = new CustomTag();
-                tag.TagName = Shoko.Server.Properties.Resources.CustomTag_Dropped;
-                tag.TagDescription = Shoko.Server.Properties.Resources.CustomTag_DroppedInfo;
+                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_Dropped;
+                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_DroppedInfo;
                 RepoFactory.CustomTag.Save(tag);
 
                 // Pinned
                 tag = new CustomTag();
-                tag.TagName = Shoko.Server.Properties.Resources.CustomTag_Pinned;
-                tag.TagDescription = Shoko.Server.Properties.Resources.CustomTag_PinnedInfo;
+                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_Pinned;
+                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_PinnedInfo;
                 RepoFactory.CustomTag.Save(tag);
 
                 // Ongoing
                 tag = new CustomTag();
-                tag.TagName = Shoko.Server.Properties.Resources.CustomTag_Ongoing;
-                tag.TagDescription = Shoko.Server.Properties.Resources.CustomTag_OngoingInfo;
+                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_Ongoing;
+                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_OngoingInfo;
                 RepoFactory.CustomTag.Save(tag);
 
                 // Waiting for Series Completion
                 tag = new CustomTag();
-                tag.TagName = Shoko.Server.Properties.Resources.CustomTag_SeriesComplete;
-                tag.TagDescription = Shoko.Server.Properties.Resources.CustomTag_SeriesCompleteInfo;
+                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_SeriesComplete;
+                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_SeriesCompleteInfo;
                 RepoFactory.CustomTag.Save(tag);
 
                 // Waiting for Bluray Completion
                 tag = new CustomTag();
-                tag.TagName = Shoko.Server.Properties.Resources.CustomTag_BlurayComplete;
-                tag.TagDescription = Shoko.Server.Properties.Resources.CustomTag_BlurayCompleteInfo;
+                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_BlurayComplete;
+                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_BlurayCompleteInfo;
                 RepoFactory.CustomTag.Save(tag);
             }
             catch (Exception ex)

@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_AnimeGroup_User> grps =
                 Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup_User).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name, " DbRegen");
 	        if (max <= 0) return;
 	        foreach (SVR_AnimeGroup_User g in grps)
             {
@@ -74,11 +74,11 @@ namespace Shoko.Server.Repositories.Cached
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(SVR_AnimeGroup_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 

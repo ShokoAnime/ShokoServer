@@ -445,7 +445,7 @@ namespace Shoko.Server.Databases
                 bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_CreateSchema;
+                    ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 bool update = (ExecuteScalar(myConn,"SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") == 0);
@@ -457,7 +457,7 @@ namespace Shoko.Server.Databases
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Database_ApplySchema;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });

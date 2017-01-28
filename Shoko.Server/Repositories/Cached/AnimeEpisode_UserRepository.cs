@@ -51,7 +51,7 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_AnimeEpisode_User> sers =
                 Cache.Values.Where(a => a.ContractVersion < SVR_AnimeEpisode_User.CONTRACT_VERSION || a.AnimeEpisode_UserID == 0).ToList();
             int max = sers.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(SVR_AnimeEpisode_User).Name, " DbRegen");
+	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name, " DbRegen");
 	        if (max <= 0) return;
 	        foreach (SVR_AnimeEpisode_User g in sers)
             {
@@ -59,11 +59,11 @@ namespace Shoko.Server.Repositories.Cached
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(SVR_AnimeEpisode_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Server.Properties.Resources.Database_Cache, typeof(SVR_AnimeEpisode_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 

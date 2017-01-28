@@ -158,7 +158,7 @@ namespace Shoko.Server
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
-            ServerInfo.Instance.ExtendedPauseString = string.Format(Shoko.Server.Properties.Resources.AniDB_Paused,
+            ServerInfo.Instance.ExtendedPauseString = string.Format(Shoko.Commons.Properties.Resources.AniDB_Paused,
                 secsToPause,
                 pauseReason);
             ServerInfo.Instance.HasExtendedPause = true;
@@ -234,7 +234,7 @@ namespace Shoko.Server
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                            string.Format(Shoko.Server.Properties.Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
+                            string.Format(Shoko.Commons.Properties.Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
                     }
                 }
                 catch
@@ -260,7 +260,7 @@ namespace Shoko.Server
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                string msg = string.Format(Shoko.Server.Properties.Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
+                string msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
 
                 if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
                 {
@@ -277,9 +277,9 @@ namespace Shoko.Server
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             if (isWaiting)
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Server.Properties.Resources.AniDB_ResponseWait;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.AniDB_ResponseWait;
             else
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Server.Properties.Resources.Command_Idle;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
 
             if (isWaiting)
                 WaitingOnResponseTime = DateTime.Now;
@@ -315,7 +315,7 @@ namespace Shoko.Server
             if (ev != enHelperActivityType.LoggedIn)
             {
                 Application.Current.Dispatcher.Invoke(() => {
-                    MessageBox.Show(Shoko.Server.Properties.Resources.InitialSetup_LoginFail, Shoko.Server.Properties.Resources.Error,
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail, Shoko.Commons.Properties.Resources.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
 
                     InitialSetupForm frm = new InitialSetupForm();

@@ -59,7 +59,7 @@ namespace Shoko.Server.UI
         private void BtnDeleteClick(object sender, RoutedEventArgs e)
         {
             if (
-                MessageBox.Show(Shoko.Server.Properties.Resources.Integrity_DeleteMessage, Shoko.Server.Properties.Resources.Integrity_DeleteTitle,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Integrity_DeleteMessage, Shoko.Commons.Properties.Resources.Integrity_DeleteTitle,
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 Scanner.Instance.ClearScan();
@@ -123,7 +123,7 @@ namespace Shoko.Server.UI
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Server.Properties.Resources.Integerity_ReaddMessage, Shoko.Server.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddMessage, Shoko.Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
@@ -150,7 +150,7 @@ namespace Shoko.Server.UI
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Server.Properties.Resources.Integerity_ReaddSingleMessage, Shoko.Server.Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,MessageBoxImage.Information);
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddSingleMessage, Shoko.Commons.Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,MessageBoxImage.Information);
                     return;
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)

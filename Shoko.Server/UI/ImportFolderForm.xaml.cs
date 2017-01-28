@@ -127,8 +127,8 @@ namespace Shoko.Server
                     chkDropDestination.IsChecked.Value &&
                     chkDropSource.IsChecked.Value)
                 {
-                    MessageBox.Show(Shoko.Server.Properties.Resources.ImportFolders_SameFolder,
-                        Shoko.Server.Properties.Resources.Error,
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.ImportFolders_SameFolder,
+                        Shoko.Commons.Properties.Resources.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -136,8 +136,8 @@ namespace Shoko.Server
                 // The import folder location cannot be blank. Enter a valid path on OMM Server
                 if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
                 {
-                    MessageBox.Show(Shoko.Server.Properties.Resources.ImportFolders_BlankImport,
-                        Shoko.Server.Properties.Resources.Error,
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.ImportFolders_BlankImport,
+                        Shoko.Commons.Properties.Resources.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     txtImportFolderLocation.Focus();
                     return;
@@ -158,7 +158,7 @@ namespace Shoko.Server
                 ShokoServiceImplementation imp = new ShokoServiceImplementation();
                 CL_Response<ImportFolder> response = imp.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
-                    MessageBox.Show(response.ErrorMessage, Shoko.Server.Properties.Resources.Error, MessageBoxButton.OK,
+                    MessageBox.Show(response.ErrorMessage, Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 importFldr = null;
                 ServerInfo.Instance.RefreshImportFolders();

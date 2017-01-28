@@ -770,7 +770,7 @@ namespace Shoko.Server.Models
             if (animeRec != null)
             {
                 contract.AniDBAnime = animeRec.Contract.DeepClone();
-                contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster().ToClient();
+                contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                 if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
                 {
                     ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
@@ -781,7 +781,7 @@ namespace Shoko.Server.Models
                         contract.AniDBAnime.AniDBAnime.DefaultImagePoster.ImageType = (int) im.ImageType;
                     }
                 }
-                contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart().ToClient();
+                contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
                 if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
                 {
                     ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
@@ -792,7 +792,7 @@ namespace Shoko.Server.Models
                         contract.AniDBAnime.AniDBAnime.DefaultImageFanart.ImageType = (int) im.ImageType;
                     }
                 }
-                contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner().ToClient();
+                contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
             }
 
             contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.Cast<CrossRef_AniDB_TvDBV2>().ToList();

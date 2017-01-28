@@ -11,6 +11,7 @@ using Nancy.Rest.Module;
 using Shoko.Models.PlexAndKodi;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -25,6 +26,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
+using Resources = Shoko.Server.Properties.Resources;
 
 // ReSharper disable FunctionComplexityOverflow
 

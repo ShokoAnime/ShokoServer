@@ -5,12 +5,13 @@ using Microsoft.Win32;
 using System;
 using Microsoft.Win32.TaskScheduler;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Notification;
 using Shoko.Models;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server
 {
-    public class ServerState : INotifyPropertyChanged
+    public class ServerState : INotifyPropertyChangedExt
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -24,15 +25,11 @@ namespace Shoko.Server
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
+        public void NotifyPropertyChanged(string propname)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
         }
+
 
         private bool databaseAvailable = false;
 
@@ -41,8 +38,7 @@ namespace Shoko.Server
             get { return databaseAvailable; }
             set
             {
-                databaseAvailable = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("DatabaseAvailable"));
+                databaseAvailable = this.SetField(databaseAvailable, value);
             }
         }
 
@@ -53,8 +49,7 @@ namespace Shoko.Server
             get { return serverOnline; }
             set
             {
-                serverOnline = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ServerOnline"));
+                serverOnline = this.SetField(serverOnline, value);
             }
         }
 
@@ -65,9 +60,8 @@ namespace Shoko.Server
         {
             get { return currentSetupStatus; }
             set
-            {
-                currentSetupStatus = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("CurrentSetupStatus"));
+{
+                currentSetupStatus  = this.SetField(currentSetupStatus ,value);
             }
         }
 
@@ -77,9 +71,8 @@ namespace Shoko.Server
         {
             get { return databaseIsSQLite; }
             set
-            {
-                databaseIsSQLite = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("DatabaseIsSQLite"));
+{
+                databaseIsSQLite  = this.SetField(databaseIsSQLite ,value);
             }
         }
 
@@ -89,9 +82,8 @@ namespace Shoko.Server
         {
             get { return databaseIsSQLServer; }
             set
-            {
-                databaseIsSQLServer = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("DatabaseIsSQLServer"));
+{
+                databaseIsSQLServer  = this.SetField(databaseIsSQLServer ,value);
             }
         }
 
@@ -101,9 +93,8 @@ namespace Shoko.Server
         {
             get { return databaseIsMySQL; }
             set
-            {
-                databaseIsMySQL = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("DatabaseIsMySQL"));
+{
+                databaseIsMySQL  = this.SetField(databaseIsMySQL ,value);
             }
         }
 
@@ -113,9 +104,8 @@ namespace Shoko.Server
         {
             get { return baseImagePath; }
             set
-            {
-                baseImagePath = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("BaseImagePath"));
+{
+                baseImagePath  = this.SetField(baseImagePath ,value);
             }
         }
 
@@ -125,9 +115,8 @@ namespace Shoko.Server
         {
             get { return newVersionAvailable; }
             set
-            {
-                newVersionAvailable = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("NewVersionAvailable"));
+{
+                newVersionAvailable  = this.SetField(newVersionAvailable ,value);
             }
         }
 
@@ -137,9 +126,8 @@ namespace Shoko.Server
         {
             get { return newVersionNumber; }
             set
-            {
-                newVersionNumber = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("NewVersionNumber"));
+{
+                newVersionNumber  = this.SetField(newVersionNumber ,value);
             }
         }
 
@@ -149,9 +137,8 @@ namespace Shoko.Server
         {
             get { return newVersionDownloadLink; }
             set
-            {
-                newVersionDownloadLink = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("NewVersionDownloadLink"));
+{
+                newVersionDownloadLink  = this.SetField(newVersionDownloadLink ,value);
             }
         }
 
@@ -161,9 +148,8 @@ namespace Shoko.Server
         {
             get { return applicationVersion; }
             set
-            {
-                applicationVersion = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ApplicationVersion"));
+{
+                applicationVersion  = this.SetField(applicationVersion ,value);
             }
         }
 
@@ -173,9 +159,8 @@ namespace Shoko.Server
         {
             get { return applicationVersionLatest; }
             set
-            {
-                applicationVersionLatest = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ApplicationVersionLatest"));
+{
+                applicationVersionLatest  = this.SetField(applicationVersionLatest ,value);
             }
         }
 
@@ -185,9 +170,8 @@ namespace Shoko.Server
         {
             get { return aniDB_Username; }
             set
-            {
-                aniDB_Username = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AniDB_Username"));
+{
+                aniDB_Username  = this.SetField(aniDB_Username ,value);
             }
         }
 
@@ -197,9 +181,8 @@ namespace Shoko.Server
         {
             get { return aniDB_Password; }
             set
-            {
-                aniDB_Password = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AniDB_Password"));
+{
+                aniDB_Password  = this.SetField(aniDB_Password ,value);
             }
         }
 
@@ -209,9 +192,8 @@ namespace Shoko.Server
         {
             get { return aniDB_ServerAddress; }
             set
-            {
-                aniDB_ServerAddress = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AniDB_ServerAddress"));
+{
+                aniDB_ServerAddress  = this.SetField(aniDB_ServerAddress ,value);
             }
         }
 
@@ -221,9 +203,8 @@ namespace Shoko.Server
         {
             get { return aniDB_ServerPort; }
             set
-            {
-                aniDB_ServerPort = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AniDB_ServerPort"));
+{
+                aniDB_ServerPort  = this.SetField(aniDB_ServerPort ,value);
             }
         }
 
@@ -233,9 +214,8 @@ namespace Shoko.Server
         {
             get { return aniDB_ClientPort; }
             set
-            {
-                aniDB_ClientPort = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AniDB_ClientPort"));
+{
+                aniDB_ClientPort  = this.SetField(aniDB_ClientPort ,value);
             }
         }
 
@@ -245,9 +225,8 @@ namespace Shoko.Server
         {
             get { return aniDB_TestStatus; }
             set
-            {
-                aniDB_TestStatus = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AniDB_TestStatus"));
+{
+                aniDB_TestStatus  = this.SetField(aniDB_TestStatus ,value);
             }
         }
 
@@ -257,9 +236,8 @@ namespace Shoko.Server
         {
             get { return minOnStartup; }
             set
-            {
-                minOnStartup = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("MinOnStartup"));
+{
+                minOnStartup  = this.SetField(minOnStartup ,value);
             }
         }
 
@@ -269,9 +247,8 @@ namespace Shoko.Server
         {
             get { return maxOnStartup; }
             set
-            {
-                maxOnStartup = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("MaxOnStartup"));
+{
+                maxOnStartup  = this.SetField(maxOnStartup ,value);
             }
         }
 
@@ -283,9 +260,8 @@ namespace Shoko.Server
         {
             get { return vLCLocation; }
             set
-            {
-                vLCLocation = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("VLCLocation"));
+{
+                vLCLocation  = this.SetField(vLCLocation ,value);
             }
         }
 
@@ -294,9 +270,8 @@ namespace Shoko.Server
         {
             get { return isAutostartEnabled; }
             set
-            {
-                isAutostartEnabled = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("IsAutostartEnabled"));
+{
+                isAutostartEnabled  = this.SetField(isAutostartEnabled ,value);
             }
         }
 
@@ -305,9 +280,8 @@ namespace Shoko.Server
         {
             get { return isAutostartDisabled; }
             set
-            {
-                isAutostartDisabled = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("IsAutostartDisabled"));
+{
+                isAutostartDisabled  = this.SetField(isAutostartDisabled ,value);
             }
         }
 

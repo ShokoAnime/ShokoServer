@@ -120,8 +120,8 @@ namespace Shoko.Server
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
             if (!MigrateProgramDataLocation())
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.Migration_LoadError,
-                    Shoko.Server.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Migration_LoadError,
+                    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
             }
 
@@ -149,8 +149,8 @@ namespace Shoko.Server
             {
                 mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance + "Mutex");
                 //since it hasn't thrown an exception, then we already have one copy of the app open.
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_Running,
-                    Shoko.Server.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
+                    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(0);
             }
             catch (Exception Ex)
@@ -378,8 +378,8 @@ namespace Shoko.Server
                 {
                     // Ask if user wants to uninstall first
                     MessageBoxResult dr =
-                        MessageBox.Show(Shoko.Server.Properties.Resources.DuplicateInstallDetectedQuestion,
-                            Shoko.Server.Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
+                        MessageBox.Show(Shoko.Commons.Properties.Resources.DuplicateInstallDetectedQuestion,
+                            Shoko.Commons.Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
                     if (dr == MessageBoxResult.Yes)
                     {
                         try
@@ -482,13 +482,13 @@ namespace Shoko.Server
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
         {
             SyncHashes();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_SyncHashesRunning, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncHashesRunning, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         private void BtnSyncMedias_Click(object sender, RoutedEventArgs e)
         {
             SyncMedias();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_SyncMediasRunning, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMediasRunning, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
@@ -520,8 +520,8 @@ namespace Shoko.Server
             this.Cursor = Cursors.Wait;
             TraktTVHelper.UpdateAllInfo();
             this.Cursor = Cursors.Arrow;
-            MessageBox.Show(Shoko.Server.Properties.Resources.Command_UpdateTrakt,
-            Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Command_UpdateTrakt,
+            Shoko.Commons.Properties.Resources.Success,
             MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -858,7 +858,7 @@ namespace Shoko.Server
                 ServerSettings.Culture = ul.Culture;
                 if (isLanguageChanged)
                 {
-                    result = System.Windows.Forms.MessageBox.Show(Shoko.Server.Properties.Resources.Language_Info, Shoko.Server.Properties.Resources.Language_Switch, System.Windows.Forms.MessageBoxButtons.OKCancel, System.Windows.Forms.MessageBoxIcon.Information);
+                    result = System.Windows.Forms.MessageBox.Show(Shoko.Commons.Properties.Resources.Language_Info, Shoko.Commons.Properties.Resources.Language_Switch, System.Windows.Forms.MessageBoxButtons.OKCancel, System.Windows.Forms.MessageBoxIcon.Information);
                     if (result == System.Windows.Forms.DialogResult.OK)
                     {
                         System.Windows.Forms.Application.Restart();
@@ -923,8 +923,8 @@ namespace Shoko.Server
                         string.IsNullOrEmpty(txtMSSQL_Password.Password)
                         || string.IsNullOrEmpty(cboMSSQLServerList.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
                     {
-                        MessageBox.Show(Shoko.Server.Properties.Resources.Server_FillOutSettings,
-                            Shoko.Server.Properties.Resources.Error,
+                        MessageBox.Show(Shoko.Commons.Properties.Resources.Server_FillOutSettings,
+                            Shoko.Commons.Properties.Resources.Error,
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         txtMSSQL_DatabaseName.Focus();
                         return;
@@ -943,8 +943,8 @@ namespace Shoko.Server
                         || string.IsNullOrEmpty(txtMySQL_ServerAddress.Text) ||
                         string.IsNullOrEmpty(txtMySQL_Username.Text))
                     {
-                        MessageBox.Show(Shoko.Server.Properties.Resources.Server_FillOutSettings,
-                            Shoko.Server.Properties.Resources.Error,
+                        MessageBox.Show(Shoko.Commons.Properties.Resources.Server_FillOutSettings,
+                            Shoko.Commons.Properties.Resources.Error,
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         txtMySQL_DatabaseName.Focus();
                         return;
@@ -962,8 +962,8 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_FailedToStart + ex.Message,
-                    Shoko.Server.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_FailedToStart + ex.Message,
+                    Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1036,7 +1036,7 @@ namespace Shoko.Server
             {
                 ServerInfo.Instance.RefreshImportFolders();
                 ServerInfo.Instance.RefreshCloudAccounts();
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_Complete;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_Complete;
                 ServerState.Instance.ServerOnline = true;
 
                 tabControl1.SelectedIndex = 0;
@@ -1092,7 +1092,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                MessageBox.Show(ex.Message, Shoko.Server.Properties.Resources.Error, MessageBoxButton.OK,
+                MessageBox.Show(ex.Message, Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
 
@@ -1169,7 +1169,7 @@ namespace Shoko.Server
             try
             {
                 ServerState.Instance.ServerOnline = false;
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_Cleaning;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_Cleaning;
 
                 StopWatchingFiles();
 
@@ -1195,13 +1195,13 @@ namespace Shoko.Server
 
                 DatabaseFactory.CloseSessionFactory();
 
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_Initializing;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_Initializing;
                 Thread.Sleep(1000);
 
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_DatabaseSetup;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseSetup;
 
                 logger.Info("Initializing Hosts...");
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingHosts;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
                 bool started = true;
                 started &= NetPermissionWrapper(StartNancyHost);
@@ -1223,7 +1223,7 @@ namespace Shoko.Server
                     ServerState.Instance.DatabaseAvailable = false;
 
                     if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
-                        ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_DatabaseConfig;
+                        ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseConfig;
                     e.Result = false;
                     return;
                 }
@@ -1235,13 +1235,13 @@ namespace Shoko.Server
 
 
                 //init session factory
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingSession;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_InitializingSession;
                 ISessionFactory temp = DatabaseFactory.SessionFactory;
 
 
 
 
-	            ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingQueue;
+	            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_InitializingQueue;
                 ShokoService.CmdProcessorGeneral.Init();
                 ShokoService.CmdProcessorHasher.Init();
                 ShokoService.CmdProcessorImages.Init();
@@ -1261,7 +1261,7 @@ namespace Shoko.Server
                 autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
                 autoUpdateTimerShort.Start();
 
-                ServerState.Instance.CurrentSetupStatus = Shoko.Server.Properties.Resources.Server_InitializingFile;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_InitializingFile;
 
                 StartFileWorker();
 
@@ -1292,8 +1292,8 @@ namespace Shoko.Server
         void btnUpdateMediaInfo_Click(object sender, RoutedEventArgs e)
         {
             RefreshAllMediaInfo();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Serrver_VideoMediaUpdate,
-                Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Serrver_VideoMediaUpdate,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -1508,7 +1508,7 @@ namespace Shoko.Server
         {
             if (workerMyAnime2.IsBusy)
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_Import, Shoko.Server.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Import, Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1536,8 +1536,8 @@ namespace Shoko.Server
 
             if (string.IsNullOrEmpty(txtServerPort.Text))
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_EnterAnyValue,
-                    Shoko.Server.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_EnterAnyValue,
+                    Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 txtServerPort.Focus();
                 return;
@@ -1547,15 +1547,15 @@ namespace Shoko.Server
             int.TryParse(txtServerPort.Text, out port);
             if (port <= 0 || port > 65535)
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_EnterCertainValue,
-                    Shoko.Server.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_EnterCertainValue,
+                    Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 txtServerPort.Focus();
                 return;
             }
             if (!Utils.IsAdministrator())
             {
-                MessageBox.Show(Shoko.Server.Properties.Resources.Settings_ChangeServerPortFail, Shoko.Server.Properties.Resources.Error,MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Settings_ChangeServerPortFail, Shoko.Commons.Properties.Resources.Error,MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             try
@@ -1586,7 +1586,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error( ex,ex.ToString());
-                MessageBox.Show(ex.Message, Shoko.Server.Properties.Resources.Error, MessageBoxButton.OK,
+                MessageBox.Show(ex.Message, Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
         }
@@ -2014,8 +2014,8 @@ namespace Shoko.Server
                     SVR_ImportFolder fldr = (SVR_ImportFolder)obj;
 
                     ScanFolder(fldr.ImportFolderID);
-                    MessageBox.Show(Shoko.Server.Properties.Resources.Server_ScanFolder,
-                        Shoko.Server.Properties.Resources.Success,
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.Server_ScanFolder,
+                        Shoko.Commons.Properties.Resources.Success,
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -2079,8 +2079,8 @@ namespace Shoko.Server
                 this.Cursor = Cursors.Wait;
                 Importer.RunImport_UpdateAllAniDB();
                 this.Cursor = Cursors.Arrow;
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_AniDBInfoUpdate,
-                    Shoko.Server.Properties.Resources.Success,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_AniDBInfoUpdate,
+                    Shoko.Commons.Properties.Resources.Success,
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -2096,8 +2096,8 @@ namespace Shoko.Server
                 this.Cursor = Cursors.Wait;
                 Importer.RunImport_UpdateTvDB(false);
                 this.Cursor = Cursors.Arrow;
-                MessageBox.Show(Shoko.Server.Properties.Resources.Server_TvDBInfoUpdate,
-                    Shoko.Server.Properties.Resources.Success,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_TvDBInfoUpdate,
+                    Shoko.Commons.Properties.Resources.Success,
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -2111,8 +2111,8 @@ namespace Shoko.Server
             this.Cursor = Cursors.Wait;
             Importer.UpdateAllStats();
             this.Cursor = Cursors.Arrow;
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_StatsInfoUpdate,
-                Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_StatsInfoUpdate,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -2123,7 +2123,7 @@ namespace Shoko.Server
 			Importer.RunImport_UpdateTvDB(true);
 			DownloadAllImages();
 			this.Cursor = Cursors.Arrow;
-			MessageBox.Show(Shoko.Server.Properties.Resources.Server_UpdateImages, Shoko.Server.Properties.Resources.Success,
+			MessageBox.Show(Shoko.Commons.Properties.Resources.Server_UpdateImages, Shoko.Commons.Properties.Resources.Success,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
@@ -2131,7 +2131,7 @@ namespace Shoko.Server
         {
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
             cmdVotes.Save();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_SyncVotes, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncVotes, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
             //JMMService.AnidbProcessor.IsBanned = true;
         }
@@ -2139,7 +2139,7 @@ namespace Shoko.Server
         void btnSyncMyList_Click(object sender, RoutedEventArgs e)
         {
             SyncMyList();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_SyncMyList, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMyList, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -2152,21 +2152,21 @@ namespace Shoko.Server
                 cmd.Save();
             }
             this.Cursor = Cursors.Arrow;
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_SyncTrakt, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncTrakt, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void btnRunImport_Click(object sender, RoutedEventArgs e)
         {
             RunImport();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_ImportRunning, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_ImportRunning, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void btnRemoveMissingFiles_Click(object sender, RoutedEventArgs e)
         {
             RemoveMissingFiles();
-            MessageBox.Show(Shoko.Server.Properties.Resources.Server_RemoveMissingFiles, Shoko.Server.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_RemoveMissingFiles, Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -2287,13 +2287,13 @@ namespace Shoko.Server
 
             //Add the Menu Item to the context menu
             System.Windows.Forms.ToolStripMenuItem mnuShow = new System.Windows.Forms.ToolStripMenuItem();
-            mnuShow.Text = Shoko.Server.Properties.Resources.Toolbar_Show;
+            mnuShow.Text = Shoko.Commons.Properties.Resources.Toolbar_Show;
             mnuShow.Click += new EventHandler(mnuShow_Click);
             ctxTrayMenu.Items.Add(mnuShow);
 
             //Add the Menu Item to the context menu
             System.Windows.Forms.ToolStripMenuItem mnuExit = new System.Windows.Forms.ToolStripMenuItem();
-            mnuExit.Text = Shoko.Server.Properties.Resources.Toolbar_Shutdown;
+            mnuExit.Text = Shoko.Commons.Properties.Resources.Toolbar_Shutdown;
             mnuExit.Click += new EventHandler(mnuExit_Click);
             ctxTrayMenu.Items.Add(mnuExit);
 
@@ -2317,8 +2317,8 @@ namespace Shoko.Server
         {
             this.Hide();
             TippuTrayNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            TippuTrayNotify.BalloonTipTitle = Shoko.Server.Properties.Resources.ShokoServer;
-            TippuTrayNotify.BalloonTipText = Shoko.Server.Properties.Resources.Server_MinimizeInfo;
+            TippuTrayNotify.BalloonTipTitle = Shoko.Commons.Properties.Resources.ShokoServer;
+            TippuTrayNotify.BalloonTipText = Shoko.Commons.Properties.Resources.Server_MinimizeInfo;
             //TippuTrayNotify.ShowBalloonTip(400);
         }
 

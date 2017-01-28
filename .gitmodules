@@ -1,9 +1,6 @@
 [submodule "NutzCode.CloudFileSystem"]
 	path = NutzCode.CloudFileSystem
 	url = https://github.com/maxpiva/NutzCode.CloudFileSystem.git
-[submodule "Shoko.Models"]
-	path = Shoko.Models
-	url = https://github.com/japanesemediamanager/Shoko.Models
 [submodule "Shoko.Commons"]
 	path = Shoko.Commons
 	url = https://github.com/japanesemediamanager/Shoko.Commons

@@ -79,14 +79,14 @@ namespace AniDBAPI
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 DateTime start = DateTime.Now;
-                string msg = string.Format(Shoko.Server.Properties.Resources.AniDB_GettingAnimeXML, animeID);
+                string msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_GettingAnimeXML, animeID);
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 rawXML = APIUtils.DownloadWebPage(uri);
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;
                 if (content.Length > 100) content = content.Substring(0, 100);
-                msg = string.Format(Shoko.Server.Properties.Resources.AniDB_GotAnimeXML, animeID, ts.TotalMilliseconds,
+                msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_GotAnimeXML, animeID, ts.TotalMilliseconds,
                     content);
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 

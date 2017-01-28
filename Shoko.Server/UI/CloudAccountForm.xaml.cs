@@ -20,6 +20,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Repositories.Cached;
 using NLog;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Notification;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Application = System.Windows.Application;
@@ -29,16 +30,16 @@ namespace Shoko.Server
     /// <summary>
     /// Interaction logic for CloudAccountForm.xaml
     /// </summary>
-    public partial class CloudAccountForm : Window, INotifyPropertyChanged
+    public partial class CloudAccountForm : Window, INotifyPropertyChangedExt
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public static Scanner Instance { get; set; } = new Scanner();
 
-        protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
+        public event PropertyChangedEventHandler PropertyChanged;
+        public void NotifyPropertyChanged(string propname)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            handler?.Invoke(this, e);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
         }
 
         public CloudAccountForm()
@@ -62,7 +63,7 @@ namespace Shoko.Server
                 {
                     if (ServerInfo.Instance.CloudAccounts.Any(a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
                     {
-                        Utils.ShowErrorMessage(Shoko.Server.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
+                        Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
                         return;
                     }
                     if (SaveAccount == null)
@@ -98,7 +99,7 @@ namespace Shoko.Server
                 {
                     if (ServerInfo.Instance.CloudAccounts.Any(a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
                     {
-                        Utils.ShowErrorMessage(Shoko.Server.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
+                        Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
                         return;
                     }
                     WorkingAccount.Provider = ((ServerInfo.CloudProvider) comboProvider.SelectedItem).Name;
@@ -152,10 +153,9 @@ namespace Shoko.Server
             Application.Current.Dispatcher.Invoke(() =>
                 TextStatus.Text =
                     IsConnected
-                        ? Shoko.Server.Properties.Resources.CloudAccount_Connected
-                        : Shoko.Server.Properties.Resources.CloudAccount_NotConnected);
-            OnPropertyChanged(new PropertyChangedEventArgs("IsConnected"));
-            OnPropertyChanged(new PropertyChangedEventArgs("IsNotConnected"));
+                        ? Shoko.Commons.Properties.Resources.CloudAccount_Connected
+                        : Shoko.Commons.Properties.Resources.CloudAccount_NotConnected);
+            this.OnPropertyChanged(() => IsConnected, () => IsNotConnected);
 
         }
         public bool EnableConnect => (comboProvider.SelectedIndex >= 0 && !string.IsNullOrEmpty(txtCloudAccountName.Text));

@@ -42,7 +42,7 @@ namespace Shoko.Server
                 {
                     SVR_CloudAccount ns = (SVR_CloudAccount)obj;
 
-                    MessageBoxResult res = MessageBox.Show(string.Format(Shoko.Server.Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,ns.Provider), Shoko.Server.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult res = MessageBox.Show(string.Format(Shoko.Commons.Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,ns.Provider), Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
                     {
                         Cursor = Cursors.Wait;

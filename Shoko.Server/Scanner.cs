@@ -8,6 +8,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Notification;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Collections;
@@ -18,7 +19,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server
 {
-    public class Scanner : INotifyPropertyChanged
+    public class Scanner : INotifyPropertyChangedExt
     {
         private BackgroundWorker workerIntegrityScanner = new BackgroundWorker();
 
@@ -34,10 +35,9 @@ namespace Shoko.Server
         public static Scanner Instance { get; set; } = new Scanner();
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
+        public void NotifyPropertyChanged(string propname)
         {
-            PropertyChanged?.Invoke(this,e);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
         }
 
         private int queueCount = 0;
@@ -46,9 +46,8 @@ namespace Shoko.Server
         {
             get { return queueCount; }
             set
-            {
-                queueCount = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("QueueCount"));
+{
+                queueCount  = this.SetField(queueCount ,value);
             }
         }
 
@@ -150,11 +149,7 @@ namespace Shoko.Server
 
         public void Refresh()
         {
-            OnPropertyChanged(new PropertyChangedEventArgs("Exists"));
-            OnPropertyChanged(new PropertyChangedEventArgs("Finished"));
-            OnPropertyChanged(new PropertyChangedEventArgs("QueueState"));
-            OnPropertyChanged(new PropertyChangedEventArgs("QueuePaused"));
-            OnPropertyChanged(new PropertyChangedEventArgs("QueueRunning"));
+            this.OnPropertyChanged(()=>Exists, ()=>Finished, ()=>QueueState, ()=>QueuePaused, ()=>QueueRunning);
             if (activeScan!=null)
                 QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
         }

@@ -8,6 +8,7 @@ using System.Windows.Media;
 using Shoko.Server.Collections;
 using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Notification;
 using Shoko.Models.Azure;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
@@ -16,7 +17,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server
 {
-    public class ServerInfo : INotifyPropertyChanged
+    public class ServerInfo : INotifyPropertyChangedExt
     {
         private static ServerInfo _instance;
 
@@ -35,15 +36,11 @@ namespace Shoko.Server
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
+        public void NotifyPropertyChanged(string propname)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
         }
+
 
         private ServerInfo()
         {
@@ -159,9 +156,8 @@ namespace Shoko.Server
         {
             get { return adminMessagesAvailable; }
             set
-            {
-                adminMessagesAvailable = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("AdminMessagesAvailable"));
+{
+                adminMessagesAvailable  = this.SetField(adminMessagesAvailable ,value);
             }
         }
 
@@ -171,9 +167,8 @@ namespace Shoko.Server
         {
             get { return hasherQueueCount; }
             set
-            {
-                hasherQueueCount = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueCount"));
+{
+                hasherQueueCount  = this.SetField(hasherQueueCount ,value);
             }
         }
 
@@ -183,9 +178,8 @@ namespace Shoko.Server
         {
             get { return hasherQueueState; }
             set
-            {
-                hasherQueueState = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueState"));
+{
+                hasherQueueState  = this.SetField(hasherQueueState ,value);
             }
         }
 
@@ -195,9 +189,8 @@ namespace Shoko.Server
         {
             get { return imagesQueueCount; }
             set
-            {
-                imagesQueueCount = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueCount"));
+{
+                imagesQueueCount  = this.SetField(imagesQueueCount ,value);
             }
         }
 
@@ -207,9 +200,8 @@ namespace Shoko.Server
         {
             get { return imagesQueueState; }
             set
-            {
-                imagesQueueState = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueState"));
+{
+                imagesQueueState  = this.SetField(imagesQueueState ,value);
             }
         }
 
@@ -219,9 +211,8 @@ namespace Shoko.Server
         {
             get { return generalQueueCount; }
             set
-            {
-                generalQueueCount = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueCount"));
+{
+                generalQueueCount  = this.SetField(generalQueueCount ,value);
             }
         }
 
@@ -231,9 +222,8 @@ namespace Shoko.Server
         {
             get { return generalQueueState; }
             set
-            {
-                generalQueueState = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueState"));
+{
+                generalQueueState  = this.SetField(generalQueueState ,value);
             }
         }
 
@@ -243,9 +233,8 @@ namespace Shoko.Server
         {
             get { return hasherQueuePaused; }
             set
-            {
-                hasherQueuePaused = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueuePaused"));
+{
+                hasherQueuePaused  = this.SetField(hasherQueuePaused ,value);
             }
         }
 
@@ -255,9 +244,8 @@ namespace Shoko.Server
         {
             get { return hasherQueueRunning; }
             set
-            {
-                hasherQueueRunning = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueRunning"));
+{
+                hasherQueueRunning  = this.SetField(hasherQueueRunning ,value);
             }
         }
 
@@ -267,9 +255,8 @@ namespace Shoko.Server
         {
             get { return generalQueuePaused; }
             set
-            {
-                generalQueuePaused = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueuePaused"));
+{
+                generalQueuePaused  = this.SetField(generalQueuePaused ,value);
             }
         }
 
@@ -279,9 +266,8 @@ namespace Shoko.Server
         {
             get { return generalQueueRunning; }
             set
-            {
-                generalQueueRunning = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueRunning"));
+{
+                generalQueueRunning  = this.SetField(generalQueueRunning ,value);
             }
         }
 
@@ -291,9 +277,8 @@ namespace Shoko.Server
         {
             get { return imagesQueuePaused; }
             set
-            {
-                imagesQueuePaused = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueuePaused"));
+{
+                imagesQueuePaused  = this.SetField(imagesQueuePaused ,value);
             }
         }
 
@@ -303,9 +288,8 @@ namespace Shoko.Server
         {
             get { return imagesQueueRunning; }
             set
-            {
-                imagesQueueRunning = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueRunning"));
+{
+                imagesQueueRunning  = this.SetField(imagesQueueRunning ,value);
             }
         }
 
@@ -315,9 +299,8 @@ namespace Shoko.Server
         {
             get { return banReason; }
             set
-            {
-                banReason = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("BanReason"));
+{
+                banReason  = this.SetField(banReason ,value);
             }
         }
 
@@ -327,9 +310,8 @@ namespace Shoko.Server
         {
             get { return banOrigin; }
             set
-            {
-                banOrigin = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("BanOrigin"));
+{
+                banOrigin  = this.SetField(banOrigin ,value);
             }
         }
 
@@ -339,9 +321,8 @@ namespace Shoko.Server
         {
             get { return isBanned; }
             set
-            {
-                isBanned = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("IsBanned"));
+{
+                isBanned  = this.SetField(isBanned ,value);
             }
         }
 
@@ -351,9 +332,8 @@ namespace Shoko.Server
         {
             get { return isInvalidSession; }
             set
-            {
-                isInvalidSession = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("IsInvalidSession"));
+{
+                isInvalidSession  = this.SetField(isInvalidSession ,value);
             }
         }
 
@@ -363,10 +343,9 @@ namespace Shoko.Server
         {
             get { return waitingOnResponseAniDBUDP; }
             set
-            {
-                waitingOnResponseAniDBUDP = value;
+{
+                waitingOnResponseAniDBUDP  = this.SetField(waitingOnResponseAniDBUDP ,value);
                 NotWaitingOnResponseAniDBUDP = !value;
-                OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDP"));
             }
         }
 
@@ -376,13 +355,12 @@ namespace Shoko.Server
         {
             get { return notWaitingOnResponseAniDBUDP; }
             set
-            {
-                notWaitingOnResponseAniDBUDP = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("NotWaitingOnResponseAniDBUDP"));
+{
+                notWaitingOnResponseAniDBUDP  = this.SetField(notWaitingOnResponseAniDBUDP ,value);
             }
         }
 
-        private string waitingOnResponseAniDBUDPString = Shoko.Server.Properties.Resources.Command_Idle;
+        private string waitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
 
         public string WaitingOnResponseAniDBUDPString
         {
@@ -390,13 +368,12 @@ namespace Shoko.Server
             {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                waitingOnResponseAniDBUDPString = Shoko.Server.Properties.Resources.Command_Idle;
+                waitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;
             }
             set
-            {
-                waitingOnResponseAniDBUDPString = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDPString"));
+{
+                waitingOnResponseAniDBUDPString  = this.SetField(waitingOnResponseAniDBUDPString ,value);
             }
         }
 
@@ -406,9 +383,8 @@ namespace Shoko.Server
         {
             get { return extendedPauseString; }
             set
-            {
-                extendedPauseString = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ExtendedPauseString"));
+{
+                extendedPauseString  = this.SetField(extendedPauseString ,value);
             }
         }
 
@@ -418,9 +394,8 @@ namespace Shoko.Server
         {
             get { return hasExtendedPause; }
             set
-            {
-                hasExtendedPause = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("HasExtendedPause"));
+{
+                hasExtendedPause  = this.SetField(hasExtendedPause ,value);
             }
         }
 
