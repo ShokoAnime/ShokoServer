@@ -49,6 +49,8 @@
     <Compile Include="Extensions\Models.cs" />
     <Compile Include="FolderMappings.cs" />
     <Compile Include="Languages\EnumTranslator.cs" />
+    <Compile Include="Notification\INotifyPropertyChangedExt.cs" />
+    <Compile Include="Notification\INotifyPropertyChangedExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.de.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -162,5 +164,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
