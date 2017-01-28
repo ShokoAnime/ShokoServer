@@ -97,11 +97,137 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sync Votes.
+        ///   Looks up a localized string similar to Check for Updates.
+        /// </summary>
+        public static string About_UpdateCheck {
+            get {
+                return ResourceManager.GetString("About_UpdateCheck", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove Missing Files.
+        /// </summary>
+        public static string Actions_RemoveMissing {
+            get {
+                return ResourceManager.GetString("Actions_RemoveMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run Import.
+        /// </summary>
+        public static string Actions_RunImport {
+            get {
+                return ResourceManager.GetString("Actions_RunImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync Hashes.
+        /// </summary>
+        public static string Actions_SyncHashes {
+            get {
+                return ResourceManager.GetString("Actions_SyncHashes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync Media Infos.
+        /// </summary>
+        public static string Actions_SyncMedias {
+            get {
+                return ResourceManager.GetString("Actions_SyncMedias", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync AniDB MyList.
+        /// </summary>
+        public static string Actions_SyncMyList {
+            get {
+                return ResourceManager.GetString("Actions_SyncMyList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync Trakt Collection.
+        /// </summary>
+        public static string Actions_SyncTrakt {
+            get {
+                return ResourceManager.GetString("Actions_SyncTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upload Local Votes To AniDB And MAL.
         /// </summary>
         public static string Actions_SyncVotes {
             get {
                 return ResourceManager.GetString("Actions_SyncVotes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All Media Info.
+        /// </summary>
+        public static string Actions_UpdateAllMediaInfo {
+            get {
+                return ResourceManager.GetString("Actions_UpdateAllMediaInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All Stats.
+        /// </summary>
+        public static string Actions_UpdateAllStats {
+            get {
+                return ResourceManager.GetString("Actions_UpdateAllStats", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All AniDB Series Info.
+        /// </summary>
+        public static string Actions_UpdateAniDB {
+            get {
+                return ResourceManager.GetString("Actions_UpdateAniDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update Images.
+        /// </summary>
+        public static string Actions_UpdateImages {
+            get {
+                return ResourceManager.GetString("Actions_UpdateImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All Trakt Info.
+        /// </summary>
+        public static string Actions_UpdateTrakt {
+            get {
+                return ResourceManager.GetString("Actions_UpdateTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All TvDB Info.
+        /// </summary>
+        public static string Actions_UpdateTvDB {
+            get {
+                return ResourceManager.GetString("Actions_UpdateTvDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upload All Anime data To Azure Cache.
+        /// </summary>
+        public static string Actions_UploadCache {
+            get {
+                return ResourceManager.GetString("Actions_UploadCache", resourceCulture);
             }
         }
         
@@ -120,6 +246,24 @@ namespace Shoko.Commons.Properties {
         public static string AddSubGroup {
             get {
                 return ResourceManager.GetString("AddSubGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Admin Messages.
+        /// </summary>
+        public static string Admin_AdminMessages {
+            get {
+                return ResourceManager.GetString("Admin_AdminMessages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to More Information.
+        /// </summary>
+        public static string Admin_MoreInfo {
+            get {
+                return ResourceManager.GetString("Admin_MoreInfo", resourceCulture);
             }
         }
         
@@ -169,6 +313,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AniDB Activity.
+        /// </summary>
+        public static string AniDB_Activity {
+            get {
+                return ResourceManager.GetString("AniDB_Activity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Paused due to BAN from AniDB.
+        /// </summary>
+        public static string AniDB_Ban {
+            get {
+                return ResourceManager.GetString("AniDB_Ban", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Collecting:.
         /// </summary>
         public static string AniDB_Collecting {
@@ -205,11 +367,29 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting AniDB Titles.
+        ///   Looks up a localized string similar to Getting anime XML data from AniDB: {0}.
+        /// </summary>
+        public static string AniDB_GettingAnimeXML {
+            get {
+                return ResourceManager.GetString("AniDB_GettingAnimeXML", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Getting AniDB titles.
         /// </summary>
         public static string AniDB_GetTitles {
             get {
                 return ResourceManager.GetString("AniDB_GetTitles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Got anime XML Data From AniDB: {0} - {1} - {2}.
+        /// </summary>
+        public static string AniDB_GotAnimeXML {
+            get {
+                return ResourceManager.GetString("AniDB_GotAnimeXML", resourceCulture);
             }
         }
         
@@ -228,6 +408,15 @@ namespace Shoko.Commons.Properties {
         public static string AniDB_In {
             get {
                 return ResourceManager.GetString("AniDB_In", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last message sent {0} seconds ago.
+        /// </summary>
+        public static string AniDB_LastMessage {
+            get {
+                return ResourceManager.GetString("AniDB_LastMessage", resourceCulture);
             }
         }
         
@@ -259,11 +448,38 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Paused communications for {0} seconds: {1} .
+        /// </summary>
+        public static string AniDB_Paused {
+            get {
+                return ResourceManager.GetString("AniDB_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Recommended.
         /// </summary>
         public static string AniDB_Recommended {
             get {
                 return ResourceManager.GetString("AniDB_Recommended", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting on response....
+        /// </summary>
+        public static string AniDB_ResponseWait {
+            get {
+                return ResourceManager.GetString("AniDB_ResponseWait", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting on response for {0} seconds....
+        /// </summary>
+        public static string AniDB_ResponseWaitSeconds {
+            get {
+                return ResourceManager.GetString("AniDB_ResponseWaitSeconds", resourceCulture);
             }
         }
         
@@ -1555,11 +1771,146 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Connected.
+        /// </summary>
+        public static string CloudAccount_Connected {
+            get {
+                return ResourceManager.GetString("CloudAccount_Connected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not Connected.
+        /// </summary>
+        public static string CloudAccount_NotConnected {
+            get {
+                return ResourceManager.GetString("CloudAccount_NotConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Account.
+        /// </summary>
+        public static string CloudAccounts_Add {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Cloud Account.
+        /// </summary>
+        public static string CloudAccounts_AddCloudAccount {
+            get {
+                return ResourceManager.GetString("CloudAccounts_AddCloudAccount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the Service Provider and input a name for the Cloud account. Clicking Connect will take you to your selected Service Provider&apos;s login page..
+        /// </summary>
+        public static string CloudAccounts_AddCloudInfo {
+            get {
+                return ResourceManager.GetString("CloudAccounts_AddCloudInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Selected Cloud Account Name already exists.
+        /// </summary>
+        public static string CloudAccounts_CloudNameAlreadyExists {
+            get {
+                return ResourceManager.GetString("CloudAccounts_CloudNameAlreadyExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connect.
+        /// </summary>
+        public static string CloudAccounts_Connect {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Connect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select your Cloud Provider and follow the instructions to add your Cloud account for use with Shoko Server..
+        /// </summary>
+        public static string CloudAccounts_Info {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting a Cloud Provider will remove all associated Import Folders and Files..
+        /// </summary>
+        public static string CloudAccounts_Info2 {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Info2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Name.
+        /// </summary>
+        public static string CloudAccounts_Name {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        public static string CloudAccounts_Remove {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to remove the following the Cloud Account &apos;{0}&apos; from {1}? Any Import Folder using this account will be deleted, and every file link associated with those import folders will be also deleted..
+        /// </summary>
+        public static string CloudAccounts_RemoveMessage {
+            get {
+                return ResourceManager.GetString("CloudAccounts_RemoveMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service Provider.
+        /// </summary>
+        public static string CloudAccounts_Service {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Service", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cloud Accounts.
+        /// </summary>
+        public static string CloudAccounts_Title {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Getting anime info from HTTP API: {0}.
         /// </summary>
         public static string Command_AnimeInfo {
             get {
                 return ResourceManager.GetString("Command_AnimeInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checking File for Hashes: {0}.
+        /// </summary>
+        public static string Command_CheckingFile {
+            get {
+                return ResourceManager.GetString("Command_CheckingFile", resourceCulture);
             }
         }
         
@@ -1672,7 +2023,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting list of updated animes from UDP API.
+        ///   Looks up a localized string similar to Getting list of updated anime from UDP API.
         /// </summary>
         public static string Command_GetUpdatedAnime {
             get {
@@ -1726,7 +2077,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Reading Media Info for File: {0}.
+        ///   Looks up a localized string similar to Reading media info for file: {0}.
         /// </summary>
         public static string Command_ReadingMedia {
             get {
@@ -1735,11 +2086,20 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Refreshing Anime Stats: {0}.
+        ///   Looks up a localized string similar to Refreshing anime stats: {0}.
         /// </summary>
         public static string Command_Refresh {
             get {
                 return ResourceManager.GetString("Command_Refresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refreshing Group Filter: {0}.
+        /// </summary>
+        public static string Command_RefreshGroupFilter {
+            get {
+                return ResourceManager.GetString("Command_RefreshGroupFilter", resourceCulture);
             }
         }
         
@@ -1789,7 +2149,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sending anime full to azure: {0}.
+        ///   Looks up a localized string similar to Sending all anime info to azure: {0}.
         /// </summary>
         public static string Command_SendAnimeFull {
             get {
@@ -1816,7 +2176,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting command worker (general)....
+        ///   Looks up a localized string similar to Starting general command worker.
         /// </summary>
         public static string Command_StartingGeneral {
             get {
@@ -1825,7 +2185,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting command worker (hasher)....
+        ///   Looks up a localized string similar to Starting hasher command worker.
         /// </summary>
         public static string Command_StartingHasher {
             get {
@@ -1834,7 +2194,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting command worker (images)....
+        ///   Looks up a localized string similar to Starting image downloading command worker.
         /// </summary>
         public static string Command_StartingImages {
             get {
@@ -1852,7 +2212,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing Trakt Collection.
+        ///   Looks up a localized string similar to Syncing Trakt collection.
         /// </summary>
         public static string Command_SyncTrakt {
             get {
@@ -1870,7 +2230,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing Trakt Collection for series: {0}.
+        ///   Looks up a localized string similar to Syncing Trakt collection for series: {0}.
         /// </summary>
         public static string Command_SyncTraktSeries {
             get {
@@ -1879,7 +2239,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing Vote info from HTTP API.
+        ///   Looks up a localized string similar to Syncing vote info from HTTP API.
         /// </summary>
         public static string Command_SyncVotes {
             get {
@@ -1897,7 +2257,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating status on MAL: {0}.
+        ///   Looks up a localized string similar to Updating watched status on MAL: {0}.
         /// </summary>
         public static string Command_UpdateMALWatched {
             get {
@@ -1915,7 +2275,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating AniDB MyListStats.
+        ///   Looks up a localized string similar to Updating AniDB MyList Stats.
         /// </summary>
         public static string Command_UpdateMyListStats {
             get {
@@ -1924,7 +2284,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating all Trakt Series Info.
+        ///   Looks up a localized string similar to Updating all Trakt series info added to queue.
         /// </summary>
         public static string Command_UpdateTrakt {
             get {
@@ -2653,11 +3013,47 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Waiting for Blu-ray Completion.
+        /// </summary>
+        public static string CustomTag_BlurayComplete {
+            get {
+                return ResourceManager.GetString("CustomTag_BlurayComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Will start watching this once all episodes are available in Blu-Ray.
+        /// </summary>
+        public static string CustomTag_BlurayCompleteInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_BlurayCompleteInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Tag Description.
         /// </summary>
         public static string CustomTag_Description {
             get {
                 return ResourceManager.GetString("CustomTag_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dropped.
+        /// </summary>
+        public static string CustomTag_Dropped {
+            get {
+                return ResourceManager.GetString("CustomTag_Dropped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Started watching this series, but have since dropped it.
+        /// </summary>
+        public static string CustomTag_DroppedInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_DroppedInfo", resourceCulture);
             }
         }
         
@@ -2676,6 +3072,60 @@ namespace Shoko.Commons.Properties {
         public static string CustomTag_Name {
             get {
                 return ResourceManager.GetString("CustomTag_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ongoing.
+        /// </summary>
+        public static string CustomTag_Ongoing {
+            get {
+                return ResourceManager.GetString("CustomTag_Ongoing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This series does not have an end date.
+        /// </summary>
+        public static string CustomTag_OngoingInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_OngoingInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pinned.
+        /// </summary>
+        public static string CustomTag_Pinned {
+            get {
+                return ResourceManager.GetString("CustomTag_Pinned", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pinned this series for whatever reason you like.
+        /// </summary>
+        public static string CustomTag_PinnedInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_PinnedInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for Series Completion.
+        /// </summary>
+        public static string CustomTag_SeriesComplete {
+            get {
+                return ResourceManager.GetString("CustomTag_SeriesComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Will start watching this once this series is finished.
+        /// </summary>
+        public static string CustomTag_SeriesCompleteInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_SeriesCompleteInfo", resourceCulture);
             }
         }
         
@@ -2869,6 +3319,114 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database - Applying Schema Patches....
+        /// </summary>
+        public static string Database_ApplySchema {
+            get {
+                return ResourceManager.GetString("Database_ApplySchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Version detected. Database Backup in progress....
+        /// </summary>
+        public static string Database_Backup {
+            get {
+                return ResourceManager.GetString("Database_Backup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database Cache - Caching  - {0}{1}....
+        /// </summary>
+        public static string Database_Cache {
+            get {
+                return ResourceManager.GetString("Database_Cache", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Creating Database....
+        /// </summary>
+        public static string Database_CreateDatabase {
+            get {
+                return ResourceManager.GetString("Database_CreateDatabase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Creating Initial Schema....
+        /// </summary>
+        public static string Database_CreateSchema {
+            get {
+                return ResourceManager.GetString("Database_CreateSchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Custom Tags)....
+        /// </summary>
+        public static string Database_CustomTags {
+            get {
+                return ResourceManager.GetString("Database_CustomTags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Group Filters)....
+        /// </summary>
+        public static string Database_Filters {
+            get {
+                return ResourceManager.GetString("Database_Filters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Session Factory....
+        /// </summary>
+        public static string Database_Initializing {
+            get {
+                return ResourceManager.GetString("Database_Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Locked Group Filters)....
+        /// </summary>
+        public static string Database_LockFilters {
+            get {
+                return ResourceManager.GetString("Database_LockFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Database Version is bigger than the supported version by Shoko Server. You should upgrade Shoko Server..
+        /// </summary>
+        public static string Database_NotSupportedVersion {
+            get {
+                return ResourceManager.GetString("Database_NotSupportedVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Rename Script)....
+        /// </summary>
+        public static string Database_RenameScripts {
+            get {
+                return ResourceManager.GetString("Database_RenameScripts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Users)....
+        /// </summary>
+        public static string Database_Users {
+            get {
+                return ResourceManager.GetString("Database_Users", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Days.
         /// </summary>
         public static string Days {
@@ -3031,7 +3589,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Click here for detailed explanation of options.
+        ///   Looks up a localized string similar to Detailed explanation of options.
         /// </summary>
         public static string DetailedExplanation {
             get {
@@ -3553,7 +4111,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicate install detected.
+        ///   Looks up a localized string similar to Duplicate Install Detected.
         /// </summary>
         public static string DuplicateInstallDetected {
             get {
@@ -3562,7 +4120,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You have both Shoko Desktop and JMM Desktop installed. Do you want to uninstall JMM Desktop?.
+        ///   Looks up a localized string similar to You have both Shoko Server and JMM Server installed. Do you want to uninstall JMM Server?.
         /// </summary>
         public static string DuplicateInstallDetectedQuestion {
             get {
@@ -3576,6 +4134,24 @@ namespace Shoko.Commons.Properties {
         public static string Edit {
             get {
                 return ResourceManager.GetString("Edit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable Kodi.
+        /// </summary>
+        public static string EnableKodi {
+            get {
+                return ResourceManager.GetString("EnableKodi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable Plex.
+        /// </summary>
+        public static string EnablePlex {
+            get {
+                return ResourceManager.GetString("EnablePlex", resourceCulture);
             }
         }
         
@@ -3895,11 +4471,20 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Credits.
+        ///   Looks up a localized string similar to Credit.
         /// </summary>
         public static string EpisodeType_Credits {
             get {
                 return ResourceManager.GetString("EpisodeType_Credits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Episodes.
+        /// </summary>
+        public static string EpisodeType_Episodes {
+            get {
+                return ResourceManager.GetString("EpisodeType_Episodes", resourceCulture);
             }
         }
         
@@ -3940,7 +4525,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Trailers.
+        ///   Looks up a localized string similar to Trailer.
         /// </summary>
         public static string EpisodeType_Trailer {
             get {
@@ -4084,6 +4669,78 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Newly Added Series.
+        /// </summary>
+        public static string Filter_Added {
+            get {
+                return ResourceManager.GetString("Filter_Added", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Newly Airing Series.
+        /// </summary>
+        public static string Filter_Airing {
+            get {
+                return ResourceManager.GetString("Filter_Airing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All.
+        /// </summary>
+        public static string Filter_All {
+            get {
+                return ResourceManager.GetString("Filter_All", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Continue Watching (SYSTEM).
+        /// </summary>
+        public static string Filter_Continue {
+            get {
+                return ResourceManager.GetString("Filter_Continue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creating All filter.
+        /// </summary>
+        public static string Filter_CreateAll {
+            get {
+                return ResourceManager.GetString("Filter_CreateAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creating Continue Watching filter.
+        /// </summary>
+        public static string Filter_CreateContinueWatching {
+            get {
+                return ResourceManager.GetString("Filter_CreateContinueWatching", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creating Tag.
+        /// </summary>
+        public static string Filter_CreatingTag {
+            get {
+                return ResourceManager.GetString("Filter_CreatingTag", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creating Year.
+        /// </summary>
+        public static string Filter_CreatingYear {
+            get {
+                return ResourceManager.GetString("Filter_CreatingYear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to delete the Filter Condition: {0}.
         /// </summary>
         public static string Filter_DeleteCondition {
@@ -4111,6 +4768,42 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Favorites.
+        /// </summary>
+        public static string Filter_Favorites {
+            get {
+                return ResourceManager.GetString("Filter_Favorites", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter.
+        /// </summary>
+        public static string Filter_Filter {
+            get {
+                return ResourceManager.GetString("Filter_Filter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TvDB/MovieDB Link Missing.
+        /// </summary>
+        public static string Filter_LinkMissing {
+            get {
+                return ResourceManager.GetString("Filter_LinkMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Missing Episodes.
+        /// </summary>
+        public static string Filter_MissingEpisodes {
+            get {
+                return ResourceManager.GetString("Filter_MissingEpisodes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to New Filter.
         /// </summary>
         public static string Filter_New {
@@ -4125,6 +4818,51 @@ namespace Shoko.Commons.Properties {
         public static string Filter_PlaylistMissing {
             get {
                 return ResourceManager.GetString("Filter_PlaylistMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Recalc Filter.
+        /// </summary>
+        public static string Filter_Recalc {
+            get {
+                return ResourceManager.GetString("Filter_Recalc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Recently Watched.
+        /// </summary>
+        public static string Filter_RecentlyWatched {
+            get {
+                return ResourceManager.GetString("Filter_RecentlyWatched", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tags.
+        /// </summary>
+        public static string Filter_Tags {
+            get {
+                return ResourceManager.GetString("Filter_Tags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Votes Needed.
+        /// </summary>
+        public static string Filter_Votes {
+            get {
+                return ResourceManager.GetString("Filter_Votes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Years.
+        /// </summary>
+        public static string Filter_Years {
+            get {
+                return ResourceManager.GetString("Filter_Years", resourceCulture);
             }
         }
         
@@ -4161,6 +4899,33 @@ namespace Shoko.Commons.Properties {
         public static string ForceRefresh {
             get {
                 return ResourceManager.GetString("ForceRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear all queued general commands.
+        /// </summary>
+        public static string General_Clear {
+            get {
+                return ResourceManager.GetString("General_Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General - Paused.
+        /// </summary>
+        public static string General_Paused {
+            get {
+                return ResourceManager.GetString("General_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General - Running.
+        /// </summary>
+        public static string General_Running {
+            get {
+                return ResourceManager.GetString("General_Running", resourceCulture);
             }
         }
         
@@ -4269,6 +5034,15 @@ namespace Shoko.Commons.Properties {
         public static string GroupFilter_Category_Help {
             get {
                 return ResourceManager.GetString("GroupFilter_Category_Help", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning Up Group Filters.
+        /// </summary>
+        public static string GroupFilter_Cleanup {
+            get {
+                return ResourceManager.GetString("GroupFilter_Cleanup", resourceCulture);
             }
         }
         
@@ -4966,6 +5740,33 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear all queued hash commands.
+        /// </summary>
+        public static string Hash_Clear {
+            get {
+                return ResourceManager.GetString("Hash_Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hasher - Paused.
+        /// </summary>
+        public static string Hash_Paused {
+            get {
+                return ResourceManager.GetString("Hash_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hasher - Running.
+        /// </summary>
+        public static string Hash_Running {
+            get {
+                return ResourceManager.GetString("Hash_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Hide Episode Image When Unwatched.
         /// </summary>
         public static string HideEpisodeImageWhenUnwatched {
@@ -5119,6 +5920,51 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear all queued image download commands.
+        /// </summary>
+        public static string Images_Clear {
+            get {
+                return ResourceManager.GetString("Images_Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom.
+        /// </summary>
+        public static string Images_Custom {
+            get {
+                return ResourceManager.GetString("Images_Custom", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        public static string Images_Default {
+            get {
+                return ResourceManager.GetString("Images_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Images - Paused.
+        /// </summary>
+        public static string Images_Paused {
+            get {
+                return ResourceManager.GetString("Images_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Images - Running.
+        /// </summary>
+        public static string Images_Running {
+            get {
+                return ResourceManager.GetString("Images_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Image Size.
         /// </summary>
         public static string ImageSize {
@@ -5241,6 +6087,204 @@ namespace Shoko.Commons.Properties {
         public static string ImportFolders {
             get {
                 return ResourceManager.GetString("ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fill out the form below to add an import folder. Select the folder&apos;s location and import type and then click Save to add the import folder..
+        /// </summary>
+        public static string ImportFolders_AddImportFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_AddImportFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The import folder path cannot be blank, please enter a valid path..
+        /// </summary>
+        public static string ImportFolders_BlankImport {
+            get {
+                return ResourceManager.GetString("ImportFolders_BlankImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please note, updating your drop destination will only affect new series being added. Series you&apos;ve already imported will not be affected..
+        /// </summary>
+        public static string ImportFolders_DDNote {
+            get {
+                return ResourceManager.GetString("ImportFolders_DDNote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Drop Destination.
+        /// </summary>
+        public static string ImportFolders_DropDestination {
+            get {
+                return ResourceManager.GetString("ImportFolders_DropDestination", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Drop Source.
+        /// </summary>
+        public static string ImportFolders_DropSource {
+            get {
+                return ResourceManager.GetString("ImportFolders_DropSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fix for using.
+        /// </summary>
+        public static string ImportFolders_Fix {
+            get {
+                return ResourceManager.GetString("ImportFolders_Fix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folder.
+        /// </summary>
+        public static string ImportFolders_ImportFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_ImportFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folders.
+        /// </summary>
+        public static string ImportFolders_ImportFolders {
+            get {
+                return ResourceManager.GetString("ImportFolders_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An Import Folder is the physical location of your anime collection, you&apos;ll need at least one Import Folder to use Shoko Server to start building your collection..
+        /// </summary>
+        public static string ImportFolders_Info {
+            get {
+                return ResourceManager.GetString("ImportFolders_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folder Path.
+        /// </summary>
+        public static string ImportFolders_InputPath {
+            get {
+                return ResourceManager.GetString("ImportFolders_InputPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folders are linked to a single Provider and cannot be used with Import Folders from another Provider..
+        /// </summary>
+        public static string ImportFolders_Location {
+            get {
+                return ResourceManager.GetString("ImportFolders_Location", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Folder.
+        /// </summary>
+        public static string ImportFolders_NewFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_NewFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Provider.
+        /// </summary>
+        public static string ImportFolders_Provider {
+            get {
+                return ResourceManager.GetString("ImportFolders_Provider", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        public static string ImportFolders_Remove {
+            get {
+                return ResourceManager.GetString("ImportFolders_Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to remove the following Import Folder: {0}?.
+        /// </summary>
+        public static string ImportFolders_RemoveFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_RemoveFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An import folder cannot be both the drop source and the drop destination..
+        /// </summary>
+        public static string ImportFolders_SameFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_SameFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Cloud Folder....
+        /// </summary>
+        public static string ImportFolders_SelectCloudFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_SelectCloudFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folder Settings.
+        /// </summary>
+        public static string ImportFolders_ServerFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_ServerFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Path.
+        /// </summary>
+        public static string ImportFolders_ServerPath {
+            get {
+                return ResourceManager.GetString("ImportFolders_ServerPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shoko Server with shared drives.
+        /// </summary>
+        public static string ImportFolders_Shared {
+            get {
+                return ResourceManager.GetString("ImportFolders_Shared", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UPnP Source.
+        /// </summary>
+        public static string ImportFolders_UPnP {
+            get {
+                return ResourceManager.GetString("ImportFolders_UPnP", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Watch For New Files.
+        /// </summary>
+        public static string ImportFolders_Watch {
+            get {
+                return ResourceManager.GetString("ImportFolders_Watch", resourceCulture);
             }
         }
         
@@ -5398,6 +6442,141 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AniDB Client Port.
+        /// </summary>
+        public static string InitalSetup_AniDBPort {
+            get {
+                return ResourceManager.GetString("InitalSetup_AniDBPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Password.
+        /// </summary>
+        public static string InitialSetup_AniDBPassword {
+            get {
+                return ResourceManager.GetString("InitialSetup_AniDBPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Username.
+        /// </summary>
+        public static string InitialSetup_AniDBUsername {
+            get {
+                return ResourceManager.GetString("InitialSetup_AniDBUsername", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disposing....
+        /// </summary>
+        public static string InitialSetup_Disposing {
+            get {
+                return ResourceManager.GetString("InitialSetup_Disposing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a valid password..
+        /// </summary>
+        public static string InitialSetup_EnterPassword {
+            get {
+                return ResourceManager.GetString("InitialSetup_EnterPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a valid client port..
+        /// </summary>
+        public static string InitialSetup_EnterPort {
+            get {
+                return ResourceManager.GetString("InitialSetup_EnterPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a valid username..
+        /// </summary>
+        public static string InitialSetup_EnterUsername {
+            get {
+                return ResourceManager.GetString("InitialSetup_EnterUsername", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Don&apos;t have an AniDB account? Click here to register for one.
+        /// </summary>
+        public static string InitialSetup_Get {
+            get {
+                return ResourceManager.GetString("InitialSetup_Get", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initial Setup.
+        /// </summary>
+        public static string InitialSetup_InitialSetup {
+            get {
+                return ResourceManager.GetString("InitialSetup_InitialSetup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logging In....
+        /// </summary>
+        public static string InitialSetup_Login {
+            get {
+                return ResourceManager.GetString("InitialSetup_Login", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Login Credentials.
+        /// </summary>
+        public static string InitialSetup_LoginCredentials {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginCredentials", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB login FAILED!.
+        /// </summary>
+        public static string InitialSetup_LoginFail {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login Success! Logging out....
+        /// </summary>
+        public static string InitialSetup_LoginPass1 {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginPass1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login Success! Logged out..
+        /// </summary>
+        public static string InitialSetup_LoginPass2 {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginPass2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test and Save Login.
+        /// </summary>
+        public static string InitialSetup_Test {
+            get {
+                return ResourceManager.GetString("InitialSetup_Test", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Input Number.
         /// </summary>
         public static string Input_Number {
@@ -5412,6 +6591,141 @@ namespace Shoko.Commons.Properties {
         public static string Input_Text {
             get {
                 return ResourceManager.GetString("Input_Text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You cannot re-add files when the Integrity Check is running..
+        /// </summary>
+        public static string Integerity_ReaddMessage {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You cannot re-add a file when the Integrity Check is running..
+        /// </summary>
+        public static string Integerity_ReaddSingleMessage {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddSingleMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re-Add File.
+        /// </summary>
+        public static string Integerity_ReaddSingleTitle {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddSingleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re-Add Files.
+        /// </summary>
+        public static string Integerity_ReaddTitle {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Integrity Check.
+        /// </summary>
+        public static string Integrity_Add {
+            get {
+                return ResourceManager.GetString("Integrity_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete this Integrity Check?.
+        /// </summary>
+        public static string Integrity_DeleteMessage {
+            get {
+                return ResourceManager.GetString("Integrity_DeleteMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete Integrity Check.
+        /// </summary>
+        public static string Integrity_DeleteTitle {
+            get {
+                return ResourceManager.GetString("Integrity_DeleteTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Files:.
+        /// </summary>
+        public static string Integrity_Files {
+            get {
+                return ResourceManager.GetString("Integrity_Files", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehashed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below..
+        /// </summary>
+        public static string Integrity_Info {
+            get {
+                return ResourceManager.GetString("Integrity_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re-Add All.
+        /// </summary>
+        public static string Integrity_Readd {
+            get {
+                return ResourceManager.GetString("Integrity_Readd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Results.
+        /// </summary>
+        public static string Integrity_Results {
+            get {
+                return ResourceManager.GetString("Integrity_Results", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Import Folders.
+        /// </summary>
+        public static string Integrity_SelectImport {
+            get {
+                return ResourceManager.GetString("Integrity_SelectImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Import Folders to have their files added to the Integrity Check scan..
+        /// </summary>
+        public static string Integrity_SelectInfo {
+            get {
+                return ResourceManager.GetString("Integrity_SelectInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status:.
+        /// </summary>
+        public static string Integrity_Status {
+            get {
+                return ResourceManager.GetString("Integrity_Status", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Integrity Check.
+        /// </summary>
+        public static string Integrity_Title {
+            get {
+                return ResourceManager.GetString("Integrity_Title", resourceCulture);
             }
         }
         
@@ -5452,7 +6766,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shoko Desktop needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
+        ///   Looks up a localized string similar to Shoko Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
         /// </summary>
         public static string Language_Info {
             get {
@@ -5520,6 +6834,15 @@ namespace Shoko.Commons.Properties {
         public static string LatestEp_Yours {
             get {
                 return ResourceManager.GetString("LatestEp_Yours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Learn more about.
+        /// </summary>
+        public static string LearnMore {
+            get {
+                return ResourceManager.GetString("LearnMore", resourceCulture);
             }
         }
         
@@ -5596,6 +6919,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to https://anidb.net/perl-bin/animedb.pl?show=signup.
+        /// </summary>
+        public static string Link_AniDB {
+            get {
+                return ResourceManager.GetString("Link_AniDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/faq/#banned-from-anidb.
+        /// </summary>
+        public static string Link_AniDBBan {
+            get {
+                return ResourceManager.GetString("Link_AniDBBan", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to http://shokoanime.com/faq/#banned-from-anidb.
         /// </summary>
         public static string Link_AniDBBanned {
@@ -5623,11 +6964,20 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://shokoanime.com/changelog/.
+        ///   Looks up a localized string similar to http://shokoanime.com/changelog.
         /// </summary>
         public static string Link_Changelog {
             get {
                 return ResourceManager.GetString("Link_Changelog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts.
+        /// </summary>
+        public static string Link_CloudAccounts {
+            get {
+                return ResourceManager.GetString("Link_CloudAccounts", resourceCulture);
             }
         }
         
@@ -5641,7 +6991,16 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://shokoanime.com/downloads/.
+        ///   Looks up a localized string similar to http://shokoanime.com/contribute/.
+        /// </summary>
+        public static string Link_Contribute {
+            get {
+                return ResourceManager.GetString("Link_Contribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/downloads.
         /// </summary>
         public static string Link_Download {
             get {
@@ -5677,6 +7036,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to https://github.com/japanesemediamanager.
+        /// </summary>
+        public static string Link_GitHub {
+            get {
+                return ResourceManager.GetString("Link_GitHub", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to http://shokoanime.com/Shoko-desktop/collection/filters/#what-are-filters.
         /// </summary>
         public static string Link_GroupFilters {
@@ -5695,11 +7063,29 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-desktop/server/#import-folders.
+        ///   Looks up a localized string similar to http://shokoanime.com/.
+        /// </summary>
+        public static string Link_Home {
+            get {
+                return ResourceManager.GetString("Link_Home", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders.
         /// </summary>
         public static string Link_ImportFolders {
             get {
                 return ResourceManager.GetString("Link_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check.
+        /// </summary>
+        public static string Link_Integrity {
+            get {
+                return ResourceManager.GetString("Link_Integrity", resourceCulture);
             }
         }
         
@@ -5731,6 +7117,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/setup/mysql/.
+        /// </summary>
+        public static string Link_MySQL {
+            get {
+                return ResourceManager.GetString("Link_MySQL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to http://shokoanime.com/Shoko-desktop/settings/#essential.
         /// </summary>
         public static string Link_RelationSettings {
@@ -5740,11 +7135,29 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/faq/#Shoko-shared-drive.
+        /// </summary>
+        public static string Link_SharedDrive {
+            get {
+                return ResourceManager.GetString("Link_SharedDrive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to http://shokoanime.com/.
         /// </summary>
         public static string Link_Site {
             get {
                 return ResourceManager.GetString("Link_Site", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://shokoanime.com/setup/sqlserver/.
+        /// </summary>
+        public static string Link_SQLServer {
+            get {
+                return ResourceManager.GetString("Link_SQLServer", resourceCulture);
             }
         }
         
@@ -5821,11 +7234,20 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Locate settings file.
+        ///   Looks up a localized string similar to Locate Settings File.
         /// </summary>
         public static string LocateSettingsFile {
             get {
                 return ResourceManager.GetString("LocateSettingsFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shoko Server was unable to find an existing config file. If this is your first time running Shoko Server, you can ignore this message and click no. If JMM Server was previously installed, click Yes to manually select the config file..
+        /// </summary>
+        public static string LocateSettingsFileDialog {
+            get {
+                return ResourceManager.GetString("LocateSettingsFileDialog", resourceCulture);
             }
         }
         
@@ -6028,6 +7450,51 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string MessageBox_Cancel {
+            get {
+                return ResourceManager.GetString("MessageBox_Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Folder.
+        /// </summary>
+        public static string MessageBox_NewFolder {
+            get {
+                return ResourceManager.GetString("MessageBox_NewFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No.
+        /// </summary>
+        public static string MessageBox_No {
+            get {
+                return ResourceManager.GetString("MessageBox_No", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        public static string MessageBox_OK {
+            get {
+                return ResourceManager.GetString("MessageBox_OK", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Yes.
+        /// </summary>
+        public static string MessageBox_Yes {
+            get {
+                return ResourceManager.GetString("MessageBox_Yes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Continue Watching.
         /// </summary>
         public static string Metro_Continue {
@@ -6118,7 +7585,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shoko Desktop is unable to migrate your settings using the current user access. Run Shoko Desktop as an Administrator to start the migration..
+        ///   Looks up a localized string similar to Shoko Server is unable to migrate your settings using the current user access. Run Shoko Server as an Administrator to start the migration..
         /// </summary>
         public static string Migration_AdminFail {
             get {
@@ -6127,7 +7594,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shoko Desktop will now start migrating your settings from this location to.
+        ///   Looks up a localized string similar to Shoko Server will now start migrating your settings from this location to.
         /// </summary>
         public static string Migration_AdminPass1 {
             get {
@@ -6136,7 +7603,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to once this process is complete Shoko Desktop will close and no longer need Administrative Privileges to run..
+        ///   Looks up a localized string similar to once this process is complete Shoko Server will restart and no longer need Administrative Privileges to run..
         /// </summary>
         public static string Migration_AdminPass2 {
             get {
@@ -6163,7 +7630,25 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error Loading Settings:.
+        ///   Looks up a localized string similar to Migration is in progress, this window will automatically close once completed..
+        /// </summary>
+        public static string Migration_InProgress1 {
+            get {
+                return ResourceManager.GetString("Migration_InProgress1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Afterwards Shoko Server will restart itself if successful..
+        /// </summary>
+        public static string Migration_InProgress2 {
+            get {
+                return ResourceManager.GetString("Migration_InProgress2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Migration Failed:.
         /// </summary>
         public static string Migration_LoadError {
             get {
@@ -6177,6 +7662,15 @@ namespace Shoko.Commons.Properties {
         public static string Migration_ProgramDataError {
             get {
                 return ResourceManager.GetString("Migration_ProgramDataError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error Loading Settings:.
+        /// </summary>
+        public static string Migration_SettingsError {
+            get {
+                return ResourceManager.GetString("Migration_SettingsError", resourceCulture);
             }
         }
         
@@ -6663,6 +8157,24 @@ namespace Shoko.Commons.Properties {
         public static string MyRating {
             get {
                 return ResourceManager.GetString("MyRating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MySQL.
+        /// </summary>
+        public static string MySQL {
+            get {
+                return ResourceManager.GetString("MySQL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MySQL is the mid-tier and recommended database type for Shoko users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using Shoko . It is easy to setup and using our guide you’ll be up and running in a matter of minutes..
+        /// </summary>
+        public static string MySQL_Info {
+            get {
+                return ResourceManager.GetString("MySQL_Info", resourceCulture);
             }
         }
         
@@ -7806,6 +9318,15 @@ namespace Shoko.Commons.Properties {
         public static string Rename_CRCUpper {
             get {
                 return ResourceManager.GetString("Rename_CRCUpper", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        public static string Rename_Default {
+            get {
+                return ResourceManager.GetString("Rename_Default", resourceCulture);
             }
         }
         
@@ -9124,6 +10645,105 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Alternative Setting.
+        /// </summary>
+        public static string SeriesType_AltSetting {
+            get {
+                return ResourceManager.GetString("SeriesType_AltSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Alternative Version.
+        /// </summary>
+        public static string SeriesType_AltVersion {
+            get {
+                return ResourceManager.GetString("SeriesType_AltVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Character.
+        /// </summary>
+        public static string SeriesType_Character {
+            get {
+                return ResourceManager.GetString("SeriesType_Character", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full Story.
+        /// </summary>
+        public static string SeriesType_FullStory {
+            get {
+                return ResourceManager.GetString("SeriesType_FullStory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Music Video.
+        /// </summary>
+        public static string SeriesType_MusicVideo {
+            get {
+                return ResourceManager.GetString("SeriesType_MusicVideo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parent Story.
+        /// </summary>
+        public static string SeriesType_ParentStory {
+            get {
+                return ResourceManager.GetString("SeriesType_ParentStory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Prequel.
+        /// </summary>
+        public static string SeriesType_Prequel {
+            get {
+                return ResourceManager.GetString("SeriesType_Prequel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Same Setting.
+        /// </summary>
+        public static string SeriesType_SameSetting {
+            get {
+                return ResourceManager.GetString("SeriesType_SameSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sequel.
+        /// </summary>
+        public static string SeriesType_Sequel {
+            get {
+                return ResourceManager.GetString("SeriesType_Sequel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Side Story.
+        /// </summary>
+        public static string SeriesType_SideStory {
+            get {
+                return ResourceManager.GetString("SeriesType_SideStory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Summary.
+        /// </summary>
+        public static string SeriesType_Summary {
+            get {
+                return ResourceManager.GetString("SeriesType_Summary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Delete this series from the database.
         /// </summary>
         public static string SeriesWithoutFiles_Delete {
@@ -9142,6 +10762,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Updating all files video media info added to queue..
+        /// </summary>
+        public static string Serrver_VideoMediaUpdate {
+            get {
+                return ResourceManager.GetString("Serrver_VideoMediaUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Server.
         /// </summary>
         public static string Server {
@@ -9151,11 +10780,290 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Updating all series AniDB info added to queue..
+        /// </summary>
+        public static string Server_AniDBInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_AniDBInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to AutoStart Local Shoko Server.
         /// </summary>
         public static string Server_AutoStart {
             get {
                 return ResourceManager.GetString("Server_AutoStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning up....
+        /// </summary>
+        public static string Server_Cleaning {
+            get {
+                return ResourceManager.GetString("Server_Cleaning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Complete!.
+        /// </summary>
+        public static string Server_Complete {
+            get {
+                return ResourceManager.GetString("Server_Complete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please select and configure your database..
+        /// </summary>
+        public static string Server_DatabaseConfig {
+            get {
+                return ResourceManager.GetString("Server_DatabaseConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to start. Please review database settings..
+        /// </summary>
+        public static string Server_DatabaseFail {
+            get {
+                return ResourceManager.GetString("Server_DatabaseFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Setting up database....
+        /// </summary>
+        public static string Server_DatabaseSetup {
+            get {
+                return ResourceManager.GetString("Server_DatabaseSetup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database timeout:.
+        /// </summary>
+        public static string Server_DatabaseTimeOut {
+            get {
+                return ResourceManager.GetString("Server_DatabaseTimeOut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a value.
+        /// </summary>
+        public static string Server_EnterAnyValue {
+            get {
+                return ResourceManager.GetString("Server_EnterAnyValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a value between 1 and 65535.
+        /// </summary>
+        public static string Server_EnterCertainValue {
+            get {
+                return ResourceManager.GetString("Server_EnterCertainValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to set start: .
+        /// </summary>
+        public static string Server_FailedToStart {
+            get {
+                return ResourceManager.GetString("Server_FailedToStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please fill in all of the required fields.
+        /// </summary>
+        public static string Server_FillOutSettings {
+            get {
+                return ResourceManager.GetString("Server_FillOutSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Scanning for newly added files added to queue..
+        /// </summary>
+        public static string Server_Import {
+            get {
+                return ResourceManager.GetString("Server_Import", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import file processing added to queue.
+        /// </summary>
+        public static string Server_ImportRunning {
+            get {
+                return ResourceManager.GetString("Server_ImportRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing....
+        /// </summary>
+        public static string Server_Initializing {
+            get {
+                return ResourceManager.GetString("Server_Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing File Watchers....
+        /// </summary>
+        public static string Server_InitializingFile {
+            get {
+                return ResourceManager.GetString("Server_InitializingFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Hosts....
+        /// </summary>
+        public static string Server_InitializingHosts {
+            get {
+                return ResourceManager.GetString("Server_InitializingHosts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Queue Processors....
+        /// </summary>
+        public static string Server_InitializingQueue {
+            get {
+                return ResourceManager.GetString("Server_InitializingQueue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Session Factory....
+        /// </summary>
+        public static string Server_InitializingSession {
+            get {
+                return ResourceManager.GetString("Server_InitializingSession", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Stats....
+        /// </summary>
+        public static string Server_InitializingStats {
+            get {
+                return ResourceManager.GetString("Server_InitializingStats", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shoko Server has been minimized to the system tray. To open the application, double-click the icon in the system tray..
+        /// </summary>
+        public static string Server_MinimizeInfo {
+            get {
+                return ResourceManager.GetString("Server_MinimizeInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Removing all missing files added to queue.
+        /// </summary>
+        public static string Server_RemoveMissingFiles {
+            get {
+                return ResourceManager.GetString("Server_RemoveMissingFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shoko Server is already running. Please check your system tray (notification area)..
+        /// </summary>
+        public static string Server_Running {
+            get {
+                return ResourceManager.GetString("Server_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Folder scanning in progress.
+        /// </summary>
+        public static string Server_ScanFolder {
+            get {
+                return ResourceManager.GetString("Server_ScanFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all series info added to queue. .
+        /// </summary>
+        public static string Server_StatsInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_StatsInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronizing Hashes with the WebCache Running.
+        /// </summary>
+        public static string Server_SyncHashesRunning {
+            get {
+                return ResourceManager.GetString("Server_SyncHashesRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronizing Media Infos with the WebCache Running.
+        /// </summary>
+        public static string Server_SyncMediasRunning {
+            get {
+                return ResourceManager.GetString("Server_SyncMediasRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing collection metadata with AniDB MyList added to queue..
+        /// </summary>
+        public static string Server_SyncMyList {
+            get {
+                return ResourceManager.GetString("Server_SyncMyList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing collection metadata with Trakt added to queue. .
+        /// </summary>
+        public static string Server_SyncTrakt {
+            get {
+                return ResourceManager.GetString("Server_SyncTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing local votes with AniDB and MyAnimeList added to queue. .
+        /// </summary>
+        public static string Server_SyncVotes {
+            get {
+                return ResourceManager.GetString("Server_SyncVotes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all series TvDB info added to queue..
+        /// </summary>
+        public static string Server_TvDBInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_TvDBInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating TVDb info and requesting new images..
+        /// </summary>
+        public static string Server_UpdateImages {
+            get {
+                return ResourceManager.GetString("Server_UpdateImages", resourceCulture);
             }
         }
         
@@ -9205,11 +11113,38 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update AniDB Info.
+        /// </summary>
+        public static string Settings_AniDB {
+            get {
+                return ResourceManager.GetString("Settings_AniDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply.
+        /// </summary>
+        public static string Settings_Apply {
+            get {
+                return ResourceManager.GetString("Settings_Apply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Automatically Update Files With Missing Info.
         /// </summary>
         public static string Settings_AutoUpdateInfo {
             get {
                 return ResourceManager.GetString("Settings_AutoUpdateInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Administrative Privileges are required to change the Server Port used by Shoko Server. Please restart Shoko Server as an Administrator to continue..
+        /// </summary>
+        public static string Settings_ChangeServerPortFail {
+            get {
+                return ResourceManager.GetString("Settings_ChangeServerPortFail", resourceCulture);
             }
         }
         
@@ -9250,6 +11185,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Minimize on Startup.
+        /// </summary>
+        public static string Settings_Minimize {
+            get {
+                return ResourceManager.GetString("Settings_Minimize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allow Multiple Instances.
+        /// </summary>
+        public static string Settings_Multiple {
+            get {
+                return ResourceManager.GetString("Settings_Multiple", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Recreate All Groups.
         /// </summary>
         public static string Settings_RecreateGroups {
@@ -9277,7 +11230,16 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Use Default.
+        ///   Looks up a localized string similar to Server Port.
+        /// </summary>
+        public static string Settings_ServerPort {
+            get {
+                return ResourceManager.GetString("Settings_ServerPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set Default.
         /// </summary>
         public static string Settings_SetDefault {
             get {
@@ -9300,6 +11262,87 @@ namespace Shoko.Commons.Properties {
         public static string Settings_SetShokoServerFolderNonExistent {
             get {
                 return ResourceManager.GetString("Settings_SetShokoServerFolderNonExistent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Launch WebUI.
+        /// </summary>
+        public static string Settings_WebUI {
+            get {
+                return ResourceManager.GetString("Settings_WebUI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start With Windows.
+        /// </summary>
+        public static string Settings_Windows {
+            get {
+                return ResourceManager.GetString("Settings_Windows", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database Name.
+        /// </summary>
+        public static string Setup_DatabaseName {
+            get {
+                return ResourceManager.GetString("Setup_DatabaseName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database Type.
+        /// </summary>
+        public static string Setup_DatabaseType {
+            get {
+                return ResourceManager.GetString("Setup_DatabaseType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password.
+        /// </summary>
+        public static string Setup_Password {
+            get {
+                return ResourceManager.GetString("Setup_Password", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string Setup_Refresh {
+            get {
+                return ResourceManager.GetString("Setup_Refresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save and Start Server.
+        /// </summary>
+        public static string Setup_SaveStart {
+            get {
+                return ResourceManager.GetString("Setup_SaveStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Address.
+        /// </summary>
+        public static string Setup_ServerAddress {
+            get {
+                return ResourceManager.GetString("Setup_ServerAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Username.
+        /// </summary>
+        public static string Setup_Username {
+            get {
+                return ResourceManager.GetString("Setup_Username", resourceCulture);
             }
         }
         
@@ -9520,6 +11563,51 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to SQLite.
+        /// </summary>
+        public static string SQLite {
+            get {
+                return ResourceManager.GetString("SQLite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to While SQLite is the easiest of the three database types to setup with it&apos;s one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when Shoko attempts to access your collection via your SQLite database. In regards to how Shoko uses the database, it&apos;s simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations whic [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string SQLite_Info {
+            get {
+                return ResourceManager.GetString("SQLite_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQL Server.
+        /// </summary>
+        public static string SQLServer {
+            get {
+                return ResourceManager.GetString("SQLServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fastest performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we&apos;ve created..
+        /// </summary>
+        public static string SQLServer_Info {
+            get {
+                return ResourceManager.GetString("SQLServer_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQL Server can use quite a lot of memory..
+        /// </summary>
+        public static string SQLServer_Memory {
+            get {
+                return ResourceManager.GetString("SQLServer_Memory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Start.
         /// </summary>
         public static string Start {
@@ -9583,7 +11671,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Success!.
+        ///   Looks up a localized string similar to Success.
         /// </summary>
         public static string Success {
             get {
@@ -9637,6 +11725,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Actions.
+        /// </summary>
+        public static string Tab_Actions {
+            get {
+                return ResourceManager.GetString("Tab_Actions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to AniDB AV Dump.
         /// </summary>
         public static string Tab_AniDBAVDump {
@@ -9660,6 +11757,15 @@ namespace Shoko.Commons.Properties {
         public static string Tab_BrowseTorrents {
             get {
                 return ResourceManager.GetString("Tab_BrowseTorrents", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cloud Accounts.
+        /// </summary>
+        public static string Tab_CloudAccounts {
+            get {
+                return ResourceManager.GetString("Tab_CloudAccounts", resourceCulture);
             }
         }
         
@@ -9804,6 +11910,24 @@ namespace Shoko.Commons.Properties {
         public static string TAB_Images {
             get {
                 return ResourceManager.GetString("TAB_Images", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folders.
+        /// </summary>
+        public static string Tab_ImportFolders {
+            get {
+                return ResourceManager.GetString("Tab_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Integrity.
+        /// </summary>
+        public static string Tab_Integrity {
+            get {
+                return ResourceManager.GetString("Tab_Integrity", resourceCulture);
             }
         }
         
@@ -10087,6 +12211,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Setup.
+        /// </summary>
+        public static string Tab_Setup {
+            get {
+                return ResourceManager.GetString("Tab_Setup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to TvDB.
         /// </summary>
         public static string TAB_TvDB {
@@ -10200,6 +12333,60 @@ namespace Shoko.Commons.Properties {
         public static string Today {
             get {
                 return ResourceManager.GetString("Today", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to About.
+        /// </summary>
+        public static string Toolbar_About {
+            get {
+                return ResourceManager.GetString("Toolbar_About", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Help Make Shoko Better!.
+        /// </summary>
+        public static string Toolbar_Contribute {
+            get {
+                return ResourceManager.GetString("Toolbar_Contribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logs.
+        /// </summary>
+        public static string Toolbar_Logs {
+            get {
+                return ResourceManager.GetString("Toolbar_Logs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Messages.
+        /// </summary>
+        public static string Toolbar_Messages {
+            get {
+                return ResourceManager.GetString("Toolbar_Messages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show.
+        /// </summary>
+        public static string Toolbar_Show {
+            get {
+                return ResourceManager.GetString("Toolbar_Show", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shutdown.
+        /// </summary>
+        public static string Toolbar_Shutdown {
+            get {
+                return ResourceManager.GetString("Toolbar_Shutdown", resourceCulture);
             }
         }
         
@@ -10605,6 +12792,28 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Used in conjunction with Drop Source, Shoko Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
+        ///
+        ///You can only have one folder listed as a Drop Destination..
+        /// </summary>
+        public static string Tooltip_DropDestination {
+            get {
+                return ResourceManager.GetString("Tooltip_DropDestination", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shoko Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally Shoko Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
+        ///
+        ///You can have as many Drop Sources as you want, however you must setup a Drop Destination to use Drop Source..
+        /// </summary>
+        public static string Tooltip_DropSource {
+            get {
+                return ResourceManager.GetString("Tooltip_DropSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Edit the details of this Link.
         /// </summary>
         public static string Tooltip_EditInfo {
@@ -10974,6 +13183,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Scan Folder.
+        /// </summary>
+        public static string Tooltip_ScanFolder {
+            get {
+                return ResourceManager.GetString("Tooltip_ScanFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Preferred source of information when displaying the series name for an anime.
         /// </summary>
         public static string Tooltip_SeriesNameSourceStyle {
@@ -11222,6 +13440,15 @@ namespace Shoko.Commons.Properties {
         public static string Tooltip_User_PlexUsers {
             get {
                 return ResourceManager.GetString("Tooltip_User_PlexUsers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shoko Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. .
+        /// </summary>
+        public static string Tooltip_Watch {
+            get {
+                return ResourceManager.GetString("Tooltip_Watch", resourceCulture);
             }
         }
         
@@ -11901,6 +14128,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update Available For Shoko Server!.
+        /// </summary>
+        public static string Update_Available {
+            get {
+                return ResourceManager.GetString("Update_Available", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Available Version.
         /// </summary>
         public static string Update_AvailableVersion {
@@ -11919,6 +14155,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Download Page.
+        /// </summary>
+        public static string Update_DownloadPage {
+            get {
+                return ResourceManager.GetString("Update_DownloadPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Shoko Desktop Updates.
         /// </summary>
         public static string Update_ShokoDesktop {
@@ -11928,11 +14173,29 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update Shoko Server.
+        /// </summary>
+        public static string Update_ShokoServer {
+            get {
+                return ResourceManager.GetString("Update_ShokoServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Shoko Desktop Update Available!.
         /// </summary>
         public static string Update_Update {
             get {
                 return ResourceManager.GetString("Update_Update", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update Available.
+        /// </summary>
+        public static string Update_UpdateAvailable {
+            get {
+                return ResourceManager.GetString("Update_UpdateAvailable", resourceCulture);
             }
         }
         
@@ -12311,6 +14574,24 @@ namespace Shoko.Commons.Properties {
         public static string Username {
             get {
                 return ResourceManager.GetString("Username", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        public static string Users_Default {
+            get {
+                return ResourceManager.GetString("Users_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Family Friendly.
+        /// </summary>
+        public static string Users_FamilyFriendly {
+            get {
+                return ResourceManager.GetString("Users_FamilyFriendly", resourceCulture);
             }
         }
         
@@ -13080,7 +15361,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to What Does This Mean?.
+        ///   Looks up a localized string similar to What does this mean?.
         /// </summary>
         public static string WhatDoesThisMean {
             get {
