@@ -2275,13 +2275,13 @@ namespace JMMServer.API.Module.apiv2
             episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
                 .ToDictionary(a => a.Key, a => a.Value);
 
-            sers.size = (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
+            sers.size = cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount;
             sers.art.fanart.Add(new Art()
             {
                 url = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart?.GenArt(null),
                 index = 0
             });
-            sers.viewed = cseries.WatchedEpisodeCount.ToString();
+            sers.viewed = cseries.WatchedEpisodeCount;
 
             if (eptype.HasValue)
             {
@@ -2311,8 +2311,8 @@ namespace JMMServer.API.Module.apiv2
                         ob.art.fanart.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0});
                         ob.art.thumb.Add(new Art() {url = APIHelper.ConstructSupportImageLink(ee.Image), index = 0});
                         ob.titles.Add(new AnimeTitle() {Title = ee.Name});
-                        ob.size = ee.Count.ToString();
-                        ob.viewed = "0";
+                        ob.size = ee.Count;
+                        ob.viewed = 0;
                         // ob.url = APIHelper.ConstructSerieIdUrl(ee.Type + "_" + ser.AnimeSeriesID);
                         dirs.Add(ob);
                     }

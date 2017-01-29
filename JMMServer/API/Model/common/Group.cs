@@ -8,21 +8,14 @@ using JMMServer.Repositories;
 
 namespace JMMServer.API.Model.common
 {
-    public class Group
+    public class Group : BaseDirectory
     {
         public List<Serie> series { get; set; }
-        public int id { get; set; }
-        public string name { get; set; }
-        public List<Entities.AniDB_Anime_Title> titles { get; set; }
-        public DateTime added { get; set; }
-        public DateTime edited { get; set; }
-        public string summary { get; set; }
-        public List<Tag> tags { get; set; }
-        public string rating { get; set; }
-        public string userrating { get; set; }
-        public int size { get; set; }
-        public ArtCollection art { get; set; }
-        public readonly string type = "group";
+
+        public override string type
+        {
+            get { return "group"; }
+        }
 
         public Group()
         {
@@ -31,18 +24,16 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-
         public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
             Group g = new Group();
 
             g.name = ag.GroupName;
             g.id = ag.AnimeGroupID;
-            g.titles = ag.Titles;
+
             //g.videoqualities = ag.VideoQualities; <-- deadly trap
             g.added = ag.DateTimeCreated;
             g.edited = ag.DateTimeUpdated;
-            g.summary = ag.Description;
 
             JMMContracts.PlexAndKodi.Video vag = ag.GetPlexContract(uid);
             Random rand = new Random();

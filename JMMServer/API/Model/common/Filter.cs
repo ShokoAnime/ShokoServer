@@ -7,15 +7,10 @@ using JMMServer.Repositories;
 
 namespace JMMServer.API.Model.common
 {
-    public class Filter
+    public class Filter : BaseDirectory
     {
-        public int id { get; set; }
-        public string name { get; set; }
-        public ArtCollection art { get; set; }
-        public int size { get; set; }
-        public int viewed { get; set;}
+        public override string type { get { return "filter"; } }
         public string url { get; set; }
-        public readonly string type = "filter";
         public List<Group> groups { get; set; }
 
         public Filter()

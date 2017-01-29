@@ -7,25 +7,13 @@ using System.Linq;
 
 namespace JMMServer.API.Model.common
 {
-    public class Serie : IComparable
+    public class Serie : BaseDirectory,IComparable
     {
-        public int id { get; set; }
-        public ArtCollection art { get; set; }
-        public string title { get; set; }
-        public List<AnimeTitle> titles { get; set; }
-        public string summary { get; set; }
-        public string year { get; set; }
-        public string air { get; set; }
+        public override string type { get { return "serie"; } }
+
 	    public string season { get; set; }
-        public string size { get; set; }
-        public string localsize { get; set; }
-        public string viewed { get; set; }
-        public string rating { get; set; }
-        public string userrating { get; set; }
-        public List<Role> roles { get; set; }
-        public List<Tag> tags { get; set; }
+
         public List<Episode> eps { get; set; }
-        public readonly string type = "serie";
         public int ismovie { get; set; }
 
         public Serie()
@@ -60,13 +48,13 @@ namespace JMMServer.API.Model.common
             sr.summary = nv.Summary;
             sr.year = nv.Year;
             sr.air = nv.AirDate.ToString("dd-MM-yyyy");
-            sr.size = nv.LeafCount;
-            sr.localsize = nv.ChildCount;
-            sr.viewed = nv.ViewedLeafCount;
+            sr.size = int.Parse(nv.LeafCount);
+            sr.localsize = int.Parse(nv.ChildCount);
+            sr.viewed = int.Parse(nv.ViewedLeafCount);
             sr.rating = nv.Rating;
             sr.userrating = nv.UserRating;
             sr.titles = nv.Titles;
-            sr.title = nv.Title;
+            sr.name = nv.Title;
 	        sr.season = nv.Season;
             if (nv.IsMovie ) { sr.ismovie = 1; }
 
@@ -182,7 +170,7 @@ namespace JMMServer.API.Model.common
                 if (s < s1) return -1;
                 if (s > s1) return 1;
             }
-            return title.CompareTo(a.title);
+            return name.CompareTo(a.name);
         }
     }
 }
