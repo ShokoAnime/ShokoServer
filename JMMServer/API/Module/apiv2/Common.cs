@@ -2058,9 +2058,9 @@ namespace JMMServer.API.Module.apiv2
         {
             GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
 
-            if (gf.GroupsIds.Count == 0)
+            if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
-                // if GroupsIds is empty its probably a filter-inception;
+                // if it's a directory, it IS a filter-inception;
                 Filters fgs = new Filters().GenerateFromGroupFilter(gf, uid, nocast, notag, all);
                 return fgs;
             }

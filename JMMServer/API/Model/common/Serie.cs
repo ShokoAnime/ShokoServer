@@ -2,10 +2,12 @@
 using JMMServer.Entities;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 
 namespace JMMServer.API.Model.common
 {
-    public class Serie
+    public class Serie : IComparable
     {
         public int id { get; set; }
         public ArtCollection art { get; set; }
@@ -137,10 +139,50 @@ namespace JMMServer.API.Model.common
                             sr.eps.Add(new_ep);
                         }
                     }
+                    sr.eps = sr.eps.OrderBy(a => a.epnumber).ToList();
                 }
             }
 
             return sr;
+        }
+
+        public int CompareTo(object obj)
+        {
+            Serie a = obj as Serie;
+            if (a == null) return 1;
+            // Does it have an air date? Sort by it
+            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
+            {
+                DateTime d, d1;
+                if (DateTime.TryParseExact(a.air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out d1) &&
+                    DateTime.TryParseExact(air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out d))
+                {
+                    if (d < d1) return -1;
+                    if (d > d1) return 1;
+                }
+            }
+            // I don't trust TvDB well enough to sort by them. Bakamonogatari...
+            int s,s1;
+            // Does it have a Season? Sort by it
+            if (int.TryParse(a.season, out s1) && int.TryParse(season, out s))
+            {
+                // Only try if the season is valid
+                if (s >= 0 && s1 >= 0)
+                {
+                    // Specials
+                    if (s == 0 && s1 > 0) return 1;
+                    if (s > 0 && s1 == 0) return -1;
+                    // Normal
+                    if (s < s1) return -1;
+                    if (s > s1) return 1;
+                }
+            }
+            if (int.TryParse(a.year, out s1) && int.TryParse(year, out s))
+            {
+                if (s < s1) return -1;
+                if (s > s1) return 1;
+            }
+            return title.CompareTo(a.title);
         }
     }
 }

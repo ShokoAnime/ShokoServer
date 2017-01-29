@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Repositories;
 
 namespace JMMServer.API.Model.common
 {
@@ -67,6 +69,7 @@ namespace JMMServer.API.Model.common
                         }
                     }
 
+                    Dictionary<Contract_AnimeGroup, Group> order = new Dictionary<Contract_AnimeGroup, Group>();
                     if (level > 0)
                     {
                         foreach (int gp in groupsh)
@@ -74,14 +77,21 @@ namespace JMMServer.API.Model.common
                             Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
                             if (ag != null)
                             {
-                                groups.Add(new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all, filter.id));
+                                Group group =
+                                    new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
+                                        filter.id);
+                                groups.Add(group);
+                                order.Add(ag.GetUserContract(uid), group);
                             }
                         }
                     }
                     
                     if (groups.Count > 0)
                     {
-                        filter.groups.AddRange(groups.OrderBy(a => a.name));
+                        // Proper Sorting!
+                        IEnumerable<Contract_AnimeGroup> grps = groups.Select(a => RepoFactory.AnimeGroup.GetByID(a.id).GetUserContract(uid));
+                        grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
+                        groups = grps.Select(a => order[a]).ToList();
                     }
                 }
             }
