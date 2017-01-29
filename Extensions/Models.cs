@@ -27,9 +27,9 @@ namespace Shoko.Commons.Extensions
         private static Dictionary<string, HashSet<string>> _plexuserscache = new Dictionary<string, HashSet<string>>();
 
 
-        public static List<T> CastList<T>(this IEnumerable<dynamic> list) 
+        public static List<T> CastList<T>(this IEnumerable<dynamic> list)
         {
-            return list.Cast<T>().ToList();
+            return list?.Cast<T>().ToList();
         }
 
         public static DateTime GetMessageDateAsDate(this Azure_AdminMessage message)

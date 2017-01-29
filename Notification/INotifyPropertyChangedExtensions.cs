@@ -28,18 +28,18 @@ namespace Shoko.Commons.Notification
         }
         public static T SetField<T>(this INotifyPropertyChangedExt cls, T field, T value, params Expression<Func<object>>[] props)
         {
-            if (!EqualityComparer<T>.Default.Equals(field, value))
-            {
+            //if (!EqualityComparer<T>.Default.Equals(field, value))
+            //{
                 cls.OnPropertyChanged(props);
-            }
+            //}
             return value;
         }
         public static T SetField<T>(this INotifyPropertyChangedExt cls, T field, T value, [CallerMemberName] string propertyName = null)
         {
-            if (!EqualityComparer<T>.Default.Equals(field, value))
-            {
+            //if (!EqualityComparer<T>.Default.Equals(field, value))
+            //{
                 cls.NotifyPropertyChanged(propertyName);
-            }
+            //}
             return value;
         }
     }
