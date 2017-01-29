@@ -2,7 +2,10 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Web.Script.Serialization;
 using System.Windows.Media.Imaging;
+using System.Xml.Serialization;
+using Newtonsoft.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
@@ -18,7 +21,11 @@ namespace Shoko.Server.Models
 
         public new int IsWatched
         {
-            get { return base.IsWatched; }
+            get
+            {
+                logger.Info("IsWatched");
+                return base.IsWatched;
+            }
             set
             {
                 base.IsWatched = this.SetField(base.IsWatched, value, () => IsWatched, () => FolderIsWatched);
@@ -27,7 +34,12 @@ namespace Shoko.Server.Models
 
         public new int IsDropSource
         {
-            get { return base.IsDropSource; }
+            get
+            {
+                logger.Info("IsDrop");
+
+                return base.IsDropSource;
+            }
             set
             {
                 base.IsDropSource = this.SetField(base.IsDropSource, value, () => IsDropSource, () => FolderIsDropSource);
@@ -38,7 +50,12 @@ namespace Shoko.Server.Models
 
         public new int IsDropDestination
         {
-            get { return base.IsDropDestination; }
+            get
+            {
+                logger.Info("IsDropDest");
+
+                return base.IsDropDestination;
+            }
             set
             {
                 base.IsDropDestination = this.SetField(base.IsDropDestination, value, ()=>IsDropDestination, ()=>FolderIsDropDestination);
@@ -46,7 +63,12 @@ namespace Shoko.Server.Models
         }
         public new string ImportFolderLocation
         {
-            get { return base.ImportFolderLocation; }
+            get
+            {
+                logger.Info("ImportFolderLocation");
+
+                return base.ImportFolderLocation;
+            }
             set
             {
                 string nvalue = value;
@@ -70,10 +92,12 @@ namespace Shoko.Server.Models
 
         private IFileSystem _filesystem;
 
-        public IFileSystem FileSystem
+        internal IFileSystem FileSystem
         {
             get
             {
+                logger.Info("FileSys");
+
                 if (_filesystem == null)
                 {
                     if (CloudID != null)
@@ -91,33 +115,71 @@ namespace Shoko.Server.Models
                         _filesystem = ff.Result;
                     }
                 }
+                logger.Info("EndFileSys");
                 return _filesystem;
             }
         }
 
         private BitmapSource _bitmap;
-        public BitmapSource Bitmap => _bitmap ?? (_bitmap = CloudID.HasValue ? CloudAccount.Bitmap : SVR_CloudAccount.CreateLocalFileSystemAccount().Bitmap);
-
-
-        public IDirectory BaseDirectory
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
+        public BitmapSource Bitmap
         {
             get
             {
+                logger.Info("Bitmap");
+                if (_bitmap != null)
+                {
+                    logger.Info("Bitmap already");
+                    return _bitmap;
+
+                }
+                _bitmap = CloudID.HasValue ? CloudAccount.Bitmap : SVR_CloudAccount.CreateLocalFileSystemAccount().Bitmap;
+                logger.Info("New Bitmap");
+                return _bitmap;
+            }
+
+        }
+
+
+        internal IDirectory BaseDirectory
+        {
+            get
+            {
+                logger.Info("BaseDir");
                 FileSystemResult<IObject> fr = FileSystem.Resolve(ImportFolderLocation);
+                logger.Info("EndBaseDir");
                 if (fr.IsOk && fr.Result is IDirectory)
                     return (IDirectory)fr.Result;
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
             }
         }
-        public SVR_CloudAccount CloudAccount => CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null;
+        internal SVR_CloudAccount CloudAccount
+        {
+            get
+            {
+                logger.Info("CloudAccount");
+                return CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null;
+            }
+        }
 
 
-        public string CloudAccountName => CloudID.HasValue ? CloudAccount.Name : "Local FileSystem";
+        internal string CloudAccountName
+        {
+            get
+            {
 
-        public bool FolderIsWatched => IsWatched == 1;
+                logger.Info("CloudAccountName");
 
-        public bool FolderIsDropSource => IsDropSource == 1;
-        public bool FolderIsDropDestination => IsDropDestination == 1;
+                return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem";
+            }
+        }
+
+        internal bool FolderIsWatched => IsWatched == 1;
+
+        internal bool FolderIsDropSource => IsDropSource == 1;
+        internal bool FolderIsDropDestination => IsDropDestination == 1;
 
         public override string ToString()
         {

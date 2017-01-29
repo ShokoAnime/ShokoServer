@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Web.Script.Serialization;
 using NHibernate;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
@@ -77,6 +78,7 @@ namespace Shoko.Server.Models
         }
 
         // IUserIdentity implementation
+        [ScriptIgnore]
         public string UserName
         {
             get
@@ -85,6 +87,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [ScriptIgnore]
         public IEnumerable<string> Claims { get; set; }
 
 

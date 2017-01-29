@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using AniDBAPI;
 using FluentNHibernate.Utils;
 using NLog;
@@ -41,7 +42,7 @@ namespace Shoko.Server.Models
         #endregion
 
 
-
+        [ScriptIgnore]
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
 
@@ -51,7 +52,7 @@ namespace Shoko.Server.Models
 
         internal Media _media = null;
 
-        public virtual Media Media
+        internal virtual Media Media
         {
             get
             {
@@ -69,7 +70,8 @@ namespace Shoko.Server.Models
             }
         }
 
-        public List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+
+        internal List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
 
         public void CollectContractMemory()
@@ -108,6 +110,7 @@ namespace Shoko.Server.Models
             return sb.ToString();
         }
 
+        [ScriptIgnore]
         public string ED2KHash
         {
             get { return Hash; }
@@ -126,7 +129,8 @@ namespace Shoko.Server.Models
             return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
         }
 
-        public AniDB_ReleaseGroup ReleaseGroup
+
+        internal AniDB_ReleaseGroup ReleaseGroup
         {
             get
             {
@@ -144,7 +148,7 @@ namespace Shoko.Server.Models
 
 
 
-        public List<CrossRef_File_Episode> EpisodeCrossRefs
+        internal List<CrossRef_File_Episode> EpisodeCrossRefs
         {
             get
             {

@@ -32,9 +32,9 @@ namespace Shoko.Server.Models
         public SVR_VideoLocal_Place()
         {
         }
-        public SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
+        internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
-	    public string FullServerPath
+	    internal string FullServerPath
 	    {
 		    get
 		    {
@@ -43,7 +43,7 @@ namespace Shoko.Server.Models
 		    }
 	    }
 
-        public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        internal SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 

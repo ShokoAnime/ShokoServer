@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Web.Script.Serialization;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using System.Xml.Serialization;
+using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -33,12 +36,15 @@ namespace Shoko.Server.Models
                 }
             }
         }
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public BitmapImage Bitmap { get;  set; }
         public byte[] Icon => _plugin?.Icon;
         private ICloudPlugin _plugin;
 
 
-        public virtual IFileSystem FileSystem
+        internal IFileSystem FileSystem
         {
             get
             {
@@ -59,10 +65,10 @@ namespace Shoko.Server.Models
                     
             }
         }
-        public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
+        internal bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
 
 
-        public bool NeedSave { get; set; } = false;
+        internal bool NeedSave { get; set; } = false;
 
 
         private static AuthorizationFactory AuthInstance = new AuthorizationFactory("AppGlue.dll");

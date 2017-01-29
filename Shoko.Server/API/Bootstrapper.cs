@@ -82,7 +82,7 @@ namespace Shoko.Server.API
 			gzipsettings.MinimumBytes = 16384; //16k
 			gzipsettings.MimeTypes.Add("application/xml");
 			gzipsettings.MimeTypes.Add("application/json");
-			//pipelines.EnableGzipCompression(gzipsettings);
+			pipelines.EnableGzipCompression(gzipsettings);
             #endregion
         }
 

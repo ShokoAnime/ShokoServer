@@ -25,7 +25,7 @@ namespace Shoko.Server.Repositories
         public virtual void Populate(ISessionWrapper session, bool displayname = true)
         {
             if (displayname)
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, string.Empty);
+                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name.Replace("SVR_",string.Empty), string.Empty);
 
             Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(), SelectKey);
             PopulateIndexes();
