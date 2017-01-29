@@ -128,6 +128,7 @@ namespace Shoko.Server.API.Module.apiv2
             Get["/serie/watch"] = x => { return MarkSerieAsWatched(); };
             Get["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
             Get["/serie/vote"] = x => { return VoteOnSerie(); };
+            Get["/serie/fromep"] = x => { return GetSeriesFromEpisode(); };
             #endregion
 
             #region 8. Series - [Obsolete]
@@ -1320,6 +1321,22 @@ namespace Shoko.Server.API.Module.apiv2
             {
                 return APIStatus.badRequest("missing 'query'");
             }
+        }
+
+        /// <summary>
+        /// Handle /api/serie/fromep?id=...
+        /// Used to get the series related to the episode id.
+        /// </summary>
+        /// <returns></returns>
+        private object GetSeriesFromEpisode()
+        {
+            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
+            int id = this.Context.Request.Query.id;
+            API_Call_Parameters para = this.Bind();
+
+            SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
+
+            return new Serie().GenerateFromAnimeSeries(aep.GetAnimeSeries(), user.JMMUserID, para.nocast, para.notag, para.level);
         }
 
         #region internal function
