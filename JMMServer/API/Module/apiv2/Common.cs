@@ -39,6 +39,7 @@ namespace JMMServer.API.Module.apiv2
             Post["/folder/edit"] = x => { return EditFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
+            Get["/folder/scan"] = _ => { return ScanDropFolders(); };
 
             #endregion
 
@@ -356,6 +357,16 @@ namespace JMMServer.API.Module.apiv2
         private object RunImport()
         {
             MainWindow.RunImport();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Scan All Drop Folders
+        /// </summary>
+        /// <returns></returns>
+        private object ScanDropFolders()
+        {
+            Importer.RunImport_DropFolders();
             return APIStatus.statusOK();
         }
 
@@ -2065,9 +2076,9 @@ namespace JMMServer.API.Module.apiv2
         {
             GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
 
-            if (gf.GroupsIds.Count == 0)
+            if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
-                // if GroupsIds is empty its probably a filter-inception;
+                // if it's a directory, it IS a filter-inception;
                 Filters fgs = new Filters().GenerateFromGroupFilter(gf, uid, nocast, notag, all);
                 return fgs;
             }
