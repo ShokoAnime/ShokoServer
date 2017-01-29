@@ -10,7 +10,7 @@ using Shoko.Models.TvDB;
 // ReSharper disable InconsistentNaming
 namespace Shoko.Models.Interfaces
 {
-    [RestBasePath("/api")]
+    [RestBasePath("/v1")]
     public interface IShokoServer 
     {
 
