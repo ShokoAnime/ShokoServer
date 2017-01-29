@@ -12,6 +12,7 @@ using JMMServer.PlexAndKodi;
 using System.IO;
 using JMMServer.Utilities;
 using JMMServer.API.Model.core;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -48,6 +49,8 @@ namespace JMMServer.API.Module.apiv2
             Get["/mal/get"] = _ => { return GetMAL(); };
             Get["/mal/test"] = _ => { return TestMAL(); };
             Get["/mal/update"] = _ => { return ScanMAL(); };
+            Get["/mal/download"] = _ => { return DownloadFromMAL(); };
+            Get["/mal/upload"] = _ => { return UploadToMAL(); };
             //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
             #endregion
 
@@ -372,6 +375,28 @@ namespace JMMServer.API.Module.apiv2
         private object ScanMAL()
         {
             Importer.RunImport_ScanMAL();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Download Watched States from MAL
+        /// </summary>
+        /// <returns></returns>
+        private object DownloadFromMAL()
+        {
+            CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
+            cmd.Save();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Upload Watched States to MAL
+        /// </summary>
+        /// <returns></returns>
+        private object UploadToMAL()
+        {
+            CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
+            cmd.Save();
             return APIStatus.statusOK();
         }
 
