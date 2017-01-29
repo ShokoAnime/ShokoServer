@@ -39,6 +39,7 @@ namespace JMMServer.API.Module.apiv2
             Post["/folder/edit"] = x => { return EditFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
+            Get["/folder/scan"] = _ => { return ScanDropFolders(); };
 
             #endregion
 
@@ -355,6 +356,16 @@ namespace JMMServer.API.Module.apiv2
         private object RunImport()
         {
             MainWindow.RunImport();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Scan All Drop Folders
+        /// </summary>
+        /// <returns></returns>
+        private object ScanDropFolders()
+        {
+            Importer.RunImport_DropFolders();
             return APIStatus.statusOK();
         }
 
