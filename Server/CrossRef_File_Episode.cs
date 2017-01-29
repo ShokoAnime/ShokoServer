@@ -14,7 +14,7 @@
         /// moving of files to different locations without needing to re-hash the file again
         /// </summary>
         /// 
-        public int CrossRef_File_EpisodeID { get; private set; }
+        public int CrossRef_File_EpisodeID { get; set; }
         public string Hash { get; set; }
         public string FileName { get; set; }
         public long FileSize { get; set; }

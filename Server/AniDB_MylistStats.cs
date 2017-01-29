@@ -5,7 +5,7 @@ namespace Shoko.Models.Server
     public class AniDB_MylistStats
     {
         #region DB columns
-        public int AniDB_MylistStatsID { get; private set; }
+        public int AniDB_MylistStatsID { get; set; }
         public int Animes { get; set; }
         public int Episodes { get; set; }
         public int Files { get; set; }

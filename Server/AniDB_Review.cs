@@ -3,7 +3,7 @@ namespace Shoko.Models.Server
 {
     public class AniDB_Review
     {
-        public int AniDB_ReviewID { get; private set; }
+        public int AniDB_ReviewID { get; set; }
         public int ReviewID { get; set; }
         public int AuthorID { get; set; }
         public int RatingAnimation { get; set; }

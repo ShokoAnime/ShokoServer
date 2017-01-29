@@ -7,7 +7,7 @@ namespace Shoko.Models.Server
         public CommandRequest()
         {
         }
-        public int CommandRequestID { get; private set; }
+        public int CommandRequestID { get; set; }
         public int Priority { get; set; }
         public int CommandType { get; set; }
         public string CommandID { get; set; }

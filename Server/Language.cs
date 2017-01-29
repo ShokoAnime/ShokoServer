@@ -5,7 +5,7 @@
         public Language()
         {
         }
-        public int LanguageID { get; private set; }
+        public int LanguageID { get; set; }
         public string LanguageName { get; set; }
     }
 }

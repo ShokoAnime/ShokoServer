@@ -6,7 +6,7 @@ namespace Shoko.Models.Server
     {
         #region Server DB columns
 
-        public int AniDB_Anime_TagID { get; private set; }
+        public int AniDB_Anime_TagID { get; set; }
         public int AnimeID { get; set; }
         public int TagID { get; set; }
         public int Approval { get; set; }

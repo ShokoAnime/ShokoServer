@@ -4,7 +4,7 @@ namespace Shoko.Models.Server
 {
     public class AniDB_Tag
     {
-        public int AniDB_TagID { get; private set; }
+        public int AniDB_TagID { get; set; }
         public int TagID { get; set; }
         public int Spoiler { get; set; }
         public int LocalSpoiler { get; set; }

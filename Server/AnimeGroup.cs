@@ -6,7 +6,7 @@ namespace Shoko.Models.Server
     {
         #region Server DB Columns
 
-        public int AnimeGroupID { get; private set; }
+        public int AnimeGroupID { get; set; }
         public int? AnimeGroupParentID { get; set; }
         public string GroupName { get; set; }
         public string Description { get; set; }
