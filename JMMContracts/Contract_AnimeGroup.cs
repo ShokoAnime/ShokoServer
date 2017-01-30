@@ -65,6 +65,13 @@ namespace JMMContracts
             return SortName.CompareTo(obj.SortName);
         }
 
+        public override bool Equals(object obj)
+        {
+            if(!(obj is Contract_AnimeGroup)) return false;
+            if (((Contract_AnimeGroup) obj).AnimeGroupID != AnimeGroupID) return false;
+            return true;
+        }
+
         public override string ToString()
         {
             return string.Format("{0} -  Ep Added: {1} - Unwatched Eps: {2}", GroupName, EpisodeAddedDate,

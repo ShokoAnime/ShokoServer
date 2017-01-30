@@ -70,21 +70,19 @@ namespace JMMServer.API.Model.common
                         foreach (int gp in groupsh)
                         {
                             Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
-                            if (ag != null)
-                            {
-                                Group group =
-                                    new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
-                                        filter.id);
-                                groups.Add(group);
-                                order.Add(ag.GetUserContract(uid), group);
-                            }
+                            if (ag == null) continue;
+                            Group group =
+                                new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
+                                    filter.id);
+                            groups.Add(group);
+                            order.Add(ag.GetUserContract(uid), group);
                         }
                     }
                     
                     if (groups.Count > 0)
                     {
                         // Proper Sorting!
-                        IEnumerable<Contract_AnimeGroup> grps = groups.Select(a => RepoFactory.AnimeGroup.GetByID(a.id).GetUserContract(uid));
+                        IEnumerable<Contract_AnimeGroup> grps = order.Keys;
                         grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                         groups = grps.Select(a => order[a]).ToList();
                     }
