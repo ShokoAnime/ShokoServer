@@ -54,22 +54,8 @@ namespace Shoko.Commons
             return string.Empty;
         }
 
-        public bool IsValid(int folderid)
-        {
-            try
-            {
-                if (_mappings.ContainsKey(folderid))
-                {
-                    if (Directory.Exists(_mappings[folderid]))
-                        return true;
-                }
-            }
-            catch (Exception e)
-            {
-                //Security issue, TODO
-            }
-            return false;
-        }
+        public bool IsValid(ImportFolder impfolder) => !string.IsNullOrEmpty(TranslateDirectory(impfolder, string.Empty));
+
         public string TranslateFile(ImportFolder impfolder, string path)
         {
             if (impfolder.CloudID.HasValue)

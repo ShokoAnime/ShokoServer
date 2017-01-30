@@ -140,7 +140,7 @@ namespace Shoko.Commons.Queue
                 case QueueStateEnum.LinkAniDBTvDB:
                     return Resources.Command_LinkAniDBTvDB;
                 default:
-                    throw new Exception("Unknown queue state format string"); 
+                    return "Unknown";
             }
 
         }
