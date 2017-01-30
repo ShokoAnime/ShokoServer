@@ -86,8 +86,8 @@
         public int ismovie = 0;
 
         /// <summary>
-        /// return object as simpler object (that act like List<> with few extra variables) ex. Series
+        /// filename string for task like searching by it
         /// </summary>
-        public int list = 0;
+        public string filename = "";
     }
 }

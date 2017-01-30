@@ -19,19 +19,19 @@ namespace JMMServer.API.Model.common
 
         }
 
-        internal Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid, int level, bool all)
+        internal Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid, int level)
         {
             Episode ep = new Episode();
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid, level, all);
+                ep = GenerateFromAnimeEpisode(Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid, level);
             }
 
             return ep;
         }
 
-        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid, int level, bool all)
+        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid, int level)
         {
             Episode ep = new Episode();
             if (aep != null)
@@ -75,13 +75,6 @@ namespace JMMServer.API.Model.common
                             foreach (VideoLocal vl in vls)
                             {
                                 ep.files.Add(new RawFile(vl, (level-1), uid));
-                            }
-                        }
-                        else
-                        {
-                            if (!all)
-                            {
-                                return null;
                             }
                         }
                     }

@@ -121,7 +121,7 @@ namespace JMMServer.API.Model.common
                     sr.eps = new List<Episode>();
                     foreach (AnimeEpisode ae in ael)
                     {
-                        Episode new_ep = new Episode().GenerateFromAnimeEpisode(ae, uid, (level - 1), all);
+                        Episode new_ep = new Episode().GenerateFromAnimeEpisode(ae, uid, (level - 1));
                         if (new_ep != null)
                         {
                             sr.eps.Add(new_ep);

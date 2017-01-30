@@ -29,7 +29,7 @@ namespace JMMServer.API.Module.apiv2
 
         public Common() : base("/api")
         {
-            this.RequiresAuthentication(); // its a setting per module, so every call here need apikey
+            this.RequiresAuthentication(); // its a setting per module, so every call made to this module requires apikey
 
             #region 1. import folders
 
@@ -99,24 +99,6 @@ namespace JMMServer.API.Module.apiv2
 
             #endregion
 
-            #region 6. Files - [Obsolete]
-
-            Get["/file/recentold"] = x => { return GetRecentFiles_old(10); }; // [Obsolete] use /file/recent
-            Get["/file/recentold/{max}"] = x =>
-            {
-                return GetRecentFiles_old((int) x.max);
-            }; //[Obsolete] use /file/recent?limit=
-            Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(10); }; // [Obsolete] use /file/unsort
-            Get["/file/unrecognised/{max}"] = x =>
-            {
-                return GetUnrecognisedFiles((int) x.max);
-            }; //[Obsolete] use /file/unsort?limit=
-            Get["/file/unsort/{max}"] = x => { return GetUnsort((int) x.max); }; // [Obsolete] use /file/unsort?limit=
-            Get["/file/list"] = _ => { return GetAllFiles_old(); }; // [Obsolete] use /file
-            Get["/file/{id}"] = x => { return GetFileById(x.id, 0, 1); }; // [Obsolete] use /file?id=
-
-            #endregion
-
             #region 7. Episodes
 
             Get["/ep"] = x => { return GetEpisode(); };
@@ -127,16 +109,6 @@ namespace JMMServer.API.Module.apiv2
             Get["/ep/unsort"] = _ => { return GetUnsort(); };
             Get["/ep/scrobble"] = x => { return EpisodeScrobble(); };
             Get["/ep/getbyfilename"] = x => { return GetEpisodeFromName(); };
-
-            #endregion
-
-            #region 7. Episodes - [Obsolete]
-
-            Get["/ep/list"] = _ => { return GetAllEpisodes(); }; // [Obsolete] use /ep
-            Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); }; // [Obsolete] use /ep?id=
-            Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int) x.max); }; // [Obsolete] use /ep/recent?limit=
-            Get["/ep/vote"] = x => { return VoteOnEpisode(); }; // [Obsolete] use /ep/vote?id=&score={1-10}
-            Get["/ep/unsort/{max}"] = x => { return GetUnsort((int) x.max); }; // [Obsolete] use /ep/unsort?limit=
 
             #endregion
 
@@ -152,19 +124,6 @@ namespace JMMServer.API.Module.apiv2
             Get["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
             Get["/serie/vote"] = x => { return VoteOnSerie(); };
             Get["/serie/fromep"] = x => { return GetSeriesFromEpisode(); };
-
-            #endregion
-
-            #region 8. Series - [Obsolete]
-
-            Get["/serie/list"] = _ => { return GetAllSeries(true, 0, 0, false, 0, false); }; // [Obsolete] use /serie
-            Get["/serie/{id}"] = x => { return GetSerieById(x.id, true, false, 0, false); }; // [Obsolete] use /serie?id=
-            Get["/serie/recent/{max}"] = x =>{ return GetRecentSeries((int) x.max);}; // [Obsolete] use /serie/recent?limit=
-            Get["/serie/byfolder/{id}"] = x =>{ return GetSerieByFolderId(x.id, 10);}; // [Obsolete] use /serie/byfolder/id=
-            Get["/serie/byfolder/{id}/{max}"] = x =>{ return GetSerieByFolderId(x.id, x.max);}; // [Obsolete] use /serie/byfolder/id=&limit=
-            Post["/serie/watch/{type}/{max}"] = x =>{ return MarkSerieWatched(true, x.max, x.type);}; // [Obsolete] use /serie/watch?id=
-            Post["/serie/unwatch/{type}/{max}"] = x => { return MarkSerieWatched(false, x.max, x.type); }; // [Obsolete] use /serie/unwatch?id=
-            Post["/serie/vote"] = x => { return VoteOnSerie2(); }; // [Obsolete] use /serie/vote?id=&score={1-10}
 
             #endregion
 
@@ -184,28 +143,7 @@ namespace JMMServer.API.Module.apiv2
 
             #endregion
 
-            #region 11. Metadata - [Obsolete]
-
-            Get["/metadata/{type}/{id}"] = x => { return GetMetadata_old((int) x.type, x.id); };
-            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata_old((int) x.type, x.id, true); };
-            Get["/metadata/{type}/{id}/{filter}"] = x =>
-            {
-                return GetMetadata_old((int) x.type, x.id, false, x.filter);
-            };
-            Get["/metadata/{type}/{id}/{filter}/nocast"] = x =>
-            {
-                return GetMetadata_old((int) x.type, x.id, true, x.filter);
-            };
-
-            #region test_only
-
-            Get["/metadata2/{type}/{id}"] = x => { return GetMetadata((int) x.type, x.id); };
-
-            #endregion
-
-            #endregion
-
-            #region 12. Groups
+            #region 11. Groups
 
             Get["/group"] = _ => { return GetGroups(); };
             Get["/group/watch"] = _ => { return MarkGroupAsWatched(); };
@@ -217,9 +155,10 @@ namespace JMMServer.API.Module.apiv2
         #region 1.Import Folders
 
         /// <summary>
+        /// Handle /api/folder/list
         /// List all saved Import Folders
         /// </summary>
-        /// <returns></returns>
+        /// <returns>List<Contract_ImportFolder></returns>
         private object GetFolders()
         {
             List<Contract_ImportFolder> list = new JMMServiceImplementation().GetImportFolders();
@@ -227,9 +166,9 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
-        /// return number of Import Folders
+        /// Handle /api/folder/count
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Counter</returns>
         private object CountFolders()
         {
             Counter count = new Counter();
@@ -238,9 +177,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/folder/add
         /// Add Folder to Import Folders Repository
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object AddFolder()
         {
             try
@@ -250,8 +190,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     try
                     {
-                        Contract_ImportFolder_SaveResponse response =
-                            new JMMServiceImplementation().SaveImportFolder(folder);
+                        Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
 
                         if (string.IsNullOrEmpty(response.ErrorMessage))
                         {
@@ -279,9 +218,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/folder/edit
         /// Edit folder giving fulll ImportFolder object with ID
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object EditFolder()
         {
             ImportFolder folder = this.Bind();
@@ -326,9 +266,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/folder/delete
         /// Delete Import Folder out of Import Folder Repository
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object DeleteFolder()
         {
             ImportFolder folder = this.Bind();
@@ -351,9 +292,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/folder/import
         /// Run Import action on all Import Folders inside Import Folders Repository
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object RunImport()
         {
             MainWindow.RunImport();
@@ -361,9 +303,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/folder/scan
         /// Scan All Drop Folders
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
@@ -401,9 +344,10 @@ namespace JMMServer.API.Module.apiv2
         #region 3.Actions
 
         /// <summary>
+        /// Handle /api/remove_missing_files
         /// Scans your import folders and remove files from your database that are no longer in your collection.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object RemoveMissingFiles()
         {
             MainWindow.RemoveMissingFiles();
@@ -411,9 +355,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/stats_update
         /// Updates all series stats such as watched state and missing files.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object UpdateStats()
         {
             Importer.UpdateAllStats();
@@ -421,9 +366,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/mediainfo_update
         /// Updates all technical details about the files in your collection via running MediaInfo on them.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object UpdateMediaInfo()
         {
             MainWindow.RefreshAllMediaInfo();
@@ -431,9 +377,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/hash/sync
         /// Sync Hashes - download/upload hashes from/to webcache
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object HashSync()
         {
             MainWindow.SyncHashes();
@@ -441,10 +388,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
-        /// Rescan given location ID (folder id) to recognize new episodes
+        /// Handle /api/rescan
+        /// Rescan ImportFolder (with given id) to recognize new episodes
         /// </summary>
-        /// <param name="Vlid"></param>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object RescanVideoLocal()
         {
             Request request = this.Request;
@@ -461,11 +408,9 @@ namespace JMMServer.API.Module.apiv2
                     }
                     if (string.IsNullOrEmpty(vid.Hash))
                     {
-                        return APIStatus.badRequest(
-                            "Could not Update a cloud file without hash, hash it locally first");
+                        return APIStatus.badRequest("Could not Update a cloud file without hash, hash it locally first");
                     }
-                    Commands.CommandRequest_ProcessFile cmd =
-                        new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                    Commands.CommandRequest_ProcessFile cmd = new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
                     cmd.Save();
                 }
                 catch (Exception ex)
@@ -482,10 +427,10 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
+        /// Handle /api/rehash
         /// Rehash given files in given VideoLocal
         /// </summary>
-        /// <param name="VLid"></param>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object RehashVideoLocal()
         {
             Request request = this.Request;
@@ -546,7 +491,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Return newest posts from
         /// </summary>
-        /// <returns></returns>
+        /// <returns>List<WebNews></returns>
         private object GetNews(int max)
         {
             var client = new System.Net.WebClient();
@@ -574,7 +519,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Return Dictionary with nesesery items for Dashboard inside Webui
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Dictionary<string, object></returns>
         private object GetDashboard()
         {
             Dictionary<string, object> dash = new Dictionary<string, object>();
@@ -593,7 +538,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Return current information about Queues (hash, general, images)
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Dictionary<string, QueueInfo></returns>
         private object GetQueue()
         {
             Dictionary<string, QueueInfo> queues = new Dictionary<string, QueueInfo>();
@@ -606,7 +551,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Pause all running Queues
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object PauseQueue()
         {
             JMMService.CmdProcessorHasher.Paused = true;
@@ -618,7 +563,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Start all queues that are pasued
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object StartQueue()
         {
             JMMService.CmdProcessorHasher.Paused = false;
@@ -630,7 +575,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Return information about Hasher queue
         /// </summary>
-        /// <returns></returns>
+        /// <returns>QueueInfo</returns>
         private object GetHasherQueue()
         {
             QueueInfo queue = new QueueInfo();
@@ -644,7 +589,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Return information about General queue
         /// </summary>
-        /// <returns></returns>
+        /// <returns>QueueInfo</returns>
         private object GetGeneralQueue()
         {
             QueueInfo queue = new QueueInfo();
@@ -658,7 +603,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Return information about Images queue
         /// </summary>
-        /// <returns></returns>
+        /// <returns>QueueInfo</returns>
         private object GetImagesQueue()
         {
             QueueInfo queue = new QueueInfo();
@@ -672,7 +617,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Pause Queue
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object PauseHasherQueue()
         {
             JMMService.CmdProcessorHasher.Paused = true;
@@ -682,7 +627,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Pause Queue
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object PauseGeneralQueue()
         {
             JMMService.CmdProcessorGeneral.Paused = true;
@@ -692,7 +637,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Pause Queue
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object PauseImagesQueue()
         {
             JMMService.CmdProcessorImages.Paused = true;
@@ -702,7 +647,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Start Queue from Pause state
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object StartHasherQueue()
         {
             JMMService.CmdProcessorHasher.Paused = false;
@@ -712,7 +657,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Start Queue from Pause state
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object StartGeneralQueue()
         {
             JMMService.CmdProcessorGeneral.Paused = false;
@@ -722,7 +667,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Start Queue from Pause state
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object StartImagesQueue()
         {
             JMMService.CmdProcessorImages.Paused = false;
@@ -732,7 +677,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Clear Queue and Restart it
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object ClearHasherQueue()
         {
             try
@@ -760,7 +705,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Clear Queue and Restart it
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object ClearGeneralQueue()
         {
             try
@@ -788,7 +733,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Clear Queue and Restart it
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object ClearImagesQueue()
         {
             try
@@ -818,9 +763,9 @@ namespace JMMServer.API.Module.apiv2
         #region 6.Files
 
         /// <summary>
-        /// Handle /api/file w/wo ?id
+        /// Handle /api/file
         /// </summary>
-        /// <returns>List<RawFile> or RawFile</returns>
+        /// <returns>List<RawFile> or RawFile or APIStatus</returns>
         private object GetFile()
         {
             Request request = this.Request;
@@ -926,7 +871,9 @@ namespace JMMServer.API.Module.apiv2
         /// Internal function returning file with given id
         /// </summary>
         /// <param name="file_id">file id</param>
-        /// <returns>RawFile</returns>
+        /// <param name="level">deep level</param>
+        /// <param name="uid">user id</param>
+        /// <returns>RawFile or APIStatus</returns>
         internal object GetFileById(int file_id, int level, int uid)
         {
             VideoLocal vl = RepoFactory.VideoLocal.GetByID(file_id);
@@ -977,7 +924,7 @@ namespace JMMServer.API.Module.apiv2
         #region 7.Episodes
 
         /// <summary>
-        /// Handle /api/ep w/wo ?id
+        /// Handle /api/ep
         /// </summary>
         /// <returns>List<Episode> or Episode</returns>
         private object GetEpisode()
@@ -997,17 +944,25 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
-        /// handles /api/ep/getbyfilename?filename=...
+        /// Handle /api/ep/getbyfilename?filename=...
         /// </summary>
-        /// <returns>The found Episode given the on system filename.</returns>
+        /// <returns>Episode or APIStatis</returns>
         private object GetEpisodeFromName()
         {
+            Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
-            string filename = this.Context.Request.Query.filename;
-            if (String.IsNullOrEmpty(filename)) return new Nancy.Response {StatusCode = HttpStatusCode.BadRequest};
+            API_Call_Parameters para = this.Bind();
+            if (String.IsNullOrEmpty(para.filename)) return APIStatus.badRequest("missing 'filename'");
 
-            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(filename);
-            return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0, false);
+            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(para.filename);
+            if (aep != null)
+            {
+                return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+            }
+            else
+            {
+                return APIStatus.notFound404();
+            }
         }
 
         /// <summary>
@@ -1022,6 +977,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.limit == 0)
             {
+                //hardcoded
                 para.limit = 10;
             }
             List<object> lst = new List<object>();
@@ -1032,7 +988,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level, para.all != 0);
+                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level);
                     if (ep != null)
                     {
                         lst.Add(ep);
@@ -1111,7 +1067,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Handle /api/ep/scrobble
         /// </summary>
-        /// <returns></returns>
+        /// <returns>APIStatus</returns>
         private object EpisodeScrobble()
         {
             try
@@ -1179,18 +1135,24 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
-        /// Internal function returning episodes
+        /// Return All known Episodes for current user
         /// </summary>
-        /// <returns></returns>
+        /// <returns>List<Episode></returns>
         internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all)
         {
             List<Episode> eps = new List<Episode>();
             List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
+            if (limit == 0)
+            {
+                // hardcoded
+                limit = 100;
+            }
+
             foreach (int id in aepul)
             {
                 if (offset == 0)
                 {
-                    eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, uid, level, all));
+                    eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, uid, level));
                     if (limit != 0)
                     {
                         if (eps.Count >= limit)
@@ -1213,19 +1175,27 @@ namespace JMMServer.API.Module.apiv2
         /// </summary>
         /// <param name="id">episode id</param>
         /// <param name="uid">user id</param>
-        /// <returns>Episode</returns>
+        /// <returns>Episode or APIStatus</returns>
         internal object GetEpisodeById(int id, int uid)
         {
             if (id > 0)
             {
-                Episode ep = GetEpisode(id, uid);
-                if (ep != null)
+                AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
+                if (aep != null)
                 {
-                    return ep;
+                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, uid, 0);
+                    if (ep != null)
+                    {
+                        return ep;
+                    }
+                    else
+                    {
+                        return APIStatus.notFound404("episode not found");
+                    }
                 }
                 else
                 {
-                    return APIStatus.notFound404("episode not found");
+                    return APIStatus.notFound404();
                 }
             }
             else
@@ -1295,7 +1265,7 @@ namespace JMMServer.API.Module.apiv2
         #region 8.Series
 
         /// <summary>
-        /// Handle /api/serie w/wo ?id
+        /// Handle /api/serie
         /// </summary>
         /// <returns>List<Serie> or Serie</returns>
         private object GetSerie()
@@ -1330,7 +1300,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Handle /api/serie/byfolder
         /// </summary>
-        /// <returns>List<Serie></returns>
+        /// <returns>List<Serie> or APIStatus</returns>
         private object GetSeriesByFolderId()
         {
             Request request = this.Request;
@@ -1339,26 +1309,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id != 0)
             {
-                List<object> allseries = new List<object>();
-                List<VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(para.id)
-                    .Select(a => a.VideoLocal)
-                    .ToList();
-                if (para.limit == 0)
-                {
-                    para.limit = 10;
-                }
-                foreach (VideoLocal vl in vlpall)
-                {
-                    Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, para.nocast != 0, para.notag != 0,
-                        para.level, para.all != 0);
-                    allseries.Add(ser);
-                    if (allseries.Count >= para.limit)
-                    {
-                        break;
-                    }
-                }
-
-                return allseries;
+                return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.limit);
             }
             else
             {
@@ -1461,7 +1412,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Handle /api/serie/search
         /// </summary>
-        /// <returns>List<Serie></returns>
+        /// <returns>List<Serie> or APIStatus</returns>
         private object SearchForSerie()
         {
             Request request = this.Request;
@@ -1470,12 +1421,13 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.limit == 0)
             {
+                //hardcoded
                 para.limit = 100;
             }
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID,
-                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.list);
+                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
             {
@@ -1486,7 +1438,7 @@ namespace JMMServer.API.Module.apiv2
         /// <summary>
         /// Handle /api/serie/tag
         /// </summary>
-        /// <returns>List<Serie></returns>
+        /// <returns>List<Serie> or APIStatus</returns>
         private object SearchForTag()
         {
             Request request = this.Request;
@@ -1495,40 +1447,102 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.limit == 0)
             {
+                //hardcoded
                 para.limit = 100;
             }
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, 1, user.JMMUserID, para.nocast != 0,
-                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.list);
+                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
             {
                 return APIStatus.badRequest("missing 'query'");
             }
         }
-        
+
         /// <summary>
         /// Handle /api/serie/fromep?id=...
         /// Used to get the series related to the episode id.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Serie or APIStatus</returns>
         private object GetSeriesFromEpisode()
         {
+            Request request = this.Request;
             JMMUser user = (JMMUser)this.Context.CurrentUser;
-            int id = this.Context.Request.Query.id;
             API_Call_Parameters para = this.Bind();
-
-            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
-  
-            return new Serie().GenerateFromAnimeSeries(aep.GetAnimeSeries(), user.JMMUserID,
-                para.nocast != 0, para.notag != 0, para.level, para.all != 0);
+            if (para.id != 0)
+            {
+                return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
+            }
+            else
+            {
+                return APIStatus.badRequest("missing 'id'");
+            }
         }
 
         #region internal function
 
         /// <summary>
-        /// Internal function returning series
+        /// Return Series that resine inside folder
+        /// </summary>
+        /// <param name="id">import folder id</param>
+        /// <param name="uid">user id</param>
+        /// <param name="nocast">disable cast</param>
+        /// <param name="notag">disable tag</param>
+        /// <param name="level">deep level</param>
+        /// <param name="all"></param>
+        /// <param name="limit"></param>
+        /// <returns>List<Serie></returns>
+        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit)
+        {
+            List<object> allseries = new List<object>();
+            List<VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+                .Select(a => a.VideoLocal)
+                .ToList();
+            if (limit == 0)
+            {
+                // hardcoded limit
+                limit = 100;
+            }
+            foreach (VideoLocal vl in vlpall)
+            {
+                Serie ser = new Serie().GenerateFromVideoLocal(vl, uid, nocast, notag, level, all);
+                allseries.Add(ser);
+                if (allseries.Count >= limit)
+                {
+                    break;
+                }
+            }
+
+            return allseries;
+        }
+
+        /// <summary>
+        /// Return Serie for given episode
+        /// </summary>
+        /// <param name="id">episode id</param>
+        /// <param name="uid">user id</param>
+        /// <param name="nocast">disable cast</param>
+        /// <param name="notag">disable tag</param>
+        /// <param name="level">deep level</param>
+        /// <param name="all"></param>
+        /// <returns></returns>
+        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all)
+        {
+            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
+            if (aep != null)
+            {
+                return new Serie().GenerateFromAnimeSeries(aep.GetAnimeSeries(), uid, nocast, notag, level, all);
+            }
+            else
+            {
+                return APIStatus.notFound404("serie not found");
+            }
+        }
+
+        /// <summary>
+        /// Return All known Series
         /// </summary>
         /// <param name="nocast">disable cast</param>
         /// <param name="limit">number of return items</param>
@@ -1653,8 +1667,14 @@ namespace JMMServer.API.Module.apiv2
             return string.Join(seperator, newItems);
         }
 
-        private static void CheckTitlesFuzzy(AnimeSeries a, string query,
-            ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, int limit)
+        /// <summary>
+        /// function used in fuzzy search
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="query"></param>
+        /// <param name="distLevenshtein"></param>
+        /// <param name="limit"></param>
+        private static void CheckTitlesFuzzy(AnimeSeries a, string query, ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
@@ -1670,8 +1690,14 @@ namespace JMMServer.API.Module.apiv2
             if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
         }
 
-        private static void CheckTagsFuzzy(AnimeSeries a, string query,
-            ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, int limit)
+        /// <summary>
+        /// function used in fuzzy tag search
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="query"></param>
+        /// <param name="distLevenshtein"></param>
+        /// <param name="limit"></param>
+        private static void CheckTagsFuzzy(AnimeSeries a, string query, ref ConcurrentDictionary<AnimeSeries, int> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
             int dist = int.MaxValue;
@@ -1705,35 +1731,34 @@ namespace JMMServer.API.Module.apiv2
         }
 
         /// <summary>
-        /// Internal function that search for given query in name or tag inside series
+        /// Search for serie with given query in name or tag
         /// </summary>
         /// <param name="query">target string</param>
         /// <param name="limit">number of return items</param>
+        /// <param name="limit_tag">number of return items for tag</param>
         /// <param name="offset">offset to start from</param>
         /// <param name="tagSearch">True for searching in tags, False for searching in name</param>
         /// <param name="uid">user id</param>
         /// <param name="nocast">disable cast</param>
+        /// <param name="notag">disable tag</param>
+        /// <param name="level">deep level</param>
+        /// <param name="all"></param>
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
-        internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast,
-            bool notag, int level, bool all, bool fuzzy, int list = 0)
+        internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast, bool notag, int level, bool all, bool fuzzy)
         {
             query = query.ToLowerInvariant();
-            Filter search_filter = new Filter();
-            search_filter.name = "Search";
-            search_filter.groups = new List<Group>();
 
-            Group search_group = new Group();
-            search_group.name = query;
-            search_group.series = new List<Serie>();
             JMMUser user = RepoFactory.JMMUser.GetByID(uid);
             if (user?.Contract == null) return APIStatus.unauthorized();
 
+            List<Serie> series_list = new List<Serie>();
             List<AnimeSeries> series = new List<AnimeSeries>();
             ParallelQuery<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.AniDBAnime.AllTags.FindInEnumerable(user.Contract.HideCategories))
                 .AsParallel();
+
             if (tagSearch == 0) // Search Title Only
             {
                 if (!fuzzy || query.Length >= (IntPtr.Size * 8))
@@ -1758,9 +1783,8 @@ namespace JMMServer.API.Module.apiv2
                 {
                     if (offset == 0)
                     {
-                        search_group.series.Add(
-                            new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
-                        if (search_group.series.Count >= limit)
+                        series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                        if (series_list.Count >= limit)
                         {
                             break;
                         }
@@ -1799,9 +1823,8 @@ namespace JMMServer.API.Module.apiv2
                 {
                     if (offset == 0)
                     {
-                        search_group.series.Add(
-                            new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
-                        if (search_group.series.Count >= realLimit)
+                        series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                        if (series_list.Count >= realLimit)
                         {
                             break;
                         }
@@ -1842,8 +1865,7 @@ namespace JMMServer.API.Module.apiv2
                     {
                         if (offset == 0)
                         {
-                            search_group.series.Add(
-                                new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                            series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                         }
                         else
                         {
@@ -1874,8 +1896,7 @@ namespace JMMServer.API.Module.apiv2
                     {
                         if (offset == 0)
                         {
-                            search_group.series.Add(
-                                new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                            series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                         }
                         else
                         {
@@ -1885,23 +1906,7 @@ namespace JMMServer.API.Module.apiv2
                 }
             }
 
-            if (list == 0)
-            {
-                search_group.size = search_group.series.Count();
-                search_filter.groups.Add(search_group);
-                search_filter.size = search_filter.groups.Count();
-
-                return search_filter;
-            }
-            else
-            {
-                Series series_list = new Series();
-                series_list.name = query;
-                series_list.series = search_group.series;
-                series_list.size = series_list.series.Count;
-
-                return series_list;
-            }
+            return series_list;
         }
 
         /// <summary>
@@ -1997,10 +2002,10 @@ namespace JMMServer.API.Module.apiv2
         #region 10. Filters
 
         /// <summary>
-        /// Handle /api/filter w/wo ?id
+        /// Handle /api/filter
         /// Using if without ?id consider using ?level as it will scan resursive for object from Filter to RawFile
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Filter or List<Filter></returns>
         private object GetFilters()
         {
             Request request = this.Request;
@@ -2021,11 +2026,11 @@ namespace JMMServer.API.Module.apiv2
         #region internal function
 
         /// <summary>
-        /// Internal function that return all filter for given user
+        /// Return all known filter for given user
         /// </summary>
         /// <param name="uid">user id</param>
         /// <param name="nocast">disable cast</param>
-        /// <param name="notag">disable tag/genre</param>
+        /// <param name="notag">disable tag</param>
         /// <param name="level">deep level</param>
         /// <returns>List<Filter></returns>
         internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all)
@@ -2048,7 +2053,7 @@ namespace JMMServer.API.Module.apiv2
                 _filters.Add(filter);
             }
 
-            // Unsort
+            // Include 'Unsort'
             List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
             if (vids.Count > 0)
             {
@@ -2081,7 +2086,7 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="id">filter id</param>
         /// <param name="uid">user id</param>
         /// <param name="nocast">disable cast</param>
-        /// <param name="notag">disable tag/genre</param>
+        /// <param name="notag">disable tag</param>
         /// <param name="level">deep level</param>
         /// <returns>Filter</returns>
         internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all)
@@ -2103,696 +2108,12 @@ namespace JMMServer.API.Module.apiv2
 
         #endregion
 
-        #region 11. Metadata - [Obsolete]
+        #region 11. Group
 
-        [Obsolete]
         /// <summary>
-        /// Return Metadata about object you asked for via MediaContainer (Legacy)
+        /// Handle /api/group 
         /// </summary>
-        /// <param name="typeid">type id</param>
-        /// <param name="id">object id</param>
-        /// <param name="nocast">disable roles output</param>
-        /// <param name="filter"></param>
-        /// <returns></returns>
-        private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
-        {
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            if (user != null)
-            {
-                int? filterid = filter.ParseNullableInt();
-                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid.ToString(), id.ToString(), null,
-                    nocast, filterid);
-            }
-            else
-            {
-                return new APIMessage(500, "Unable to get User");
-            }
-        }
-
-        [Obsolete]
-        private object GetMetadata(int type_id, string id, bool nocast = false, string filter = "")
-        {
-            Core.request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
-            if (user != null)
-            {
-                switch ((JMMType) type_id)
-                {
-                    //0
-                    case JMMType.GroupFilter:
-                        return GetGroupsOrSubFiltersFromFilter(id, user.JMMUserID);
-                    //1
-                    case JMMType.GroupUnsort:
-                        return GetUnsort();
-                    //2
-                    case JMMType.Group:
-                        return GetItemsFromGroup(user.JMMUserID, id, nocast);
-                    //3
-                    case JMMType.Serie:
-                        return GetItemsFromSerie(user.JMMUserID, id, nocast);
-                    //5
-                    case JMMType.Episode:
-                        return GetFromEpisode(user.JMMUserID, id);
-                    //6
-                    case JMMType.File:
-                        return GetFromFile(user.JMMUserID, id);
-                    //7
-                    //        case JMMType.Playlist:
-                    //            return GetItemsFromPlaylist(prov, user.JMMUserID, Id, his);
-                    //8
-                    //        case JMMType.FakeIosThumb:
-                    //            return FakeParentForIOSThumbnail(prov, Id);
-                    default:
-                        return APIStatus.badRequest("bad type");
-                }
-            }
-            else
-            {
-                return APIStatus.accessDenied();
-            }
-        }
-
-        #region test_only
-
-        [Obsolete]
-        private object GetGroupsOrSubFiltersFromFilter(string GroupFilterID, int uid)
-        {
-            try
-            {
-                int groupFilterID = -1;
-                int.TryParse(GroupFilterID, out groupFilterID);
-                ObjectList dir = new ObjectList();
-                if (groupFilterID >= 0)
-                {
-                    GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
-
-                    if (gf == null)
-                    {
-                        return APIStatus.notFound404();
-                    }
-
-                    dir.name = gf.GroupFilterName;
-                    dir.type = "show";
-
-                    List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID)
-                        .Where(a => a.InvisibleInClients == 0 &&
-                                    (
-                                        (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
-                                        || (a.FilterType & (int) GroupFilterType.Directory) ==
-                                        (int) GroupFilterType.Directory)
-                        )
-                        .ToList();
-
-                    List<Filter> dirs = new List<Filter>();
-                    foreach (GroupFilter gg in allGfs)
-                    {
-                        Filter pp = APIHelper.FilterFromGroupFilter(gg, uid);
-                        dirs.Add(pp);
-                    }
-
-                    if (dirs.Count > 0)
-                    {
-                        dir.Add(new List<object>(dirs.OrderBy(a => a.name).Cast<object>().ToList()));
-                        return dir;
-                    }
-
-                    if (gf.GroupsIds.ContainsKey(uid))
-                    {
-                        foreach (AnimeGroup grp in gf.GroupsIds[uid]
-                            .ToList()
-                            .Select(a => RepoFactory.AnimeGroup.GetByID(a))
-                            .Where(a => a != null))
-                        {
-                            Filter pp = APIHelper.FilterFromAnimeGroup(grp, uid);
-                            dirs.Add(pp);
-                        }
-
-                        dir.Add(new List<object>(dirs.Cast<object>().ToList()));
-                    }
-                }
-
-                return dir;
-            }
-            catch (Exception ex)
-            {
-                return APIStatus.internalError(ex.Message.ToString());
-            }
-        }
-
-        [Obsolete]
-        private object GetItemsFromSerie(int uid, string SerieId, bool nocast = false)
-        {
-            int serieID;
-            enEpisodeType? eptype = null;
-            if (SerieId.Contains("_"))
-            {
-                int ept;
-                string[] ndata = SerieId.Split('_');
-                if (!int.TryParse(ndata[0], out ept))
-                {
-                    return APIStatus.notFound404("Invalid Serie Id");
-                }
-                if (!int.TryParse(ndata[1], out serieID))
-                {
-                    return APIStatus.notFound404("Invalid Serie Id");
-                }
-                eptype = (enEpisodeType) ept;
-            }
-            else
-            {
-                if (!int.TryParse(SerieId, out serieID))
-                {
-                    return APIStatus.notFound404("Invalid Serie Id");
-                }
-            }
-
-            AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serieID);
-            if (ser == null)
-            {
-                return APIStatus.notFound404("Series not found");
-            }
-            Contract_AnimeSeries cseries = ser.GetUserContract(uid);
-            if (cseries == null)
-            {
-                return APIStatus.notFound404("Invalid Series, Contract Not Found");
-            }
-
-            Serie sers = new Serie();
-
-            Video nv = ser.GetPlexContract(uid);
-
-
-            Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes()
-                .ToDictionary(a => a, a => a.GetUserContract(uid));
-            episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
-                .ToDictionary(a => a.Key, a => a.Value);
-
-            sers.size = cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount;
-            sers.art.fanart.Add(new Art()
-            {
-                url = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart?.GenArt(null),
-                index = 0
-            });
-            sers.viewed = cseries.WatchedEpisodeCount;
-
-            if (eptype.HasValue)
-            {
-                episodes = episodes.Where(a => a.Key.EpisodeTypeEnum == eptype.Value)
-                    .ToDictionary(a => a.Key, a => a.Value);
-            }
-            else
-            {
-                List<enEpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
-                if (types.Count > 1)
-                {
-                    List<PlexEpisodeType> eps = new List<PlexEpisodeType>();
-                    foreach (enEpisodeType ee in types)
-                    {
-                        PlexEpisodeType k2 = new PlexEpisodeType();
-                        PlexEpisodeType.EpisodeTypeTranslated(k2, ee,
-                            (AnimeTypes) cseries.AniDBAnime.AniDBAnime.AnimeType,
-                            episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
-                        eps.Add(k2);
-                    }
-
-                    List<Serie> dirs = new List<Serie>();
-
-                    foreach (PlexEpisodeType ee in eps.OrderBy(a => a.Name))
-                    {
-                        Serie ob = new Serie();
-                        ob.art.fanart.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0});
-                        ob.art.thumb.Add(new Art() {url = APIHelper.ConstructSupportImageLink(ee.Image), index = 0});
-                        ob.titles.Add(new AnimeTitle() {Title = ee.Name});
-                        ob.size = ee.Count;
-                        ob.viewed = 0;
-                        // ob.url = APIHelper.ConstructSerieIdUrl(ee.Type + "_" + ser.AnimeSeriesID);
-                        dirs.Add(ob);
-                    }
-
-                    return dirs;
-                }
-            }
-
-            List<Episode> lep = new List<Episode>();
-
-            foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> epi in episodes)
-            {
-                try
-                {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(epi.Key, uid, 0, false);
-                    lep.Add(ep);
-                }
-                catch (Exception e)
-                {
-                    //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
-                }
-
-
-                sers.eps = lep.OrderBy(a => a.epnumber).ToList();
-
-                return sers;
-            }
-
-            return sers;
-        }
-
-        [Obsolete]
-        private object GetFromEpisode(int uid, string aep_Id)
-        {
-            int aep_id = -1;
-            int.TryParse(aep_Id, out aep_id);
-
-            if (aep_id > 0)
-            {
-                List<Video> dirs = new List<Video>();
-
-                AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(aep_id);
-                if (e == null)
-                {
-                    return APIStatus.notFound404("Episode not found");
-                }
-
-                //KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep = new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e, e.GetUserContract(uid));
-                //if (ep.Value != null && ep.Value.LocalFileCount == 0) { return APIStatus.notFound404("Episode do not have videolocals"); }
-
-                //AniDB_Episode aep = ep.Key.AniDB_Episode;
-                //if (aep == null) { return APIStatus.notFound404("Invalid Episode AniDB link not found"); }
-
-                //AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
-                //if (ser == null) { return APIStatus.notFound404("Invalid Serie"); }
-                //AniDB_Anime anime = ser.GetAnime();
-
-                //Contract_AnimeSeries con = ser.GetUserContract(uid);
-                //if (con == null) { return APIStatus.notFound404("Invalid Serie, Contract not found"); }
-
-                try
-                {
-                    Episode epi = new Episode().GenerateFromAnimeEpisode(e, uid, 0, false);
-                    return epi;
-                }
-                catch (Exception ex)
-                {
-                    return APIStatus.internalError(ex.Message.ToString());
-                }
-            }
-            return APIStatus.notFound404("Ep id not found");
-        }
-
-        [Obsolete]
-        private object GetItemsFromGroup(int uid, string GroupId, bool nocast = false)
-        {
-            int gid;
-            int.TryParse(GroupId, out gid);
-            if (gid == -1)
-            {
-                return APIStatus.internalError("Invalid Group Id");
-            }
-
-            ObjectList obl = new ObjectList();
-
-            List<Video> retGroups = new List<Video>();
-            AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(gid);
-            if (grp == null)
-            {
-                return APIStatus.notFound404("Group not found");
-            }
-
-            Contract_AnimeGroup basegrp = grp?.GetUserContract(uid);
-            if (basegrp != null)
-            {
-                List<AnimeSeries> seriesList = grp.GetSeries();
-
-                foreach (AnimeGroup grpChild in grp.GetChildGroups())
-                {
-                    Filter fr = new Filter();
-
-                    var v = grpChild.GetPlexContract(uid);
-                    if (v != null)
-                    {
-                        fr.url = APIHelper.ConstructGroupIdUrl(gid.ToString());
-
-                        fr.art.fanart.Add(
-                            new Art() {url = Helper.GetRandomFanartFromVideo(v, null) ?? v.Art, index = 0});
-                        fr.art.banner.Add(new Art()
-                        {
-                            url = v.Banner = Helper.GetRandomBannerFromVideo(v, null) ?? v.Banner,
-                            index = 0
-                        });
-
-                        obl.list.Add(fr);
-                    }
-                }
-                foreach (AnimeSeries ser in seriesList)
-                {
-                    Serie seri = new Serie().GenerateFromAnimeSeries(ser, uid, false, false, 0, false);
-                    obl.list.Add(seri);
-                }
-            }
-
-            return obl;
-        }
-
-        [Obsolete]
-        private object GetFromFile(int uid, string vl_Id)
-        {
-            int id;
-            if (!int.TryParse(vl_Id, out id))
-            {
-                return APIStatus.badRequest("bad group id");
-            }
-
-            VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
-
-            RawFile rf = new RawFile(vi, 0, 1);
-
-            return rf;
-        }
-
-        #endregion
-
-        #endregion
-
-        #region Obsolete
-
-        #region 11 only
-
-        IProvider _prov_kodi = new PlexAndKodi.Kodi.KodiProvider();
-        CommonImplementation _impl = new CommonImplementation();
-
-        #endregion
-
-        #region Obsolete - calls
-
-        [Obsolete]
-        /// <summary>
-        /// Get List of all files
-        /// </summary>
-        /// <returns></returns>
-        private object GetAllFiles_old()
-        {
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-            Dictionary<int, string> files = new Dictionary<int, string>();
-            foreach (VideoLocal file in _impl.GetAllFiles())
-            {
-                files.Add(file.VideoLocalID, file.FileName);
-            }
-
-            return files;
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Return List<> of recently added files paths
-        /// </summary>
-        /// <param name="max_limit"></param>
-        /// <returns></returns>
-        private object GetRecentFiles_old(int max_limit)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-
-            List<RecentFile> files = new List<RecentFile>();
-
-            foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
-            {
-                RecentFile recent = new RecentFile();
-                recent.path = "";
-                recent.id = file.VideoLocalID;
-                if (file.EpisodeCrossRefs.Count() == 0)
-                {
-                    recent.success = false;
-                }
-                else
-                {
-                    recent.success = true;
-                }
-                files.Add(recent);
-            }
-
-            return files;
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Return given number of unsort items from collection
-        /// </summary>
-        /// <param name="max_limit"></param>
-        /// <returns></returns>
-        private object GetUnsort(int max_limit)
-        {
-            ObjectList dir = new ObjectList("unsort", ObjectList.ListType.FILE);
-            List<object> lst = new List<object>();
-
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-
-            foreach (VideoLocal vl in vids)
-            {
-                try
-                {
-                    RawFile v = new RawFile(vl, 0, 1);
-                    lst.Add(v);
-                }
-                catch
-                {
-                }
-
-                if (max_limit != -1)
-                {
-                    if (lst.Count >= max_limit)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            dir.Add(lst);
-            return dir;
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Return list of paths of files that have benn makred as Unrecognised
-        /// </summary>
-        /// <param name="max_limit"></param>
-        /// <returns></returns>
-        private object GetUnrecognisedFiles(int max_limit)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            Dictionary<int, string> files = new Dictionary<int, string>();
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-            int i = 0;
-            foreach (Contract_VideoLocal file in _impl.GetUnrecognisedFiles(user.JMMUserID))
-            {
-                i++;
-                files.Add(file.VideoLocalID, file.FileName);
-                if (i >= max_limit) break;
-            }
-            return files;
-        }
-
-        [Obsolete]
-        internal object GetAllEpisodes()
-        {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
-            ObjectList ob = new ObjectList("all episodes", ObjectList.ListType.EPISODE);
-            List<object> eps = new List<object>();
-            List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(user.JMMUserID)
-                .Select(a => a.AnimeEpisodeID)
-                .ToList();
-            foreach (int id in aepul)
-            {
-                eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, user.JMMUserID, 0, false));
-            }
-            ob.Add(eps);
-
-            return ob;
-        }
-
-        [Obsolete]
-        private object GetEpisodeById(int ep_id)
-        {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
-
-            if (ep_id > 0)
-            {
-                Episode ep = GetEpisode(ep_id, user.JMMUserID);
-                if (ep != null)
-                {
-                    return ep;
-                }
-                else
-                {
-                    return APIStatus.notFound404("episode not found");
-                }
-            }
-            else
-            {
-                return APIStatus.badRequest();
-            }
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Return Episode object with given Id
-        /// </summary>
-        /// <param name="ep_id">Episode id</param>
-        /// <param name="uid">User id</param>
-        /// <returns></returns>
-        internal Episode GetEpisode(int ep_id, int uid)
-        {
-            AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(ep_id);
-
-            Episode ep = new Episode().GenerateFromAnimeEpisode(aep, uid, 0, false);
-            return ep;
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Get recent Episodes for current user
-        /// </summary>
-        /// <param name="max_limit">maximal number of items</param>
-        /// <returns></returns>
-        private object GetRecentEpisodes(int max_limit)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-
-            ObjectList obl = new ObjectList("recent episodes", ObjectList.ListType.EPISODE);
-            List<object> lst = new List<object>();
-
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(max_limit);
-
-            foreach (VideoLocal vl in vids)
-            {
-                foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
-                {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0, false);
-                    lst.Add(ep);
-                }
-            }
-
-            obl.Add(lst);
-
-            return obl;
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Set score for episode
-        /// </summary>
-        /// <returns></returns>
-        private object VoteOnEpisode2()
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            API_Call_Parameters epi = this.Bind();
-
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-
-            _impl.VoteAnime(epi.id, (decimal) epi.score, (int) AniDBAPI.enAniDBVoteType.Episode);
-
-            return APIStatus.statusOK();
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Return list of series inside given folder
-        /// </summary>
-        /// <param name="folder_id"></param>
-        /// <param name="max"></param>
-        /// <returns></returns>
-        private object GetSerieByFolderId(int folder_id, int max)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-
-            ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
-            List<object> allseries = new List<object>();
-
-            List<VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(folder_id)
-                .Select(a => a.VideoLocal)
-                .ToList();
-
-            foreach (VideoLocal vl in vlpall)
-            {
-                Serie ser = new Serie().GenerateFromVideoLocal(vl, user.JMMUserID, true, false, 0, false);
-                allseries.Add(ser);
-                if (allseries.Count >= max)
-                {
-                    break;
-                }
-            }
-
-            ob.Add(allseries);
-            return ob;
-        }
-
-        [Obsolete]
-        private object GetRecentSeries(int limit)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-
-            ObjectList ob = new ObjectList("all series", ObjectList.ListType.SERIE);
-            List<object> allseries = new List<object>();
-
-            List<AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(limit);
-
-            foreach (AnimeSeries aser in series)
-            {
-                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, true, false, 0, false));
-            }
-
-            ob.Add(allseries);
-            return ob;
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Mark given number files of given type for series as un/watched
-        /// </summary>
-        /// <param name="status">true = watched, false = unwatched</param>
-        /// <param name="max_episodes">max number or episode to mark</param>
-        /// <param name="type">1 = episodes, 2 = credits, 3 = special, 4 = trailer, 5 = parody, 6 = other</param>
-        /// <returns></returns>
-        private object MarkSerieWatched(bool status, int max_episodes, int type)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-            API_Call_Parameters para = this.Bind();
-            return _impl.SetWatchedStatusOnSeries(para.id, status, max_episodes, type, user.JMMUserID);
-        }
-
-        [Obsolete]
-        /// <summary>
-        /// Set score for serie
-        /// </summary>
-        /// <returns></returns>
-        private object VoteOnSerie2()
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            API_Call_Parameters ser = this.Bind();
-
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-
-            _impl.VoteAnime(ser.id, (decimal) ser.score, (int) AniDBAPI.enAniDBVoteType.Anime);
-
-            return APIStatus.statusOK();
-        }
-
-        #endregion
-
-        #endregion
-
-        #region 12. Group
-
+        /// <returns>Group or List<Group> for id!=0</returns>
         public object GetGroups()
         {
             Request request = this.Request;
@@ -2849,9 +2170,18 @@ namespace JMMServer.API.Module.apiv2
 
         #region internal function
 
+        /// <summary>
+        /// Return list of all known groups
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="nocast"></param>
+        /// <param name="notag"></param>
+        /// <param name="level"></param>
+        /// <param name="all"></param>
+        /// <returns>List<Group></returns>
         internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all)
         {
-            List<API.Model.common.Group> grps = new List<API.Model.common.Group>();
+            List<Group> grps = new List<Group>();
             List<AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
             foreach (AnimeGroup_User gr in allGrps)
             {
@@ -2862,17 +2192,32 @@ namespace JMMServer.API.Module.apiv2
             return grps;
         }
 
+        /// <summary>
+        /// Return group of given id
+        /// </summary>
+        /// <param name="id">group id</param>
+        /// <param name="uid">user id</param>
+        /// <param name="nocast">disable cast</param>
+        /// <param name="notag">disable tag</param>
+        /// <param name="level">deep level</param>
+        /// <param name="all">add all known episodes</param>
+        /// <param name="filterid"></param>
+        /// <returns>Group</returns>
         internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
-            //SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
             AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
-            API.Model.common.Group gr =
-                new API.Model.common.Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
+            Group gr = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
             return gr;
         }
 
-        internal object MarkWatchedStatusOnGroup(int groupid, int userid,
-            bool watchedstatus)
+        /// <summary>
+        /// Set watch status for group
+        /// </summary>
+        /// <param name="groupid">group id</param>
+        /// <param name="userid">user id</param>
+        /// <param name="watchedstatus">watch status</param>
+        /// <returns>APIStatus</returns>
+        internal object MarkWatchedStatusOnGroup(int groupid, int userid, bool watchedstatus)
         {
             try
             {
