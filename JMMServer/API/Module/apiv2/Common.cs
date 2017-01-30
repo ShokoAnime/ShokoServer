@@ -67,6 +67,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/myid/get"] = _ => { return MyID(); };
             Get["/news/get"] = _ => { return GetNews(5); };
             Get["/dashboard"] = _ => { return GetDashboard(); };
+            Get["/search"] = _ => { return BigSearch(); };
 
             #endregion
 
@@ -529,6 +530,45 @@ namespace JMMServer.API.Module.apiv2
             dash.Add("file_count", CountFiles()); //updated
             dash.Add("serie_count", CountSerie()); //updated
             return dash;
+        }
+
+        /// <summary>
+        /// Handle /api/search
+        /// </summary>
+        /// <returns>Filter or APIStatu</returns>
+        private object BigSearch()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            string query = para.query.ToLowerInvariant();
+            if (para.limit == 0)
+            {
+                //hardcoded
+                para.limit = 100;
+            }
+            if (query != "")
+            {
+                Filter search_filter = new Filter();
+                search_filter.name = "Search";
+                search_filter.groups = new List<Group>();
+
+                Group search_group = new Group();
+                search_group.name = para.query;
+                search_group.series = new List<Serie>();
+
+                search_group.series = (List<Serie>)(Search(query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0));
+                search_group.size = search_group.series.Count();
+                search_filter.groups.Add(search_group);
+                search_filter.size = search_filter.groups.Count();
+
+                return search_filter;
+            }
+            else
+            {
+                return APIStatus.badRequest("missing 'query'");
+            }
         }
 
         #endregion
