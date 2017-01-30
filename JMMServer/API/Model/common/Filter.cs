@@ -85,6 +85,7 @@ namespace JMMServer.API.Model.common
                         IEnumerable<Contract_AnimeGroup> grps = order.Keys;
                         grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                         groups = grps.Select(a => order[a]).ToList();
+                        filter.groups = groups;
                     }
                 }
             }
