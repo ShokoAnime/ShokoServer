@@ -74,13 +74,41 @@ namespace Shoko.Commons
         {
             if (impfolder.CloudID.HasValue)
                 return string.Empty;
-            return TranslateFile(impfolder.ImportFolderID, path);
+            string result=TranslateFile(impfolder.ImportFolderID, path);
+            try
+            {
+                if (result == string.Empty && Directory.Exists(impfolder.ImportFolderLocation))
+                {
+                    string npath = Path.Combine(impfolder.ImportFolderLocation, path);
+                    if (File.Exists(npath))
+                        return npath;
+                }
+            }
+            catch (Exception e)
+            {
+
+            }
+            return result;
         }
         public string TranslateDirectory(ImportFolder impfolder, string path)
         {
             if (impfolder.CloudID.HasValue)
                 return string.Empty;
-            return TranslateDirectory(impfolder.ImportFolderID, path);
+            string result=TranslateDirectory(impfolder.ImportFolderID, path);
+            try
+            {
+                if (result == string.Empty && Directory.Exists(impfolder.ImportFolderLocation))
+                {
+                    string npath = Path.Combine(impfolder.ImportFolderLocation, path);
+                    if (Directory.Exists(npath))
+                        return npath;
+                }
+            }
+            catch (Exception e)
+            {
+                
+            }
+            return result;
         }
 
         public string TranslateFile(int folderid, string path)
