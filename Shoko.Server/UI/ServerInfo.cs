@@ -81,7 +81,7 @@ namespace Shoko.Server
                 {
                     CloudProvider p = new CloudProvider
                     {
-                        Icon = plugin.CreateIconImage(),
+                        Bitmap = plugin.CreateIconImage(),
                         Name = plugin.Name,
                         Plugin = plugin
                     };
@@ -408,7 +408,7 @@ namespace Shoko.Server
         public class CloudProvider
         {
             public string Name { get; set; }
-            public ImageSource Icon { get; set; }
+            public ImageSource Bitmap { get; set; }
             public ICloudPlugin Plugin { get; set; }
         }
 

@@ -64,7 +64,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            int cnt = 0;
+            try
+            {
+                            int cnt = 0;
             List<SVR_AnimeSeries> sers =
                 Cache.Values.Where(
                     a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime?.AniDBAnime == null)
@@ -84,6 +86,13 @@ namespace Shoko.Server.Repositories.Cached
             }
             ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
                 " DbRegen - " + max + "/" + max);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
         }
 
 

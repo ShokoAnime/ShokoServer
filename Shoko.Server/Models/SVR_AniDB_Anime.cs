@@ -1556,9 +1556,9 @@ namespace Shoko.Server.Models
             AniDB_Anime_DefaultImage defPoster = GetDefaultPoster(session);
             AniDB_Anime_DefaultImage defBanner = GetDefaultWideBanner(session);
 
-            cl.DefaultImageFanart = defFanart.ToClient(session);
-            cl.DefaultImagePoster = defPoster.ToClient(session);
-            cl.DefaultImageWideBanner = defBanner.ToClient(session);
+            cl.DefaultImageFanart = defFanart?.ToClient(session);
+            cl.DefaultImagePoster = defPoster?.ToClient(session);
+            cl.DefaultImageWideBanner = defBanner?.ToClient(session);
 
 	        return cl;
         }

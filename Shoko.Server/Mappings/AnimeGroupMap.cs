@@ -9,10 +9,8 @@ namespace Shoko.Server.Mappings
         public AnimeGroupMap()
         {
             Table("AnimeGroup");
-
             Not.LazyLoad();
             Id(x => x.AnimeGroupID);
-
             Map(x => x.AnimeGroupParentID);
             Map(x => x.DefaultAnimeSeriesID);
             Map(x => x.DateTimeCreated).Not.Nullable();

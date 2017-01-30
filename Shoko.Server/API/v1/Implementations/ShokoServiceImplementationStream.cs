@@ -227,7 +227,7 @@ namespace Shoko.Server
                 r.StatusDescription = "Video Not Found";
                 return r;
             }
-            if (userId.HasValue && autowatch.HasValue)
+            if (userId.HasValue && autowatch.HasValue && userId.Value!=0)
             {
                 r.User = RepoFactory.JMMUser.GetByID(userId.Value);
                 if (r.User == null)

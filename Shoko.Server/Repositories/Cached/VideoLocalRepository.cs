@@ -64,24 +64,33 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            RegenerateDb(Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(),a=>
+            try
             {
+                RegenerateDb(Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(), a =>
+                {
+                    //Fix possible paths in filename
+                    if (!string.IsNullOrEmpty(a.FileName))
+                    {
+                        int b = a.FileName.LastIndexOf("\\");
+                        if (b > 0)
+                            a.FileName = a.FileName.Substring(b + 1);
+                    }
+                    Save(a, false);
+                });
                 //Fix possible paths in filename
-                if (!string.IsNullOrEmpty(a.FileName))
+                Cache.Values.Where(a => a.FileName.Contains("\\")).ToList().ForEach(a =>
                 {
                     int b = a.FileName.LastIndexOf("\\");
-                    if (b>0)
-                        a.FileName = a.FileName.Substring(b + 1);
-                }
-                Save(a, false);
-            });
-            //Fix possible paths in filename
-            Cache.Values.Where(a=>a.FileName.Contains("\\")).ToList().ForEach(a =>
+                    a.FileName = a.FileName.Substring(b + 1);
+                    Save(a, false);
+                });
+            }
+            catch (Exception e)
             {
-                int b = a.FileName.LastIndexOf("\\");
-                a.FileName = a.FileName.Substring(b + 1);
-                Save(a,false);
-            });
+                Console.WriteLine(e);
+                throw;
+            }
+            
         }
 
 

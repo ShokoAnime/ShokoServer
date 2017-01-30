@@ -40,16 +40,11 @@ namespace Shoko.Server.UI
             CheckUrl(e.Uri.ToString());
         }
 
-
-
-
-
-
-
+        bool checke=false;
 
         private void CheckUrl(string url)
         {
-            if (url.Contains("code="))
+            if (url.Contains("code=") && !checke)
             {
                 int a = url.IndexOf("code=", StringComparison.Ordinal);
 
@@ -70,6 +65,7 @@ namespace Shoko.Server.UI
                     }
                 }
                 DialogResult = Code != string.Empty;
+                checke=true;
                 Close();
             }
         }
