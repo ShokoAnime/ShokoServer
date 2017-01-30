@@ -1475,7 +1475,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID,
-                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
+                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.list);
             }
             else
             {
@@ -1500,7 +1500,7 @@ namespace JMMServer.API.Module.apiv2
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, para.offset, 1, user.JMMUserID, para.nocast != 0,
-                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
+                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.list);
             }
             else
             {
@@ -1716,7 +1716,7 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
         internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast,
-            bool notag, int level, bool all, bool fuzzy)
+            bool notag, int level, bool all, bool fuzzy, int list = 0)
         {
             query = query.ToLowerInvariant();
             Filter search_filter = new Filter();
@@ -1885,11 +1885,23 @@ namespace JMMServer.API.Module.apiv2
                 }
             }
 
-            search_group.size = search_group.series.Count();
-            search_filter.groups.Add(search_group);
-            search_filter.size = search_filter.groups.Count();
+            if (list == 0)
+            {
+                search_group.size = search_group.series.Count();
+                search_filter.groups.Add(search_group);
+                search_filter.size = search_filter.groups.Count();
 
-            return search_filter;
+                return search_filter;
+            }
+            else
+            {
+                Series series_list = new Series();
+                series_list.name = query;
+                series_list.series = search_group.series;
+                series_list.size = series_list.series.Count;
+
+                return series_list;
+            }
         }
 
         /// <summary>

@@ -84,5 +84,10 @@
         /// passthru ismovie mark for function to determinate if object is movie or episode (ex. Trakt)
         /// </summary>
         public int ismovie = 0;
+
+        /// <summary>
+        /// return object as simpler object (that act like List<> with few extra variables) ex. Series
+        /// </summary>
+        public int list = 0;
     }
 }

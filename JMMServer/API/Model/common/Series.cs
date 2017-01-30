@@ -6,9 +6,7 @@ namespace JMMServer.API.Model.common
     {
         public List<Serie> series { get; set; }
         public int size { get; set; }
-        public int viewed { get; set; }
-        public string title { get; set; }
-        public ArtCollection art { get; set; }
+        public string name { get; set; }
 
         public readonly string type = "series";
     }
