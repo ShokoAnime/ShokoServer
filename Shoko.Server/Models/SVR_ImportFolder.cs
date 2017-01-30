@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Web.Script.Serialization;
 using System.Windows.Media.Imaging;
 using System.Xml.Serialization;
@@ -23,26 +24,35 @@ namespace Shoko.Server.Models
         {
             get
             {
-                logger.Info("IsWatched");
+
                 return base.IsWatched;
             }
             set
             {
-                base.IsWatched = this.SetField(base.IsWatched, value, () => IsWatched, () => FolderIsWatched);
+                this.SetField(()=>base.IsWatched, (r)=>base.IsWatched=r, value, () => IsWatched, () => FolderIsWatched);
             }
         }
 
+        public void Bass<T>(Expression<Func<T, int>> step, int value)
+        {
+    
+        }
+
+        public void Bass2<T>(Func<int> test, int value)
+        {
+            
+        }
         public new int IsDropSource
         {
             get
             {
-                logger.Info("IsDrop");
+
 
                 return base.IsDropSource;
             }
             set
             {
-                base.IsDropSource = this.SetField(base.IsDropSource, value, () => IsDropSource, () => FolderIsDropSource);
+                this.SetField(()=>base.IsDropSource, (r)=>base.IsDropSource=r, value, () => IsDropSource, () => FolderIsDropSource);
             }
         }
 
@@ -52,20 +62,20 @@ namespace Shoko.Server.Models
         {
             get
             {
-                logger.Info("IsDropDest");
+
 
                 return base.IsDropDestination;
             }
             set
             {
-                base.IsDropDestination = this.SetField(base.IsDropDestination, value, ()=>IsDropDestination, ()=>FolderIsDropDestination);
+                this.SetField(() => base.IsDropDestination, (r) => base.IsDropDestination=r, value, ()=>IsDropDestination, ()=>FolderIsDropDestination);
             }
         }
         public new string ImportFolderLocation
         {
             get
             {
-                logger.Info("ImportFolderLocation");
+
 
                 return base.ImportFolderLocation;
             }
@@ -96,7 +106,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                logger.Info("FileSys");
+  
 
                 if (_filesystem == null)
                 {
@@ -115,7 +125,7 @@ namespace Shoko.Server.Models
                         _filesystem = ff.Result;
                     }
                 }
-                logger.Info("EndFileSys");
+       
                 return _filesystem;
             }
         }
@@ -128,15 +138,15 @@ namespace Shoko.Server.Models
         {
             get
             {
-                logger.Info("Bitmap");
+
                 if (_bitmap != null)
                 {
-                    logger.Info("Bitmap already");
+
                     return _bitmap;
 
                 }
                 _bitmap = CloudID.HasValue ? CloudAccount.Bitmap : SVR_CloudAccount.CreateLocalFileSystemAccount().Bitmap;
-                logger.Info("New Bitmap");
+
                 return _bitmap;
             }
 
@@ -147,9 +157,9 @@ namespace Shoko.Server.Models
         {
             get
             {
-                logger.Info("BaseDir");
+
                 FileSystemResult<IObject> fr = FileSystem.Resolve(ImportFolderLocation);
-                logger.Info("EndBaseDir");
+  
                 if (fr.IsOk && fr.Result is IDirectory)
                     return (IDirectory)fr.Result;
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
@@ -159,7 +169,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                logger.Info("CloudAccount");
+
                 return CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null;
             }
         }
@@ -170,7 +180,6 @@ namespace Shoko.Server.Models
             get
             {
 
-                logger.Info("CloudAccountName");
 
                 return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem";
             }

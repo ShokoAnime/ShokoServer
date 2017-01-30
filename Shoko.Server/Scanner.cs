@@ -47,7 +47,7 @@ namespace Shoko.Server
             get { return queueCount; }
             set
 {
-                queueCount  = this.SetField(queueCount ,value);
+                this.SetField(()=>queueCount ,value);
             }
         }
 

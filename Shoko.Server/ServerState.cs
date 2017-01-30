@@ -38,7 +38,7 @@ namespace Shoko.Server
             get { return databaseAvailable; }
             set
             {
-                databaseAvailable = this.SetField(databaseAvailable, value);
+                this.SetField(()=>databaseAvailable, value);
             }
         }
 
@@ -49,7 +49,7 @@ namespace Shoko.Server
             get { return serverOnline; }
             set
             {
-                serverOnline = this.SetField(serverOnline, value);
+                this.SetField(()=>serverOnline, value);
             }
         }
 
@@ -61,7 +61,7 @@ namespace Shoko.Server
             get { return currentSetupStatus; }
             set
 {
-                currentSetupStatus  = this.SetField(currentSetupStatus ,value);
+                this.SetField(()=>currentSetupStatus,value);
             }
         }
 
@@ -72,7 +72,7 @@ namespace Shoko.Server
             get { return databaseIsSQLite; }
             set
 {
-                databaseIsSQLite  = this.SetField(databaseIsSQLite ,value);
+                this.SetField(()=>databaseIsSQLite,value);
             }
         }
 
@@ -83,7 +83,7 @@ namespace Shoko.Server
             get { return databaseIsSQLServer; }
             set
 {
-                databaseIsSQLServer  = this.SetField(databaseIsSQLServer ,value);
+                this.SetField(()=>databaseIsSQLServer,value);
             }
         }
 
@@ -94,7 +94,7 @@ namespace Shoko.Server
             get { return databaseIsMySQL; }
             set
 {
-                databaseIsMySQL  = this.SetField(databaseIsMySQL ,value);
+                this.SetField(()=>databaseIsMySQL,value);
             }
         }
 
@@ -105,7 +105,7 @@ namespace Shoko.Server
             get { return baseImagePath; }
             set
 {
-                baseImagePath  = this.SetField(baseImagePath ,value);
+                this.SetField(()=>baseImagePath,value);
             }
         }
 
@@ -116,7 +116,7 @@ namespace Shoko.Server
             get { return newVersionAvailable; }
             set
 {
-                newVersionAvailable  = this.SetField(newVersionAvailable ,value);
+                this.SetField(()=>newVersionAvailable,value);
             }
         }
 
@@ -127,7 +127,7 @@ namespace Shoko.Server
             get { return newVersionNumber; }
             set
 {
-                newVersionNumber  = this.SetField(newVersionNumber ,value);
+                this.SetField(()=>newVersionNumber,value);
             }
         }
 
@@ -138,7 +138,7 @@ namespace Shoko.Server
             get { return newVersionDownloadLink; }
             set
 {
-                newVersionDownloadLink  = this.SetField(newVersionDownloadLink ,value);
+                this.SetField(()=>newVersionDownloadLink,value);
             }
         }
 
@@ -149,7 +149,7 @@ namespace Shoko.Server
             get { return applicationVersion; }
             set
 {
-                applicationVersion  = this.SetField(applicationVersion ,value);
+                this.SetField(()=>applicationVersion,value);
             }
         }
 
@@ -160,7 +160,7 @@ namespace Shoko.Server
             get { return applicationVersionLatest; }
             set
 {
-                applicationVersionLatest  = this.SetField(applicationVersionLatest ,value);
+                this.SetField(()=>applicationVersionLatest,value);
             }
         }
 
@@ -171,7 +171,7 @@ namespace Shoko.Server
             get { return aniDB_Username; }
             set
 {
-                aniDB_Username  = this.SetField(aniDB_Username ,value);
+                this.SetField(()=>aniDB_Username,value);
             }
         }
 
@@ -182,7 +182,7 @@ namespace Shoko.Server
             get { return aniDB_Password; }
             set
 {
-                aniDB_Password  = this.SetField(aniDB_Password ,value);
+                this.SetField(()=>aniDB_Password,value);
             }
         }
 
@@ -193,7 +193,7 @@ namespace Shoko.Server
             get { return aniDB_ServerAddress; }
             set
 {
-                aniDB_ServerAddress  = this.SetField(aniDB_ServerAddress ,value);
+                this.SetField(()=>aniDB_ServerAddress,value);
             }
         }
 
@@ -204,7 +204,7 @@ namespace Shoko.Server
             get { return aniDB_ServerPort; }
             set
 {
-                aniDB_ServerPort  = this.SetField(aniDB_ServerPort ,value);
+                this.SetField(()=>aniDB_ServerPort,value);
             }
         }
 
@@ -215,7 +215,7 @@ namespace Shoko.Server
             get { return aniDB_ClientPort; }
             set
 {
-                aniDB_ClientPort  = this.SetField(aniDB_ClientPort ,value);
+                this.SetField(()=>aniDB_ClientPort,value);
             }
         }
 
@@ -226,7 +226,7 @@ namespace Shoko.Server
             get { return aniDB_TestStatus; }
             set
 {
-                aniDB_TestStatus  = this.SetField(aniDB_TestStatus ,value);
+                this.SetField(()=>aniDB_TestStatus,value);
             }
         }
 
@@ -237,7 +237,7 @@ namespace Shoko.Server
             get { return minOnStartup; }
             set
 {
-                minOnStartup  = this.SetField(minOnStartup ,value);
+                this.SetField(()=>minOnStartup,value);
             }
         }
 
@@ -248,7 +248,7 @@ namespace Shoko.Server
             get { return maxOnStartup; }
             set
 {
-                maxOnStartup  = this.SetField(maxOnStartup ,value);
+                this.SetField(()=>maxOnStartup,value);
             }
         }
 
@@ -261,7 +261,7 @@ namespace Shoko.Server
             get { return vLCLocation; }
             set
 {
-                vLCLocation  = this.SetField(vLCLocation ,value);
+                this.SetField(()=>vLCLocation,value);
             }
         }
 
@@ -271,7 +271,7 @@ namespace Shoko.Server
             get { return isAutostartEnabled; }
             set
 {
-                isAutostartEnabled  = this.SetField(isAutostartEnabled ,value);
+                this.SetField(()=>isAutostartEnabled,value);
             }
         }
 
@@ -281,7 +281,7 @@ namespace Shoko.Server
             get { return isAutostartDisabled; }
             set
 {
-                isAutostartDisabled  = this.SetField(isAutostartDisabled ,value);
+                this.SetField(()=>isAutostartDisabled,value);
             }
         }
 

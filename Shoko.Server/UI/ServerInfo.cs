@@ -157,7 +157,7 @@ namespace Shoko.Server
             get { return adminMessagesAvailable; }
             set
 {
-                adminMessagesAvailable  = this.SetField(adminMessagesAvailable ,value);
+                this.SetField(()=>adminMessagesAvailable,value);
             }
         }
 
@@ -168,7 +168,7 @@ namespace Shoko.Server
             get { return hasherQueueCount; }
             set
 {
-                hasherQueueCount  = this.SetField(hasherQueueCount ,value);
+                this.SetField(()=>hasherQueueCount,value);
             }
         }
 
@@ -179,7 +179,7 @@ namespace Shoko.Server
             get { return hasherQueueState; }
             set
 {
-                hasherQueueState  = this.SetField(hasherQueueState ,value);
+                this.SetField(()=>hasherQueueState,value);
             }
         }
 
@@ -190,7 +190,7 @@ namespace Shoko.Server
             get { return imagesQueueCount; }
             set
 {
-                imagesQueueCount  = this.SetField(imagesQueueCount ,value);
+                this.SetField(()=>imagesQueueCount,value);
             }
         }
 
@@ -201,7 +201,7 @@ namespace Shoko.Server
             get { return imagesQueueState; }
             set
 {
-                imagesQueueState  = this.SetField(imagesQueueState ,value);
+                this.SetField(()=>imagesQueueState,value);
             }
         }
 
@@ -212,7 +212,7 @@ namespace Shoko.Server
             get { return generalQueueCount; }
             set
 {
-                generalQueueCount  = this.SetField(generalQueueCount ,value);
+                this.SetField(()=>generalQueueCount,value);
             }
         }
 
@@ -223,7 +223,7 @@ namespace Shoko.Server
             get { return generalQueueState; }
             set
 {
-                generalQueueState  = this.SetField(generalQueueState ,value);
+                this.SetField(()=>generalQueueState,value);
             }
         }
 
@@ -234,7 +234,7 @@ namespace Shoko.Server
             get { return hasherQueuePaused; }
             set
 {
-                hasherQueuePaused  = this.SetField(hasherQueuePaused ,value);
+                this.SetField(()=>hasherQueuePaused,value);
             }
         }
 
@@ -245,7 +245,7 @@ namespace Shoko.Server
             get { return hasherQueueRunning; }
             set
 {
-                hasherQueueRunning  = this.SetField(hasherQueueRunning ,value);
+                this.SetField(()=>hasherQueueRunning,value);
             }
         }
 
@@ -256,7 +256,7 @@ namespace Shoko.Server
             get { return generalQueuePaused; }
             set
 {
-                generalQueuePaused  = this.SetField(generalQueuePaused ,value);
+                this.SetField(()=>generalQueuePaused,value);
             }
         }
 
@@ -267,7 +267,7 @@ namespace Shoko.Server
             get { return generalQueueRunning; }
             set
 {
-                generalQueueRunning  = this.SetField(generalQueueRunning ,value);
+                this.SetField(()=>generalQueueRunning,value);
             }
         }
 
@@ -278,7 +278,7 @@ namespace Shoko.Server
             get { return imagesQueuePaused; }
             set
 {
-                imagesQueuePaused  = this.SetField(imagesQueuePaused ,value);
+                this.SetField(()=>imagesQueuePaused,value);
             }
         }
 
@@ -289,7 +289,7 @@ namespace Shoko.Server
             get { return imagesQueueRunning; }
             set
 {
-                imagesQueueRunning  = this.SetField(imagesQueueRunning ,value);
+                this.SetField(()=>imagesQueueRunning,value);
             }
         }
 
@@ -300,7 +300,7 @@ namespace Shoko.Server
             get { return banReason; }
             set
 {
-                banReason  = this.SetField(banReason ,value);
+                this.SetField(()=>banReason,value);
             }
         }
 
@@ -311,7 +311,7 @@ namespace Shoko.Server
             get { return banOrigin; }
             set
 {
-                banOrigin  = this.SetField(banOrigin ,value);
+                this.SetField(()=>banOrigin,value);
             }
         }
 
@@ -322,7 +322,7 @@ namespace Shoko.Server
             get { return isBanned; }
             set
 {
-                isBanned  = this.SetField(isBanned ,value);
+                this.SetField(()=>isBanned,value);
             }
         }
 
@@ -333,7 +333,7 @@ namespace Shoko.Server
             get { return isInvalidSession; }
             set
 {
-                isInvalidSession  = this.SetField(isInvalidSession ,value);
+                this.SetField(()=>isInvalidSession,value);
             }
         }
 
@@ -344,7 +344,7 @@ namespace Shoko.Server
             get { return waitingOnResponseAniDBUDP; }
             set
 {
-                waitingOnResponseAniDBUDP  = this.SetField(waitingOnResponseAniDBUDP ,value);
+                this.SetField(()=>waitingOnResponseAniDBUDP,value);
                 NotWaitingOnResponseAniDBUDP = !value;
             }
         }
@@ -356,7 +356,7 @@ namespace Shoko.Server
             get { return notWaitingOnResponseAniDBUDP; }
             set
 {
-                notWaitingOnResponseAniDBUDP  = this.SetField(notWaitingOnResponseAniDBUDP ,value);
+                this.SetField(()=>notWaitingOnResponseAniDBUDP,value);
             }
         }
 
@@ -373,7 +373,7 @@ namespace Shoko.Server
             }
             set
 {
-                waitingOnResponseAniDBUDPString  = this.SetField(waitingOnResponseAniDBUDPString ,value);
+                this.SetField(()=>waitingOnResponseAniDBUDPString,value);
             }
         }
 
@@ -384,7 +384,7 @@ namespace Shoko.Server
             get { return extendedPauseString; }
             set
 {
-                extendedPauseString  = this.SetField(extendedPauseString ,value);
+                this.SetField(()=>extendedPauseString,value);
             }
         }
 
@@ -395,7 +395,7 @@ namespace Shoko.Server
             get { return hasExtendedPause; }
             set
 {
-                hasExtendedPause  = this.SetField(hasExtendedPause ,value);
+                this.SetField(()=>hasExtendedPause,value);
             }
         }
 

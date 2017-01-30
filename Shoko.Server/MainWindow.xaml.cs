@@ -969,14 +969,12 @@ namespace Shoko.Server
 
         void cboDatabaseType_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            ServerState.Instance.DatabaseIsSQLite = false;
-            ServerState.Instance.DatabaseIsSQLServer = false;
-            ServerState.Instance.DatabaseIsMySQL = false;
-
             switch (cboDatabaseType.SelectedIndex)
             {
                 case 0:
                     ServerState.Instance.DatabaseIsSQLite = true;
+                    ServerState.Instance.DatabaseIsSQLServer = false;
+                    ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 1:
 
@@ -1001,6 +999,8 @@ namespace Shoko.Server
                         txtMSSQL_Username.Text = "sa";
                     }
                     ServerState.Instance.DatabaseIsSQLServer = true;
+                    ServerState.Instance.DatabaseIsSQLite = false;
+                    ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 2:
 
@@ -1025,6 +1025,9 @@ namespace Shoko.Server
                     }
 
                     ServerState.Instance.DatabaseIsMySQL = true;
+                    ServerState.Instance.DatabaseIsSQLServer = false;
+                    ServerState.Instance.DatabaseIsSQLite = false;
+
                     break;
             }
         }
