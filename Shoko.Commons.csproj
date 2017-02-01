@@ -31,11 +31,19 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="jint, Version=2.10.3.0, Culture=neutral, PublicKeyToken=2e92ba9c8d81157f, processorArchitecture=MSIL">
+      <HintPath>$(SolutionDir)packages\jint.2.10.3\lib\net45\jint.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>$(SolutionDir)packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="Pri.LongPath, Version=2.0.42.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Pri.LongPath.2.0.42\lib\net45\Pri.LongPath.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Diagnostics.Contracts" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -46,6 +54,31 @@
   <ItemGroup>
     <Compile Include="Constants.cs" />
     <Compile Include="Culture.cs" />
+    <Compile Include="Downloads\CloudflareEvader.cs" />
+    <Compile Include="Downloads\CsvParser.cs" />
+    <Compile Include="Downloads\CsvStream.cs" />
+    <Compile Include="Downloads\DownloadHelper.cs" />
+    <Compile Include="Downloads\DownloadSearchCriteria.cs" />
+    <Compile Include="Downloads\TorrentSource.cs" />
+    <Compile Include="Downloads\ITorrentSettings.cs" />
+    <Compile Include="Downloads\ITorrentSource.cs" />
+    <Compile Include="Downloads\ListRefreshedEventArgs.cs" />
+    <Compile Include="Downloads\SubGroupSimple.cs" />
+    <Compile Include="Downloads\Torrent.cs" />
+    <Compile Include="Downloads\TorrentFile.cs" />
+    <Compile Include="Downloads\TorrentFileList.cs" />
+    <Compile Include="Downloads\TorrentLink.cs" />
+    <Compile Include="Downloads\TorrentList.cs" />
+    <Compile Include="Downloads\TorrentsAnimeBytes.cs" />
+    <Compile Include="Downloads\TorrentsBakaBT.cs" />
+    <Compile Include="Downloads\TorrentSettings.cs" />
+    <Compile Include="Downloads\TorrentsNyaa.cs" />
+    <Compile Include="Downloads\TorrentsSukebei.cs" />
+    <Compile Include="Downloads\TorrentsTokyoToshokan.cs" />
+    <Compile Include="Downloads\UTorrentHelper.cs" />
+    <Compile Include="Downloads\WebClientEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Extensions\Models.cs" />
     <Compile Include="FolderMappings.cs" />
     <Compile Include="Languages\EnumTranslator.cs" />
@@ -107,6 +140,7 @@
     <Compile Include="Utils\Formatting.cs" />
     <Compile Include="Languages\Languages.cs" />
     <Compile Include="Languages\NamingLanguage.cs" />
+    <Compile Include="Utils\Misc.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
