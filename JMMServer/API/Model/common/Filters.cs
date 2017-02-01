@@ -22,7 +22,7 @@ namespace JMMServer.API.Model.common
             filters = new List<Filter>();
         }
 
-        internal Filters GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, bool nocast, bool notag, bool all)
+        internal static Filters GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, bool nocast, bool notag, bool all)
         {
             Filters f = new Filters();
             f.id = gf.GroupFilterID;
@@ -33,7 +33,7 @@ namespace JMMServer.API.Model.common
             foreach (GroupFilter cgf in allGfs)
             {
                 // any level higher than 1 can drain cpu
-                filters.Add(new Filter().GenerateFromGroupFilter(cgf, uid, nocast, notag, 1, all));
+                filters.Add(Filter.GenerateFromGroupFilter(cgf, uid, nocast, notag, 1, all));
             }
 
             f.filters = filters.OrderBy(a => a.name).ToList<Filter>();

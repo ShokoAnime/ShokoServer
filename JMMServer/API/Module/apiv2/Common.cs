@@ -1377,7 +1377,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (AnimeSeries aser in series)
             {
-                allseries.Add(new Serie().GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
+                allseries.Add(Serie.GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
                     para.level, para.all != 0));
             }
 
@@ -1547,7 +1547,7 @@ namespace JMMServer.API.Module.apiv2
             }
             foreach (VideoLocal vl in vlpall)
             {
-                Serie ser = new Serie().GenerateFromVideoLocal(vl, uid, nocast, notag, level, all);
+                Serie ser = Serie.GenerateFromVideoLocal(vl, uid, nocast, notag, level, all);
                 allseries.Add(ser);
                 if (allseries.Count >= limit)
                 {
@@ -1573,7 +1573,7 @@ namespace JMMServer.API.Module.apiv2
             AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
             if (aep != null)
             {
-                return new Serie().GenerateFromAnimeSeries(aep.GetAnimeSeries(), uid, nocast, notag, level, all);
+                return Serie.GenerateFromAnimeSeries(aep.GetAnimeSeries(), uid, nocast, notag, level, all);
             }
             else
             {
@@ -1599,7 +1599,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset <= 0)
                 {
-                    allseries.Add(new Serie().GenerateFromAnimeSeries(asi, user.JMMUserID, nocast, notag, level, all));
+                    allseries.Add(Serie.GenerateFromAnimeSeries(asi, user.JMMUserID, nocast, notag, level, all));
                     if (limit != 0)
                     {
                         if (allseries.Count >= limit)
@@ -1627,7 +1627,7 @@ namespace JMMServer.API.Module.apiv2
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            Serie ser = new Serie().GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
+            Serie ser = Serie.GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
                 nocast, notag, level, all);
             return ser;
         }
@@ -1823,7 +1823,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     if (offset == 0)
                     {
-                        series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                        series_list.Add(Serie.GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                         if (series_list.Count >= limit)
                         {
                             break;
@@ -1863,7 +1863,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     if (offset == 0)
                     {
-                        series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                        series_list.Add(Serie.GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                         if (series_list.Count >= realLimit)
                         {
                             break;
@@ -1905,7 +1905,7 @@ namespace JMMServer.API.Module.apiv2
                     {
                         if (offset == 0)
                         {
-                            series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                            series_list.Add(Serie.GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                         }
                         else
                         {
@@ -1936,7 +1936,7 @@ namespace JMMServer.API.Module.apiv2
                     {
                         if (offset == 0)
                         {
-                            series_list.Add(new Serie().GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
+                            series_list.Add(Serie.GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all));
                         }
                         else
                         {
@@ -2089,7 +2089,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (GroupFilter gf in allGfs)
             {
-                Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
+                Filter filter = Filter.GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
                 _filters.Add(filter);
             }
 
@@ -2136,11 +2136,11 @@ namespace JMMServer.API.Module.apiv2
             if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
                 // if it's a directory, it IS a filter-inception;
-                Filters fgs = new Filters().GenerateFromGroupFilter(gf, uid, nocast, notag, all);
+                Filters fgs = Filters.GenerateFromGroupFilter(gf, uid, nocast, notag, all);
                 return fgs;
             }
             
-            Filter filter = new Filter().GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
+            Filter filter = Filter.GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
             return filter;
         }
 
@@ -2226,7 +2226,7 @@ namespace JMMServer.API.Module.apiv2
             foreach (AnimeGroup_User gr in allGrps)
             {
                 AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
-                Group grp = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, 0);
+                Group grp = Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, 0);
                 grps.Add(grp);
             }
             return grps;
@@ -2243,10 +2243,10 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="all">add all known episodes</param>
         /// <param name="filterid"></param>
         /// <returns>Group</returns>
-        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid)
+        internal static object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
             AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
-            Group gr = new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
+            Group gr = Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
             return gr;
         }
 

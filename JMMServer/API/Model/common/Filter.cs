@@ -19,8 +19,9 @@ namespace JMMServer.API.Model.common
             groups = new List<Group>();
         }
 
-        internal Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, bool nocast, bool notag, int level, bool all)
+        internal static Filter GenerateFromGroupFilter(Entities.GroupFilter gf, int uid, bool nocast, bool notag, int level, bool all)
         {
+            List<Group> groups = new List<Group>();
             Filter filter = new Filter();
             filter.name = gf.GroupFilterName;
             filter.id = gf.GroupFilterID;
@@ -72,7 +73,7 @@ namespace JMMServer.API.Model.common
                             Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
                             if (ag == null) continue;
                             Group group =
-                                new Group().GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
+                                Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
                                     filter.id);
                             groups.Add(group);
                             order.Add(ag.GetUserContract(uid), group);

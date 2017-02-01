@@ -24,7 +24,7 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, bool nocast, bool notag, int level, bool all, int filterid)
+        public static Group GenerateFromAnimeGroup(Entities.AnimeGroup ag, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
             Group g = new Group();
 
@@ -96,7 +96,7 @@ namespace JMMServer.API.Model.common
                     {
                         if (series.Contains(ada.AniDB_AnimeID)) continue;
                     }
-                    g.series.Add(new Serie().GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
+                    g.series.Add(Serie.GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
                 }
                 g.series = g.series.OrderBy(a => a).ToList();
             }

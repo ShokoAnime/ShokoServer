@@ -23,7 +23,7 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all)
+        public static Serie GenerateFromVideoLocal(VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all)
         {
             Serie sr = new Serie();
 
@@ -38,7 +38,7 @@ namespace JMMServer.API.Model.common
             return sr;
         }
 
-        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all)
+        public static Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all)
         {
             Serie sr = new Serie();
 
