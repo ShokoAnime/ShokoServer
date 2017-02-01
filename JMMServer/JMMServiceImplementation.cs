@@ -8251,6 +8251,7 @@ namespace JMMServer
                                             "Renaming file SKIPPED, no change From ({0}) to ({1})",
                                             fullFileName, newFullName));
                                         ret.NewFileName = newFullName;
+                                        name = Path.GetFileName(newFullName);
                                     }
                                     else
                                     {
