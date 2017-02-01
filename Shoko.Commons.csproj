@@ -185,11 +185,8 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
+	<Import Project="$(SolutionDir)\Nancy.Rest.Annotations.Link.csproj" />
   <ItemGroup>
-    <ProjectReference Include="Shoko.Models\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
-      <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
-      <Name>Nancy.Rest.Annotations</Name>
-    </ProjectReference>
     <ProjectReference Include="Shoko.Models\Shoko.Models.csproj">
       <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
       <Name>Shoko.Models</Name>
