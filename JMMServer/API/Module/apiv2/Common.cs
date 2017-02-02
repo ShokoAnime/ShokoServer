@@ -2128,7 +2128,8 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="nocast">disable cast</param>
         /// <param name="notag">disable tag</param>
         /// <param name="level">deep level</param>
-        /// <returns>Filter</returns>
+        /// <param name="all">include missing episodes</param>
+        /// <returns>Filter or Filters</returns>
         internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all)
         {
             GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
@@ -2136,7 +2137,7 @@ namespace JMMServer.API.Module.apiv2
             if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
                 // if it's a directory, it IS a filter-inception;
-                Filters fgs = Filters.GenerateFromGroupFilter(gf, uid, nocast, notag, all);
+                Filters fgs = Filters.GenerateFromGroupFilter(gf, uid, nocast, notag, all, level);
                 return fgs;
             }
             
