@@ -31,6 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nancy.Rest.Annotations.1.4.3-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -287,7 +290,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-	<Import Project="$(SolutionDir)\Nancy.Rest.Annotations.Link.csproj" />
   <Import Project="$(SolutionDir)DefineSettings.targets" Condition="exists('$(SolutionDir)DefineSettings.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
