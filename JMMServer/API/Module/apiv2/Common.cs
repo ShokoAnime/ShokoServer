@@ -144,22 +144,7 @@ namespace JMMServer.API.Module.apiv2
 
             #endregion
 
-            #region 11. Metadata - [Obsolete]
-
-            Get["/metadata/{type}/{id}"] = x => { return GetMetadata_old((int) x.type, x.id); };
-            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata_old((int) x.type, x.id, true); };
-            Get["/metadata/{type}/{id}/{filter}"] = x =>
-            {
-                return GetMetadata_old((int) x.type, x.id, false, x.filter);
-            };
-            Get["/metadata/{type}/{id}/{filter}/nocast"] = x =>
-            {
-                return GetMetadata_old((int) x.type, x.id, true, x.filter);
-            };
-
-            #endregion
-
-            #region 12. Groups
+            #region 11. Groups
 
             Get["/group"] = _ => { return GetGroups(); };
             Get["/group/watch"] = _ => { return MarkGroupAsWatched(); };
@@ -2163,42 +2148,7 @@ namespace JMMServer.API.Module.apiv2
 
         #endregion
 
-        #region 11. Metadata - [Obsolete]
-
-        [Obsolete]
-        /// <summary>
-        /// Return Metadata about object you asked for via MediaContainer (Legacy)
-        /// </summary>
-        /// <param name="typeid">type id</param>
-        /// <param name="id">object id</param>
-        /// <param name="nocast">disable roles output</param>
-        /// <param name="filter"></param>
-        /// <returns></returns>
-        private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
-        {
-            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
-            if (user != null)
-            {
-                int? filterid = filter.ParseNullableInt();
-                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid.ToString(), id.ToString(), null,
-                    nocast, filterid);
-            }
-            else
-            {
-                return new APIMessage(500, "Unable to get User");
-            }
-        }
-
-        #region 11 only
-
-        IProvider _prov_kodi = new PlexAndKodi.Kodi.KodiProvider();
-        CommonImplementation _impl = new CommonImplementation();
-
-        #endregion
-
-        #endregion
-
-        #region 12. Group
+        #region 11. Group
 
         public object GetGroups()
         {
