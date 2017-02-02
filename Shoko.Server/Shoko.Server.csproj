@@ -147,6 +147,12 @@
     <Reference Include="Nancy.Hosting.Self, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.Hosting.Self.1.4.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
     </Reference>
+    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.25274, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Annotations.1.4.3.1-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
+    </Reference>
+    <Reference Include="Nancy.Rest.Module, Version=1.4.3.25274, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Module.1.4.3.1-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
+    </Reference>
     <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
     </Reference>
@@ -946,12 +952,7 @@
   <ItemGroup>
     <Resource Include="db.ico" />
   </ItemGroup>
-  <Import Project="$(SolutionDir)\Nancy.Rest.Annotations.Link.csproj" />
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)Nancy.Rest.Module\Nancy.Rest.Module.csproj">
-      <Project>{23ff1900-46ad-4149-80a3-9d442a2059fa}</Project>
-      <Name>Nancy.Rest.Module</Name>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
       <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
