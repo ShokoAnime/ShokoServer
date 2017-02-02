@@ -5,15 +5,9 @@ using System.Linq;
 
 namespace JMMServer.API.Model.common
 {
-    public class Filters
+    public class Filters : BaseDirectory
     {
-        public int id { get; set; }
-        public string name { get; set; }
-        public ArtCollection art { get; set; }
-        public int size { get; set; }
-        public int viewed { get; set;}
-        public string url { get; set; }
-        public readonly string type = "filters";
+        public override string type { get { return "filters"; } }
         public List<Filter> filters { get; set; }
 
         public Filters()

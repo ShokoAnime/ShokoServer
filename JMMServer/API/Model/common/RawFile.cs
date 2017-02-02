@@ -3,8 +3,10 @@ using System.Collections.Generic;
 
 namespace JMMServer.API.Model.common
 {
-    public class RawFile
+    public class RawFile : BaseDirectory
     {
+        public override string type { get { return "file"; } }
+
         public string crc32 { get; set; }
         public string ed2khash { get; set; }
         public string md5 { get; set; }
@@ -16,14 +18,11 @@ namespace JMMServer.API.Model.common
 
         public string filename { get; set; }
         public long size { get; set; }
+
         public string hash { get; set; }
         public int hash_source { get; set; }
 
         public int is_ignored { get; set; }
-
-        public int id { get; set; }
-
-        public string url { get; set; }
 
         public MediaInfo media { get; set; }
 

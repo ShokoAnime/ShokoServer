@@ -13,6 +13,7 @@ namespace JMMServer.API.Model
         public string name { get; set; }
         public List<AnimeTitle> titles { get; set; }
         public string summary { get; set; }
+        public string url { get; set; }
 
         public DateTime added { get; set; }
         public DateTime edited { get; set; }

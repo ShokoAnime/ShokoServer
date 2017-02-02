@@ -513,7 +513,7 @@ namespace JMMServer.Entities
         {
             List<AnimeSeries> seriesList = RepoFactory.AnimeSeries.GetByGroupID(this.AnimeGroupID);
             // Make everything that relies on GetSeries[0] have the proper result
-            seriesList.OrderBy(a => a.AirDate);
+            seriesList = seriesList.OrderBy(a => a.Year).ThenBy(a => a.AirDate).ToList();
             if (DefaultAnimeSeriesID.HasValue)
             {
                 AnimeSeries series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);

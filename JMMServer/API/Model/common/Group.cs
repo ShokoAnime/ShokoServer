@@ -10,6 +10,7 @@ namespace JMMServer.API.Model.common
 {
     public class Group : BaseDirectory
     {
+        // We need to rethink this. It doesn't support subgroups
         public List<Serie> series { get; set; }
 
         public override string type
@@ -119,15 +120,16 @@ namespace JMMServer.API.Model.common
                             series = filter.SeriesIds[uid].ToList();
                     }
                 }
-                foreach (Entities.AniDB_Anime ada in ag.Anime)
+                foreach (Entities.AnimeSeries ada in ag.GetSeries())
                 {
                     if (series != null && series.Count > 0)
                     {
-                        if (series.Contains(ada.AniDB_AnimeID)) continue;
+                        if (series.Contains(ada.AnimeSeriesID)) continue;
                     }
-                    g.series.Add(Serie.GenerateFromAnimeSeries(Repositories.RepoFactory.AnimeSeries.GetByAnimeID(ada.AnimeID), uid,nocast, notag, (level-1), all));
+                    g.series.Add(Serie.GenerateFromAnimeSeries(ada, uid,nocast, notag, (level-1), all));
                 }
-                g.series = g.series.OrderBy(a => a).ToList();
+                // This should be faster
+                g.series.Sort();
             }
 
             return g;

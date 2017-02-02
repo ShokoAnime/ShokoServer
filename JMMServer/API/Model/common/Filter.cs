@@ -10,7 +10,14 @@ namespace JMMServer.API.Model.common
     public class Filter : BaseDirectory
     {
         public override string type { get { return "filter"; } }
-        public string url { get; set; }
+        // We need to rethink this
+        // There is too much duplicated info.
+        // example:
+        // groups { { name="the series" air="a date" year="2017" ... series { { name="the series" air="a date" year="2017" ... }, {...} } }
+        // my plan is:
+        // public List<BaseDirectory> subdirs;
+        // structure:
+        // subdirs { { type="group" name="the group" ... series {...} }, { type="serie" name="the series" ... eps {...} } }
         public List<Group> groups { get; set; }
 
         public Filter()
