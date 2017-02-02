@@ -19,7 +19,7 @@ namespace JMMServer.API.Model.common
 
         }
 
-        internal Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid, int level)
         {
             Episode ep = new Episode();
 
@@ -31,7 +31,7 @@ namespace JMMServer.API.Model.common
             return ep;
         }
 
-        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid, int level)
         {
             Episode ep = new Episode();
             if (aep != null)

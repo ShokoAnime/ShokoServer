@@ -144,7 +144,22 @@ namespace JMMServer.API.Module.apiv2
 
             #endregion
 
-            #region 11. Groups
+            #region 11. Metadata - [Obsolete]
+
+            Get["/metadata/{type}/{id}"] = x => { return GetMetadata_old((int) x.type, x.id); };
+            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata_old((int) x.type, x.id, true); };
+            Get["/metadata/{type}/{id}/{filter}"] = x =>
+            {
+                return GetMetadata_old((int) x.type, x.id, false, x.filter);
+            };
+            Get["/metadata/{type}/{id}/{filter}/nocast"] = x =>
+            {
+                return GetMetadata_old((int) x.type, x.id, true, x.filter);
+            };
+
+            #endregion
+
+            #region 12. Groups
 
             Get["/group"] = _ => { return GetGroups(); };
             Get["/group/watch"] = _ => { return MarkGroupAsWatched(); };
@@ -997,7 +1012,7 @@ namespace JMMServer.API.Module.apiv2
             AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(para.filename);
             if (aep != null)
             {
-                return new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+                return Episode.GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
             }
             else
             {
@@ -1028,7 +1043,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 foreach (AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level);
                     if (ep != null)
                     {
                         lst.Add(ep);
@@ -1192,7 +1207,7 @@ namespace JMMServer.API.Module.apiv2
             {
                 if (offset == 0)
                 {
-                    eps.Add(new Episode().GenerateFromAnimeEpisodeID(id, uid, level));
+                    eps.Add(Episode.GenerateFromAnimeEpisodeID(id, uid, level));
                     if (limit != 0)
                     {
                         if (eps.Count >= limit)
@@ -1223,7 +1238,7 @@ namespace JMMServer.API.Module.apiv2
                 AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (aep != null)
                 {
-                    Episode ep = new Episode().GenerateFromAnimeEpisode(aep, uid, 0);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(aep, uid, 0);
                     if (ep != null)
                     {
                         return ep;
@@ -2148,12 +2163,43 @@ namespace JMMServer.API.Module.apiv2
 
         #endregion
 
-        #region 11. Group
+        #region 11. Metadata - [Obsolete]
 
+        [Obsolete]
         /// <summary>
-        /// Handle /api/group 
+        /// Return Metadata about object you asked for via MediaContainer (Legacy)
         /// </summary>
-        /// <returns>Group or List<Group> for id!=0</returns>
+        /// <param name="typeid">type id</param>
+        /// <param name="id">object id</param>
+        /// <param name="nocast">disable roles output</param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
+        {
+            Entities.JMMUser user = (Entities.JMMUser) this.Context.CurrentUser;
+            if (user != null)
+            {
+                int? filterid = filter.ParseNullableInt();
+                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid.ToString(), id.ToString(), null,
+                    nocast, filterid);
+            }
+            else
+            {
+                return new APIMessage(500, "Unable to get User");
+            }
+        }
+
+        #region 11 only
+
+        IProvider _prov_kodi = new PlexAndKodi.Kodi.KodiProvider();
+        CommonImplementation _impl = new CommonImplementation();
+
+        #endregion
+
+        #endregion
+
+        #region 12. Group
+
         public object GetGroups()
         {
             Request request = this.Request;
