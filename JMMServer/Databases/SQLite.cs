@@ -18,7 +18,7 @@ namespace JMMServer.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 51;
+        public int RequiredVersion { get; } = 52;
 
 
 
@@ -339,6 +339,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(49, 3, "CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
 	        new DatabaseCommand(50, 1, DatabaseFixes.FixTagsWithInclude),
 	        new DatabaseCommand(51, 1, DatabaseFixes.MakeYearsApplyToSeries),
+            new DatabaseCommand(52, 1, DatabaseFixes.FixEmptyVideoInfos),
 
         };
 

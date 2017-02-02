@@ -18,7 +18,7 @@ namespace JMMServer.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 55;
+        public int RequiredVersion { get; } = 56;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -363,6 +363,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(53, 3,"CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
 	        new DatabaseCommand(54, 1, DatabaseFixes.FixTagsWithInclude),
 	        new DatabaseCommand(55, 1, DatabaseFixes.MakeYearsApplyToSeries),
+            new DatabaseCommand(56, 1, DatabaseFixes.FixEmptyVideoInfos),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
