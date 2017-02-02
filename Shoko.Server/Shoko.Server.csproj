@@ -755,7 +755,7 @@
     <Compile Include="Security\StringTools.cs" />
     <Compile Include="ServerSettings.cs" />
     <Compile Include="ServerState.cs" />
-    <Compile Include="SubStream.cs" />
+    <Compile Include="Utilities\SubStream.cs" />
     <Compile Include="Tasks\ContractExtractor.cs" />
     <Compile Include="TimeUpdater.cs" />
     <Compile Include="UI\AboutForm.xaml.cs">
@@ -821,7 +821,6 @@
     <Compile Include="Utilities\LogReader.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
-    <Compile Include="WatchedUnwatchedCount.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -947,11 +946,8 @@
   <ItemGroup>
     <Resource Include="db.ico" />
   </ItemGroup>
+  <Import Project="$(SolutionDir)\Nancy.Rest.Annotations.Link.csproj" />
   <ItemGroup>
-    <ProjectReference Include="C:\Users\mpiva\Documents\GIT\ShokoServer\Nancy.Rest.Module\Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj">
-      <Project>{2b35ae98-e24b-4a09-b1fb-230b90111b46}</Project>
-      <Name>Nancy.Rest.Annotations</Name>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Nancy.Rest.Module\Nancy.Rest.Module.csproj">
       <Project>{23ff1900-46ad-4149-80a3-9d442a2059fa}</Project>
       <Name>Nancy.Rest.Module</Name>

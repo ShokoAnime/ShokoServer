@@ -13,6 +13,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {

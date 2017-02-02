@@ -1,9 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     internal class SubStream : Stream
     {
