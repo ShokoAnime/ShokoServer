@@ -138,8 +138,15 @@ namespace JMMServer.API.Model.common
         {
             Serie a = obj as Serie;
             if (a == null) return 1;
+            int s,s1;
+            // try year first, as it is more likely to have relevannt data
+            if (int.TryParse(a.year, out s1) && int.TryParse(year, out s))
+            {
+                if (s < s1) return -1;
+                if (s > s1) return 1;
+            }
             // Does it have an air date? Sort by it
-            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
+            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")) && !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
             {
                 DateTime d, d1;
                 if (DateTime.TryParseExact(a.air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out d1) &&
@@ -150,7 +157,6 @@ namespace JMMServer.API.Model.common
                 }
             }
             // I don't trust TvDB well enough to sort by them. Bakamonogatari...
-            int s,s1;
             // Does it have a Season? Sort by it
             if (int.TryParse(a.season, out s1) && int.TryParse(season, out s))
             {
@@ -164,11 +170,6 @@ namespace JMMServer.API.Model.common
                     if (s < s1) return -1;
                     if (s > s1) return 1;
                 }
-            }
-            if (int.TryParse(a.year, out s1) && int.TryParse(year, out s))
-            {
-                if (s < s1) return -1;
-                if (s > s1) return 1;
             }
             return name.CompareTo(a.name);
         }
