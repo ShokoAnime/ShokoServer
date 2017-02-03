@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Repositories;
 
 namespace JMMServer.API.Model.common
 {
+    [DataContract]
     public class Filter : BaseDirectory
     {
+        [DataMember]
         public override string type { get { return "filter"; } }
         // We need to rethink this
         // There is too much duplicated info.
@@ -18,6 +21,7 @@ namespace JMMServer.API.Model.common
         // public List<BaseDirectory> subdirs;
         // structure:
         // subdirs { { type="group" name="the group" ... series {...} }, { type="serie" name="the series" ... eps {...} } }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Group> groups { get; set; }
 
         public Filter()

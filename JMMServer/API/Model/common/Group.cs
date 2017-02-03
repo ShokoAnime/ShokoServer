@@ -2,17 +2,21 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.Serialization;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 
 namespace JMMServer.API.Model.common
 {
+    [DataContract]
     public class Group : BaseDirectory
     {
         // We need to rethink this. It doesn't support subgroups
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Serie> series { get; set; }
 
+        [DataMember]
         public override string type
         {
             get { return "group"; }

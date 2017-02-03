@@ -1724,10 +1724,11 @@ namespace JMMServer.API.Module.apiv2
                 if (string.IsNullOrEmpty(title)) continue;
                 int newDist;
                 int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
-                if (Utils.BitapFuzzySearch(title.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                if (Utils.BitapFuzzySearch(title, query, k, out newDist) == -1) continue;
                 if (newDist < dist) dist = newDist;
             }
-            if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
+            // Keep the lowest distance
+            if (dist < int.MaxValue) distLevenshtein.AddOrUpdate(a, dist, (key, oldValue) => Math.Min(oldValue, dist) );
         }
 
         /// <summary>
@@ -1749,10 +1750,10 @@ namespace JMMServer.API.Module.apiv2
                     if (string.IsNullOrEmpty(tag)) continue;
                     int newDist;
                     int k = Math.Min((int) (tag.Length / 6D), (int) (query.Length / 6D));
-                    if (Utils.BitapFuzzySearch(tag.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                    if (Utils.BitapFuzzySearch(tag, query, k, out newDist) == -1) continue;
                     if (newDist < dist) dist = newDist;
                 }
-                if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
+                if (dist < int.MaxValue) distLevenshtein.AddOrUpdate(a, dist, (key, oldValue) => Math.Min(oldValue, dist) );
             }
 
             if (distLevenshtein.Count >= limit || a?.Contract?.AniDBAnime?.CustomTags == null ||
@@ -1764,10 +1765,10 @@ namespace JMMServer.API.Module.apiv2
                 if (string.IsNullOrEmpty(customTag)) continue;
                 int newDist;
                 int k = Math.Min((int) (customTag.Length / 6D), (int) (query.Length / 6D));
-                if (Utils.BitapFuzzySearch(customTag.ToLowerInvariant(), query, k, out newDist) == -1) continue;
+                if (Utils.BitapFuzzySearch(customTag, query, k, out newDist) == -1) continue;
                 if (newDist < dist) dist = newDist;
             }
-            if (dist < int.MaxValue) distLevenshtein.TryAdd(a, dist);
+            if (dist < int.MaxValue) distLevenshtein.AddOrUpdate(a, dist, (key, oldValue) => Math.Min(oldValue, dist) );
         }
 
         /// <summary>

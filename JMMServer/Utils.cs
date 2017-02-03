@@ -161,7 +161,9 @@ namespace JMMServer
             return d[n, m];
         }
 
-        private static Regex ASCII = new Regex(@"[^ -~]", RegexOptions.Compiled);
+        // Not exactly the ASCII charset, but the characters we care about
+        // For example, (){}[]`@#$%^& etc all that crap that shouldn't matter in a search needs to go
+        private static Regex ASCII = new Regex(@"[^ !*-.0-9?a-zA-Z]", RegexOptions.Compiled);
 
         /// <summary>
         /// Use the Bitap Fuzzy Algorithm to search for a string
@@ -172,6 +174,7 @@ namespace JMMServer
         /// <param name="text">The string to search</param>
         /// <param name="pattern">The query to search for</param>
         /// <param name="k">The maximum distance (in Levenshtein) to be allowed</param>
+        /// <param name="dist">The Levenstein distance of the result. -1 if inapplicable</param>
         /// <returns></returns>
         public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
         {
@@ -179,6 +182,11 @@ namespace JMMServer
             // No it's not perfect, but it works better for those who just want to do lazy searching
             string inputString = ASCII.Replace(text, "");
             string query = ASCII.Replace(pattern, "");
+            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+            query = query.Replace('_', ' ').Replace('-', ' ');
+            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+            query = query.ToLowerInvariant();
+            inputString = inputString.ToLowerInvariant();
             int result = -1;
             int m = query.Length;
             int[] R;

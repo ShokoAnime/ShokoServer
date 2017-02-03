@@ -2,12 +2,16 @@
 using JMMServer.Repositories;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace JMMServer.API.Model.common
 {
+    [DataContract]
     public class Filters : BaseDirectory
     {
+        [DataMember]
         public override string type { get { return "filters"; } }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Filter> filters { get; set; }
 
         public Filters()

@@ -4,16 +4,22 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace JMMServer.API.Model.common
 {
+    [DataContract]
     public class Serie : BaseDirectory,IComparable
     {
+        [DataMember]
         public override string type { get { return "serie"; } }
 
-	    public string season { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public string season { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Episode> eps { get; set; }
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public int ismovie { get; set; }
 
         public Serie()
@@ -121,6 +127,7 @@ namespace JMMServer.API.Model.common
                     sr.eps = new List<Episode>();
                     foreach (AnimeEpisode ae in ael)
                     {
+                        if (!all && ae.GetVideoLocals()?.Count == 0) continue;
                         Episode new_ep = Episode.GenerateFromAnimeEpisode(ae, uid, (level - 1));
                         if (new_ep != null)
                         {

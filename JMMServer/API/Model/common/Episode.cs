@@ -1,17 +1,26 @@
 ﻿using JMMContracts.PlexAndKodi;
 using JMMServer.Entities;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace JMMServer.API.Model.common
 {
+    [DataContract]
     public class Episode : BaseDirectory
     {
+        [DataMember]
         public override string type { get { return "ep"; } }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string votes { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int view { get; set; }
+        [DataMember]
         public string eptype { get; set; }
+        [DataMember]
         public int epnumber { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<RawFile> files { get; set; }
 
         public Episode()
