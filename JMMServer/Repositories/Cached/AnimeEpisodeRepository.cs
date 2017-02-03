@@ -109,10 +109,10 @@ namespace JMMServer.Repositories.Cached
         /// <returns>the AnimeEpisode given the file information</returns>
         public AnimeEpisode GetByFilename(string name)
         {
-            return RepoFactory.CrossRef_File_Episode.GetAll()
-                .Where(a => a.FileName.ToLower() == name.ToLower())
-                .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
-                .FirstOrDefault();
+            return RepoFactory.VideoLocalPlace.GetAll()
+                .Where(v => name.Equals(v.FilePath.Split('\\').LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))
+                .Select(a => a.VideoLocal.GetAnimeEpisodes())
+                .FirstOrDefault()?.FirstOrDefault();
         }
 
 
