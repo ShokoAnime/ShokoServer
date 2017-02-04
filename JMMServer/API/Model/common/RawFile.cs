@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using JMMServer.Entities;
 
 namespace JMMServer.API.Model.common
 {
@@ -76,11 +77,12 @@ namespace JMMServer.API.Model.common
 
                 is_ignored = vl.IsIgnored;
 
-                if (vl.Places != null && vl.Places.Count > 0)
+                VideoLocal_Place place = vl.GetBestVideoLocalPlace();
+                if (place != null)
                 {
-                    filename = vl.Places[0].FilePath;
-                    videolocal_place_id = vl.Places[0].VideoLocal_Place_ID;
-                    import_folder_id = vl.Places[0].ImportFolderID;
+                    filename = place.FilePath;
+                    videolocal_place_id = place.VideoLocal_Place_ID;
+                    import_folder_id = place.ImportFolderID;
                 }
 
                 if (vl.EpisodeCrossRefs.Count == 0)
