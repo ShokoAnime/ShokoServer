@@ -22,6 +22,7 @@ namespace JMMServer.API.Module.apiv2
         {           
             Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type); };
             Get["/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.id, (int)x.type, x.ratio); };
+            Get["/thumb/{type}/{id}"] = x => { return GetThumb((int)x.id, (int)x.type, "1"); };
             Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
             Get["/image/support/{name}/{ratio}"] = x => { return GetSupportImage(x.name, x.ratio); };
         }
