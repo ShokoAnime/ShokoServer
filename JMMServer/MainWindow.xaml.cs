@@ -2663,6 +2663,7 @@ namespace JMMServer
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+            Nancy.Json.JsonSettings.MaxJsonLength = Int32.MaxValue;
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
