@@ -1,6 +1,7 @@
 ﻿using JMMContracts.PlexAndKodi;
 using JMMServer.Entities;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.Serialization;
 
 namespace JMMServer.API.Model.common
@@ -53,7 +54,7 @@ namespace JMMServer.API.Model.common
                     ep.name = aep.PlexContract?.Title;
                     ep.summary = aep.PlexContract?.Summary;
                     ep.year = aep.PlexContract?.Year;
-                    ep.air = aep.PlexContract?.AirDate.ToString();
+                    ep.air = aep.PlexContract?.AirDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                     ep.votes = cae.AniDB_Votes;
                     ep.rating = aep.PlexContract?.Rating;
                     ep.userrating = aep.PlexContract?.UserRating;

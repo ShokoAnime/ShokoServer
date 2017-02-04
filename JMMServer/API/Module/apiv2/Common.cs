@@ -2152,6 +2152,10 @@ namespace JMMServer.API.Module.apiv2
 
         #region 11. Group
 
+        /// <summary>
+        /// Handle /api/group
+        /// </summary>
+        /// <returns>Group or List<Group> or APIStatus</returns>
         public object GetGroups()
         {
             Request request = this.Request;
@@ -2240,12 +2244,19 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="level">deep level</param>
         /// <param name="all">add all known episodes</param>
         /// <param name="filterid"></param>
-        /// <returns>Group</returns>
+        /// <returns>Group or APIStatus</returns>
         internal static object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
             AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
-            Group gr = Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
-            return gr;
+            if (ag != null)
+            {
+                Group gr = Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
+                return gr;
+            }
+            else
+            {
+                return APIStatus.notFound404("group not found");
+            }
         }
 
         /// <summary>
