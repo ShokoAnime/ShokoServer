@@ -1,35 +1,53 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace JMMServer.API.Model.common
 {
+    [DataContract]
     public class RawFile : BaseDirectory
     {
         public override string type { get { return "file"; } }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string crc32 { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string ed2khash { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string md5 { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string sha1 { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public DateTime created { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public DateTime updated { get; set; }
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public long duration { get; set; }
 
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public string filename { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public long size { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string hash { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int hash_source { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int is_ignored { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public MediaInfo media { get; set; }
 
-        // x-ref 
+        // x-ref
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public bool recognized { get; set; }
         // x-ref with videolocal_places
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int videolocal_place_id { get; set; }
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int import_folder_id { get; set; }
 
         public RawFile()
@@ -124,17 +142,23 @@ namespace JMMServer.API.Model.common
         /// Base on MediaInfo output using Stream objects
         /// </summary>
 
+        [DataContract]
         public class MediaInfo
         {
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<General, string> general { get; private set; }
 
             //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, JMMContracts.PlexAndKodi.Stream> audios { get; private set; }
             //public Dictionary<int, Dictionary<Video, string>> videos { get; private set; }
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, JMMContracts.PlexAndKodi.Stream> videos { get; private set; }
             //public Dictionary<int, Dictionary<Subtitle, string>> subtitles { get; private set; }
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, JMMContracts.PlexAndKodi.Stream> subtitles { get; private set; }
 
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Dictionary<string, string>> menus { get; private set; }
 
             public MediaInfo()

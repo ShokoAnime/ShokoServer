@@ -8,7 +8,6 @@ namespace JMMServer.API.Model.common
     [DataContract]
     public class Episode : BaseDirectory
     {
-        [DataMember]
         public override string type { get { return "ep"; } }
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
@@ -75,9 +74,9 @@ namespace JMMServer.API.Model.common
                     if (aep.PlexContract?.Thumb != null) { ep.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Thumb), index = 0 }); }
                     if (aep.PlexContract?.Art != null) { ep.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Art), index = 0 }); }
 
-                    if (level != 1)
+                    if (level > 0)
                     {
-                        List<VideoLocal> vls = Repositories.RepoFactory.VideoLocal.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
+                        List<VideoLocal> vls = aep.GetVideoLocals();
                         if (vls.Count > 0)
                         {
                             ep.files = new List<RawFile>();

@@ -11,7 +11,6 @@ namespace JMMServer.API.Model.common
     [DataContract]
     public class Filter : BaseDirectory
     {
-        [DataMember]
         public override string type { get { return "filter"; } }
         // We need to rethink this
         // There is too much duplicated info.

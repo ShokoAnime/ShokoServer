@@ -16,11 +16,7 @@ namespace JMMServer.API.Model.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Serie> series { get; set; }
 
-        [DataMember]
-        public override string type
-        {
-            get { return "group"; }
-        }
+        public override string type { get { return "group"; } }
 
         public Group()
         {
@@ -128,7 +124,7 @@ namespace JMMServer.API.Model.common
                 {
                     if (series != null && series.Count > 0)
                     {
-                        if (series.Contains(ada.AnimeSeriesID)) continue;
+                        if (!series.Contains(ada.AnimeSeriesID)) continue;
                     }
                     g.series.Add(Serie.GenerateFromAnimeSeries(ada, uid,nocast, notag, (level-1), all));
                 }

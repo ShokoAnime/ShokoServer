@@ -11,7 +11,6 @@ namespace JMMServer.API.Model.common
     [DataContract]
     public class Serie : BaseDirectory,IComparable
     {
-        [DataMember]
         public override string type { get { return "serie"; } }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
@@ -119,7 +118,7 @@ namespace JMMServer.API.Model.common
                 }
             }
 
-            if (level != 1)
+            if (level > 0)
             {
                 List<AnimeEpisode> ael = ser.GetAnimeEpisodes();
                 if (ael.Count > 0)
@@ -127,7 +126,7 @@ namespace JMMServer.API.Model.common
                     sr.eps = new List<Episode>();
                     foreach (AnimeEpisode ae in ael)
                     {
-                        if (!all && ae.GetVideoLocals()?.Count == 0) continue;
+                        if (!all && (ae?.GetVideoLocals()?.Count ?? 0) == 0) continue;
                         Episode new_ep = Episode.GenerateFromAnimeEpisode(ae, uid, (level - 1));
                         if (new_ep != null)
                         {
