@@ -979,7 +979,7 @@ namespace JMMServer.API.Module.apiv2
             }
             else
             {
-                return GetEpisodeById(para.id, user.JMMUserID);
+                return GetEpisodeById(para.id, user.JMMUserID, para.level);
             }
         }
 
@@ -1216,14 +1216,14 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="id">episode id</param>
         /// <param name="uid">user id</param>
         /// <returns>Episode or APIStatus</returns>
-        internal object GetEpisodeById(int id, int uid)
+        internal object GetEpisodeById(int id, int uid, int level)
         {
             if (id > 0)
             {
                 AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (aep != null)
                 {
-                    Episode ep = Episode.GenerateFromAnimeEpisode(aep, uid, 0);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(aep, uid, level);
                     if (ep != null)
                     {
                         return ep;
