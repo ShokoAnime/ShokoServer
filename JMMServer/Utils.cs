@@ -161,9 +161,119 @@ namespace JMMServer
             return d[n, m];
         }
 
-        // Not exactly the ASCII charset, but the characters we care about
-        // For example, (){}[]`@#$%^& etc all that crap that shouldn't matter in a search needs to go
-        private static Regex ASCII = new Regex(@"[^ \!\*-\-0-9\?a-zA-Z]", RegexOptions.Compiled);
+        // A char array of the allowed characters. This should be infinitely faster
+        private static readonly char[] AllowedSearchCharacters = (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+-.?,/*&`'\"_").ToCharArray();
+
+        public static string FilterCharacters(this string value, char[] allowed, bool blacklist = false)
+        {
+            StringBuilder sb = new StringBuilder(value);
+            int start = 0;
+            while (start < sb.Length)
+            {
+                if (blacklist ^ !allowed.Contains(sb[start]))
+                    start++;
+                else
+                    break;
+            }
+            if (start == sb.Length)
+            {
+                sb.Length = 0;
+                return "";
+            }
+            int end = sb.Length - 1;
+            while (end >= 0)
+            {
+                if (blacklist ^ !allowed.Contains(sb[end]))
+                    end--;
+                else
+                    break;
+            }
+            int dest = 0;
+            for (int i = start; i <= end; i++)
+            {
+                if (blacklist ^ allowed.Contains(sb[i]))
+                {
+                    sb[dest] = sb[i];
+                    dest++;
+                }
+            }
+
+            sb.Length = dest;
+            return sb.ToString();
+        }
+
+        public static String CompactWhitespaces(this string s)
+        {
+            StringBuilder sb = new StringBuilder(s);
+
+            CompactWhitespaces(sb);
+
+            return sb.ToString();
+        }
+
+        private static void CompactWhitespaces(StringBuilder sb)
+        {
+            if (sb.Length == 0)
+                return;
+
+            // set [start] to first not-whitespace char or to sb.Length
+
+            int start = 0;
+
+            while (start < sb.Length)
+            {
+                if (Char.IsWhiteSpace(sb[start]))
+                    start++;
+                else
+                    break;
+            }
+
+            // if [sb] has only whitespaces, then return empty string
+
+            if (start == sb.Length)
+            {
+                sb.Length = 0;
+                return;
+            }
+
+            // set [end] to last not-whitespace char
+
+            int end = sb.Length - 1;
+
+            while (end >= 0)
+            {
+                if (Char.IsWhiteSpace(sb[end]))
+                    end--;
+                else
+                    break;
+            }
+
+            // compact string
+
+            int dest = 0;
+            bool previousIsWhitespace = false;
+
+            for (int i = start; i <= end; i++)
+            {
+                if (Char.IsWhiteSpace(sb[i]))
+                {
+                    if (!previousIsWhitespace)
+                    {
+                        previousIsWhitespace = true;
+                        sb[dest] = ' ';
+                        dest++;
+                    }
+                }
+                else
+                {
+                    previousIsWhitespace = false;
+                    sb[dest] = sb[i];
+                    dest++;
+                }
+            }
+
+            sb.Length = dest;
+        }
 
         /// <summary>
         /// Use the Bitap Fuzzy Algorithm to search for a string
@@ -180,8 +290,8 @@ namespace JMMServer
         {
             // This forces ASCII, because it's faster to stop caring if ss and ß are the same
             // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = ASCII.Replace(text, "");
-            string query = ASCII.Replace(pattern, "");
+            string inputString = text.FilterCharacters(AllowedSearchCharacters);
+            string query = pattern.FilterCharacters(AllowedSearchCharacters);
             inputString = inputString.Replace('_', ' ').Replace('-', ' ');
             query = query.Replace('_', ' ').Replace('-', ' ');
             // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
@@ -248,8 +358,8 @@ namespace JMMServer
         {
             // This forces ASCII, because it's faster to stop caring if ss and ß are the same
             // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = ASCII.Replace(text, "");
-            string query = ASCII.Replace(pattern, "");
+            string inputString = text.FilterCharacters(AllowedSearchCharacters);
+            string query = pattern.FilterCharacters(AllowedSearchCharacters);
             inputString = inputString.Replace('_', ' ').Replace('-', ' ');
             query = query.Replace('_', ' ').Replace('-', ' ');
             // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have

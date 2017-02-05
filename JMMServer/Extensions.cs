@@ -37,7 +37,10 @@ namespace JMMServer
 
         public static void AddRange<K,V>(this Dictionary<K,V> dict, Dictionary<K,V> otherdict)
         {
-            otherdict.ForEach(a => dict.Add(a.Key, a.Value));
+            otherdict.ForEach(a =>
+            {
+                if (!dict.ContainsKey(a.Key)) dict.Add(a.Key, a.Value);
+            });
         }
 
 	    public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)

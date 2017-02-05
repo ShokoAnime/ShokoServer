@@ -16,7 +16,8 @@ using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
 using AniDBAPI;
 using System.IO;
-using NLog;
+ using System.Text;
+ using NLog;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -1691,23 +1692,18 @@ namespace JMMServer.API.Module.apiv2
             return string.Join(seperator, newItems);
         }
 
-        internal string SanitizeFuzzy(string value, bool replaceInvalid)
+        private static readonly char[] InvalidPathChars =
+            $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
+        private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
+
+        internal static string SanitizeFuzzy(string value, bool replaceInvalid)
         {
             if (!replaceInvalid) return value;
 
-            string regexSearch =
-                $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+";
-            System.Text.RegularExpressions.Regex remove = new System.Text.RegularExpressions.Regex(
-                $"[{System.Text.RegularExpressions.Regex.Escape(regexSearch)}]");
-            System.Text.RegularExpressions.Regex extraSpaces = new System.Text.RegularExpressions.Regex(@"[ ]{2,}",
-                System.Text.RegularExpressions.RegexOptions.None);
-            System.Text.RegularExpressions.Regex replaceWithSpace =
-                new System.Text.RegularExpressions.Regex(@"[\-\.]");
+            value = value.FilterCharacters(InvalidPathChars, true);
+            value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
 
-
-            //This is set up in such this way so that any duplicate spaces created are incedentally removed by the replaceWithSpace.
-            //If there is a better way, feel free to optimise this.
-            return extraSpaces.Replace(remove.Replace(replaceWithSpace.Replace(value, " "), ""), "");
+            return value.CompactWhitespaces();
         }
 
         /// <summary>
@@ -1949,7 +1945,7 @@ namespace JMMServer.API.Module.apiv2
                         series = allSeries
                             .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                                         Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
-                                            .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                                            .IndexOf(SanitizeFuzzy(query,fuzzy), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                             .ToDictionary(a => a, a => "");
 
