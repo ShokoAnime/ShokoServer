@@ -1685,26 +1685,29 @@ namespace JMMServer.API.Module.apiv2
         internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
         {
             if (!replaceinvalid) return string.Join(seperator, values);
-            List<string> newItems = new List<string>();
 
-            string regexSearch = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars()) +
-                                 "()+";
+            List<string> newItems = values.Select(s => SanitizeFuzzy(s, replaceinvalid)).ToList();
+
+            return string.Join(seperator, newItems);
+        }
+
+        internal string SanitizeFuzzy(string value, bool replaceInvalid)
+        {
+            if (replaceInvalid) return value;
+
+            string regexSearch =
+                $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+";
             System.Text.RegularExpressions.Regex remove = new System.Text.RegularExpressions.Regex(
-                string.Format("[{0}]", System.Text.RegularExpressions.Regex.Escape(regexSearch)));
+                $"[{System.Text.RegularExpressions.Regex.Escape(regexSearch)}]");
             System.Text.RegularExpressions.Regex extraSpaces = new System.Text.RegularExpressions.Regex(@"[ ]{2,}",
                 System.Text.RegularExpressions.RegexOptions.None);
             System.Text.RegularExpressions.Regex replaceWithSpace =
-                new System.Text.RegularExpressions.Regex("[\\-\\.]");
+                new System.Text.RegularExpressions.Regex(@"[\-\.]");
 
-            foreach (string s in values)
-            {
-                //This is set up in such this way so that any duplicate spaces created are incedentally removed by the replaceWithSpace.
-                //If there is a better way, feel free to optimise this.
-                var actualItem = extraSpaces.Replace(remove.Replace(replaceWithSpace.Replace(s, " "), ""), "");
-                newItems.Add(actualItem);
-            }
 
-            return string.Join(seperator, newItems);
+            //This is set up in such this way so that any duplicate spaces created are incedentally removed by the replaceWithSpace.
+            //If there is a better way, feel free to optimise this.
+            return extraSpaces.Replace(remove.Replace(replaceWithSpace.Replace(value, " "), ""), "");
         }
 
         /// <summary>
@@ -1806,7 +1809,7 @@ namespace JMMServer.API.Module.apiv2
                 {
                     series = allSeries
                         .Where(a => Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles, fuzzy)
-                                        .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                                        .IndexOf(SanitizeFuzzy(query, fuzzy), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
                         .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                         .ToList();
                 }
