@@ -176,7 +176,7 @@ namespace JMMServer
         /// <param name="k">The maximum distance (in Levenshtein) to be allowed</param>
         /// <param name="dist">The Levenstein distance of the result. -1 if inapplicable</param>
         /// <returns></returns>
-        public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
+        public static int BitapFuzzySearch32(string text, string pattern, int k, out int dist)
         {
             // This forces ASCII, because it's faster to stop caring if ss and ß are the same
             // No it's not perfect, but it works better for those who just want to do lazy searching
@@ -196,10 +196,6 @@ namespace JMMServer
 
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
             int WORD_SIZE = 31;
-            if (IntPtr.Size == 8)
-            {
-                WORD_SIZE = 63;
-            }
 
             if (string.IsNullOrEmpty(query)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
@@ -238,6 +234,75 @@ namespace JMMServer
             }
 
             return result;
+        }
+
+        public static int BitapFuzzySearch64(string text, string pattern, int k, out int dist)
+        {
+            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+            // No it's not perfect, but it works better for those who just want to do lazy searching
+            string inputString = ASCII.Replace(text, "");
+            string query = ASCII.Replace(pattern, "");
+            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+            query = query.Replace('_', ' ').Replace('-', ' ');
+            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+            query = query.ToLowerInvariant();
+            inputString = inputString.ToLowerInvariant();
+            int result = -1;
+            int m = query.Length;
+            long[] R;
+            long[] patternMask = new long[128];
+            int i, d;
+            dist = k + 1;
+
+            // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
+            long WORD_SIZE = 63;
+
+            if (string.IsNullOrEmpty(query)) return -1;
+            if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
+
+            R = new long[(k + 1) * sizeof(long)];
+            for (i = 0; i <= k; ++i)
+                R[i] = ~1;
+
+            for (i = 0; i <= 127; ++i)
+                patternMask[i] = ~0;
+
+            for (i = 0; i < m; ++i)
+                patternMask[query[i]] &= ~(1 << i);
+
+            for (i = 0; i < (long)inputString.Length; ++i)
+            {
+                long oldRd1 = R[0];
+
+                R[0] |= patternMask[inputString[i]];
+                R[0] <<= 1;
+
+                for (d = 1; d <= k; ++d)
+                {
+                    long tmp = R[d];
+
+                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
+                    oldRd1 = tmp;
+                }
+
+                if (0 == (R[k] & (1L << m)))
+                {
+                    dist = (int)R[k];
+                    result = (i - m) + 1;
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
+        {
+            if (IntPtr.Size == 8)
+            {
+                return BitapFuzzySearch64(text, pattern, k, out dist);
+            }
+            return BitapFuzzySearch32(text, pattern, k, out dist);
         }
 
         public static bool FuzzyMatches(this string text, string query)
