@@ -163,7 +163,7 @@ namespace JMMServer
 
         // Not exactly the ASCII charset, but the characters we care about
         // For example, (){}[]`@#$%^& etc all that crap that shouldn't matter in a search needs to go
-        private static Regex ASCII = new Regex(@"[^ !*-.0-9?a-zA-Z]", RegexOptions.Compiled);
+        private static Regex ASCII = new Regex(@"[^ \!\*-\-0-9\?a-zA-Z]", RegexOptions.Compiled);
 
         /// <summary>
         /// Use the Bitap Fuzzy Algorithm to search for a string
@@ -187,6 +187,14 @@ namespace JMMServer
             // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
             query = query.ToLowerInvariant();
             inputString = inputString.ToLowerInvariant();
+
+            // Shortcut
+            if (text.Equals(query))
+            {
+                dist = 0;
+                return 0;
+            }
+
             int result = -1;
             int m = query.Length;
             int[] R;
@@ -247,45 +255,53 @@ namespace JMMServer
             // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
             query = query.ToLowerInvariant();
             inputString = inputString.ToLowerInvariant();
+
+            // Shortcut
+            if (text.Equals(query))
+            {
+                dist = 0;
+                return 0;
+            }
+
             int result = -1;
             int m = query.Length;
-            long[] R;
-            long[] patternMask = new long[128];
+            ulong[] R;
+            ulong[] patternMask = new ulong[128];
             int i, d;
-            dist = k + 1;
+            dist = text.Length;
 
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
-            long WORD_SIZE = 63;
+            int WORD_SIZE = 63;
 
             if (string.IsNullOrEmpty(query)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
-            R = new long[(k + 1) * sizeof(long)];
+            R = new ulong[(k + 1) * sizeof(ulong)];
             for (i = 0; i <= k; ++i)
-                R[i] = ~1;
+                R[i] = ~1UL;
 
             for (i = 0; i <= 127; ++i)
-                patternMask[i] = ~0;
+                patternMask[i] = ~0UL;
 
             for (i = 0; i < m; ++i)
-                patternMask[query[i]] &= ~(1 << i);
+                patternMask[query[i]] &= ~(1UL << i);
 
-            for (i = 0; i < (long)inputString.Length; ++i)
+            for (i = 0; i < inputString.Length; ++i)
             {
-                long oldRd1 = R[0];
+                ulong oldRd1 = R[0];
 
                 R[0] |= patternMask[inputString[i]];
                 R[0] <<= 1;
 
                 for (d = 1; d <= k; ++d)
                 {
-                    long tmp = R[d];
+                    ulong tmp = R[d];
 
                     R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
                     oldRd1 = tmp;
                 }
 
-                if (0 == (R[k] & (1L << m)))
+                if (0 == (R[k] & (1UL << m)))
                 {
                     dist = (int)R[k];
                     result = (i - m) + 1;
@@ -298,7 +314,7 @@ namespace JMMServer
 
         public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
         {
-            if (IntPtr.Size == 8)
+            if (IntPtr.Size > 4)
             {
                 return BitapFuzzySearch64(text, pattern, k, out dist);
             }

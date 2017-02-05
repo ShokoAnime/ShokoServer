@@ -325,6 +325,7 @@
     <Compile Include="API\Model\common\ObjectList.cs" />
     <Compile Include="API\Model\common\RawFile.cs" />
     <Compile Include="API\Model\common\Filter.cs" />
+    <Compile Include="API\Model\common\SearchResult.cs" />
     <Compile Include="API\Model\core\Logs.cs" />
     <Compile Include="API\Model\core\API_Call_Parameters.cs" />
     <Compile Include="API\Model\common\Episode.cs" />
