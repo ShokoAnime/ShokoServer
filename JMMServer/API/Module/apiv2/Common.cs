@@ -920,13 +920,21 @@ namespace JMMServer.API.Module.apiv2
             // allow to offset be 0 to reset position
             if (para.id != 0)
             {
-                VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
-                vl.SetResumePosition(para.offset, para.id);
-                return APIStatus.statusOK();
+                VideoLocal_User vlu = RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(user.JMMUserID, para.id);
+                if (vlu != null)
+                {
+                    vlu.ResumePosition = para.offset;
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.notFound404();
+                }
+                
             }
             else
             {
-                return APIStatus.notFound404();
+                return APIStatus.badRequest("Missing 'id'");
             }
         }
 
