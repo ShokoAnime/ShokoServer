@@ -7,13 +7,13 @@ using Shoko.Models;
 using System.Collections.Generic;
 using System.Threading;
 using System.Globalization;
-using System.IO;
 using Shoko.Models.Client;
+using System.IO;
 using Shoko.Server.API.Model.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
+using JMMServer.Commands.MAL;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.Module.apiv2
 {
@@ -27,7 +27,7 @@ namespace Shoko.Server.API.Module.apiv2
 
             this.RequiresAuthentication();
 
-            #region 1. Settings
+            #region 01.Settings
             Post["/config/port/set"] = _ => { return SetPort(); };
             Get["/config/port/get"] = _ => { return GetPort(); };
             Post["/config/imagepath/set"] = _ => { return SetImagepath(); };
@@ -36,7 +36,7 @@ namespace Shoko.Server.API.Module.apiv2
             Post["/config/import"] = _ => { return ImportConfig(); };
             #endregion
 
-            #region 2. AniDB
+            #region 02.AniDB
             Post["/anidb/set"] = _ => { return SetAniDB(); };
             Get["/anidb/get"] = _ => { return GetAniDB(); };
             Get["/anidb/test"] = _ => { return TestAniDB(); };
@@ -45,26 +45,33 @@ namespace Shoko.Server.API.Module.apiv2
             Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
             #endregion
 
-            #region 3. MyAnimeList
+            #region 03.MyAnimeList
             Post["/mal/set"] = _ => { return SetMAL(); };
             Get["/mal/get"] = _ => { return GetMAL(); };
             Get["/mal/test"] = _ => { return TestMAL(); };
+            Get["/mal/update"] = _ => { return ScanMAL(); };
+            Get["/mal/download"] = _ => { return DownloadFromMAL(); };
+            Get["/mal/upload"] = _ => { return UploadToMAL(); };
             //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
             #endregion
 
-            #region 4. Trakt
+            #region 04.Trakt
             Post["/trakt/set"] = _ => { return SetTraktPIN(); };
             Get["/trakt/get"] = _ => { return GetTrakt(); };
             Get["/trakt/create"] = _ => { return CreateTrakt(); };
             Get["/trakt/sync"] = _ => { return SyncTrakt(); };
-            Get["/trakt/update"] = _ => { return UpdateAllTrakt(); };
+            Get["/trakt/update"] = _ => { return ScanTrakt(); };
             #endregion
 
-            #region 5. TvDB
-            Get["/tvdb/update"] = _ => { return UpdateAllTvDB(); };
+            #region 05.TvDB
+            Get["/tvdb/update"] = _ => { return ScanTvDB(); };
             #endregion
 
-            #region 6. User
+            #region 06.MovieDB
+            Get["/moviedb/update"] = _ => { return ScanMovieDB(); };
+            #endregion
+
+            #region 07.User
             Get["/user/list"] = _ => { return GetUsers(); };
             Post["/user/create"] = _ => { return CreateUser(); };
             Post["/user/delete"] = _ => { return DeleteUser(); };
@@ -72,13 +79,13 @@ namespace Shoko.Server.API.Module.apiv2
             Post["/user/password/{uid}"] = x => { return ChangePassword(x.uid); };
             #endregion
 
-            #region 7. OS-based operations
+            #region 08.OS-based operations
             Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
             Post["/os/folder"] = x => { return GetOSFolder(x.folder); };
             Get["/os/drives"] = _ => { return GetOSDrives(); };
             #endregion
 
-            #region 8. Cloud accounts
+            #region 09.Cloud accounts
             Get["/cloud/list"] = _ => { return GetCloudAccounts(); };
             Get["/cloud/count"] = _ => { return GetCloudAccountsCount(); };
             Post["/cloud/add"] = x => { return AddCloudAccount(); };
@@ -86,7 +93,7 @@ namespace Shoko.Server.API.Module.apiv2
             Get["/cloud/import"] = _ => { return RunCloudImport(); };
             #endregion
 
-            #region 9. Logs
+            #region 10.Logs
             Get["/log/get"] = x => { return GetLog(10, 0); };
             Get["/log/get/{max}/{position}"] = x => { return GetLog((int)x.max, (int)x.position); };
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
@@ -99,7 +106,7 @@ namespace Shoko.Server.API.Module.apiv2
         [ThreadStatic]
         internal static Nancy.Request request;
 
-        #region 1.Settings
+        #region 01.Settings
 
         /// <summary>
         /// Set JMMServer Port
@@ -210,7 +217,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         #endregion
 
-        #region 2.AniDB
+        #region 02.AniDB
 
         /// <summary>
         /// Set AniDB account with login, password and client port
@@ -310,7 +317,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         #endregion
 
-        #region 3.MyAnimeList
+        #region 03.MyAnimeList
 
         /// <summary>
         /// Set MAL account with login, password
@@ -359,9 +366,41 @@ namespace Shoko.Server.API.Module.apiv2
             }
         }
 
+        /// <summary>
+        /// Scan MAL
+        /// </summary>
+        /// <returns></returns>
+        private object ScanMAL()
+        {
+            Importer.RunImport_ScanMAL();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Download Watched States from MAL
+        /// </summary>
+        /// <returns></returns>
+        private object DownloadFromMAL()
+        {
+            CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
+            cmd.Save();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Upload Watched States to MAL
+        /// </summary>
+        /// <returns></returns>
+        private object UploadToMAL()
+        {
+            CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
+            cmd.Save();
+            return APIStatus.statusOK();
+        }
+
         #endregion
 
-        #region 4.Trakt
+        #region 04.Trakt
 
         /// <summary>
         /// Set Trakt PIN
@@ -428,33 +467,46 @@ namespace Shoko.Server.API.Module.apiv2
         }
 
         /// <summary>
-        /// Update All information from Trakt
+        /// Scan Trakt
         /// </summary>
         /// <returns></returns>
-        private object UpdateAllTrakt()
+        private object ScanTrakt()
         {
-            Providers.TraktTV.TraktTVHelper.UpdateAllInfo();
+            Importer.RunImport_ScanTrakt();
             return APIStatus.statusOK();
         }
 
         #endregion
 
-        #region 5.TvDB
+        #region 05.TvDB
 
         /// <summary>
-        /// Update all information from TvDB
+        /// Scan TvDB
         /// </summary>
         /// <returns></returns>
-        private object UpdateAllTvDB()
+        private object ScanTvDB()
         {
-            Importer.RunImport_UpdateTvDB(false);
+            Importer.RunImport_ScanTvDB();
             return APIStatus.statusOK();
         }
 
+        #endregion
+
+        #region 06.MovieDB
+
+        /// <summary>
+        /// Scan MovieDB
+        /// </summary>
+        /// <returns></returns>
+        private object ScanMovieDB()
+        {
+            Importer.RunImport_ScanMovieDB();
+            return APIStatus.statusOK();
+        }
 
         #endregion
 
-        #region 6.User
+        #region 07.User
 
         /// <summary>
         /// return Dictionary int = id, string = username
@@ -559,7 +611,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         #endregion
 
-        #region 7.OS-based operations
+        #region 8.OS-based operations
 
         /// <summary>
         /// Return OSFolder object that is a folder from which jmmserver is running
@@ -636,7 +688,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         #endregion
 
-        #region 8.Cloud Accounts
+        #region 09.Cloud Accounts
 
         private object GetCloudAccounts()
         {
@@ -670,7 +722,7 @@ namespace Shoko.Server.API.Module.apiv2
 
         #endregion
 
-        #region 9. Logs
+        #region 10. Logs
 
         /// <summary>
         /// Run LogRotator with current settings
@@ -775,3 +827,4 @@ namespace Shoko.Server.API.Module.apiv2
 
     }
 }
+using Shoko.Server.Utilities;

@@ -2,35 +2,47 @@
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
 using Shoko.Models;
+using NHibernate.Criterion;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_VoteRepository : BaseDirectRepository<AniDB_Vote, int>
     {
+
         private AniDB_VoteRepository()
         {
             EndSaveCallback = (cr) =>
             {
-                if (cr.VoteType == (int) AniDBVoteType.Anime || cr.VoteType == (int) AniDBVoteType.AnimeTemp)
+                if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                 }
-            };
+                else if (cr.VoteType == (int)AniDBVoteType.Episode)
+                {
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    RepoFactory.AnimeEpisode.Save(ep);
+                }
+            }
+
+            ;
             EndDeleteCallback = (cr) =>
             {
                 if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                 }
+                else if (cr.VoteType == (int)AniDBVoteType.Episode)
+                {
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    RepoFactory.AnimeEpisode.Save(ep);
+                }
+            }
 
-            };
+            ;
         }
 
         public static AniDB_VoteRepository Create()
@@ -106,4 +118,5 @@ namespace Shoko.Server.Repositories.Direct
             return votesByAnime;
         }
     }
-}
+}using Shoko.Server.Models;
+using Shoko.Server.Repositories.NHibernate;

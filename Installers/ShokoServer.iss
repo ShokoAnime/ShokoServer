@@ -13,7 +13,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.7.0.3
+AppVersion=3.7.0.4
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://github.com/japanesemediamanager
@@ -84,6 +84,7 @@ Source: "..\JMMServer\bin\Release\ShokoServer.exe"; DestDir: "{app}"; Flags: ign
 Source: "..\JMMServer\bin\Release\ShokoServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\ShokoServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\System.Data.SQLite.dll.config"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Diagnostics.DiagnosticSource.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Diagnostics.DiagnosticSource.xml"; DestDir: "{app}"; Flags: ignoreversion

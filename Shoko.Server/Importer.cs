@@ -9,17 +9,17 @@ using Shoko.Models;
  using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.NHibernate;
- using Nancy.Extensions;
- using NLog;
-using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Commons.Extensions;
  using Shoko.Models.Enums;
  using Shoko.Server.Commands;
  using Shoko.Server.Commands.AniDB;
+ using Nancy.Extensions;
  using Shoko.Server.Commands.Azure;
+ using NLog;
  using Shoko.Server.Databases;
+using NutzCode.CloudFileSystem;
  using Shoko.Server.Models;
+using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Server.FileHelper;
  using Shoko.Server.PlexAndKodi;
  using Shoko.Server.Providers.Azure;
@@ -27,9 +27,10 @@ using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
  using Shoko.Server.Providers.MyAnimeList;
  using Shoko.Server.Providers.TraktTV;
  using Shoko.Models.TvDB;
+
+using File = Pri.LongPath.File;
  using Shoko.Server.Extensions;
  using Shoko.Server.Repositories;
- using File = Pri.LongPath.File;
 
 namespace Shoko.Server
 {
@@ -268,7 +269,7 @@ namespace Shoko.Server
                     if (dictFilesExisting.ContainsKey(fileName))
                     {
                         if (fldr.IsDropSource == 1)
-                            dictFilesExisting[fileName].MoveFileIfRequired();
+                            dictFilesExisting[fileName].RenameAndMoveAsRequired();
                     }
 
                     filesFound++;

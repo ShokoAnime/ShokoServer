@@ -2,8 +2,8 @@
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using System;
-using System.Collections.Generic;
 using Shoko.Server.API.Model.common;
+using System.Collections.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
@@ -16,7 +16,7 @@ namespace Shoko.Server.API
 
         public static string ConstructUnsortUrl(bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/filter?id=" + (int)JMMType.GroupUnsort,  short_url);
+            return APIHelper.ProperURL("/api/file/unsort",  short_url);
         }
 
         [Obsolete]
@@ -41,6 +41,11 @@ namespace Shoko.Server.API
         public static string ConstructFilterIdUrl(int groupfilter_id, bool short_url = false)
         {
             return APIHelper.ProperURL("/api/filter?id=" + groupfilter_id,  short_url);    
+        }
+
+        public static string ConstructFilterUrl(bool short_url = false)
+        {
+            return APIHelper.ProperURL("/api/filter", short_url);
         }
 
         [Obsolete]
@@ -121,6 +126,10 @@ namespace Shoko.Server.API
                             link = link.Replace(',', '.');
                         }
                     }
+                    else if (link.Contains("getsupportimage"))
+                    {
+                        link = link.Replace("getsupportimage", "/api/image/support");
+                    }
                 }
                 return link;
             }
@@ -131,7 +140,6 @@ namespace Shoko.Server.API
         public static Filter FilterFromGroupFilter(SVR_GroupFilter gg, int uid)
         {
             Filter ob = new Filter();
-            ob.type = "show";
             ob.name = gg.GroupFilterName;
             ob.id = gg.GroupFilterID;
             ob.url = APIHelper.ConstructFilterIdUrl(gg.GroupFilterID);
@@ -163,7 +171,6 @@ namespace Shoko.Server.API
         public static Filter FilterFromAnimeGroup(SVR_AnimeGroup grp, int uid)
         {
             Filter ob = new Filter();
-            ob.type = "show";
             ob.name = grp.GroupName;
             ob.id = grp.AnimeGroupID;
             ob.url = APIHelper.ConstructFilterIdUrl(grp.AnimeGroupID);
@@ -200,7 +207,6 @@ namespace Shoko.Server.API
 
         #endregion
 
-
         private static string ProperURL(string path, bool short_url = false)
         {
             return ProperURL(Module.apiv2.Core.request.Url.Port, path, short_url);
@@ -224,7 +230,5 @@ namespace Shoko.Server.API
                 return "";
             }      
         }
-
-  
     }
 }

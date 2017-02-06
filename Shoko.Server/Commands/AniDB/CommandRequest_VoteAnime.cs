@@ -3,7 +3,9 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using Shoko.Models.Server;
+using AniDBAPI;
 using Shoko.Server.Commands.MAL;
+using JMMServer.Repositories;
 
 namespace Shoko.Server.Commands
 {

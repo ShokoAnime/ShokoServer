@@ -31,6 +31,14 @@ namespace Shoko.Server.Extensions
             ;
         }
 
+        public static void AddRange<K,V>(this Dictionary<K,V> dict, Dictionary<K,V> otherdict)
+        {
+            otherdict.ForEach(a =>
+            {
+                if (!dict.ContainsKey(a.Key)) dict.Add(a.Key, a.Value);
+            });
+        }
+
 	    public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
 	    {
 		    // Trim, to lower in both lists, remove null and empty strings

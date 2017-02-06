@@ -458,7 +458,8 @@ namespace Shoko.Server.PlexAndKodi
 		    o.OriginalTitle = v.OriginalTitle;
 		    o.SourceTitle = v.SourceTitle;
 		    o.Rating = v.Rating;
-		    o.Season = v.Season;
+	        o.UserRating = v.UserRating;
+	        o.Season = v.Season;
 		    o.ViewCount = v.ViewCount;
 		    o.ViewOffset = v.ViewOffset;
 		    o.PrimaryExtraKey = v.PrimaryExtraKey;

@@ -50,26 +50,33 @@ namespace Shoko.Server.AniDB_API
 
         public void ensureRate()
         {
-            TimeSpan delay = DateTime.Now - lastRequest;
-            TimeSpan activeTime = DateTime.Now - firstRequest;
-            lastRequest = DateTime.Now;
+            //TODO: switch to stopwatch
+            lock (instance)
+            {
+                DateTime now = DateTime.Now;
+                TimeSpan delay = now - lastRequest;
+                TimeSpan activeTime = now - firstRequest;
+                lastRequest = now;
 
-            if (delay > resetPeriod) {
-                resetRate();
-                activeTime = DateTime.Now - firstRequest;
+                if (delay > resetPeriod)
+                {
+                    resetRate();
+                    activeTime = now - firstRequest;
+                }
+
+                int currentDelay = activeTime > shortPeriod ? LongDelay : ShortDelay;
+
+                if (delay.TotalMilliseconds > currentDelay)
+                {
+                    logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, not throttling.");
+                    return;
+                }
+
+                logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, throttling for {currentDelay}.");
+                Thread.Sleep(currentDelay);
+
+                logger.Trace("Sending AniDB command.");
             }
-
-            int currentDelay = activeTime > shortPeriod ? LongDelay : ShortDelay;
-
-            if (delay.TotalMilliseconds > currentDelay) {
-                logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, not throttling.");
-                return;
-            }
-
-            logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, throttling for {currentDelay}.");
-            Thread.Sleep(currentDelay);
-
-            logger.Trace("Sending AniDB command.");
         }
     }
 }

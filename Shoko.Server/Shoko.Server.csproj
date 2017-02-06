@@ -331,7 +331,8 @@
     <Compile Include="API\v2\Models\common\ObjectList.cs" />
     <Compile Include="API\v2\Models\common\RawFile.cs" />
     <Compile Include="API\v2\Models\common\Filter.cs" />
-    <Compile Include="API\v2\Models\common\Series.cs" />
+	<Compile Include="API\v2\Models\common\Filters.cs" />
+	<Compile Include="API\v2\Models\common\SearchResult.cs" />
     <Compile Include="API\v2\Models\core\Logs.cs" />
     <Compile Include="API\v2\Models\core\API_Call_Parameters.cs" />
     <Compile Include="API\v2\Models\common\Episode.cs" />
@@ -340,6 +341,7 @@
     <Compile Include="API\v2\Models\common\Tag.cs" />
     <Compile Include="API\v2\Models\core\OSFile.cs" />
     <Compile Include="API\v2\Models\core\WebUI-Settings.cs" />
+	<Compile Include="API\v2\Models\BaseDirectory.cs" />
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />
     <Compile Include="API\v2\Modules\Core.cs" />

@@ -1,37 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
 using Shoko.Server.Models;
+using System.Runtime.Serialization;
+using JMMServer.Entities;
 
 namespace Shoko.Server.API.Model.common
 {
-    public class RawFile
+    [DataContract]
+    public class RawFile : BaseDirectory
     {
+        public override string type { get { return "file"; } }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string crc32 { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string ed2khash { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string md5 { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string sha1 { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public DateTime created { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public DateTime updated { get; set; }
+
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public long duration { get; set; }
 
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public string filename { get; set; }
-        public long size { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public new long size { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string hash { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int hash_source { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int is_ignored { get; set; }
 
-        public int id { get; set; }
-
-        public string url { get; set; }
-
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public MediaInfo media { get; set; }
 
-        // x-ref 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public string group_full { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public string group_short { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public int group_id { get; set; }
+
+        // x-ref
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public bool recognized { get; set; }
+
+        // x-ref with videolocal_user
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public long offset { get; set; }
+
         // x-ref with videolocal_places
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int videolocal_place_id { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int import_folder_id { get; set; }
 
         public RawFile()
@@ -54,17 +94,34 @@ namespace Shoko.Server.API.Model.common
                 updated = vl.DateTimeUpdated;
                 duration = vl.Duration;
 
+                if (vl.ReleaseGroup != null)
+                {
+                    group_full = vl.ReleaseGroup.GroupName;
+                    group_short = vl.ReleaseGroup.GroupNameShort;
+                    group_id = vl.ReleaseGroup.AniDB_ReleaseGroupID;
+                }
+
                 size = vl.FileSize;
                 hash = vl.Hash;
                 hash_source = vl.HashSource;
 
                 is_ignored = vl.IsIgnored;
-
-                if (vl.Places != null && vl.Places.Count >= 0)
+                VideoLocal_User vl_user = vl.GetUserRecord(uid);
+                if (vl_user != null)
                 {
-                    filename = vl.Places[0].FilePath;
-                    videolocal_place_id = vl.Places[0].VideoLocal_Place_ID;
-                    import_folder_id = vl.Places[0].ImportFolderID;
+                    offset = vl_user.ResumePosition;
+                }
+                else
+                {
+                    offset = 0;
+                }
+
+                VideoLocal_Place place = vl.GetBestVideoLocalPlace();
+                if (place != null)
+                {
+                    filename = place.FilePath;
+                    videolocal_place_id = place.VideoLocal_Place_ID;
+                    import_folder_id = place.ImportFolderID;
                 }
 
                 if (vl.EpisodeCrossRefs.Count == 0)
@@ -126,17 +183,23 @@ namespace Shoko.Server.API.Model.common
         /// Base on MediaInfo output using Stream objects
         /// </summary>
 
+        [DataContract]
         public class MediaInfo
         {
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<General, string> general { get; private set; }
 
             //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> audios { get; private set; }
             //public Dictionary<int, Dictionary<Video, string>> videos { get; private set; }
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> videos { get; private set; }
             //public Dictionary<int, Dictionary<Subtitle, string>> subtitles { get; private set; }
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> subtitles { get; private set; }
 
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Dictionary<string, string>> menus { get; private set; }
 
             public MediaInfo()

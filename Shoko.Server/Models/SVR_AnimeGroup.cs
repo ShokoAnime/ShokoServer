@@ -3,18 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Shoko.Server.Collections;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using NLog;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.LZ4;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Models
 {
@@ -469,7 +466,7 @@ namespace Shoko.Server.Models
         {
             List<SVR_AnimeSeries> seriesList = RepoFactory.AnimeSeries.GetByGroupID(this.AnimeGroupID);
             // Make everything that relies on GetSeries[0] have the proper result
-            seriesList.OrderBy(a => a.AirDate);
+            seriesList = seriesList.OrderBy(a => a.Year).ThenBy(a => a.AirDate).ToList();
             if (DefaultAnimeSeriesID.HasValue)
             {
                 SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
@@ -1427,4 +1424,6 @@ namespace Shoko.Server.Models
 
         public decimal? TemporaryVotes { get; }
     }
-}
+}using Shoko.Server.LZ4;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;

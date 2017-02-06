@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using NHibernate;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -8,6 +7,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.LZ4;
+using NHibernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -116,6 +116,55 @@ namespace Shoko.Server.Models
                 return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
             }
         }
+
+	    public TvDB_Episode TvDBEpisode
+	    {
+		    get
+		    {
+			    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+			    {
+				    AniDB_Episode aep = AniDB_Episode;
+				    List<CrossRef_AniDB_TvDBV2> xref_tvdb =
+					    RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
+						    aep.EpisodeType, aep.EpisodeNumber);
+				    if (xref_tvdb != null && xref_tvdb.Count > 0)
+				    {
+					    CrossRef_AniDB_TvDBV2 xref_tvdb2 = xref_tvdb[0];
+					    int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
+					                   (xref_tvdb2.AniDBStartEpisodeNumber - 1);
+					    TvDB_Episode tvep = null;
+					    int season = xref_tvdb2.TvDBSeasonNumber;
+					    List<TvDB_Episode> tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
+					    tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber);
+					    if (tvep != null) return tvep;
+
+					    int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
+					    int previousSeasonsCount = 0;
+					    // we checked once, so increment the season
+					    season++;
+					    previousSeasonsCount += tvdb_eps.Count;
+					    do
+					    {
+						    if (season == 0) break; // Specials will often be wrong
+						    if (season > lastSeason) break;
+						    if (epnumber - previousSeasonsCount <= 0) break;
+						    // This should be 1 or 0, hopefully 1
+						    tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
+						    tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber - previousSeasonsCount);
+
+						    if (tvep != null)
+						    {
+							    break;
+						    }
+						    previousSeasonsCount += tvdb_eps.Count;
+						    season++;
+					    } while (true);
+					    return tvep;
+				    }
+				    return null;
+			    }
+		    }
+	    }
 
         public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {

@@ -6,8 +6,6 @@ using Shoko.Models.Server;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server
 {
@@ -1773,40 +1771,35 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    try
+                    if (EvaluateTest(thisLine, vid, aniFile, episodes, anime))
                     {
-                        if (EvaluateTest(thisLine, vid, aniFile, episodes, anime))
-                        {
-                            Debug.WriteLine(string.Format("Line passed: {0}", thisLine));
-                            // if the line has passed the tests, then perform the action
+                        Debug.WriteLine(string.Format("Line passed: {0}", thisLine));
+                        // if the line has passed the tests, then perform the action
 
-                            string action = GetAction(thisLine);
+                        string action = GetAction(thisLine);
 
-                            // if the action is fail, we don't want to rename
-                            if (action.ToUpper()
-                                .Trim()
-                                .Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
-                                return string.Empty;
+                        // if the action is fail, we don't want to rename
+                        if (action.ToUpper()
+                            .Trim()
+                            .Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
+                            return string.Empty;
 
-                            PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
-                        }
-                        else
-                        {
-                            Debug.WriteLine(string.Format("Line failed: {0}", thisLine));
-                        }
+                        PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        throw;
+                        Debug.WriteLine(string.Format("Line failed: {0}", thisLine));
                     }
                 }
             }
 
             if (string.IsNullOrEmpty(newFileName)) return string.Empty;
 
-            // finally add back the extension
+            string ext = Path.GetExtension(vid.GetBestVideoLocalPlace()?.FilePath ?? vid.FileName); //Prefer VideoLocal_Place as this is more accurate.
+            if (string.IsNullOrEmpty(ext)) return string.Empty; // fail if we get a blank extension, something went wrong.
 
-            return string.Format("{0}{1}", newFileName.Replace("`", "'"), Path.GetExtension(vid.FileName));
+            // finally add back the extension
+            return $"{newFileName.Replace("`", "'")}{ext}";
         }
 
         private static void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
@@ -2449,4 +2442,5 @@ namespace Shoko.Server
             }
         }
     }
-}
+}using Shoko.Server.Models;
+using Shoko.Server.Repositories;

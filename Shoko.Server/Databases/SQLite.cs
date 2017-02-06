@@ -8,7 +8,6 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using NHibernate;
 using Shoko.Server.Repositories;
-
 // ReSharper disable InconsistentNaming
 
 namespace Shoko.Server.Databases
@@ -19,7 +18,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 51;
+        public int RequiredVersion { get; } = 52;
 
 
 
@@ -340,6 +339,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(49, 3, "CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
 	        new DatabaseCommand(50, 1, DatabaseFixes.FixTagsWithInclude),
 	        new DatabaseCommand(51, 1, DatabaseFixes.MakeYearsApplyToSeries),
+            new DatabaseCommand(52, 1, DatabaseFixes.FixEmptyVideoInfos),
 
         };
 

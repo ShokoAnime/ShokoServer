@@ -10,9 +10,6 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 
 using Shoko.Models;
-using NLog;
-using NutzCode.CloudFileSystem;
-using Directory = System.IO.Directory;
 using Shoko.Server.Collections;
 using Shoko.Models.Azure;
 using Shoko.Models.Server;
@@ -20,8 +17,11 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
+using NLog;
 using Shoko.Server.API.core;
+using NutzCode.CloudFileSystem;
 using Shoko.Server.Commands;
+using Directory = System.IO.Directory;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.MAL;
 using Shoko.Server.Commands.TvDB;
@@ -31,15 +31,6 @@ using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TraktTV.Contracts;
-using Shoko.Models.TvDB;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Tasks;
-
-
 
 namespace Shoko.Server
 {
@@ -1232,8 +1223,7 @@ namespace Shoko.Server
                 cr.Save();
                 vid.Places.ForEach(a =>
                 {
-                    a.RenameIfRequired();
-                    a.MoveFileIfRequired();
+                    a.RenameAndMoveAsRequired();
                 });
 
                 SVR_AnimeSeries ser = ep.GetAnimeSeries();
@@ -1299,8 +1289,7 @@ namespace Shoko.Server
                 }
                 vid.Places.ForEach(a =>
                 {
-                    a.RenameIfRequired();
-                    a.MoveFileIfRequired();
+                    a.RenameAndMoveAsRequired();
                 });
                 ser.EpisodeAddedDate = DateTime.Now;
                 RepoFactory.AnimeSeries.Save(ser, false, true);
@@ -1377,8 +1366,7 @@ namespace Shoko.Server
                     cr.Save();
                     vid.Places.ForEach(a =>
                     {
-                        a.RenameIfRequired();
-                        a.MoveFileIfRequired();
+                        a.RenameAndMoveAsRequired();
 
                     });
                     count++;
@@ -2171,9 +2159,7 @@ namespace Shoko.Server
             return ls;
         }
 
-
-
-        public void TraktScrobble(int animeId, int type, int progress, int status)
+        public int TraktScrobble(int animeId, int type, int progress, int status)
         {
             try
             {
@@ -2201,21 +2187,23 @@ namespace Shoko.Server
                     {
                         // Movie
                         case (int) Providers.TraktTV.ScrobblePlayingType.movie:
-                            Providers.TraktTV.TraktTVHelper.Scrobble(
+                            return Providers.TraktTV.TraktTVHelper.Scrobble(
                                 Providers.TraktTV.ScrobblePlayingType.movie, animeId.ToString(),
                                 statusTraktV2, progressTrakt);
-                            break;
                         // TV episode
                         case (int) Providers.TraktTV.ScrobblePlayingType.episode:
-                            Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
+                            return Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
                                 animeId.ToString(), statusTraktV2, progressTrakt);
-                            break;
+                        default:
+                            return 500;
                     }
                 }
+                else { return 500; }
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
+                return 500;
             }
         }
 
@@ -7561,7 +7549,6 @@ namespace Shoko.Server
             }
         }
 
-
         public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
         {
             try
@@ -8383,4 +8370,10 @@ namespace Shoko.Server
 
 
     }
-}
+}using Shoko.Server.Providers.TraktTV.Contracts;
+using Shoko.Models.TvDB;
+using Shoko.Server.Extensions;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Tasks;

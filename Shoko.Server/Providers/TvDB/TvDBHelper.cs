@@ -9,18 +9,12 @@ using ICSharpCode.SharpZipLib.Zip;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using NLog;
 using Shoko.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Extensions;
-using Utils = Shoko.Server.Utils;
 
 namespace Shoko.Models.TvDB
 {
@@ -904,12 +898,17 @@ namespace Shoko.Models.TvDB
 
                 if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
-                    if (RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Count == 0)
-                    {
-                        // check for Trakt associations
-                        CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
-                        cmd2.Save(session);
-                    }
+	                // check for Trakt associations
+	                List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+	                if (trakt.Count != 0)
+	                {
+		                // remove them and rescan
+		                trakt.ForEach(a => RepoFactory.CrossRef_AniDB_TraktV2.Delete(a));
+	                }
+
+                    CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
+                    cmd2.Save(session);
+
                 }
             }
 
@@ -1143,4 +1142,9 @@ namespace Shoko.Models.TvDB
             }
         }
     }
-}
+}using Shoko.Server.Databases;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Extensions;
+using Utils = Shoko.Server.Utils;

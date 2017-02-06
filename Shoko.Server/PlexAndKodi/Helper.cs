@@ -17,22 +17,18 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Models.TvDB;
 using Shoko.Server.Repositories.Cached;
-using NHibernate;
-using NHibernate.Dialect;
-using NLog;
 using Shoko.Commons.Extensions;
+using NHibernate;
 using Shoko.Models;
+using NHibernate.Dialect;
 using Shoko.Models.Client;
+using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using Directory = Shoko.Models.PlexAndKodi.Directory;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.PlexAndKodi
 {
@@ -303,6 +299,14 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     v.ParentIndex = null;
                 }
+
+                if (e.Key.EpisodeTypeEnum == enEpisodeType.Episode)
+                {
+                    string client = prov.GetPlexClient().Product;
+                    if (client == "Plex for Windows" || client == "Plex Home Theater")
+                        v.Title = $"{v.EpisodeNumber}. {v.Title}";
+                }
+
                 if (cross != null && cross.Count > 0)
                 {
                     CrossRef_AniDB_TvDBV2 c2 =
@@ -366,6 +370,9 @@ namespace Shoko.Server.PlexAndKodi
 			        l.OriginalTitle = aep.RomajiName;
 			        l.EpisodeType = aep.EpisodeType.ToString();
 			        l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+		            AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
+		            if (vote != null) l.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
+
 			        if (aep.GetAirDateAsDate().HasValue)
 			        {
 				        l.Year = aep.GetAirDateAsDate().Value.Year.ToString();
@@ -958,7 +965,11 @@ namespace Shoko.Server.PlexAndKodi
                 p.LeafCount = anime.EpisodeCount.ToString();
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = Math.Round((double) (anime.Rating / 100), 1).ToLowerInvariantString();
+                p.Rating = Math.Round((anime.Rating / 100D), 1).ToLowerInvariantString();
+                AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime);
+                if (vote == null) vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
+                if (vote != null) p.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
+
                 List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
                 {
@@ -1031,4 +1042,7 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
     }
-}
+}using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using Directory = Shoko.Models.PlexAndKodi.Directory;
+using Stream = Shoko.Models.PlexAndKodi.Stream;

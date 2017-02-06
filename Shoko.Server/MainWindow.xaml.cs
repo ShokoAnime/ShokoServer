@@ -25,10 +25,11 @@ using NHibernate;
 using NLog;
 using Microsoft.Win32.TaskScheduler;
 using Nancy.Hosting.Self;
+using Nancy.Rest.Module;
 using Action = System.Action;
 using System.Net.NetworkInformation;
-using Nancy.Rest.Module;
 using Shoko.Models.Enums;
+using JMMServer.API.core;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
@@ -39,10 +40,6 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
-using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Repositories;
-using Shoko.Server.UI;
-using UPnP;
 
 namespace Shoko.Server
 {
@@ -81,7 +78,6 @@ namespace Shoko.Server
 
         private static Nancy.Hosting.Self.NancyHost hostNancy = null;
 
-
         private static BackgroundWorker workerImport = new BackgroundWorker();
         private static BackgroundWorker workerScanFolder = new BackgroundWorker();
         private static BackgroundWorker workerScanDropFolders = new BackgroundWorker();
@@ -108,6 +104,7 @@ namespace Shoko.Server
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
+
         private Mutex mutex;
 
         public MainWindow()
@@ -1462,8 +1459,7 @@ namespace Shoko.Server
                             RepoFactory.CrossRef_File_Episode.Save(xref);
                             vid.Places.ForEach(a =>
                             {
-                                a.RenameIfRequired();
-                                a.MoveFileIfRequired();
+                                a.RenameAndMoveAsRequired();
                             });
 
                             // update stats for groups and series
@@ -1596,201 +1592,6 @@ namespace Shoko.Server
 
         void btnToolbarHelp_Click(object sender, RoutedEventArgs e)
         {
-            //AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            //AnimeSeries ser = repSeries.GetByID(222);
-            //ser.UpdateStats(true, true, true);
-
-            //TraktTVHelper.GetFriendsRequests();
-
-            //FileHashHelper.GetMediaInfo(@"C:\[Hiryuu] Maken-Ki! 09 [Hi10P 1280x720 H264] [EE47C947].mkv", true);
-
-            //CommandRequest_ReadMediaInfo cr1 = new CommandRequest_ReadMediaInfo(2038);
-            //cr1.Save();
-
-            //CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
-            //cr2.Save();
-
-            //anime temp = MALHelper.SearchAnimesByTitle("Naruto");
-            //MALHelper.VerifyCredentials();
-
-            //JMMService.DebugFlag = !JMMService.DebugFlag;
-
-            //AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
-            //AnimeEpisode ep = repEp.GetByID(2430);
-            //MALHelper.UpdateMAL(ep);
-
-            //CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(8107);
-            //cmdMAL.ProcessCommand();
-
-
-            //CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-            //cmd.Save();
-
-            //AppVersionsResult appv = XMLService.GetAppVersions();
-
-            //JMMServiceImplementation imp = new JMMServiceImplementation();
-            //imp.GetMissingEpisodes(1, true, true);
-
-            //VideoLocalRepository repVidLocal = new VideoLocalRepository();
-            /*VideoLocal vlocal = new VideoLocal();
-			vlocal.DateTimeUpdated = DateTime.Now;
-			vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
-			vlocal.FilePath = "";
-			vlocal.FileSize = 656181746;
-			vlocal.ImportFolderID = 1;
-			vlocal.Hash = "453063B2993D4AC4BA51F4A64170260A";
-			vlocal.CRC32 = "";
-			vlocal.MD5 = "";
-			vlocal.SHA1 = "";
-			vlocal.IsIgnored = 0;
-			vlocal.HashSource = (int)HashSource.DirectHash;
-			repVidLocal.Save(vlocal);*/
-
-            //JMMService.AnidbProcessor.UpdateMyListStats();
-
-            //UpdateVersion();
-
-            /*VideoLocalRepository repVidLocal = new VideoLocalRepository();
-			VideoLocal vid = repVidLocal.GetByID(194); RenameFileHelper.Test(vid);
-
-			vid = repVidLocal.GetByID(295); RenameFileHelper.Test(vid);
-			vid = repVidLocal.GetByID(396); RenameFileHelper.Test(vid);
-			vid = repVidLocal.GetByID(497); RenameFileHelper.Test(vid);
-			vid = repVidLocal.GetByID(598); RenameFileHelper.Test(vid);
-
-			return;
-
-			
-
-			JMMService.AnidbProcessor.GetFileInfo(vid);
-
-			return;*/
-
-            //Importer.UpdateAniDBFileData(true, true);
-
-            //JMMServiceImplementationMetro imp = new JMMServiceImplementationMetro();
-            //imp.GetAnimeDetail(4880);
-
-            /*CrossRef_AniDB_MALRepository rep = new CrossRef_AniDB_MALRepository();
-			foreach (JMMServer.Entities.CrossRef_AniDB_MAL xref in rep.GetAll())
-			{
-				//AzureWebAPI.Send_CrossRef_AniDB_MAL(xref);
-				break;
-			}
-
-			AniDB_Anime anime2 = JMMService.AnidbProcessor.GetAnimeInfoHTTP(9127, true, false);
-
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			List<AniDB_Anime> allAnime = repAnime.GetAll();
-			int cnt = 0;
-			foreach (AniDB_Anime anime in allAnime)
-			{
-				cnt++;
-				logger.Info(string.Format("Uploading anime {0} of {1} - {2}", cnt, allAnime.Count, anime.MainTitle));
-
-				try
-				{
-					//CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-					//cmdAzure.Save();
-				}
-				catch { }
-			}
-			*/
-
-
-            /*try
-			{
-				using (var session = JMMService.SessionFactory.OpenSession())
-				{
-					AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTPFromCache(session, 5842, false);
-				}
-			}
-			catch (Exception ex)
-			{
-				Utils.ShowErrorMessage(ex);
-			}*/
-
-            //CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(3482, false, false);
-            //cmd.Save();
-
-            //string xml = AzureWebAPI.Get_AnimeXML(3483);
-            //XmlDocument docAnime = new XmlDocument();
-            //docAnime.LoadXml(xml);
-
-            //JMMService.AnidbProcessor.IsBanned = true;
-            //JMMService.AnidbProcessor.BanOrigin = "HTTP";
-            //JMMService.AnidbProcessor.BanTime = DateTime.Now;
-
-            //GenerateAzureList();
-            //SendToAzure();
-            //SendToAzureXML();
-
-            //CommandRequest_GetAniDBTitles cmd = new CommandRequest_GetAniDBTitles();
-            //cmd.Save();
-
-            //AzureWebAPI.Delete_CrossRefAniDBTvDB();
-
-            /*
-			CrossRef_AniDB_TvDBV2Repository rep = new CrossRef_AniDB_TvDBV2Repository();
-			List<CrossRef_AniDB_TvDBV2> xrefs = rep.GetAll();
-			AzureWebAPI.Send_CrossRefAniDBTvDB(xrefs[0], "Test");
-            */
-
-            //Azure_AnimeLink aid = AzureWebAPI.Admin_GetRandomLinkForApproval(AzureLinkType.TvDB);
-
-            /*
-            IEnumerable<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowNew("Trinity");
-            if (results != null)
-            {
-                foreach (TraktV2SearchShowResult res in results)
-                    Console.WriteLine(res.show.Title);
-            }
-            */
-
-            // trinity-seven - 10441
-            //TraktV2ShowExtended show = TraktTVHelper.GetShowInfoV2("madan-no-ou-to-vanadis");
-            //TraktTVHelper.GetShowCommentsV2(8660);
-            //TraktTVHelper.GetFriendsV2();
-            //TraktTVHelper.RefreshAuthToken();
-
-
-            //D003BB3D
-            //string ret = TraktTVHelper.EnterTraktPIN("D003BB3D");
-
-            //string x = "";
-            //TraktTVHelper.PostCommentShow("mayday", "this is a test comment", false, ref x);
-
-            //AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
-            //AnimeEpisode ep = repEp.GetByID(32);
-            //TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
-
-            //TraktTVHelper.SearchShowByIDV2("tvdb", "279827");
-            //TraktTVHelper.SearchShowV2("Monster Musume");
-            //TraktTVHelper.SyncCollectionToTrakt();
-            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.HistoryAdd, "mad-men", 1, 1, false);
-            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, "mad-men", 1, 1, false);
-            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, "mad-men", 1, 3, false);
-            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, "mad-men", 1, 3, false);
-
-            //AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-
-            //AnimeSeries ser1 = repSeries.GetByAnimeID(10445);
-            //TraktTVHelper.SyncCollectionToTrakt_Series(ser1);
-
-            //AnimeSeries ser2 = repSeries.GetByAnimeID(10846);
-            //TraktTVHelper.SyncCollectionToTrakt_Series(ser2);
-            //TraktTVHelper.UpdateAllInfoAndImages("my-teen-romantic-comedy-snafu", true);
-
-            //TraktTVHelper.CleanupDatabase();
-            //TraktTVHelper.SyncCollectionToTrakt();
-
-            //JMMServer.Providers.Azure.Azure_AnimeLink link2 = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomTraktLinkForApproval();
-            //List<Providers.Azure.CrossRef_AniDB_Trakt> xrefs= JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(link2.RandomAnimeID);
-
-
-            //TraktTVHelper.RefreshAuthToken();
-
-
             AboutForm frm = new AboutForm();
             frm.Owner = this;
             frm.ShowDialog();
@@ -1963,33 +1764,27 @@ namespace Shoko.Server
                 long verNew = 0;
 
                 // get the latest version as according to the release
-                if (!forceShowForm)
+                
+                // get the user's version
+                System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+                if (a == null)
                 {
-                    //Providers.JMMAutoUpdates.JMMVersions verInfo =
-                    //    Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
-                    //if (verInfo == null) return;
-
-                    // get the user's version
-                    System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
-                    if (a == null)
-                    {
-                        logger.Error("Could not get current version");
-                        return;
-                    }
-                    System.Reflection.AssemblyName an = a.GetName();
-
-                    //verNew = verInfo.versions.ServerVersionAbs;
-
-                    verNew =
-                        JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
-                            JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.UpdateChannel))
-                            ;
-                    verCurrent = an.Version.Revision * 100 +
-                                 an.Version.Build * 100 * 100 +
-                                 an.Version.Minor * 100 * 100 * 100 +
-                                 an.Version.Major * 100 * 100 * 100 * 100;
+                    logger.Error("Could not get current version");
+                    return;
                 }
+                System.Reflection.AssemblyName an = a.GetName();
 
+                //verNew = verInfo.versions.ServerVersionAbs;
+
+                verNew =
+                    JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
+                        JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.UpdateChannel))
+                        ;
+                verCurrent = an.Version.Revision * 100 +
+                                an.Version.Build * 100 * 100 +
+                                an.Version.Minor * 100 * 100 * 100 +
+                                an.Version.Major * 100 * 100 * 100 * 100;
+                
                 if (forceShowForm || verNew > verCurrent)
                 {
                     UpdateForm frm = new UpdateForm();
@@ -2589,6 +2384,7 @@ namespace Shoko.Server
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
             if (ServerSettings.ExperimentalUPnP)
                 NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
+            Nancy.Json.JsonSettings.MaxJsonLength = Int32.MaxValue;
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
@@ -2599,6 +2395,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex);
             }
+            UserDatabase.Refresh();
         }
       
  
@@ -2931,4 +2728,7 @@ namespace Shoko.Server
 
         #endregion
     }
-}
+}using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
+using Shoko.Server.UI;
+using UPnP;

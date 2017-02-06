@@ -28,7 +28,9 @@ namespace Shoko.Server.API.Module.apiv2
         {           
             Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type); };
             Get["/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.id, (int)x.type, x.ratio); };
+            Get["/thumb/{type}/{id}"] = x => { return GetThumb((int)x.id, (int)x.type, "1"); };
             Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
+            Get["/image/support/{name}/{ratio}"] = x => { return GetSupportImage(x.name, x.ratio); };
         }
 
         /// <summary>
@@ -117,6 +119,31 @@ namespace Shoko.Server.API.Module.apiv2
             return response;
         }
 
+        private object GetSupportImage(string name, string ratio)
+        {
+            Nancy.Response response = new Nancy.Response();
+            if (string.IsNullOrEmpty(name)) { return APIStatus.notFound404(); }
+
+            ratio = ratio.Replace(',', '.');
+            float newratio = 0F;
+            if (!float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
+            {
+                newratio = 1F;
+            }
+            
+            name = Path.GetFileNameWithoutExtension(name);
+            System.Resources.ResourceManager man = Resources.ResourceManager;
+            byte[] dta = (byte[])man.GetObject(name);
+            if ((dta == null) || (dta.Length == 0)) { return APIStatus.notFound404(); }
+            MemoryStream ms = new MemoryStream(dta);
+            ms.Seek(0, SeekOrigin.Begin);
+            System.Drawing.Image im = System.Drawing.Image.FromStream(ms);
+
+            response = Response.FromStream(ResizeToRatio(im, newratio), "image/png");
+            return response;
+
+        }
+
         /// <summary>
         /// Internal function that return valid image file path on server that exist
         /// </summary>
@@ -151,7 +178,7 @@ namespace Shoko.Server.API.Module.apiv2
 
                 // 2
                 case JMMImageType.AniDB_Character:
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(id);
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(id);
                     if (chr == null) { return null; }
 
                     path = chr.GetPosterPath();
@@ -168,7 +195,7 @@ namespace Shoko.Server.API.Module.apiv2
 
                 // 3
                 case JMMImageType.AniDB_Creator:
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(id);
+                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(id);
                     if (creator == null) { return null; }
 
                     path = creator.GetPosterPath();
