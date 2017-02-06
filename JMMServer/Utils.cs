@@ -308,7 +308,7 @@ namespace JMMServer
             int result = -1;
             int m = query.Length;
             int[] R;
-            int[] patternMask = new int[128];
+            int[] patternMask = new int[AllowedSearchCharacters.Length+1];
             int i, d;
             dist = k + 1;
 
@@ -376,7 +376,7 @@ namespace JMMServer
             int result = -1;
             int m = query.Length;
             ulong[] R;
-            ulong[] patternMask = new ulong[128];
+            ulong[] patternMask = new ulong[AllowedSearchCharacters.Length+1];
             int i, d;
             dist = text.Length;
 
