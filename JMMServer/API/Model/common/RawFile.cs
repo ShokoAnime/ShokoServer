@@ -93,9 +93,12 @@ namespace JMMServer.API.Model.common
                 updated = vl.DateTimeUpdated;
                 duration = vl.Duration;
 
-                group_full = vl.ReleaseGroup.GroupName;
-                group_short = vl.ReleaseGroup.GroupNameShort;
-                group_id = vl.ReleaseGroup.AniDB_ReleaseGroupID;
+                if (vl.ReleaseGroup != null)
+                {
+                    group_full = vl.ReleaseGroup.GroupName;
+                    group_short = vl.ReleaseGroup.GroupNameShort;
+                    group_id = vl.ReleaseGroup.AniDB_ReleaseGroupID;
+                }
 
                 size = vl.FileSize;
                 hash = vl.Hash;
