@@ -46,7 +46,7 @@
         public int notag = 0;
         
         /// <summary>
-        /// Identyfication number of object
+        /// GET/SET: Identyfication number of object
         /// </summary>
         public int id { get; set; }
         
@@ -56,9 +56,10 @@
         public int score { get; set; }
 
         /// <summary>
-        /// Paging offset (the number of first item to return) using with limit help to send more narrow data
+        /// GET: Paging offset (the number of first item to return) using with limit help to send more narrow data
+        /// POST: current position of file (in seconds from 00:00:00 ex. 0:01:22 is 62)
         /// </summary>
-        public int offset = 0;
+        public long offset = 0;
 
         /// <summary>
         /// Level of recursive building objects (ex. for Serie with level=2 return will contain serie with all episodes but without rawfile in episodes)

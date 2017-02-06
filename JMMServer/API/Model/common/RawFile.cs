@@ -12,27 +12,34 @@ namespace JMMServer.API.Model.common
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string crc32 { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string ed2khash { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string md5 { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string sha1 { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public DateTime created { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public DateTime updated { get; set; }
+
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public long duration { get; set; }
 
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public string filename { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public long size { get; set; }
+        public new long size { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string hash { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int hash_source { get; set; }
 
@@ -42,12 +49,27 @@ namespace JMMServer.API.Model.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public MediaInfo media { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public string group_full { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public string group_short { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public int group_id { get; set; }
+
         // x-ref
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public bool recognized { get; set; }
+
+        // x-ref with videolocal_user
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public long offset { get; set; }
+
         // x-ref with videolocal_places
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int videolocal_place_id { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int import_folder_id { get; set; }
 
@@ -71,11 +93,24 @@ namespace JMMServer.API.Model.common
                 updated = vl.DateTimeUpdated;
                 duration = vl.Duration;
 
+                group_full = vl.ReleaseGroup.GroupName;
+                group_short = vl.ReleaseGroup.GroupNameShort;
+                group_id = vl.ReleaseGroup.AniDB_ReleaseGroupID;
+
                 size = vl.FileSize;
                 hash = vl.Hash;
                 hash_source = vl.HashSource;
 
                 is_ignored = vl.IsIgnored;
+                VideoLocal_User vl_user = vl.GetUserRecord(uid);
+                if (vl_user != null)
+                {
+                    offset = vl_user.ResumePosition;
+                }
+                else
+                {
+                    offset = 0;
+                }
 
                 VideoLocal_Place place = vl.GetBestVideoLocalPlace();
                 if (place != null)

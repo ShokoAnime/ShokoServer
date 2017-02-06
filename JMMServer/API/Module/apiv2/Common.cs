@@ -96,8 +96,9 @@ namespace JMMServer.API.Module.apiv2
 
             Get["/file"] = _ => { return GetFile(); };
             Get["/file/count"] = _ => { return CountFiles(); };
-            Get["/file/recent"] = x => { return GetRecentFiles(); };
+            Get["/file/recent"] = _ => { return GetRecentFiles(); };
             Get["/file/unsort"] = _ => { return GetUnsort(); };
+            Post["/file/offset"] = _ => { return SetFileOffset(); };
 
             #endregion
 
@@ -559,7 +560,7 @@ namespace JMMServer.API.Module.apiv2
                 search_group.name = para.query;
                 search_group.series = new List<Serie>();
 
-                search_group.series = (List<Serie>)(Search(query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0));
+                search_group.series = (List<Serie>)(Search(query, para.limit, para.limit_tag, (int)para.offset, para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0));
                 search_group.size = search_group.series.Count();
                 search_filter.groups.Add(search_group);
                 search_filter.size = search_filter.groups.Count();
@@ -906,6 +907,29 @@ namespace JMMServer.API.Module.apiv2
             return lst;
         }
 
+        /// <summary>
+        /// Handle /api/file/offset
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object SetFileOffset()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            // allow to offset be 0 to reset position
+            if (para.id != 0)
+            {
+                VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
+                vl.SetResumePosition(para.offset, para.id);
+                return APIStatus.statusOK();
+            }
+            else
+            {
+                return APIStatus.notFound404();
+            }
+        }
+
         #region internal function
 
         /// <summary>
@@ -976,7 +1000,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllEpisodes(user.JMMUserID, para.limit, para.offset, para.level, para.all != 0);
+                return GetAllEpisodes(user.JMMUserID, para.limit, (int)para.offset, para.level, para.all != 0);
             }
             else
             {
@@ -1317,7 +1341,7 @@ namespace JMMServer.API.Module.apiv2
 
             if (para.id == 0)
             {
-                return GetAllSeries(para.nocast != 0, para.limit, para.offset, para.notag != 0, para.level, para.all != 0);
+                return GetAllSeries(para.nocast != 0, para.limit, (int)para.offset, para.notag != 0, para.level, para.all != 0);
             }
             else
             {
@@ -1467,7 +1491,7 @@ namespace JMMServer.API.Module.apiv2
             }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.limit_tag, para.offset, para.tags, user.JMMUserID,
+                return Search(para.query, para.limit, para.limit_tag, (int)para.offset, para.tags, user.JMMUserID,
                     para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
@@ -1493,7 +1517,7 @@ namespace JMMServer.API.Module.apiv2
             }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.limit_tag, para.offset, 1, user.JMMUserID, para.nocast != 0,
+                return Search(para.query, para.limit, para.limit_tag, (int)para.offset, 1, user.JMMUserID, para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
