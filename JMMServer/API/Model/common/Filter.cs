@@ -44,35 +44,43 @@ namespace JMMServer.API.Model.common
                 {
                     filter.size = groupsh.Count;
 
-                    // Populate Random Art
-                    int index = new Random().Next(groupsh.Count);
-                    Entities.AnimeGroup randGrp = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.ToList()[index]);
-                    Video contract = randGrp?.GetPlexContract(uid);
-                    if (contract != null)
-                    {
-                        Random rand = new Random();
-                        Contract_ImageDetails art = new Contract_ImageDetails();
-                        // contract.Fanarts can be null even if contract isn't
-                        if (contract.Fanarts != null && contract.Fanarts.Count > 0)
-                        {
-                            art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
-                            filter.art.fanart.Add(new Art()
-                            {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
-                                index = 0
-                            });
-                        }
+                    int rand_art_iteration = 0;
 
-                        if (contract.Banners != null && contract.Banners.Count > 0)
+                    // Populate Random Art
+                    while (rand_art_iteration < 3)
+                    {
+                        int index = new Random().Next(groupsh.Count);
+                        Entities.AnimeGroup randGrp = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.ToList()[index]);
+                        Video contract = randGrp?.GetPlexContract(uid);
+                        if (contract != null)
                         {
-                            art = contract.Banners[rand.Next(contract.Banners.Count)];
-                            filter.art.banner.Add(new Art()
+                            Random rand = new Random();
+                            Contract_ImageDetails art = new Contract_ImageDetails();
+                            // contract.Fanarts can be null even if contract isn't
+                            if (contract.Fanarts != null && contract.Fanarts.Count > 0)
                             {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
-                                index = 0
-                            });
-                            if (!string.IsNullOrEmpty(contract.Thumb)) { filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(contract.Thumb), index = 0 }); }
+                                art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
+                                filter.art.fanart.Add(new Art()
+                                {
+                                    url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                                    index = 0
+                                });
+                                rand_art_iteration = 3;
+
+                                // we only want banner if we have fanart, other way will desync images
+                                if (contract.Banners != null && contract.Banners.Count > 0)
+                                {
+                                    art = contract.Banners[rand.Next(contract.Banners.Count)];
+                                    filter.art.banner.Add(new Art()
+                                    {
+                                        url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                                        index = 0
+                                    });
+                                    if (!string.IsNullOrEmpty(contract.Thumb)) { filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(contract.Thumb), index = 0 }); }
+                                }
+                            }
                         }
+                        rand_art_iteration++;
                     }
 
                     Dictionary<Contract_AnimeGroup, Group> order = new Dictionary<Contract_AnimeGroup, Group>();
