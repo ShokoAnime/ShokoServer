@@ -65,15 +65,13 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            try
+            RegenerateDb(Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(), a =>
             {
-                RegenerateDb(Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(), a =>
-                {
                 //Fix possible paths in filename
                 if (!string.IsNullOrEmpty(a.FileName))
                 {
                     int b = a.FileName.LastIndexOf("\\");
-                        if (b > 0)
+                    if (b > 0)
                         a.FileName = a.FileName.Substring(b + 1);
                 }
                 Save(a, false);
