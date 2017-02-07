@@ -337,6 +337,7 @@
     <Compile Include="API\Module\apiv2\Common.cs" />
     <Compile Include="API\Module\apiv2\Dev.cs" />
     <Compile Include="API\Module\apiv2\Image.cs" />
+    <Compile Include="API\Module\apiv2\PlexWebook.cs" />
     <Compile Include="API\Module\apiv2\Webui_Redirect.cs" />
     <Compile Include="API\Module\apiv2\Webui.cs" />
     <Compile Include="API\NancyExtensions.cs" />
