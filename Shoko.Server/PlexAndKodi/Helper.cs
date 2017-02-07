@@ -3,32 +3,25 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Security.Cryptography;
-using System.ServiceModel;
-using System.ServiceModel.Web;
 using System.Text;
-using System.Windows.Documents;
 using System.Xml.Serialization;
-using AniDBAPI;
 using FluentNHibernate.Utils;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Server.FileHelper;
-using Shoko.Server.FileHelper.Subtitles;
-using Shoko.Models.TvDB;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Commons.Extensions;
 using NHibernate;
-using Shoko.Models;
-using NHibernate.Dialect;
-using Shoko.Models.Client;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
+using Directory = Shoko.Models.PlexAndKodi.Directory;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.PlexAndKodi
 {
@@ -194,7 +187,7 @@ namespace Shoko.Server.PlexAndKodi
 
         public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
         {
-            if (v.AnimeType == Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString())
+            if (v.AnimeType == AnimeTypes.AnimeEpisode.ToString())
                 v.Key = prov.ContructVideoUrl(userid, v.Id, JMMType.Episode);
             else if (v.Medias != null && v.Medias.Count > 0)
                 v.Key = prov.ContructVideoUrl(userid, v.Medias[0].Id, JMMType.File);
@@ -224,7 +217,7 @@ namespace Shoko.Server.PlexAndKodi
         public static Video VideoFromVideoLocal(IProvider prov, SVR_VideoLocal v, int userid)
         {
             Video l = new Video();
-            l.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile.ToString();
+            l.AnimeType = AnimeTypes.AnimeFile.ToString();
             l.Id = v.VideoLocalID.ToString();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
@@ -331,7 +324,7 @@ namespace Shoko.Server.PlexAndKodi
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Id = ep.AnimeEpisodeID.ToString();
-            l.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
+            l.AnimeType = AnimeTypes.AnimeEpisode.ToString();
 	        if (vids.Count > 0)
 	        {
 		        //List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
@@ -537,7 +530,7 @@ namespace Shoko.Server.PlexAndKodi
             pp.Key = prov.ConstructFilterIdUrl(userid, gg.GroupFilterID);
             pp.Title = gg.GroupFilterName;
             pp.Id = gg.GroupFilterID.ToString();
-            pp.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
+            pp.AnimeType = AnimeTypes.AnimeGroupFilter.ToString();
             if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
                 GetValidVideoRecursive(prov, gg, userid, pp);
@@ -882,7 +875,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             Directory p = new Directory();
             p.Id = grp.AnimeGroupID.ToString();
-            p.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroup.ToString();
+            p.AnimeType = AnimeTypes.AnimeGroup.ToString();
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
@@ -942,7 +935,7 @@ namespace Shoko.Server.PlexAndKodi
                 ISessionWrapper sessionWrapper = session.Wrap();
                 CL_AniDB_Anime anime = ser.AniDBAnime.AniDBAnime;
                 p.Id = ser.AnimeSeriesID.ToString();
-                p.AnimeType = Shoko.Models.PlexAndKodi.AnimeTypes.AnimeSerie.ToString();
+                p.AnimeType = AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
                 p.Title = aser.GetSeriesName(sessionWrapper);
@@ -1042,7 +1035,4 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
     }
-}using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using Directory = Shoko.Models.PlexAndKodi.Directory;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
+}

@@ -12,6 +12,9 @@ using Shoko.Models.Server;
 using NLog;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.LZ4;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Models
 {
@@ -1424,6 +1427,4 @@ namespace Shoko.Server.Models
 
         public decimal? TemporaryVotes { get; }
     }
-}using Shoko.Server.LZ4;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
+}

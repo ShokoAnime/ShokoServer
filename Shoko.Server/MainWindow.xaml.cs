@@ -29,8 +29,8 @@ using Nancy.Rest.Module;
 using Action = System.Action;
 using System.Net.NetworkInformation;
 using Shoko.Models.Enums;
-using JMMServer.API.core;
 using Shoko.Models.Interfaces;
+using Shoko.Server.API.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Databases;
@@ -40,6 +40,10 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
+using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
+using Shoko.Server.UI;
+using UPnP;
 
 namespace Shoko.Server
 {
@@ -2728,7 +2732,4 @@ namespace Shoko.Server
 
         #endregion
     }
-}using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Repositories;
-using Shoko.Server.UI;
-using UPnP;
+}

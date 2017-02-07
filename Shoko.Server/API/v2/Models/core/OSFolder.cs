@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Shoko.Server.API.Model.core
+namespace Shoko.Server.API.v2.Models.core
 {
     public class OSFolder
     {

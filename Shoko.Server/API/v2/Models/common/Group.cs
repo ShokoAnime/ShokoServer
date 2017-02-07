@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Server;
-using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
-using JMMContracts.PlexAndKodi;
-using JMMServer.Entities;
-using JMMServer.Repositories;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.Model.common
+namespace Shoko.Server.API.v2.Models.common
 {
     [DataContract]
     public class Group : BaseDirectory
@@ -37,7 +35,7 @@ namespace Shoko.Server.API.Model.common
             g.added = ag.DateTimeCreated;
             g.edited = ag.DateTimeUpdated;
 
-            JMMContracts.PlexAndKodi.Video vag = ag.GetPlexContract(uid);
+            Video vag = ag.GetPlexContract(uid);
 
             if (vag != null)
             {
@@ -114,14 +112,14 @@ namespace Shoko.Server.API.Model.common
                 List<int> series = null;
                 if (filterid > 0)
                 {
-                    GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterid);
+                    SVR_GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterid);
                     if (filter?.ApplyToSeries > 0)
                     {
                         if (filter.SeriesIds.ContainsKey(uid))
                             series = filter.SeriesIds[uid].ToList();
                     }
                 }
-                foreach (Entities.AnimeSeries ada in ag.GetSeries())
+                foreach (SVR_AnimeSeries ada in ag.GetSeries())
                 {
                     if (series != null && series.Count > 0)
                     {
@@ -137,4 +135,3 @@ namespace Shoko.Server.API.Model.common
         }
     }
 }
-using Shoko.Server.Models;

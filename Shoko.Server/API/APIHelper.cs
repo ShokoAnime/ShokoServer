@@ -2,8 +2,10 @@
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using System;
-using Shoko.Server.API.Model.common;
+using Shoko.Server.API.v2.Models.common;
 using System.Collections.Generic;
+using Shoko.Server.API.v2.Models.common;
+using Shoko.Server.API.v2.Modules;
 using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
@@ -209,7 +211,7 @@ namespace Shoko.Server.API
 
         private static string ProperURL(string path, bool short_url = false)
         {
-            return ProperURL(Module.apiv2.Core.request.Url.Port, path, short_url);
+            return ProperURL(Core.request.Url.Port, path, short_url);
         }
 
         private static string ProperURL(int? port, string path, bool short_url = false)
@@ -218,7 +220,7 @@ namespace Shoko.Server.API
             {
                 if (!short_url)
                 {
-                    return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + port + path;
+                    return Core.request.Url.Scheme + "://" + Core.request.Url.HostName + ":" + port + path;
                 }
                 else
                 {

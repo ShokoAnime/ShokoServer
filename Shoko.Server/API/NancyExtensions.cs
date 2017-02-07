@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using JMMContracts.PlexAndKodi;
-using JMMServer.Entities;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using Response = Nancy.Response;
 
 namespace Shoko.Server.API

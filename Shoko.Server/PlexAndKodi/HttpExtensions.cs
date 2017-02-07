@@ -7,7 +7,6 @@ using System.ServiceModel.Web;
 using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
-using JMMServer.API.Module.apiv2;
 using Nancy;
 
 using Shoko.Server.PlexAndKodi.Plex;

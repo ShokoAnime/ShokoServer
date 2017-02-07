@@ -1,4 +1,4 @@
-﻿namespace Shoko.Server.API.Model.common
+﻿namespace Shoko.Server.API.v2.Models.common
 {
     public class Tag
     {

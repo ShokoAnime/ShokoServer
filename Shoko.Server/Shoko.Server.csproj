@@ -318,6 +318,7 @@
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\APIHelper.cs" />
+    <Compile Include="API\v1\Implementations\ShokoServiceImplementation.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationKodi.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationPlex.cs" />
     <Compile Include="API\v1\Modules\KodiModule.cs" />
@@ -326,13 +327,14 @@
     <Compile Include="API\v1\Modules\MainModule.cs" />
     <Compile Include="API\v1\Modules\PlexModule.cs" />
     <Compile Include="API\v1\Modules\StreamModule.cs" />
+    <Compile Include="API\v2\Models\BaseDirectory.cs" />
     <Compile Include="API\v2\Models\common\Art.cs" />
     <Compile Include="API\v2\Models\common\Group.cs" />
     <Compile Include="API\v2\Models\common\ObjectList.cs" />
     <Compile Include="API\v2\Models\common\RawFile.cs" />
     <Compile Include="API\v2\Models\common\Filter.cs" />
-	<Compile Include="API\v2\Models\common\Filters.cs" />
-	<Compile Include="API\v2\Models\common\SearchResult.cs" />
+    <Compile Include="API\v2\Models\common\Filters.cs" />
+    <Compile Include="API\v2\Models\common\SearchResult.cs" />
     <Compile Include="API\v2\Models\core\Logs.cs" />
     <Compile Include="API\v2\Models\core\API_Call_Parameters.cs" />
     <Compile Include="API\v2\Models\common\Episode.cs" />
@@ -341,7 +343,6 @@
     <Compile Include="API\v2\Models\common\Tag.cs" />
     <Compile Include="API\v2\Models\core\OSFile.cs" />
     <Compile Include="API\v2\Models\core\WebUI-Settings.cs" />
-	<Compile Include="API\v2\Models\BaseDirectory.cs" />
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />
     <Compile Include="API\v2\Modules\Core.cs" />
@@ -642,7 +643,6 @@
     <Compile Include="ImageDownload\ImageUtils.cs" />
     <Compile Include="Importer.cs" />
     <Compile Include="ShokoService.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementation.cs" />
     <Compile Include="Languages.cs" />
     <Compile Include="Mappings\AniDB_AnimeMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_CharacterMap.cs" />

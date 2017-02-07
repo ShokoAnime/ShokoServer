@@ -108,7 +108,7 @@ namespace Shoko.Server.Repositories.Cached
         /// </summary>
         /// <param name="name">The filename of the anime to search for.</param>
         /// <returns>the AnimeEpisode given the file information</returns>
-        public AnimeEpisode GetByFilename(string name)
+        public SVR_AnimeEpisode GetByFilename(string name)
         {
             return RepoFactory.VideoLocalPlace.GetAll()
                 .Where(v => name.Equals(v.FilePath.Split('\\').LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))

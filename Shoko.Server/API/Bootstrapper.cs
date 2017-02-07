@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Nancy.Rest.Module;
+using Shoko.Server.API.v2.Modules;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi;
 
@@ -112,7 +113,7 @@ namespace Shoko.Server.API
 		private Response BeforeProcessing(NancyContext ctx)
 		{
             // Request will always be populated!
-            Module.apiv2.Core.request = ctx.Request;
+            Core.request = ctx.Request;
 			return null;
 		}
 
@@ -126,7 +127,7 @@ namespace Shoko.Server.API
                 ctx.Response.ContentType = "text/plain";
             }
 			// Set to null after request as not to interfere with contract generation
-			Module.apiv2.Core.request = null;
+			Core.request = null;
 		}
 	}
 

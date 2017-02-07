@@ -15,6 +15,12 @@ using Shoko.Models.Enums;
 using NLog;
 using Shoko.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Databases;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Extensions;
+using Utils = Shoko.Server.Utils;
 
 namespace Shoko.Models.TvDB
 {
@@ -1142,9 +1148,4 @@ namespace Shoko.Models.TvDB
             }
         }
     }
-}using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Extensions;
-using Utils = Shoko.Server.Utils;
+}

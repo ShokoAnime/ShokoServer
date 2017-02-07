@@ -7,6 +7,8 @@ using NHibernate.Criterion;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
@@ -23,7 +25,7 @@ namespace Shoko.Server.Repositories.Direct
                 }
                 else if (cr.VoteType == (int)AniDBVoteType.Episode)
                 {
-                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
                     RepoFactory.AnimeEpisode.Save(ep);
                 }
             }
@@ -37,7 +39,7 @@ namespace Shoko.Server.Repositories.Direct
                 }
                 else if (cr.VoteType == (int)AniDBVoteType.Episode)
                 {
-                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
                     RepoFactory.AnimeEpisode.Save(ep);
                 }
             }
@@ -118,5 +120,4 @@ namespace Shoko.Server.Repositories.Direct
             return votesByAnime;
         }
     }
-}using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
+}

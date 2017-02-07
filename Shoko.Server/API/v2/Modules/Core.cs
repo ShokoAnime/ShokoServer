@@ -1,21 +1,21 @@
-﻿using Nancy;
-using Nancy.Security;
-using System;
-using Nancy.ModelBinding;
-using Shoko.Models.Server;
-using Shoko.Models;
+﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Globalization;
-using Shoko.Models.Client;
 using System.IO;
-using Shoko.Server.API.Model.core;
+using System.Threading;
+using Nancy;
+using Nancy.ModelBinding;
+using Nancy.Security;
+using Shoko.Models.Client;
+using Shoko.Models.Server;
+using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.MAL;
 using Shoko.Server.Models;
-using JMMServer.Commands.MAL;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Utilities;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Core : Nancy.NancyModule
     {
@@ -827,4 +827,3 @@ namespace Shoko.Server.API.Module.apiv2
 
     }
 }
-using Shoko.Server.Utilities;

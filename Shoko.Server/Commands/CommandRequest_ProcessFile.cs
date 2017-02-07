@@ -5,13 +5,12 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using NutzCode.CloudFileSystem;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
@@ -360,4 +359,4 @@ namespace Shoko.Server.Commands
             return cq;
         }
     }
-}using Shoko.Server.Repositories;
+}

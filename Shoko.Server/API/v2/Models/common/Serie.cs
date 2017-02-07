@@ -7,7 +7,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.API.Model.common
+namespace Shoko.Server.API.v2.Models.common
 {
     [DataContract]
     public class Serie : BaseDirectory,IComparable

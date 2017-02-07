@@ -31,6 +31,13 @@ using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
+using Shoko.Models.TvDB;
+using Shoko.Server.Extensions;
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Providers.TraktTV.Contracts;
+using Shoko.Server.Tasks;
 
 namespace Shoko.Server
 {
@@ -8370,10 +8377,4 @@ namespace Shoko.Server
 
 
     }
-}using Shoko.Server.Providers.TraktTV.Contracts;
-using Shoko.Models.TvDB;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Tasks;
+}

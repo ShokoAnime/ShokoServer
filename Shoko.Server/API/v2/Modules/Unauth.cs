@@ -1,6 +1,9 @@
 ﻿using Pri.LongPath;
 using System.Collections.Generic;
-using Shoko.Server.API.Model.core;
+using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v2.Modules;
+using Common = Shoko.Server.API.v2.Modules.Common;
+using Database = Shoko.Server.API.v2.Modules.Database;
 
 namespace Shoko.Server.API.Module.apiv2
 {

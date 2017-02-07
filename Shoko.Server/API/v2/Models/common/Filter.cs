@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Models;
 using System.Runtime.Serialization;
-using JMMContracts;
-using JMMContracts.PlexAndKodi;
-using JMMServer.Repositories;
+using Shoko.Models.Client;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Server.Models;
 
-namespace Shoko.Server.API.Model.common
+namespace Shoko.Server.API.v2.Models.common
 {
     [DataContract]
     public class Filter : BaseDirectory
@@ -30,7 +29,7 @@ namespace Shoko.Server.API.Model.common
             groups = new List<Group>();
         }
 
-        internal static Filter GenerateFromGroupFilter(SVR_Entities.GroupFilter gf, int uid, bool nocast, bool notag, int level, bool all)
+        internal static Filter GenerateFromGroupFilter(SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level, bool all)
         {
             List<Group> groups = new List<Group>();
             Filter filter = new Filter();
@@ -84,12 +83,12 @@ namespace Shoko.Server.API.Model.common
                         rand_art_iteration++;
                     }
 
-                    Dictionary<Contract_AnimeGroup, Group> order = new Dictionary<Contract_AnimeGroup, Group>();
+                    Dictionary<CL_AnimeGroup_User, Group> order = new Dictionary<CL_AnimeGroup_User, Group>();
                     if (level > 0)
                             {
                         foreach (int gp in groupsh)
                         {
-                            Entities.AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
+                            SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
                             if (ag == null) continue;
                             Group group =
                                 Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
@@ -102,7 +101,7 @@ namespace Shoko.Server.API.Model.common
                     if (groups.Count > 0)
                         {
                         // Proper Sorting!
-                        IEnumerable<Contract_AnimeGroup> grps = order.Keys;
+                        IEnumerable<CL_AnimeGroup_User> grps = order.Keys;
                         grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                         groups = grps.Select(a => order[a]).ToList();
                         filter.groups = groups;

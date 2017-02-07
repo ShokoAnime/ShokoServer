@@ -1,9 +1,9 @@
-﻿using Nancy;
+﻿using System;
+using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
-using System;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Database : Nancy.NancyModule
     {
@@ -30,7 +30,7 @@ namespace Shoko.Server.API.Module.apiv2
         /// <returns></returns>
         private object SetupDB()
         {
-            Model.core.Database db = this.Bind();
+            Models.core.Database db = this.Bind();
             if (!String.IsNullOrEmpty(db.type) && db.type != "")
             {
                 switch (db.type.ToLower())
@@ -72,7 +72,7 @@ namespace Shoko.Server.API.Module.apiv2
         /// <returns></returns>
         private object GetDB()
         {
-            Model.core.Database db = new Model.core.Database();
+            Models.core.Database db = new Models.core.Database();
             db.type = ServerSettings.DatabaseType;
             if (!String.IsNullOrEmpty(db.type) && db.type != "")
             {

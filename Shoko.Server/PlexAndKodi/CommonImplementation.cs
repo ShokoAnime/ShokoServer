@@ -21,7 +21,9 @@ using Shoko.Server.Models;
 using NLog;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi.Plex;
-using Shoko.Server.Properties;
+using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using Directory = Shoko.Models.PlexAndKodi.Directory;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -1176,8 +1178,3 @@ namespace Shoko.Server.PlexAndKodi
         }
     }
 }
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
-using Directory = Shoko.Models.PlexAndKodi.Directory;
-using Resources = Shoko.Server.Properties.Resources;

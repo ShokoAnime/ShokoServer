@@ -9,7 +9,7 @@ using System.IO;
 using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Enums;
-using Shoko.Server.API.Model.core;
+using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Properties;

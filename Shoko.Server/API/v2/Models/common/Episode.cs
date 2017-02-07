@@ -1,11 +1,11 @@
-﻿using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
+using Shoko.Server.Models;
 
-namespace Shoko.Server.API.Model.common
+namespace Shoko.Server.API.v2.Models.common
 {
     [DataContract]
     public class Episode : BaseDirectory
@@ -95,5 +95,3 @@ namespace Shoko.Server.API.Model.common
         }
     }
 }
-using Shoko.Models.Client;
-using Shoko.Server.Models;
