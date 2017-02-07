@@ -653,7 +653,7 @@ namespace Shoko.Models.Interfaces
         CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler);
 
         [Rest("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}", Verbs.Post)]
-        void TraktScrobble(int animeId, int type, int progress, int status);
+        int TraktScrobble(int animeId, int type, int progress, int status);
 
         [Rest("Trakt/Sync/{animeID}", Verbs.Post)]
         string SyncTraktSeries(int animeID);
