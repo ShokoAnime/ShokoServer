@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -75,12 +76,18 @@ namespace JMMServer.Repositories.Cached
                 Save(a, false);
             });
             //Fix possible paths in filename
-            Cache.Values.Where(a=>a.FileName.Contains("\\")).ToList().ForEach(a =>
+            try
             {
-                int b = a.FileName.LastIndexOf("\\");
-                a.FileName = a.FileName.Substring(b + 1);
-                Save(a,false);
-            });
+                Cache.Values.Where(a=>a.FileName.Contains("\\")).ToList().ForEach(a =>
+                {
+                    int b = a.FileName.LastIndexOf("\\");
+                    a.FileName = a.FileName.Substring(b + 1);
+                    Save(a,false);
+                });
+            }
+            catch (Exception e)
+            {
+            }
         }
 
 

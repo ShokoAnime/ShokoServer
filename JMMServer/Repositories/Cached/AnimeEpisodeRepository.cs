@@ -48,7 +48,13 @@ namespace JMMServer.Repositories.Cached
 	        if (max <= 0) return;
 	        foreach (AnimeEpisode g in grps)
             {
-                Save(g);
+                try
+                {
+                    Save(g);
+                }
+                catch (Exception e)
+                {
+                }
                 cnt++;
                 if (cnt % 10 == 0)
                 {
