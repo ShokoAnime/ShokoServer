@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -68,27 +69,27 @@ namespace Shoko.Server.Repositories.Cached
             {
                 RegenerateDb(Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(), a =>
                 {
-                    //Fix possible paths in filename
-                    if (!string.IsNullOrEmpty(a.FileName))
-                    {
-                        int b = a.FileName.LastIndexOf("\\");
-                        if (b > 0)
-                            a.FileName = a.FileName.Substring(b + 1);
-                    }
-                    Save(a, false);
-                });
                 //Fix possible paths in filename
-                Cache.Values.Where(a => a.FileName.Contains("\\")).ToList().ForEach(a =>
+                if (!string.IsNullOrEmpty(a.FileName))
                 {
                     int b = a.FileName.LastIndexOf("\\");
-                    a.FileName = a.FileName.Substring(b + 1);
-                    Save(a, false);
-                });
+                        if (b > 0)
+                        a.FileName = a.FileName.Substring(b + 1);
+                }
+                Save(a, false);
+            });
+            //Fix possible paths in filename
+            try
+            {
+	            Cache.Values.Where(a=>a.FileName.Contains("\\")).ToList().ForEach(a =>
+	            {
+	                int b = a.FileName.LastIndexOf("\\");
+	                a.FileName = a.FileName.Substring(b + 1);
+	                Save(a, false);
+	            });
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
             }
             
         }

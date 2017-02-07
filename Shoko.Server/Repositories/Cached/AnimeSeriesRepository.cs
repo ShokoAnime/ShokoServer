@@ -76,7 +76,14 @@ namespace Shoko.Server.Repositories.Cached
 	        if (max <= 0) return;
 	        foreach (SVR_AnimeSeries s in sers)
             {
-                Save(s, false, false, true);
+                try
+                {
+                    Save(s, false, false, true);
+                }
+                catch (Exception e)
+                {
+                }
+
                 cnt++;
                 if (cnt % 10 == 0)
                 {

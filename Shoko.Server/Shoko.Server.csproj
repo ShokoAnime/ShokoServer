@@ -350,6 +350,7 @@
     <Compile Include="API\v2\Modules\Dev.cs" />
     <Compile Include="API\v2\Modules\Image.cs" />
     <Compile Include="API\v2\Modules\Unauth.cs" />
+	<Compile Include="API\v2\Modules\PlexWebook.cs" />
     <Compile Include="API\v2\Modules\Webui.cs" />
     <Compile Include="API\v2\Modules\Webui_Redirect.cs" />
     <Compile Include="API\NancyExtensions.cs" />
