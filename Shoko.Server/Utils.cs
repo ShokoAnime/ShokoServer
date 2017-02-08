@@ -168,29 +168,8 @@ namespace Shoko.Server
         public static string FilterCharacters(this string value, char[] allowed, bool blacklist = false)
         {
             StringBuilder sb = new StringBuilder(value);
-            int start = 0;
-            while (start < sb.Length)
-            {
-                if (blacklist ^ !allowed.Contains(sb[start]))
-                    start++;
-                else
-                    break;
-            }
-            if (start == sb.Length)
-            {
-                sb.Length = 0;
-                return "";
-            }
-            int end = sb.Length - 1;
-            while (end >= 0)
-            {
-                if (blacklist ^ !allowed.Contains(sb[end]))
-                    end--;
-                else
-                    break;
-            }
             int dest = 0;
-            for (int i = start; i <= end; i++)
+            for (int i = 0; i <= sb.Length-1; i++)
             {
                 if (blacklist ^ allowed.Contains(sb[i]))
                 {
@@ -228,42 +207,31 @@ namespace Shoko.Server
                 else
                     break;
             }
-
-            // if [sb] has only whitespaces, then return empty string
-
             if (start == sb.Length)
             {
                 sb.Length = 0;
                 return;
             }
-
-            // set [end] to last not-whitespace char
-
             int end = sb.Length - 1;
 
             while (end >= 0)
             {
-                if (Char.IsWhiteSpace(sb[end]))
+                if (char.IsWhiteSpace(sb[end]))
                     end--;
                 else
                     break;
             }
-
-            // compact string
-
             int dest = 0;
             bool previousIsWhitespace = false;
 
             for (int i = start; i <= end; i++)
             {
-                if (Char.IsWhiteSpace(sb[i]))
+                if (char.IsWhiteSpace(sb[i]))
                 {
-                    if (!previousIsWhitespace)
-                    {
-                        previousIsWhitespace = true;
-                        sb[dest] = ' ';
-                        dest++;
-                    }
+                    if (previousIsWhitespace) continue;
+                    previousIsWhitespace = true;
+                    sb[dest] = ' ';
+                    dest++;
                 }
                 else
                 {
@@ -295,6 +263,8 @@ namespace Shoko.Server
             string query = pattern.FilterCharacters(AllowedSearchCharacters);
             inputString = inputString.Replace('_', ' ').Replace('-', ' ');
             query = query.Replace('_', ' ').Replace('-', ' ');
+            query = query.CompactWhitespaces();
+            inputString = inputString.CompactWhitespaces();
             // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
             query = query.ToLowerInvariant();
             inputString = inputString.ToLowerInvariant();
@@ -309,7 +279,7 @@ namespace Shoko.Server
             int result = -1;
             int m = query.Length;
             int[] R;
-            int[] patternMask = new int[AllowedSearchCharacters.Length+1];
+            int[] patternMask = new int[128];
             int i, d;
             dist = k + 1;
 
@@ -363,6 +333,8 @@ namespace Shoko.Server
             string query = pattern.FilterCharacters(AllowedSearchCharacters);
             inputString = inputString.Replace('_', ' ').Replace('-', ' ');
             query = query.Replace('_', ' ').Replace('-', ' ');
+            query = query.CompactWhitespaces();
+            inputString = inputString.CompactWhitespaces();
             // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
             query = query.ToLowerInvariant();
             inputString = inputString.ToLowerInvariant();
@@ -377,7 +349,7 @@ namespace Shoko.Server
             int result = -1;
             int m = query.Length;
             ulong[] R;
-            ulong[] patternMask = new ulong[AllowedSearchCharacters.Length+1];
+            ulong[] patternMask = new ulong[128];
             int i, d;
             dist = text.Length;
 
