@@ -13,7 +13,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.7.0.5
+AppVersion=3.7.0.6
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://shokoanime.com/
