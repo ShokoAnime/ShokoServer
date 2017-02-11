@@ -74,6 +74,7 @@ namespace JMMServer.AniDB_API
                 logger.Trace($"Time since last request is {delay} ms, throttling for {currentDelay}.");
                 Thread.Sleep(currentDelay);
 
+                _requestWatch.Restart();
                 logger.Trace("Sending AniDB command.");
             }
         }
