@@ -57,6 +57,7 @@ namespace JMMServer.AniDB_API
             lock (instance)
             {
                 long delay = _requestWatch.ElapsedMilliseconds;
+                _requestWatch.Restart();
 
                 if (delay > resetPeriod)
                 {
@@ -74,7 +75,6 @@ namespace JMMServer.AniDB_API
                 logger.Trace($"Time since last request is {delay} ms, throttling for {currentDelay}.");
                 Thread.Sleep(currentDelay);
 
-                _requestWatch.Restart();
                 logger.Trace("Sending AniDB command.");
             }
         }
