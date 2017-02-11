@@ -40,7 +40,7 @@ namespace AniDBAPI.Commands
             mcommandText = commandText;
             errorOccurred = false;
 
-            AniDBRateLimiter.GetInstance().ensureRate();
+            AniDbRateLimiter.Instance.EnsureRate();
 
             if (commandType != enAniDBCommandType.Ping)
             {
@@ -74,7 +74,7 @@ namespace AniDBAPI.Commands
                 if (part > 0)
                 {
                     mcommandText = mcommandText.Replace("part=" + (part - 1).ToString(), "part=" + part.ToString());
-                    AniDBRateLimiter.GetInstance().ensureRate();
+                    AniDbRateLimiter.Instance.EnsureRate();
                 }
                 if (commandType != enAniDBCommandType.Login)
                 {
@@ -331,7 +331,7 @@ namespace AniDBAPI.Commands
                 {
                     logger.Info("Forcing reconnection to AniDB");
                     JMMService.AnidbProcessor.Dispose();
-                    AniDBRateLimiter.GetInstance().ensureRate();
+                    AniDbRateLimiter.Instance.EnsureRate();
 
                     JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
                         ServerSettings.AniDB_ServerAddress,
