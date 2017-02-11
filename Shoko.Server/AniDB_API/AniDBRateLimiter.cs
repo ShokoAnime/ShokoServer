@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using NLog;
 
 namespace Shoko.Server.AniDB_API
 {
-    public class AniDBRateLimiter
+    public sealed class AniDbRateLimiter
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly AniDbRateLimiter instance = new AniDbRateLimiter();
+
         // Short Term:
         // A Client MUST NOT send more than 0.5 packets per second(that's one packet every two seconds, not two packets a second!)
         // The server will start to enforce the limit after the first 5 packets have been received.
@@ -18,61 +21,58 @@ namespace Shoko.Server.AniDB_API
         private static int LongDelay = 4500;
 
         // Switch to longer delay after 1 hour
-        private static TimeSpan shortPeriod = new TimeSpan(1,0,0);
+        private static long shortPeriod = 60 * 60 * 1000;
 
         // Switch to shorter delay after 30 minutes of inactivity
-        private static TimeSpan resetPeriod = new TimeSpan(0, 30, 0);
+        private static long resetPeriod = 30 * 60 * 1000;
 
-        private static DateTime firstRequest;
+        private static Stopwatch _requestWatch = new Stopwatch();
 
-        private static DateTime lastRequest;
+        private static Stopwatch _activeTimeWatch = new Stopwatch();
 
-        private static AniDBRateLimiter instance = null;
-
-        public static AniDBRateLimiter GetInstance()
+        // Explicit static constructor to tell C# compiler
+        // not to mark type as beforefieldinit
+        static AniDbRateLimiter()
         {
-            if (instance != null) return instance;
-            instance = new AniDBRateLimiter();
-
-            return instance;
+            _requestWatch.Start();
+            _activeTimeWatch.Start();
         }
 
-        private AniDBRateLimiter()
+        public static AniDbRateLimiter Instance => instance;
+
+        private AniDbRateLimiter()
         {
-            resetRate();
+
         }
 
-        public void resetRate()
+        public void ResetRate()
         {
-            firstRequest = lastRequest = DateTime.Now;
-            logger.Trace("Rate is reset.");
+            long elapsedTime = _activeTimeWatch.ElapsedMilliseconds;
+            _activeTimeWatch.Restart();
+            logger.Trace($"Rate is reset. Active time was {elapsedTime} ms.");
         }
 
-        public void ensureRate()
+        public void EnsureRate()
         {
-            //TODO: switch to stopwatch
             lock (instance)
             {
-                DateTime now = DateTime.Now;
-                TimeSpan delay = now - lastRequest;
-                TimeSpan activeTime = now - firstRequest;
-                lastRequest = now;
+                long delay = _requestWatch.ElapsedMilliseconds;
+                _requestWatch.Restart();
 
                 if (delay > resetPeriod)
                 {
-                    resetRate();
-                    activeTime = now - firstRequest;
+                    ResetRate();
                 }
 
-                int currentDelay = activeTime > shortPeriod ? LongDelay : ShortDelay;
+                int currentDelay = _activeTimeWatch.ElapsedMilliseconds > shortPeriod ? LongDelay : ShortDelay;
 
-                if (delay.TotalMilliseconds > currentDelay)
+                if (delay > currentDelay)
                 {
-                    logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, not throttling.");
+                    logger.Trace($"Time since last request is {delay} ms, not throttling.");
                     return;
                 }
 
-                logger.Trace($"Time since last request is {delay.TotalMilliseconds} ms, throttling for {currentDelay}.");
+                logger.Trace($"Time since last request is {delay} ms, throttling for {currentDelay}.");
                 Thread.Sleep(currentDelay);
 
                 logger.Trace("Sending AniDB command.");
