@@ -1754,6 +1754,7 @@ namespace Shoko.Server
             if (a != null)
             {
                 ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
+                ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
             }
 
             logger.Info("Checking for updates...");

@@ -690,6 +690,17 @@ namespace Shoko.Server
             return an.Version.ToString();
         }
 
+        public static string GetApplicationExtraVersion(Assembly a)
+        {
+            AssemblyName an = a.GetName();
+            AssemblyInformationalVersionAttribute version = (AssemblyInformationalVersionAttribute)a.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
+            if (version == null)
+            {
+                return "";
+            }
+            return version.InformationalVersion.ToString();
+        }
+
 
         public static string DownloadWebPage(string url, Encoding forceEncoding = null, bool noCache = false)
         {

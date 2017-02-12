@@ -153,6 +153,17 @@ namespace Shoko.Server
             }
         }
 
+        private string applicationVersionExtra = "";
+
+        public string ApplicationVersionExtra
+        {
+            get { return applicationVersionExtra; }
+            set
+            {
+                this.SetField(() => applicationVersionExtra, value);
+            }
+        }
+
         private string applicationVersionLatest = "";
 
         public string ApplicationVersionLatest
