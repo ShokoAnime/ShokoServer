@@ -54,3 +54,4 @@ using System.Windows;
 
 [assembly: AssemblyVersion("3.7.0.6")]
 [assembly: AssemblyFileVersion("3.7.0.6")]
+[assembly: AssemblyInformationalVersion("release")]
