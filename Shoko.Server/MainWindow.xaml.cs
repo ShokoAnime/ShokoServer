@@ -33,6 +33,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Server.API.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
@@ -223,6 +224,7 @@ namespace Shoko.Server
             btnUpdateImages.Click += new RoutedEventHandler(btnUpdateImages_Click);
             btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
             btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
+            btnSyncPlex.Click += BtnSyncPlexOn_Click;
 
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
             downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
@@ -314,6 +316,17 @@ namespace Shoko.Server
             // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
+        }
+
+        private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
+        {
+            foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
+            {
+                if (!string.IsNullOrEmpty(user.PlexToken))
+                {
+                    new CommandRequest_PlexSyncWatched(user).Save();
+                }
+            }
         }
 
         private void BtnSetDefault_Click(object sender, RoutedEventArgs e)

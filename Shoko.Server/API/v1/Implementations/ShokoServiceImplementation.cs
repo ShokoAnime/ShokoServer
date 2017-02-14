@@ -33,6 +33,7 @@ using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Models.TvDB;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Repositories.Cached;
@@ -4546,6 +4547,18 @@ namespace Shoko.Server
             }
         }
 
+        public string LinkToPlex(int userID)
+        {
+            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            return PlexHelper.GetForUser(user).Authenticate();
+        }
+
+        public bool IsPlexAuthenticated(int userID)
+        {
+            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            return PlexHelper.GetForUser(user).IsAuthenticated;
+        }
+
         public string EnableDisableImage(bool enabled, int imageID, int imageType)
         {
             try
@@ -6738,6 +6751,7 @@ namespace Shoko.Server
                 jmmUser.Username = user.Username;
                 jmmUser.CanEditServerSettings = user.CanEditServerSettings;
                 jmmUser.PlexUsers = string.Join(",", user.PlexUsers);
+                jmmUser.PlexToken = user.PlexToken;
                 if (string.IsNullOrEmpty(user.Password))
                 {
                     jmmUser.Password = "";

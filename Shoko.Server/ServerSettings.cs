@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using NLog.Targets;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Server.Collections;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.UI;
@@ -2065,6 +2066,27 @@ namespace Shoko.Server
             set { Set("WebCacheAuthKey", value); }
         }
 
+        #region plex
+        //plex
+        public static int[] Plex_Libraries
+        {
+            get { return Get(nameof(Plex_Libraries)).Split(',').Select(int.Parse).ToArray(); }
+            set { Set(nameof(Plex_Libraries), string.Join(",", value)); }
+        }
+
+        public static string Plex_Token
+        {
+            get { return Get(nameof(Plex_Token)); }
+            set { Set(nameof(Plex_Token), value); }
+        }
+
+        public static string Plex_Server
+        {
+            get { return Get(nameof(Plex_Server)); }
+            set { Set(nameof(Plex_Server), value); }
+        }
+        #endregion
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings();
@@ -2172,6 +2194,8 @@ namespace Shoko.Server
 
             //WebUI
             contract.WebUI_Settings = ServerSettings.WebUI_Settings;
+
+
 
             return contract;
         }

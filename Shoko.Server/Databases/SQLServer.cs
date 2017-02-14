@@ -18,7 +18,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 56;
+        public int RequiredVersion { get; } = 57;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -364,6 +364,7 @@ namespace Shoko.Server.Databases
 	        new DatabaseCommand(54, 1, DatabaseFixes.FixTagsWithInclude),
 	        new DatabaseCommand(55, 1, DatabaseFixes.MakeYearsApplyToSeries),
             new DatabaseCommand(56, 1, DatabaseFixes.FixEmptyVideoInfos),
+            new DatabaseCommand(57, 1,"ALTER TABLE JMMUser ADD PlexToken nvarchar(max) NULL")
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

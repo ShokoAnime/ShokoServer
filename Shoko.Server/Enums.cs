@@ -67,7 +67,8 @@ namespace Shoko.Server
         AniDB_GetEpisodeUDP = 80,
         Refresh_AnimeStats = 90,
         LinkAniDBTvDB = 91,
-	    Refresh_GroupFilter = 92
+	    Refresh_GroupFilter = 92,
+        Plex_Sync = 93,
     }
 
     public enum CommandRequestPriority
