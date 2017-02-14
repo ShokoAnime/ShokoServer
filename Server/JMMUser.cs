@@ -11,5 +11,6 @@
         public string HideCategories { get; set; }
         public int? CanEditServerSettings { get; set; }
         public string PlexUsers { get; set; }
+        public string PlexToken { get; set; }
     }
 }

@@ -797,6 +797,12 @@ namespace Shoko.Models.Interfaces
         [Rest("User/ChangePassword/{userID}/{newPassword?}", Verbs.Post)]
         string ChangePassword(int userID, string newPassword);
 
+        [Rest("User/Plex/Pin/{userID}", Verbs.Get)]
+        string LinkToPlex(int userID);
+
+        [Rest("User/Plex/Authenticated/{userID}", Verbs.Get)]
+        bool IsPlexAuthenticated(int userID);
+
         #endregion
 
         #region Images
