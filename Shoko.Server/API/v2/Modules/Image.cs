@@ -1,22 +1,19 @@
-﻿using Shoko.Models.Server;
-using Nancy;
-using NLog;
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using Shoko.Commons.Properties;
-using Shoko.Models;
+using Nancy;
+using NLog;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
-using Shoko.Server.Properties;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Resources = Shoko.Server.Properties.Resources;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Image : Nancy.NancyModule
     {

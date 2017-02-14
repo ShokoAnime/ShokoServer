@@ -88,7 +88,7 @@ namespace Shoko.Server.API
 
         public static string ConstructImageLinkFromRest(string path, bool short_url = false)
         {
-            return APIHelper.ProperURL(ConvertRestImageToNonRestUrl(path),short_url);
+            return ConvertRestImageToNonRestUrl(path, short_url);
         }
 
         public static string ConstructImageLinkFromTypeAndId(int type, int id, bool short_url = false)
@@ -105,38 +105,28 @@ namespace Shoko.Server.API
 
         #region Converters
 
-        private static string ConvertRestImageToNonRestUrl(string url)
+        private static string ConvertRestImageToNonRestUrl(string url, bool short_url)
         {
-            if (!string.IsNullOrEmpty(url))
+            // Rest URLs should always end in either type/id or type/id/ratio
+            // Regardless of ',' or '.', ratio will not parse as int
+            if (string.IsNullOrEmpty(url)) return null;
+            string link = url.ToLower();
+            string[] split = link.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            int type, id;
+            if (int.TryParse(split[split.Length - 1], out id)) // no ratio
             {
-                string link = url.ToLower();
-                if (link.Contains("{scheme}://{host}:"))
+                if (int.TryParse(split[split.Length - 2], out type))
                 {
-                    link = link.Replace("{scheme}://{host}:", "");
-                    link = link.Substring(link.IndexOf("/") + 1);
-                    link = link.Replace("jmmserverrest/", "");
-
-                    if (link.Contains("getimage"))
-                    {
-                        link = link.Replace("getimage", "/api/image");
-                    }
-                    else if (link.Contains("getthumb"))
-                    {
-                        link = link.Replace("getthumb", "/api/thumb");
-                        if (link.Contains(","))
-                        {
-                            link = link.Replace(',', '.');
-                        }
-                    }
-                    else if (link.Contains("getsupportimage"))
-                    {
-                        link = link.Replace("getsupportimage", "/api/image/support");
-                    }
+                    return ConstructImageLinkFromTypeAndId(type, id, short_url);
                 }
-                return link;
+            } else if (int.TryParse(split[split.Length - 2], out id)) // ratio
+            {
+                if (int.TryParse(split[split.Length - 3], out type))
+                {
+                    return ConstructImageLinkFromTypeAndId(type, id, short_url);
+                }
             }
-            else
-            { return null; }
+            return null; // invalid url, which did not end in type/id[/ratio]
         }
 
         public static Filter FilterFromGroupFilter(SVR_GroupFilter gg, int uid)
