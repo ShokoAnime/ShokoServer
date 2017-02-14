@@ -151,6 +151,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sync Plex Watch Status.
+        /// </summary>
+        public static string Actions_SyncPlex {
+            get {
+                return ResourceManager.GetString("Actions_SyncPlex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sync Trakt Collection.
         /// </summary>
         public static string Actions_SyncTrakt {
@@ -2208,6 +2217,15 @@ namespace Shoko.Commons.Properties {
         public static string Command_SyncMyList {
             get {
                 return ResourceManager.GetString("Command_SyncMyList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing Plex for user: {0}.
+        /// </summary>
+        public static string Command_SyncPlex {
+            get {
+                return ResourceManager.GetString("Command_SyncPlex", resourceCulture);
             }
         }
         
