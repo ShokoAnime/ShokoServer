@@ -117,13 +117,13 @@ namespace Shoko.Server.API
             {
                 if (int.TryParse(split[split.Length - 2], out type))
                 {
-                    return ConstructImageLinkFromTypeAndId(type, id, short_url);
+                    return ConstructImageLinkFromTypeAndId(id, type, short_url);
                 }
             } else if (int.TryParse(split[split.Length - 2], out id)) // ratio
             {
                 if (int.TryParse(split[split.Length - 3], out type))
                 {
-                    return ConstructImageLinkFromTypeAndId(type, id, short_url);
+                    return ConstructImageLinkFromTypeAndId(id, type, short_url);
                 }
             }
             return null; // invalid url, which did not end in type/id[/ratio]
