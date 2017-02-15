@@ -4559,6 +4559,13 @@ namespace Shoko.Server
             return PlexHelper.GetForUser(user).IsAuthenticated;
         }
 
+        public bool RemovePlexAuth(int userID)
+        {
+            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            PlexHelper.GetForUser(user).InvalidateToken();
+            return true;
+        }
+
         public string EnableDisableImage(bool enabled, int imageID, int imageType)
         {
             try
