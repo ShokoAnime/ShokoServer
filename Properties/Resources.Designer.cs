@@ -6937,6 +6937,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Link.
+        /// </summary>
+        public static string Link {
+            get {
+                return ResourceManager.GetString("Link", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to https://anidb.net/perl-bin/animedb.pl?show=signup.
         /// </summary>
         public static string Link_AniDB {
@@ -8562,6 +8571,33 @@ namespace Shoko.Commons.Properties {
         public static string PlayVideo {
             get {
                 return ResourceManager.GetString("PlayVideo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Link To Plex.
+        /// </summary>
+        public static string Plex_Link {
+            get {
+                return ResourceManager.GetString("Plex_Link", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Pin.
+        /// </summary>
+        public static string Plex_NoPin {
+            get {
+                return ResourceManager.GetString("Plex_NoPin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Plex Pin:.
+        /// </summary>
+        public static string Plex_PinMessage {
+            get {
+                return ResourceManager.GetString("Plex_PinMessage", resourceCulture);
             }
         }
         
