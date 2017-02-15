@@ -803,6 +803,9 @@ namespace Shoko.Models.Interfaces
         [Rest("User/Plex/Authenticated/{userID}", Verbs.Get)]
         bool IsPlexAuthenticated(int userID);
 
+        [Rest("User/Plex/Remove/{userID}", Verbs.Get)]
+        bool RemovePlexAuth(int userID);
+
         #endregion
 
         #region Images
