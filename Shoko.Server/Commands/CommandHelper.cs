@@ -2,6 +2,7 @@
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Commands.MAL;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Commands.WebCache;
 
@@ -14,7 +15,7 @@ namespace Shoko.Server.Commands
         SyncTraktEpisodes, SyncTraktSeries, SyncVotes, TraktAddHistory, UpdateMALWatched, UpdateMyListInfo, UpdateMyListStats, UpdateTrakt, UpdateTraktData, UploadMALWatched,
         VoteAnime, WebCacheDeleteXRefAniDBMAL, WebCacheDeleteXRefAniDBOther, WebCacheDeleteXRefAniDBTrakt, WebCacheDeleteXRefAniDBTvDB, WebCacheDeleteXRefFileEpisode, WebCacheSendXRefAniDBMAL,
         WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes,
-        LinkAniDBTvDB, CheckingFile, RefreshGroupFilter
+        LinkAniDBTvDB, CheckingFile, RefreshGroupFilter, SyncPlex
     };
 
     public struct QueueStateStruct
@@ -151,6 +152,8 @@ namespace Shoko.Server.Commands
                     return Shoko.Commons.Properties.Resources.Command_LinkAniDBTvDB;
 	            case QueueStateEnum.RefreshGroupFilter:
 		            return Shoko.Commons.Properties.Resources.Command_RefreshGroupFilter;
+                case QueueStateEnum.SyncPlex:
+                    return Shoko.Commons.Properties.Resources.Command_SyncPlex;
 	            default:
                     throw new System.Exception("Unknown queue state format string"); ;
             }
@@ -533,6 +536,11 @@ namespace Shoko.Server.Commands
 		            CommandRequest_RefreshGroupFilter cr_refreshGroupFilter = new CommandRequest_RefreshGroupFilter();
 		            cr_refreshGroupFilter.LoadFromDBCommand(crdb);
 		            return cr_refreshGroupFilter;
+
+                case CommandRequestType.Plex_Sync:
+                    CommandRequest_PlexSyncWatched cr_PlexSync = new CommandRequest_PlexSyncWatched();
+                    cr_PlexSync.LoadFromDBCommand(crdb);
+                    return cr_PlexSync;
             }
 
             return null;

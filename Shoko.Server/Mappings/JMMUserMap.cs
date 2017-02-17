@@ -21,6 +21,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.Username);
             Map(x => x.CanEditServerSettings);
             Map(x => x.PlexUsers);
+            Map(x => x.PlexToken);
         }
     }
 }

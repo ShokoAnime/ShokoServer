@@ -44,6 +44,9 @@
                 <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="20" Foreground="DarkGray"
                            Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersion}"
                            VerticalAlignment="Center" />
+                <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="16" Foreground="DarkGray"
+                           Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersionExtra}"
+                           VerticalAlignment="Center" />
 
 
             </StackPanel>

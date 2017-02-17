@@ -356,6 +356,8 @@
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
+    <Compile Include="Commands\Plex\CommandRequest_PlexSyncWatched.cs" />
+    <Compile Include="Commands\Plex\PlexHelper.cs" />
     <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
     <Compile Include="Extensions\ModelDatabase.cs" />
     <Compile Include="Extensions\ModelClients.cs" />

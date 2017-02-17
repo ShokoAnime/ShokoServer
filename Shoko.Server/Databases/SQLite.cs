@@ -18,7 +18,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 52;
+        public int RequiredVersion { get; } = 53;
 
 
 
@@ -340,6 +340,7 @@ namespace Shoko.Server.Databases
 	        new DatabaseCommand(50, 1, DatabaseFixes.FixTagsWithInclude),
 	        new DatabaseCommand(51, 1, DatabaseFixes.MakeYearsApplyToSeries),
             new DatabaseCommand(52, 1, DatabaseFixes.FixEmptyVideoInfos),
+            new DatabaseCommand(53, 1, "ALTER TABLE JMMUser ADD PlexToken text NULL"),
 
         };
 

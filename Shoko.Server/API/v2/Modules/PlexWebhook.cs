@@ -6,9 +6,12 @@ using Newtonsoft.Json.Serialization;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Models.Server;
+using Nancy.Security;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -30,7 +33,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
             }
 
-            return APIStatus.statusOK();
+            return null;
         }
 
         #region Plex events
@@ -92,8 +95,7 @@ namespace Shoko.Server.API.v2.Modules
 
         public DateTime FromUnixTime(long unixTime)
         {
-            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            return epoch.AddMilliseconds(unixTime);
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(unixTime);
         }
 
 
@@ -159,5 +161,29 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         #endregion
+    }
+
+    public class PlexWebhookAuthenticated : NancyModule
+    {
+        public PlexWebhookAuthenticated() : base("/plex")
+        {
+            this.RequiresAuthentication();
+            Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
+            Get["/pin/authenticated"] = o => $"{CallPlexHelper(h => h.IsAuthenticated)}";
+            Get["/token/invalidate"] = o => CallPlexHelper(h => {
+                h.InvalidateToken();
+                return true;
+            });
+
+#if DEBUG
+            Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int)o.id)));
+#endif
+        }
+
+        private object CallPlexHelper(Func<PlexHelper, object> act)
+        {
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            return act(PlexHelper.GetForUser(user));
+        }
     }
 }
