@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Shoko.Server.Collections;
@@ -500,7 +501,7 @@ namespace Shoko.Server.Models
             SVR_AnimeGroup.GetAnimeSeriesRecursive(this.AnimeGroupID, ref seriesList);
 			if (skipSorting) return seriesList;
 
-            return seriesList.OrderBy(a => a.AirDate).ToList();
+            return seriesList.OrderBy(a => a.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? int.Parse(a.Year.Split('-')[0])).ThenBy(a => a.AirDate).ToList();
         }
 
         public static Dictionary<int, GroupVotes> BatchGetVotes(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> animeGroups)

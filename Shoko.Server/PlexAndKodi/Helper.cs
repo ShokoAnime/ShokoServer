@@ -744,7 +744,7 @@ namespace Shoko.Server.PlexAndKodi
                 SVR_AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
                     ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
                     : allSeries.Find(a => a.AirDate != DateTime.MinValue);
-	            if ((ser == null) && (allSeries!=null && allSeries.Count>0))
+	            if (ser == null && allSeries.Count>0)
                     ser = allSeries[0];
                 CL_AnimeSeries_User cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
