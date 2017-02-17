@@ -1,12 +1,12 @@
-﻿using Nancy.ModelBinding;
+﻿using System;
+using System.Collections.Generic;
+using Nancy.ModelBinding;
 using Nancy.Security;
 using Newtonsoft.Json;
 using Pri.LongPath;
-using System;
 using Shoko.Server.API.v2.Models.core;
-using System.Collections.Generic;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Webui : Nancy.NancyModule
     {

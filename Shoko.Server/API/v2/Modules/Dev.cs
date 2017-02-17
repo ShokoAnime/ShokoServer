@@ -2,7 +2,7 @@
 using Nancy.Responses;
 using Shoko.Server.Tasks;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Dev : Nancy.NancyModule
     {

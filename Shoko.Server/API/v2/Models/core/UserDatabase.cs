@@ -52,7 +52,12 @@ namespace Shoko.Server.API.core
 
             if (activeKey == null)
             {
-                return null;
+                Refresh();
+                activeKey = ActiveApiKeys.FirstOrDefault(x => x.Item3 == apiKey);
+                if (activeKey == null)
+                {
+                    return null;
+                }
             }
 
             var userRecord = Users.First(u => u.Item1 == activeKey.Item1);
@@ -64,7 +69,7 @@ namespace Shoko.Server.API.core
             //in case of login before database have been loaded
             if (Users.Count == 0) { UserDatabase.Refresh(); }
 
-            var userRecord = Users.FirstOrDefault(u => u.Item2.ToLower() == username.ToLower() && u.Item3 == password);
+            var userRecord = Users.FirstOrDefault(u => u.Item2.Equals(username, StringComparison.OrdinalIgnoreCase) && u.Item3 == password);
 
             if (userRecord == null)
             {

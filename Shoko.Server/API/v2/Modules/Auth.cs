@@ -3,7 +3,7 @@ using Nancy.ModelBinding;
 using Shoko.Server.API.core;
 using Shoko.Server.API.v2.Models.core;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Auth : NancyModule
     {

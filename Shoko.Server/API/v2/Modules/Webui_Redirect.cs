@@ -1,6 +1,6 @@
 ﻿using Nancy;
 
-namespace Shoko.Server.API.Module.apiv2
+namespace Shoko.Server.API.v2.Modules
 {
     public class Webui_Redirect : Nancy.NancyModule
     {
