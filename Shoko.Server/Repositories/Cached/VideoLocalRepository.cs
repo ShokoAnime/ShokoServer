@@ -10,6 +10,7 @@ using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -181,7 +182,7 @@ namespace Shoko.Server.Repositories.Cached
             //return Paths.GetMultiple(fileName);
             //return Cache.Values.Where(store => store.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)).ToList();
 
-            return Cache.Values.Where(p => p.Places.Any(a=>CultureInfo.CurrentCulture.CompareInfo.IndexOf(a.FilePath, fileName, CompareOptions.IgnoreCase) >= 0)).ToList();
+            return Cache.Values.Where(p => p.Places.Any(a => a.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase))).ToList();
         }
 
         public List<SVR_VideoLocal> GetMostRecentlyAdded(int maxResults)
@@ -202,6 +203,7 @@ namespace Shoko.Server.Repositories.Cached
                 en.MoveNext();
                 vids.Add(Cache.Values.ElementAt(en.Current));
             }
+            en.Dispose();
             return vids;
         }
 

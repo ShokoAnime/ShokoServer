@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Collections;
 using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;

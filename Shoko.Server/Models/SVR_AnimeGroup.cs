@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Shoko.Server.Collections;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Commons.Collections;
 using Shoko.Models.Server;
-using Shoko.Server.Collections;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 

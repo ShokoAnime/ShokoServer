@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using Shoko.Server.Collections;
 using Shoko.Models.Server;
 using NHibernate;
 using NLog;

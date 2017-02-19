@@ -361,9 +361,6 @@
     <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
     <Compile Include="Extensions\ModelDatabase.cs" />
     <Compile Include="Extensions\ModelClients.cs" />
-    <Compile Include="Collections\EmptyLookup.cs" />
-    <Compile Include="Collections\EnumerableExtensions.cs" />
-    <Compile Include="Collections\LazyLookup.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\v2\Models\core\APIMessage.cs" />
     <Compile Include="API\v2\Models\core\AuthUser.cs" />

@@ -11,7 +11,6 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Models;
 using Shoko.Models.Enums;
-using Shoko.Server.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;

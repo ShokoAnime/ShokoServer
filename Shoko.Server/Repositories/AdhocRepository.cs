@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using Shoko.Server.Utilities;
 using NHibernate;
-using Shoko.Server.Collections;
+using Shoko.Commons.Collections;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 

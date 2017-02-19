@@ -7,7 +7,7 @@ using Shoko.Server.Repositories.Cached;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Collections;
+using Shoko.Commons.Collections;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 

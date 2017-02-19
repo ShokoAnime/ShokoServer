@@ -1,5 +1,5 @@
 ﻿using System;
-using Shoko.Server.Collections;
+using Shoko.Commons.Extensions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 

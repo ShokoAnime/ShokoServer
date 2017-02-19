@@ -6,8 +6,8 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
-using Shoko.Server.Collections;
 
 namespace Shoko.Server.Extensions
 {

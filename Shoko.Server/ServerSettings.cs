@@ -18,7 +18,6 @@ using Newtonsoft.Json;
 using NLog.Targets;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Server.Collections;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.UI;

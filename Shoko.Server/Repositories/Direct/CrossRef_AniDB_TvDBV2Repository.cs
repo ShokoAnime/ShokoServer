@@ -4,7 +4,7 @@ using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
-using Shoko.Server.Collections;
+using Shoko.Commons.Collections;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
