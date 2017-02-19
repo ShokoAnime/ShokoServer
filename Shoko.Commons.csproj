@@ -52,6 +52,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\EmptyLookup.cs" />
+    <Compile Include="Collections\LazyLookup.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Culture.cs" />
     <Compile Include="Downloads\CloudflareEvader.cs" />
@@ -79,6 +81,7 @@
     <Compile Include="Downloads\WebClientEx.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\Models.cs" />
     <Compile Include="FolderMappings.cs" />
     <Compile Include="Languages\EnumTranslator.cs" />
