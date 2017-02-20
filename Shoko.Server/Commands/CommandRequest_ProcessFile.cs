@@ -54,7 +54,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info("Processing File: {0}", VideoLocalID);
+            logger.Trace("Processing File: {0}", VideoLocalID);
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
