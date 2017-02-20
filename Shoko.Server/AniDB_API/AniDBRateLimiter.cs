@@ -57,7 +57,6 @@ namespace Shoko.Server.AniDB_API
             lock (instance)
             {
                 long delay = _requestWatch.ElapsedMilliseconds;
-                _requestWatch.Restart();
 
                 if (delay > resetPeriod)
                 {
@@ -69,6 +68,7 @@ namespace Shoko.Server.AniDB_API
                 if (delay > currentDelay)
                 {
                     logger.Trace($"Time since last request is {delay} ms, not throttling.");
+                    _requestWatch.Restart();
                     return;
                 }
 
@@ -76,6 +76,7 @@ namespace Shoko.Server.AniDB_API
                 Thread.Sleep(currentDelay);
 
                 logger.Trace("Sending AniDB command.");
+                _requestWatch.Restart();
             }
         }
     }
