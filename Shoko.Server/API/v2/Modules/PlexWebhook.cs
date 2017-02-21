@@ -95,7 +95,7 @@ namespace Shoko.Server.API.v2.Modules
 
         public DateTime FromUnixTime(long unixTime)
         {
-            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(unixTime);
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(unixTime);
         }
 
 
