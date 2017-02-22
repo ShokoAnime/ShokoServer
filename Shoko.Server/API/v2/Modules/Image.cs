@@ -23,9 +23,9 @@ namespace Shoko.Server.API.v2.Modules
 
         public Image() : base("/api")
         {           
-            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type); };
-            Get["/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.id, (int)x.type, x.ratio); };
-            Get["/thumb/{type}/{id}"] = x => { return GetThumb((int)x.id, (int)x.type, "1"); };
+            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.type, (int)x.id); };
+            Get["/image/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.type, (int)x.id, x.ratio); };
+            Get["/image/thumb/{type}/{id}"] = x => { return GetThumb((int)x.type, (int)x.id, "0"); };
             Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
             Get["/image/support/{name}/{ratio}"] = x => { return GetSupportImage(x.name, x.ratio); };
         }
@@ -36,11 +36,11 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="id">image id</param>
         /// <param name="type">image type</param>
         /// <returns>image body inside stream</returns>
-        private object GetImage(int id, int type)
+        private object GetImage(int type, int id)
         {
             Nancy.Response response = new Nancy.Response();
             string contentType = "";
-            string path = ReturnImagePath(id, type, false);
+            string path = ReturnImagePath(type, id, false);
 
             if (path == "")
             {
@@ -65,16 +65,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="type">image type</param>
         /// <param name="ratio">new image ratio</param>
         /// <returns>resize image body inside stream</returns>
-        private object GetThumb(int id, int type, string ratio)
+        private object GetThumb(int type, int id, string ratio)
         {
             Nancy.Response response = new Nancy.Response();
             string contentType = "";
             ratio = ratio.Replace(',', '.');
             float newratio = 0F;
-            if (!float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
-            {
-                newratio = 1F;
-            }
+            float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio);
 
             string path = ReturnImagePath(id, type, false);
 
@@ -123,10 +121,8 @@ namespace Shoko.Server.API.v2.Modules
 
             ratio = ratio.Replace(',', '.');
             float newratio = 0F;
-            if (!float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
-            {
-                newratio = 1F;
-            }
+            float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio);
             
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
@@ -148,7 +144,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="type">image type</param>
         /// <param name="thumb">thumb mode</param>
         /// <returns>string</returns>
-        internal string ReturnImagePath(int id, int type, bool thumb)
+        internal string ReturnImagePath(int type, int id, bool thumb)
         {
             JMMImageType imageType = (JMMImageType)type;
             string path = "";
@@ -428,10 +424,10 @@ namespace Shoko.Server.API.v2.Modules
             float calcwidth = im.Width;
             float calcheight = im.Height;
 
-            if (newratio == 0)
+            if (Math.Abs(newratio) < 0.1F)
             {
                 MemoryStream stream = new MemoryStream();
-                im.Save(stream, ImageFormat.Jpeg);
+                im.Save(stream, ImageFormat.Png);
                 stream.Seek(0, SeekOrigin.Begin);
                 return stream;
             }
@@ -463,7 +459,7 @@ namespace Shoko.Server.API.v2.Modules
             Graphics g = Graphics.FromImage(im2);
             g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height), new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
             MemoryStream ms = new MemoryStream();
-            im2.Save(ms, ImageFormat.Jpeg);
+            im2.Save(ms, ImageFormat.Png);
             ms.Seek(0, SeekOrigin.Begin);
             return ms;
         }

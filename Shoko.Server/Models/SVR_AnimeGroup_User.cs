@@ -27,7 +27,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public const int PLEXCONTRACT_VERSION = 5;
+        public const int PLEXCONTRACT_VERSION = 6;
 
 
         private Video _plexcontract = null;

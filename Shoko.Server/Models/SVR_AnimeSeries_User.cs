@@ -17,7 +17,7 @@ namespace Shoko.Server.Models
         public byte[] PlexContractBlob { get; set; }
         public int PlexContractSize { get; set; }
 
-        public const int PLEXCONTRACT_VERSION = 5;
+        public const int PLEXCONTRACT_VERSION = 6;
 
 
         private Video _plexcontract = null;

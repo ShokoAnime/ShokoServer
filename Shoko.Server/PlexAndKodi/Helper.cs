@@ -39,7 +39,7 @@ namespace Shoko.Server.PlexAndKodi
 
         public static string ConstructImageLink(this IProvider prov, int type, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/" + id + "/" + type);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/" + type + "/" + id);
         }
 
         public static string ConstructSupportImageLink(this IProvider prov, string name)
@@ -56,7 +56,7 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructThumbLink(this IProvider prov, int type, int id)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/Thumb/" + id + "/" + type + "/" + relation);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/Thumb/" + type + "/" + id + "/" + relation);
         }
 
         public static string ConstructTVThumbLink(this IProvider prov, int type, int id)

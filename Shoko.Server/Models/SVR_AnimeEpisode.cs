@@ -25,7 +25,7 @@ namespace Shoko.Server.Models
         public int PlexContractSize { get; set; }
 
         #endregion
-        public const int PLEXCONTRACT_VERSION = 5;
+        public const int PLEXCONTRACT_VERSION = 6;
 
 
         private Video _plexcontract = null;
