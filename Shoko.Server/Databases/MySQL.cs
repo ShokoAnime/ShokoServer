@@ -348,7 +348,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(59, 1, "ALTER TABLE `GroupFilter` ADD INDEX `IX_groupfilter_GroupFilterName` (`GroupFilterName`(250));"),
 	        new DatabaseCommand(60, 1, DatabaseFixes.FixTagsWithInclude),
 	        new DatabaseCommand(61, 1, DatabaseFixes.MakeYearsApplyToSeries),
-            new DatabaseCommand(62, 1, "ALTER TABLE JMMUser ADD PlexUsers text character set utf8"),
+            new DatabaseCommand(62, 1, "ALTER TABLE JMMUser ADD PlexToken text character set utf8"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
