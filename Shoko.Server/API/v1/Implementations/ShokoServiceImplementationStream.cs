@@ -26,7 +26,7 @@ namespace Shoko.Server
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
-            if (r.Status != HttpStatusCode.OK)
+            if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
             {
                 return new StreamWithResponse(r.Status,r.StatusDescription);
             }
@@ -36,7 +36,7 @@ namespace Shoko.Server
         public Stream StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
-            if (r.Status != HttpStatusCode.OK)
+            if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
             {
                 return new StreamWithResponse(r.Status, r.StatusDescription);
             }
@@ -47,38 +47,40 @@ namespace Shoko.Server
         {
             Nancy.Request request = RestModule.CurrentModule.Request;
 
-            string rangevalue = null;
-            rangevalue = request.Headers["Range"].FirstOrDefault();
-            if (rangevalue==null)
-                rangevalue = request.Headers["range"].FirstOrDefault();
-            rangevalue = rangevalue?.Replace("bytes=", string.Empty);
             FileSystemResult<Stream> fr = r.File.OpenRead();
             if (fr == null || !fr.IsOk)
             {
                 return new StreamWithResponse(HttpStatusCode.InternalServerError,"Unable to open file '"+r.File.FullName+"': "+fr?.Error);
             }
             Stream org = fr.Result;
+
+            string rangevalue = request.Headers["Range"].FirstOrDefault() ?? request.Headers["range"].FirstOrDefault();
+            rangevalue = rangevalue?.Replace("bytes=", string.Empty);
+
             long totalsize = org.Length;
             long start = 0;
-            long end = 0;
-            bool range = false;
+            long end = totalsize - 1;
             if (!string.IsNullOrEmpty(rangevalue))
             {
-                range = true;
                 string[] split = rangevalue.Split('-');
+                // range: bytes=split[0]-split[1]
                 if (split.Length == 2)
                 {
+                    // bytes=-split[1]
                     if (string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                     {
                         long e = long.Parse(split[1]);
                         start = totalsize - e;
                         end = totalsize - 1;
                     }
+                    // bytes=split[0]-
                     else if (!string.IsNullOrEmpty(split[0]) && string.IsNullOrEmpty(split[1]))
                     {
                         start = long.Parse(split[0]);
                         end = totalsize - 1;
+                        if (start > end) start = end;
                     }
+                    // bytes=split[0]-split[1]
                     else if (!string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                     {
                         start = long.Parse(split[0]);
@@ -87,33 +89,19 @@ namespace Shoko.Server
                             start = totalsize - 1;
                         if (end > totalsize - 1)
                             end = totalsize - 1;
-                    }
-                    else
-                    {
-                        start = 0;
-                        end = totalsize - 1;
+                        if (start > end) start = end;
                     }
                 }
             }
-            SubStream outstream;
-            StreamWithResponse resp=new StreamWithResponse();
-            resp.ContentType = r.Mime;
+            StreamWithResponse resp = new StreamWithResponse {ContentType = r.Mime};
             resp.Headers.Add("Server", ServerVersion);
             resp.Headers.Add("Connection", "keep-alive");
             resp.Headers.Add("Accept-Ranges", "bytes");
-            if (range)
-            {
-                resp.ResponseStatus = HttpStatusCode.PartialContent;
-                resp.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
-                outstream = new SubStream(org, start, end - start + 1);
-                resp.ContentLength=end - start + 1;
-            }
-            else
-            {
-                outstream = new SubStream(org, 0, totalsize);
-                resp.ContentLength = totalsize;
-                resp.ResponseStatus = HttpStatusCode.OK;
-            }
+            resp.ResponseStatus = HttpStatusCode.PartialContent;
+            resp.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
+            resp.ContentLength=end - start + 1;
+            SubStream outstream = new SubStream(org, start, end - start + 1);
+
             if (r.User!=null && autowatch.HasValue && autowatch.Value && r.VideoLocal!=null)
             {
                 outstream.CrossPosition = (long)((double)totalsize * WatchedThreshold);
@@ -125,6 +113,7 @@ namespace Shoko.Server
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     };
             }
+
             resp.Stream = outstream;
             return resp;
         }
@@ -132,10 +121,11 @@ namespace Shoko.Server
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
             StreamWithResponse s = new StreamWithResponse(r.Status, r.StatusDescription);
-            if (r.Status != HttpStatusCode.OK)
+            if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
                 return s;
             s.Headers.Add("Server", ServerVersion);
             s.Headers.Add("Accept-Ranges", "bytes");
+            s.Headers.Add("Content-Range", "bytes " + 0 + "-" + (r.File.Size - 1) + "/" + r.File.Size);
             s.ContentType = r.Mime;
             s.ContentLength = r.File.Size;
             return s;
@@ -145,7 +135,7 @@ namespace Shoko.Server
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
             StreamWithResponse s = new StreamWithResponse(r.Status, r.StatusDescription);
-            if (r.Status != HttpStatusCode.OK)
+            if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
                 return s;
             s.Headers.Add("Server", ServerVersion);
             s.Headers.Add("Accept-Ranges","bytes");
