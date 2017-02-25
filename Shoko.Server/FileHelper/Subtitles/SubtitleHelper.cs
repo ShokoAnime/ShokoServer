@@ -251,23 +251,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             {"unk", "xx"},
         };
 
-        public static Dictionary<string, string> VideoExtensions = new Dictionary<string, string>()
-        {
-            { "mkv", "video/x-matroska" },
-            { "mka", "audio/x-matroska" },
-            { "mk3d", "video/x-matroska-3d" },
-            { "avi", "video/avi" },
-            { "mp4", "video/mp4" },
-            { "mov", "video/quicktime" },
-            { "ogm", "video/ogg" },
-            { "ogv", "video/ogg" },
-            { "mpg", "video/mpeg" },
-            { "mpeg", "video/mpeg" },
-            { "flv", "video/x-flv" },
-            { "rm", "application/vnd.rn-realmedia" }
-        };
-
-        public static Dictionary<string, string> Extensions = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> Extensions = new Dictionary<string, string>()
         {
             {"utf", "text/plain"},
             {"utf8", "text/plain"},

@@ -2384,6 +2384,19 @@ namespace Shoko.Server
         /// </summary>
         private static void StartNancyHost()
         {
+            foreach (string ext in SubtitleHelper.Extensions.Keys)
+            {
+                if (!Nancy.MimeTypes.GetMimeType("file." + ext).Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase)) continue;
+                if(!SubtitleHelper.Extensions[ext].Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
+                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
+            }
+
+            Nancy.MimeTypes.AddType("mkv", "video/x-matroska");
+            Nancy.MimeTypes.AddType("mka", "audio/x-matroska");
+            Nancy.MimeTypes.AddType("mk3d", "video/x-matroska-3d");
+            Nancy.MimeTypes.AddType("ogm", "video/ogg");
+            Nancy.MimeTypes.AddType("flv", "video/x-flv");
+
             if (hostNancy != null)
                 return;
             //nancy will rewrite localhost into http://+:port
@@ -2415,18 +2428,6 @@ namespace Shoko.Server
                 logger.Error(ex);
             }
             UserDatabase.Refresh();
-            foreach (string ext in SubtitleHelper.Extensions.Keys)
-            {
-                if (Nancy.MimeTypes.GetMimeType("." + ext) != "application/octet-stream") continue;
-                if(SubtitleHelper.Extensions[ext] != "application/octet-stream")
-                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
-            }
-            foreach (string ext in SubtitleHelper.VideoExtensions.Keys)
-            {
-                if (Nancy.MimeTypes.GetMimeType("." + ext) != "application/octet-stream") continue;
-                if(SubtitleHelper.VideoExtensions[ext] != "application/octet-stream")
-                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.VideoExtensions[ext]);
-            }
         }
       
  
