@@ -2413,6 +2413,7 @@ namespace Shoko.Server
 
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
+            config.AllowChunkedEncoding = false;
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
             if (ServerSettings.ExperimentalUPnP)
                 NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
