@@ -253,8 +253,7 @@ namespace Shoko.Server.FileHelper.Subtitles
 
         public static Dictionary<string, string> VideoExtensions = new Dictionary<string, string>()
         {
-
-            {"mkv", "video/x-matroska"},
+            { "mkv", "video/x-matroska" },
             { "mka", "audio/x-matroska" },
             { "mk3d", "video/x-matroska-3d" },
             { "avi", "video/avi" },

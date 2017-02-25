@@ -2424,8 +2424,8 @@ namespace Shoko.Server
             foreach (string ext in SubtitleHelper.VideoExtensions.Keys)
             {
                 if (Nancy.MimeTypes.GetMimeType("." + ext) != "application/octet-stream") continue;
-                if(SubtitleHelper.Extensions[ext] != "application/octet-stream")
-                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
+                if(SubtitleHelper.VideoExtensions[ext] != "application/octet-stream")
+                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.VideoExtensions[ext]);
             }
         }
       
