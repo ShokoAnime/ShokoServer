@@ -2417,12 +2417,15 @@ namespace Shoko.Server
             UserDatabase.Refresh();
             foreach (string ext in SubtitleHelper.Extensions.Keys)
             {
-                if (Nancy.MimeTypes.GetMimeType("." + ext) == "application/octet-stream")
-                {
-                    if(SubtitleHelper.Extensions[ext] != "application/octet-stream")
-                        Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
-                }
-
+                if (Nancy.MimeTypes.GetMimeType("." + ext) != "application/octet-stream") continue;
+                if(SubtitleHelper.Extensions[ext] != "application/octet-stream")
+                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
+            }
+            foreach (string ext in SubtitleHelper.VideoExtensions.Keys)
+            {
+                if (Nancy.MimeTypes.GetMimeType("." + ext) != "application/octet-stream") continue;
+                if(SubtitleHelper.Extensions[ext] != "application/octet-stream")
+                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
             }
         }
       
