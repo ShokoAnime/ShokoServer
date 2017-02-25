@@ -53,34 +53,34 @@ namespace Shoko.Server
                 return new StreamWithResponse(HttpStatusCode.InternalServerError,"Unable to open file '"+r.File.FullName+"': "+fr?.Error);
             }
             Stream org = fr.Result;
-
-            string rangevalue = request.Headers["Range"].FirstOrDefault() ?? request.Headers["range"].FirstOrDefault();
-            rangevalue = rangevalue?.Replace("bytes=", string.Empty);
-
             long totalsize = org.Length;
             long start = 0;
             long end = totalsize - 1;
-            if (!string.IsNullOrEmpty(rangevalue))
+
+            string rangevalue = request.Headers["Range"].FirstOrDefault() ?? request.Headers["range"].FirstOrDefault();
+            rangevalue = rangevalue?.Replace("bytes=", string.Empty);
+            bool range = !string.IsNullOrEmpty(rangevalue);
+
+            if (range)
             {
-                string[] split = rangevalue.Split('-');
                 // range: bytes=split[0]-split[1]
+                string[] split = rangevalue.Split('-');
                 if (split.Length == 2)
                 {
-                    // bytes=-split[1]
+                    // bytes=-split[1] - tail of specified length
                     if (string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                     {
                         long e = long.Parse(split[1]);
                         start = totalsize - e;
                         end = totalsize - 1;
                     }
-                    // bytes=split[0]-
+                    // bytes=split[0] - split[0] to end of file
                     else if (!string.IsNullOrEmpty(split[0]) && string.IsNullOrEmpty(split[1]))
                     {
                         start = long.Parse(split[0]);
                         end = totalsize - 1;
-                        if (start > end) start = end;
                     }
-                    // bytes=split[0]-split[1]
+                    // bytes=split[0]-split[1] - specified beginning and end
                     else if (!string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                     {
                         start = long.Parse(split[0]);
@@ -89,18 +89,18 @@ namespace Shoko.Server
                             start = totalsize - 1;
                         if (end > totalsize - 1)
                             end = totalsize - 1;
-                        if (start > end) start = end;
                     }
                 }
             }
-            StreamWithResponse resp = new StreamWithResponse {ContentType = r.Mime};
+            var outstream = new SubStream(org, start, end - start + 1);
+            var resp = new StreamWithResponse {ContentType = r.Mime};
             resp.Headers.Add("Server", ServerVersion);
             resp.Headers.Add("Connection", "keep-alive");
             resp.Headers.Add("Accept-Ranges", "bytes");
-            resp.ResponseStatus = HttpStatusCode.PartialContent;
             resp.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
-            resp.ContentLength=end - start + 1;
-            SubStream outstream = new SubStream(org, start, end - start + 1);
+            resp.ContentLength = end - start + 1;
+
+            resp.ResponseStatus = range ? HttpStatusCode.PartialContent : HttpStatusCode.OK;
 
             if (r.User!=null && autowatch.HasValue && autowatch.Value && r.VideoLocal!=null)
             {
@@ -113,10 +113,10 @@ namespace Shoko.Server
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     };
             }
-
             resp.Stream = outstream;
             return resp;
         }
+
         public Stream InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -125,7 +125,7 @@ namespace Shoko.Server
                 return s;
             s.Headers.Add("Server", ServerVersion);
             s.Headers.Add("Accept-Ranges", "bytes");
-            s.Headers.Add("Content-Range", "bytes " + 0 + "-" + (r.File.Size - 1) + "/" + r.File.Size);
+            s.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
             s.ContentType = r.Mime;
             s.ContentLength = r.File.Size;
             return s;
@@ -139,6 +139,7 @@ namespace Shoko.Server
                 return s;
             s.Headers.Add("Server", ServerVersion);
             s.Headers.Add("Accept-Ranges","bytes");
+            s.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
             s.ContentType = r.Mime;
             s.ContentLength = r.File.Size;
             return s;
@@ -153,42 +154,7 @@ namespace Shoko.Server
             public string StatusDescription { get; set; }
             public string Mime { get; set; }
         }
-        private static string GetMime(string fullname)
-        {
-            string ext = Path.GetExtension(fullname).Replace(".", string.Empty).ToLower();
-            switch (ext)
-            {
-                case "png":
-                    return "image/png";
-                case "jpg":
-                    return "image/jpeg";
-                case "mkv":
-                    return "video/x-matroska";
-                case "mka":
-                    return "audio/x-matroska";
-                case "mk3d":
-                    return "video/x-matroska-3d";
-                case "avi":
-                    return "video/avi";
-                case "mp4":
-                    return "video/mp4";
-                case "mov":
-                    return "video/quicktime";
-                case "ogm":
-                case "ogv":
-                    return "video/ogg";
-                case "mpg":
-                case "mpeg":
-                    return "video/mpeg";
-                case "flv":
-                    return "video/x-flv";
-                case "rm":
-                    return "application/vnd.rn-realmedia";
-            }
-            if (SubtitleHelper.Extensions.ContainsKey(ext))
-                return SubtitleHelper.Extensions[ext];
-            return "application/octet-stream";
-        }
+
         private InfoResult ResolveVideoLocal(int videolocalid, int? userId, bool? autowatch)
         {
             InfoResult r = new InfoResult();
@@ -203,6 +169,7 @@ namespace Shoko.Server
             r.File = loc.GetBestFileLink();
             return FinishResolve(r, userId, autowatch);
         }
+
         public static string Base64DecodeUrl(string base64EncodedData)
         {
             var base64EncodedBytes =
@@ -230,10 +197,11 @@ namespace Shoko.Server
             }
             r.Mime = r.File.ContentType;
             if (string.IsNullOrEmpty(r.Mime) || r.Mime.Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
-                r.Mime = GetMime(r.File.FullName);
+                r.Mime = MimeTypes.GetMimeType(r.File.FullName);
             r.Status = HttpStatusCode.OK;
             return r;
         }
+
         private InfoResult ResolveFilename(string filenamebase64, int? userId, bool? autowatch)
         {
             InfoResult r = new InfoResult();

@@ -38,6 +38,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
+using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
@@ -2414,6 +2415,15 @@ namespace Shoko.Server
                 logger.Error(ex);
             }
             UserDatabase.Refresh();
+            foreach (string ext in SubtitleHelper.Extensions.Keys)
+            {
+                if (Nancy.MimeTypes.GetMimeType("." + ext) == "application/octet-stream")
+                {
+                    if(SubtitleHelper.Extensions[ext] != "application/octet-stream")
+                        Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
+                }
+
+            }
         }
       
  
