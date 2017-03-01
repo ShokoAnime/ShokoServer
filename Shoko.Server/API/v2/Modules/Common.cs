@@ -921,10 +921,10 @@ namespace Shoko.Server.API.v2.Modules
             // allow to offset be 0 to reset position
             if (para.id != 0)
             {
-                VideoLocal_User vlu = RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(user.JMMUserID, para.id);
+                SVR_VideoLocal vlu = RepoFactory.VideoLocal.GetByID(para.id);
                 if (vlu != null)
                 {
-                    vlu.ResumePosition = para.offset;
+                    vlu.SetResumePosition(para.offset, user.JMMUserID);
                     return APIStatus.statusOK();
                 }
                 else

@@ -243,9 +243,13 @@ namespace Shoko.Server.Models
             VideoLocal_User vuser = GetUserRecord(userID);
             if (vuser == null)
             {
-                vuser=new VideoLocal_User();
+                vuser = new VideoLocal_User();
                 vuser.JMMUserID = userID;
                 vuser.VideoLocalID = VideoLocalID;
+                vuser.ResumePosition = resumeposition;
+            }
+            else
+            {
                 vuser.ResumePosition = resumeposition;
             }
             RepoFactory.VideoLocalUser.Save(vuser);
