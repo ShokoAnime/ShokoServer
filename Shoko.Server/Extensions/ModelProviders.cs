@@ -286,39 +286,39 @@ namespace Shoko.Server.Extensions
             // used when getting information from episode info
             // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
 
-            episode.Id = Int32.Parse(TryGetProperty(doc, "id"));
-            episode.SeriesID = Int32.Parse(TryGetProperty(doc, "seriesid"));
-            episode.SeasonID = Int32.Parse(TryGetProperty(doc, "seasonid"));
-            episode.SeasonNumber = Int32.Parse(TryGetProperty(doc, "SeasonNumber"));
-            episode.EpisodeNumber = Int32.Parse(TryGetProperty(doc, "EpisodeNumber"));
+            episode.Id = Int32.Parse(TryGetEpisodeProperty(doc, "id"));
+            episode.SeriesID = Int32.Parse(TryGetEpisodeProperty(doc, "seriesid"));
+            episode.SeasonID = Int32.Parse(TryGetEpisodeProperty(doc, "seasonid"));
+            episode.SeasonNumber = Int32.Parse(TryGetEpisodeProperty(doc, "SeasonNumber"));
+            episode.EpisodeNumber = Int32.Parse(TryGetEpisodeProperty(doc, "EpisodeNumber"));
 
             int flag = 0;
-            if (Int32.TryParse(TryGetProperty(doc, "EpImgFlag"), out flag))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "EpImgFlag"), out flag))
                 episode.EpImgFlag = flag;
 
             int abnum = 0;
-            if (Int32.TryParse(TryGetProperty(doc, "absolute_number"), out abnum))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "absolute_number"), out abnum))
                 episode.AbsoluteNumber = abnum;
 
-            episode.EpisodeName = TryGetProperty(doc, "EpisodeName");
-            episode.Overview = TryGetProperty(doc, "Overview");
-            episode.Filename = TryGetProperty(doc, "filename");
+            episode.EpisodeName = TryGetEpisodeProperty(doc, "EpisodeName");
+            episode.Overview = TryGetEpisodeProperty(doc, "Overview");
+            episode.Filename = TryGetEpisodeProperty(doc, "filename");
             //this.FirstAired = TryGetProperty(doc, "FirstAired");
 
             int aas = 0;
-            if (Int32.TryParse(TryGetProperty(doc, "airsafter_season"), out aas))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsafter_season"), out aas))
                 episode.AirsAfterSeason = aas;
             else
                 episode.AirsAfterSeason = null;
 
             int abe = 0;
-            if (Int32.TryParse(TryGetProperty(doc, "airsbefore_episode"), out abe))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_episode"), out abe))
                 episode.AirsBeforeEpisode = abe;
             else
                 episode.AirsBeforeEpisode = null;
 
             int abs = 0;
-            if (Int32.TryParse(TryGetProperty(doc, "airsbefore_season"), out abs))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_season"), out abs))
                 episode.AirsBeforeSeason = abs;
             else
                 episode.AirsBeforeSeason = null;
@@ -382,7 +382,7 @@ namespace Shoko.Server.Extensions
             return "";
         }
 
-        private static string TryGetProperty(XmlDocument doc, string propertyName)
+        private static string TryGetEpisodeProperty(XmlDocument doc, string propertyName)
         {
             try
             {
@@ -391,12 +391,25 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
+                logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
 
             return "";
         }
+        private static string TryGetSeriesProperty(XmlDocument doc, string propertyName)
+        {
+            try
+            {
+                string prop = doc["Data"]["Series"][propertyName].InnerText.Trim();
+                return prop;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TvDB_Series.TryGetProperty: " + ex.ToString());
+            }
 
+            return "";
+        }
         public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, XmlNode node)
         {
             try
@@ -483,10 +496,10 @@ namespace Shoko.Server.Extensions
             series.Fanart = String.Empty;
             series.Lastupdated = String.Empty;
             series.Poster = String.Empty;
-            series.SeriesID = Int32.Parse(TryGetProperty(doc, "seriesid"));
-            series.SeriesName = TryGetProperty(doc, "SeriesName");
-            series.Overview = TryGetProperty(doc, "Overview");
-            series.Banner = TryGetProperty(doc, "banner");
+            series.SeriesID = Int32.Parse(TryGetSeriesProperty(doc, "seriesid"));
+            series.SeriesName = TryGetSeriesProperty(doc, "SeriesName");
+            series.Overview = TryGetSeriesProperty(doc, "Overview");
+            series.Banner = TryGetSeriesProperty(doc, "banner");
         }
 
         public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
@@ -499,15 +512,15 @@ namespace Shoko.Server.Extensions
             series.Fanart = String.Empty;
             series.Lastupdated = String.Empty;
             series.Poster = String.Empty;
-            series.SeriesID = Int32.Parse(TryGetProperty(doc, "id"));
-            series.SeriesName = TryGetProperty(doc, "SeriesName");
-            series.Overview = TryGetProperty(doc, "Overview");
-            series.Banner = TryGetProperty(doc, "banner");
+            series.SeriesID = Int32.Parse(TryGetSeriesProperty(doc, "id"));
+            series.SeriesName = TryGetSeriesProperty(doc, "SeriesName");
+            series.Overview = TryGetSeriesProperty(doc, "Overview");
+            series.Banner = TryGetSeriesProperty(doc, "banner");
 
-            series.Status = TryGetProperty(doc, "Status");
-            series.Fanart = TryGetProperty(doc, "fanart");
-            series.Lastupdated = TryGetProperty(doc, "lastupdated");
-            series.Poster = TryGetProperty(doc, "poster");
+            series.Status = TryGetSeriesProperty(doc, "Status");
+            series.Fanart = TryGetSeriesProperty(doc, "fanart");
+            series.Lastupdated = TryGetSeriesProperty(doc, "lastupdated");
+            series.Poster = TryGetSeriesProperty(doc, "poster");
         }
 
         public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
