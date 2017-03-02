@@ -274,6 +274,7 @@ namespace Shoko.Server.Models
             {
                 vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID,
                     syncTrakt, true);
+                vid.SetResumePosition(0, userID);
             }
         }
     }
