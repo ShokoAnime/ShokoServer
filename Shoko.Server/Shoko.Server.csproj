@@ -160,8 +160,8 @@
     <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.25274, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.Rest.Annotations.1.4.3.1-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
     </Reference>
-    <Reference Include="Nancy.Rest.Module, Version=1.4.3.148, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Nancy.Rest.Module.1.4.3.3-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
+    <Reference Include="Nancy.Rest.Module, Version=1.4.3.31051, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Module.1.4.3.4-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
     </Reference>
     <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
