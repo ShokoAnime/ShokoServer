@@ -65,7 +65,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info("Hashing File: {0}", FileName);
+            logger.Trace("Checking File For Hashes: {0}", FileName);
 
             try
             {
@@ -107,7 +107,7 @@ namespace Shoko.Server.Commands
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
             if (tup == null)
             {
-                logger.Error($"Unable to locate file {FileName} inside the import folders");
+                logger.Error($"Unable to locate Import Folder for {FileName}");
                 return null;
             }
             SVR_ImportFolder folder = tup.Item1;
@@ -245,6 +245,7 @@ namespace Shoko.Server.Commands
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
+                    logger.Info("Hashing File: {0}", FileName);
 	                ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
 	                DateTime start = DateTime.Now;
                     logger.Trace("Calculating ED2K hashes for: {0}", FileName);

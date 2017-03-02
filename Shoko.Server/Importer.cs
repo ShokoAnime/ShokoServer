@@ -273,7 +273,7 @@ namespace Shoko.Server
                     }
 
                     filesFound++;
-                    logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
+                    logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
                     if (!FileHashHelper.IsVideo(fileName)) continue;
 
@@ -313,7 +313,7 @@ namespace Shoko.Server
             {
                 i++;
                 filesFound++;
-                logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
+                logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
                 if (!FileHashHelper.IsVideo(fileName)) continue;
 
@@ -423,7 +423,7 @@ namespace Shoko.Server
             {
                 i++;
                 filesFound++;
-                logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
+                logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
                 if (!FileHashHelper.IsVideo(fileName)) continue;
 

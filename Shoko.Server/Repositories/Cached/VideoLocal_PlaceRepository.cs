@@ -81,7 +81,7 @@ namespace Shoko.Server.Repositories.Cached
                 importLocationFull = importLocationFull + "\\";
 
                 importLocation = importLocation.TrimEnd('\\');
-                if (fullPath.StartsWith(importLocationFull))
+                if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
                     filePath = filePath.TrimStart('\\');
