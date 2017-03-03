@@ -2391,11 +2391,14 @@ namespace Shoko.Server
                     Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
             }
 
-            Nancy.MimeTypes.AddType("mkv", "video/x-matroska");
-            Nancy.MimeTypes.AddType("mka", "audio/x-matroska");
-            Nancy.MimeTypes.AddType("mk3d", "video/x-matroska-3d");
-            Nancy.MimeTypes.AddType("ogm", "video/ogg");
-            Nancy.MimeTypes.AddType("flv", "video/x-flv");
+            if (Nancy.MimeTypes.GetMimeType("file.mkv") != "application/octet-stream")
+            {
+                Nancy.MimeTypes.AddType("mkv", "video/x-matroska");
+                Nancy.MimeTypes.AddType("mka", "audio/x-matroska");
+                Nancy.MimeTypes.AddType("mk3d", "video/x-matroska-3d");
+                Nancy.MimeTypes.AddType("ogm", "video/ogg");
+                Nancy.MimeTypes.AddType("flv", "video/x-flv");
+            }
 
             if (hostNancy != null)
                 return;
