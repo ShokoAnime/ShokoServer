@@ -870,7 +870,7 @@ namespace Shoko.Server
             try
             {
                 SVR_AnimeGroup grp = null;
-                if (contract.AnimeGroupID.HasValue)
+                if (contract.AnimeGroupID.HasValue && contract.AnimeGroupID != 0)
                 {
                     grp = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
                     if (grp == null)
