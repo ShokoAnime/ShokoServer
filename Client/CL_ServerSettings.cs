@@ -1,4 +1,6 @@
-﻿namespace Shoko.Models.Client
+﻿using System.Dynamic;
+
+namespace Shoko.Models.Client
 {
     public class CL_ServerSettings
     {
@@ -108,6 +110,9 @@
         
         // WebUI
         public string WebUI_Settings { get; set; }
+
+        public string Plex_ServerHost { get; set; }
+        public string Plex_Sections { get; set; }
 
     }
 }
