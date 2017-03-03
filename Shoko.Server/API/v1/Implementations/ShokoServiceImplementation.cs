@@ -2780,6 +2780,12 @@ namespace Shoko.Server
                 ServerSettings.MAL_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.MAL_UpdateFrequency;
                 ServerSettings.MAL_NeverDecreaseWatchedNums = contractIn.MAL_NeverDecreaseWatchedNums;
 
+                //Plex
+                ServerSettings.Plex_Server = contractIn.Plex_ServerHost;
+                if (contractIn.Plex_Sections.Length > 0)
+                    ServerSettings.Plex_Libraries = contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray();
+
+
                 if (anidbSettingsChanged)
                 {
                     ShokoService.AnidbProcessor.ForceLogout();

@@ -2193,7 +2193,10 @@ namespace Shoko.Server
 
             //WebUI
             contract.WebUI_Settings = ServerSettings.WebUI_Settings;
-
+            
+            //Plex
+            contract.Plex_Sections = String.Join(",", ServerSettings.Plex_Libraries);
+            contract.Plex_ServerHost = ServerSettings.Plex_Server;
 
 
             return contract;
