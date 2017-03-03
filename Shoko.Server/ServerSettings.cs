@@ -2069,7 +2069,11 @@ namespace Shoko.Server
         //plex
         public static int[] Plex_Libraries
         {
-            get { return Get(nameof(Plex_Libraries)).Split(',').Select(int.Parse).ToArray(); }
+            get
+            {
+                string values = Get(nameof(Plex_Libraries)) ?? "";
+                return values.Split(',').Select(int.Parse).ToArray();
+            }
             set { Set(nameof(Plex_Libraries), string.Join(",", value)); }
         }
 
