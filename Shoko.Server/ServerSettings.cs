@@ -2071,7 +2071,8 @@ namespace Shoko.Server
         {
             get
             {
-                string values = Get(nameof(Plex_Libraries)) ?? "";
+                string values = Get(nameof(Plex_Libraries));
+                if (String.IsNullOrEmpty(values)) return new int[0];
                 return values.Split(',').Select(int.Parse).ToArray();
             }
             set { Set(nameof(Plex_Libraries), string.Join(",", value)); }
