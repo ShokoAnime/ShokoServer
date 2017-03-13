@@ -162,7 +162,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             s.Height = m.Get(StreamKind.Video, num, "Height");
             int brate = BiggerFromList(m.Get(StreamKind.Video, num, "BitRate"));
             if (brate != 0)
-                s.Bitrate = Math.Round(brate/1000F).ToString(CultureInfo.InvariantCulture);
+                s.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
             string stype = m.Get(StreamKind.Video, num, "ScanType");
             if (!string.IsNullOrEmpty(stype))
                 s.ScanType = stype.ToLower();
@@ -175,7 +175,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
                 int a = fprofile.ToLower(CultureInfo.InvariantCulture).IndexOf("@", StringComparison.Ordinal);
                 if (a > 0)
                 {
-                    s.Profile = TranslateProfile(s.Codec, fprofile.ToLower(CultureInfo.InvariantCulture).Substring(0, a));
+                    s.Profile = TranslateProfile(s.Codec,
+                        fprofile.ToLower(CultureInfo.InvariantCulture).Substring(0, a));
                     s.Level = TranslateLevel(fprofile.ToLower(CultureInfo.InvariantCulture).Substring(a + 1));
                 }
                 else
@@ -285,7 +286,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
                 {
                     float width = www;
                     width *= s.PA;
-                    s.PixelAspectRatio = ((int) Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" + s.Width;
+                    s.PixelAspectRatio = ((int) Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" +
+                                         s.Width;
                 }
             }
 
@@ -314,7 +316,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                 s.Duration = duration;
             int brate = BiggerFromList(m.Get(StreamKind.Audio, num, "BitRate"));
             if (brate != 0)
-                s.Bitrate = Math.Round(brate/1000F).ToString(CultureInfo.InvariantCulture);
+                s.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
             int bitdepth = m.GetInt(StreamKind.Audio, num, "BitDepth");
             if (bitdepth != 0)
                 s.BitDepth = bitdepth.ToString(CultureInfo.InvariantCulture);
@@ -462,7 +464,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             minstance?.Dispose();
             minstance = null;
         }
-       
+
 
         public static Media Convert(string filename, IFile file)
         {
@@ -476,8 +478,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
                     Part p = new Part();
                     Thread mediaInfoThread = new Thread(() =>
                     {
-                        if (minstance==null)
-                            minstance=new MediaInfoLib.MediaInfo();
+                        if (minstance == null)
+                            minstance = new MediaInfoLib.MediaInfo();
                         minstance.Open(filename);
                         Stream VideoStream = null;
                         int video_count = minstance.GetInt(StreamKind.General, 0, "VideoCount");
@@ -509,14 +511,17 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     {
                                         if (!string.IsNullOrEmpty(m.Width))
                                         {
-                                            m.VideoResolution = GetResolution(float.Parse(m.Width), float.Parse(m.Height));
-                                            m.AspectRatio = GetAspectRatio(float.Parse(m.Width), float.Parse(m.Height), s.PA);
+                                            m.VideoResolution =
+                                                GetResolution(float.Parse(m.Width), float.Parse(m.Height));
+                                            m.AspectRatio =
+                                                GetAspectRatio(float.Parse(m.Width), float.Parse(m.Height), s.PA);
                                         }
                                     }
                                     if (!string.IsNullOrEmpty(s.FrameRate))
                                     {
                                         float fr = System.Convert.ToSingle(s.FrameRate);
-                                        m.VideoFrameRate = ((int)Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
+                                        m.VideoFrameRate =
+                                            ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
                                         if (!string.IsNullOrEmpty(s.ScanType))
                                         {
                                             if (s.ScanType.ToLower().Contains("int"))
@@ -536,10 +541,12 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     {
                                         double sdur = 0;
                                         double mdur = 0;
-                                        double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out sdur);
-                                        double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out mdur);
+                                        double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
+                                            out sdur);
+                                        double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
+                                            out mdur);
                                         if (sdur > mdur)
-                                            m.Duration = p.Duration = ((int)sdur).ToString();
+                                            m.Duration = p.Duration = ((int) sdur).ToString();
                                     }
                                     if (video_count == 1)
                                     {
@@ -572,10 +579,12 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     {
                                         double sdur = 0;
                                         double mdur = 0;
-                                        double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out sdur);
-                                        double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out mdur);
+                                        double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
+                                            out sdur);
+                                        double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
+                                            out mdur);
                                         if (sdur > mdur)
-                                            m.Duration = p.Duration = ((int)sdur).ToString();
+                                            m.Duration = p.Duration = ((int) sdur).ToString();
                                     }
                                     if (audio_count == 1)
                                     {
@@ -586,8 +595,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                 if (!string.IsNullOrEmpty(s.Bitrate))
                                 {
                                     double birate = 0;
-                                    double.TryParse(s.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture, out birate);
-                                    totalsoundrate += (int)brate;
+                                    double.TryParse(s.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture,
+                                        out birate);
+                                    totalsoundrate += (int) brate;
                                 }
                                 if (m.Container != "mkv")
                                 {
@@ -602,7 +612,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         {
                             double mrate = 0;
                             double.TryParse(m.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture, out mrate);
-                            VideoStream.Bitrate = (((int)mrate) - totalsoundrate).ToString(CultureInfo.InvariantCulture);
+                            VideoStream.Bitrate =
+                                (((int) mrate) - totalsoundrate).ToString(CultureInfo.InvariantCulture);
                         }
                         if (text_count > 0)
                         {
@@ -664,10 +675,24 @@ namespace Shoko.Server.FileHelper.MediaInfo
                     bool finished = mediaInfoThread.Join(TimeSpan.FromMinutes(5)); //TODO Move Timeout to settings
                     if (!finished)
                     {
-                        try { mediaInfoThread.Abort();} catch {  /*ignored*/ }
-                        try { CloseMediaInfo(); } catch { /*ignored*/}
+                        try
+                        {
+                            mediaInfoThread.Abort();
+                        }
+                        catch
+                        {
+                            /*ignored*/
+                        }
+                        try
+                        {
+                            CloseMediaInfo();
+                        }
+                        catch
+                        {
+                            /*ignored*/
+                        }
                         return null;
-                    }                    
+                    }
                     if ((p.Container == "mp4") || (p.Container == "mov"))
                     {
                         p.Has64bitOffsets = "0";
@@ -738,12 +763,14 @@ namespace Shoko.Server.FileHelper.MediaInfo
                 return false;
             do
             {
-                if ((buffer[start + 4] == atom[0]) && (buffer[start + 5] == atom[1]) && (buffer[start + 6] == atom[2]) &&
+                if ((buffer[start + 4] == atom[0]) && (buffer[start + 5] == atom[1]) &&
+                    (buffer[start + 6] == atom[2]) &&
                     (buffer[start + 7] == atom[3]))
                 {
                     pos = start + 8;
-                    posmax = (buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3]) +
-                             start;
+                    posmax =
+                        (buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3]) +
+                        start;
                     return true;
                 }
                 start += buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3];
@@ -755,7 +782,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
         private static string GetResolution(float width, float height)
 
         {
-            float h = (float)Math.Round((float) width/1.777777777777777F);
+            float h = (float) Math.Round((float) width / 1.777777777777777F);
             if (height > h)
                 h = height;
             if (h > 720)
@@ -771,7 +798,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string GetAspectRatio(float width, float height, float pa)
         {
-            float r = width/height*pa;
+            float r = width / height * pa;
             if (r < 1.5F)
                 return "1.33";
             if (r < 1.72F)

@@ -25,22 +25,22 @@ namespace Shoko.Server.Repositories.Cached
 
         private BiDictionaryManyToMany<int, GroupFilterConditionType> Types;
 
-        private ChangeTracker<int> Changes=new ChangeTracker<int>();
+        private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        public List<SVR_GroupFilter> PostProcessFilters { get; set; }=new List<SVR_GroupFilter>();
+        public List<SVR_GroupFilter> PostProcessFilters { get; set; } = new List<SVR_GroupFilter>();
 
         private GroupFilterRepository()
         {
             EndSaveCallback = (obj) =>
-                            {
-                                Types[obj.GroupFilterID] = obj.Types;
-                                Changes.AddOrUpdate(obj.GroupFilterID);
-                            };
+            {
+                Types[obj.GroupFilterID] = obj.Types;
+                Changes.AddOrUpdate(obj.GroupFilterID);
+            };
             EndDeleteCallback = (obj) =>
-                            {
-                                Types.Remove(obj.GroupFilterID);
-                                Changes.Remove(obj.GroupFilterID);
-                            };
+            {
+                Types.Remove(obj.GroupFilterID);
+                Changes.Remove(obj.GroupFilterID);
+            };
         }
 
         public static GroupFilterRepository Create()
@@ -57,7 +57,9 @@ namespace Shoko.Server.Repositories.Cached
         {
             Changes.AddOrUpdateRange(Cache.Keys);
             Parents = Cache.CreateIndex(a => a.ParentGroupFilterID ?? 0);
-            Types = new BiDictionaryManyToMany<int, GroupFilterConditionType>(Cache.Values.ToDictionary(a => a.GroupFilterID, a => a.Types));
+            Types =
+                new BiDictionaryManyToMany<int, GroupFilterConditionType>(
+                    Cache.Values.ToDictionary(a => a.GroupFilterID, a => a.Types));
             PostProcessFilters = new List<SVR_GroupFilter>();
         }
 
@@ -149,7 +151,7 @@ namespace Shoko.Server.Repositories.Cached
             }
             Delete(toremove);
         }
-        
+
 
         public void CreateOrVerifyLockedFilters()
         {
@@ -161,21 +163,27 @@ namespace Shoko.Server.Repositories.Cached
                 //Continue Watching
                 // check if it already exists
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, t,
+                    " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
 
                 SVR_GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
                         a =>
-                            a.FilterType == (int)GroupFilterType.ContinueWatching);
+                            a.FilterType == (int) GroupFilterType.ContinueWatching);
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, t,
+                        " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
                     cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                     Save(cwatching);
                 }
                 else if (cwatching == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, t,
+                        " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
                     SVR_GroupFilter gf = new SVR_GroupFilter();
                     gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
                     gf.Locked = 1;
@@ -206,7 +214,9 @@ namespace Shoko.Server.Repositories.Cached
                 SVR_GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
                 if (allfilter == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, " " + Shoko.Commons.Properties.Resources.Filter_CreateAll);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, t,
+                        " " + Shoko.Commons.Properties.Resources.Filter_CreateAll);
                     SVR_GroupFilter gf = new SVR_GroupFilter
                     {
                         GroupFilterName = Shoko.Commons.Properties.Resources.Filter_All,
@@ -255,25 +265,36 @@ namespace Shoko.Server.Repositories.Cached
             }
             CreateOrVerifyTagsAndYearsFilters(true);
         }
-        public void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null, HashSet<int> airdate = null)
-        {
 
+        public void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null,
+            HashSet<int> airdate = null)
+        {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 string t = "GroupFilter";
 
                 List<SVR_GroupFilter> lockedGFs = GetLockedGroupFilters();
-         
 
-                SVR_GroupFilter tagsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory | GroupFilterType.Tag));
+
+                SVR_GroupFilter tagsdirec = lockedGFs.FirstOrDefault(
+                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
                 if (tagsdirec != null)
                 {
                     HashSet<string> alltags;
                     if (tags == null)
-                        alltags = new HashSet<string>(RepoFactory.AniDB_Tag.GetAll().Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
+                        alltags = new HashSet<string>(
+                            RepoFactory.AniDB_Tag.GetAll()
+                                .Select(a => a.TagName)
+                                .Distinct(StringComparer.InvariantCultureIgnoreCase),
+                            StringComparer.InvariantCultureIgnoreCase);
                     else
-                        alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
-                    HashSet<string> notin = new HashSet<string>(lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag).Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),StringComparer.InvariantCultureIgnoreCase);
+                        alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),
+                            StringComparer.InvariantCultureIgnoreCase);
+                    HashSet<string> notin =
+                        new HashSet<string>(
+                            lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag)
+                                .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
+                            StringComparer.InvariantCultureIgnoreCase);
                     alltags.ExceptWith(notin);
 
                     int max = alltags.Count;
@@ -284,13 +305,15 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
-                                Shoko.Commons.Properties.Resources.Filter_CreatingTag + " " + Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                            ServerState.Instance.CurrentSetupStatus = string.Format(
+                                Shoko.Commons.Properties.Resources.Database_Cache, t,
+                                Shoko.Commons.Properties.Resources.Filter_CreatingTag + " " +
+                                Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                         SVR_GroupFilter yf = new SVR_GroupFilter
                         {
                             ParentGroupFilterID = tagsdirec.GroupFilterID,
                             InvisibleInClients = 0,
-                            GroupFilterName = tinfo.ToTitleCase(s.Replace("`","'")),
+                            GroupFilterName = tinfo.ToTitleCase(s.Replace("`", "'")),
                             BaseCondition = 1,
                             Locked = 1,
                             SortingCriteria = "5;1",
@@ -307,28 +330,27 @@ namespace Shoko.Server.Repositories.Cached
                         Save(yf);
                     }
                 }
-                SVR_GroupFilter yearsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory | GroupFilterType.Year));
+                SVR_GroupFilter yearsdirec = lockedGFs.FirstOrDefault(
+                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
                 if (yearsdirec != null)
                 {
-
                     HashSet<string> allyears;
                     if (airdate == null || airdate.Count == 0)
                     {
                         List<CL_AnimeSeries_User> grps =
                             RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
 
-	                    allyears = new HashSet<string>(StringComparer.Ordinal);
-	                    foreach (CL_AnimeSeries_User ser in grps)
-	                    {
-		                    int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
-		                    int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
-		                    if (endyear == 0) endyear = DateTime.Today.Year;
-		                    if (startyear != 0)
-		                    	allyears.UnionWith(Enumerable.Range(startyear,
-				                    endyear - startyear + 1)
-			                    	.Select(a => a.ToString()));
-	                    }
-
+                        allyears = new HashSet<string>(StringComparer.Ordinal);
+                        foreach (CL_AnimeSeries_User ser in grps)
+                        {
+                            int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
+                            int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
+                            if (endyear == 0) endyear = DateTime.Today.Year;
+                            if (startyear != 0)
+                                allyears.UnionWith(Enumerable.Range(startyear,
+                                        endyear - startyear + 1)
+                                    .Select(a => a.ToString()));
+                        }
                     }
                     else
                     {
@@ -346,9 +368,11 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         cnt++;
                         if (frominit)
-		                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
-                                Shoko.Commons.Properties.Resources.Filter_CreatingYear + " " + Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
-	                    SVR_GroupFilter yf = new SVR_GroupFilter
+                            ServerState.Instance.CurrentSetupStatus = string.Format(
+                                Shoko.Commons.Properties.Resources.Database_Cache, t,
+                                Shoko.Commons.Properties.Resources.Filter_CreatingYear + " " +
+                                Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                        SVR_GroupFilter yf = new SVR_GroupFilter
                         {
                             ParentGroupFilterID = yearsdirec.GroupFilterID,
                             InvisibleInClients = 0,
@@ -357,7 +381,7 @@ namespace Shoko.Server.Repositories.Cached
                             Locked = 1,
                             SortingCriteria = "5;1",
                             FilterType = (int) GroupFilterType.Year,
-	                        ApplyToSeries = 1
+                            ApplyToSeries = 1
                         };
                         GroupFilterCondition gfc = new GroupFilterCondition();
                         gfc.ConditionType = (int) GroupFilterConditionType.Year;
@@ -370,14 +394,17 @@ namespace Shoko.Server.Repositories.Cached
                         Save(yf);
                     }
                 }
-	            CleanUpEmptyTagAndYearFilters();
+                CleanUpEmptyTagAndYearFilters();
             }
         }
 
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_GroupFilter> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_GroupFilter> objs)
+        {
+            throw new NotSupportedException();
+        }
 
         public override void Save(SVR_GroupFilter obj)
         {
@@ -456,9 +483,9 @@ namespace Shoko.Server.Repositories.Cached
                     ORDER BY grpFilter.GroupFilterID, grp.AnimeGroupID")
                 .AddScalar("GroupFilterID", NHibernateUtil.Int32)
                 .AddScalar("AnimeGroupID", NHibernateUtil.Int32)
-                .SetInt32("tagType", (int)GroupFilterType.Tag)
+                .SetInt32("tagType", (int) GroupFilterType.Tag)
                 .List<object[]>()
-                .ToLookup(r => (int)r[0], r => (int)r[1]);
+                .ToLookup(r => (int) r[0], r => (int) r[1]);
 
             return groupsByFilter;
         }
@@ -470,12 +497,13 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            HashSet<int> filters = new HashSet<int>(Cache.Values.Where(a => a.FilterType == (int)GroupFilterType.All).Select(a=>a.GroupFilterID));
+            HashSet<int> filters = new HashSet<int>(Cache.Values.Where(a => a.FilterType == (int) GroupFilterType.All)
+                .Select(a => a.GroupFilterID));
             foreach (GroupFilterConditionType t in types)
             {
                 filters.UnionWith(Types.FindInverse(t));
             }
-            
+
             return filters.Select(a => Cache.Get(a)).ToList();
         }
 

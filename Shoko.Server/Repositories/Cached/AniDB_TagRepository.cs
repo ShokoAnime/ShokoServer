@@ -15,7 +15,6 @@ namespace Shoko.Server.Repositories
 {
     public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
     {
-
         private PocoIndex<int, AniDB_Tag, int> Tags;
 
         public override void PopulateIndexes()
@@ -25,7 +24,6 @@ namespace Shoko.Server.Repositories
 
         private AniDB_TagRepository()
         {
-            
         }
 
         public static AniDB_TagRepository Create()
@@ -44,7 +42,10 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Tag> GetByAnimeID(int animeID)
         {
-            return RepoFactory.AniDB_Anime_Tag.GetByAnimeID(animeID).Select(a => GetByTagID(a.TagID)).Where(a=>a!=null).ToList();
+            return RepoFactory.AniDB_Anime_Tag.GetByAnimeID(animeID)
+                .Select(a => GetByTagID(a.TagID))
+                .Where(a => a != null)
+                .ToList();
             /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -57,7 +58,6 @@ namespace Shoko.Server.Repositories
                 return new List<AniDB_Tag>(tags);
             }*/
         }
-
 
 
         public ILookup<int, AniDB_Tag> GetByAnimeIDs(ISessionWrapper session, int[] ids)
@@ -73,10 +73,11 @@ namespace Shoko.Server.Repositories
             }
 
             var tags = session
-                .CreateQuery("Select xref.AnimeID, tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID IN (:animeIDs)")
+                .CreateQuery(
+                    "Select xref.AnimeID, tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID IN (:animeIDs)")
                 .SetParameterList("animeIDs", ids)
                 .List<object[]>()
-                .ToLookup(t => (int)t[0], t => (AniDB_Tag)t[1]);
+                .ToLookup(t => (int) t[0], t => (AniDB_Tag) t[1]);
 
             return tags;
         }
@@ -98,14 +99,18 @@ namespace Shoko.Server.Repositories
         }
 
 
-
         /// <summary>
         /// Gets all the tags, but only if we have the anime locally
         /// </summary>
         /// <returns></returns>
         public List<AniDB_Tag> GetAllForLocalSeries()
         {
-            return RepoFactory.AnimeSeries.GetAll().SelectMany(a=> RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID)).Where(a=>a!=null).Select(a=>GetByTagID(a.TagID)).Distinct().ToList();
+            return RepoFactory.AnimeSeries.GetAll()
+                .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
+                .Where(a => a != null)
+                .Select(a => GetByTagID(a.TagID))
+                .Distinct()
+                .ToList();
             /*
 
             using (var session = JMMService.SessionFactory.OpenSession())

@@ -19,12 +19,10 @@ namespace Shoko.Server.Repositories
 {
     public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
     {
-
         private static PocoIndex<int, SVR_AniDB_Anime, int> Animes;
 
         private AniDB_AnimeRepository()
         {
-            
         }
 
         public static AniDB_AnimeRepository Create()
@@ -54,8 +52,9 @@ namespace Shoko.Server.Repositories
                 int max = animeToUpdate.Count;
                 int count = 0;
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen");
-	            if (max <= 0) return;
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen");
+                if (max <= 0) return;
                 foreach (SVR_AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
                 {
                     SVR_AniDB_Anime.UpdateContractDetailedBatch(sessionWrapper, animeBatch);
@@ -71,18 +70,21 @@ namespace Shoko.Server.Repositories
                         trans.Commit();
                     }
 
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen - " + count + "/" + max);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name,
+                        " DbRegen - " + count + "/" + max);
                 }
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen - " + max + "/" + max);
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name,
+                    " DbRegen - " + max + "/" + max);
             }
         }
 
 
-
         public override void Save(IReadOnlyCollection<SVR_AniDB_Anime> objs)
         {
-            foreach(SVR_AniDB_Anime o in objs)
+            foreach (SVR_AniDB_Anime o in objs)
                 Save(o);
         }
 
@@ -105,10 +107,6 @@ namespace Shoko.Server.Repositories
         }
 
 
-
-
-
-
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
             return Animes.GetOne(id);
@@ -121,27 +119,37 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            return Cache.Values.Where(a=>a.AirDate.HasValue && a.AirDate.Value>=startDate && a.AirDate.Value<=endDate).ToList();
+            return Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate &&
+                                           a.AirDate.Value <= endDate)
+                .ToList();
         }
 
         public List<SVR_AniDB_Anime> GetForDate(ISession session, DateTime startDate, DateTime endDate)
         {
-            return Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
+            return Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate &&
+                                           a.AirDate.Value <= endDate)
+                .ToList();
         }
 
         public List<SVR_AniDB_Anime> SearchByName(ISession session, string queryText)
         {
-            return Cache.Values.Where(a=>a.AllTitles.IndexOf(queryText,StringComparison.InvariantCultureIgnoreCase)>=0).ToList();
+            return Cache.Values
+                .Where(a => a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                .ToList();
         }
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
-            return Cache.Values.Where(a => a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
+            return Cache.Values
+                .Where(a => a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                .ToList();
         }
 
         public List<SVR_AniDB_Anime> SearchByTag(string queryText)
         {
-            return Cache.Values.Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
+            return Cache.Values.Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >=
+                                           0)
+                .ToList();
         }
 
         public Dictionary<int, DefaultAnimeImages> GetDefaultImagesByAnime(ISessionWrapper session, int[] animeIds)
@@ -186,42 +194,42 @@ namespace Shoko.Server.Repositories
                 .AddEntity("traktFanart", typeof(Trakt_ImageFanart))
                 .AddEntity("traktPoster", typeof(Trakt_ImagePoster))
                 .SetParameterList("animeIds", animeIds)
-                .SetInt32("tvdbBannerType", (int)JMMImageType.TvDB_Banner)
-                .SetInt32("tvdbCoverType", (int)JMMImageType.TvDB_Cover)
-                .SetInt32("tvdbFanartType", (int)JMMImageType.TvDB_FanArt)
-                .SetInt32("movdbPosterType", (int)JMMImageType.MovieDB_Poster)
-                .SetInt32("movdbFanartType", (int)JMMImageType.MovieDB_FanArt)
-                .SetInt32("traktFanartType", (int)JMMImageType.Trakt_Fanart)
-                .SetInt32("traktPosterType", (int)JMMImageType.Trakt_Poster)
+                .SetInt32("tvdbBannerType", (int) JMMImageType.TvDB_Banner)
+                .SetInt32("tvdbCoverType", (int) JMMImageType.TvDB_Cover)
+                .SetInt32("tvdbFanartType", (int) JMMImageType.TvDB_FanArt)
+                .SetInt32("movdbPosterType", (int) JMMImageType.MovieDB_Poster)
+                .SetInt32("movdbFanartType", (int) JMMImageType.MovieDB_FanArt)
+                .SetInt32("traktFanartType", (int) JMMImageType.Trakt_Fanart)
+                .SetInt32("traktPosterType", (int) JMMImageType.Trakt_Poster)
                 .List<object[]>();
 
             foreach (object[] result in results)
             {
-                var aniDbDefImage = (AniDB_Anime_DefaultImage)result[0];
+                var aniDbDefImage = (AniDB_Anime_DefaultImage) result[0];
                 IImageEntity parentImage = null;
 
-                switch ((JMMImageType)aniDbDefImage.ImageParentType)
+                switch ((JMMImageType) aniDbDefImage.ImageParentType)
                 {
                     case JMMImageType.TvDB_Banner:
-                        parentImage = (IImageEntity)result[1];
+                        parentImage = (IImageEntity) result[1];
                         break;
                     case JMMImageType.TvDB_Cover:
-                        parentImage = (IImageEntity)result[2];
+                        parentImage = (IImageEntity) result[2];
                         break;
                     case JMMImageType.TvDB_FanArt:
-                        parentImage = (IImageEntity)result[3];
+                        parentImage = (IImageEntity) result[3];
                         break;
                     case JMMImageType.MovieDB_Poster:
-                        parentImage = (IImageEntity)result[4];
+                        parentImage = (IImageEntity) result[4];
                         break;
                     case JMMImageType.MovieDB_FanArt:
-                        parentImage = (IImageEntity)result[5];
+                        parentImage = (IImageEntity) result[5];
                         break;
                     case JMMImageType.Trakt_Fanart:
-                        parentImage = (IImageEntity)result[6];
+                        parentImage = (IImageEntity) result[6];
                         break;
                     case JMMImageType.Trakt_Poster:
-                        parentImage = (IImageEntity)result[7];
+                        parentImage = (IImageEntity) result[7];
                         break;
                 }
 
@@ -235,7 +243,7 @@ namespace Shoko.Server.Repositories
 
                 if (!defImagesByAnime.TryGetValue(aniDbDefImage.AnimeID, out defImages))
                 {
-                    defImages = new DefaultAnimeImages { AnimeID = aniDbDefImage.AnimeID };
+                    defImages = new DefaultAnimeImages {AnimeID = aniDbDefImage.AnimeID};
                     defImagesByAnime.Add(defImages.AnimeID, defImages);
                 }
 
@@ -267,10 +275,10 @@ namespace Shoko.Server.Repositories
             }
 
             return new CL_AniDB_Anime_DefaultImage
-                {
-                    AnimeID = AnimeID,
-                    ImageType = (int)JMMImageType.AniDB_Cover
-                };
+            {
+                AnimeID = AnimeID,
+                ImageType = (int) JMMImageType.AniDB_Cover
+            };
         }
 
         public CL_AniDB_Anime_DefaultImage GetFanartContractNoBlanks(CL_AniDB_Anime anime)
@@ -305,7 +313,7 @@ namespace Shoko.Server.Repositories
 
         public DefaultAnimeImage Fanart { get; set; }
 
-        public DefaultAnimeImage WideBanner { get; set;  }
+        public DefaultAnimeImage WideBanner { get; set; }
     }
 
     public class DefaultAnimeImage
@@ -328,12 +336,13 @@ namespace Shoko.Server.Repositories
             return AniDBImage.ToClient(_parentImage);
         }
 
-        public TImageType GetParentImage<TImageType>() where TImageType : class, IImageEntity  => _parentImage as TImageType;
+        public TImageType GetParentImage<TImageType>()
+            where TImageType : class, IImageEntity => _parentImage as TImageType;
 
-        public ImageSizeType AniDBImageSizeType => (ImageSizeType)AniDBImage.ImageType;
+        public ImageSizeType AniDBImageSizeType => (ImageSizeType) AniDBImage.ImageType;
 
         public AniDB_Anime_DefaultImage AniDBImage { get; private set; }
 
-        public JMMImageType ParentImageType => (JMMImageType)AniDBImage.ImageParentType;
+        public JMMImageType ParentImageType => (JMMImageType) AniDBImage.ImageParentType;
     }
 }

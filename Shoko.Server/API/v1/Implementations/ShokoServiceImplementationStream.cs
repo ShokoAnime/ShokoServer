@@ -21,14 +21,16 @@ namespace Shoko.Server
     {
         //89% Should be enough to not touch matroska offsets and give us some margin
         private double WatchedThreshold = 0.89;
+
         public const string ServerVersion = "Shoko Stream Server 1.0";
         private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
             {
-                return new StreamWithResponse(r.Status,r.StatusDescription);
+                return new StreamWithResponse(r.Status, r.StatusDescription);
             }
             return StreamFromIFile(r, autowatch);
         }
@@ -40,7 +42,7 @@ namespace Shoko.Server
             {
                 return new StreamWithResponse(r.Status, r.StatusDescription);
             }
-            return StreamFromIFile(r,autowatch);
+            return StreamFromIFile(r, autowatch);
         }
 
         private Stream StreamFromIFile(InfoResult r, bool? autowatch)
@@ -50,7 +52,8 @@ namespace Shoko.Server
             FileSystemResult<Stream> fr = r.File.OpenRead();
             if (fr == null || !fr.IsOk)
             {
-                return new StreamWithResponse(HttpStatusCode.InternalServerError,"Unable to open file '"+r.File.FullName+"': "+fr?.Error);
+                return new StreamWithResponse(HttpStatusCode.InternalServerError,
+                    "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
             }
             Stream org = fr.Result;
             long totalsize = org.Length;
@@ -102,9 +105,9 @@ namespace Shoko.Server
 
             resp.ResponseStatus = range ? HttpStatusCode.PartialContent : HttpStatusCode.OK;
 
-            if (r.User!=null && autowatch.HasValue && autowatch.Value && r.VideoLocal!=null)
+            if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
             {
-                outstream.CrossPosition = (long)((double)totalsize * WatchedThreshold);
+                outstream.CrossPosition = (long) ((double) totalsize * WatchedThreshold);
                 outstream.CrossPositionCrossed +=
                     (a) =>
                     {
@@ -138,7 +141,7 @@ namespace Shoko.Server
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
                 return s;
             s.Headers.Add("Server", ServerVersion);
-            s.Headers.Add("Accept-Ranges","bytes");
+            s.Headers.Add("Accept-Ranges", "bytes");
             s.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
             s.ContentType = r.Mime;
             s.ContentLength = r.File.Size;
@@ -173,7 +176,9 @@ namespace Shoko.Server
         public static string Base64DecodeUrl(string base64EncodedData)
         {
             var base64EncodedBytes =
-                System.Convert.FromBase64String(base64EncodedData.Replace("-", "+").Replace("_", "/").Replace(",", "="));
+                System.Convert.FromBase64String(base64EncodedData.Replace("-", "+")
+                    .Replace("_", "/")
+                    .Replace(",", "="));
             return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
@@ -185,7 +190,7 @@ namespace Shoko.Server
                 r.StatusDescription = "Video Not Found";
                 return r;
             }
-            if (userId.HasValue && autowatch.HasValue && userId.Value!=0)
+            if (userId.HasValue && autowatch.HasValue && userId.Value != 0)
             {
                 r.User = RepoFactory.JMMUser.GetByID(userId.Value);
                 if (r.User == null)
@@ -196,7 +201,8 @@ namespace Shoko.Server
                 }
             }
             r.Mime = r.File.ContentType;
-            if (string.IsNullOrEmpty(r.Mime) || r.Mime.Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
+            if (string.IsNullOrEmpty(r.Mime) || r.Mime.Equals("application/octet-stream",
+                    StringComparison.InvariantCultureIgnoreCase))
                 r.Mime = MimeTypes.GetMimeType(r.File.FullName);
             r.Status = HttpStatusCode.OK;
             return r;

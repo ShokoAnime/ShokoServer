@@ -106,7 +106,8 @@ namespace UPnP
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
-                "<NewRemoteHost></NewRemoteHost><NewExternalPort>" + port.ToString() + "</NewExternalPort><NewProtocol>" +
+                "<NewRemoteHost></NewRemoteHost><NewExternalPort>" + port.ToString() +
+                "</NewExternalPort><NewProtocol>" +
                 protocol.ToString().ToUpper() + "</NewProtocol>" +
                 "<NewInternalPort>" + port.ToString() + "</NewInternalPort><NewInternalClient>" +
                 Dns.GetHostAddresses(Dns.GetHostName())[0].ToString() +

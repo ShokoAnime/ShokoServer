@@ -21,13 +21,17 @@ namespace Shoko.Server.Utilities
             _baseReader = baseReader;
         }
 
-        public override int Read() {
+        public override int Read()
+        {
             int val = _baseReader.Read();
             try
             {
                 char c = System.Convert.ToChar(val);
-                _position += _encoding.GetByteCount(new char[] { c });
-            } catch { }
+                _position += _encoding.GetByteCount(new char[] {c});
+            }
+            catch
+            {
+            }
             return val;
         }
 

@@ -19,8 +19,13 @@ namespace Shoko.Server.Commands.WebCache
 
         public QueueStateStruct PrettyDescription
         {
-            get {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheDeleteXRefAniDBMAL, extraParams = new string[] { AnimeID.ToString() } };
+            get
+            {
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheDeleteXRefAniDBMAL,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -77,7 +82,8 @@ namespace Shoko.Server.Commands.WebCache
                 this.AnimeID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "AnimeID"));
                 this.StartEpisodeType =
-                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "StartEpisodeType"));
+                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL",
+                        "StartEpisodeType"));
                 this.StartEpisodeNumber =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL",
                         "StartEpisodeNumber"));

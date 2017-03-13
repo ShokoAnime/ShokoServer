@@ -6,7 +6,6 @@ namespace Shoko.Server.Mappings
 {
     public class AniDB_ReviewMap : ClassMap<AniDB_Review>
     {
-
         public AniDB_ReviewMap()
         {
             Table("AniDB_Review");

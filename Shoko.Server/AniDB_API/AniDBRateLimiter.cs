@@ -42,7 +42,6 @@ namespace Shoko.Server.AniDB_API
 
         private AniDbRateLimiter()
         {
-
         }
 
         public void ResetRate()

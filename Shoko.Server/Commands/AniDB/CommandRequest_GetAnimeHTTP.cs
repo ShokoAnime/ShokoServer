@@ -24,7 +24,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.AnimeInfo, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.AnimeInfo,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -49,7 +53,8 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
+                SVR_AniDB_Anime anime =
+                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
 
                 // NOTE - related anime are downloaded when the relations are created
 
@@ -97,7 +102,8 @@ namespace Shoko.Server.Commands
                 this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "AnimeID"));
                 this.DownloadRelations =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "DownloadRelations"));
-                this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "ForceRefresh"));
+                this.ForceRefresh = bool.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "ForceRefresh"));
             }
 
             return true;

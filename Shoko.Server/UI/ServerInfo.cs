@@ -36,6 +36,7 @@ namespace Shoko.Server
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
         public void NotifyPropertyChanged(string propname)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
@@ -45,7 +46,7 @@ namespace Shoko.Server
         private ServerInfo()
         {
             ImportFolders = new ObservableCollection<SVR_ImportFolder>();
-            CloudAccounts=new ObservableCollection<SVR_CloudAccount>();
+            CloudAccounts = new ObservableCollection<SVR_CloudAccount>();
             AdminMessages = new ObservableCollection<Azure_AdminMessage>();
             CloudProviders = new ObservableCollection<CloudProvider>();
             FolderProviders = new ObservableCollection<SVR_CloudAccount>();
@@ -63,15 +64,18 @@ namespace Shoko.Server
                     CmdProcessorGeneral_OnQueueStateChangedEvent);
 
             ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent +=
-                new Commands.CommandProcessorHasher.QueueCountChangedHandler(CmdProcessorHasher_OnQueueCountChangedEvent);
+                new Commands.CommandProcessorHasher.QueueCountChangedHandler(
+                    CmdProcessorHasher_OnQueueCountChangedEvent);
             ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent +=
-                new Commands.CommandProcessorHasher.QueueStateChangedHandler(CmdProcessorHasher_OnQueueStateChangedEvent);
+                new Commands.CommandProcessorHasher.QueueStateChangedHandler(
+                    CmdProcessorHasher_OnQueueStateChangedEvent);
 
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent +=
-                new Commands.CommandProcessorImages.QueueCountChangedHandler(CmdProcessorImages_OnQueueCountChangedEvent);
+                new Commands.CommandProcessorImages.QueueCountChangedHandler(
+                    CmdProcessorImages_OnQueueCountChangedEvent);
             ShokoService.CmdProcessorImages.OnQueueStateChangedEvent +=
-                new Commands.CommandProcessorImages.QueueStateChangedHandler(CmdProcessorImages_OnQueueStateChangedEvent);
-
+                new Commands.CommandProcessorImages.QueueStateChangedHandler(
+                    CmdProcessorImages_OnQueueStateChangedEvent);
 
 
             //Populate Cloud Providers
@@ -88,8 +92,6 @@ namespace Shoko.Server
                     CloudProviders.Add(p);
                 }
             }
-
-
         }
 
         void CmdProcessorImages_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
@@ -155,10 +157,7 @@ namespace Shoko.Server
         public bool AdminMessagesAvailable
         {
             get { return adminMessagesAvailable; }
-            set
-{
-                this.SetField(()=>adminMessagesAvailable,value);
-            }
+            set { this.SetField(() => adminMessagesAvailable, value); }
         }
 
         private int hasherQueueCount = 0;
@@ -166,10 +165,7 @@ namespace Shoko.Server
         public int HasherQueueCount
         {
             get { return hasherQueueCount; }
-            set
-{
-                this.SetField(()=>hasherQueueCount,value);
-            }
+            set { this.SetField(() => hasherQueueCount, value); }
         }
 
         private string hasherQueueState = "";
@@ -177,10 +173,7 @@ namespace Shoko.Server
         public string HasherQueueState
         {
             get { return hasherQueueState; }
-            set
-{
-                this.SetField(()=>hasherQueueState,value);
-            }
+            set { this.SetField(() => hasherQueueState, value); }
         }
 
         private int imagesQueueCount = 0;
@@ -188,10 +181,7 @@ namespace Shoko.Server
         public int ImagesQueueCount
         {
             get { return imagesQueueCount; }
-            set
-{
-                this.SetField(()=>imagesQueueCount,value);
-            }
+            set { this.SetField(() => imagesQueueCount, value); }
         }
 
         private string imagesQueueState = "";
@@ -199,10 +189,7 @@ namespace Shoko.Server
         public string ImagesQueueState
         {
             get { return imagesQueueState; }
-            set
-{
-                this.SetField(()=>imagesQueueState,value);
-            }
+            set { this.SetField(() => imagesQueueState, value); }
         }
 
         private int generalQueueCount = 0;
@@ -210,10 +197,7 @@ namespace Shoko.Server
         public int GeneralQueueCount
         {
             get { return generalQueueCount; }
-            set
-{
-                this.SetField(()=>generalQueueCount,value);
-            }
+            set { this.SetField(() => generalQueueCount, value); }
         }
 
         private string generalQueueState = "";
@@ -221,10 +205,7 @@ namespace Shoko.Server
         public string GeneralQueueState
         {
             get { return generalQueueState; }
-            set
-{
-                this.SetField(()=>generalQueueState,value);
-            }
+            set { this.SetField(() => generalQueueState, value); }
         }
 
         private bool hasherQueuePaused = false;
@@ -232,10 +213,7 @@ namespace Shoko.Server
         public bool HasherQueuePaused
         {
             get { return hasherQueuePaused; }
-            set
-{
-                this.SetField(()=>hasherQueuePaused,value);
-            }
+            set { this.SetField(() => hasherQueuePaused, value); }
         }
 
         private bool hasherQueueRunning = true;
@@ -243,10 +221,7 @@ namespace Shoko.Server
         public bool HasherQueueRunning
         {
             get { return hasherQueueRunning; }
-            set
-{
-                this.SetField(()=>hasherQueueRunning,value);
-            }
+            set { this.SetField(() => hasherQueueRunning, value); }
         }
 
         private bool generalQueuePaused = false;
@@ -254,10 +229,7 @@ namespace Shoko.Server
         public bool GeneralQueuePaused
         {
             get { return generalQueuePaused; }
-            set
-{
-                this.SetField(()=>generalQueuePaused,value);
-            }
+            set { this.SetField(() => generalQueuePaused, value); }
         }
 
         private bool generalQueueRunning = true;
@@ -265,10 +237,7 @@ namespace Shoko.Server
         public bool GeneralQueueRunning
         {
             get { return generalQueueRunning; }
-            set
-{
-                this.SetField(()=>generalQueueRunning,value);
-            }
+            set { this.SetField(() => generalQueueRunning, value); }
         }
 
         private bool imagesQueuePaused = false;
@@ -276,10 +245,7 @@ namespace Shoko.Server
         public bool ImagesQueuePaused
         {
             get { return imagesQueuePaused; }
-            set
-{
-                this.SetField(()=>imagesQueuePaused,value);
-            }
+            set { this.SetField(() => imagesQueuePaused, value); }
         }
 
         private bool imagesQueueRunning = true;
@@ -287,10 +253,7 @@ namespace Shoko.Server
         public bool ImagesQueueRunning
         {
             get { return imagesQueueRunning; }
-            set
-{
-                this.SetField(()=>imagesQueueRunning,value);
-            }
+            set { this.SetField(() => imagesQueueRunning, value); }
         }
 
         private string banReason = "";
@@ -298,10 +261,7 @@ namespace Shoko.Server
         public string BanReason
         {
             get { return banReason; }
-            set
-{
-                this.SetField(()=>banReason,value);
-            }
+            set { this.SetField(() => banReason, value); }
         }
 
         private string banOrigin = "";
@@ -309,10 +269,7 @@ namespace Shoko.Server
         public string BanOrigin
         {
             get { return banOrigin; }
-            set
-{
-                this.SetField(()=>banOrigin,value);
-            }
+            set { this.SetField(() => banOrigin, value); }
         }
 
         private bool isBanned = false;
@@ -320,10 +277,7 @@ namespace Shoko.Server
         public bool IsBanned
         {
             get { return isBanned; }
-            set
-{
-                this.SetField(()=>isBanned,value);
-            }
+            set { this.SetField(() => isBanned, value); }
         }
 
         private bool isInvalidSession = false;
@@ -331,10 +285,7 @@ namespace Shoko.Server
         public bool IsInvalidSession
         {
             get { return isInvalidSession; }
-            set
-{
-                this.SetField(()=>isInvalidSession,value);
-            }
+            set { this.SetField(() => isInvalidSession, value); }
         }
 
         private bool waitingOnResponseAniDBUDP = false;
@@ -343,8 +294,8 @@ namespace Shoko.Server
         {
             get { return waitingOnResponseAniDBUDP; }
             set
-{
-                this.SetField(()=>waitingOnResponseAniDBUDP,value);
+            {
+                this.SetField(() => waitingOnResponseAniDBUDP, value);
                 NotWaitingOnResponseAniDBUDP = !value;
             }
         }
@@ -354,10 +305,7 @@ namespace Shoko.Server
         public bool NotWaitingOnResponseAniDBUDP
         {
             get { return notWaitingOnResponseAniDBUDP; }
-            set
-{
-                this.SetField(()=>notWaitingOnResponseAniDBUDP,value);
-            }
+            set { this.SetField(() => notWaitingOnResponseAniDBUDP, value); }
         }
 
         private string waitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
@@ -371,10 +319,7 @@ namespace Shoko.Server
                 waitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;
             }
-            set
-{
-                this.SetField(()=>waitingOnResponseAniDBUDPString,value);
-            }
+            set { this.SetField(() => waitingOnResponseAniDBUDPString, value); }
         }
 
         private string extendedPauseString = "";
@@ -382,10 +327,7 @@ namespace Shoko.Server
         public string ExtendedPauseString
         {
             get { return extendedPauseString; }
-            set
-{
-                this.SetField(()=>extendedPauseString,value);
-            }
+            set { this.SetField(() => extendedPauseString, value); }
         }
 
         private bool hasExtendedPause = false;
@@ -393,10 +335,7 @@ namespace Shoko.Server
         public bool HasExtendedPause
         {
             get { return hasExtendedPause; }
-            set
-{
-                this.SetField(()=>hasExtendedPause,value);
-            }
+            set { this.SetField(() => hasExtendedPause, value); }
         }
 
         public ObservableCollection<SVR_ImportFolder> ImportFolders { get; set; }
@@ -414,12 +353,13 @@ namespace Shoko.Server
 
 
         public ObservableCollection<SVR_CloudAccount> CloudAccounts { get; set; }
+
         public void RefreshImportFolders()
         {
             ImportFolders.Clear();
             try
             {
-                RepoFactory.ImportFolder.GetAll().ForEach(a=>ImportFolders.Add(a));
+                RepoFactory.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
             }
             catch (Exception ex)
             {
@@ -432,7 +372,7 @@ namespace Shoko.Server
             CloudAccounts.Clear();
             try
             {
-                RepoFactory.CloudAccount.GetAll().ForEach(a=>CloudAccounts.Add(a));
+                RepoFactory.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
             }
             catch (Exception ex)
             {
@@ -446,6 +386,7 @@ namespace Shoko.Server
             FolderProviders.Add(SVR_CloudAccount.CreateLocalFileSystemAccount());
             RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
         }
+
         #endregion
     }
 }

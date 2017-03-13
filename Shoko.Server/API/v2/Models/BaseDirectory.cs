@@ -61,6 +61,5 @@ namespace Shoko.Server.API.v2.Models
 
         [DataMember(IsRequired = true)]
         public abstract string type { get; }
-
     }
 }

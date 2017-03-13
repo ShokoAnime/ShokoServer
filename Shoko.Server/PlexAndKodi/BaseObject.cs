@@ -11,8 +11,6 @@ namespace Shoko.Server.PlexAndKodi
 {
     public class BaseObject
     {
-
-
         public int Start { get; set; }
         public int Size { get; set; }
 
@@ -45,11 +43,11 @@ namespace Shoko.Server.PlexAndKodi
             bool isandroid = false;
             bool isios = false;
             PlexDeviceInfo dinfo = prov.GetPlexClient();
-            if (dinfo!=null)
+            if (dinfo != null)
             {
-                if (dinfo.Client==PlexClient.Android)
+                if (dinfo.Client == PlexClient.Android)
                     isandroid = true;
-                else if (dinfo.Client==PlexClient.IOS)
+                else if (dinfo.Client == PlexClient.IOS)
                     isios = true;
             }
             MediaContainer.Childrens.ForEach(a =>
@@ -78,7 +76,8 @@ namespace Shoko.Server.PlexAndKodi
                             }
                         }
                     }
-                };
+                }
+                ;
             });
             return MediaContainer;
         }

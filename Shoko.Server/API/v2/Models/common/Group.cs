@@ -15,7 +15,10 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Serie> series { get; set; }
 
-        public override string type { get { return "group"; } }
+        public override string type
+        {
+            get { return "group"; }
+        }
 
         public Group()
         {
@@ -24,7 +27,8 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Group GenerateFromAnimeGroup(SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level, bool all, int filterid)
+        public static Group GenerateFromAnimeGroup(SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
+            bool all, int filterid)
         {
             Group g = new Group();
 
@@ -72,7 +76,10 @@ namespace Shoko.Server.API.v2.Models.common
                         url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
                         index = 0
                     });
-                    if (!string.IsNullOrEmpty(vag.Thumb)) { g.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0 }); }
+                    if (!string.IsNullOrEmpty(vag.Thumb))
+                    {
+                        g.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0});
+                    }
                 }
 
                 if (!nocast)
@@ -83,27 +90,62 @@ namespace Shoko.Server.API.v2.Models.common
                         foreach (RoleTag rtg in vag.Roles)
                         {
                             Role new_role = new Role();
-                            if (!String.IsNullOrEmpty(rtg.Value)) { new_role.name = rtg.Value; } else { new_role.name = ""; }
-                            if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); } else { new_role.namepic = ""; }
-                            if (!String.IsNullOrEmpty(rtg.Role)) { new_role.role = rtg.Role; } else { rtg.Role = ""; }
-                            if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; }
-                            if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); } else { new_role.rolepic = ""; }
+                            if (!String.IsNullOrEmpty(rtg.Value))
+                            {
+                                new_role.name = rtg.Value;
+                            }
+                            else
+                            {
+                                new_role.name = "";
+                            }
+                            if (!String.IsNullOrEmpty(rtg.TagPicture))
+                            {
+                                new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture);
+                            }
+                            else
+                            {
+                                new_role.namepic = "";
+                            }
+                            if (!String.IsNullOrEmpty(rtg.Role))
+                            {
+                                new_role.role = rtg.Role;
+                            }
+                            else
+                            {
+                                rtg.Role = "";
+                            }
+                            if (!String.IsNullOrEmpty(rtg.RoleDescription))
+                            {
+                                new_role.roledesc = rtg.RoleDescription;
+                            }
+                            else
+                            {
+                                new_role.roledesc = "";
+                            }
+                            if (!String.IsNullOrEmpty(rtg.RolePicture))
+                            {
+                                new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture);
+                            }
+                            else
+                            {
+                                new_role.rolepic = "";
+                            }
                             g.roles.Add(new_role);
                         }
                     }
                 }
 
                 if (!notag)
-            {
-                    if (vag.Genres != null)
                 {
+                    if (vag.Genres != null)
+                    {
                         foreach (Shoko.Models.PlexAndKodi.Tag otg in vag.Genres)
                         {
                             Tag new_tag = new Tag();
                             new_tag.tag = otg.Value;
                             g.tags.Add(new_tag);
-                }
-            }
+                        }
+                    }
                 }
             }
 
@@ -125,7 +167,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (!series.Contains(ada.AnimeSeriesID)) continue;
                     }
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ada, uid,nocast, notag, (level-1), all));
+                    g.series.Add(Serie.GenerateFromAnimeSeries(ada, uid, nocast, notag, (level - 1), all));
                 }
                 // This should be faster
                 g.series.Sort();

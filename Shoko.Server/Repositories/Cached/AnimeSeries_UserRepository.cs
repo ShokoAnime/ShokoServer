@@ -65,27 +65,29 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_AnimeSeries_User> sers =
                 Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = sers.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name, " DbRegen");
-	        if (max <= 0) return;
-	        foreach (SVR_AnimeSeries_User g in sers)
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeSeries_User).Name, " DbRegen");
+            if (max <= 0) return;
+            foreach (SVR_AnimeSeries_User g in sers)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeSeries_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
 
-
         public override void Save(IReadOnlyCollection<SVR_AnimeSeries_User> objs)
         {
-            foreach(SVR_AnimeSeries_User s in objs)
+            foreach (SVR_AnimeSeries_User s in objs)
                 Save(s);
         }
 
@@ -124,9 +126,6 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
-
-
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
             return UsersSeries.GetOne(userid, seriesid);
@@ -144,7 +143,6 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
         public List<SVR_AnimeSeries_User> GetMostRecentlyWatched(int userID)
         {
             return
@@ -155,13 +153,11 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
             if (Changes.ContainsKey(userid))
                 return Changes[userid];
             return new ChangeTracker<int>();
         }
-
     }
 }

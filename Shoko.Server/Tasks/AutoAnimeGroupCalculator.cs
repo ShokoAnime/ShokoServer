@@ -15,9 +15,10 @@ namespace Shoko.Server.Tasks
     /// </remarks>
     internal class AutoAnimeGroupCalculator
     {
-        private static readonly Regex TitleNoiseRegex = new Regex( @"[^\w\s]|\d|gekijouban|the animation|the movie",
+        private static readonly Regex TitleNoiseRegex = new Regex(@"[^\w\s]|\d|gekijouban|the animation|the movie",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly char[] Whitespace = { ' ', '\t', '\r', '\n' };
+
+        private static readonly char[] Whitespace = {' ', '\t', '\r', '\n'};
 
         private readonly ILookup<int, AnimeRelation> _relationMap;
         private readonly Dictionary<int, int> _animeGroupMap = new Dictionary<int, int>();
@@ -67,27 +68,28 @@ namespace Shoko.Server.Tasks
             string exclusionsSetting = ServerSettings.AutoGroupSeriesRelationExclusions;
             AutoGroupExclude exclusions = AutoGroupExclude.None;
             AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.None;
-            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.AutoGroupSeriesUseScoreAlgorithm ?
-                MainAnimeSelectionStrategy.Weighted : MainAnimeSelectionStrategy.MinAirDate;
+            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.AutoGroupSeriesUseScoreAlgorithm
+                ? MainAnimeSelectionStrategy.Weighted
+                : MainAnimeSelectionStrategy.MinAirDate;
 
             if (!String.IsNullOrEmpty(exclusionsSetting))
             {
                 var exclusionTokens = exclusionsSetting
-                    .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => s.Trim())
                     .Where(s => s.Length > 0)
                     .ToList();
 
                 exclusions = exclusionTokens
                     .Select(s =>
-                        {
-                            AutoGroupExclude exclude;
+                    {
+                        AutoGroupExclude exclude;
 
-                            s = s.Replace(" ", String.Empty);
-                            Enum.TryParse(s, true, out exclude);
+                        s = s.Replace(" ", String.Empty);
+                        Enum.TryParse(s, true, out exclude);
 
-                            return exclude;
-                        })
+                        return exclude;
+                    })
                     .Aggregate(AutoGroupExclude.None, (exclude, allExcludes) => allExcludes | exclude);
 
                 if (exclusionTokens.Contains("AllowDissimilarTitleExclusion", StringComparer.OrdinalIgnoreCase))
@@ -144,61 +146,62 @@ namespace Shoko.Server.Tasks
                 .AddScalar("relationType", NHibernateUtil.String)
                 .List<object[]>()
                 .Select(r =>
+                {
+                    var relation = new AnimeRelation
                     {
-                        var relation = new AnimeRelation
-                            {
-                                FromId = (int)r[0],
-                                ToId = (int)r[1],
-                                FromType = (AnimeTypes)r[2],
-                                ToType = (AnimeTypes)r[3],
-                                FromMainTitle = (string)r[4],
-                                ToMainTitle = (string)r[5],
-                                FromAirDate = (DateTime?)r[6],
-                                ToAirDate = (DateTime?)r[7]
-                            };
+                        FromId = (int) r[0],
+                        ToId = (int) r[1],
+                        FromType = (AnimeTypes) r[2],
+                        ToType = (AnimeTypes) r[3],
+                        FromMainTitle = (string) r[4],
+                        ToMainTitle = (string) r[5],
+                        FromAirDate = (DateTime?) r[6],
+                        ToAirDate = (DateTime?) r[7]
+                    };
 
-                        switch (((string)r[8]).ToLowerInvariant())
-                        {
-                            case "full story":
-                                relation.RelationType = AnimeRelationType.FullStory;
-                                break;
-                            case "summary":
-                                relation.RelationType = AnimeRelationType.Summary;
-                                break;
-                            case "parent story":
-                                relation.RelationType = AnimeRelationType.ParentStory;
-                                break;
-                            case "side story":
-                                relation.RelationType = AnimeRelationType.SideStory;
-                                break;
-                            case "prequel":
-                                relation.RelationType = AnimeRelationType.Prequel;
-                                break;
-                            case "sequel":
-                                relation.RelationType = AnimeRelationType.Sequel;
-                                break;
-                            case "alternative setting":
-                                relation.RelationType = AnimeRelationType.AlternativeSetting;
-                                break;
-                            case "alternative version":
-                                relation.RelationType = AnimeRelationType.AlternativeVersion;
-                                break;
-                            case "same setting":
-                                relation.RelationType = AnimeRelationType.SameSetting;
-                                break;
-                            case "character":
-                                relation.RelationType = AnimeRelationType.Character;
-                                break;
-                            default:
-                                relation.RelationType = AnimeRelationType.Other;
-                                break;
-                        }
+                    switch (((string) r[8]).ToLowerInvariant())
+                    {
+                        case "full story":
+                            relation.RelationType = AnimeRelationType.FullStory;
+                            break;
+                        case "summary":
+                            relation.RelationType = AnimeRelationType.Summary;
+                            break;
+                        case "parent story":
+                            relation.RelationType = AnimeRelationType.ParentStory;
+                            break;
+                        case "side story":
+                            relation.RelationType = AnimeRelationType.SideStory;
+                            break;
+                        case "prequel":
+                            relation.RelationType = AnimeRelationType.Prequel;
+                            break;
+                        case "sequel":
+                            relation.RelationType = AnimeRelationType.Sequel;
+                            break;
+                        case "alternative setting":
+                            relation.RelationType = AnimeRelationType.AlternativeSetting;
+                            break;
+                        case "alternative version":
+                            relation.RelationType = AnimeRelationType.AlternativeVersion;
+                            break;
+                        case "same setting":
+                            relation.RelationType = AnimeRelationType.SameSetting;
+                            break;
+                        case "character":
+                            relation.RelationType = AnimeRelationType.Character;
+                            break;
+                        default:
+                            relation.RelationType = AnimeRelationType.Other;
+                            break;
+                    }
 
-                        return relation;
-                    })
+                    return relation;
+                })
                 .ToLookup(k => k.FromId);
 
-            return new AutoAnimeGroupCalculator(relationshipMap, exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
+            return new AutoAnimeGroupCalculator(relationshipMap, exclusions, relationsToFuzzyTitleTest,
+                mainAnimeSelectionStrategy);
         }
 
         /// <summary>
@@ -254,7 +257,8 @@ namespace Shoko.Server.Tasks
             return animeIdsInSameGroup;
         }
 
-        private static int FindSuitableAnimeByMinAirDate(Dictionary<int, RelationNode> nodes, HashSet<RelationEdge> edges)
+        private static int FindSuitableAnimeByMinAirDate(Dictionary<int, RelationNode> nodes,
+            HashSet<RelationEdge> edges)
         {
             int animeId = nodes.Values
                 .OrderBy(n => n.AirDate ?? DateTime.MaxValue)
@@ -264,13 +268,14 @@ namespace Shoko.Server.Tasks
             return animeId;
         }
 
-        private static int FindSuitableAnimeByWeighting(Dictionary<int, RelationNode> nodes, HashSet<RelationEdge> edges)
+        private static int FindSuitableAnimeByWeighting(Dictionary<int, RelationNode> nodes,
+            HashSet<RelationEdge> edges)
         {
             var animeRelStats = new List<AnimeRelationStats>(nodes.Count);
 
             foreach (RelationNode node in nodes.Values)
             {
-                var stats = new AnimeRelationStats { AnimeNode = node };
+                var stats = new AnimeRelationStats {AnimeNode = node};
                 var visitedNodes = new HashSet<int>();
                 var toVisit = new Queue<int>();
 
@@ -288,7 +293,8 @@ namespace Shoko.Server.Tasks
 
                     bool hasSequel = false;
 
-                    foreach (RelationEdge edge in edges.Where(e => e.AnimeId2 == animeId && e.RelationType1 == AnimeRelationType.Prequel))
+                    foreach (RelationEdge edge in edges.Where(
+                        e => e.AnimeId2 == animeId && e.RelationType1 == AnimeRelationType.Prequel))
                     {
                         toVisit.Enqueue(edge.AnimeId1);
                         hasSequel = true;
@@ -305,7 +311,8 @@ namespace Shoko.Server.Tasks
                 // Count the number of various sorts of direct relationships this node has
                 foreach (RelationEdge edge in edges)
                 {
-                    if ((edge.AnimeId1 == node.AnimeId || edge.AnimeId2 == node.AnimeId) && edge.RelationType1 == AnimeRelationType.AlternativeSetting)
+                    if ((edge.AnimeId1 == node.AnimeId || edge.AnimeId2 == node.AnimeId) &&
+                        edge.RelationType1 == AnimeRelationType.AlternativeSetting)
                     {
                         stats.AlternateVersions++;
                     }
@@ -342,7 +349,8 @@ namespace Shoko.Server.Tasks
         /// <param name="edges">Returns the graph edges.</param>
         /// <returns><c>true</c> if a graph was built; otherwise, <c>false</c>
         /// (e.g. if the specified anime has no relations).</returns>
-        private bool BuildGroupGraph(int rootAnimeId, out Dictionary<int, RelationNode> nodes, out HashSet<RelationEdge> edges)
+        private bool BuildGroupGraph(int rootAnimeId, out Dictionary<int, RelationNode> nodes,
+            out HashSet<RelationEdge> edges)
         {
             var toVisit = new Queue<int>();
             bool first = true;
@@ -367,9 +375,9 @@ namespace Shoko.Server.Tasks
 
                         edges = new HashSet<RelationEdge>();
                         nodes = new Dictionary<int, RelationNode>
-                            {
-                                [relation.FromId] = startNode
-                            };
+                        {
+                            [relation.FromId] = startNode
+                        };
                         first = false;
                     }
 
@@ -404,13 +412,15 @@ namespace Shoko.Server.Tasks
         /// the group graph; otherwise, <c>false</c>.</returns>
         private bool ShouldConsiderAnimeRelation(AnimeRelation rel)
         {
-            if (((int)rel.RelationType & (int)_exclusions) != 0)
+            if (((int) rel.RelationType & (int) _exclusions) != 0)
             {
                 return false; // The relation is in the exclusion list, so ignore it
             }
-			// Check if we are excluding Movies or OVAs
-            if ((_exclusions & AutoGroupExclude.Movie) == AutoGroupExclude.Movie && (rel.FromType == AnimeTypes.Movie || rel.ToType == AnimeTypes.Movie)
-                || (_exclusions & AutoGroupExclude.Ova) == AutoGroupExclude.Ova && (rel.FromType == AnimeTypes.OVA || rel.ToType == AnimeTypes.OVA))
+            // Check if we are excluding Movies or OVAs
+            if ((_exclusions & AutoGroupExclude.Movie) == AutoGroupExclude.Movie &&
+                (rel.FromType == AnimeTypes.Movie || rel.ToType == AnimeTypes.Movie)
+                || (_exclusions & AutoGroupExclude.Ova) == AutoGroupExclude.Ova &&
+                (rel.FromType == AnimeTypes.OVA || rel.ToType == AnimeTypes.OVA))
             {
                 return false;
             }
@@ -452,7 +462,7 @@ namespace Shoko.Server.Tasks
 
             // Either approximately half the words must match,
             // or the total length of the matched words must equate to 40% or more of the shortest title
-            return (matches >= minTokenCount / 2) || matchLen >= Math.Max(1, (int)(shortestTitleLen * 0.4));
+            return (matches >= minTokenCount / 2) || matchLen >= Math.Max(1, (int) (shortestTitleLen * 0.4));
         }
 
         private static string[] CreateTokensFromTitle(string title)
@@ -593,7 +603,7 @@ namespace Shoko.Server.Tasks
                     return true;
 
                 return AnimeId1 == other.AnimeId1 && RelationType1 == other.RelationType1
-                    && AnimeId2 == other.AnimeId2 && RelationType2 == other.RelationType2;
+                       && AnimeId2 == other.AnimeId2 && RelationType2 == other.RelationType2;
             }
 
             public override int GetHashCode()
@@ -602,9 +612,9 @@ namespace Shoko.Server.Tasks
                 {
                     int hashCode = AnimeId1;
 
-                    hashCode = (hashCode * 397) ^ (int)RelationType1;
+                    hashCode = (hashCode * 397) ^ (int) RelationType1;
                     hashCode = (hashCode * 397) ^ AnimeId2;
-                    hashCode = (hashCode * 397) ^ (int)RelationType2;
+                    hashCode = (hashCode * 397) ^ (int) RelationType2;
 
                     return hashCode;
                 }
@@ -663,6 +673,7 @@ namespace Shoko.Server.Tasks
     public enum AutoGroupExclude
     {
         None = 0,
+
         // Relationship types
         Other = AutoAnimeGroupCalculator.AnimeRelationType.Other,
         FullStory = AutoAnimeGroupCalculator.AnimeRelationType.FullStory,
@@ -675,6 +686,7 @@ namespace Shoko.Server.Tasks
         AlternativeVersion = AutoAnimeGroupCalculator.AnimeRelationType.AlternativeVersion,
         SameSetting = AutoAnimeGroupCalculator.AnimeRelationType.SameSetting,
         Character = AutoAnimeGroupCalculator.AnimeRelationType.Character,
+
         // Anime types
         Movie = 0x1000,
         Ova = 0x2000

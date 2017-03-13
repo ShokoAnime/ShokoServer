@@ -172,7 +172,6 @@ namespace AniDBAPI.Commands
                     sw.Write(xml);
                     sw.Close();
                 }
-
             }
             catch (Exception ex)
             {

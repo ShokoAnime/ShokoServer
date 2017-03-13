@@ -15,8 +15,8 @@ namespace Shoko.Server.Repositories.Direct
 
         private AniDB_RecommendationRepository()
         {
-            
         }
+
         public static AniDB_RecommendationRepository Create()
         {
             return new AniDB_RecommendationRepository();
@@ -48,6 +48,5 @@ namespace Shoko.Server.Repositories.Direct
                 .Add(Restrictions.Eq("UserID", userid))
                 .UniqueResult<AniDB_Recommendation>();
         }
-
     }
 }

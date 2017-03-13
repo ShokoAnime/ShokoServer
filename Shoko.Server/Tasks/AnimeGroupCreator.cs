@@ -52,7 +52,6 @@ namespace Shoko.Server.Tasks
         public AnimeGroupCreator()
             : this(ServerSettings.AutoGroupSeries)
         {
-
         }
 
         /// <summary>
@@ -65,13 +64,13 @@ namespace Shoko.Server.Tasks
             DateTime now = DateTime.Now;
 
             var tempGroup = new SVR_AnimeGroup
-                {
-                    GroupName = TempGroupName,
-                    Description = TempGroupName,
-                    SortName = TempGroupName,
-                    DateTimeUpdated = now,
-                    DateTimeCreated = now
-                };
+            {
+                GroupName = TempGroupName,
+                Description = TempGroupName,
+                SortName = TempGroupName,
+                DateTimeUpdated = now,
+                DateTimeCreated = now
+            };
 
             // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
             session.Insert(tempGroup);
@@ -102,26 +101,28 @@ namespace Shoko.Server.Tasks
             _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
         }
 
-        private void UpdateAnimeSeriesContractsAndSave(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> series)
+        private void UpdateAnimeSeriesContractsAndSave(ISessionWrapper session,
+            IReadOnlyCollection<SVR_AnimeSeries> series)
         {
             _log.Info("Updating contracts for AnimeSeries");
 
             // Update batches of AnimeSeries contracts in parallel. Each parallel branch requires it's own session since NHibernate sessions aren't thread safe.
             // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
-            Parallel.ForEach(series.Batch(DefaultBatchSize), new ParallelOptions { MaxDegreeOfParallelism = 4 },
+            Parallel.ForEach(series.Batch(DefaultBatchSize), new ParallelOptions {MaxDegreeOfParallelism = 4},
                 localInit: () => DatabaseFactory.SessionFactory.OpenStatelessSession(),
                 body: (seriesBatch, state, localSession) =>
-                    {
-                        SVR_AnimeSeries.BatchUpdateContracts(localSession.Wrap(), seriesBatch);
-                        return localSession;
-                    },
+                {
+                    SVR_AnimeSeries.BatchUpdateContracts(localSession.Wrap(), seriesBatch);
+                    return localSession;
+                },
                 localFinally: localSession => { localSession.Dispose(); });
 
             _animeSeriesRepo.UpdateBatch(session, series);
             _log.Info("AnimeSeries contracts have been updated");
         }
 
-        private void UpdateAnimeGroupsAndTheirContracts(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
+        private void UpdateAnimeGroupsAndTheirContracts(ISessionWrapper session,
+            IReadOnlyCollection<SVR_AnimeGroup> groups)
         {
             _log.Info("Updating statistics and contracts for AnimeGroups");
 
@@ -129,20 +130,21 @@ namespace Shoko.Server.Tasks
 
             // Update batches of AnimeGroup contracts in parallel. Each parallel branch requires it's own session since NHibernate sessions aren't thread safe.
             // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
-            Parallel.ForEach(groups.Batch(DefaultBatchSize), new ParallelOptions { MaxDegreeOfParallelism = 4 },
+            Parallel.ForEach(groups.Batch(DefaultBatchSize), new ParallelOptions {MaxDegreeOfParallelism = 4},
                 localInit: () => DatabaseFactory.SessionFactory.OpenStatelessSession(),
                 body: (groupBatch, state, localSession) =>
-                    {
-                        var createdGroupUsers = new List<SVR_AnimeGroup_User>(groupBatch.Length);
+                {
+                    var createdGroupUsers = new List<SVR_AnimeGroup_User>(groupBatch.Length);
 
-                        // We shouldn't need to keep track of updates to AnimeGroup_Users in the below call, because they should have all been deleted,
-                        // therefore they should all be new
-                        SVR_AnimeGroup.BatchUpdateStats(groupBatch, watchedStats: true, missingEpsStats: true, createdGroupUsers: createdGroupUsers);
-                        allCreatedGroupUsers.Add(createdGroupUsers);
-                        SVR_AnimeGroup.BatchUpdateContracts(localSession.Wrap(), groupBatch, updateStats: true);
+                    // We shouldn't need to keep track of updates to AnimeGroup_Users in the below call, because they should have all been deleted,
+                    // therefore they should all be new
+                    SVR_AnimeGroup.BatchUpdateStats(groupBatch, watchedStats: true, missingEpsStats: true,
+                        createdGroupUsers: createdGroupUsers);
+                    allCreatedGroupUsers.Add(createdGroupUsers);
+                    SVR_AnimeGroup.BatchUpdateContracts(localSession.Wrap(), groupBatch, updateStats: true);
 
-                        return localSession;
-                    },
+                    return localSession;
+                },
                 localFinally: localSession => { localSession.Dispose(); });
 
             _animeGroupRepo.UpdateBatch(session, groups);
@@ -150,7 +152,8 @@ namespace Shoko.Server.Tasks
 
             _log.Info("Creating AnimeGroup_Users and updating plex/kodi contracts");
 
-            List<SVR_AnimeGroup_User> animeGroupUsers = allCreatedGroupUsers.SelectMany(groupUsers => groupUsers).ToList();
+            List<SVR_AnimeGroup_User> animeGroupUsers = allCreatedGroupUsers.SelectMany(groupUsers => groupUsers)
+                .ToList();
 
             // Insert the AnimeGroup_Users so that they get assigned a primary key before we update plex/kodi contracts
             _animeGroupUserRepo.InsertBatch(session, animeGroupUsers);
@@ -186,13 +189,15 @@ namespace Shoko.Server.Tasks
 
             // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
             // and is enough work that it can benefit from running in parallel
-            Parallel.ForEach(grpFilters.Where(f => ((GroupFilterType)f.FilterType & GroupFilterType.Directory) != GroupFilterType.Directory), filter =>
+            Parallel.ForEach(
+                grpFilters.Where(f => ((GroupFilterType) f.FilterType & GroupFilterType.Directory) !=
+                                      GroupFilterType.Directory), filter =>
                 {
                     var userGroupIds = filter.GroupsIds;
 
                     userGroupIds.Clear();
 
-                    if (filter.FilterType == (int)GroupFilterType.Tag)
+                    if (filter.FilterType == (int) GroupFilterType.Tag)
                     {
                         foreach (var user in users)
                         {
@@ -220,7 +225,8 @@ namespace Shoko.Server.Tasks
         /// <param name="session">The NHibernate session.</param>
         /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
         /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
-        private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(ISessionWrapper session, IReadOnlyList<SVR_AnimeSeries> seriesList)
+        private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(ISessionWrapper session,
+            IReadOnlyList<SVR_AnimeSeries> seriesList)
         {
             _log.Info("Generating AnimeGroups for {0} AnimeSeries", seriesList.Count);
 
@@ -264,18 +270,21 @@ namespace Shoko.Server.Tasks
         /// <param name="session">The NHibernate session.</param>
         /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
         /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
-        private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesList)
+        private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session,
+            IReadOnlyCollection<SVR_AnimeSeries> seriesList)
         {
             _log.Info("Auto-generating AnimeGroups for {0} AnimeSeries based on aniDB relationships", seriesList.Count);
 
             DateTime now = DateTime.Now;
             var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session);
 
-            _log.Info("The following exclusions will be applied when generating the groups: " + grpCalculator.Exclusions);
+            _log.Info(
+                "The following exclusions will be applied when generating the groups: " + grpCalculator.Exclusions);
 
             // Group all of the specified series into their respective groups (keyed by the groups main anime ID)
             var seriesByGroup = seriesList.ToLookup(s => grpCalculator.GetGroupAnimeId(s.AniDB_ID));
-            var newGroupsToSeries = new List<Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>>(seriesList.Count);
+            var newGroupsToSeries =
+                new List<Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>>(seriesList.Count);
 
             foreach (var groupAndSeries in seriesByGroup)
             {
@@ -283,7 +292,9 @@ namespace Shoko.Server.Tasks
                 SVR_AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
                 SVR_AnimeGroup animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, now);
 
-                newGroupsToSeries.Add(new Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>(animeGroup, groupAndSeries.AsReadOnlyCollection()));
+                newGroupsToSeries.Add(
+                    new Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>(animeGroup,
+                        groupAndSeries.AsReadOnlyCollection()));
             }
 
             using (ITransaction trans = session.BeginTransaction())
@@ -318,7 +329,8 @@ namespace Shoko.Server.Tasks
         /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
         /// <param name="now">The current date/time.</param>
         /// <returns>The created <see cref="SVR_AnimeGroup"/>.</returns>
-        private SVR_AnimeGroup CreateAnimeGroup(ISessionWrapper session, SVR_AnimeSeries mainSeries, int mainAnimeId, DateTime now)
+        private SVR_AnimeGroup CreateAnimeGroup(ISessionWrapper session, SVR_AnimeSeries mainSeries, int mainAnimeId,
+            DateTime now)
         {
             SVR_AnimeGroup animeGroup = new SVR_AnimeGroup();
             string groupName = null;
@@ -336,7 +348,9 @@ namespace Shoko.Server.Tasks
                 groupName = mainAnime.GetFormattedTitle();
             }
 
-            groupName = _truncateYearRegex.Replace(groupName, String.Empty); // If the title appears to end with a year suffix, then remove it
+            groupName =
+                _truncateYearRegex.Replace(groupName,
+                    String.Empty); // If the title appears to end with a year suffix, then remove it
             animeGroup.GroupName = groupName;
             animeGroup.SortName = groupName;
 

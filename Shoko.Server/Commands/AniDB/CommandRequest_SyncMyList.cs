@@ -25,10 +25,7 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct PrettyDescription
         {
-            get
-            {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SyncMyList, extraParams = new string[0] };
-            }
+            get { return new QueueStateStruct() {queueState = QueueStateEnum.SyncMyList, extraParams = new string[0]}; }
         }
 
         public CommandRequest_SyncMyList()
@@ -53,8 +50,8 @@ namespace Shoko.Server.Commands
                 // we will always assume that an anime was downloaded via http first
 
 
-
-                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+                ScheduledUpdate sched =
+                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
@@ -95,7 +92,8 @@ namespace Shoko.Server.Commands
                         dictAniFiles[anifile.Hash] = anifile;
 
                     int missingFiles = 0;
-                    foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                    foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
+                        .Where(a => !string.IsNullOrEmpty(a.Hash)))
                     {
                         if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
 
@@ -124,7 +122,7 @@ namespace Shoko.Server.Commands
                         if (myitem.IsWatched) watchedItems++;
 
                         //calculate percentage
-                        pct = (double) totalItems/(double) cmd.MyListItems.Count*(double) 100;
+                        pct = (double) totalItems / (double) cmd.MyListItems.Count * (double) 100;
                         string spct = pct.ToString("#0.0");
 
                         string hash = string.Empty;
@@ -135,7 +133,8 @@ namespace Shoko.Server.Commands
                         else
                         {
                             // look for manually linked files
-                            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                            List<CrossRef_File_Episode> xrefs =
+                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
@@ -192,7 +191,8 @@ namespace Shoko.Server.Commands
                                         }
                                     }
 
-                                    string msg = $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
+                                    string msg =
+                                        $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
                                     logger.Info(msg);
                                 }
                             }

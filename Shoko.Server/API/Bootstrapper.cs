@@ -22,24 +22,25 @@ namespace Shoko.Server.API
 
     public class Bootstrapper : RestBootstrapper
     {
-		private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		protected override NancyInternalConfiguration InternalConfiguration
-		{
-			//RestBootstraper with use a custom json.net serializer,no need to readd something in here
-			get
-			{
-			    NancyInternalConfiguration nac = base.InternalConfiguration;
+        protected override NancyInternalConfiguration InternalConfiguration
+        {
+            //RestBootstraper with use a custom json.net serializer,no need to readd something in here
+            get
+            {
+                NancyInternalConfiguration nac = base.InternalConfiguration;
                 nac.ResponseProcessors.Remove(typeof(BinaryProcessor));
                 nac.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
-			    return nac;
-			}
-		}
+                return nac;
+            }
+        }
 
         /// <summary>
         /// This function override the RequestStartup which is used each time a request came to Nancy
         /// </summary>
-        protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines, NancyContext context)
+        protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines,
+            NancyContext context)
         {
             var configuration =
                 new StatelessAuthenticationConfiguration(nancyContext =>
@@ -49,7 +50,7 @@ namespace Shoko.Server.API
                     if (string.IsNullOrEmpty(apiKey))
                     {
                         //take out value of "apikey" from query that was pass in request and check for User
-                        apiKey = (string)nancyContext.Request.Query.apikey.Value;
+                        apiKey = (string) nancyContext.Request.Query.apikey.Value;
                     }
                     if (apiKey != null)
                     {
@@ -60,30 +61,33 @@ namespace Shoko.Server.API
                         return null;
                     }
                 });
-			StaticConfiguration.DisableErrorTraces = false;
+            StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
 
-			pipelines.OnError += (NancyContext ctx, Exception ex) => onError(ctx, ex);
+            pipelines.OnError += (NancyContext ctx, Exception ex) => onError(ctx, ex);
 
-			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
-			pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
+            pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
+            pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
 
             #region CORS Enable
+
             pipelines.AfterRequest.AddItemToEndOfPipeline((ctx) =>
             {
                 ctx.Response.WithHeader("Access-Control-Allow-Origin", "*")
-                                .WithHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
-                                .WithHeader("Access-Control-Allow-Headers", "Accept, Origin, Content-type, apikey");
-
+                    .WithHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
+                    .WithHeader("Access-Control-Allow-Headers", "Accept, Origin, Content-type, apikey");
             });
+
             #endregion
 
             #region Gzip compression
+
             GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
-			gzipsettings.MinimumBytes = 16384; //16k
-			gzipsettings.MimeTypes.Add("application/xml");
-			gzipsettings.MimeTypes.Add("application/json");
-			pipelines.EnableGzipCompression(gzipsettings);
+            gzipsettings.MinimumBytes = 16384; //16k
+            gzipsettings.MimeTypes.Add("application/xml");
+            gzipsettings.MimeTypes.Add("application/json");
+            pipelines.EnableGzipCompression(gzipsettings);
+
             #endregion
         }
 
@@ -93,43 +97,45 @@ namespace Shoko.Server.API
         /// <param name="nancyConventions"></param>
         protected override void ConfigureConventions(NancyConventions nancyConventions)
         {
-            nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("webui", @"webui"));
+            nancyConventions.StaticContentsConventions.Add(
+                StaticContentConventionBuilder.AddDirectory("webui", @"webui"));
             base.ConfigureConventions(nancyConventions);
         }
 
-		protected override DiagnosticsConfiguration DiagnosticsConfiguration
-		{
-			get { return new DiagnosticsConfiguration { Password = @"jmmserver" }; }
-		}
+        protected override DiagnosticsConfiguration DiagnosticsConfiguration
+        {
+            get { return new DiagnosticsConfiguration {Password = @"jmmserver"}; }
+        }
 
-		private Response onError(NancyContext ctx, Exception ex)
-		{
-			logger.Error("Nancy Error => {0}", ex.ToString());
-			logger.Error("Nancy Error => Request URL: {0}", ctx.Request.Url);
-			logger.Error(ex);
-			return null;
-		}
+        private Response onError(NancyContext ctx, Exception ex)
+        {
+            logger.Error("Nancy Error => {0}", ex.ToString());
+            logger.Error("Nancy Error => Request URL: {0}", ctx.Request.Url);
+            logger.Error(ex);
+            return null;
+        }
 
-		private Response BeforeProcessing(NancyContext ctx)
-		{
+        private Response BeforeProcessing(NancyContext ctx)
+        {
             // Request will always be populated!
             Core.request = ctx.Request;
-			return null;
-		}
+            return null;
+        }
 
-		private void AfterProcessing(NancyContext ctx)
-		{
+        private void AfterProcessing(NancyContext ctx)
+        {
             if (ctx.Request.Method.Equals("OPTIONS", StringComparison.Ordinal))
             {
                 Dictionary<string, string> headers = HttpExtensions.GetOptions();
-                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value)).ToList();
+                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value))
+                    .ToList();
                 ctx.Response.WithHeaders(tps.ToArray());
                 ctx.Response.ContentType = "text/plain";
             }
-			// Set to null after request as not to interfere with contract generation
-			Core.request = null;
-		}
-	}
+            // Set to null after request as not to interfere with contract generation
+            Core.request = null;
+        }
+    }
 
     public class StatusCodeHandler : IStatusCodeHandler
     {

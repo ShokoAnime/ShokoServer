@@ -25,7 +25,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SyncTraktSeries, extraParams = new string[] { SeriesName } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SyncTraktSeries,
+                    extraParams = new string[] {SeriesName}
+                };
             }
         }
 

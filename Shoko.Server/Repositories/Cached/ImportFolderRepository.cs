@@ -6,7 +6,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder,int>
+    public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int>
     {
         private ImportFolderRepository()
         {
@@ -30,15 +30,16 @@ namespace Shoko.Server.Repositories.Cached
         {
             return new ImportFolderRepository();
         }
+
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc || a.ImportFolderLocation == importloc);
+            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc ||
+                                                    a.ImportFolderLocation == importloc);
         }
 
         public List<SVR_ImportFolder> GetByCloudId(int cloudid)
         {
-            return Cache.Values.Where(a=>a.CloudID.HasValue && a.CloudID.Value==cloudid).ToList();
+            return Cache.Values.Where(a => a.CloudID.HasValue && a.CloudID.Value == cloudid).ToList();
         }
-
     }
 }

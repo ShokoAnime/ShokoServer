@@ -28,7 +28,11 @@ namespace Shoko.Server.Commands.MAL
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SearchMal, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SearchMal,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -63,7 +67,8 @@ namespace Shoko.Server.Commands.MAL
                             logger.Trace("Found MAL match on web cache for {0} - id = {1} ({2}/{3})", AnimeID,
                                 crossRef.MALID,
                                 crossRef.StartEpisodeType, crossRef.StartEpisodeNumber);
-                            MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle, crossRef.StartEpisodeType,
+                            MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle,
+                                crossRef.StartEpisodeType,
                                 crossRef.StartEpisodeNumber, true);
 
                             return;
@@ -102,7 +107,8 @@ namespace Shoko.Server.Commands.MAL
                         if (res.title.Equals(anime.MainTitle, StringComparison.InvariantCultureIgnoreCase) &&
                             res.episodes == anime.EpisodeCountNormal)
                         {
-                            logger.Trace("Using MAL search result for search on {0} : {1} ({2})", searchCriteria, res.id,
+                            logger.Trace("Using MAL search result for search on {0} : {1} ({2})", searchCriteria,
+                                res.id,
                                 res.title);
                             MALHelper.LinkAniDBMAL(AnimeID, res.id, res.title, (int) enEpisodeType.Episode, 1, false);
                         }

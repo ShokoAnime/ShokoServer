@@ -75,7 +75,7 @@ namespace Shoko.Server
         /// <param name="parent"></param>
         public static void buildTreeView(object[,] o, TreeNode parent)
         {
-            for (int i = 0; i < o.Length/3; i++)
+            for (int i = 0; i < o.Length / 3; i++)
             {
                 TreeNode child = addToTree(parent, o[1, i], o[2, i]);
                 if (o[0, i] is object[,])

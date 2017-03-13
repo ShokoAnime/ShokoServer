@@ -11,21 +11,23 @@ namespace Shoko.Server.Repositories.Direct
     {
         private PlaylistRepository()
         {
-            
         }
 
         public static PlaylistRepository Create()
         {
             return new PlaylistRepository();
         }
+
         public override IReadOnlyList<Playlist> GetAll()
         {
             return base.GetAll().OrderBy(a => a.PlaylistName).ToList();
         }
+
         public override IReadOnlyList<Playlist> GetAll(ISession session)
         {
             return base.GetAll(session).OrderBy(a => a.PlaylistName).ToList();
         }
+
         public override IReadOnlyList<Playlist> GetAll(ISessionWrapper session)
         {
             return base.GetAll(session).OrderBy(a => a.PlaylistName).ToList();

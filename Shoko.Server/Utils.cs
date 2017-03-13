@@ -54,60 +54,60 @@ namespace Shoko.Server
             {
                 output.Write(buffer, 0, bytesRead);
             }
-        }   
+        }
 
 
         public static void GrantAccess(string fullPath)
         {
             //C# version do not work, do not inherit permissions to childs.
-	        string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "GrantAccess.bat");
-	        int exitCode = -1;
-	        Process proc = new Process();
+            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "GrantAccess.bat");
+            int exitCode = -1;
+            Process proc = new Process();
 
             proc.StartInfo.FileName = "cmd.exe";
             proc.StartInfo.Arguments = $@"/c {BatchFile}";
-	        proc.StartInfo.Verb = "runas";
-	        proc.StartInfo.CreateNoWindow = true;
-	        proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-	        proc.StartInfo.UseShellExecute = true;
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute = true;
 
-	        try
-	        {
-		        StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+            try
+            {
+                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
 
                 //Cleanup previous
                 try
-		        {
-			        BatchFileStream.WriteLine($"{"icacls"} \"{fullPath}\" {"/grant *S-1-1-0:(OI)(CI)F /T"}");
-		        }
-		        finally
-		        {
-			        BatchFileStream.Close();
-		        }
+                {
+                    BatchFileStream.WriteLine($"{"icacls"} \"{fullPath}\" {"/grant *S-1-1-0:(OI)(CI)F /T"}");
+                }
+                finally
+                {
+                    BatchFileStream.Close();
+                }
 
-		        proc.Start();
+                proc.Start();
 
                 proc.WaitForExit();
 
                 exitCode = proc.ExitCode;
                 proc.Close();
 
-		        File.Delete(BatchFile);
+                File.Delete(BatchFile);
 
-	            if (exitCode == 0)
-	            {
+                if (exitCode == 0)
+                {
                     logger.Info("Successfully granted write permissions to " + fullPath);
-	            }
-	            else
-	            {
+                }
+                else
+                {
                     logger.Error("Temporary batch process for granting folder write access returned error code: " +
-	                             exitCode);
-	            }
+                                 exitCode);
+                }
             }
-	        catch (Exception ex)
-	        {
-		        logger.Error(ex, ex.ToString());
-	        }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
         }
 
         public static string CalculateSHA1(string text, Encoding enc)
@@ -163,13 +163,14 @@ namespace Shoko.Server
         }
 
         // A char array of the allowed characters. This should be infinitely faster
-        private static readonly char[] AllowedSearchCharacters = (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+-.?,/*&`'\"_").ToCharArray();
+        private static readonly char[] AllowedSearchCharacters =
+            (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+-.?,/*&`'\"_").ToCharArray();
 
         public static string FilterCharacters(this string value, char[] allowed, bool blacklist = false)
         {
             StringBuilder sb = new StringBuilder(value);
             int dest = 0;
-            for (int i = 0; i <= sb.Length-1; i++)
+            for (int i = 0; i <= sb.Length - 1; i++)
             {
                 if (blacklist ^ allowed.Contains(sb[i]))
                 {
@@ -386,7 +387,7 @@ namespace Shoko.Server
 
                 if (0 == (R[k] & (1UL << m)))
                 {
-                    dist = (int)R[k];
+                    dist = (int) R[k];
                     result = (i - m) + 1;
                     break;
                 }
@@ -418,10 +419,14 @@ namespace Shoko.Server
         /// <param name="Port">The port JMMServer will be running on.</param>
         /// <param name="FilePort">The port JMMServer will use for files.</param>
         /// <param name="oldFilePort">The port JMMServer was set to use for files.</param>
-
         public static List<string> Paths = new List<string>
         {
-            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerMetroImage", "JMMServerStreaming", ""
+            "JMMServerImage",
+            "JMMServerBinary",
+            "JMMServerMetro",
+            "JMMServerMetroImage",
+            "JMMServerStreaming",
+            ""
         };
 
         public static void NetSh(this StreamWriter sw, string path, string verb, string port)
@@ -430,7 +435,6 @@ namespace Shoko.Server
                 sw.WriteLine($@"netsh http add urlacl url=http://+:{port}/{path} sddl=D:(A;;GA;;;S-1-1-0)");
             else
                 sw.WriteLine($@"netsh http delete urlacl url=http://+:{port}/{path}");
-
         }
 
         public static string acls = ":\\s+(http://(\\*|\\+):({0}).*?/)\\s?\r\n";
@@ -438,14 +442,15 @@ namespace Shoko.Server
         public static void CleanUpDefaultPortsInNetSh(this StreamWriter sw, int[] ports)
         {
             Process proc = new Process();
-            Regex acl=new Regex(string.Format(acls,string.Join("|",ports.Select(a=>a.ToString()))),RegexOptions.Singleline);
+            Regex acl = new Regex(string.Format(acls, string.Join("|", ports.Select(a => a.ToString()))),
+                RegexOptions.Singleline);
             proc.StartInfo.FileName = "netsh";
             proc.StartInfo.Arguments = "http show urlacl";
             proc.StartInfo.Verb = "runas";
             proc.StartInfo.CreateNoWindow = true;
-            proc.StartInfo.RedirectStandardOutput= true;
+            proc.StartInfo.RedirectStandardOutput = true;
             proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            proc.StartInfo.UseShellExecute =false;
+            proc.StartInfo.UseShellExecute = false;
             proc.Start();
             StreamReader sr = proc.StandardOutput;
             string str = sr.ReadToEnd();
@@ -478,33 +483,39 @@ namespace Shoko.Server
                 StreamWriter BatchFileStream = new StreamWriter(BatchFile);
 
                 //Cleanup previous
-	            try
-	            {
-		            BatchFileStream.CleanUpDefaultPortsInNetSh(new[] {int.Parse(OldPort), int.Parse(OldFilePort)});
-		            BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - Client Port\"");
-		            BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - File Port\"");
-		            BatchFileStream.WriteLine(
-			            $@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={Port}");
-		            Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
-		            BatchFileStream.WriteLine(
-			            $@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={FilePort}");
-		            BatchFileStream.NetSh("", "add", FilePort);
-	            }
-	            finally
-	            {
-		            BatchFileStream.Close();
-	            }
+                try
+                {
+                    BatchFileStream.CleanUpDefaultPortsInNetSh(new[] {int.Parse(OldPort), int.Parse(OldFilePort)});
+                    BatchFileStream.WriteLine(
+                        "netsh advfirewall firewall delete rule name=\"JMM Server - Client Port\"");
+                    BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - File Port\"");
+                    BatchFileStream.WriteLine(
+                        $@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={
+                                Port
+                            }");
+                    Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
+                    BatchFileStream.WriteLine(
+                        $@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={
+                                FilePort
+                            }");
+                    BatchFileStream.NetSh("", "add", FilePort);
+                }
+                finally
+                {
+                    BatchFileStream.Close();
+                }
 
                 proc.Start();
                 proc.WaitForExit();
                 exitCode = proc.ExitCode;
                 proc.Close();
                 File.Delete(BatchFile);
-	            if (exitCode != 0)
-	            {
-		            logger.Error("Temporary batch process for netsh and firewall settings returned error code: " + exitCode);
-		            return false;
-	            }
+                if (exitCode != 0)
+                {
+                    logger.Error("Temporary batch process for netsh and firewall settings returned error code: " +
+                                 exitCode);
+                    return false;
+                }
             }
             catch (Exception ex)
             {
@@ -516,6 +527,7 @@ namespace Shoko.Server
 
             return true;
         }
+
         /*
         public static bool SetNetworkRequirements(string Port = null, string FilePort = null, string oldPort = null,
             string oldFilePort = null)
@@ -675,7 +687,7 @@ namespace Shoko.Server
         public static void ShowErrorMessage(Exception ex)
         {
             MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            logger.Error( ex,ex.ToString());
+            logger.Error(ex, ex.ToString());
         }
 
         public static void ShowErrorMessage(string msg)
@@ -693,7 +705,9 @@ namespace Shoko.Server
         public static string GetApplicationExtraVersion(Assembly a)
         {
             AssemblyName an = a.GetName();
-            AssemblyInformationalVersionAttribute version = (AssemblyInformationalVersionAttribute)a.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
+            AssemblyInformationalVersionAttribute version =
+                (AssemblyInformationalVersionAttribute) a.GetCustomAttribute(
+                    typeof(AssemblyInformationalVersionAttribute));
             if (version == null)
             {
                 return "";
@@ -715,7 +729,8 @@ namespace Shoko.Server
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
                 if (noCache == true)
                 {
-                    HttpRequestCachePolicy noCachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
+                    HttpRequestCachePolicy noCachePolicy =
+                        new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
                     webReq.CachePolicy = noCachePolicy;
                 }
 
@@ -796,9 +811,16 @@ namespace Shoko.Server
             if (description == null || description.Length == 0) return "";
 
             string val = description;
-            val = val.Replace("<br />", Environment.NewLine).Replace("<br/>", Environment.NewLine).Replace("<i>", "").
-                Replace("</i>", "").Replace("<b>", "").Replace("</b>", "").Replace("[i]", "").Replace("[/i]", "").
-                Replace("[b]", "").Replace("[/b]", "");
+            val = val.Replace("<br />", Environment.NewLine)
+                .Replace("<br/>", Environment.NewLine)
+                .Replace("<i>", "")
+                .Replace("</i>", "")
+                .Replace("<b>", "")
+                .Replace("</b>", "")
+                .Replace("[i]", "")
+                .Replace("[/i]", "")
+                .Replace("[b]", "")
+                .Replace("[/b]", "");
             val = val.Replace("<BR />", Environment.NewLine)
                 .Replace("<BR/>", Environment.NewLine)
                 .Replace("<I>", "")
@@ -807,8 +829,8 @@ namespace Shoko.Server
                 .Replace("</B>", "")
                 .Replace("[I]", "")
                 .Replace("[/I]", "")
-                .
-                Replace("[B]", "").Replace("[/B]", "");
+                .Replace("[B]", "")
+                .Replace("[/B]", "");
 
             string vup = val.ToUpper();
             while (vup.Contains("[URL") || vup.Contains("[/URL]"))
@@ -1211,11 +1233,11 @@ namespace Shoko.Server
         private static bool VideoResolutionWithFivePercent(double width, double height, int testWidth, int testHeight)
         {
             // get %5 differentials
-            double widthLower = width*(double) 0.95;
-            double widthUpper = width*(double) 1.05;
+            double widthLower = width * (double) 0.95;
+            double widthUpper = width * (double) 1.05;
 
-            double heightLower = height*(double) 0.95;
-            double heightUpper = height*(double) 1.05;
+            double heightLower = height * (double) 0.95;
+            double heightUpper = height * (double) 1.05;
 
             if (testWidth >= widthLower && testWidth <= widthUpper && testHeight >= heightLower &&
                 testHeight <= heightUpper)
@@ -1289,9 +1311,9 @@ namespace Shoko.Server
                 case ScheduledUpdateFrequency.HoursTwelve:
                     return 12;
                 case ScheduledUpdateFrequency.WeekOne:
-                    return 24*7;
+                    return 24 * 7;
                 case ScheduledUpdateFrequency.MonthOne:
-                    return 24*30;
+                    return 24 * 30;
                 case ScheduledUpdateFrequency.Never:
                     return Int32.MaxValue;
             }
@@ -1406,7 +1428,7 @@ namespace Shoko.Server
             {
                 errorMessage = ex.Message;
 
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -1471,7 +1493,9 @@ namespace Shoko.Server
                 buffer.Add(line);
             }
 
-            int lastLine = lineCount - 1;           //The index of the last line read from the buffer.  Everything > this index was read earlier than everything <= this indes
+            int lastLine =
+                lineCount -
+                1; //The index of the last line read from the buffer.  Everything > this index was read earlier than everything <= this indes
 
             while (null != (line = reader.ReadLine()))
             {
@@ -1508,7 +1532,8 @@ namespace Shoko.Server
                 try
                 {
                     // Wait a few seconds to allow shutdown later on, use task kill just in case still running
-                    string batchline = $"timeout 5 && taskkill /F /IM {System.AppDomain.CurrentDomain.FriendlyName} /fi \"memusage gt 2\" && \"{exeName}\"";
+                    string batchline =
+                        $"timeout 5 && taskkill /F /IM {System.AppDomain.CurrentDomain.FriendlyName} /fi \"memusage gt 2\" && \"{exeName}\"";
                     logger.Log(LogLevel.Info, "RestartAsAdmin batch line: " + batchline);
                     BatchFileStream.WriteLine(batchline);
                 }
@@ -1526,28 +1551,30 @@ namespace Shoko.Server
                 logger.Log(LogLevel.Error, "Error occured during RestartAsAdmin(): " + ex.Message);
             }
         }
+
         public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)
         {
-          try
-          {
-            using (FileStream fs = File.Create(
-                Path.Combine(
-                    dirPath,
-                    Path.GetRandomFileName()
-                ),
-                1,
-                FileOptions.DeleteOnClose)
-            )
-            { }
-            return true;
-          }
-          catch
-          {
-            if (throwIfFails)
-              throw;
-            else
-              return false;
-          }
+            try
+            {
+                using (FileStream fs = File.Create(
+                    Path.Combine(
+                        dirPath,
+                        Path.GetRandomFileName()
+                    ),
+                    1,
+                    FileOptions.DeleteOnClose)
+                )
+                {
+                }
+                return true;
+            }
+            catch
+            {
+                if (throwIfFails)
+                    throw;
+                else
+                    return false;
+            }
         }
-  }
+    }
 }

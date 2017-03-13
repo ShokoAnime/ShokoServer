@@ -9,7 +9,6 @@ namespace Shoko.Server.Commands.TvDB
     [Serializable]
     public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation, ICommandRequest
     {
-
         public int animeID;
         public enEpisodeType aniEpType;
         public int aniEpNumber;
@@ -17,7 +16,7 @@ namespace Shoko.Server.Commands.TvDB
         public int tvSeasonNumber;
         public int tvEpNumber;
         public bool excludeFromWebCache;
-	    public bool additiveLink;
+        public bool additiveLink;
 
         public CommandRequestPriority DefaultPriority
         {
@@ -28,7 +27,11 @@ namespace Shoko.Server.Commands.TvDB
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.LinkAniDBTvDB, extraParams = new string[] { animeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.LinkAniDBTvDB,
+                    extraParams = new string[] {animeID.ToString()}
+                };
             }
         }
 
@@ -37,7 +40,7 @@ namespace Shoko.Server.Commands.TvDB
         }
 
         public CommandRequest_LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
-            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink=false)
+            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
         {
             this.animeID = animeID;
             this.aniEpType = aniEpType;
@@ -46,10 +49,10 @@ namespace Shoko.Server.Commands.TvDB
             this.tvSeasonNumber = tvSeasonNumber;
             this.tvEpNumber = tvEpNumber;
             this.excludeFromWebCache = excludeFromWebCache;
-	        this.additiveLink = additiveLink;
+            this.additiveLink = additiveLink;
 
-            this.CommandType = (int)CommandRequestType.LinkAniDBTvDB;
-            this.Priority = (int)DefaultPriority;
+            this.CommandType = (int) CommandRequestType.LinkAniDBTvDB;
+            this.Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -60,7 +63,8 @@ namespace Shoko.Server.Commands.TvDB
 
             try
             {
-                TvDBHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber, excludeFromWebCache, additiveLink);
+                TvDBHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber,
+                    excludeFromWebCache, additiveLink);
             }
             catch (Exception ex)
             {
@@ -72,7 +76,8 @@ namespace Shoko.Server.Commands.TvDB
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_LinkAniDBTvDB{0}{1}{2}{3}{4}{5}", this.animeID,this.aniEpType,this.aniEpNumber,this.tvDBID,this.tvSeasonNumber,this.tvEpNumber);
+            this.CommandID = string.Format("CommandRequest_LinkAniDBTvDB{0}{1}{2}{3}{4}{5}", this.animeID,
+                this.aniEpType, this.aniEpNumber, this.tvDBID, this.tvSeasonNumber, this.tvEpNumber);
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -92,13 +97,17 @@ namespace Shoko.Server.Commands.TvDB
 
                 // populate the fields
                 this.animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-                this.aniEpType = (enEpisodeType)Enum.Parse(typeof(enEpisodeType), TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
+                this.aniEpType = (enEpisodeType) Enum.Parse(typeof(enEpisodeType),
+                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
                 this.aniEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpNumber"));
                 this.tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
-                this.tvSeasonNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvSeasonNumber"));
+                this.tvSeasonNumber = int.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvSeasonNumber"));
                 this.tvEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvEpNumber"));
-                this.excludeFromWebCache = bool.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "excludeFromWebCache"));
-	            this.additiveLink = bool.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
+                this.excludeFromWebCache = bool.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "excludeFromWebCache"));
+                this.additiveLink = bool.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
             }
 
             return true;

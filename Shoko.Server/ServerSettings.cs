@@ -56,12 +56,13 @@ namespace Shoko.Server
         }
 
 
-
         //in this way, we could host two JMMServers int the same machine
 
-        public static string DefaultInstance { get; set; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+        public static string DefaultInstance { get; set; } =
+            System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
-        public static string ApplicationPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
+        public static string ApplicationPath => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
 
         public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
 
@@ -129,7 +130,8 @@ namespace Shoko.Server
                                 {
                                     Utils.GrantAccess(ApplicationPath);
                                 }
-                                catch (Exception){
+                                catch (Exception)
+                                {
                                 }
                             }
                         }
@@ -280,7 +282,6 @@ namespace Shoko.Server
                                 logger.Info("Migration creating application path: " + ApplicationPath);
                                 Directory.CreateDirectory(ApplicationPath);
                                 logger.Info("Migration created application path: " + ApplicationPath);
-
                             }
                             Utils.GrantAccess(ApplicationPath);
                             disabledSave = false;
@@ -314,11 +315,11 @@ namespace Shoko.Server
                         }
                         catch (Exception e)
                         {
-                            MessageBox.Show(Shoko.Commons.Properties.Resources.Migration_SettingsError + " ", e.ToString());
+                            MessageBox.Show(Shoko.Commons.Properties.Resources.Migration_SettingsError + " ",
+                                e.ToString());
                             logger.Error(e);
                             migrationActive = false;
                             migrationError = true;
-
                         }
 
                         logger.Info("Migration setting network requirements..");
@@ -381,7 +382,8 @@ namespace Shoko.Server
                             {
                                 Utils.GrantAccess(ApplicationPath);
                             }
-                            catch (Exception){
+                            catch (Exception)
+                            {
                             }
                             Utils.RestartAsAdmin();
                             break;
@@ -413,7 +415,7 @@ namespace Shoko.Server
                 if (locateAutomatically)
                 {
                     // First try to locate it from old JMM Server installer entry
-                    string jmmServerInstallLocation = (string)Registry.GetValue(
+                    string jmmServerInstallLocation = (string) Registry.GetValue(
                         @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
                         "InstallLocation", null);
 
@@ -438,7 +440,8 @@ namespace Shoko.Server
 
                 if (configFile.ToLower().Contains("settings.json"))
                 {
-                    appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(configFile));
+                    appSettings =
+                        JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(configFile));
                 }
                 else
                 {
@@ -490,25 +493,26 @@ namespace Shoko.Server
                 // Load default settings as otherwise will fail to start entirely
                 var col = ConfigurationManager.AppSettings;
                 appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
-                logger.Log(LogLevel.Error, string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", ex.Message));
+                logger.Log(LogLevel.Error,
+                    string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", ex.Message));
             }
         }
+
         public static string LocateLegacyConfigFile()
         {
             string configPath = "";
-            MessageBoxResult dr = MessageBox.Show(Shoko.Commons.Properties.Resources.LocateSettingsFileDialog, Shoko.Commons.Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
+            MessageBoxResult dr = MessageBox.Show(Shoko.Commons.Properties.Resources.LocateSettingsFileDialog,
+                Shoko.Commons.Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
             switch (dr)
             {
                 case MessageBoxResult.Yes:
                     OpenFileDialog openFileDialog = new OpenFileDialog();
                     openFileDialog.Filter = "JMM config|JMMServer.exe.config;settings.json";
-
                     DialogResult browseFile = openFileDialog.ShowDialog();
                     if (browseFile == DialogResult.OK && !string.IsNullOrEmpty(openFileDialog.FileName.Trim()))
                     {
                         configPath = openFileDialog.FileName;
                     }
-
                     break;
             }
 
@@ -554,8 +558,12 @@ namespace Shoko.Server
 
         private static void bg_migrationStart(object sender, DoWorkEventArgs e)
         {
-            while (migrationActive && !migrationError) { };
+            while (migrationActive && !migrationError)
+            {
+            }
+            ;
         }
+
         private static void bg_migrationFinished(object sender, RunWorkerCompletedEventArgs e)
         {
             // Retrieve the result pass from bg_DoWork() if any.
@@ -565,6 +573,7 @@ namespace Shoko.Server
             // Close the migration indicator form.
             migrationForm?.Close();
         }
+
         private static void WaitForMigrationThenRestart()
         {
             string exePath = System.Windows.Forms.Application.ExecutablePath;
@@ -590,6 +599,7 @@ namespace Shoko.Server
         }
 
         private static bool disabledSave = false;
+
         public static void SaveSettings()
         {
             if (disabledSave)
@@ -597,11 +607,12 @@ namespace Shoko.Server
             lock (appSettings)
             {
                 if (appSettings.Count == 1)
-                    return;//Somehow debugging may fuck up the settings so this shit will eject
+                    return; //Somehow debugging may fuck up the settings so this shit will eject
                 string path = Path.Combine(ApplicationPath, "settings.json");
                 File.WriteAllText(path, JsonConvert.SerializeObject(appSettings));
             }
         }
+
         public static string AnimeXmlDirectory
         {
             get
@@ -614,10 +625,7 @@ namespace Shoko.Server
                 }
                 return dir;
             }
-            set
-            {
-                Set("AnimeXmlDirectory", value);
-            }
+            set { Set("AnimeXmlDirectory", value); }
         }
 
 
@@ -633,10 +641,7 @@ namespace Shoko.Server
                 }
                 return dir;
             }
-            set
-            {
-                Set("MyListDirectory", value);
-            }
+            set { Set("MyListDirectory", value); }
         }
 
         public static string MySqliteDirectory
@@ -651,11 +656,9 @@ namespace Shoko.Server
                 }
                 return dir;
             }
-            set
-            {
-                Set("MySqliteDirectory", value);
-            }
+            set { Set("MySqliteDirectory", value); }
         }
+
         public static string DatabaseBackupDirectory
         {
             get
@@ -668,17 +671,13 @@ namespace Shoko.Server
                 }
                 return dir;
             }
-            set
-            {
-                Set("DatabaseBackupDirectory", value);
-            }
+            set { Set("DatabaseBackupDirectory", value); }
         }
 
         public static string JMMServerPort
         {
             get
             {
-
                 string serverPort = Get("JMMServerPort");
                 if (string.IsNullOrEmpty(serverPort))
                 {
@@ -695,8 +694,6 @@ namespace Shoko.Server
         {
             get
             {
-
-
                 string th = Get("PluginAutoWatchThreshold");
                 if (string.IsNullOrEmpty(th))
                 {
@@ -708,11 +705,11 @@ namespace Shoko.Server
             }
             set { Set("PluginAutoWatchThreshold", value); }
         }
+
         public static string PlexThumbnailAspects
         {
             get
             {
-
                 string thumbaspect = Get("PlexThumbnailAspects");
                 if (string.IsNullOrEmpty(thumbaspect))
                 {
@@ -729,8 +726,6 @@ namespace Shoko.Server
         {
             get
             {
-
-
                 string cult = Get("Culture");
                 if (string.IsNullOrEmpty(cult))
                 {
@@ -744,7 +739,6 @@ namespace Shoko.Server
         }
 
 
-
         #region LogRotator
 
         public static bool RotateLogs
@@ -753,11 +747,14 @@ namespace Shoko.Server
             {
                 bool val = true;
                 if (!string.IsNullOrEmpty(Get("RotateLogs")))
-                { bool.TryParse(Get("RotateLogs"), out val); }
+                {
+                    bool.TryParse(Get("RotateLogs"), out val);
+                }
                 else
-                { RotateLogs = val; }
+                {
+                    RotateLogs = val;
+                }
                 return val;
-
             }
             set { Set("RotateLogs", value.ToString()); }
         }
@@ -768,9 +765,13 @@ namespace Shoko.Server
             {
                 bool val = true;
                 if (!string.IsNullOrEmpty(Get("RotateLogs_Zip")))
-                { bool.TryParse(Get("RotateLogs_Zip"), out val); }
+                {
+                    bool.TryParse(Get("RotateLogs_Zip"), out val);
+                }
                 else
-                { RotateLogs = val; }
+                {
+                    RotateLogs = val;
+                }
                 return val;
             }
             set { Set("RotateLogs_Zip", value.ToString()); }
@@ -782,9 +783,13 @@ namespace Shoko.Server
             {
                 bool val = true;
                 if (!string.IsNullOrEmpty(Get("RotateLogs_Delete")))
-                { bool.TryParse(Get("RotateLogs_Delete"), out val); }
+                {
+                    bool.TryParse(Get("RotateLogs_Delete"), out val);
+                }
                 else
-                { RotateLogs = val; }
+                {
+                    RotateLogs = val;
+                }
                 return val;
             }
             set { Set("RotateLogs_Delete", value.ToString()); }
@@ -792,27 +797,20 @@ namespace Shoko.Server
 
         public static string RotateLogs_Delete_Days
         {
-            get
-            {
-
-                return Get("RotateLogs_Delete_Days");
-            }
+            get { return Get("RotateLogs_Delete_Days"); }
             set { Set("RotateLogs_Delete_Days", value); }
         }
 
         #endregion
 
         #region WebUI
+
         /// <summary>
         /// Store json settings inside string
         /// </summary>
         public static string WebUI_Settings
         {
-            get
-            {
-
-                return Get("WebUI_Settings");
-            }
+            get { return Get("WebUI_Settings"); }
             set { Set("WebUI_Settings", value); }
         }
 
@@ -823,12 +821,15 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = true;
                 if (!string.IsNullOrEmpty(Get("FirstRun")))
-                { bool.TryParse(Get("FirstRun"), out val); }
+                {
+                    bool.TryParse(Get("FirstRun"), out val);
+                }
                 else
-                { FirstRun = val; }
+                {
+                    FirstRun = val;
+                }
                 return val;
             }
             set { Set("FirstRun", value.ToString()); }
@@ -840,101 +841,61 @@ namespace Shoko.Server
 
         public static string DatabaseType
         {
-            get
-            {
-
-                return Get("DatabaseType");
-            }
+            get { return Get("DatabaseType"); }
             set { Set("DatabaseType", value); }
         }
 
         public static string DatabaseServer
         {
-            get
-            {
-
-                return Get("SQLServer_DatabaseServer");
-            }
+            get { return Get("SQLServer_DatabaseServer"); }
             set { Set("SQLServer_DatabaseServer", value); }
         }
 
         public static string DatabaseName
         {
-            get
-            {
-
-                return Get("SQLServer_DatabaseName");
-            }
+            get { return Get("SQLServer_DatabaseName"); }
             set { Set("SQLServer_DatabaseName", value); }
         }
 
         public static string DatabaseUsername
         {
-            get
-            {
-
-                return Get("SQLServer_Username");
-            }
+            get { return Get("SQLServer_Username"); }
             set { Set("SQLServer_Username", value); }
         }
 
         public static string DatabasePassword
         {
-            get
-            {
-
-                return Get("SQLServer_Password");
-            }
+            get { return Get("SQLServer_Password"); }
             set { Set("SQLServer_Password", value); }
         }
 
         public static string DatabaseFile
         {
-            get
-            {
-
-                return Get("SQLite_DatabaseFile");
-            }
+            get { return Get("SQLite_DatabaseFile"); }
             set { Set("SQLite_DatabaseFile", value); }
         }
 
         public static string MySQL_Hostname
         {
-            get
-            {
-
-                return Get("MySQL_Hostname");
-            }
+            get { return Get("MySQL_Hostname"); }
             set { Set("MySQL_Hostname", value); }
         }
 
         public static string MySQL_SchemaName
         {
-            get
-            {
-
-                return Get("MySQL_SchemaName");
-            }
+            get { return Get("MySQL_SchemaName"); }
             set { Set("MySQL_SchemaName", value); }
         }
 
         public static string MySQL_Username
         {
-            get
-            {
-
-                return Get("MySQL_Username");
-            }
+            get { return Get("MySQL_Username"); }
             set { Set("MySQL_Username", value); }
         }
 
         public static string MySQL_Password
         {
-            get
-            {
-
-                return Get("MySQL_Password");
-            }
+            get { return Get("MySQL_Password"); }
             set { Set("MySQL_Password", value); }
         }
 
@@ -944,71 +905,43 @@ namespace Shoko.Server
 
         public static string AniDB_Username
         {
-            get
-            {
-
-                return Get("AniDB_Username");
-            }
+            get { return Get("AniDB_Username"); }
             set { Set("AniDB_Username", value); }
         }
 
         public static string AniDB_Password
         {
-            get
-            {
-
-                return Get("AniDB_Password");
-            }
+            get { return Get("AniDB_Password"); }
             set { Set("AniDB_Password", value); }
         }
 
         public static string AniDB_ServerAddress
         {
-            get
-            {
-
-                return Get("AniDB_ServerAddress");
-            }
+            get { return Get("AniDB_ServerAddress"); }
             set { Set("AniDB_ServerAddress", value); }
         }
 
         public static string AniDB_ServerPort
         {
-            get
-            {
-
-                return Get("AniDB_ServerPort");
-            }
+            get { return Get("AniDB_ServerPort"); }
             set { Set("AniDB_ServerPort", value); }
         }
 
         public static string AniDB_ClientPort
         {
-            get
-            {
-
-                return Get("AniDB_ClientPort");
-            }
+            get { return Get("AniDB_ClientPort"); }
             set { Set("AniDB_ClientPort", value); }
         }
 
         public static string AniDB_AVDumpKey
         {
-            get
-            {
-
-                return Get("AniDB_AVDumpKey");
-            }
+            get { return Get("AniDB_AVDumpKey"); }
             set { Set("AniDB_AVDumpKey", value); }
         }
 
         public static string AniDB_AVDumpClientPort
         {
-            get
-            {
-
-                return Get("AniDB_AVDumpClientPort");
-            }
+            get { return Get("AniDB_AVDumpClientPort"); }
             set { Set("AniDB_AVDumpClientPort", value); }
         }
 
@@ -1016,7 +949,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadRelatedAnime"), out download);
                 return download;
@@ -1028,7 +960,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadSimilarAnime"), out download);
                 return download;
@@ -1040,7 +971,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadReviews"), out download);
                 return download;
@@ -1052,7 +982,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool download = false;
                 bool.TryParse(Get("AniDB_DownloadReleaseGroups"), out download);
                 return download;
@@ -1064,7 +993,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_AddFiles"), out val);
                 return val;
@@ -1076,33 +1004,30 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 1;
                 int.TryParse(Get("AniDB_MyList_StorageState"), out val);
 
-                return (AniDBFileStatus)val;
+                return (AniDBFileStatus) val;
             }
-            set { Set("AniDB_MyList_StorageState", ((int)value).ToString()); }
+            set { Set("AniDB_MyList_StorageState", ((int) value).ToString()); }
         }
 
         public static AniDBFileDeleteType AniDB_MyList_DeleteType
         {
             get
             {
-
                 int val = 0;
                 int.TryParse(Get("AniDB_MyList_DeleteType"), out val);
 
-                return (AniDBFileDeleteType)val;
+                return (AniDBFileDeleteType) val;
             }
-            set { Set("AniDB_MyList_DeleteType", ((int)value).ToString()); }
+            set { Set("AniDB_MyList_DeleteType", ((int) value).ToString()); }
         }
 
         public static bool AniDB_MyList_ReadUnwatched
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_ReadUnwatched"), out val);
                 return val;
@@ -1114,7 +1039,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_ReadWatched"), out val);
                 return val;
@@ -1126,7 +1050,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_SetWatched"), out val);
                 return val;
@@ -1138,7 +1061,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AniDB_MyList_SetUnwatched"), out val);
                 return val;
@@ -1150,77 +1072,71 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("AniDB_MyList_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { Set("AniDB_MyList_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("AniDB_MyList_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_Calendar_UpdateFrequency
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("AniDB_Calendar_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { Set("AniDB_Calendar_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("AniDB_Calendar_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_Anime_UpdateFrequency
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("AniDB_Anime_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { Set("AniDB_Anime_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("AniDB_Anime_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_MyListStats_UpdateFrequency
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("AniDB_MyListStats_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { Set("AniDB_MyListStats_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("AniDB_MyListStats_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_File_UpdateFrequency
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("AniDB_File_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { Set("AniDB_File_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("AniDB_File_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static bool AniDB_DownloadCharacters
         {
             get
             {
-
                 bool val = true;
                 if (!bool.TryParse(Get("AniDB_DownloadCharacters"), out val))
                     val = true; // default
@@ -1233,7 +1149,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = true;
                 if (!bool.TryParse(Get("AniDB_DownloadCreators"), out val))
                     val = true; // default
@@ -1248,11 +1163,7 @@ namespace Shoko.Server
 
         public static string WebCache_Address
         {
-            get
-            {
-
-                return Get("WebCache_Address");
-            }
+            get { return Get("WebCache_Address"); }
             set { Set("WebCache_Address", value); }
         }
 
@@ -1260,7 +1171,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("WebCache_Anonymous"), out val);
                 return val;
@@ -1272,7 +1182,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = false;
                 bool.TryParse(Get("WebCache_XRefFileEpisode_Get"), out usecache);
                 return usecache;
@@ -1284,7 +1193,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = false;
                 bool.TryParse(Get("WebCache_XRefFileEpisode_Send"), out usecache);
                 return usecache;
@@ -1296,7 +1204,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_TvDB_Get"), out usecache))
                     return usecache;
@@ -1310,7 +1217,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_TvDB_Send"), out usecache))
                     return usecache;
@@ -1324,7 +1230,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_Trakt_Get"), out usecache))
                     return usecache;
@@ -1338,7 +1243,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_Trakt_Send"), out usecache))
                     return usecache;
@@ -1352,7 +1256,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_MAL_Get"), out usecache))
                     return usecache;
@@ -1366,7 +1269,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = true;
                 if (bool.TryParse(Get("WebCache_MAL_Send"), out usecache))
                     return usecache;
@@ -1380,7 +1282,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool usecache = false;
                 if (bool.TryParse(Get("WebCache_UserInfo"), out usecache))
                     return usecache;
@@ -1398,7 +1299,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("TvDB_AutoFanart"), out val);
                 return val;
@@ -1410,7 +1310,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 0;
                 int.TryParse(Get("TvDB_AutoFanartAmount"), out val);
                 return val;
@@ -1422,7 +1321,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("TvDB_AutoWideBanners"), out val);
                 return val;
@@ -1434,7 +1332,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 0;
                 if (!int.TryParse(Get("TvDB_AutoWideBannersAmount"), out val))
                     val = 10; // default
@@ -1447,7 +1344,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("TvDB_AutoPosters"), out val);
                 return val;
@@ -1459,7 +1355,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 0;
                 if (!int.TryParse(Get("TvDB_AutoPostersAmount"), out val))
                     val = 10; // default
@@ -1472,21 +1367,19 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("TvDB_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { Set("TvDB_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("TvDB_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static string TvDB_Language
         {
             get
             {
-
                 string language = Get("TvDB_Language");
                 if (string.IsNullOrEmpty(language))
                     return "en";
@@ -1504,7 +1397,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("MovieDB_AutoFanart"), out val);
                 return val;
@@ -1516,7 +1408,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 0;
                 int.TryParse(Get("MovieDB_AutoFanartAmount"), out val);
                 return val;
@@ -1528,7 +1419,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("MovieDB_AutoPosters"), out val);
                 return val;
@@ -1540,7 +1430,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 0;
                 if (!int.TryParse(Get("MovieDB_AutoPostersAmount"), out val))
                     val = 10; // default
@@ -1555,11 +1444,7 @@ namespace Shoko.Server
 
         public static string VideoExtensions
         {
-            get
-            {
-
-                return Get("VideoExtensions");
-            }
+            get { return Get("VideoExtensions"); }
             set { Set("VideoExtensions", value); }
         }
 
@@ -1573,11 +1458,11 @@ namespace Shoko.Server
                 string rls = Get("DefaultSeriesLanguage");
                 if (string.IsNullOrEmpty(rls)) return rl;
 
-                rl = (RenamingLanguage)int.Parse(rls);
+                rl = (RenamingLanguage) int.Parse(rls);
 
                 return rl;
             }
-            set { Set("DefaultSeriesLanguage", ((int)value).ToString()); }
+            set { Set("DefaultSeriesLanguage", ((int) value).ToString()); }
         }
 
         public static RenamingLanguage DefaultEpisodeLanguage
@@ -1590,18 +1475,17 @@ namespace Shoko.Server
                 string rls = Get("DefaultEpisodeLanguage");
                 if (string.IsNullOrEmpty(rls)) return rl;
 
-                rl = (RenamingLanguage)int.Parse(rls);
+                rl = (RenamingLanguage) int.Parse(rls);
 
                 return rl;
             }
-            set { Set("DefaultEpisodeLanguage", ((int)value).ToString()); }
+            set { Set("DefaultEpisodeLanguage", ((int) value).ToString()); }
         }
 
         public static bool RunImportOnStart
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("RunImportOnStart"), out val);
                 return val;
@@ -1613,7 +1497,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("ScanDropFoldersOnStart"), out val);
                 return val;
@@ -1625,7 +1508,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool bval = false;
                 bool.TryParse(Get("Hash_CRC32"), out bval);
                 return bval;
@@ -1637,7 +1519,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool bval = false;
                 bool.TryParse(Get("Hash_MD5"), out bval);
                 return bval;
@@ -1649,7 +1530,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool bval = false;
                 bool.TryParse(Get("ExperimentalUPnP"), out bval);
                 return bval;
@@ -1661,7 +1541,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool bval = false;
                 bool.TryParse(Get("Hash_SHA1"), out bval);
                 return bval;
@@ -1673,7 +1552,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool bval = false;
                 bool.TryParse(Get("Import_UseExistingFileWatchedStatus"), out bval);
                 return bval;
@@ -1687,7 +1565,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AutoGroupSeries"), out val);
                 return val;
@@ -1699,7 +1576,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 string val = null;
                 try
                 {
@@ -1717,7 +1593,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("AutoGroupSeriesUseScoreAlgorithm"), out val);
                 return val;
@@ -1727,10 +1602,7 @@ namespace Shoko.Server
 
         public static string LanguagePreference
         {
-            get
-            {
-                return Get("LanguagePreference");
-            }
+            get { return Get("LanguagePreference"); }
             set { Set("LanguagePreference", value); }
         }
 
@@ -1738,7 +1610,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("LanguageUseSynonyms"), out val);
                 return val;
@@ -1750,44 +1621,41 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val;
                 int.TryParse(Get("CloudWatcherTime"), out val);
                 if (val == 0)
                     val = 3;
                 return val;
             }
-            set { Set("CloudWatcherTime", ((int)value).ToString()); }
+            set { Set("CloudWatcherTime", ((int) value).ToString()); }
         }
 
         public static DataSourceType EpisodeTitleSource
         {
             get
             {
-
                 int val = 0;
                 int.TryParse(Get("EpisodeTitleSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
-                    return (DataSourceType)val;
+                    return (DataSourceType) val;
             }
-            set { Set("EpisodeTitleSource", ((int)value).ToString()); }
+            set { Set("EpisodeTitleSource", ((int) value).ToString()); }
         }
 
         public static DataSourceType SeriesDescriptionSource
         {
             get
             {
-
                 int val = 0;
                 int.TryParse(Get("SeriesDescriptionSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
-                    return (DataSourceType)val;
+                    return (DataSourceType) val;
             }
-            set { Set("SeriesDescriptionSource", ((int)value).ToString()); }
+            set { Set("SeriesDescriptionSource", ((int) value).ToString()); }
         }
 
         public static DataSourceType SeriesNameSource
@@ -1799,18 +1667,14 @@ namespace Shoko.Server
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
-                    return (DataSourceType)val;
+                    return (DataSourceType) val;
             }
-            set { Set("SeriesNameSource", ((int)value).ToString()); }
+            set { Set("SeriesNameSource", ((int) value).ToString()); }
         }
 
         public static string ImagesPath
         {
-            get
-            {
-
-                return Get("ImagesPath");
-            }
+            get { return Get("ImagesPath"); }
             set
             {
                 Set("ImagesPath", value);
@@ -1826,7 +1690,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 string basePath = Get("BaseImagesPathIsDefault");
                 if (!string.IsNullOrEmpty(basePath))
                 {
@@ -1836,16 +1699,11 @@ namespace Shoko.Server
                 }
                 else return true;
             }
-
         }
 
         public static string VLCLocation
         {
-            get
-            {
-
-                return Get("VLCLocation");
-            }
+            get { return Get("VLCLocation"); }
             set
             {
                 Set("VLCLocation", value);
@@ -1857,7 +1715,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = false;
                 bool.TryParse(Get("MinimizeOnStartup"), out val);
                 return val;
@@ -1871,7 +1728,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_IsEnabled"), out val))
                     val = true;
@@ -1884,31 +1740,19 @@ namespace Shoko.Server
 
         public static string Trakt_AuthToken
         {
-            get
-            {
-
-                return Get("Trakt_AuthToken");
-            }
+            get { return Get("Trakt_AuthToken"); }
             set { Set("Trakt_AuthToken", value); }
         }
 
         public static string Trakt_RefreshToken
         {
-            get
-            {
-
-                return Get("Trakt_RefreshToken");
-            }
+            get { return Get("Trakt_RefreshToken"); }
             set { Set("Trakt_RefreshToken", value); }
         }
 
         public static string Trakt_TokenExpirationDate
         {
-            get
-            {
-
-                return Get("Trakt_TokenExpirationDate");
-            }
+            get { return Get("Trakt_TokenExpirationDate"); }
             set { Set("Trakt_TokenExpirationDate", value); }
         }
 
@@ -1916,35 +1760,32 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("Trakt_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { Set("Trakt_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("Trakt_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency Trakt_SyncFrequency
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("Trakt_SyncFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { Set("Trakt_SyncFrequency", ((int)value).ToString()); }
+            set { Set("Trakt_SyncFrequency", ((int) value).ToString()); }
         }
 
         public static bool Trakt_DownloadFanart
         {
             get
             {
-
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_DownloadFanart"), out val))
                     val = true; // default
@@ -1957,7 +1798,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_DownloadPosters"), out val))
                     val = true; // default
@@ -1970,7 +1810,6 @@ namespace Shoko.Server
         {
             get
             {
-
                 bool val = true;
                 if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out val))
                     val = true; // default
@@ -1985,21 +1824,13 @@ namespace Shoko.Server
 
         public static string MAL_Username
         {
-            get
-            {
-
-                return Get("MAL_Username");
-            }
+            get { return Get("MAL_Username"); }
             set { Set("MAL_Username", value); }
         }
 
         public static string MAL_Password
         {
-            get
-            {
-
-                return Get("MAL_Password");
-            }
+            get { return Get("MAL_Password"); }
             set { Set("MAL_Password", value); }
         }
 
@@ -2007,21 +1838,19 @@ namespace Shoko.Server
         {
             get
             {
-
                 int val = 1;
                 if (int.TryParse(Get("MAL_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency)val;
+                    return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { Set("MAL_UpdateFrequency", ((int)value).ToString()); }
+            set { Set("MAL_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static bool MAL_NeverDecreaseWatchedNums
         {
             get
             {
-
                 string wtchNum = Get("MAL_NeverDecreaseWatchedNums");
                 if (!string.IsNullOrEmpty(wtchNum))
                 {
@@ -2049,23 +1878,17 @@ namespace Shoko.Server
                 }
                 return val;
             }
-            set
-            {
-                Set("UpdateChannel", value);
-            }
+            set { Set("UpdateChannel", value); }
         }
 
         public static string WebCacheAuthKey
         {
-            get
-            {
-
-                return Get("WebCacheAuthKey");
-            }
+            get { return Get("WebCacheAuthKey"); }
             set { Set("WebCacheAuthKey", value); }
         }
 
         #region plex
+
         //plex
         public static int[] Plex_Libraries
         {
@@ -2089,6 +1912,7 @@ namespace Shoko.Server
             get { return Get(nameof(Plex_Server)); }
             set { Set(nameof(Plex_Server), value); }
         }
+
         #endregion
 
         public static CL_ServerSettings ToContract()
@@ -2109,18 +1933,18 @@ namespace Shoko.Server
             contract.AniDB_DownloadReleaseGroups = ServerSettings.AniDB_DownloadReleaseGroups;
 
             contract.AniDB_MyList_AddFiles = ServerSettings.AniDB_MyList_AddFiles;
-            contract.AniDB_MyList_StorageState = (int)ServerSettings.AniDB_MyList_StorageState;
-            contract.AniDB_MyList_DeleteType = (int)ServerSettings.AniDB_MyList_DeleteType;
+            contract.AniDB_MyList_StorageState = (int) ServerSettings.AniDB_MyList_StorageState;
+            contract.AniDB_MyList_DeleteType = (int) ServerSettings.AniDB_MyList_DeleteType;
             contract.AniDB_MyList_ReadWatched = ServerSettings.AniDB_MyList_ReadWatched;
             contract.AniDB_MyList_ReadUnwatched = ServerSettings.AniDB_MyList_ReadUnwatched;
             contract.AniDB_MyList_SetWatched = ServerSettings.AniDB_MyList_SetWatched;
             contract.AniDB_MyList_SetUnwatched = ServerSettings.AniDB_MyList_SetUnwatched;
 
-            contract.AniDB_MyList_UpdateFrequency = (int)ServerSettings.AniDB_MyList_UpdateFrequency;
-            contract.AniDB_Calendar_UpdateFrequency = (int)ServerSettings.AniDB_Calendar_UpdateFrequency;
-            contract.AniDB_Anime_UpdateFrequency = (int)ServerSettings.AniDB_Anime_UpdateFrequency;
-            contract.AniDB_MyListStats_UpdateFrequency = (int)ServerSettings.AniDB_MyListStats_UpdateFrequency;
-            contract.AniDB_File_UpdateFrequency = (int)ServerSettings.AniDB_File_UpdateFrequency;
+            contract.AniDB_MyList_UpdateFrequency = (int) ServerSettings.AniDB_MyList_UpdateFrequency;
+            contract.AniDB_Calendar_UpdateFrequency = (int) ServerSettings.AniDB_Calendar_UpdateFrequency;
+            contract.AniDB_Anime_UpdateFrequency = (int) ServerSettings.AniDB_Anime_UpdateFrequency;
+            contract.AniDB_MyListStats_UpdateFrequency = (int) ServerSettings.AniDB_MyListStats_UpdateFrequency;
+            contract.AniDB_File_UpdateFrequency = (int) ServerSettings.AniDB_File_UpdateFrequency;
 
             contract.AniDB_DownloadCharacters = ServerSettings.AniDB_DownloadCharacters;
             contract.AniDB_DownloadCreators = ServerSettings.AniDB_DownloadCreators;
@@ -2145,7 +1969,7 @@ namespace Shoko.Server
             contract.TvDB_AutoPostersAmount = ServerSettings.TvDB_AutoPostersAmount;
             contract.TvDB_AutoWideBanners = ServerSettings.TvDB_AutoWideBanners;
             contract.TvDB_AutoWideBannersAmount = ServerSettings.TvDB_AutoWideBannersAmount;
-            contract.TvDB_UpdateFrequency = (int)ServerSettings.TvDB_UpdateFrequency;
+            contract.TvDB_UpdateFrequency = (int) ServerSettings.TvDB_UpdateFrequency;
             contract.TvDB_Language = ServerSettings.TvDB_Language;
 
             // MovieDB
@@ -2169,17 +1993,17 @@ namespace Shoko.Server
             // Language
             contract.LanguagePreference = ServerSettings.LanguagePreference;
             contract.LanguageUseSynonyms = ServerSettings.LanguageUseSynonyms;
-            contract.EpisodeTitleSource = (int)ServerSettings.EpisodeTitleSource;
-            contract.SeriesDescriptionSource = (int)ServerSettings.SeriesDescriptionSource;
-            contract.SeriesNameSource = (int)ServerSettings.SeriesNameSource;
+            contract.EpisodeTitleSource = (int) ServerSettings.EpisodeTitleSource;
+            contract.SeriesDescriptionSource = (int) ServerSettings.SeriesDescriptionSource;
+            contract.SeriesNameSource = (int) ServerSettings.SeriesNameSource;
 
             // trakt
             contract.Trakt_IsEnabled = ServerSettings.Trakt_IsEnabled;
             contract.Trakt_AuthToken = ServerSettings.Trakt_AuthToken;
             contract.Trakt_RefreshToken = ServerSettings.Trakt_RefreshToken;
             contract.Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate;
-            contract.Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency;
-            contract.Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency;
+            contract.Trakt_UpdateFrequency = (int) ServerSettings.Trakt_UpdateFrequency;
+            contract.Trakt_SyncFrequency = (int) ServerSettings.Trakt_SyncFrequency;
             contract.Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes;
             contract.Trakt_DownloadFanart = ServerSettings.Trakt_DownloadFanart;
             contract.Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters;
@@ -2187,7 +2011,7 @@ namespace Shoko.Server
             // MAL
             contract.MAL_Username = ServerSettings.MAL_Username;
             contract.MAL_Password = ServerSettings.MAL_Password;
-            contract.MAL_UpdateFrequency = (int)ServerSettings.MAL_UpdateFrequency;
+            contract.MAL_UpdateFrequency = (int) ServerSettings.MAL_UpdateFrequency;
             contract.MAL_NeverDecreaseWatchedNums = ServerSettings.MAL_NeverDecreaseWatchedNums;
 
             // LogRotator
@@ -2198,7 +2022,7 @@ namespace Shoko.Server
 
             //WebUI
             contract.WebUI_Settings = ServerSettings.WebUI_Settings;
-            
+
             //Plex
             contract.Plex_Sections = String.Join(",", ServerSettings.Plex_Libraries);
             contract.Plex_ServerHost = ServerSettings.Plex_Server;
@@ -2216,7 +2040,7 @@ namespace Shoko.Server
             System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
             try
             {
-                if(Utils.GetApplicationVersion(a) != null)
+                if (Utils.GetApplicationVersion(a) != null)
                     logger.Info($"JMM Server Version: v{Utils.GetApplicationVersion(a)}");
             }
             catch (Exception ex)
@@ -2226,7 +2050,7 @@ namespace Shoko.Server
 
             try
             {
-                if(DatabaseFactory.Instance != null)
+                if (DatabaseFactory.Instance != null)
                     logger.Info($"Database Version: {DatabaseFactory.Instance.GetDatabaseVersion()}");
             }
             catch (Exception ex)
@@ -2349,7 +2173,8 @@ namespace Shoko.Server
 
             logger.Info("Trakt_IsEnabled: {0}", Trakt_IsEnabled);
             logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(Trakt_AuthToken) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("Trakt_RefreshToken: {0}", string.IsNullOrEmpty(Trakt_RefreshToken) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("Trakt_RefreshToken: {0}",
+                string.IsNullOrEmpty(Trakt_RefreshToken) ? "NOT SET" : "***HIDDEN***");
             logger.Info("Trakt_UpdateFrequency: {0}", Trakt_UpdateFrequency);
             logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
 
@@ -2366,6 +2191,7 @@ namespace Shoko.Server
 
             logger.Info("-------------------------------------------------------");
         }
+
         private static NameValueCollection GetNameValueCollectionSection(string section, string filePath)
         {
             string file = filePath;

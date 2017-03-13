@@ -25,7 +25,7 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GetCalendar, extraParams = new string[0] };
+                return new QueueStateStruct() {queueState = QueueStateEnum.GetCalendar, extraParams = new string[0]};
             }
         }
 
@@ -49,8 +49,9 @@ namespace Shoko.Server.Commands
             try
             {
                 // we will always assume that an anime was downloaded via http first
-                
-                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
+
+                ScheduledUpdate sched =
+                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
@@ -106,14 +107,15 @@ namespace Shoko.Server.Commands
                     }
                     else
                     {
-                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
+                        CommandRequest_GetAnimeHTTP cmdAnime =
+                            new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
                         cmdAnime.Save();
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error processing CommandRequest_GetCalendar: " + ex.ToString());
+                logger.Error(ex, "Error processing CommandRequest_GetCalendar: " + ex.ToString());
                 return;
             }
         }
@@ -139,7 +141,8 @@ namespace Shoko.Server.Commands
                 docCreator.LoadXml(this.CommandDetails);
 
                 // populate the fields
-                this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetCalendar", "ForceRefresh"));
+                this.ForceRefresh = bool.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_GetCalendar", "ForceRefresh"));
             }
 
             return true;

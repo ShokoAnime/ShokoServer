@@ -21,7 +21,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateTraktData, extraParams = new string[] { TraktID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.UpdateTraktData,
+                    extraParams = new string[] {TraktID.ToString()}
+                };
             }
         }
 

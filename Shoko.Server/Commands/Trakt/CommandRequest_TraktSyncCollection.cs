@@ -22,10 +22,7 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct PrettyDescription
         {
-            get
-            {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0] };
-            }
+            get { return new QueueStateStruct() {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]}; }
         }
 
         public CommandRequest_TraktSyncCollection()
@@ -49,7 +46,8 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
+                ScheduledUpdate sched =
+                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();

@@ -212,7 +212,6 @@ namespace Shoko.Server
             soUdp.Shutdown(SocketShutdown.Both);
             soUdp.Close();
             soUdp = null;
-
         }
 
         void logoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -234,7 +233,8 @@ namespace Shoko.Server
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                            string.Format(Shoko.Commons.Properties.Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
+                            string.Format(Shoko.Commons.Properties.Resources.AniDB_ResponseWaitSeconds,
+                                ts.TotalSeconds);
                     }
                 }
                 catch
@@ -250,7 +250,8 @@ namespace Shoko.Server
                 TimeSpan tsAniDBUDP = DateTime.Now - ShokoService.LastAniDBUDPMessage;
 
                 // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
-                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency && tsPing.TotalSeconds >= Constants.PingFrequency &&
+                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
+                    tsPing.TotalSeconds >= Constants.PingFrequency &&
                     !IsBanned && !ExtendPauseSecs.HasValue)
                 {
                     AniDBCommand_Ping ping = new AniDBCommand_Ping();
@@ -260,7 +261,8 @@ namespace Shoko.Server
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                string msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
+                string msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_LastMessage,
+                    tsAniDBUDP.TotalSeconds);
 
                 if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
                 {
@@ -277,7 +279,8 @@ namespace Shoko.Server
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             if (isWaiting)
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.AniDB_ResponseWait;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
+                    Shoko.Commons.Properties.Resources.AniDB_ResponseWait;
             else
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
 
@@ -314,14 +317,16 @@ namespace Shoko.Server
 
             if (ev != enHelperActivityType.LoggedIn)
             {
-                Application.Current.Dispatcher.Invoke(() => {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail, Shoko.Commons.Properties.Resources.Error,
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail,
+                        Shoko.Commons.Properties.Resources.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
 
                     InitialSetupForm frm = new InitialSetupForm();
                     frm.ShowDialog();
                 });
-                
+
                 //BaseConfig.MyAnimeLog.Write("ProcessCommands: Login Failed!");
                 //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.LoginFailed, ""));
                 //aniDBCommands.Clear();
@@ -366,7 +371,8 @@ namespace Shoko.Server
                 getInfoCmd = new AniDBCommand_GetEpisodeInfo();
                 getInfoCmd.Init(episodeID, true);
                 SetWaitingOnResponse(true);
-                ev = getInfoCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = getInfoCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -399,7 +405,8 @@ namespace Shoko.Server
                 getInfoCmd = new AniDBCommand_GetFileInfo();
                 getInfoCmd.Init(vidLocal, true);
                 SetWaitingOnResponse(true);
-                ev = getInfoCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = getInfoCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -574,7 +581,8 @@ namespace Shoko.Server
                 cmdAddFile = new AniDBCommand_AddFile();
                 cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState);
                 SetWaitingOnResponse(true);
-                ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -602,7 +610,8 @@ namespace Shoko.Server
                 cmdAddFile = new AniDBCommand_AddFile();
                 cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState);
                 SetWaitingOnResponse(true);
-                ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -668,7 +677,8 @@ namespace Shoko.Server
                 cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
                 cmdDelFile.Init(hash, fileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -689,7 +699,8 @@ namespace Shoko.Server
                 cmdDelFile = new AniDBCommand_DeleteFile();
                 cmdDelFile.Init(hash, fileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -710,7 +721,8 @@ namespace Shoko.Server
                 cmdDelFile = new AniDBCommand_DeleteFile();
                 cmdDelFile.Init(fileID);
                 SetWaitingOnResponse(true);
-                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -748,7 +760,8 @@ namespace Shoko.Server
                 getAnimeCmd = new AniDBCommand_GetAnimeInfo();
                 getAnimeCmd.Init(animeID, forceRefresh);
                 SetWaitingOnResponse(true);
-                ev = getAnimeCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = getAnimeCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -775,7 +788,8 @@ namespace Shoko.Server
                 getCharCmd = new AniDBCommand_GetCharacterInfo();
                 getCharCmd.Init(charID, true);
                 SetWaitingOnResponse(true);
-                ev = getCharCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = getCharCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -904,7 +918,8 @@ namespace Shoko.Server
                             getCmd.GrpStatusCollection.LatestEpisodeNumber);
                         if (eps.Count == 0)
                         {
-                            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                            CommandRequest_GetAnimeHTTP cr_anime =
+                                new CommandRequest_GetAnimeHTTP(animeID, true, false);
                             cr_anime.Save();
                         }
                         // update the missing episode stats on groups and children
@@ -1040,7 +1055,8 @@ namespace Shoko.Server
             }
         }
 
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh, bool downloadRelations)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh,
+            bool downloadRelations)
         {
             //if (!Login()) return null;
 
@@ -1157,7 +1173,8 @@ namespace Shoko.Server
                         logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle,
                             seiyuu.SeiyuuName, seiyuu.SeiyuuID,
                             seiyuu.GetPosterPath());
-                        cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+                        cmd =
+                            new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
                         cmd.Save();
                     }
                 }
@@ -1235,14 +1252,15 @@ namespace Shoko.Server
                 IPHostEntry remoteHostEntry = Dns.GetHostEntry(serverName);
                 remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], Convert.ToInt32(serverPort));
 
-                logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address.ToString() + " : " +
+                logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address.ToString() +
+                            " : " +
                             remoteIpEndPoint.Port.ToString());
 
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error( ex, $"Could not bind to remote port: {ex}");
+                logger.Error(ex, $"Could not bind to remote port: {ex}");
                 return false;
             }
         }

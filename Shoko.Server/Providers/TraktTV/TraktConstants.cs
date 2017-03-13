@@ -6,6 +6,7 @@
 
         // Production
         public const string ClientID = "a20707fa9666bea4acd86bc6ea2123bd6ffdbe996b4927cfdba96f4d3fca3042";
+
         public const string ClientSecret = "7ef5eec766070fa0b34a4a4a2fea2ad0ddbe9bb1bc1e8eb621551c52fb288739";
         public const string BaseAPIURL = @"https://api-v2launch.trakt.tv";
         public const string BaseWebsiteURL = @"https://trakt.tv";
@@ -23,6 +24,7 @@
     {
         // movie , show , episode , person , list 
         public const string movie = "movie";
+
         public const string show = "show";
         public const string episode = "episode";
         public const string person = "person";
@@ -34,6 +36,7 @@
     {
         // movie , show , episode , person , list 
         public const string traktmovie = "trakt-movie";
+
         public const string traktshow = "trakt-show";
         public const string traktepisode = "trakt-episode";
         public const string imdb = "imdb";

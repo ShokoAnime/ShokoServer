@@ -27,7 +27,8 @@ namespace Shoko.Server.Extensions
         }
 
 
-        public static List<Trakt_Episode> GetEpisodes(this Trakt_Season season) => RepoFactory.Trakt_Episode.GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
+        public static List<Trakt_Episode> GetEpisodes(this Trakt_Season season) => RepoFactory.Trakt_Episode
+            .GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
 
         public static List<Trakt_Season> GetSeasons(this Trakt_Show show)
         {
@@ -44,7 +45,8 @@ namespace Shoko.Server.Extensions
 
         public static AniDB_Seiyuu GetSeiyuu(this AniDB_Character character, ISession session)
         {
-            List<AniDB_Character_Seiyuu> charSeiyuus = RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, character.CharID);
+            List<AniDB_Character_Seiyuu> charSeiyuus =
+                RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, character.CharID);
 
             if (charSeiyuus.Count > 0)
             {
@@ -117,7 +119,6 @@ namespace Shoko.Server.Extensions
 
         public static VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
         {
-
             SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(cross.Hash);
             if (vid != null)
             {
@@ -128,10 +129,19 @@ namespace Shoko.Server.Extensions
             return null;
         }
 
-        public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1);
-        public static string GetFullServerPath1(this DuplicateFile duplicatefile) => Path.Combine(duplicatefile.GetImportFolder1().ImportFolderLocation, duplicatefile.FilePathFile1);
-        public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2);
-        public static string GetFullServerPath2(this DuplicateFile duplicatefile) => Path.Combine(duplicatefile.GetImportFolder2().ImportFolderLocation, duplicatefile.FilePathFile2);
-        public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => RepoFactory.AniDB_File.GetByHash(duplicatefile.Hash);
+        public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder
+            .GetByID(duplicatefile.ImportFolderIDFile1);
+
+        public static string GetFullServerPath1(this DuplicateFile duplicatefile) => Path.Combine(
+            duplicatefile.GetImportFolder1().ImportFolderLocation, duplicatefile.FilePathFile1);
+
+        public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder
+            .GetByID(duplicatefile.ImportFolderIDFile2);
+
+        public static string GetFullServerPath2(this DuplicateFile duplicatefile) => Path.Combine(
+            duplicatefile.GetImportFolder2().ImportFolderLocation, duplicatefile.FilePathFile2);
+
+        public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => RepoFactory.AniDB_File.GetByHash(
+            duplicatefile.Hash);
     }
 }

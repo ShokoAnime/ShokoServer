@@ -11,6 +11,7 @@ namespace Shoko.Server
         public App()
         {
         }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             for (int x = 0; x < e.Args.Length; x++)

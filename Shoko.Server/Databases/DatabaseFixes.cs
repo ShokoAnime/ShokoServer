@@ -19,13 +19,16 @@ namespace Shoko.Server.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    
+
         public static void DeleteSerieUsersWithoutSeries()
         {
             //DB Fix Series not deleting series_user
             HashSet<int> list = new HashSet<int>(RepoFactory.AnimeSeries.Cache.Keys);
-            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.Values.Where(a => !list.Contains(a.AnimeSeriesID)).ToList());
+            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.Values
+                .Where(a => !list.Contains(a.AnimeSeriesID))
+                .ToList());
         }
+
         public static void FixHashes()
         {
             try
@@ -57,38 +60,40 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
         public static void FixEmptyVideoInfos()
         {
-            List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll().Where(a => string.IsNullOrEmpty(a.FileName)).ToList();
+            List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll()
+                .Where(a => string.IsNullOrEmpty(a.FileName))
+                .ToList();
             foreach (SVR_VideoLocal v in locals)
             {
                 SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
                 if (p != null && !string.IsNullOrEmpty(p.FilePath) && v.Media != null)
                 {
                     v.FileName = p.FilePath;
-                    int a=p.FilePath.LastIndexOf("\\",StringComparison.InvariantCulture);
+                    int a = p.FilePath.LastIndexOf("\\", StringComparison.InvariantCulture);
                     if (a > 0)
                         v.FileName = p.FilePath.Substring(a + 1);
-                    SVR_VideoLocal_Place.FillVideoInfoFromMedia(v,v.Media);
-                    RepoFactory.VideoLocal.Save(v,false);
+                    SVR_VideoLocal_Place.FillVideoInfoFromMedia(v, v.Media);
+                    RepoFactory.VideoLocal.Save(v, false);
                 }
             }
         }
+
         public static void RemoveOldMovieDBImageRecords()
         {
             try
             {
-                
                 RepoFactory.MovieDB_Fanart.Delete(RepoFactory.MovieDB_Fanart.GetAll());
                 RepoFactory.MovieDB_Poster.Delete(RepoFactory.MovieDB_Poster.GetAll());
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Could not RemoveOldMovieDBImageRecords: " + ex.ToString());
+                logger.Error(ex, "Could not RemoveOldMovieDBImageRecords: " + ex.ToString());
             }
         }
 
@@ -96,7 +101,7 @@ namespace Shoko.Server.Databases
         public static void FixContinueWatchingGroupFilter_20160406()
         {
             // group filters
-          
+
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 // check if it already exists
@@ -122,9 +127,6 @@ namespace Shoko.Server.Databases
         {
             try
             {
-
-
-
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
@@ -169,7 +171,8 @@ namespace Shoko.Server.Databases
                         if (!seasons.Contains(0)) continue;
 
                         //make sure we are not doubling up
-                        CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID, 0, 1,
+                        CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID,
+                            0, 1,
                             xrefTrakt.AnimeID,
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
@@ -190,7 +193,7 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString());
+                logger.Error(ex, "Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString());
             }
         }
 
@@ -198,7 +201,6 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
@@ -241,7 +243,8 @@ namespace Shoko.Server.Databases
                         if (!seasons.Contains(0)) continue;
 
                         //make sure we are not doubling up
-                        CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0, 1,
+                        CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0,
+                            1,
                             xrefTvDB.AnimeID,
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
@@ -265,13 +268,12 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString());
+                logger.Error(ex, "Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString());
             }
         }
 
         public static void FixDuplicateTraktLinks()
         {
-
             // delete all Trakt link duplicates
 
             List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
@@ -309,7 +311,6 @@ namespace Shoko.Server.Databases
 
         public static void FixDuplicateTvDBLinks()
         {
-
             // delete all TvDB link duplicates
 
 
@@ -358,62 +359,62 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Could not PopulateTagWeight: " + ex.ToString());
+                logger.Error(ex, "Could not PopulateTagWeight: " + ex.ToString());
             }
         }
 
-	    public static void FixTagsWithInclude()
-	    {
-		    try
-		    {
-			    foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
-			    {
-				    if (gf.FilterType != (int)GroupFilterType.Tag) continue;
-				    foreach (GroupFilterCondition gfc in gf.Conditions)
-				    {
-					    if (gfc.ConditionType != (int) GroupFilterConditionType.Tag) continue;
-					    if (gfc.ConditionOperator == (int) GroupFilterOperator.Include)
-					    {
-						    gfc.ConditionOperator = (int) GroupFilterOperator.In;
-						    RepoFactory.GroupFilterCondition.Save(gfc);
-						    continue;
-					    }
-					    if (gfc.ConditionOperator == (int) GroupFilterOperator.Exclude)
-					    {
-						    gfc.ConditionOperator = (int) GroupFilterOperator.NotIn;
-						    RepoFactory.GroupFilterCondition.Save(gfc);
-						    continue;
-					    }
-				    }
-				    gf.EvaluateAnimeSeries();
-				    gf.EvaluateAnimeGroups();
-				    RepoFactory.GroupFilter.Save(gf);
-			    }
-		    }
-		    catch (Exception e)
-		    {
-			    logger.Error(e);
-		    }
-	    }
+        public static void FixTagsWithInclude()
+        {
+            try
+            {
+                foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+                {
+                    if (gf.FilterType != (int) GroupFilterType.Tag) continue;
+                    foreach (GroupFilterCondition gfc in gf.Conditions)
+                    {
+                        if (gfc.ConditionType != (int) GroupFilterConditionType.Tag) continue;
+                        if (gfc.ConditionOperator == (int) GroupFilterOperator.Include)
+                        {
+                            gfc.ConditionOperator = (int) GroupFilterOperator.In;
+                            RepoFactory.GroupFilterCondition.Save(gfc);
+                            continue;
+                        }
+                        if (gfc.ConditionOperator == (int) GroupFilterOperator.Exclude)
+                        {
+                            gfc.ConditionOperator = (int) GroupFilterOperator.NotIn;
+                            RepoFactory.GroupFilterCondition.Save(gfc);
+                            continue;
+                        }
+                    }
+                    gf.EvaluateAnimeSeries();
+                    gf.EvaluateAnimeGroups();
+                    RepoFactory.GroupFilter.Save(gf);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+            }
+        }
 
-	    public static void MakeYearsApplyToSeries()
-	    {
-		    try
-		    {
-			    foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
-			    {
-				    if (gf.FilterType != (int)GroupFilterType.Year) continue;
-				    gf.ApplyToSeries = 1;
-				    gf.EvaluateAnimeSeries();
-				    gf.EvaluateAnimeGroups();
-				    RepoFactory.GroupFilter.Save(gf);
-			    }
-			    RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-		    }
-		    catch (Exception e)
-		    {
-			    logger.Error(e);
-		    }
-	    }
+        public static void MakeYearsApplyToSeries()
+        {
+            try
+            {
+                foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+                {
+                    if (gf.FilterType != (int) GroupFilterType.Year) continue;
+                    gf.ApplyToSeries = 1;
+                    gf.EvaluateAnimeSeries();
+                    gf.EvaluateAnimeGroups();
+                    RepoFactory.GroupFilter.Save(gf);
+                }
+                RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+            }
+        }
     }
 }

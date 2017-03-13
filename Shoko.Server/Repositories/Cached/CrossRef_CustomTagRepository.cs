@@ -15,6 +15,7 @@ namespace Shoko.Server.Repositories
     {
         private PocoIndex<int, CrossRef_CustomTag, int> Tags;
         private PocoIndex<int, CrossRef_CustomTag, int, int> Refs;
+
         private CrossRef_CustomTagRepository()
         {
         }
@@ -30,13 +31,16 @@ namespace Shoko.Server.Repositories
             Refs = new PocoIndex<int, CrossRef_CustomTag, int, int>(Cache, a => a.CrossRefID, a => a.CrossRefType);
         }
 
-        public override void RegenerateDb() { }
+        public override void RegenerateDb()
+        {
+        }
 
 
         public static CrossRef_CustomTagRepository Create()
         {
             return new CrossRef_CustomTagRepository();
         }
+
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
             return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
@@ -50,7 +54,6 @@ namespace Shoko.Server.Repositories
 
             return new List<CrossRef_CustomTag>(tags);*/
         }
-
 
 
         public List<CrossRef_CustomTag> GetByCustomTagID(int id)
@@ -82,6 +85,5 @@ namespace Shoko.Server.Repositories
                 return new List<CrossRef_CustomTag>(tags);
             }*/
         }
-
     }
 }

@@ -12,13 +12,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private MovieDB_PosterRepository()
         {
-            
         }
 
         public static MovieDB_PosterRepository Create()
         {
             return new MovieDB_PosterRepository();
         }
+
         public MovieDB_Poster GetByOnlineID(string url)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -66,6 +66,5 @@ namespace Shoko.Server.Repositories.Direct
                 return new List<MovieDB_Poster>(objs);
             }
         }
-
     }
 }

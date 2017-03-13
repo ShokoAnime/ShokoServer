@@ -11,13 +11,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private AniDB_Anime_CharacterRepository()
         {
-            
         }
 
         public static AniDB_Anime_CharacterRepository Create()
         {
             return new AniDB_Anime_CharacterRepository();
         }
+
         public List<AniDB_Anime_Character> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -67,6 +67,5 @@ namespace Shoko.Server.Repositories.Direct
                 return cr;
             }
         }
-
     }
 }

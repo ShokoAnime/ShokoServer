@@ -15,13 +15,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private CrossRef_AniDB_TvDBV2Repository()
         {
-            
         }
 
         public static CrossRef_AniDB_TvDBV2Repository Create()
         {
             return new CrossRef_AniDB_TvDBV2Repository();
         }
+
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -42,7 +42,8 @@ namespace Shoko.Server.Repositories.Direct
             return new List<CrossRef_AniDB_TvDBV2>(xrefs);
         }
 
-        public ILookup<int, CrossRef_AniDB_TvDBV2> GetByAnimeIDs(ISessionWrapper session, IReadOnlyCollection<int> animeIds)
+        public ILookup<int, CrossRef_AniDB_TvDBV2> GetByAnimeIDs(ISessionWrapper session,
+            IReadOnlyCollection<int> animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -101,6 +102,5 @@ namespace Shoko.Server.Repositories.Direct
                 return GetByTvDBID(session, id, season, episodeNumber, animeID, aniEpType, aniEpisodeNumber);
             }
         }
-     
     }
 }

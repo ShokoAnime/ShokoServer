@@ -128,7 +128,8 @@ namespace Shoko.Server.Providers.Azure
             SendData(uri, json, "POST");
         }
 
-        public static void Delete_CrossRefAniDBTrakt(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber,
+        public static void Delete_CrossRefAniDBTrakt(int animeID, int aniDBStartEpisodeType,
+            int aniDBStartEpisodeNumber,
             string traktID,
             int traktSeasonNumber, int traktStartEpisodeNumber)
         {
@@ -197,7 +198,8 @@ namespace Shoko.Server.Providers.Azure
             ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             Azure_CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_MAL>(json);
-            xref.Self = string.Format(CultureInfo.CurrentCulture, "api/crossRef_anidb_mal/{0}", xref.CrossRef_AniDB_MALID);
+            xref.Self = string.Format(CultureInfo.CurrentCulture, "api/crossRef_anidb_mal/{0}",
+                xref.CrossRef_AniDB_MALID);
             return xref;
         }
 
@@ -321,7 +323,8 @@ namespace Shoko.Server.Providers.Azure
             if (ServerSettings.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
-            string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress, vid.Hash,
+            string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress,
+                vid.Hash,
                 username);
             string msg = string.Format("Getting File/Episode Cross Ref From Cache: {0}", vid.Hash);
 
@@ -397,7 +400,8 @@ namespace Shoko.Server.Providers.Azure
             TimeSpan ts = DateTime.Now - start;
             string content = xml;
             if (content.Length > 100) content = content.Substring(0, 100);
-            msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
+            msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds,
+                content);
             ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             return xml;
@@ -472,7 +476,7 @@ namespace Shoko.Server.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error(2) in XMLServiceQueue.SendData: {0}");
+                logger.Error(ex, "Error(2) in XMLServiceQueue.SendData: {0}");
             }
 
             return null;
@@ -534,8 +538,8 @@ namespace Shoko.Server.Providers.Azure
                     var response = webEx.Response as HttpWebResponse;
                     if (response != null)
                     {
-						if (!uri.Contains("Admin") || (int)response.StatusCode != 400)
-							logger.Error("HTTP Status Code: " + (int) response.StatusCode);
+                        if (!uri.Contains("Admin") || (int) response.StatusCode != 400)
+                            logger.Error("HTTP Status Code: " + (int) response.StatusCode);
                         ret = response.StatusCode.ToString();
                     }
                     else
@@ -543,12 +547,12 @@ namespace Shoko.Server.Providers.Azure
                         // no http status code available
                     }
                 }
-				if(!uri.Contains("Admin"))
-					logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
+                if (!uri.Contains("Admin"))
+                    logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error(2) in XMLServiceQueue.SendData: {0}");
+                logger.Error(ex, "Error(2) in XMLServiceQueue.SendData: {0}");
             }
             finally
             {
@@ -594,7 +598,7 @@ namespace Shoko.Server.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error(2) in AzureWebAPI.GetData: {0}");
+                logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
             }
 
             return "";
@@ -635,7 +639,7 @@ namespace Shoko.Server.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error(2) in AzureWebAPI.GetData: {0}");
+                logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
             }
 
             return "";
@@ -681,7 +685,7 @@ namespace Shoko.Server.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error(2) in AzureWebAPI.GetData: {0}");
+                logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
             }
 
             return "";
@@ -722,7 +726,7 @@ namespace Shoko.Server.Providers.Azure
                 // this field is not actually used
                 uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
 
-                uinfo.LocalUserCount = (int)RepoFactory.JMMUser.GetTotalRecordCount();
+                uinfo.LocalUserCount = (int) RepoFactory.JMMUser.GetTotalRecordCount();
 
                 uinfo.FileCount = RepoFactory.VideoLocal.GetTotalRecordCount();
 
@@ -735,7 +739,7 @@ namespace Shoko.Server.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return null;
             }
         }
@@ -890,7 +894,6 @@ namespace Shoko.Server.Providers.Azure
 
         #region File Hashes
 
-
         public static void Send_FileHash(List<SVR_AniDB_File> aniFiles)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
@@ -917,8 +920,8 @@ namespace Shoko.Server.Providers.Azure
                 string json = JSONHelper.Serialize<List<Azure_FileHash_Request>>(inputs);
                 SendData(uri, json, "POST");
             }
-
         }
+
         public static void Send_FileHash(List<SVR_VideoLocal> locals)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
@@ -945,8 +948,8 @@ namespace Shoko.Server.Providers.Azure
                 string json = JSONHelper.Serialize<List<Azure_FileHash_Request>>(inputs);
                 SendData(uri, json, "POST");
             }
-
         }
+
         /// <summary>
         /// Get File hash details from the web cache
         /// When the hash type is a CRC, the hash details value should be a combination of the CRC and the FileSize with an under score in between
@@ -957,8 +960,7 @@ namespace Shoko.Server.Providers.Azure
         /// <returns></returns>
         public static List<Azure_FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
         {
-            
-            string uri = string.Format(@"http://{0}/api/FileHash/{1}?p={2}", azureHostBaseAddress, (int)hashType,
+            string uri = string.Format(@"http://{0}/api/FileHash/{1}?p={2}", azureHostBaseAddress, (int) hashType,
                 hashDetails);
             string msg = string.Format("Getting File Hash From Cache: {0} - {1}", hashType, hashDetails);
 
@@ -971,7 +973,8 @@ namespace Shoko.Server.Providers.Azure
             msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
             ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<Azure_FileHash> hashes = JsonConvert.DeserializeObject<List<Azure_FileHash>>(json) ?? new List<Azure_FileHash>();
+            List<Azure_FileHash> hashes = JsonConvert.DeserializeObject<List<Azure_FileHash>>(json) ??
+                                          new List<Azure_FileHash>();
             return hashes;
         }
 
@@ -988,7 +991,9 @@ namespace Shoko.Server.Providers.Azure
             List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
             // send a max of 25 at a time
             // send a max of 25 at a time
-            foreach (SVR_VideoLocal v in locals.Where(a=>a.MediaBlob!=null && a.MediaBlob.Length>0 && a.MediaVersion==SVR_VideoLocal.MEDIA_VERSION && !string.IsNullOrEmpty(a.ED2KHash)))
+            foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob != null && a.MediaBlob.Length > 0 &&
+                                                           a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION &&
+                                                           !string.IsNullOrEmpty(a.ED2KHash)))
             {
                 Azure_Media_Request input = v.ToMediaRequest();
                 if (inputs.Count < 25)
@@ -1007,8 +1012,8 @@ namespace Shoko.Server.Providers.Azure
                 string json = JsonConvert.SerializeObject(inputs);
                 SendData(uri, json, "POST");
             }
-
         }
+
         public static void Send_Media(string ed2k, Shoko.Models.PlexAndKodi.Media media)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
@@ -1020,13 +1025,14 @@ namespace Shoko.Server.Providers.Azure
             inputs.Add(input);
             string json = JsonConvert.SerializeObject(inputs);
             SendData(uri, json, "POST");
-
         }
+
         public static List<Azure_Media> Get_Media(string ed2k)
         {
-
-            string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,SVR_VideoLocal.MEDIA_VERSION);
-            string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,SVR_VideoLocal.MEDIA_VERSION);
+            string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,
+                SVR_VideoLocal.MEDIA_VERSION);
+            string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,
+                SVR_VideoLocal.MEDIA_VERSION);
 
             DateTime start = DateTime.Now;
             ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
@@ -1037,12 +1043,12 @@ namespace Shoko.Server.Providers.Azure
             msg = string.Format("Getting Media Info From Cache for ED2K: {0} - {1}", ed2k, ts.TotalMilliseconds);
             ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<Azure_Media> medias = JsonConvert.DeserializeObject<List<Azure_Media>>(json) ?? new List<Azure_Media>();
-            
+            List<Azure_Media> medias = JsonConvert.DeserializeObject<List<Azure_Media>>(json) ??
+                                       new List<Azure_Media>();
+
             return medias;
         }
+
         #endregion
     }
-
-
 }

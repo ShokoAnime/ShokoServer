@@ -14,7 +14,6 @@ namespace Shoko.Server.Repositories.Direct
     {
         private CrossRef_AniDB_MALRepository()
         {
-            
         }
 
         public static CrossRef_AniDB_MALRepository Create()

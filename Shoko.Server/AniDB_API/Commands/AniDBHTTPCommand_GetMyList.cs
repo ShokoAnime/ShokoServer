@@ -70,7 +70,7 @@ namespace AniDBAPI.Commands
         private XmlDocument LoadAnimeMyListFromFile()
         {
             string filePath = ServerSettings.MyListDirectory;
-            
+
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
 

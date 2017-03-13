@@ -25,7 +25,7 @@ namespace Shoko.Server.FileHelper.Subtitles
                 FileSystemResult<IObject> r = vplace.ImportFolder.FileSystem.Resolve(basename + ".sub");
                 if (r != null && r.IsOk && r.Result is IFile)
                 {
-                    List<Stream> ss = GetStreams((IFile)r.Result);
+                    List<Stream> ss = GetStreams((IFile) r.Result);
                     if ((ss != null) && (ss.Count > 0))
                         streams.AddRange(ss);
                 }
@@ -43,7 +43,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             FileSystemResult<IObject> r = file.FileSystem.Resolve(basename + ".idx");
             if (r == null || !r.IsOk || r.Result is IDirectory)
                 return null;
-            FileSystemResult<System.IO.Stream> res = ((IFile)r.Result).OpenRead();
+            FileSystemResult<System.IO.Stream> res = ((IFile) r.Result).OpenRead();
             if (res == null || !res.IsOk)
                 return null;
             StreamReader reader = new StreamReader(res.Result);

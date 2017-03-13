@@ -18,7 +18,7 @@ namespace Shoko.Server.API.v2.Models.common
 
     public class Art
     {
-        public string url { get; set;}
+        public string url { get; set; }
         public int index { get; set; }
     }
 }

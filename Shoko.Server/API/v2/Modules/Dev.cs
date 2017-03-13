@@ -10,10 +10,10 @@ namespace Shoko.Server.API.v2.Modules
 
         public Dev() : base("/api/dev")
         {
-            #if DEBUG
-            Get["/contracts/{entity?}"] = x => { return ExtractContracts((string)x.entity); };
-            
-            #endif
+#if DEBUG
+            Get["/contracts/{entity?}"] = x => { return ExtractContracts((string) x.entity); };
+
+#endif
         }
 
         /// <summary>

@@ -17,7 +17,6 @@ namespace Shoko.Server.Repositories.Cached
 
         private JMMUserRepository()
         {
-            
         }
 
         public static JMMUserRepository Create()
@@ -32,23 +31,27 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void PopulateIndexes()
         {
-
         }
 
         public override void RegenerateDb()
         {
-
         }
 
-      
 
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(SVR_JMMUser obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_JMMUser obj)
+        {
+            throw new NotSupportedException();
+        }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_JMMUser> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_JMMUser> objs)
+        {
+            throw new NotSupportedException();
+        }
 
         public void Save(SVR_JMMUser obj, bool updateGroupFilters)
         {
@@ -78,8 +81,6 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
-
         public SVR_JMMUser GetByUsername(string username)
         {
             try
@@ -97,7 +98,6 @@ namespace Shoko.Server.Repositories.Cached
             //}
             //return null;
         }
-
 
 
         public List<SVR_JMMUser> GetAniDBUsers()
@@ -120,6 +120,5 @@ namespace Shoko.Server.Repositories.Cached
         {
             return Cache.Keys.Count;
         }
-
     }
 }

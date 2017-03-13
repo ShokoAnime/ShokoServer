@@ -28,9 +28,17 @@ namespace Shoko.Server.Commands
             get
             {
                 if (vid != null)
-                    return new QueueStateStruct() { queueState=QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { vid.FileName  } };
+                    return new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.AniDB_MyListAdd,
+                        extraParams = new string[] {vid.FileName}
+                    };
                 else
-                    return new QueueStateStruct() { queueState = QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { Hash } };
+                    return new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.AniDB_MyListAdd,
+                        extraParams = new string[] {Hash}
+                    };
             }
         }
 
@@ -54,7 +62,6 @@ namespace Shoko.Server.Commands
 
             try
             {
-
                 vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
                 List<SVR_AnimeEpisode> animeEpisodes = new List<SVR_AnimeEpisode>();
                 if (vid != null) animeEpisodes = vid.GetAnimeEpisodes();
@@ -130,9 +137,10 @@ namespace Shoko.Server.Commands
                     {
                         foreach (SVR_AnimeEpisode aep in animeEpisodes)
                         {
-                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode
+                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt =
+                                new CommandRequest_TraktCollectionEpisode
                                 (
-                                aep.AnimeEpisodeID, TraktSyncAction.Add);
+                                    aep.AnimeEpisodeID, TraktSyncAction.Add);
                             cmdSyncTrakt.Save();
                         }
                     }

@@ -27,7 +27,8 @@ namespace Shoko.Server.UI
 
             workerTestLogin.DoWork += new DoWorkEventHandler(workerTestLogin_DoWork);
             workerTestLogin.ProgressChanged += new ProgressChangedEventHandler(workerTestLogin_ProgressChanged);
-            workerTestLogin.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerTestLogin_RunWorkerCompleted);
+            workerTestLogin.RunWorkerCompleted +=
+                new RunWorkerCompletedEventHandler(workerTestLogin_RunWorkerCompleted);
             workerTestLogin.WorkerReportsProgress = true;
             workerTestLogin.WorkerSupportsCancellation = true;
 
@@ -95,7 +96,8 @@ namespace Shoko.Server.UI
 
             if (txtUsername.Text.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterUsername, Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterUsername,
+                    Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtUsername.Focus();
@@ -104,7 +106,8 @@ namespace Shoko.Server.UI
 
             if (txtPassword.Password.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPassword, Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPassword,
+                    Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtPassword.Focus();
@@ -113,7 +116,8 @@ namespace Shoko.Server.UI
 
             if (txtClientPort.Text.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPort, Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPort,
+                    Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtClientPort.Focus();

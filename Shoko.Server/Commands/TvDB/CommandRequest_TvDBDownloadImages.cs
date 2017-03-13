@@ -21,27 +21,30 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.DownloadTvDBImages, extraParams = new string[] { TvDBSeriesID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.DownloadTvDBImages,
+                    extraParams = new string[] {TvDBSeriesID.ToString()}
+                };
             }
         }
 
-        
+
         public CommandRequest_TvDBDownloadImages()
         {
         }
-        
 
-        
-		public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
-		{
-			this.TvDBSeriesID = tvDBSeriesID;
-			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.TvDB_DownloadImages;
-			this.Priority = (int)DefaultPriority;
 
-			GenerateCommandID();
+        public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
+        {
+            this.TvDBSeriesID = tvDBSeriesID;
+            this.ForceRefresh = forced;
+            this.CommandType = (int) CommandRequestType.TvDB_DownloadImages;
+            this.Priority = (int) DefaultPriority;
+
+            GenerateCommandID();
         }
-        
+
 
         public override void ProcessCommand()
         {

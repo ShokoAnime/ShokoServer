@@ -36,14 +36,13 @@ namespace Shoko.Server.UI
             btnResume.Click += BtnResumeClick;
             comboProvider.SelectionChanged += ComboProvider_SelectionChanged;
             btnReAddAll.Click += BtnReAddAll_Click;
-
         }
 
 
         private void ComboProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (comboProvider.SelectedItem!=null)
-                Scanner.Instance.ActiveScan = (Scan)comboProvider.SelectedItem;
+            if (comboProvider.SelectedItem != null)
+                Scanner.Instance.ActiveScan = (Scan) comboProvider.SelectedItem;
         }
 
         private void BtnResumeClick(object sender, RoutedEventArgs e)
@@ -59,7 +58,8 @@ namespace Shoko.Server.UI
         private void BtnDeleteClick(object sender, RoutedEventArgs e)
         {
             if (
-                MessageBox.Show(Shoko.Commons.Properties.Resources.Integrity_DeleteMessage, Shoko.Commons.Properties.Resources.Integrity_DeleteTitle,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Integrity_DeleteMessage,
+                    Shoko.Commons.Properties.Resources.Integrity_DeleteTitle,
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 Scanner.Instance.ClearScan();
@@ -80,14 +80,16 @@ namespace Shoko.Server.UI
                 this.IsEnabled = false;
                 Cursor = Cursors.Wait;
                 Scan s = frm.SelectedScan;
-                HashSet<int> imp=new HashSet<int>(s.GetImportFolderList());
-                List<SVR_VideoLocal> vl=imp.SelectMany(a=>RepoFactory.VideoLocal.GetByImportFolder(a)).Distinct().ToList();
-                List<ScanFile> files=new List<ScanFile>();
+                HashSet<int> imp = new HashSet<int>(s.GetImportFolderList());
+                List<SVR_VideoLocal> vl = imp.SelectMany(a => RepoFactory.VideoLocal.GetByImportFolder(a))
+                    .Distinct()
+                    .ToList();
+                List<ScanFile> files = new List<ScanFile>();
                 foreach (SVR_VideoLocal v in vl)
                 {
                     foreach (SVR_VideoLocal_Place p in v.Places.Where(a => imp.Contains(a.ImportFolderID)))
                     {
-                        ScanFile sfile=new ScanFile();
+                        ScanFile sfile = new ScanFile();
                         sfile.Hash = v.ED2KHash;
                         sfile.FileSize = v.FileSize;
                         sfile.FullName = p.FullServerPath;
@@ -104,8 +106,8 @@ namespace Shoko.Server.UI
                 comboProvider.SelectedItem = s;
                 Cursor = Cursors.Arrow;
             }
-            
         }
+
         private Window GetTopParent()
         {
             DependencyObject dpParent = this.Parent;
@@ -116,27 +118,27 @@ namespace Shoko.Server.UI
 
             return dpParent as Window;
         }
+
         private void BtnReAddAll_Click(object sender, RoutedEventArgs e)
         {
             Scan scan = Scanner.Instance.ActiveScan;
-            if ((scan != null) && (Scanner.Instance.ActiveErrorFiles.Count>0))
+            if ((scan != null) && (Scanner.Instance.ActiveErrorFiles.Count > 0))
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddMessage, Shoko.Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddMessage,
+                        Shoko.Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                     return;
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    scan.Status = (int)ScanStatus.Standby;
+                    scan.Status = (int) ScanStatus.Standby;
                     RepoFactory.Scan.Save(scan);
                 }
                 List<ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
                 Scanner.Instance.ActiveErrorFiles.Clear();
-                files.ForEach(a =>
-                {
-                    a.Status = (int) ScanFileStatus.Waiting;
-                });
+                files.ForEach(a => { a.Status = (int) ScanFileStatus.Waiting; });
                 RepoFactory.ScanFile.Save(files);
                 Scanner.Instance.Refresh();
             }
@@ -144,18 +146,20 @@ namespace Shoko.Server.UI
 
         private void Add_Click(object sender, RoutedEventArgs e)
         {
-            ScanFile item = (ScanFile)(sender as Button).DataContext;
+            ScanFile item = (ScanFile) (sender as Button).DataContext;
             Scan scan = Scanner.Instance.ActiveScan;
             if (scan != null && scan.ScanID == item.ScanID)
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddSingleMessage, Shoko.Commons.Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,MessageBoxImage.Information);
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddSingleMessage,
+                        Shoko.Commons.Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                     return;
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    scan.Status=(int)ScanStatus.Standby;
+                    scan.Status = (int) ScanStatus.Standby;
                     RepoFactory.Scan.Save(scan);
                 }
                 item.Status = (int) ScanFileStatus.Waiting;

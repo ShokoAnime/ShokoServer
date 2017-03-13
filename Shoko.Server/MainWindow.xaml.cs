@@ -68,10 +68,12 @@ namespace Shoko.Server
 
         //private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
         private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
+
         private static string baseAddressStreamingString = @"http://localhost:{0}/JMMServerStreaming";
         private static string baseAddressStreamingStringMex = @"net.tcp://localhost:{0}/JMMServerStreaming/mex";
         private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
         private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
+
         private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
         //private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
         //private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
@@ -460,7 +462,6 @@ namespace Shoko.Server
                     ApplicationShutdown();
                     return false;
                 }
-
             }
             return true;
         }
@@ -471,10 +472,7 @@ namespace Shoko.Server
             {
                 ThreadStart ts = () =>
                 {
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        Application.Current.Shutdown();
-                    }));
+                    Dispatcher.BeginInvoke(new Action(() => { Application.Current.Shutdown(); }));
                 };
                 new Thread(ts).Start();
             }
@@ -488,35 +486,42 @@ namespace Shoko.Server
         {
             // for later use
         }
+
         private void LogRotatorWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             logrotator.Start();
         }
 
         public static MainWindow Instance { get; private set; }
+
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
         {
             SyncHashes();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncHashesRunning, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncHashesRunning,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
+
         private void BtnSyncMedias_Click(object sender, RoutedEventArgs e)
         {
             SyncMedias();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMediasRunning, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMediasRunning,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
+
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
             try
             {
-                Importer.SyncHashes(); 
+                Importer.SyncHashes();
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
+
         private void WorkerSyncMedias_DoWork(object sender, DoWorkEventArgs e)
         {
             try
@@ -536,8 +541,8 @@ namespace Shoko.Server
             TraktTVHelper.UpdateAllInfo();
             this.Cursor = Cursors.Arrow;
             MessageBox.Show(Shoko.Commons.Properties.Resources.Command_UpdateTrakt,
-            Shoko.Commons.Properties.Resources.Success,
-            MessageBoxButton.OK, MessageBoxImage.Information);
+                Shoko.Commons.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -607,7 +612,7 @@ namespace Shoko.Server
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
                 }
@@ -710,7 +715,6 @@ namespace Shoko.Server
         }
 
 
-
         void btnAdminMessages_Click(object sender, RoutedEventArgs e)
         {
             AdminMessagesForm frm = new AdminMessagesForm();
@@ -723,7 +727,7 @@ namespace Shoko.Server
         {
             try
             {
-                string logPath = Path.Combine(ServerSettings.ApplicationPath , "logs");
+                string logPath = Path.Combine(ServerSettings.ApplicationPath, "logs");
 
                 Process.Start(new ProcessStartInfo(logPath));
             }
@@ -760,14 +764,16 @@ namespace Shoko.Server
             {
                 try
                 {
-                    state.autostartRegistryKey.SetValue(state.autostartKey, '"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+                    state.autostartRegistryKey.SetValue(state.autostartKey,
+                        '"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
                     state.LoadSettings();
                 }
                 catch (Exception ex)
                 {
                     logger.DebugException("Creating autostart key", ex);
                 }
-            } else if (state.autostartMethod == AutostartMethod.TaskScheduler)
+            }
+            else if (state.autostartMethod == AutostartMethod.TaskScheduler)
             {
                 Task task = TaskService.Instance.GetTask(state.autostartTaskName);
                 if (task != null)
@@ -779,10 +785,10 @@ namespace Shoko.Server
                 td.RegistrationInfo.Description = "Auto start task for JMM Server";
 
                 td.Principal.RunLevel = TaskRunLevel.Highest;
-                
+
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
-                
+
                 td.Actions.Add('"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
@@ -809,7 +815,8 @@ namespace Shoko.Server
                 {
                     logger.DebugException("Deleting autostart key", ex);
                 }
-            } else if (state.autostartMethod == AutostartMethod.TaskScheduler)
+            }
+            else if (state.autostartMethod == AutostartMethod.TaskScheduler)
             {
                 Task task = TaskService.Instance.GetTask(state.autostartTaskName);
                 if (task != null)
@@ -873,14 +880,16 @@ namespace Shoko.Server
                 ServerSettings.Culture = ul.Culture;
                 if (isLanguageChanged)
                 {
-                    result = System.Windows.Forms.MessageBox.Show(Shoko.Commons.Properties.Resources.Language_Info, Shoko.Commons.Properties.Resources.Language_Switch, System.Windows.Forms.MessageBoxButtons.OKCancel, System.Windows.Forms.MessageBoxIcon.Information);
+                    result = System.Windows.Forms.MessageBox.Show(Shoko.Commons.Properties.Resources.Language_Info,
+                        Shoko.Commons.Properties.Resources.Language_Switch,
+                        System.Windows.Forms.MessageBoxButtons.OKCancel,
+                        System.Windows.Forms.MessageBoxIcon.Information);
                     if (result == System.Windows.Forms.DialogResult.OK)
                     {
                         System.Windows.Forms.Application.Restart();
                         ApplicationShutdown();
                     }
                 }
-
             }
             catch (Exception ex)
             {
@@ -936,7 +945,8 @@ namespace Shoko.Server
                 {
                     if (string.IsNullOrEmpty(txtMSSQL_DatabaseName.Text) ||
                         string.IsNullOrEmpty(txtMSSQL_Password.Password)
-                        || string.IsNullOrEmpty(cboMSSQLServerList.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
+                        || string.IsNullOrEmpty(cboMSSQLServerList.Text) ||
+                        string.IsNullOrEmpty(txtMSSQL_Username.Text))
                     {
                         MessageBox.Show(Shoko.Commons.Properties.Resources.Server_FillOutSettings,
                             Shoko.Commons.Properties.Resources.Error,
@@ -976,7 +986,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 MessageBox.Show(Shoko.Commons.Properties.Resources.Server_FailedToStart + ex.Message,
                     Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -992,12 +1002,10 @@ namespace Shoko.Server
                     ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 1:
-
                     bool anySettingsMSSQL = !string.IsNullOrEmpty(ServerSettings.DatabaseName) ||
                                             !string.IsNullOrEmpty(ServerSettings.DatabasePassword)
                                             || !string.IsNullOrEmpty(ServerSettings.DatabaseServer) ||
                                             !string.IsNullOrEmpty(ServerSettings.DatabaseUsername);
-
                     if (anySettingsMSSQL)
                     {
                         txtMSSQL_DatabaseName.Text = ServerSettings.DatabaseName;
@@ -1018,12 +1026,10 @@ namespace Shoko.Server
                     ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 2:
-
                     bool anySettingsMySQL = !string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) ||
                                             !string.IsNullOrEmpty(ServerSettings.MySQL_Password)
                                             || !string.IsNullOrEmpty(ServerSettings.MySQL_Hostname) ||
                                             !string.IsNullOrEmpty(ServerSettings.MySQL_Username);
-
                     if (anySettingsMySQL)
                     {
                         txtMySQL_DatabaseName.Text = ServerSettings.MySQL_SchemaName;
@@ -1038,11 +1044,9 @@ namespace Shoko.Server
                         txtMySQL_ServerAddress.Text = "localhost";
                         txtMySQL_Username.Text = "root";
                     }
-
                     ServerState.Instance.DatabaseIsMySQL = true;
                     ServerState.Instance.DatabaseIsSQLServer = false;
                     ServerState.Instance.DatabaseIsSQLite = false;
-
                     break;
             }
         }
@@ -1109,7 +1113,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 MessageBox.Show(ex.Message, Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -1137,7 +1141,7 @@ namespace Shoko.Server
         {
             cloudWatchTimer = new System.Timers.Timer();
             cloudWatchTimer.AutoReset = true;
-            cloudWatchTimer.Interval = ServerSettings.CloudWatcherTime*60 * 1000;
+            cloudWatchTimer.Interval = ServerSettings.CloudWatcherTime * 60 * 1000;
             cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
             cloudWatchTimer.Start();
         }
@@ -1161,22 +1165,24 @@ namespace Shoko.Server
         {
             cloudWatchTimer?.Stop();
         }
+
         private static void CloudWatchTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             try
             {
-                foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll().Where(a => a.CloudID.HasValue && a.FolderIsWatched))
+                foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll()
+                    .Where(a => a.CloudID.HasValue && a.FolderIsWatched))
                 {
                     //Little hack in there to reuse the file queue
-                    FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|", share.ImportFolderID.ToString());
+                    FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|",
+                        share.ImportFolderID.ToString());
                     queueFileEvents.Add(args);
                     StartFileWorker();
                 }
-
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -1203,7 +1209,8 @@ namespace Shoko.Server
                 // ie the cancel has actuall worked
                 while (true)
                 {
-                    if (ShokoService.CmdProcessorGeneral.QueueCount == 0 && ShokoService.CmdProcessorHasher.QueueCount == 0 &&
+                    if (ShokoService.CmdProcessorGeneral.QueueCount == 0 &&
+                        ShokoService.CmdProcessorHasher.QueueCount == 0 &&
                         ShokoService.CmdProcessorImages.QueueCount == 0) break;
                     Thread.Sleep(250);
                 }
@@ -1241,7 +1248,8 @@ namespace Shoko.Server
                     ServerState.Instance.DatabaseAvailable = false;
 
                     if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
-                        ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseConfig;
+                        ServerState.Instance.CurrentSetupStatus =
+                            Shoko.Commons.Properties.Resources.Server_DatabaseConfig;
                     e.Result = false;
                     return;
                 }
@@ -1257,9 +1265,7 @@ namespace Shoko.Server
                 ISessionFactory temp = DatabaseFactory.SessionFactory;
 
 
-
-
-	            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_InitializingQueue;
+                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_InitializingQueue;
                 ShokoService.CmdProcessorGeneral.Init();
                 ShokoService.CmdProcessorHasher.Init();
                 ShokoService.CmdProcessorImages.Init();
@@ -1297,7 +1303,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 ServerState.Instance.CurrentSetupStatus = ex.Message;
                 e.Result = false;
             }
@@ -1317,7 +1323,6 @@ namespace Shoko.Server
 
         void workerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
         {
-
             // first build a list of files that we already know about, as we don't want to process them again
             IReadOnlyList<SVR_VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
             foreach (SVR_VideoLocal vl in filesAll)
@@ -1381,7 +1386,7 @@ namespace Shoko.Server
                 List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
-                foreach (SVR_VideoLocal vid in vids.Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                foreach (SVR_VideoLocal vid in vids.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
                     ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
                     workerMyAnime2.ReportProgress(0, ma2Progress);
@@ -1475,10 +1480,7 @@ namespace Shoko.Server
                             }
 
                             RepoFactory.CrossRef_File_Episode.Save(xref);
-                            vid.Places.ForEach(a =>
-                            {
-                                a.RenameAndMoveAsRequired();
-                            });
+                            vid.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                             // update stats for groups and series
                             if (ser != null)
@@ -1515,7 +1517,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 ma2Progress.ErrorMessage = ex.Message;
                 workerMyAnime2.ReportProgress(0, ma2Progress);
             }
@@ -1525,7 +1527,8 @@ namespace Shoko.Server
         {
             if (workerMyAnime2.IsBusy)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Import, Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Import,
+                    Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1550,7 +1553,6 @@ namespace Shoko.Server
 
         void btnApplyServerPort_Click(object sender, RoutedEventArgs e)
         {
-
             if (string.IsNullOrEmpty(txtServerPort.Text))
             {
                 MessageBox.Show(Shoko.Commons.Properties.Resources.Server_EnterAnyValue,
@@ -1572,7 +1574,8 @@ namespace Shoko.Server
             }
             if (!Utils.IsAdministrator())
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.Settings_ChangeServerPortFail, Shoko.Commons.Properties.Resources.Error,MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Settings_ChangeServerPortFail,
+                    Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             try
@@ -1587,14 +1590,14 @@ namespace Shoko.Server
 
                 txtServerPort.Text = ServerSettings.JMMServerPort;
 
-	            bool started = NetPermissionWrapper(StartNancyHost);
+                bool started = NetPermissionWrapper(StartNancyHost);
                 if (!started)
-	            {
-		            StopHost();
-		            throw new Exception("Failed to start all of the network hosts");
-	            }
+                {
+                    StopHost();
+                    throw new Exception("Failed to start all of the network hosts");
+                }
 
-	            ShokoService.CmdProcessorGeneral.Paused = false;
+                ShokoService.CmdProcessorGeneral.Paused = false;
                 ShokoService.CmdProcessorHasher.Paused = false;
                 ShokoService.CmdProcessorImages.Paused = false;
 
@@ -1602,7 +1605,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 MessageBox.Show(ex.Message, Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -1783,7 +1786,7 @@ namespace Shoko.Server
                 long verNew = 0;
 
                 // get the latest version as according to the release
-                
+
                 // get the user's version
                 System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
                 if (a == null)
@@ -1798,12 +1801,12 @@ namespace Shoko.Server
                 verNew =
                     JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
                         JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.UpdateChannel))
-                        ;
+                    ;
                 verCurrent = an.Version.Revision * 100 +
-                                an.Version.Build * 100 * 100 +
-                                an.Version.Minor * 100 * 100 * 100 +
-                                an.Version.Major * 100 * 100 * 100 * 100;
-                
+                             an.Version.Build * 100 * 100 +
+                             an.Version.Minor * 100 * 100 * 100 +
+                             an.Version.Major * 100 * 100 * 100 * 100;
+
                 if (forceShowForm || verNew > verCurrent)
                 {
                     UpdateForm frm = new UpdateForm();
@@ -1813,7 +1816,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -1828,7 +1831,7 @@ namespace Shoko.Server
             {
                 if (obj.GetType() == typeof(SVR_ImportFolder))
                 {
-                    SVR_ImportFolder fldr = (SVR_ImportFolder)obj;
+                    SVR_ImportFolder fldr = (SVR_ImportFolder) obj;
 
                     ScanFolder(fldr.ImportFolderID);
                     MessageBox.Show(Shoko.Commons.Properties.Resources.Server_ScanFolder,
@@ -1902,7 +1905,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -1919,7 +1922,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -1933,22 +1936,24 @@ namespace Shoko.Server
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-		// This forces an update of TVDb and tries to get any new Images
-		void btnUpdateImages_Click(object sender, RoutedEventArgs e)
-		{
-			this.Cursor = Cursors.Wait;
-			Importer.RunImport_UpdateTvDB(true);
-			DownloadAllImages();
-			this.Cursor = Cursors.Arrow;
-			MessageBox.Show(Shoko.Commons.Properties.Resources.Server_UpdateImages, Shoko.Commons.Properties.Resources.Success,
-				MessageBoxButton.OK, MessageBoxImage.Information);
-		}
+        // This forces an update of TVDb and tries to get any new Images
+        void btnUpdateImages_Click(object sender, RoutedEventArgs e)
+        {
+            this.Cursor = Cursors.Wait;
+            Importer.RunImport_UpdateTvDB(true);
+            DownloadAllImages();
+            this.Cursor = Cursors.Arrow;
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_UpdateImages,
+                Shoko.Commons.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
 
-		void btnSyncVotes_Click(object sender, RoutedEventArgs e)
+        void btnSyncVotes_Click(object sender, RoutedEventArgs e)
         {
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
             cmdVotes.Save();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncVotes, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncVotes,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
             //JMMService.AnidbProcessor.IsBanned = true;
         }
@@ -1956,7 +1961,8 @@ namespace Shoko.Server
         void btnSyncMyList_Click(object sender, RoutedEventArgs e)
         {
             SyncMyList();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMyList, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMyList,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -1969,21 +1975,24 @@ namespace Shoko.Server
                 cmd.Save();
             }
             this.Cursor = Cursors.Arrow;
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncTrakt, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncTrakt,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void btnRunImport_Click(object sender, RoutedEventArgs e)
         {
             RunImport();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_ImportRunning, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_ImportRunning,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void btnRemoveMissingFiles_Click(object sender, RoutedEventArgs e)
         {
             RemoveMissingFiles();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_RemoveMissingFiles, Shoko.Commons.Properties.Resources.Success,
+            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_RemoveMissingFiles,
+                Shoko.Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -2031,7 +2040,6 @@ namespace Shoko.Server
             }
             catch (Exception e)
             {
-                
             }
             TippuTrayNotify.Visible = false;
             TippuTrayNotify.Dispose();
@@ -2075,7 +2083,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2086,7 +2094,8 @@ namespace Shoko.Server
             if (this.WindowState == System.Windows.WindowState.Minimized)
             {
                 this.Hide();
-            } else
+            }
+            else
             {
                 this.Show();
             }
@@ -2141,7 +2150,7 @@ namespace Shoko.Server
 
         void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            //When the application is closed, check wether the application is 
+            //When the application is closed, check wether the application is
             //exiting from menu or forms close button
             if (!isAppExiting)
             {
@@ -2214,7 +2223,8 @@ namespace Shoko.Server
                     }
                     else if (!share.FolderIsWatched)
                     {
-                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
+                            share.ImportFolderLocation);
                     }
                 }
                 catch (Exception ex)
@@ -2224,7 +2234,6 @@ namespace Shoko.Server
             }
             StartCloudWatchTimer();
         }
-
 
 
         public static void StopWatchingFiles()
@@ -2247,7 +2256,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2256,16 +2265,19 @@ namespace Shoko.Server
             if (!workerScanDropFolders.IsBusy)
                 workerScanDropFolders.RunWorkerAsync();
         }
+
         public static void SyncHashes()
         {
             if (!workerSyncHashes.IsBusy)
                 workerSyncHashes.RunWorkerAsync();
         }
+
         public static void SyncMedias()
         {
             if (!workerSyncMedias.IsBusy)
                 workerSyncMedias.RunWorkerAsync();
         }
+
         public static void ScanFolder(int importFolderID)
         {
             if (!workerScanFolder.IsBusy)
@@ -2303,7 +2315,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2316,7 +2328,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2328,7 +2340,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2340,7 +2352,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2351,8 +2363,8 @@ namespace Shoko.Server
                 Importer.RunImport_NewFiles();
                 Importer.RunImport_IntegrityCheck();
 
-				// drop folder
-				Importer.RunImport_DropFolders();
+                // drop folder
+                Importer.RunImport_DropFolders();
 
                 // TvDB association checks
                 Importer.RunImport_ScanTvDB();
@@ -2374,7 +2386,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -2386,8 +2398,10 @@ namespace Shoko.Server
         {
             foreach (string ext in SubtitleHelper.Extensions.Keys)
             {
-                if (!Nancy.MimeTypes.GetMimeType("file." + ext).Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase)) continue;
-                if(!SubtitleHelper.Extensions[ext].Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
+                if (!Nancy.MimeTypes.GetMimeType("file." + ext)
+                    .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase)) continue;
+                if (!SubtitleHelper.Extensions[ext]
+                    .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
                     Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
             }
 
@@ -2405,10 +2419,7 @@ namespace Shoko.Server
             //nancy will rewrite localhost into http://+:port
             HostConfiguration config = new HostConfiguration();
             // set Nancy Hosting config here
-            config.UnhandledExceptionCallback = exception =>
-            {
-                logger.Error(exception);
-            };
+            config.UnhandledExceptionCallback = exception => { logger.Error(exception); };
             // This requires admin, so throw an error if it fails
             // Don't let Nancy do this. We do it ourselves.
             // This needs to throw an error for our url registration to call.
@@ -2417,7 +2428,8 @@ namespace Shoko.Server
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             config.AllowChunkedEncoding = false;
-            hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+            hostNancy = new Nancy.Hosting.Self.NancyHost(config,
+                new Uri("http://localhost:" + ServerSettings.JMMServerPort));
             if (ServerSettings.ExperimentalUPnP)
                 NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
             Nancy.Json.JsonSettings.MaxJsonLength = Int32.MaxValue;
@@ -2427,14 +2439,14 @@ namespace Shoko.Server
             {
                 hostNancy.Start();
             }
-            catch (Exception ex)    
+            catch (Exception ex)
             {
                 logger.Error(ex);
             }
             UserDatabase.Refresh();
         }
-      
- 
+
+
         private static void ReadFiles()
         {
             // Steps for processing a file
@@ -2476,12 +2488,11 @@ namespace Shoko.Server
 
         private static void StopHost()
         {
-          
             /*if (hostNancy != null)
                 hostNancy.Stop();
             */
         }
-            
+
         private static void SetupAniDBProcessor()
         {
             ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
@@ -2622,7 +2633,7 @@ namespace Shoko.Server
             {
                 sn = new SVR_ImportFolder();
                 sn.ImportFolderName = "Anime";
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderLocation = @"M:\[ Anime Test ]";
                 RepoFactory.ImportFolder.Save(sn);
             }
@@ -2648,7 +2659,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime 2011";
                 sn.ImportFolderLocation = @"M:\[ Anime 2011 ]";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2658,7 +2669,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime - DVD and Bluray IN PROGRESS";
                 sn.ImportFolderLocation = @"M:\[ Anime - DVD and Bluray IN PROGRESS ]";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2668,7 +2679,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime - DVD and Bluray COMPLETE";
                 sn.ImportFolderLocation = @"M:\[ Anime - DVD and Bluray COMPLETE ]";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2678,7 +2689,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime";
                 sn.ImportFolderLocation = @"M:\[ Anime ]";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2695,7 +2706,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime1";
                 sn.ImportFolderLocation = @"F:\Anime1";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2705,7 +2716,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime2";
                 sn.ImportFolderLocation = @"H:\Anime2";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2715,7 +2726,7 @@ namespace Shoko.Server
             if (sn == null)
             {
                 sn = new SVR_ImportFolder();
-                sn.ImportFolderType = (int)ImportFolderType.HDD;
+                sn.ImportFolderType = (int) ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime3";
                 sn.ImportFolderLocation = @"G:\Anime3";
                 RepoFactory.ImportFolder.Save(sn);
@@ -2740,7 +2751,7 @@ namespace Shoko.Server
 			cr_anime = new CommandRequest_GetAnimeHTTP(2002); cr_anime.Save();
 
 
-			
+
 			cr_anime = new CommandRequest_GetAnimeHTTP(1); cr_anime.Save();
 			cr_anime = new CommandRequest_GetAnimeHTTP(2); cr_anime.Save();
 			cr_anime = new CommandRequest_GetAnimeHTTP(3); cr_anime.Save();

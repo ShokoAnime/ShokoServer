@@ -21,7 +21,11 @@ namespace Shoko.Server.Commands.WebCache
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheSendXRefAniDBMAL, extraParams = new string[] { CrossRef_AniDB_MALID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheSendXRefAniDBMAL,
+                    extraParams = new string[] {CrossRef_AniDB_MALID.ToString()}
+                };
             }
         }
 

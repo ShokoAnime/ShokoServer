@@ -6,17 +6,17 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
 {
-    public class RenameScriptRepository : BaseDirectRepository<RenameScript,int>
+    public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
     {
         private RenameScriptRepository()
         {
-            
         }
 
         public static RenameScriptRepository Create()
         {
             return new RenameScriptRepository();
         }
+
         public RenameScript GetDefaultScript()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -28,6 +28,5 @@ namespace Shoko.Server.Repositories
                 return cr;
             }
         }
-
     }
 }

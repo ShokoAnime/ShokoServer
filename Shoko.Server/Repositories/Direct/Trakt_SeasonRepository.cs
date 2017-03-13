@@ -11,13 +11,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private Trakt_SeasonRepository()
         {
-            
         }
 
         public static Trakt_SeasonRepository Create()
         {
             return new Trakt_SeasonRepository();
         }
+
         public List<Trakt_Season> GetByShowID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -49,6 +49,5 @@ namespace Shoko.Server.Repositories.Direct
 
             return obj;
         }
-
     }
 }

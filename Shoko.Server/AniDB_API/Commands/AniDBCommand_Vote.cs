@@ -78,7 +78,6 @@ namespace AniDBAPI.Commands
                 case "261":
 
                     // this means we were trying to retrieve the vote
-
                     if (voteType == enAniDBVoteType.Anime || voteType == enAniDBVoteType.AnimeTemp)
                     {
                         // 261 VOTE FOUNDCode Geass Hangyaku no Lelouch|900|1|4521
@@ -86,16 +85,14 @@ namespace AniDBAPI.Commands
                         vote.ProcessVoteFoundAnime(socketResponse, this.entityID, this.voteType);
                         this.voteValue = vote.VoteValue;
                     }
-
                     if (voteType == enAniDBVoteType.Episode)
                     {
                         //261 VOTE FOUNDThe Day a New Demon Was Born|700|1|63091
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
-                        vote.ProcessVoteFoundEpisode(socketResponse, this.entityID, this.episodeNumber, this.episodeType);
+                        vote.ProcessVoteFoundEpisode(socketResponse, this.entityID, this.episodeNumber,
+                            this.episodeType);
                         this.voteValue = vote.VoteValue;
                     }
-
-
                     return enHelperActivityType.VoteFound;
                 case "262":
                     return enHelperActivityType.VoteUpdated;
@@ -142,7 +139,7 @@ namespace AniDBAPI.Commands
             this.entityID = entityid;
             this.episodeNumber = -1;
             if (votevalue > 0)
-                this.voteValue = (int) (votevalue*100);
+                this.voteValue = (int) (votevalue * 100);
             else
                 this.voteValue = (int) votevalue;
             this.voteType = votetype;
@@ -188,7 +185,7 @@ namespace AniDBAPI.Commands
             this.entityID = entityid;
             this.episodeNumber = epno;
             if (votevalue > 0)
-                this.voteValue = (int) (votevalue*100);
+                this.voteValue = (int) (votevalue * 100);
             else
                 this.voteValue = (int) votevalue;
             this.voteType = enAniDBVoteType.Episode;

@@ -7,7 +7,7 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
-    public interface IRepository<T,S>
+    public interface IRepository<T, S>
     {
         T GetByID(S id);
         T GetByID(ISession session, S id);

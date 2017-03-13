@@ -41,9 +41,11 @@ namespace LeanWork.IO.FileSystem
 
         //We use a single buffer for all change types. Alternatively we could use one buffer per event type, costing additional enumerate tasks.
         private BlockingCollection<FileSystemEventArgs> _fileSystemEventBuffer = null;
+
         private CancellationTokenSource _cancellationTokenSource = null;
 
         #region Contained FileSystemWatcher
+
         public BufferingFileSystemWatcher()
         {
             _containedFSW = new FileSystemWatcher();
@@ -61,10 +63,7 @@ namespace LeanWork.IO.FileSystem
 
         public bool EnableRaisingEvents
         {
-            get
-            {
-                return _containedFSW.EnableRaisingEvents;
-            }
+            get { return _containedFSW.EnableRaisingEvents; }
             set
             {
                 if (_containedFSW.EnableRaisingEvents == value) return;
@@ -129,6 +128,7 @@ namespace LeanWork.IO.FileSystem
         public bool OrderByOldestFirst { get; set; } = false;
 
         private int _eventQueueSize = int.MaxValue;
+
         public int EventQueueCapacity
         {
             get { return _eventQueueSize; }
@@ -136,16 +136,11 @@ namespace LeanWork.IO.FileSystem
         }
 
         #region New BufferingFileSystemWatcher specific events
+
         public event FileSystemEventHandler Existed
         {
-            add
-            {
-                _onExistedHandler += value;
-            }
-            remove
-            {
-                _onExistedHandler -= value;
-            }
+            add { _onExistedHandler += value; }
+            remove { _onExistedHandler -= value; }
         }
 
         public event FileSystemEventHandler All
@@ -174,6 +169,7 @@ namespace LeanWork.IO.FileSystem
         #endregion
 
         #region Standard FSW events
+
         //- The _fsw events add to the buffer.
         //- The public events raise from the buffer to the consumer.
         public event FileSystemEventHandler Created
@@ -239,7 +235,8 @@ namespace LeanWork.IO.FileSystem
         {
             if (!_fileSystemEventBuffer.TryAdd(e))
             {
-                var ex = new EventQueueOverflowException($"Event queue size {_fileSystemEventBuffer.BoundedCapacity} events exceeded.");
+                var ex = new EventQueueOverflowException(
+                    $"Event queue size {_fileSystemEventBuffer.BoundedCapacity} events exceeded.");
                 InvokeHandler(_onErrorHandler, new ErrorEventArgs(ex));
             }
         }
@@ -270,6 +267,7 @@ namespace LeanWork.IO.FileSystem
         {
             InvokeHandler(_onErrorHandler, e);
         }
+
         #endregion
 
         private void RaiseBufferedEventsUntilCancelled()
@@ -281,7 +279,8 @@ namespace LeanWork.IO.FileSystem
                     if (_onExistedHandler != null || _onAllChangesHandler != null)
                         NotifyExistingFiles();
 
-                    foreach (FileSystemEventArgs e in _fileSystemEventBuffer.GetConsumingEnumerable(_cancellationTokenSource.Token))
+                    foreach (FileSystemEventArgs e in _fileSystemEventBuffer.GetConsumingEnumerable(
+                        _cancellationTokenSource.Token))
                     {
                         if (_onAllChangesHandler != null)
                             InvokeHandler(_onAllChangesHandler, e);
@@ -306,7 +305,8 @@ namespace LeanWork.IO.FileSystem
                     }
                 }
                 catch (OperationCanceledException)
-                { } //ignore
+                {
+                } //ignore
                 catch (Exception ex)
                 {
                     BufferingFileSystemWatcher_Error(this, new ErrorEventArgs(ex));
@@ -318,14 +318,17 @@ namespace LeanWork.IO.FileSystem
         {
             if (OrderByOldestFirst)
             {
-                var searchSubDirectoriesOption = (IncludeSubdirectories) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                var searchSubDirectoriesOption = (IncludeSubdirectories)
+                    ? SearchOption.AllDirectories
+                    : SearchOption.TopDirectoryOnly;
                 var sortedFileNames = from fi in new DirectoryInfo(Path).GetFiles(Filter, searchSubDirectoriesOption)
                                       orderby fi.LastWriteTime ascending
                                       select fi.Name;
                 foreach (var fileName in sortedFileNames)
                 {
                     InvokeHandler(_onExistedHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
-                    InvokeHandler(_onAllChangesHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
+                    InvokeHandler(_onAllChangesHandler,
+                        new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
                 }
             }
             else
@@ -333,12 +336,14 @@ namespace LeanWork.IO.FileSystem
                 foreach (var fileName in Directory.EnumerateFiles(Path))
                 {
                     InvokeHandler(_onExistedHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
-                    InvokeHandler(_onAllChangesHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
+                    InvokeHandler(_onAllChangesHandler,
+                        new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
                 }
             }
         }
 
         #region InvokeHandlers
+
         //Automatically raise event in calling thread when _fsw.SynchronizingObject is set. Ex: When used as a component in Win Forms.
         //TODO: remove redundancy. I don't understand how to cast the specific *EventHandler to a generic Delegate, EventHandler, Action or whatever.
         private void InvokeHandler(FileSystemEventHandler eventHandler, FileSystemEventArgs e)
@@ -346,31 +351,34 @@ namespace LeanWork.IO.FileSystem
             if (eventHandler != null)
             {
                 if (_containedFSW.SynchronizingObject != null && this._containedFSW.SynchronizingObject.InvokeRequired)
-                    _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] { this, e });
+                    _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);
             }
         }
+
         private void InvokeHandler(RenamedEventHandler eventHandler, RenamedEventArgs e)
         {
             if (eventHandler != null)
             {
                 if (_containedFSW.SynchronizingObject != null && this._containedFSW.SynchronizingObject.InvokeRequired)
-                    _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] { this, e });
+                    _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);
             }
         }
+
         private void InvokeHandler(ErrorEventHandler eventHandler, ErrorEventArgs e)
         {
             if (eventHandler != null)
             {
                 if (_containedFSW.SynchronizingObject != null && this._containedFSW.SynchronizingObject.InvokeRequired)
-                    _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] { this, e });
+                    _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);
             }
         }
+
         #endregion
 
         protected override void Dispose(bool disposing)

@@ -10,13 +10,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private AniDB_Character_SeiyuuRepository()
         {
-            
         }
 
         public static AniDB_Character_SeiyuuRepository Create()
         {
             return new AniDB_Character_SeiyuuRepository();
         }
+
         public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int animeid, int catid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

@@ -20,7 +20,8 @@ namespace Shoko.Server.API
         public static List<AnimeTitle> ToAPIContract(this List<AniDB_Anime_Title> titles)
         {
             List<AnimeTitle> result = new List<AnimeTitle>();
-            titles.ForEach(a => result.Add(new AnimeTitle() { Title = a.Title, Language = a.Language, Type = a.TitleType }));
+            titles.ForEach(a => result.Add(
+                new AnimeTitle() {Title = a.Title, Language = a.Language, Type = a.TitleType}));
             return result;
         }
     }

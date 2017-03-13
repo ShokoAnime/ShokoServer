@@ -24,7 +24,8 @@ namespace Shoko.Server.API.v2.Modules
 
         object WebhookPost()
         {
-            PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload, new JsonSerializerSettings(){ContractResolver = new CamelCasePropertyNamesContractResolver()});
+            PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
+                new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});
 
             switch (eventData.Event)
             {
@@ -50,29 +51,31 @@ namespace Shoko.Server.API.v2.Modules
             var anime = RepoFactory.AnimeSeries.GetByID(animeId);
 
             enEpisodeType episodeType;
-            switch (series) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
-            {
-                case -4:
-                    episodeType  = enEpisodeType.Parody;
-                    break;
-                case -3:
-                    episodeType = enEpisodeType.Trailer;
-                    break;
-                case -2:
-                    episodeType = enEpisodeType.Other;
-                    break;
-                case -1:
-                    episodeType = enEpisodeType.Credits;
-                    break;
-                case 0:
-                    episodeType = enEpisodeType.Special;
-                    break;
-                default:
-                    episodeType = enEpisodeType.Episode;
-                    break;
-            }
+            switch (series
+                ) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
+                {
+                    case -4:
+                        episodeType = enEpisodeType.Parody;
+                        break;
+                    case -3:
+                        episodeType = enEpisodeType.Trailer;
+                        break;
+                    case -2:
+                        episodeType = enEpisodeType.Other;
+                        break;
+                    case -1:
+                        episodeType = enEpisodeType.Credits;
+                        break;
+                    case 0:
+                        episodeType = enEpisodeType.Special;
+                        break;
+                    default:
+                        episodeType = enEpisodeType.Episode;
+                        break;
+                }
 
-            if (episodeType != enEpisodeType.Episode || metadata.Index == 0) //metadata.index = 0 when it's something else.
+            if (episodeType != enEpisodeType.Episode ||
+                metadata.Index == 0) //metadata.index = 0 when it's something else.
                 return; //right now no clean way to detect the episode. I could do by title.
 
 
@@ -87,7 +90,8 @@ namespace Shoko.Server.API.v2.Modules
             if (user == null)
                 return; //At this point in time, we don't want to scrobble for unknown users.
 
-            episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, false, user.JMMUserID, true);
+            episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, false, user.JMMUserID,
+                true);
             anime.UpdateStats(true, false, true);
         }
 
@@ -170,19 +174,20 @@ namespace Shoko.Server.API.v2.Modules
             this.RequiresAuthentication();
             Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
             Get["/pin/authenticated"] = o => $"{CallPlexHelper(h => h.IsAuthenticated)}";
-            Get["/token/invalidate"] = o => CallPlexHelper(h => {
+            Get["/token/invalidate"] = o => CallPlexHelper(h =>
+            {
                 h.InvalidateToken();
                 return true;
             });
 
 #if DEBUG
-            Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int)o.id)));
+            Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id)));
 #endif
         }
 
         private object CallPlexHelper(Func<PlexHelper, object> act)
         {
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser) this.Context.CurrentUser;
             return act(PlexHelper.GetForUser(user));
         }
     }

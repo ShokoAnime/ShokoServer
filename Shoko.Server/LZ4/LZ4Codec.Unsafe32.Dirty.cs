@@ -69,6 +69,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace LZ4pn
 {
 #if UNSAFE
+
     public static partial class LZ4Codec
     {
         #region LZ4_compressCtx_32
@@ -109,9 +110,9 @@ namespace LZ4pn
                 if (src_len < MINLENGTH) goto _last_literals;
 
                 // First Byte
-                hash_table[(*(uint*) src_p*2654435761u) >> HASH_ADJUST] = src_p - src_base;
+                hash_table[(*(uint*) src_p * 2654435761u) >> HASH_ADJUST] = src_p - src_base;
                 src_p++;
-                h_fwd = (*(uint*) src_p*2654435761u) >> HASH_ADJUST;
+                h_fwd = (*(uint*) src_p * 2654435761u) >> HASH_ADJUST;
 
                 // Main Loop
                 while (true)
@@ -131,7 +132,7 @@ namespace LZ4pn
 
                         if (src_p_fwd > src_mflimit) goto _last_literals;
 
-                        h_fwd = (*(uint*) src_p_fwd*2654435761u) >> HASH_ADJUST;
+                        h_fwd = (*(uint*) src_p_fwd * 2654435761u) >> HASH_ADJUST;
                         xxx_ref = src_base + hash_table[h];
                         hash_table[h] = src_p - src_base;
                     } while ((xxx_ref < src_p - MAX_DISTANCE) || (*(uint*) xxx_ref != *(uint*) src_p));
@@ -205,7 +206,7 @@ namespace LZ4pn
                             xxx_ref += STEPSIZE_32;
                             continue;
                         }
-                        src_p += debruijn32[(uint) (diff & -diff)*0x077CB531u >> 27];
+                        src_p += debruijn32[(uint) (diff & -diff) * 0x077CB531u >> 27];
                         goto _endCount;
                     }
 
@@ -252,11 +253,11 @@ namespace LZ4pn
                     }
 
                     // Fill table
-                    hash_table[(*(uint*) (src_p - 2)*2654435761u) >> HASH_ADJUST] = src_p - 2 - src_base;
+                    hash_table[(*(uint*) (src_p - 2) * 2654435761u) >> HASH_ADJUST] = src_p - 2 - src_base;
 
                     // Test next position
 
-                    h = (*(uint*) src_p*2654435761u) >> HASH_ADJUST;
+                    h = (*(uint*) src_p * 2654435761u) >> HASH_ADJUST;
                     xxx_ref = src_base + hash_table[h];
                     hash_table[h] = src_p - src_base;
 
@@ -269,7 +270,7 @@ namespace LZ4pn
 
                     // Prepare next loop
                     src_anchor = src_p++;
-                    h_fwd = (*(uint*) src_p*2654435761u) >> HASH_ADJUST;
+                    h_fwd = (*(uint*) src_p * 2654435761u) >> HASH_ADJUST;
                 }
 
                 _last_literals:
@@ -278,7 +279,7 @@ namespace LZ4pn
                 {
                     var lastRun = (int) (src_end - src_anchor);
 
-                    if (dst_p + lastRun + 1 + (lastRun + 255 - RUN_MASK)/255 > dst_end) return 0;
+                    if (dst_p + lastRun + 1 + (lastRun + 255 - RUN_MASK) / 255 > dst_end) return 0;
 
                     if (lastRun >= RUN_MASK)
                     {
@@ -338,7 +339,7 @@ namespace LZ4pn
 
                 // First Byte
                 src_p++;
-                h_fwd = (*(uint*) src_p*2654435761u) >> HASH64K_ADJUST;
+                h_fwd = (*(uint*) src_p * 2654435761u) >> HASH64K_ADJUST;
 
                 // Main Loop
                 while (true)
@@ -358,7 +359,7 @@ namespace LZ4pn
 
                         if (src_p_fwd > src_mflimit) goto _last_literals;
 
-                        h_fwd = (*(uint*) src_p_fwd*2654435761u) >> HASH64K_ADJUST;
+                        h_fwd = (*(uint*) src_p_fwd * 2654435761u) >> HASH64K_ADJUST;
                         xxx_ref = src_base + hash_table[h];
                         hash_table[h] = (ushort) (src_p - src_base);
                     } while (*(uint*) xxx_ref != *(uint*) src_p);
@@ -432,7 +433,7 @@ namespace LZ4pn
                             xxx_ref += STEPSIZE_32;
                             continue;
                         }
-                        src_p += debruijn32[(uint) (diff & -diff)*0x077CB531u >> 27];
+                        src_p += debruijn32[(uint) (diff & -diff) * 0x077CB531u >> 27];
                         goto _endCount;
                     }
 
@@ -476,11 +477,12 @@ namespace LZ4pn
                     }
 
                     // Fill table
-                    hash_table[(*(uint*) (src_p - 2)*2654435761u) >> HASH64K_ADJUST] = (ushort) (src_p - 2 - src_base);
+                    hash_table[(*(uint*) (src_p - 2) * 2654435761u) >> HASH64K_ADJUST] =
+                        (ushort) (src_p - 2 - src_base);
 
                     // Test next position
 
-                    h = (*(uint*) src_p*2654435761u) >> HASH64K_ADJUST;
+                    h = (*(uint*) src_p * 2654435761u) >> HASH64K_ADJUST;
                     xxx_ref = src_base + hash_table[h];
                     hash_table[h] = (ushort) (src_p - src_base);
 
@@ -493,7 +495,7 @@ namespace LZ4pn
 
                     // Prepare next loop
                     src_anchor = src_p++;
-                    h_fwd = (*(uint*) src_p*2654435761u) >> HASH64K_ADJUST;
+                    h_fwd = (*(uint*) src_p * 2654435761u) >> HASH64K_ADJUST;
                 }
 
                 _last_literals:
@@ -501,7 +503,7 @@ namespace LZ4pn
                 // Encode Last Literals
                 {
                     var lastRun = (int) (src_end - src_anchor);
-                    if (dst_p + lastRun + 1 + (lastRun - RUN_MASK + 255)/255 > dst_end) return 0;
+                    if (dst_p + lastRun + 1 + (lastRun - RUN_MASK + 255) / 255 > dst_end) return 0;
                     if (lastRun >= RUN_MASK)
                     {
                         *dst_p++ = RUN_MASK << ML_BITS;
@@ -719,7 +721,7 @@ namespace LZ4pn
                         if (dst_cpy > dst_end) goto _output_error; // Error : writes beyond output buffer
                         if (src_p + length != src_end)
                             goto _output_error;
-                                // Error : LZ4 format requires to consume all input at this stage (no match within the last 11 bytes, and at least 8 remaining input bytes for another match+literals)
+                        // Error : LZ4 format requires to consume all input at this stage (no match within the last 11 bytes, and at least 8 remaining input bytes for another match+literals)
                         BlockCopy(src_p, dst_p, length);
                         dst_p += length;
                         break; // Necessarily EOF, due to parsing restrictions
@@ -821,6 +823,7 @@ namespace LZ4pn
 
         #endregion
     }
+
 #endif
 }
 

@@ -10,6 +10,7 @@ namespace Shoko.Server.PlexAndKodi
 
         //void AddResponseHeaders();
         string ServiceAddress { get; }
+
         int ServicePort { get; }
         bool UseBreadCrumbs { get; }
         bool ConstructFakeIosParent { get; }
@@ -17,16 +18,14 @@ namespace Shoko.Server.PlexAndKodi
         string Proxyfy(string url);
         string ShortUrl(string url);
         bool EnableRolesInLists { get; }
-        bool EnableAnimeTitlesInLists { get; } 
+        bool EnableAnimeTitlesInLists { get; }
         bool EnableGenresInLists { get; }
-        bool AddPlexSearchItem { get;  }
-        bool AddPlexPrefsItem { get;  }
+        bool AddPlexSearchItem { get; }
+        bool AddPlexPrefsItem { get; }
         bool RemoveFileAttribute { get; } // This will force the transcoder in plex to use the stream instead the file.
-        bool AddEpisodeNumberToTitlesOnUnsupportedClients { get;  }
+        bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; }
         NancyModule Nancy { get; set; }
 
         string ExcludeTags { get; }
-
-
     }
 }

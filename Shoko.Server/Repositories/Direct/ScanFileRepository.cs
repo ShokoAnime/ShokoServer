@@ -13,7 +13,6 @@ namespace Shoko.Server.Repositories.Direct
     {
         private ScanFileRepository()
         {
-            
         }
 
         public static ScanFileRepository Create()
@@ -26,38 +25,48 @@ namespace Shoko.Server.Repositories.Direct
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
-                .Add(Restrictions.Eq("ScanID", scanid))
-                .Add(Restrictions.Eq("Status", (int)ScanFileStatus.Waiting)).AddOrder(Order.Asc("CheckDate"))
-                .List<ScanFile>().ToList();
+                    .Add(Restrictions.Eq("ScanID", scanid))
+                    .Add(Restrictions.Eq("Status", (int) ScanFileStatus.Waiting))
+                    .AddOrder(Order.Asc("CheckDate"))
+                    .List<ScanFile>()
+                    .ToList();
             }
         }
+
         public List<ScanFile> GetByScanID(int scanid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
-                .Add(Restrictions.Eq("ScanID", scanid))
-                .List<ScanFile>().ToList();
+                    .Add(Restrictions.Eq("ScanID", scanid))
+                    .List<ScanFile>()
+                    .ToList();
             }
         }
+
         public List<ScanFile> GetProcessedOK(int scanid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
-                .Add(Restrictions.Eq("ScanID", scanid))
-                .Add(Restrictions.Eq("Status", (int)ScanFileStatus.ProcessedOK)).AddOrder(Order.Asc("CheckDate"))
-                .List<ScanFile>().ToList();
+                    .Add(Restrictions.Eq("ScanID", scanid))
+                    .Add(Restrictions.Eq("Status", (int) ScanFileStatus.ProcessedOK))
+                    .AddOrder(Order.Asc("CheckDate"))
+                    .List<ScanFile>()
+                    .ToList();
             }
         }
+
         public List<ScanFile> GetWithError(int scanid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
-                .Add(Restrictions.Eq("ScanID", scanid))
-                .Add(Restrictions.Gt("Status", (int)ScanFileStatus.ProcessedOK)).AddOrder(Order.Asc("CheckDate"))
-                .List<ScanFile>().ToList();
+                    .Add(Restrictions.Eq("ScanID", scanid))
+                    .Add(Restrictions.Gt("Status", (int) ScanFileStatus.ProcessedOK))
+                    .AddOrder(Order.Asc("CheckDate"))
+                    .List<ScanFile>()
+                    .ToList();
             }
         }
 
@@ -65,10 +74,11 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return (int)session.CreateCriteria(typeof(ScanFile))
-                .Add(Restrictions.Eq("ScanID", scanid))
-                .Add(Restrictions.Eq("Status", (int)ScanFileStatus.Waiting))
-                .SetProjection(Projections.Count("ScanFileID")).UniqueResult();
+                return (int) session.CreateCriteria(typeof(ScanFile))
+                    .Add(Restrictions.Eq("ScanID", scanid))
+                    .Add(Restrictions.Eq("Status", (int) ScanFileStatus.Waiting))
+                    .SetProjection(Projections.Count("ScanFileID"))
+                    .UniqueResult();
             }
         }
     }

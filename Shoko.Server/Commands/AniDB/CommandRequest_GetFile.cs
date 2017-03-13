@@ -1,5 +1,4 @@
 ﻿using System;
-
 using System.Xml;
 using AniDBAPI;
 using Shoko.Server.Repositories.Cached;
@@ -31,9 +30,17 @@ namespace Shoko.Server.Commands
             get
             {
                 if (vlocal != null)
-                    return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { vlocal.FileName } };
+                    return new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.GetFileInfo,
+                        extraParams = new string[] {vlocal.FileName}
+                    };
                 else
-                    return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { VideoLocalID.ToString() } };
+                    return new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.GetFileInfo,
+                        extraParams = new string[] {VideoLocalID.ToString()}
+                    };
             }
         }
 

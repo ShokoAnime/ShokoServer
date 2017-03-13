@@ -15,7 +15,6 @@ namespace Shoko.Server.Repositories.Direct
     {
         private TvDB_ImageWideBannerRepository()
         {
-            
         }
 
         public static TvDB_ImageWideBannerRepository Create()
@@ -75,10 +74,9 @@ namespace Shoko.Server.Repositories.Direct
                 .AddEntity("tvdbBanner", typeof(TvDB_ImageWideBanner))
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .ToLookup(r => (int)r[0], r => (TvDB_ImageWideBanner)r[1]);
+                .ToLookup(r => (int) r[0], r => (TvDB_ImageWideBanner) r[1]);
 
             return bannersByAnime;
         }
-
     }
 }

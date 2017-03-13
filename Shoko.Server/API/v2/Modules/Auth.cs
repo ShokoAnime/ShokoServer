@@ -8,6 +8,7 @@ namespace Shoko.Server.API.v2.Modules
     public class Auth : NancyModule
     {
         public static int version = 1;
+
         /// <summary>
         /// Authentication module
         /// </summary>
@@ -23,7 +24,7 @@ namespace Shoko.Server.API.v2.Modules
                 AuthUser auth = this.Bind();
                 if (!string.IsNullOrEmpty(auth.user))
                 {
-	                if (auth.pass == null) auth.pass = "";
+                    if (auth.pass == null) auth.pass = "";
                     if (!string.IsNullOrEmpty(auth.device) && auth.pass != null)
                     {
                         //create and save new token for authenticated user or return known one
@@ -31,21 +32,21 @@ namespace Shoko.Server.API.v2.Modules
 
                         if (string.IsNullOrEmpty(apiKey))
                         {
-                            return new Response { StatusCode = HttpStatusCode.Unauthorized };
+                            return new Response {StatusCode = HttpStatusCode.Unauthorized};
                         }
-                        return this.Response.AsJson(new { apikey = apiKey });
+                        return this.Response.AsJson(new {apikey = apiKey});
                     }
-					//if password or device is missing
-					return new Response { StatusCode = HttpStatusCode.BadRequest };
+                    //if password or device is missing
+                    return new Response {StatusCode = HttpStatusCode.BadRequest};
                 }
-                return new Response { StatusCode = HttpStatusCode.ExpectationFailed };
+                return new Response {StatusCode = HttpStatusCode.ExpectationFailed};
             };
 
             //remove apikey from database
             //pass it as ?apikey=xyz
             Delete["/"] = x =>
             {
-                var apiKey = (string)this.Request.Query.apikey;
+                var apiKey = (string) this.Request.Query.apikey;
                 if (UserDatabase.RemoveApiKey(apiKey))
                 {
                     return HttpStatusCode.OK;
@@ -57,6 +58,4 @@ namespace Shoko.Server.API.v2.Modules
             };
         }
     }
-
-    
 }

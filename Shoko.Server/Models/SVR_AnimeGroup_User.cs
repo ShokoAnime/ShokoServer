@@ -122,6 +122,5 @@ namespace Shoko.Server.Models
             List<SVR_AnimeSeries> series = grp.GetAllSeries();
             PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series, session);
         }
-
     }
 }

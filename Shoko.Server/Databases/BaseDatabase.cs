@@ -56,13 +56,12 @@ namespace Shoko.Server.Databases
             try
             {
                 AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
-
             }
             catch (Exception e) //First Time
             {
                 AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
             }
-            Fixes=new List<DatabaseCommand>();
+            Fixes = new List<DatabaseCommand>();
         }
 
         protected void AddVersion(string version, string revision, string command)
@@ -100,15 +99,14 @@ namespace Shoko.Server.Databases
                 return 0;
             return AllVersions.Keys.Select(int.Parse).ToList().Max();
         }
+
         public ArrayList GetData(string sql)
         {
             ArrayList ret = null;
-            ConnectionWrapper(GetConnectionString(), (myConn) =>
-            {
-                ret = ExecuteReader(myConn, sql);
-            });
+            ConnectionWrapper(GetConnectionString(), (myConn) => { ret = ExecuteReader(myConn, sql); });
             return ret;
         }
+
         internal void PreFillVersions(IEnumerable<DatabaseCommand> commands)
         {
             if (AllVersions.Count == 1 && AllVersions.Values.ElementAt(0).Count == 1)
@@ -179,7 +177,7 @@ namespace Shoko.Server.Databases
                     ret = ExecuteCommand(connection, cmd.Command);
                     break;
             }
-            if (cmd.Version != 0 && ret.Item1 && cmd.Type!=DatabaseCommandType.PostDatabaseFix)
+            if (cmd.Version != 0 && ret.Item1 && cmd.Type != DatabaseCommandType.PostDatabaseFix)
             {
                 AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
             }
@@ -226,10 +224,10 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             GroupFilterCondition gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.Favourite;
-            gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+            gfc.ConditionType = (int) GroupFilterConditionType.Favourite;
+            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -242,10 +240,10 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting;
-            gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+            gfc.ConditionType = (int) GroupFilterConditionType.MissingEpisodesCollecting;
+            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -259,10 +257,10 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.SeriesCreatedDate;
-            gfc.ConditionOperator = (int)GroupFilterOperator.LastXDays;
+            gfc.ConditionType = (int) GroupFilterConditionType.SeriesCreatedDate;
+            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -275,10 +273,10 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.AirDate;
-            gfc.ConditionOperator = (int)GroupFilterOperator.LastXDays;
+            gfc.ConditionType = (int) GroupFilterConditionType.AirDate;
+            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "30";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -291,20 +289,20 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 1;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.CompletedSeries;
-            gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+            gfc.ConditionType = (int) GroupFilterConditionType.CompletedSeries;
+            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
-            gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
+            gfc.ConditionType = (int) GroupFilterConditionType.HasUnwatchedEpisodes;
+            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.UserVotedAny;
-            gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
+            gfc.ConditionType = (int) GroupFilterConditionType.UserVotedAny;
+            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -317,10 +315,10 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.EpisodeWatchedDate;
-            gfc.ConditionOperator = (int)GroupFilterOperator.LastXDays;
+            gfc.ConditionType = (int) GroupFilterConditionType.EpisodeWatchedDate;
+            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -333,10 +331,10 @@ namespace Shoko.Server.Databases
             gf.ApplyToSeries = 1; // This makes far more sense as applied to series
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int)GroupFilterType.UserDefined;
+            gf.FilterType = (int) GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
-            gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
+            gfc.ConditionType = (int) GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
+            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -346,7 +344,6 @@ namespace Shoko.Server.Databases
 
         private void CreateInitialUsers()
         {
-
             if (RepoFactory.JMMUser.GetAll().Count() > 0) return;
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
@@ -416,7 +413,7 @@ namespace Shoko.Server.Databases
                 "DO REPLACE '<' '('" + Environment.NewLine +
                 "DO REPLACE '>' ')'" + Environment.NewLine +
                 "DO REPLACE ':' '-'" + Environment.NewLine +
-                "DO REPLACE '" + ((Char)34).ToString() + "' '`'" + Environment.NewLine +
+                "DO REPLACE '" + ((Char) 34).ToString() + "' '`'" + Environment.NewLine +
                 "DO REPLACE '/' '_'" + Environment.NewLine +
                 "DO REPLACE '/' '_'" + Environment.NewLine +
                 "DO REPLACE '\\' '_'" + Environment.NewLine +
@@ -469,9 +466,10 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                Logger.Error( ex,"Could not Create Initial Custom Tags: " + ex);
+                Logger.Error(ex, "Could not Create Initial Custom Tags: " + ex);
             }
         }
+
         /*
      private static void CreateContinueWatchingGroupFilter()
      {

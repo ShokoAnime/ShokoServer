@@ -15,7 +15,9 @@ namespace Shoko.Server.API.core
     public class UserDatabase
     {
         //ActiveApiKeys: userid, device, apikey
-        internal static readonly List<Tuple<int, string, string>> ActiveApiKeys = new List<Tuple<int, string, string>>();
+        internal static readonly List<Tuple<int, string, string>> ActiveApiKeys =
+            new List<Tuple<int, string, string>>();
+
         //Users: userid, username, password
         private static readonly List<Tuple<int, string, string>> Users = new List<Tuple<int, string, string>>();
 
@@ -42,7 +44,6 @@ namespace Shoko.Server.API.core
             }
             catch
             {
-
             }
         }
 
@@ -67,9 +68,13 @@ namespace Shoko.Server.API.core
         public static string ValidateUser(string username, string password, string device)
         {
             //in case of login before database have been loaded
-            if (Users.Count == 0) { UserDatabase.Refresh(); }
+            if (Users.Count == 0)
+            {
+                UserDatabase.Refresh();
+            }
 
-            var userRecord = Users.FirstOrDefault(u => u.Item2.Equals(username, StringComparison.OrdinalIgnoreCase) && u.Item3 == password);
+            var userRecord = Users.FirstOrDefault(u => u.Item2.Equals(username, StringComparison.OrdinalIgnoreCase) &&
+                                                       u.Item3 == password);
 
             if (userRecord == null)
             {
@@ -89,7 +94,7 @@ namespace Shoko.Server.API.core
             {
                 apiKey = Guid.NewGuid().ToString();
                 ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device.ToLower(), apiKey));
-                AuthTokens token = new AuthTokens { UserID = uid, DeviceName = (device).ToLower(), Token = apiKey };
+                AuthTokens token = new AuthTokens {UserID = uid, DeviceName = (device).ToLower(), Token = apiKey};
                 RepoFactory.AuthTokens.Save(token);
             }
 

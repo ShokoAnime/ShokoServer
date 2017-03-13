@@ -9,7 +9,10 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class RawFile : BaseDirectory
     {
-        public override string type { get { return "file"; } }
+        public override string type
+        {
+            get { return "file"; }
+        }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string crc32 { get; set; }
@@ -76,7 +79,6 @@ namespace Shoko.Server.API.v2.Models.common
 
         public RawFile()
         {
-
         }
 
         public RawFile(SVR_VideoLocal vl, int level, int uid)
@@ -125,11 +127,15 @@ namespace Shoko.Server.API.v2.Models.common
                 }
 
                 if (vl.EpisodeCrossRefs.Count == 0)
-                { recognized = false; }
+                {
+                    recognized = false;
+                }
                 else
-                { recognized = true; }
+                {
+                    recognized = true;
+                }
 
-                if (vl.Media != null && ( level > 1 || level == 0))
+                if (vl.Media != null && (level > 1 || level == 0))
                 {
                     media = new MediaInfo();
 
@@ -175,14 +181,11 @@ namespace Shoko.Server.API.v2.Models.common
                     media = new_media;
                 }
             }
-
-
         }
 
         /// <summary>
         /// Base on MediaInfo output using Stream objects
         /// </summary>
-
         [DataContract]
         public class MediaInfo
         {
@@ -192,9 +195,11 @@ namespace Shoko.Server.API.v2.Models.common
             //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> audios { get; private set; }
+
             //public Dictionary<int, Dictionary<Video, string>> videos { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> videos { get; private set; }
+
             //public Dictionary<int, Dictionary<Subtitle, string>> subtitles { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> subtitles { get; private set; }
@@ -235,7 +240,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 menus.Add(menus.Count + 1, dict);
             }
- 
+
             public enum General
             {
                 id,
@@ -250,6 +255,7 @@ namespace Shoko.Server.API.v2.Models.common
                 encoded_lib,
                 attachments
             }
+
             /*
              * maybe for later use as stream is already doing the same
             public enum Audio

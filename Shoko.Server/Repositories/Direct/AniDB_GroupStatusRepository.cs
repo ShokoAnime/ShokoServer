@@ -23,7 +23,8 @@ namespace Shoko.Server.Repositories.Direct
             {
                 if (obj.AnimeID > 0)
                 {
-                    logger.Trace("Updating group stats by anime from AniDB_GroupStatusRepository.Delete: {0}", obj.AnimeID);
+                    logger.Trace("Updating group stats by anime from AniDB_GroupStatusRepository.Delete: {0}",
+                        obj.AnimeID);
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
                 }
             };

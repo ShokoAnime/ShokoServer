@@ -16,17 +16,21 @@ namespace Shoko.Server.PlexAndKodi.Plex
 
         public PlexDeviceInfo(string device, string product, string version, string platform)
         {
-            if ((product!=null && product.ToUpperInvariant().Contains("IOS")) || (platform!=null && platform.ToUpperInvariant().Contains("IOS")))
+            if ((product != null && product.ToUpperInvariant().Contains("IOS")) ||
+                (platform != null && platform.ToUpperInvariant().Contains("IOS")))
                 Client = PlexClient.IOS;
-            else if ((product != null && product.ToUpperInvariant().Contains("ANDROID")) || (platform != null && platform.ToUpperInvariant().Contains("ANDROID")))
+            else if ((product != null && product.ToUpperInvariant().Contains("ANDROID")) ||
+                     (platform != null && platform.ToUpperInvariant().Contains("ANDROID")))
                 Client = PlexClient.Android;
-            else if ((product !=null && product.ToUpperInvariant().Contains("PLEX MEDIA PLAYER")) || (platform != null && platform.ToUpperInvariant().Contains("KONVERGO")))
+            else if ((product != null && product.ToUpperInvariant().Contains("PLEX MEDIA PLAYER")) ||
+                     (platform != null && platform.ToUpperInvariant().Contains("KONVERGO")))
                 Client = PlexClient.PlexMediaPlayer;
-            else if ((product != null && product.ToUpperInvariant().Contains("KODI")) || (platform != null && platform.ToUpperInvariant().Contains("KODI")))
+            else if ((product != null && product.ToUpperInvariant().Contains("KODI")) ||
+                     (platform != null && platform.ToUpperInvariant().Contains("KODI")))
                 Client = PlexClient.Kodi;
             else if ((product != null && product.ToUpperInvariant().Contains("WINDOWS")))
                 Client = PlexClient.PlexForWindows;
-            else if((product != null && product.ToUpperInvariant().Contains("PLEX MEDIA SERVER")))
+            else if ((product != null && product.ToUpperInvariant().Contains("PLEX MEDIA SERVER")))
                 Client = PlexClient.PlexMediaPlayer;
             else if ((product != null && product.ToUpperInvariant().Contains("PLEX WEB")))
                 Client = PlexClient.Web;
@@ -44,7 +48,9 @@ namespace Shoko.Server.PlexAndKodi.Plex
         {
             if (Device == null && Product == null && Version == null && Platform == null)
                 return "PRODUCT: Kodi";
-            return DoTag("PRODUCT", Product) + " - " + DoTag("DEVICE", Device) + " - " + DoTag("VERSION", Version) + " - " + DoTag("PLATFORM", Platform) + " - " + DoTag("CLIENT", Enum.GetName(typeof(PlexClient), Client));
+            return DoTag("PRODUCT", Product) + " - " + DoTag("DEVICE", Device) + " - " + DoTag("VERSION", Version) +
+                   " - " + DoTag("PLATFORM", Platform) + " - " +
+                   DoTag("CLIENT", Enum.GetName(typeof(PlexClient), Client));
         }
 
         private static string DoTag(string name, string value)

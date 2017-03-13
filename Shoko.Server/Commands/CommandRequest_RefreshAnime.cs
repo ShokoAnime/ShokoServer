@@ -35,7 +35,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.RefreshAnime, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.RefreshAnime,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 

@@ -25,13 +25,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endregion
 
- // ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 // ReSharper disable InconsistentNaming
 
 namespace LZ4ps
 {
 #if !UNSAFE
-    /// <summary>Safe LZ4 codec.</summary>
+/// <summary>Safe LZ4 codec.</summary>
 	public static partial class LZ4Codec
 	{
 #region Helper
@@ -476,7 +476,8 @@ namespace LZ4ps
 			}
 			else
 			{
-				var length = LZ4_uncompress_unknownOutputSize_safe32(input, output, inputOffset, outputOffset, inputLength, outputLength);
+				var length =
+LZ4_uncompress_unknownOutputSize_safe32(input, output, inputOffset, outputOffset, inputLength, outputLength);
 				if (length < 0)
 					throw new ArgumentException("LZ4 block is corrupted, or invalid length has been given.");
 				return length;
@@ -541,7 +542,8 @@ namespace LZ4ps
 			}
 			else
 			{
-				var length = LZ4_uncompress_unknownOutputSize_safe64(input, output, inputOffset, outputOffset, inputLength, outputLength);
+				var length =
+LZ4_uncompress_unknownOutputSize_safe64(input, output, inputOffset, outputOffset, inputLength, outputLength);
 				if (length < 0)
 					throw new ArgumentException("LZ4 block is corrupted, or invalid length has been given.");
 				return length;

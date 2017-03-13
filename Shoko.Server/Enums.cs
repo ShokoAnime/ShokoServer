@@ -2,8 +2,6 @@
 
 namespace Shoko.Server
 {
-
-
     public enum CommandRequestType
     {
         ProcessFile = 1,
@@ -17,6 +15,7 @@ namespace Shoko.Server
         AniDB_GetCharacter = 9,
         AniDB_GetCreator = 10,
         HashFile = 11,
+
         //WebCache_SendFileHash = 12,
         WebCache_SendXRefFileEpisode = 14,
         WebCache_DeleteXRefFileEpisode = 15,
@@ -57,6 +56,7 @@ namespace Shoko.Server
         MAL_UpdateStatus = 61,
         MAL_UploadWatchedStates = 62,
         MAL_DownloadWatchedStates = 63,
+
         //WebCache_SendAniDB_File = 64,
         //WebCache_GetAniDB_File = 65,
         AniDB_UpdateMylistStats = 66,
@@ -67,7 +67,7 @@ namespace Shoko.Server
         AniDB_GetEpisodeUDP = 80,
         Refresh_AnimeStats = 90,
         LinkAniDBTvDB = 91,
-	    Refresh_GroupFilter = 92,
+        Refresh_GroupFilter = 92,
         Plex_Sync = 93,
     }
 
@@ -107,7 +107,6 @@ namespace Shoko.Server
     }
 
 
-
     public enum ScheduledUpdateType
     {
         AniDBCalendar = 1,
@@ -127,20 +126,11 @@ namespace Shoko.Server
     }
 
 
-
-
-
-
-
     public enum TvDBImageNodeType
     {
         Series = 1,
         Season = 2
     }
-
-
-
-
 
 
     public enum StatCountType
@@ -149,7 +139,6 @@ namespace Shoko.Server
         Played = 2,
         Stopped = 3
     }
-
 
 
     public enum TraktSyncAction

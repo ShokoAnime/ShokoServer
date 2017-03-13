@@ -32,11 +32,11 @@ namespace Shoko.Server.Extensions
         {
             return new Azure_CrossRef_AniDB_MAL_Request
             {
-                CrossRef_AniDB_MALID=c.CrossRef_AniDB_MALID,
-                AnimeID=c.AnimeID,
-                MALID =c.MALID,
-                MALTitle =c.MALTitle,
-                StartEpisodeType=c.StartEpisodeType,
+                CrossRef_AniDB_MALID = c.CrossRef_AniDB_MALID,
+                AnimeID = c.AnimeID,
+                MALID = c.MALID,
+                MALTitle = c.MALTitle,
+                StartEpisodeType = c.StartEpisodeType,
                 StartEpisodeNumber = c.StartEpisodeNumber,
                 CrossRefSource = c.CrossRefSource
             };
@@ -46,9 +46,9 @@ namespace Shoko.Server.Extensions
         {
             return new Azure_CrossRef_AniDB_Other_Request
             {
-                CrossRef_AniDB_OtherID=c.CrossRef_AniDB_OtherID,
-                AnimeID=c.AnimeID,
-                CrossRefID =c.CrossRefID,
+                CrossRef_AniDB_OtherID = c.CrossRef_AniDB_OtherID,
+                AnimeID = c.AnimeID,
+                CrossRefID = c.CrossRefID,
                 CrossRefSource = c.CrossRefSource,
                 CrossRefType = c.CrossRefType,
             };
@@ -96,12 +96,11 @@ namespace Shoko.Server.Extensions
             byte[] data = new byte[m.MediaInfo.Length - 4];
             Array.Copy(m.MediaInfo, 4, data, 0, data.Length);
             return CompressionHelper.DeserializeObject<Media>(data, size);
-
         }
 
         public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
         {
-            Azure_Media_Request r=new Azure_Media_Request();
+            Azure_Media_Request r = new Azure_Media_Request();
             r.ED2K = v.ED2KHash;
             //Cleanup any File subtitles from media information.
             Media m = v.Media.DeepClone();
@@ -111,7 +110,9 @@ namespace Shoko.Server.Extensions
                 {
                     if (p.Streams != null)
                     {
-                        List<Stream> streams = p.Streams.Where(a => a.StreamType == "3" && !String.IsNullOrEmpty(a.File)).ToList();
+                        List<Stream> streams = p.Streams
+                            .Where(a => a.StreamType == "3" && !String.IsNullOrEmpty(a.File))
+                            .ToList();
                         if (streams.Count > 0)
                             streams.ForEach(a => p.Streams.Remove(a));
                     }
@@ -123,10 +124,10 @@ namespace Shoko.Server.Extensions
             byte[] data = CompressionHelper.SerializeObject(m, out outsize);
             r.ED2K = v.ED2KHash;
             r.MediaInfo = new byte[data.Length + 4];
-            r.MediaInfo[0] = (byte)(outsize >> 24);
-            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
-            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
-            r.MediaInfo[3] = (byte)(outsize & 0xFF);
+            r.MediaInfo[0] = (byte) (outsize >> 24);
+            r.MediaInfo[1] = (byte) ((outsize >> 16) & 0xFF);
+            r.MediaInfo[2] = (byte) ((outsize >> 8) & 0xFF);
+            r.MediaInfo[3] = (byte) (outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
             r.Version = SVR_VideoLocal.MEDIA_VERSION;
             r.Username = ServerSettings.AniDB_Username;
@@ -144,10 +145,10 @@ namespace Shoko.Server.Extensions
             byte[] data = CompressionHelper.SerializeObject(m, out outsize);
             r.ED2K = ed2k;
             r.MediaInfo = new byte[data.Length + 4];
-            r.MediaInfo[0] = (byte)(outsize >> 24);
-            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
-            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
-            r.MediaInfo[3] = (byte)(outsize & 0xFF);
+            r.MediaInfo[0] = (byte) (outsize >> 24);
+            r.MediaInfo[1] = (byte) ((outsize >> 16) & 0xFF);
+            r.MediaInfo[2] = (byte) ((outsize >> 8) & 0xFF);
+            r.MediaInfo[3] = (byte) (outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
             r.Version = SVR_VideoLocal.MEDIA_VERSION;
             r.Username = ServerSettings.AniDB_Username;
@@ -159,7 +160,7 @@ namespace Shoko.Server.Extensions
 
         public static Azure_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
         {
-            Azure_CrossRef_AniDB_Trakt_Request r=new Azure_CrossRef_AniDB_Trakt_Request();
+            Azure_CrossRef_AniDB_Trakt_Request r = new Azure_CrossRef_AniDB_Trakt_Request();
             r.AnimeID = xref.AnimeID;
             r.AnimeName = animeName;
             r.AniDBStartEpisodeType = xref.AniDBStartEpisodeType;
@@ -180,7 +181,7 @@ namespace Shoko.Server.Extensions
 
         public static Azure_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
         {
-            Azure_CrossRef_AniDB_TvDB_Request r =new Azure_CrossRef_AniDB_TvDB_Request();
+            Azure_CrossRef_AniDB_TvDB_Request r = new Azure_CrossRef_AniDB_TvDB_Request();
             r.AnimeID = xref.AnimeID;
             r.AnimeName = animeName;
             r.AniDBStartEpisodeType = xref.AniDBStartEpisodeType;
@@ -199,7 +200,7 @@ namespace Shoko.Server.Extensions
 
         public static Azure_CrossRef_File_Episode_Request ToRequest(this CrossRef_File_Episode xref)
         {
-            Azure_CrossRef_File_Episode_Request r=new Azure_CrossRef_File_Episode_Request();
+            Azure_CrossRef_File_Episode_Request r = new Azure_CrossRef_File_Episode_Request();
             r.Hash = xref.Hash;
             r.AnimeID = xref.AnimeID;
             r.EpisodeID = xref.EpisodeID;
@@ -239,7 +240,7 @@ namespace Shoko.Server.Extensions
             m.MovieId = result.MovieID;
             m.MovieName = result.MovieName;
             m.OriginalName = result.OriginalName;
-            m.Overview = result.Overview;            
+            m.Overview = result.Overview;
         }
 
         public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
@@ -391,11 +392,12 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
 
             return "";
         }
+
         private static string TryGetSeriesProperty(XmlDocument doc, string propertyName)
         {
             try
@@ -410,6 +412,7 @@ namespace Shoko.Server.Extensions
 
             return "";
         }
+
         public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, XmlNode node)
         {
             try
@@ -427,12 +430,13 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TvDB_ImageFanart.Init: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex.ToString());
                 return false;
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, XmlNode node, TvDBImageNodeType nodeType)
+        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, XmlNode node,
+            TvDBImageNodeType nodeType)
         {
             try
             {
@@ -455,12 +459,13 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TvDB_ImagePoster.Populate: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex.ToString());
                 return false;
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner banner, int seriesID, XmlNode node, TvDBImageNodeType nodeType)
+        public static bool Populate(this TvDB_ImageWideBanner banner, int seriesID, XmlNode node,
+            TvDBImageNodeType nodeType)
         {
             try
             {
@@ -481,7 +486,7 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TvDB_ImageWideBanner.Populate: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImageWideBanner.Populate: " + ex.ToString());
                 return false;
             }
         }
@@ -618,7 +623,8 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session, AniDB_Anime_Character charRel)
+        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session,
+            AniDB_Anime_Character charRel)
         {
             Metro_AniDB_Character contract = new Metro_AniDB_Character();
 
@@ -645,7 +651,8 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character, AniDB_Anime_Character charRel)
+        public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character,
+            AniDB_Anime_Character charRel)
         {
             Azure_AnimeCharacter contract = new Azure_AnimeCharacter();
 

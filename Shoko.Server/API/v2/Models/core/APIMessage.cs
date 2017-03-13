@@ -73,12 +73,12 @@ namespace Shoko.Server.API.v2.Models.core
             return new APIMessage(403, "Access Denied");
         }
 
-        public static APIMessage notFound404(string message="Not Found")
+        public static APIMessage notFound404(string message = "Not Found")
         {
             return new APIMessage(404, message);
         }
 
-        public static APIMessage internalError(string custom_message="Internal Error")
+        public static APIMessage internalError(string custom_message = "Internal Error")
         {
             return new APIMessage(500, custom_message);
         }

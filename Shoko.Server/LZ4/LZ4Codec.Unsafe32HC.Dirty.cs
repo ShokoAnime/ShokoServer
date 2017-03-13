@@ -67,6 +67,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace LZ4pn
 {
 #if UNSAFE
+
     public static partial class LZ4Codec
     {
         // Update chains up to ip (excluded)
@@ -80,10 +81,10 @@ namespace LZ4pn
                 while (hc4.nextToUpdate < src_p)
                 {
                     var p = hc4.nextToUpdate;
-                    var delta = (int) (p - (hashTable[(*(uint*) p*2654435761u) >> HASHHC_ADJUST] + src_base));
+                    var delta = (int) (p - (hashTable[(*(uint*) p * 2654435761u) >> HASHHC_ADJUST] + src_base));
                     if (delta > MAX_DISTANCE) delta = MAX_DISTANCE;
                     chainTable[(int) p & MAXD_MASK] = (ushort) delta;
-                    hashTable[(*(uint*) p*2654435761u) >> HASHHC_ADJUST] = (int) (p - src_base);
+                    hashTable[(*(uint*) p * 2654435761u) >> HASHHC_ADJUST] = (int) (p - src_base);
                     hc4.nextToUpdate++;
                 }
             }
@@ -104,7 +105,7 @@ namespace LZ4pn
                         p2 += STEPSIZE_32;
                         continue;
                     }
-                    p1t += debruijn32[(uint) (diff & -diff)*0x077CB531u >> 27];
+                    p1t += debruijn32[(uint) (diff & -diff) * 0x077CB531u >> 27];
                     return (int) (p1t - p1);
                 }
                 if ((p1t < src_LASTLITERALS - 1) && (*(ushort*) p2 == *(ushort*) p1t))
@@ -130,7 +131,7 @@ namespace LZ4pn
 
                 // HC4 match finder
                 LZ4HC_Insert_32(hc4, src_p);
-                var xxx_ref = hashTable[(*(uint*) src_p*2654435761u) >> HASHHC_ADJUST] + src_base;
+                var xxx_ref = hashTable[(*(uint*) src_p * 2654435761u) >> HASHHC_ADJUST] + src_base;
 
                 // Detect repetitive sequences of length <= 4
                 if (xxx_ref >= src_p - 4) // potential repetition
@@ -140,7 +141,8 @@ namespace LZ4pn
                         delta = (ushort) (src_p - xxx_ref);
                         repl =
                             ml =
-                                LZ4HC_CommonLength_32(src_p + MINMATCH, xxx_ref + MINMATCH, src_LASTLITERALS) + MINMATCH;
+                                LZ4HC_CommonLength_32(src_p + MINMATCH, xxx_ref + MINMATCH, src_LASTLITERALS) +
+                                MINMATCH;
                         matchpos = xxx_ref;
                     }
                     xxx_ref = xxx_ref - chainTable[(int) xxx_ref & MAXD_MASK];
@@ -177,8 +179,8 @@ namespace LZ4pn
                     do
                     {
                         chainTable[(int) src_ptr & MAXD_MASK] = delta;
-                        hashTable[(*(uint*) src_ptr*2654435761u) >> HASHHC_ADJUST] = (int) (src_ptr - src_base);
-                            // Head of chain
+                        hashTable[(*(uint*) src_ptr * 2654435761u) >> HASHHC_ADJUST] = (int) (src_ptr - src_base);
+                        // Head of chain
                         src_ptr++;
                     } while (src_ptr < src_end);
                     hc4.nextToUpdate = src_end;
@@ -202,7 +204,7 @@ namespace LZ4pn
 
                 // First Match
                 LZ4HC_Insert_32(hc4, src_p);
-                var xxx_ref = hashTable[(*(uint*) src_p*2654435761u) >> HASHHC_ADJUST] + src_base;
+                var xxx_ref = hashTable[(*(uint*) src_p * 2654435761u) >> HASHHC_ADJUST] + src_base;
 
                 while ((xxx_ref >= src_p - MAX_DISTANCE) && (nbAttempts != 0))
                 {
@@ -224,7 +226,7 @@ namespace LZ4pn
                                     reft += STEPSIZE_32;
                                     continue;
                                 }
-                                ipt += debruijn32[(uint) (diff & -diff)*0x077CB531u >> 27];
+                                ipt += debruijn32[(uint) (diff & -diff) * 0x077CB531u >> 27];
                                 goto _endCount;
                             }
                             if ((ipt < src_LASTLITERALS - 1) && (*(ushort*) reft == *(ushort*) ipt))
@@ -506,7 +508,7 @@ namespace LZ4pn
             // Encode Last Literals
             {
                 var lastRun = (int) (src_end - src_anchor);
-                if (dst_p - dst + lastRun + 1 + (lastRun + 255 - RUN_MASK)/255 > (uint) dst_maxlen)
+                if (dst_p - dst + lastRun + 1 + (lastRun + 255 - RUN_MASK) / 255 > (uint) dst_maxlen)
                     return 0; // Check output limit
                 if (lastRun >= RUN_MASK)
                 {
@@ -524,6 +526,7 @@ namespace LZ4pn
             return (int) (dst_p - dst);
         }
     }
+
 #endif
 }
 

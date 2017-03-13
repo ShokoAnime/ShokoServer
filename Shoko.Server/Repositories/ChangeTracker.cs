@@ -7,9 +7,9 @@ namespace Shoko.Server.Repositories
 {
     public class ChangeTracker<T>
     {
-        private Dictionary<T,DateTime> _changes=new Dictionary<T, DateTime>();
-        private Dictionary<T,DateTime> _removals=new Dictionary<T, DateTime>();
-        private ReaderWriterLockSlim _lock=new ReaderWriterLockSlim();
+        private Dictionary<T, DateTime> _changes = new Dictionary<T, DateTime>();
+        private Dictionary<T, DateTime> _removals = new Dictionary<T, DateTime>();
+        private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
         private void Lock()
         {
@@ -20,7 +20,7 @@ namespace Shoko.Server.Repositories
         {
             _lock.ExitWriteLock();
         }
-       
+
         public void AddOrUpdate(T item)
         {
             try
@@ -51,7 +51,6 @@ namespace Shoko.Server.Repositories
             {
                 Unlock();
             }
-
         }
 
         public void Remove(T item)
@@ -95,8 +94,8 @@ namespace Shoko.Server.Repositories
         {
             Changes<T> changes = new Changes<T>();
             changes.LastChange = DateTime.MinValue;
-            if (_changes.Values.Count>0)
-               changes.LastChange = _changes.Values.Max();
+            if (_changes.Values.Count > 0)
+                changes.LastChange = _changes.Values.Max();
             if (_removals.Values.Count > 0)
             {
                 DateTime remmax = _removals.Values.Max();
@@ -125,7 +124,7 @@ namespace Shoko.Server.Repositories
         {
             try
             {
-                List<Changes<T>> list=new List<Changes<T>>();
+                List<Changes<T>> list = new List<Changes<T>>();
                 foreach (ChangeTracker<T> n in trackers)
                     n.Lock();
                 foreach (ChangeTracker<T> n in trackers)
@@ -142,8 +141,8 @@ namespace Shoko.Server.Repositories
 
     public class Changes<T>
     {
-        public HashSet<T> ChangedItems { get; set; }=new HashSet<T>();
-        public HashSet<T> RemovedItems { get; set; }=new HashSet<T>();
+        public HashSet<T> ChangedItems { get; set; } = new HashSet<T>();
+        public HashSet<T> RemovedItems { get; set; } = new HashSet<T>();
         public DateTime LastChange { get; set; }
     }
 }

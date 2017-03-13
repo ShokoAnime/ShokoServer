@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using System.Windows;
-
 using NutzCode.CloudFileSystem.OAuth2;
 
 namespace Shoko.Server.UI
@@ -15,7 +14,8 @@ namespace Shoko.Server.UI
             AuthResult r = new AuthResult();
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                LoginForm l = new LoginForm(request.Name, request.LoginUrl, request.ClientId, request.Scopes, request.RedirectUri,request.ScopesCommaSeparated);
+                LoginForm l = new LoginForm(request.Name, request.LoginUrl, request.ClientId, request.Scopes,
+                    request.RedirectUri, request.ScopesCommaSeparated);
                 l.Owner = _owner;
                 bool? res = l.ShowDialog();
                 if (res.HasValue && res.Value)
@@ -29,7 +29,6 @@ namespace Shoko.Server.UI
                     r.HasError = true;
                     r.ErrorString = "Unable to login";
                 }
-
             });
             return r;
         }

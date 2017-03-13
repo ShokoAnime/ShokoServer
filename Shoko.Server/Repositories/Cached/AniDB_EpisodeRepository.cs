@@ -16,7 +16,6 @@ namespace Shoko.Server.Repositories
 {
     public class AniDB_EpisodeRepository : BaseCachedRepository<AniDB_Episode, int>
     {
-
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
 
@@ -31,7 +30,6 @@ namespace Shoko.Server.Repositories
 
         private AniDB_EpisodeRepository()
         {
-            
         }
 
         public static AniDB_EpisodeRepository Create()
@@ -46,10 +44,7 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-
         }
-
-
 
 
         public AniDB_Episode GetByEpisodeID(int id)
@@ -78,7 +73,9 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            return Animes.GetMultiple(animeid).Where(a=>a.EpisodeNumber==epnumber && a.GetEpisodeTypeEnum()==enEpisodeType.Episode).ToList();
+            return Animes.GetMultiple(animeid)
+                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == enEpisodeType.Episode)
+                .ToList();
             /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -95,7 +92,9 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, enEpisodeType epType, int epnumber)
         {
-            return Animes.GetMultiple(animeid).Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType).ToList();
+            return Animes.GetMultiple(animeid)
+                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
+                .ToList();
 /*            using (var session = JMMService.SessionFactory.OpenSession())
             {
                 var eps = session
@@ -128,6 +127,5 @@ namespace Shoko.Server.Repositories
                 return new List<AniDB_Episode>(eps);
             }*/
         }
-
     }
 }

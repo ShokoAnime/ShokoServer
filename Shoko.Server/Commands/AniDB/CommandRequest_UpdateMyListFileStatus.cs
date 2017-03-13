@@ -29,7 +29,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateMyListInfo, extraParams = new string[] { FullFileName } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.UpdateMyListInfo,
+                    extraParams = new string[] {FullFileName}
+                };
             }
         }
 
@@ -57,7 +61,6 @@ namespace Shoko.Server.Commands
 
             try
             {
- 
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
                 if (vid != null)
@@ -132,7 +135,8 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 this.Hash = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Hash");
-                this.Watched = bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Watched"));
+                this.Watched = bool.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Watched"));
 
                 string sUpStats = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus",
                     "UpdateSeriesStats");

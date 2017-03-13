@@ -23,7 +23,6 @@ namespace Shoko.Server.Repositories.Cached
 
         private AnimeEpisode_UserRepository()
         {
-            
         }
 
         public static AnimeEpisode_UserRepository Create()
@@ -49,29 +48,33 @@ namespace Shoko.Server.Repositories.Cached
         {
             int cnt = 0;
             List<SVR_AnimeEpisode_User> sers =
-                Cache.Values.Where(a => a.ContractVersion < SVR_AnimeEpisode_User.CONTRACT_VERSION || a.AnimeEpisode_UserID == 0).ToList();
+                Cache.Values.Where(a => a.ContractVersion < SVR_AnimeEpisode_User.CONTRACT_VERSION ||
+                                        a.AnimeEpisode_UserID == 0)
+                    .ToList();
             int max = sers.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name, " DbRegen");
-	        if (max <= 0) return;
-	        foreach (SVR_AnimeEpisode_User g in sers)
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeEpisode_User).Name, " DbRegen");
+            if (max <= 0) return;
+            foreach (SVR_AnimeEpisode_User g in sers)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeEpisode_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
 
-
         public override void Save(IReadOnlyCollection<SVR_AnimeEpisode_User> objs)
         {
-            foreach(SVR_AnimeEpisode_User e in objs)
+            foreach (SVR_AnimeEpisode_User e in objs)
                 Save(e);
         }
 
@@ -82,7 +85,6 @@ namespace Shoko.Server.Repositories.Cached
                 if (obj.AnimeEpisode_UserID == 0)
                 {
                     base.Save(obj);
-
                 }
                 UpdateContract(obj);
                 base.Save(obj);
@@ -96,7 +98,6 @@ namespace Shoko.Server.Repositories.Cached
                 if (obj.AnimeEpisode_UserID == 0)
                 {
                     base.SaveWithOpenTransaction(session, obj);
-
                 }
                 UpdateContract(obj);
                 base.SaveWithOpenTransaction(session, obj);
@@ -114,7 +115,6 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
             return Users.GetMultiple(userid);
@@ -129,7 +129,6 @@ namespace Shoko.Server.Repositories.Cached
                     .Take(maxresults)
                     .ToList();
         }
-
 
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisode()
@@ -157,8 +156,6 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
-
         public void UpdateContract(SVR_AnimeEpisode_User aeu)
         {
             Shoko.Models.Client.CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
@@ -169,7 +166,7 @@ namespace Shoko.Server.Repositories.Cached
             caep.AniDB_EpisodeID = ep.AniDB_EpisodeID;
             caep.AnimeEpisodeID = ep.AnimeEpisodeID;
             caep.AnimeSeriesID = ep.AnimeSeriesID;
-            caep.DateTimeUpdated = ep.DateTimeUpdated;            
+            caep.DateTimeUpdated = ep.DateTimeUpdated;
             caep.PlayedCount = aeu.PlayedCount;
             caep.StoppedCount = aeu.StoppedCount;
             caep.WatchedCount = aeu.WatchedCount;
@@ -195,6 +192,5 @@ namespace Shoko.Server.Repositories.Cached
             */
             aeu.Contract = caep;
         }
-
     }
 }

@@ -29,7 +29,7 @@ namespace Shoko.Server.AniDB_API.Raws
             double val = 0;
             double.TryParse(node.InnerText.Trim(), style, culture, out val);
             int ival = 0;
-            int.TryParse((val*(double) 100).ToString(), out ival);
+            int.TryParse((val * (double) 100).ToString(), out ival);
             VoteValue = ival;
         }
 
@@ -43,7 +43,7 @@ namespace Shoko.Server.AniDB_API.Raws
             double val = 0;
             double.TryParse(node.InnerText.Trim(), style, culture, out val);
             int ival = 0;
-            int.TryParse((val*(double) 100).ToString(), out ival);
+            int.TryParse((val * (double) 100).ToString(), out ival);
             VoteValue = ival;
         }
 
@@ -57,7 +57,7 @@ namespace Shoko.Server.AniDB_API.Raws
             double val = 0;
             double.TryParse(node.InnerText.Trim(), style, culture, out val);
             int ival = 0;
-            int.TryParse((val*(double) 100).ToString(), out ival);
+            int.TryParse((val * (double) 100).ToString(), out ival);
             VoteValue = ival;
         }
 

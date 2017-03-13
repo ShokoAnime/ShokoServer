@@ -22,10 +22,10 @@ namespace Shoko.Server.API.v2.Modules
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public Image() : base("/api")
-        {           
-            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.type, (int)x.id); };
-            Get["/image/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.type, (int)x.id, x.ratio); };
-            Get["/image/thumb/{type}/{id}"] = x => { return GetThumb((int)x.type, (int)x.id, "0"); };
+        {
+            Get["/image/{type}/{id}"] = x => { return GetImage((int) x.type, (int) x.id); };
+            Get["/image/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int) x.type, (int) x.id, x.ratio); };
+            Get["/image/thumb/{type}/{id}"] = x => { return GetThumb((int) x.type, (int) x.id, "0"); };
             Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
             Get["/image/support/{name}/{ratio}"] = x => { return GetSupportImage(x.name, x.ratio); };
         }
@@ -102,14 +102,20 @@ namespace Shoko.Server.API.v2.Modules
         {
             Nancy.Response response = new Nancy.Response();
 
-            if (string.IsNullOrEmpty(name)) { return APIStatus.notFound404(); }
+            if (string.IsNullOrEmpty(name))
+            {
+                return APIStatus.notFound404();
+            }
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
-            byte[] dta = (byte[])man.GetObject(name);
-            if ((dta == null) || (dta.Length == 0)) { return APIStatus.notFound404(); }
+            byte[] dta = (byte[]) man.GetObject(name);
+            if ((dta == null) || (dta.Length == 0))
+            {
+                return APIStatus.notFound404();
+            }
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-      
+
             response = Response.FromStream(ms, "image/png");
             return response;
         }
@@ -117,24 +123,29 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSupportImage(string name, string ratio)
         {
             Nancy.Response response = new Nancy.Response();
-            if (string.IsNullOrEmpty(name)) { return APIStatus.notFound404(); }
+            if (string.IsNullOrEmpty(name))
+            {
+                return APIStatus.notFound404();
+            }
 
             ratio = ratio.Replace(',', '.');
             float newratio = 0F;
             float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint,
                 System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio);
-            
+
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
-            byte[] dta = (byte[])man.GetObject(name);
-            if ((dta == null) || (dta.Length == 0)) { return APIStatus.notFound404(); }
+            byte[] dta = (byte[]) man.GetObject(name);
+            if ((dta == null) || (dta.Length == 0))
+            {
+                return APIStatus.notFound404();
+            }
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
             System.Drawing.Image im = System.Drawing.Image.FromStream(ms);
 
             response = Response.FromStream(ResizeToRatio(im, newratio), "image/png");
             return response;
-
         }
 
         /// <summary>
@@ -146,7 +157,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>string</returns>
         internal string ReturnImagePath(int type, int id, bool thumb)
         {
-            JMMImageType imageType = (JMMImageType)type;
+            JMMImageType imageType = (JMMImageType) type;
             string path = "";
 
             switch (imageType)
@@ -154,10 +165,11 @@ namespace Shoko.Server.API.v2.Modules
                 // 1
                 case JMMImageType.AniDB_Cover:
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
-                    if (anime == null) { return null; }
-
+                    if (anime == null)
+                    {
+                        return null;
+                    }
                     path = anime.PosterPath;
-
                     if (Pri.LongPath.File.Exists(path))
                     {
                         return path;
@@ -172,8 +184,10 @@ namespace Shoko.Server.API.v2.Modules
                 // 2
                 case JMMImageType.AniDB_Character:
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(id);
-                    if (chr == null) { return null; }
-
+                    if (chr == null)
+                    {
+                        return null;
+                    }
                     path = chr.GetPosterPath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -189,8 +203,10 @@ namespace Shoko.Server.API.v2.Modules
                 // 3
                 case JMMImageType.AniDB_Creator:
                     AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(id);
-                    if (creator == null) { return null; }
-
+                    if (creator == null)
+                    {
+                        return null;
+                    }
                     path = creator.GetPosterPath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -205,10 +221,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 4
                 case JMMImageType.TvDB_Banner:
-
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(id);
-                    if (wideBanner == null) { return null; }
-
+                    if (wideBanner == null)
+                    {
+                        return null;
+                    }
                     path = wideBanner.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -224,8 +241,10 @@ namespace Shoko.Server.API.v2.Modules
                 // 5
                 case JMMImageType.TvDB_Cover:
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(id);
-                    if (poster == null) { return null; }
-
+                    if (poster == null)
+                    {
+                        return null;
+                    }
                     path = poster.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -241,8 +260,10 @@ namespace Shoko.Server.API.v2.Modules
                 // 6
                 case JMMImageType.TvDB_Episode:
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(id);
-                    if (ep == null) { return null; }
-
+                    if (ep == null)
+                    {
+                        return null;
+                    }
                     path = ep.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -258,8 +279,10 @@ namespace Shoko.Server.API.v2.Modules
                 // 7
                 case JMMImageType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(id);
-                    if (fanart == null) { return null; }
-
+                    if (fanart == null)
+                    {
+                        return null;
+                    }
                     if (thumb)
                     {
                         //ratio
@@ -292,11 +315,15 @@ namespace Shoko.Server.API.v2.Modules
                 // 8
                 case JMMImageType.MovieDB_FanArt:
                     MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetByID(id);
-                    if (mFanart == null) { return null; }
-
+                    if (mFanart == null)
+                    {
+                        return null;
+                    }
                     mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
-                    if (mFanart == null) { return null; }
-
+                    if (mFanart == null)
+                    {
+                        return null;
+                    }
                     path = mFanart.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -312,11 +339,15 @@ namespace Shoko.Server.API.v2.Modules
                 // 9
                 case JMMImageType.MovieDB_Poster:
                     MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(id);
-                    if (mPoster == null) { return null; }
-
+                    if (mPoster == null)
+                    {
+                        return null;
+                    }
                     mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
-                    if (mPoster == null) { return null; }
-
+                    if (mPoster == null)
+                    {
+                        return null;
+                    }
                     path = mPoster.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -332,8 +363,10 @@ namespace Shoko.Server.API.v2.Modules
                 // 10
                 case JMMImageType.Trakt_Poster:
                     Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(id);
-                    if (tPoster == null) { return null; }
-
+                    if (tPoster == null)
+                    {
+                        return null;
+                    }
                     path = tPoster.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -348,10 +381,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 11
                 case JMMImageType.Trakt_Fanart:
-
                     Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(id);
-                    if (tFanart == null) { return null; }
-
+                    if (tFanart == null)
+                    {
+                        return null;
+                    }
                     path = tFanart.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -368,10 +402,11 @@ namespace Shoko.Server.API.v2.Modules
                 // 12 + 16
                 case JMMImageType.Trakt_Episode:
                 case JMMImageType.Trakt_WatchedEpisode:
-
                     Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(id);
-                    if (tEpisode == null) { return null; }
-
+                    if (tEpisode == null)
+                    {
+                        return null;
+                    }
                     path = tEpisode.GetFullImagePath();
                     if (Pri.LongPath.File.Exists(path))
                     {
@@ -382,7 +417,6 @@ namespace Shoko.Server.API.v2.Modules
                         path = "";
                         logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.GetFullImagePath());
                     }
-
                     break;
 
                 // 0, 13-15, 17+
@@ -411,7 +445,9 @@ namespace Shoko.Server.API.v2.Modules
             Bitmap dest = new Bitmap(width, height);
             using (Graphics g = Graphics.FromImage(dest))
             {
-                g.InterpolationMode = width >= im.Width ? InterpolationMode.HighQualityBilinear : InterpolationMode.HighQualityBicubic;
+                g.InterpolationMode = width >= im.Width
+                    ? InterpolationMode.HighQualityBilinear
+                    : InterpolationMode.HighQualityBicubic;
                 g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 g.SmoothingMode = SmoothingMode.HighQuality;
                 g.DrawImage(im, 0, 0, width, height);
@@ -436,18 +472,18 @@ namespace Shoko.Server.API.v2.Modules
             do
             {
                 nheight = calcwidth / newratio;
-                if (nheight > (float)im.Height + 0.5F)
+                if (nheight > (float) im.Height + 0.5F)
                 {
-                    calcwidth = calcwidth * ((float)im.Height / nheight);
+                    calcwidth = calcwidth * ((float) im.Height / nheight);
                 }
                 else
                 {
                     calcheight = nheight;
                 }
-            } while (nheight > (float)im.Height + 0.5F);
+            } while (nheight > (float) im.Height + 0.5F);
 
-            int newwidth = (int)Math.Round(calcwidth);
-            int newheight = (int)Math.Round(calcheight);
+            int newwidth = (int) Math.Round(calcwidth);
+            int newheight = (int) Math.Round(calcheight);
             int x = 0;
             int y = 0;
             if (newwidth < im.Width)
@@ -457,7 +493,8 @@ namespace Shoko.Server.API.v2.Modules
 
             System.Drawing.Image im2 = ReSize(im, newwidth, newheight);
             Graphics g = Graphics.FromImage(im2);
-            g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height), new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
+            g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height), new Rectangle(x, y, im2.Width, im2.Height),
+                GraphicsUnit.Pixel);
             MemoryStream ms = new MemoryStream();
             im2.Save(ms, ImageFormat.Png);
             ms.Seek(0, SeekOrigin.Begin);

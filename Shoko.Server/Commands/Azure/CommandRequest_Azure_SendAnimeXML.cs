@@ -24,7 +24,11 @@ namespace Shoko.Server.Commands.Azure
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SendAnimeAzure, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SendAnimeAzure,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 

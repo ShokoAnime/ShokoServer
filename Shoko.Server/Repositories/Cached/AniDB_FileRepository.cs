@@ -61,10 +61,17 @@ namespace Shoko.Server.Repositories
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(SVR_AniDB_File obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_AniDB_File obj)
+        {
+            throw new NotSupportedException();
+        }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_AniDB_File> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_AniDB_File> objs)
+        {
+            throw new NotSupportedException();
+        }
 
         public void Save(SVR_AniDB_File obj, bool updateStats)
         {
@@ -97,6 +104,7 @@ namespace Shoko.Server.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
+
         public SVR_AniDB_File GetByMD5(string hash)
         {
             return MD5s.GetOne(hash);
@@ -107,6 +115,7 @@ namespace Shoko.Server.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
+
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
             return InternalVersions.GetMultiple(version);
@@ -117,6 +126,7 @@ namespace Shoko.Server.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
+
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
             return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
@@ -144,7 +154,6 @@ namespace Shoko.Server.Repositories
                 return cr;
             }*/
         }
-
 
 
         public List<SVR_AniDB_File> GetByAnimeID(int animeID)
@@ -176,6 +185,5 @@ namespace Shoko.Server.Repositories
                 return new List<AniDB_File>(objs);
             }*/
         }
-
     }
 }

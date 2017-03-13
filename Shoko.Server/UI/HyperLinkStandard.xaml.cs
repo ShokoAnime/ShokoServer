@@ -53,7 +53,9 @@ namespace Shoko.Server
                 Uri uri = new Uri(URL);
                 Process.Start(new ProcessStartInfo(uri.AbsoluteUri));
             }
-            catch { }
+            catch
+            {
+            }
 
             e.Handled = true;
         }

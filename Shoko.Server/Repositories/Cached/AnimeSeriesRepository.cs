@@ -36,13 +36,13 @@ namespace Shoko.Server.Repositories.Cached
                 cr.DeleteFromFilters();
                 if (cr.AnimeGroupID > 0)
                 {
-                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", cr.AnimeGroupID);
+                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
+                        cr.AnimeGroupID);
                     SVR_AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
                     if (oldGroup != null)
                         RepoFactory.AnimeGroup.Save(oldGroup, true, true);
                 }
             };
-
         }
 
         public static AnimeSeriesRepository Create()
@@ -66,44 +66,44 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                            int cnt = 0;
-            List<SVR_AnimeSeries> sers =
-                Cache.Values.Where(
-                    a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime?.AniDBAnime == null)
-                    .ToList();
-            int max = sers.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name, " DbRegen");
-	        if (max <= 0) return;
-	        foreach (SVR_AnimeSeries s in sers)
-            {
-                try
+                int cnt = 0;
+                List<SVR_AnimeSeries> sers =
+                    Cache.Values.Where(
+                            a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION ||
+                                 a.Contract?.AniDBAnime?.AniDBAnime == null)
+                        .ToList();
+                int max = sers.Count;
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name, " DbRegen");
+                if (max <= 0) return;
+                foreach (SVR_AnimeSeries s in sers)
                 {
-                    Save(s, false, false, true);
-                }
-                catch (Exception e)
-                {
-                }
+                    try
+                    {
+                        Save(s, false, false, true);
+                    }
+                    catch (Exception e)
+                    {
+                    }
 
-                cnt++;
-                if (cnt % 10 == 0)
-                {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
-                        " DbRegen - " + cnt + "/" + max);
+                    cnt++;
+                    if (cnt % 10 == 0)
+                    {
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
+                            " DbRegen - " + cnt + "/" + max);
+                    }
                 }
-            }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
-                " DbRegen - " + max + "/" + max);
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name,
+                    " DbRegen - " + max + "/" + max);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 throw;
             }
-
         }
-
-
-
 
 
         public ChangeTracker<int> GetChangeTracker()
@@ -114,10 +114,17 @@ namespace Shoko.Server.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(SVR_AnimeSeries obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_AnimeSeries obj)
+        {
+            throw new NotSupportedException();
+        }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_AnimeSeries> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<SVR_AnimeSeries> objs)
+        {
+            throw new NotSupportedException();
+        }
 
 
         public void Save(SVR_AnimeSeries obj, bool onlyupdatestats)
@@ -125,11 +132,12 @@ namespace Shoko.Server.Repositories.Cached
             Save(obj, true, onlyupdatestats);
         }
 
-        public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false, bool alsoupdateepisodes=false)
+        public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false,
+            bool alsoupdateepisodes = false)
         {
             bool newSeries = false;
             SVR_AnimeGroup oldGroup = null;
-			bool isMigrating = false;
+            bool isMigrating = false;
             lock (obj)
             {
                 if (obj.AnimeSeriesID == 0)
@@ -148,9 +156,9 @@ namespace Shoko.Server.Repositories.Cached
                         if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
                         {
                             oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
-							SVR_AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
-							if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
-								isMigrating = true;
+                            SVR_AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                            if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
+                                isMigrating = true;
                             newSeries = true;
                         }
                     }
@@ -164,15 +172,15 @@ namespace Shoko.Server.Repositories.Cached
                 base.Save(obj);
                 if (!skipgroupfilters && !isMigrating)
                 {
-	                int endyear = obj.Contract.AniDBAnime.AniDBAnime.EndYear;
-	                if (endyear == 0) endyear = DateTime.Today.Year;
-	                HashSet<int> allyears = null;
-	                if (obj.Contract.AniDBAnime.AniDBAnime.BeginYear != 0)
-	                {
-		                allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
-			                endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
-	                }
-	                RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false,
+                    int endyear = obj.Contract.AniDBAnime.AniDBAnime.EndYear;
+                    if (endyear == 0) endyear = DateTime.Today.Year;
+                    HashSet<int> allyears = null;
+                    if (obj.Contract.AniDBAnime.AniDBAnime.BeginYear != 0)
+                    {
+                        allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
+                            endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
+                    }
+                    RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false,
                         obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears);
                     //This call will create extra years or tags if the Group have a new year or tag
                     obj.UpdateGroupFilters(types, null);
@@ -188,7 +196,8 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (oldGroup != null)
                 {
-                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}", oldGroup.AnimeGroupID);
+                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",
+                        oldGroup.AnimeGroupID);
                     RepoFactory.AnimeGroup.Save(oldGroup, true, true);
                 }
             }
@@ -224,8 +233,6 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
-
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
             return Groups.GetMultiple(groupid);
@@ -244,6 +251,5 @@ namespace Shoko.Server.Repositories.Cached
         {
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
         }
-
     }
 }

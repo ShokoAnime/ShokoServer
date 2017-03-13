@@ -28,24 +28,29 @@ namespace Shoko.Server.API.v2.Modules
             this.RequiresAuthentication();
 
             #region 01.Settings
+
             Post["/config/port/set"] = _ => { return SetPort(); };
             Get["/config/port/get"] = _ => { return GetPort(); };
             Post["/config/imagepath/set"] = _ => { return SetImagepath(); };
             Get["/config/imagepath/get"] = _ => { return GetImagepath(); };
             Get["/config/export"] = _ => { return ExportConfig(); };
             Post["/config/import"] = _ => { return ImportConfig(); };
+
             #endregion
 
             #region 02.AniDB
+
             Post["/anidb/set"] = _ => { return SetAniDB(); };
             Get["/anidb/get"] = _ => { return GetAniDB(); };
             Get["/anidb/test"] = _ => { return TestAniDB(); };
             Get["/anidb/votes/sync"] = _ => { return SyncAniDBVotes(); };
             Get["/anidb/list/sync"] = _ => { return SyncAniDBList(); };
             Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
+
             #endregion
 
             #region 03.MyAnimeList
+
             Post["/mal/set"] = _ => { return SetMAL(); };
             Get["/mal/get"] = _ => { return GetMAL(); };
             Get["/mal/test"] = _ => { return TestMAL(); };
@@ -53,58 +58,71 @@ namespace Shoko.Server.API.v2.Modules
             Get["/mal/download"] = _ => { return DownloadFromMAL(); };
             Get["/mal/upload"] = _ => { return UploadToMAL(); };
             //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
+
             #endregion
 
             #region 04.Trakt
+
             Post["/trakt/set"] = _ => { return SetTraktPIN(); };
             Get["/trakt/get"] = _ => { return GetTrakt(); };
             Get["/trakt/create"] = _ => { return CreateTrakt(); };
             Get["/trakt/sync"] = _ => { return SyncTrakt(); };
             Get["/trakt/update"] = _ => { return ScanTrakt(); };
+
             #endregion
 
             #region 05.TvDB
+
             Get["/tvdb/update"] = _ => { return ScanTvDB(); };
+
             #endregion
 
             #region 06.MovieDB
+
             Get["/moviedb/update"] = _ => { return ScanMovieDB(); };
+
             #endregion
 
             #region 07.User
+
             Get["/user/list"] = _ => { return GetUsers(); };
             Post["/user/create"] = _ => { return CreateUser(); };
             Post["/user/delete"] = _ => { return DeleteUser(); };
             Post["/user/password"] = _ => { return ChangePassword(); };
             Post["/user/password/{uid}"] = x => { return ChangePassword(x.uid); };
+
             #endregion
 
             #region 08.OS-based operations
+
             Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
             Post["/os/folder"] = x => { return GetOSFolder(x.folder); };
             Get["/os/drives"] = _ => { return GetOSDrives(); };
+
             #endregion
 
             #region 09.Cloud accounts
+
             Get["/cloud/list"] = _ => { return GetCloudAccounts(); };
             Get["/cloud/count"] = _ => { return GetCloudAccountsCount(); };
             Post["/cloud/add"] = x => { return AddCloudAccount(); };
             Post["/cloud/delete"] = x => { return DeleteCloudAccount(); };
             Get["/cloud/import"] = _ => { return RunCloudImport(); };
+
             #endregion
 
             #region 10.Logs
+
             Get["/log/get"] = x => { return GetLog(10, 0); };
-            Get["/log/get/{max}/{position}"] = x => { return GetLog((int)x.max, (int)x.position); };
+            Get["/log/get/{max}/{position}"] = x => { return GetLog((int) x.max, (int) x.position); };
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
             Get["/log/rotate"] = x => { return GetRotateLogs(); };
             Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
-            #endregion
 
+            #endregion
         }
 
-        [ThreadStatic]
-        internal static Nancy.Request request;
+        [ThreadStatic] internal static Nancy.Request request;
 
         #region 01.Settings
 
@@ -226,7 +244,8 @@ namespace Shoko.Server.API.v2.Modules
         private object SetAniDB()
         {
             Creditentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) && cred.password != "")
+            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) &&
+                cred.password != "")
             {
                 ServerSettings.AniDB_Username = cred.login;
                 ServerSettings.AniDB_Password = cred.password;
@@ -326,7 +345,8 @@ namespace Shoko.Server.API.v2.Modules
         private object SetMAL()
         {
             Creditentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) && cred.password != "")
+            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) &&
+                cred.password != "")
             {
                 ServerSettings.MAL_Username = cred.login;
                 ServerSettings.MAL_Password = cred.password;
@@ -524,7 +544,7 @@ namespace Shoko.Server.API.v2.Modules
         private object CreateUser()
         {
             Request request = this.Request;
-            SVR_JMMUser _user = (SVR_JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 JMMUser user = this.Bind();
@@ -553,7 +573,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ChangePassword()
         {
             Request request = this.Request;
-            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser) this.Context.CurrentUser;
             return ChangePassword(user.JMMUserID);
         }
 
@@ -564,7 +584,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ChangePassword(int uid)
         {
             Request request = this.Request;
-            SVR_JMMUser _user = (SVR_JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
@@ -590,7 +610,7 @@ namespace Shoko.Server.API.v2.Modules
         private object DeleteUser()
         {
             Request request = this.Request;
-            SVR_JMMUser _user = (SVR_JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) this.Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
@@ -741,7 +761,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetRotateLogs()
         {
             Request request = this.Request;
-            SVR_JMMUser user = (SVR_JMMUser)this.Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser) this.Context.CurrentUser;
             Logs rotator = this.Bind();
 
             if (user.IsAdmin == 1)
@@ -766,9 +786,9 @@ namespace Shoko.Server.API.v2.Modules
         private object GetRotateLogs()
         {
             Logs rotator = new Logs();
-            rotator.rotate= ServerSettings.RotateLogs;
+            rotator.rotate = ServerSettings.RotateLogs;
             rotator.zip = ServerSettings.RotateLogs_Zip;
-            rotator.delete=ServerSettings.RotateLogs_Delete;
+            rotator.delete = ServerSettings.RotateLogs_Delete;
             int day = 0;
             if (!String.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
             {
@@ -793,12 +813,12 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return APIStatus.notFound404("Could not find current log name. Sorry");
             }
-            
+
             if (!File.Exists(log_file))
             {
                 return APIStatus.notFound404();
             }
-            
+
             Dictionary<string, object> result = new Dictionary<string, object>();
             FileStream fs = File.OpenRead(@log_file);
 
@@ -808,11 +828,11 @@ namespace Shoko.Server.API.v2.Modules
                 result.Add("lines", new string[] { });
                 return result;
             }
-            
+
             List<string> logLines = new List<string>();
 
             LogReader reader = new LogReader(fs, position);
-            for (int i=0; i<lines; i++)
+            for (int i = 0; i < lines; i++)
             {
                 string line = reader.ReadLine();
                 if (line == null) break;
@@ -824,6 +844,5 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         #endregion
-
     }
 }

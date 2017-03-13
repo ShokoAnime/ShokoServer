@@ -59,7 +59,7 @@ namespace Shoko.Server.Providers.TraktTV
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
                 return dictTraktEpisodes;
@@ -99,7 +99,7 @@ namespace Shoko.Server.Providers.TraktTV
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
                 return dictTraktSeasons;
@@ -144,7 +144,7 @@ namespace Shoko.Server.Providers.TraktTV
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
                 return dictTraktSeasonsSpecials;
@@ -158,11 +158,14 @@ namespace Shoko.Server.Providers.TraktTV
                 Show = RepoFactory.Trakt_Show.GetByTraktSlug(TraktID);
                 if (Show == null) return;
 
-                traktEpisodes = RepoFactory.Trakt_Episode.GetByShowID(Show.Trakt_ShowID).OrderBy(a=>a.Season).ThenBy(a=>a.EpisodeNumber).ToList();
+                traktEpisodes = RepoFactory.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
+                    .OrderBy(a => a.Season)
+                    .ThenBy(a => a.EpisodeNumber)
+                    .ToList();
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 

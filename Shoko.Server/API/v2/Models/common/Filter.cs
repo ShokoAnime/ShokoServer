@@ -11,7 +11,11 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class Filter : BaseDirectory
     {
-        public override string type { get { return "filter"; } }
+        public override string type
+        {
+            get { return "filter"; }
+        }
+
         // We need to rethink this
         // There is too much duplicated info.
         // example:
@@ -29,7 +33,8 @@ namespace Shoko.Server.API.v2.Models.common
             groups = new List<Group>();
         }
 
-        internal static Filter GenerateFromGroupFilter(SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level, bool all)
+        internal static Filter GenerateFromGroupFilter(SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
+            bool all)
         {
             List<Group> groups = new List<Group>();
             Filter filter = new Filter();
@@ -48,12 +53,12 @@ namespace Shoko.Server.API.v2.Models.common
 
                     // Populate Random Art
                     while (rand_art_iteration < 3)
-                        {
+                    {
                         int index = new Random().Next(groupsh.Count);
                         SVR_AnimeGroup randGrp = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.ToList()[index]);
                         Video contract = randGrp?.GetPlexContract(uid);
                         if (contract != null)
-                            {
+                        {
                             Random rand = new Random();
                             Contract_ImageDetails art = new Contract_ImageDetails();
                             // contract.Fanarts can be null even if contract isn't
@@ -72,20 +77,27 @@ namespace Shoko.Server.API.v2.Models.common
                                 {
                                     art = contract.Banners[rand.Next(contract.Banners.Count)];
                                     filter.art.banner.Add(new Art()
-                                {
+                                    {
                                         url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
                                         index = 0
                                     });
-                                    if (!string.IsNullOrEmpty(contract.Thumb)) { filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(contract.Thumb), index = 0 }); }
-                                }
+                                    if (!string.IsNullOrEmpty(contract.Thumb))
+                                    {
+                                        filter.art.thumb.Add(new Art()
+                                        {
+                                            url = APIHelper.ConstructImageLinkFromRest(contract.Thumb),
+                                            index = 0
+                                        });
+                                    }
                                 }
                             }
+                        }
                         rand_art_iteration++;
                     }
 
                     Dictionary<CL_AnimeGroup_User, Group> order = new Dictionary<CL_AnimeGroup_User, Group>();
                     if (level > 0)
-                            {
+                    {
                         foreach (int gp in groupsh)
                         {
                             SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
@@ -95,19 +107,21 @@ namespace Shoko.Server.API.v2.Models.common
                                     filter.id);
                             groups.Add(group);
                             order.Add(ag.GetUserContract(uid), group);
-                            }
-                        }
-                    
-                    if (groups.Count > 0)
-                        {
-                        // Proper Sorting!
-                        IEnumerable<CL_AnimeGroup_User> grps = order.Keys;
-                        grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
-                        groups = grps.Select(a => order[a]).ToList();
-                        filter.groups = groups;
                         }
                     }
+
+                    if (groups.Count > 0)
+                    {
+                        // Proper Sorting!
+                        IEnumerable<CL_AnimeGroup_User> grps = order.Keys;
+                        grps = gf.SortCriteriaList.Count != 0
+                            ? GroupFilterHelper.Sort(grps, gf)
+                            : grps.OrderBy(a => a.GroupName);
+                        groups = grps.Select(a => order[a]).ToList();
+                        filter.groups = groups;
+                    }
                 }
+            }
 
             filter.viewed = 0;
             filter.url = APIHelper.ConstructFilterIdUrl(filter.id);

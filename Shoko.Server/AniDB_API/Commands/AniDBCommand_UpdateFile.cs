@@ -89,7 +89,8 @@ namespace AniDBAPI.Commands
             if (fileState.HasValue)
                 commandText += "&state=" + (int) fileState;
             if (watchedDate.HasValue)
-                commandText += "&viewdate=" + Shoko.Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate.Value).ToString();
+                commandText += "&viewdate=" + Shoko.Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate.Value)
+                                   .ToString();
             if (isEdit)
                 commandText += "&edit=1";
         }

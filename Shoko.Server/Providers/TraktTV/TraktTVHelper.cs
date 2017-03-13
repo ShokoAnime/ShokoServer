@@ -25,6 +25,7 @@ namespace Shoko.Server.Providers.TraktTV
     public class TraktTVHelper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+
         #region Helpers
 
         public static DateTime? GetDateFromUTCString(string sdate)
@@ -277,7 +278,7 @@ namespace Shoko.Server.Providers.TraktTV
                 ServerSettings.Trakt_RefreshToken = "";
                 ServerSettings.Trakt_TokenExpirationDate = "";
 
-                logger.Error( ex,"Error in TraktTVHelper.RefreshAuthToken: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.RefreshAuthToken: " + ex.ToString());
                 return false;
             }
         }
@@ -330,7 +331,7 @@ namespace Shoko.Server.Providers.TraktTV
                 ServerSettings.Trakt_RefreshToken = "";
                 ServerSettings.Trakt_TokenExpirationDate = "";
 
-                logger.Error( ex,"Error in TraktTVHelper.TestUserLogin: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.TestUserLogin: " + ex.ToString());
                 return ex.Message;
             }
         }
@@ -352,7 +353,8 @@ namespace Shoko.Server.Providers.TraktTV
         public static string LinkAniDBTrakt(ISession session, int animeID, enEpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            List<CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
+            List<CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
+                session, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xrefTemps != null && xrefTemps.Count > 0)
@@ -381,7 +383,8 @@ namespace Shoko.Server.Providers.TraktTV
             // download fanart, posters
             DownloadImagesFromTMDB(traktID);
 
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID, seasonNumber, traktEpNumber,
+            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID,
+                seasonNumber, traktEpNumber,
                 animeID,
                 (int) aniEpType, aniEpNumber);
             if (xref == null)
@@ -421,7 +424,8 @@ namespace Shoko.Server.Providers.TraktTV
         public static void RemoveLinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber)
         {
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
+            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
+                traktEpNumber, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xref == null) return;
@@ -449,11 +453,13 @@ namespace Shoko.Server.Providers.TraktTV
             dictTraktSeasons = new Dictionary<int, int>();
             try
             {
-                
                 // create a dictionary of absolute episode numbers for trakt episodes
                 // sort by season and episode number
                 // ignore season 0, which is used for specials
-                List<Trakt_Episode> eps = RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID).OrderBy(a=>a.Season).ThenBy(a=>a.EpisodeNumber).ToList();
+                List<Trakt_Episode> eps = RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID)
+                    .OrderBy(a => a.Season)
+                    .ThenBy(a => a.EpisodeNumber)
+                    .ToList();
                 int i = 1;
                 int iSpec = 1;
                 int lastSeason = -999;
@@ -482,7 +488,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -513,7 +519,8 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        private static int? GetTraktEpisodeIdV2(SVR_AnimeEpisode ep, ref string traktID, ref int season, ref int epNumber)
+        private static int? GetTraktEpisodeIdV2(SVR_AnimeEpisode ep, ref string traktID, ref int season,
+            ref int epNumber)
         {
             AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
@@ -525,7 +532,8 @@ namespace Shoko.Server.Providers.TraktTV
             return GetTraktEpisodeIdV2(anime, aniep, ref traktID, ref season, ref epNumber);
         }
 
-        private static int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, AniDB_Episode ep, ref string traktID, ref int season,
+        private static int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, AniDB_Episode ep, ref string traktID,
+            ref int season,
             ref int epNumber)
         {
             if (anime == null || ep == null)
@@ -538,7 +546,8 @@ namespace Shoko.Server.Providers.TraktTV
             return GetTraktEpisodeIdV2(traktSummary, anime, ep, ref traktID, ref season, ref epNumber);
         }
 
-        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, SVR_AniDB_Anime anime, AniDB_Episode ep,
+        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, SVR_AniDB_Anime anime,
+            AniDB_Episode ep,
             ref string traktID, ref int season, ref int epNumber)
         {
             try
@@ -615,7 +624,7 @@ namespace Shoko.Server.Providers.TraktTV
                     // relies on the xref's being sorted by season number and then episode number (desc)
                     List<CrossRef_AniDB_TraktV2> traktCrossRef =
                         traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
-                    
+
                     bool foundStartingPoint = false;
                     CrossRef_AniDB_TraktV2 xrefBase = null;
                     foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
@@ -672,7 +681,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return null;
             }
         }
@@ -802,7 +811,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static CL_Response<bool> PostCommentShow(string traktSlug, string commentText, bool isSpoiler)
         {
-            CL_Response<bool> ret=new CL_Response<bool>();
+            CL_Response<bool> ret = new CL_Response<bool>();
             try
             {
                 if (!ServerSettings.Trakt_IsEnabled)
@@ -849,7 +858,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.PostCommentShow: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.PostCommentShow: " + ex.ToString());
                 ret.ErrorMessage = ex.Message;
                 ret.Result = false;
                 return ret;
@@ -932,7 +941,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.SyncEpisodeToTrakt: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.SyncEpisodeToTrakt: " + ex.ToString());
             }
         }
 
@@ -1047,7 +1056,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.SyncEpisodeToTrakt: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.SyncEpisodeToTrakt: " + ex.ToString());
             }
         }
 
@@ -1117,7 +1126,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.Scrobble: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.Scrobble: " + ex.ToString());
                 return 500;
             }
         }
@@ -1158,7 +1167,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in SearchSeries: " + ex.ToString());
+                logger.Error(ex, "Error in SearchSeries: " + ex.ToString());
             }
 
             return null;
@@ -1190,7 +1199,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in SearchSeries: " + ex.ToString());
+                logger.Error(ex, "Error in SearchSeries: " + ex.ToString());
             }
 
             return null;
@@ -1244,7 +1253,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.GetShowInfo: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.GetShowInfo: " + ex.ToString());
                 return null;
             }
 
@@ -1268,7 +1277,8 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     if (!string.IsNullOrEmpty(tvshow.images.fanart.full))
                     {
-                        Trakt_ImageFanart fanart = RepoFactory.Trakt_ImageFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
+                        Trakt_ImageFanart fanart =
+                            RepoFactory.Trakt_ImageFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
                         if (fanart == null)
                         {
                             fanart = new Trakt_ImageFanart();
@@ -1284,7 +1294,7 @@ namespace Shoko.Server.Providers.TraktTV
 
 
                 // save the seasons
-                
+
                 // delete episodes if they no longer exist on Trakt
                 if (seasons.Count > 0)
                 {
@@ -1316,7 +1326,8 @@ namespace Shoko.Server.Providers.TraktTV
                     {
                         if (!string.IsNullOrEmpty(sea.images.poster.full))
                         {
-                            Trakt_ImagePoster poster = RepoFactory.Trakt_ImagePoster.GetByShowIDAndSeason(show.Trakt_ShowID, season.Season);
+                            Trakt_ImagePoster poster =
+                                RepoFactory.Trakt_ImagePoster.GetByShowIDAndSeason(show.Trakt_ShowID, season.Season);
                             if (poster == null)
                             {
                                 poster = new Trakt_ImagePoster();
@@ -1334,7 +1345,8 @@ namespace Shoko.Server.Providers.TraktTV
                     {
                         foreach (TraktV2Episode ep in sea.episodes)
                         {
-                            Trakt_Episode episode = RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season,
+                            Trakt_Episode episode = RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(
+                                show.Trakt_ShowID, ep.season,
                                 ep.number);
                             if (episode == null)
                                 episode = new Trakt_Episode();
@@ -1361,7 +1373,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.SaveExtendedShowInfo: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.SaveExtendedShowInfo: " + ex.ToString());
             }
         }
 
@@ -1381,7 +1393,8 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     return ret;
 
-                List<CrossRef_AniDB_TraktV2> traktXRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
+                List<CrossRef_AniDB_TraktV2> traktXRefs =
+                    RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
                 if (traktXRefs == null || traktXRefs.Count == 0) return null;
 
                 // get a unique list of trakt id's
@@ -1426,7 +1439,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.GetShowComments: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.GetShowComments: " + ex.ToString());
             }
 
             return ret;
@@ -1449,7 +1462,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 var resultFollowers = json.FromJSONArray<TraktV2Follower>();
 
-                
+
                 foreach (TraktV2Follower friend in resultFollowers)
                 {
                     Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(friend.user.username);
@@ -1507,7 +1520,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.GetFriends: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.GetFriends: " + ex.ToString());
                 return friends;
             }
 
@@ -1537,7 +1550,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in SearchSeries: " + ex.ToString());
+                logger.Error(ex, "Error in SearchSeries: " + ex.ToString());
             }
 
             return new List<TraktV2ShowWatchedResult>();
@@ -1567,7 +1580,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in SearchSeries: " + ex.ToString());
+                logger.Error(ex, "Error in SearchSeries: " + ex.ToString());
             }
 
             return new List<TraktV2ShowCollectedResult>();
@@ -1616,7 +1629,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.SyncCollectionToTrakt_Series: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.SyncCollectionToTrakt_Series: " + ex.ToString());
             }
         }
 
@@ -1639,7 +1652,8 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!GetTraktCollectionInfo(ref collected, ref watched)) return;
 
                 TraktV2SyncCollectionEpisodesByNumber syncCollectionAdd = new TraktV2SyncCollectionEpisodesByNumber();
-                TraktV2SyncCollectionEpisodesByNumber syncCollectionRemove = new TraktV2SyncCollectionEpisodesByNumber();
+                TraktV2SyncCollectionEpisodesByNumber syncCollectionRemove =
+                    new TraktV2SyncCollectionEpisodesByNumber();
                 TraktV2SyncWatchedEpisodesByNumber syncHistoryAdd = new TraktV2SyncWatchedEpisodesByNumber();
                 TraktV2SyncWatchedEpisodesByNumber syncHistoryRemove = new TraktV2SyncWatchedEpisodesByNumber();
 
@@ -1720,7 +1734,8 @@ namespace Shoko.Server.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                    List<CrossRef_AniDB_TraktV2> xrefs =
+                        RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
@@ -1748,7 +1763,8 @@ namespace Shoko.Server.Providers.TraktTV
                                         switch (epsync.SyncType)
                                         {
                                             case TraktSyncType.CollectionAdd:
-                                                syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber,
+                                                syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season,
+                                                    epsync.EpNumber,
                                                     epsync.EpDate);
                                                 break;
                                             case TraktSyncType.CollectionRemove:
@@ -1760,7 +1776,8 @@ namespace Shoko.Server.Providers.TraktTV
                                                     epsync.EpDate);
                                                 break;
                                             case TraktSyncType.HistoryRemove:
-                                                syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber,
+                                                syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season,
+                                                    epsync.EpNumber,
                                                     epsync.EpDate);
                                                 break;
                                         }
@@ -1808,7 +1825,8 @@ namespace Shoko.Server.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                    List<CrossRef_AniDB_TraktV2> xrefs =
+                        RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
@@ -1836,7 +1854,8 @@ namespace Shoko.Server.Providers.TraktTV
                                         switch (epsync.SyncType)
                                         {
                                             case TraktSyncType.CollectionAdd:
-                                                syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber,
+                                                syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season,
+                                                    epsync.EpNumber,
                                                     epsync.EpDate);
                                                 break;
                                             case TraktSyncType.CollectionRemove:
@@ -1848,7 +1867,8 @@ namespace Shoko.Server.Providers.TraktTV
                                                     epsync.EpDate);
                                                 break;
                                             case TraktSyncType.HistoryRemove:
-                                                syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber,
+                                                syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season,
+                                                    epsync.EpNumber,
                                                     epsync.EpDate);
                                                 break;
                                         }
@@ -1919,7 +1939,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.SyncCollectionToTrakt: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.SyncCollectionToTrakt: " + ex.ToString());
             }
         }
 
@@ -1949,7 +1969,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.CleanupDatabase: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.CleanupDatabase: " + ex.ToString());
                 return false;
             }
         }
@@ -1982,7 +2002,7 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // get all the shows from the database and make sure they are still valid Trakt Slugs
-                
+
 
                 foreach (Trakt_Show show in RepoFactory.Trakt_Show.GetAll())
                 {
@@ -2001,7 +2021,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.CleanupDatabase: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.CleanupDatabase: " + ex.ToString());
             }
         }
 
@@ -2089,7 +2109,8 @@ namespace Shoko.Server.Providers.TraktTV
                         logger.Trace(msg);
                         DateTime epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionAdd);
                         if (sendNow)
-                            SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate, false);
+                            SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate,
+                                false);
                         else
                             return new EpisodeSyncDetails(TraktSyncType.CollectionAdd, traktShowID, season, epNumber,
                                 epDate);
@@ -2145,7 +2166,8 @@ namespace Shoko.Server.Providers.TraktTV
                         logger.Trace(msg);
                         DateTime epDate = GetEpisodeDateForSync(ep, TraktSyncType.HistoryRemove);
                         if (sendNow)
-                            SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, traktShowID, season, epNumber, epDate, false);
+                            SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, traktShowID, season, epNumber, epDate,
+                                false);
                         else
                             return new EpisodeSyncDetails(TraktSyncType.HistoryRemove, traktShowID, season, epNumber,
                                 epDate);
@@ -2156,7 +2178,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.SyncTraktEpisode: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.SyncTraktEpisode: " + ex.ToString());
                 return null;
             }
         }
@@ -2195,7 +2217,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.GetTraktCollectionInfo: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.GetTraktCollectionInfo: " + ex.ToString());
                 return false;
             }
         }

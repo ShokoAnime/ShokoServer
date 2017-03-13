@@ -48,12 +48,14 @@ namespace Shoko.Server.Commands
                     paused = value;
                     if (paused)
                     {
-                        QueueState = new QueueStateStruct() { queueState = QueueStateEnum.Paused, extraParams = new string[0] };
+                        QueueState =
+                            new QueueStateStruct() {queueState = QueueStateEnum.Paused, extraParams = new string[0]};
                         pauseTime = DateTime.Now;
                     }
                     else
                     {
-                        QueueState = new QueueStateStruct() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
+                        QueueState =
+                            new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
                         pauseTime = null;
                     }
 
@@ -84,7 +86,8 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private QueueStateStruct queueState = new QueueStateStruct() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
+        private QueueStateStruct queueState =
+            new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
         public QueueStateStruct QueueState
         {
@@ -124,7 +127,7 @@ namespace Shoko.Server.Commands
 
             processingCommands = false;
             //logger.Trace("Stopping command worker (hasher)...");
-            QueueState = new QueueStateStruct() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
+            QueueState = new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
             QueueCount = 0;
         }
 
@@ -134,7 +137,11 @@ namespace Shoko.Server.Commands
 
             processingCommands = true;
             //logger.Trace("Starting command worker (hasher)...");
-            QueueState = new QueueStateStruct() { queueState = QueueStateEnum.StartingHasher, extraParams = new string[0] };
+            QueueState = new QueueStateStruct()
+            {
+                queueState = QueueStateEnum.StartingHasher,
+                extraParams = new string[0]
+            };
             this.workerCommands.RunWorkerAsync();
         }
 

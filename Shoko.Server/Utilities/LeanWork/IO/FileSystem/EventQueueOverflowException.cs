@@ -9,9 +9,13 @@ namespace LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem
     class EventQueueOverflowException : Exception
     {
         public EventQueueOverflowException()
-            : base() { }
+            : base()
+        {
+        }
 
         public EventQueueOverflowException(string message)
-            : base(message) { }
+            : base(message)
+        {
+        }
     }
 }

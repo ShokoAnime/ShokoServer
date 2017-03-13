@@ -26,7 +26,11 @@ namespace Shoko.Server.Commands.MAL
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateMALWatched, extraParams = new string[] { AnimeID.ToString() }  };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.UpdateMALWatched,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -105,7 +109,8 @@ namespace Shoko.Server.Commands.MAL
                 docCreator.LoadXml(this.CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MALUpdatedWatchedStatus", "AnimeID"));
+                this.AnimeID = int.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_MALUpdatedWatchedStatus", "AnimeID"));
             }
 
             return true;

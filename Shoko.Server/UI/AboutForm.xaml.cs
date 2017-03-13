@@ -33,7 +33,8 @@ namespace Shoko.Server.UI
                 ServerSettings.UpdateChannel = cbUpdateChannel.Text;
         }
 
-        private void cbUpdateChannel_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void cbUpdateChannel_SelectionChanged(object sender,
+            System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
                 ServerSettings.UpdateChannel = cbUpdateChannel.Text;

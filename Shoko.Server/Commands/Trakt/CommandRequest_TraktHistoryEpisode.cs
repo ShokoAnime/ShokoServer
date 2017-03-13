@@ -30,7 +30,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.TraktAddHistory, extraParams = new string[] { AnimeEpisodeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.TraktAddHistory,
+                    extraParams = new string[] {AnimeEpisodeID.ToString()}
+                };
             }
         }
 

@@ -24,16 +24,15 @@ namespace Shoko.Server
 
         public Scanner()
         {
-
             workerIntegrityScanner.WorkerReportsProgress = true;
             workerIntegrityScanner.WorkerSupportsCancellation = true;
             workerIntegrityScanner.DoWork += WorkerIntegrityScanner_DoWork;
-
         }
 
         public static Scanner Instance { get; set; } = new Scanner();
 
         public event PropertyChangedEventHandler PropertyChanged;
+
         public void NotifyPropertyChanged(string propname)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
@@ -44,25 +43,18 @@ namespace Shoko.Server
         public int QueueCount
         {
             get { return queueCount; }
-            set
-{
-                this.SetField(()=>queueCount ,value);
-            }
+            set { this.SetField(() => queueCount, value); }
         }
 
         public void Init()
         {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a));
-            });
+            Application.Current.Dispatcher.Invoke(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
             Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
                 ActiveScan = runscan;
                 StartScan();
             }
-
         }
 
         public void StartScan()
@@ -73,21 +65,19 @@ namespace Shoko.Server
             cancelIntegrityCheck = false;
             workerIntegrityScanner.RunWorkerAsync();
         }
+
         public void ClearScan()
         {
             if (ActiveScan == null)
                 return;
-            if (workerIntegrityScanner.IsBusy && RunScan==ActiveScan)
+            if (workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
                 CancelScan();
             RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
             RepoFactory.Scan.Delete(ActiveScan);
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-
-                Scans.Remove(ActiveScan);
-            });
+            Application.Current.Dispatcher.Invoke(() => { Scans.Remove(ActiveScan); });
             ActiveScan = null;
         }
+
         public void DoEvents()
         {
             DispatcherFrame frame = new DispatcherFrame();
@@ -98,10 +88,11 @@ namespace Shoko.Server
 
         public object ExitFrame(object f)
         {
-            ((DispatcherFrame)f).Continue = false;
+            ((DispatcherFrame) f).Continue = false;
 
             return null;
         }
+
         public void CancelScan()
         {
             if (ActiveScan == null)
@@ -109,7 +100,7 @@ namespace Shoko.Server
             if (workerIntegrityScanner.IsBusy)
             {
                 cancelIntegrityCheck = true;
-                while(workerIntegrityScanner.IsBusy)
+                while (workerIntegrityScanner.IsBusy)
                 {
                     DoEvents();
                     Thread.Sleep(100);
@@ -118,18 +109,18 @@ namespace Shoko.Server
             }
         }
 
-        public bool Finished => (ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Finish) || ActiveScan==null;
+        public bool Finished => (ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Finish) ||
+                                ActiveScan == null;
+
         public string QueueState => ActiveScan != null ? ActiveScan.GetStatusText() : string.Empty;
         public bool QueuePaused => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Standby;
-        public bool QueueRunning => ActiveScan!=null && ActiveScan.GetScanStatus() == ScanStatus.Running;
+        public bool QueueRunning => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Running;
         public bool Exists => (ActiveScan != null);
         private Scan activeScan;
+
         public Scan ActiveScan
         {
-            get
-            {
-                return activeScan;
-            }
+            get { return activeScan; }
             set
             {
                 if (value != activeScan)
@@ -148,13 +139,15 @@ namespace Shoko.Server
 
         public void Refresh()
         {
-            this.OnPropertyChanged(()=>Exists, ()=>Finished, ()=>QueueState, ()=>QueuePaused, ()=>QueueRunning);
-            if (activeScan!=null)
+            this.OnPropertyChanged(() => Exists, () => Finished, () => QueueState, () => QueuePaused,
+                () => QueueRunning);
+            if (activeScan != null)
                 QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
         }
-        public ObservableCollection<Scan> Scans { get; set; }=new ObservableCollection<Scan>();
 
-        public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; }=new ObservableCollection<ScanFile>();
+        public ObservableCollection<Scan> Scans { get; set; } = new ObservableCollection<Scan>();
+
+        public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; } = new ObservableCollection<ScanFile>();
 
         public void AddErrorScan(ScanFile file)
         {
@@ -172,12 +165,13 @@ namespace Shoko.Server
         {
             return 1; //continue hashing (return 0 to abort)
         }
+
         private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
         {
             if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
             {
                 Scan s = RunScan;
-                s.Status = (int)ScanStatus.Running;
+                s.Status = (int) ScanStatus.Running;
                 RepoFactory.Scan.Save(s);
                 Refresh();
                 List<ScanFile> files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
@@ -187,38 +181,39 @@ namespace Shoko.Server
                     try
                     {
                         if (!File.Exists(sf.FullName))
-                            sf.Status = (int)ScanFileStatus.ErrorFileNotFound;
+                            sf.Status = (int) ScanFileStatus.ErrorFileNotFound;
                         else
                         {
                             FileInfo f = new FileInfo(sf.FullName);
                             if (sf.FileSize != f.Length)
-                                sf.Status = (int)ScanFileStatus.ErrorInvalidSize;
+                                sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
                             else
                             {
-                                Hashes hashes = FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
+                                Hashes hashes =
+                                    FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                                 if (string.IsNullOrEmpty(hashes.ED2K))
                                 {
-                                    sf.Status = (int)ScanFileStatus.ErrorMissingHash;
+                                    sf.Status = (int) ScanFileStatus.ErrorMissingHash;
                                 }
                                 else
                                 {
                                     sf.HashResult = hashes.ED2K;
                                     if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
-                                        sf.Status = (int)ScanFileStatus.ErrorInvalidHash;
+                                        sf.Status = (int) ScanFileStatus.ErrorInvalidHash;
                                     else
-                                        sf.Status = (int)ScanFileStatus.ProcessedOK;
+                                        sf.Status = (int) ScanFileStatus.ProcessedOK;
                                 }
                             }
                         }
                     }
                     catch (Exception)
                     {
-                        sf.Status = (int)ScanFileStatus.ErrorIOError;
+                        sf.Status = (int) ScanFileStatus.ErrorIOError;
                     }
                     cnt++;
                     sf.CheckDate = DateTime.Now;
                     RepoFactory.ScanFile.Save(sf);
-                    if (sf.Status > (int)ScanFileStatus.ProcessedOK)
+                    if (sf.Status > (int) ScanFileStatus.ProcessedOK)
                         Scanner.Instance.AddErrorScan(sf);
                     Refresh();
 
@@ -234,7 +229,5 @@ namespace Shoko.Server
                 RunScan = null;
             }
         }
-
-
     }
 }

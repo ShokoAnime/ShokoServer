@@ -33,15 +33,15 @@ namespace Shoko.Server
                     return false;
                 }
             }
-            MoveDirectory(From,To);
+            MoveDirectory(From, To);
             return true;
         }
 
         private long RecursiveDirSize(DirectoryInfo info)
         {
-            long size =0;
-            info.GetFiles().ToList().ForEach(a=>size+=a.Length);
-            info.GetDirectories().ToList().ForEach(a=>size+=RecursiveDirSize(a));
+            long size = 0;
+            info.GetFiles().ToList().ForEach(a => size += a.Length);
+            info.GetDirectories().ToList().ForEach(a => size += RecursiveDirSize(a));
             size += 2048; //MiniSafety
             return size;
         }
@@ -53,7 +53,7 @@ namespace Shoko.Server
             {
                 if (ShouldMigrate)
                 {
-                    bool result=Migrate();
+                    bool result = Migrate();
                     if (result)
                         Utils.GrantAccess(To);
                     return result;
@@ -62,7 +62,9 @@ namespace Shoko.Server
             }
             catch (Exception e)
             {
-                MessageBox.Show($"We are unable to move the directory '{From}' to '{To}', please move the directory with explorer", "Migration ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    $"We are unable to move the directory '{From}' to '{To}', please move the directory with explorer",
+                    "Migration ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }

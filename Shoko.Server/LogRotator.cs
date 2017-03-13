@@ -12,7 +12,6 @@ namespace Shoko.Server
     {
         public LogRotator()
         {
-
         }
 
         public void Start()
@@ -26,8 +25,10 @@ namespace Shoko.Server
 
         internal static string GetCurrentLogFile()
         {
-            var fileTarget = (FileTarget)LogManager.Configuration.FindTargetByName("file");
-            return fileTarget == null ? string.Empty : Path.GetFullPath(fileTarget.FileName.Render(new LogEventInfo { Level = LogLevel.Info }));
+            var fileTarget = (FileTarget) LogManager.Configuration.FindTargetByName("file");
+            return fileTarget == null
+                ? string.Empty
+                : Path.GetFullPath(fileTarget.FileName.Render(new LogEventInfo {Level = LogLevel.Info}));
         }
 
         private string GetDirectory()
@@ -80,12 +81,13 @@ namespace Shoko.Server
 
                 foreach (string file_ext in compress)
                 {
-                    string file = file_ext.Replace("txt","");
+                    string file = file_ext.Replace("txt", "");
                     string path = Path.Combine(GetDirectory(), file);
 
                     if (File.Exists(path + "txt"))
                     {
-                        using (System.IO.FileStream fs = new System.IO.FileStream(@path + "zip", System.IO.FileMode.Create))
+                        using (System.IO.FileStream fs =
+                            new System.IO.FileStream(@path + "zip", System.IO.FileMode.Create))
                         using (ZipArchive arch = new ZipArchive(fs, ZipArchiveMode.Create))
                         {
                             arch.CreateEntryFromFile(@path + "txt", file_ext);
@@ -94,7 +96,6 @@ namespace Shoko.Server
                         File.Delete(path + "txt");
                     }
                 }
-
             }
         }
 

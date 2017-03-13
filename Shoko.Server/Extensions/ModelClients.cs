@@ -79,8 +79,8 @@ namespace Shoko.Server.Extensions
         }
 
 
-
-        public static CL_AniDB_Anime_Relation ToClient(this AniDB_Anime_Relation ar, SVR_AniDB_Anime anime, SVR_AnimeSeries ser, int userID)
+        public static CL_AniDB_Anime_Relation ToClient(this AniDB_Anime_Relation ar, SVR_AniDB_Anime anime,
+            SVR_AnimeSeries ser, int userID)
         {
             CL_AniDB_Anime_Relation cl = new CL_AniDB_Anime_Relation
             {
@@ -95,12 +95,11 @@ namespace Shoko.Server.Extensions
         }
 
 
-
         public static CL_AniDB_Character ToClient(this AniDB_Character c)
         {
             return new CL_AniDB_Character
             {
-                AniDB_CharacterID =c.AniDB_CharacterID,
+                AniDB_CharacterID = c.AniDB_CharacterID,
                 CharID = c.CharID,
                 PicName = c.PicName,
                 CreatorListRaw = c.CreatorListRaw,
@@ -162,19 +161,17 @@ namespace Shoko.Server.Extensions
         {
             return new CL_AnimeSeries_User
             {
-                AnimeSeries_UserID=s.AnimeSeries_UserID,
-                JMMUserID=s.JMMUserID,
-                AnimeSeriesID=s.AnimeSeriesID,
-                UnwatchedEpisodeCount=s.UnwatchedEpisodeCount,
-                WatchedEpisodeCount=s.WatchedEpisodeCount,
-                WatchedDate=s.WatchedDate,
-                PlayedCount=s.PlayedCount,
-                WatchedCount=s.WatchedCount,
-                StoppedCount=s.StoppedCount
+                AnimeSeries_UserID = s.AnimeSeries_UserID,
+                JMMUserID = s.JMMUserID,
+                AnimeSeriesID = s.AnimeSeriesID,
+                UnwatchedEpisodeCount = s.UnwatchedEpisodeCount,
+                WatchedEpisodeCount = s.WatchedEpisodeCount,
+                WatchedDate = s.WatchedDate,
+                PlayedCount = s.PlayedCount,
+                WatchedCount = s.WatchedCount,
+                StoppedCount = s.StoppedCount
             };
         }
-
-
 
 
         public static CL_IgnoreAnime ToClient(this IgnoreAnime i)
@@ -200,7 +197,6 @@ namespace Shoko.Server.Extensions
                 URL = season.URL,
                 Episodes = season.GetEpisodes()
             };
-
         }
 
         public static CL_Trakt_Show ToClient(this Trakt_Show show)
@@ -214,13 +210,13 @@ namespace Shoko.Server.Extensions
                 URL = show.URL,
                 Overview = show.Overview,
                 TvDB_ID = show.TvDB_ID,
-                Seasons = show.GetSeasons().Select(a=>a.ToClient()).ToList()
+                Seasons = show.GetSeasons().Select(a => a.ToClient()).ToList()
             };
-
         }
 
 
-        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage, ISessionWrapper session)
+        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage,
+            ISessionWrapper session)
         {
             JMMImageType imgType = (JMMImageType) defaultImage.ImageParentType;
             IImageEntity parentImage = null;
@@ -262,10 +258,9 @@ namespace Shoko.Server.Extensions
         }
 
 
-
-        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage, IImageEntity parentImage)
+        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage,
+            IImageEntity parentImage)
         {
-
             CL_AniDB_Anime_DefaultImage contract = new CL_AniDB_Anime_DefaultImage
             {
                 AniDB_Anime_DefaultImageID = defaultimage.AniDB_Anime_DefaultImageID,
@@ -274,7 +269,7 @@ namespace Shoko.Server.Extensions
                 ImageParentType = defaultimage.ImageParentType,
                 ImageType = defaultimage.ImageType
             };
-            JMMImageType imgType = (JMMImageType)defaultimage.ImageParentType;
+            JMMImageType imgType = (JMMImageType) defaultimage.ImageParentType;
 
             switch (imgType)
             {
@@ -304,7 +299,8 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static CL_AniDB_Anime_Similar ToClient(this AniDB_Anime_Similar similar, SVR_AniDB_Anime anime, SVR_AnimeSeries ser, int userID)
+        public static CL_AniDB_Anime_Similar ToClient(this AniDB_Anime_Similar similar, SVR_AniDB_Anime anime,
+            SVR_AnimeSeries ser, int userID)
         {
             CL_AniDB_Anime_Similar cl = new CL_AniDB_Anime_Similar
             {

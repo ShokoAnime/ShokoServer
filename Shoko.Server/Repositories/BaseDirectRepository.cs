@@ -10,7 +10,6 @@ namespace Shoko.Server.Repositories
 {
     public class BaseDirectRepository<T, S> : IRepository<T, S> where T : class
     {
-
         public Action<T> BeginDeleteCallback { get; set; }
         public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
         public Action<T> EndDeleteCallback { get; set; }
@@ -82,7 +81,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            foreach(T obj in objs)
+            foreach (T obj in objs)
                 BeginDeleteCallback?.Invoke(obj);
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -99,11 +98,13 @@ namespace Shoko.Server.Repositories
             foreach (T obj in objs)
                 EndDeleteCallback?.Invoke(obj);
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void DeleteWithOpenTransaction(ISession session, S id)
         {
             DeleteWithOpenTransaction(session, GetByID(id));
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void DeleteWithOpenTransaction(ISession session, T cr)
         {
@@ -112,6 +113,7 @@ namespace Shoko.Server.Repositories
                 session.Delete(cr);
             }
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void DeleteWithOpenTransaction(ISession session, List<T> objs)
         {
@@ -143,7 +145,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            foreach(T obj in objs)
+            foreach (T obj in objs)
                 BeginSaveCallback?.Invoke(obj);
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -154,13 +156,12 @@ namespace Shoko.Server.Repositories
                         session.SaveOrUpdate(obj);
                         SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                     }
-                    transaction.Commit();   
+                    transaction.Commit();
                 }
             }
-            foreach(T obj in objs)
+            foreach (T obj in objs)
                 EndSaveCallback?.Invoke(obj);
         }
-
 
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -168,6 +169,7 @@ namespace Shoko.Server.Repositories
         {
             session.SaveOrUpdate(obj);
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void SaveWithOpenTransaction(ISession session, List<T> objs)
         {

@@ -8,6 +8,7 @@ namespace AniDBAPI.Commands
     public class AniDBCommand_GetFileInfo : AniDBUDPCommand, IAniDBUDPCommand
     {
         public Raw_AniDB_File fileInfo = null;
+
         //public Raw_AniDB_Episode episodeInfo = null;
         public IHash fileData = null;
 

@@ -8,7 +8,8 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember]
         public string match { get; set; }
 
-        public static SearchResult GenerateFromAnimeSeries(SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
+        public static SearchResult GenerateFromAnimeSeries(SVR_AnimeSeries ser, int uid, bool nocast, bool notag,
+            int level,
             bool all, string match)
         {
             Serie serie = Serie.GenerateFromAnimeSeries(ser, uid, nocast, notag, level, all);
@@ -39,6 +40,5 @@ namespace Shoko.Server.API.v2.Models.common
             this.year = serie.year;
             this.match = matched;
         }
-
     }
 }

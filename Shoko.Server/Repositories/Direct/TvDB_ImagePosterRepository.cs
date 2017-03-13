@@ -11,13 +11,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private TvDB_ImagePosterRepository()
         {
-            
         }
 
         public static TvDB_ImagePosterRepository Create()
         {
             return new TvDB_ImagePosterRepository();
         }
+
         public TvDB_ImagePoster GetByTvDBID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -48,6 +48,5 @@ namespace Shoko.Server.Repositories.Direct
 
             return new List<TvDB_ImagePoster>(objs);
         }
-
     }
 }

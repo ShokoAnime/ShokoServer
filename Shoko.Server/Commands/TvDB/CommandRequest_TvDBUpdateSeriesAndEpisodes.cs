@@ -21,7 +21,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GettingTvDB, extraParams = new string[] { TvDBSeriesID.ToString() }  };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.GettingTvDB,
+                    extraParams = new string[] {TvDBSeriesID.ToString()}
+                };
             }
         }
 
@@ -79,7 +83,8 @@ namespace Shoko.Server.Commands
                 this.TvDBSeriesID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes", "TvDBSeriesID"));
                 this.ForceRefresh =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes", "ForceRefresh"));
+                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes",
+                        "ForceRefresh"));
             }
 
             return true;

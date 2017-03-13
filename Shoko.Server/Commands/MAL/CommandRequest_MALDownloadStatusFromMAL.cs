@@ -25,7 +25,11 @@ namespace Shoko.Server.Commands.MAL
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.DownloadMalWatched, extraParams = new string[0] };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.DownloadMalWatched,
+                    extraParams = new string[0]
+                };
             }
         }
 

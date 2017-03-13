@@ -53,7 +53,7 @@ namespace Shoko.Models.TvDB
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
                 return dictTvDBEpisodes;
@@ -94,7 +94,7 @@ namespace Shoko.Models.TvDB
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
                 return dictTvDBSeasons;
@@ -141,7 +141,7 @@ namespace Shoko.Models.TvDB
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
                 return dictTvDBSeasonsSpecials;
@@ -152,11 +152,14 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                tvDBEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(TvDBID).OrderBy(a=>a.SeasonNumber).ThenBy(a=>a.EpisodeNumber).ToList();
+                tvDBEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(TvDBID)
+                    .OrderBy(a => a.SeasonNumber)
+                    .ThenBy(a => a.EpisodeNumber)
+                    .ToList();
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 

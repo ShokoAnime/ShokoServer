@@ -12,7 +12,6 @@ namespace Shoko.Server.Commands.Plex
 
         public CommandRequest_PlexSyncWatched()
         {
-            
         }
 
         public CommandRequest_PlexSyncWatched(JMMUser jmmUser)
@@ -24,9 +23,10 @@ namespace Shoko.Server.Commands.Plex
 
         public override void ProcessCommand()
         {
-            foreach (int section in ServerSettings.Plex_Libraries) {
+            foreach (int section in ServerSettings.Plex_Libraries)
+            {
                 var allSeries = PlexHelper.GetForUser(_jmmuser).GetPlexSeries(section);
-                foreach(PlexSeries series in allSeries)
+                foreach (PlexSeries series in allSeries)
                 {
                     foreach (PlexEpisode episode in series.Episodes)
                     {
@@ -35,7 +35,9 @@ namespace Shoko.Server.Commands.Plex
                         var lastWatched = FromUnixTime(episode.LastWatched);
                         SVR_VideoLocal video = animeEpisode?.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
-                        var alreadyWatched = animeEpisode.GetVideoLocals().Where(x => x.GetAniDBFile() != null).Any(x => x.GetAniDBFile().IsWatched > 0);
+                        var alreadyWatched = animeEpisode.GetVideoLocals()
+                            .Where(x => x.GetAniDBFile() != null)
+                            .Any(x => x.GetAniDBFile().IsWatched > 0);
 
                         if (alreadyWatched && !isWatched)
                             episode.Scrobble();
@@ -46,9 +48,15 @@ namespace Shoko.Server.Commands.Plex
                 }
             }
         }
+
         public override void GenerateCommandID() => CommandID = $"SyncPlex_{_jmmuser.JMMUserID}";
         public CommandRequestPriority DefaultPriority => CommandRequestPriority.Default;
-        public QueueStateStruct PrettyDescription => new QueueStateStruct() { queueState = QueueStateEnum.SyncPlex, extraParams = new[] { _jmmuser.Username } };
+
+        public QueueStateStruct PrettyDescription => new QueueStateStruct()
+        {
+            queueState = QueueStateEnum.SyncPlex,
+            extraParams = new[] {_jmmuser.Username}
+        };
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
@@ -77,6 +85,7 @@ namespace Shoko.Server.Commands.Plex
             return cq;
         }
 
-        public DateTime FromUnixTime(long unixTime) => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(unixTime);
+        public DateTime FromUnixTime(long unixTime) => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            .AddMilliseconds(unixTime);
     }
 }

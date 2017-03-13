@@ -22,8 +22,8 @@ namespace Shoko.Server.Models
 
         public SVR_AniDB_File() //Empty Constructor for nhibernate
         {
-
         }
+
         [XmlIgnore]
         public List<Language> Languages
         {
@@ -31,7 +31,8 @@ namespace Shoko.Server.Models
             {
                 List<Language> lans = new List<Language>();
 
-                List<CrossRef_Languages_AniDB_File> fileLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
+                List<CrossRef_Languages_AniDB_File> fileLanguages =
+                    RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
 
                 foreach (CrossRef_Languages_AniDB_File crossref in fileLanguages)
                 {
@@ -50,7 +51,8 @@ namespace Shoko.Server.Models
             {
                 List<Language> subs = new List<Language>();
 
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles =RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
+                List<CrossRef_Subtitles_AniDB_File> fileSubtitles =
+                    RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
 
 
                 foreach (CrossRef_Subtitles_AniDB_File crossref in fileSubtitles)
@@ -99,10 +101,7 @@ namespace Shoko.Server.Models
         [XmlIgnore]
         public List<CrossRef_File_Episode> EpisodeCrossRefs
         {
-            get
-            {
-                return RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
-            }
+            get { return RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash); }
         }
 
 
@@ -301,7 +300,6 @@ namespace Shoko.Server.Models
             anidbfile.episodesRAW = fileInfo.EpisodesRAW;
         }
 
-       
 
         public void CreateLanguages()
         {
@@ -312,7 +310,8 @@ namespace Shoko.Server.Models
                 if (languagesRAW.Trim().Length == 0) return;
                 // Delete old if changed
 
-                List<CrossRef_Languages_AniDB_File> fileLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
+                List<CrossRef_Languages_AniDB_File> fileLanguages =
+                    RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
                 foreach (CrossRef_Languages_AniDB_File fLan in fileLanguages)
                 {
                     RepoFactory.CrossRef_Languages_AniDB_File.Delete(fLan.CrossRef_Languages_AniDB_FileID);
@@ -345,7 +344,8 @@ namespace Shoko.Server.Models
                 if (subtitlesRAW.Trim().Length == 0) return;
 
                 // Delete old if changed
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
+                List<CrossRef_Subtitles_AniDB_File> fileSubtitles =
+                    RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
 
                 foreach (CrossRef_Subtitles_AniDB_File fSub in fileSubtitles)
                 {

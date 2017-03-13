@@ -65,7 +65,9 @@ namespace Shoko.Models.TvDB
 
         public static string URLMirror
         {
-            get { return "http://thetvdb.com"; // they have said now that this will never change
+            get
+            {
+                return "http://thetvdb.com"; // they have said now that this will never change
             }
         }
 
@@ -139,7 +141,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TVDBHelper.Init: " + ex.ToString());
+                logger.Error(ex, "Error in TVDBHelper.Init: " + ex.ToString());
             }
         }
 
@@ -160,7 +162,8 @@ namespace Shoko.Models.TvDB
             {
                 //Init();
 
-                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlSeriesBaseXML, URLMirror, Shoko.Server.Constants.TvDBURLs.apiKey,
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlSeriesBaseXML, URLMirror,
+                    Shoko.Server.Constants.TvDBURLs.apiKey,
                     seriesID,
                     ServerSettings.TvDB_Language);
                 logger.Trace("GetSeriesInfo: {0}", url);
@@ -189,7 +192,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TVDBHelper.GetSeriesInfoOnline: " + ex.ToString());
+                logger.Error(ex, "Error in TVDBHelper.GetSeriesInfoOnline: " + ex.ToString());
             }
 
             return null;
@@ -201,7 +204,8 @@ namespace Shoko.Models.TvDB
             {
                 Init();
 
-                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlBannersXML, urlMirror, Shoko.Server.Constants.TvDBURLs.apiKey,
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlBannersXML, urlMirror,
+                    Shoko.Server.Constants.TvDBURLs.apiKey,
                     seriesID);
                 logger.Trace("GetSeriesBannersOnline: {0}", url);
 
@@ -215,7 +219,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
+                logger.Error(ex, "Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
             }
 
             return null;
@@ -227,7 +231,8 @@ namespace Shoko.Models.TvDB
             {
                 Init();
 
-                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlFullSeriesData, urlMirror, Shoko.Server.Constants.TvDBURLs.apiKey,
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlFullSeriesData, urlMirror,
+                    Shoko.Server.Constants.TvDBURLs.apiKey,
                     seriesID,
                     ServerSettings.TvDB_Language);
                 logger.Trace("GetFullSeriesInfo: {0}", url);
@@ -243,7 +248,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TVDBHelper.GetFullSeriesInfo: " + ex.ToString());
+                logger.Error(ex, "Error in TVDBHelper.GetFullSeriesInfo: " + ex.ToString());
             }
 
             return null;
@@ -274,7 +279,7 @@ namespace Shoko.Models.TvDB
                 }
                 catch (XmlException e)
                 {
-                    logger.Error( e,"Error in TVDBHelper.DecompressZipToXmls: " + e.ToString());
+                    logger.Error(e, "Error in TVDBHelper.DecompressZipToXmls: " + e.ToString());
                 }
                 b.Remove(0, b.Length);
             }
@@ -359,14 +364,15 @@ namespace Shoko.Models.TvDB
             {
                 Init();
 
-                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlLanguagesXML, urlMirror, Shoko.Server.Constants.TvDBURLs.apiKey);
+                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlLanguagesXML, urlMirror,
+                    Shoko.Server.Constants.TvDBURLs.apiKey);
                 logger.Trace("GetLanguages: {0}", url);
 
                 // Search for a series
                 string xmlSeries = Utils.DownloadWebPage(url, Encoding.UTF8);
 
                 XmlDocument docLanguages = new XmlDocument();
-                
+
                 docLanguages.LoadXml(xmlSeries);
 
                 XmlNodeList lanItems = docLanguages["Languages"].GetElementsByTagName("Language");
@@ -387,7 +393,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
+                logger.Error(ex, "Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
             }
 
             return languages;
@@ -410,24 +416,26 @@ namespace Shoko.Models.TvDB
             // find out how many images we already have locally
 
 
-            
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
 
-                foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(sessionWrapper, seriesID))
+                foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart
+                    .GetBySeriesID(sessionWrapper, seriesID))
                 {
                     if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
                         numFanartDownloaded++;
                 }
 
-                foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(sessionWrapper, seriesID))
+                foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster
+                    .GetBySeriesID(sessionWrapper, seriesID))
                 {
                     if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath()))
                         numPostersDownloaded++;
                 }
 
-                foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(session, seriesID))
+                foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(session,
+                    seriesID))
                 {
                     if (!string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()))
                         numBannersDownloaded++;
@@ -535,9 +543,6 @@ namespace Shoko.Models.TvDB
                 // series = wide banner
                 // fanart = fanart
                 // poster = filmstrip poster/dvd cover
-
-
-
 
 
                 List<int> validFanartIDs = new List<int>();
@@ -651,7 +656,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in ParseBanners: " + ex.ToString());
+                logger.Error(ex, "Error in ParseBanners: " + ex.ToString());
             }
 
             return banners;
@@ -693,7 +698,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in SearchSeries: " + ex.ToString());
+                logger.Error(ex, "Error in SearchSeries: " + ex.ToString());
             }
 
             return results;
@@ -729,7 +734,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in GetUpdatedSeriesList: " + ex.ToString());
+                logger.Error(ex, "Error in GetUpdatedSeriesList: " + ex.ToString());
                 return seriesList;
             }
         }
@@ -746,8 +751,6 @@ namespace Shoko.Models.TvDB
         /// <param name="forceRefresh"></param>
         public void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
-          
-
             string fileName = string.Format("{0}.xml", ServerSettings.TvDB_Language);
 
             Dictionary<string, XmlDocument> docSeries = GetFullSeriesInfo(seriesID);
@@ -817,7 +820,7 @@ namespace Shoko.Models.TvDB
                         }
                         catch (Exception ex)
                         {
-                            logger.Error( ex,"Error in TVDBHelper.GetEpisodes: " + ex.ToString());
+                            logger.Error(ex, "Error in TVDBHelper.GetEpisodes: " + ex.ToString());
                         }
                     }
 
@@ -831,20 +834,20 @@ namespace Shoko.Models.TvDB
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,"Error in TVDBHelper.GetEpisodes: " + ex.ToString());
+                    logger.Error(ex, "Error in TVDBHelper.GetEpisodes: " + ex.ToString());
                 }
             }
         }
 
 
         public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
-            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink=false)
+            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-	            if(!additiveLink)
-					// remove all current links
-					RemoveAllAniDBTvDBLinks(session.Wrap(), animeID);
+                if (!additiveLink)
+                    // remove all current links
+                    RemoveAllAniDBTvDBLinks(session.Wrap(), animeID);
 
                 // check if we have this information locally
                 // if not download it now
@@ -868,7 +871,8 @@ namespace Shoko.Models.TvDB
                     cmdSeriesEps.Save();
                 }
 
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvDBID,
+                    tvSeasonNumber, tvEpNumber,
                     animeID,
                     (int) aniEpType, aniEpNumber);
                 if (xref == null)
@@ -904,17 +908,16 @@ namespace Shoko.Models.TvDB
 
                 if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
-	                // check for Trakt associations
-	                List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
-	                if (trakt.Count != 0)
-	                {
-		                // remove them and rescan
-		                trakt.ForEach(a => RepoFactory.CrossRef_AniDB_TraktV2.Delete(a));
-	                }
+                    // check for Trakt associations
+                    List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                    if (trakt.Count != 0)
+                    {
+                        // remove them and rescan
+                        trakt.ForEach(a => RepoFactory.CrossRef_AniDB_TraktV2.Delete(a));
+                    }
 
                     CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
                     cmd2.Save(session);
-
                 }
             }
 
@@ -944,7 +947,8 @@ namespace Shoko.Models.TvDB
         public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber)
         {
-            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID,
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
+                tvEpNumber, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xref == null) return;
@@ -959,64 +963,65 @@ namespace Shoko.Models.TvDB
             req.Save();
         }
 
-	    public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType=-1)
-	    {
-		    List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, animeID);
-		    if (xrefs == null || xrefs.Count == 0) return;
+        public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType = -1)
+        {
+            List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, animeID);
+            if (xrefs == null || xrefs.Count == 0) return;
 
-		    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-		    {
-			    if (aniEpType != -1 && aniEpType == xref.AniDBStartEpisodeType) continue;
+            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+            {
+                if (aniEpType != -1 && aniEpType == xref.AniDBStartEpisodeType) continue;
 
-			    RepoFactory.CrossRef_AniDB_TvDBV2.Delete(xref.CrossRef_AniDB_TvDBV2ID);
+                RepoFactory.CrossRef_AniDB_TvDBV2.Delete(xref.CrossRef_AniDB_TvDBV2ID);
 
-			    if (aniEpType == -1)
-			    {
-				    foreach (enEpisodeType eptype in Enum.GetValues(typeof(enEpisodeType)))
-				    {
-					    CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID,
-						    (int)eptype, xref.AniDBStartEpisodeNumber,
-						    xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
-					    req.Save();
-				    }
-			    }
-			    else
-			    {
-				    CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID,
-					    aniEpType, xref.AniDBStartEpisodeNumber,
-					    xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
-				    req.Save();
-			    }
+                if (aniEpType == -1)
+                {
+                    foreach (enEpisodeType eptype in Enum.GetValues(typeof(enEpisodeType)))
+                    {
+                        CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(
+                            animeID,
+                            (int) eptype, xref.AniDBStartEpisodeNumber,
+                            xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
+                        req.Save();
+                    }
+                }
+                else
+                {
+                    CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(
+                        animeID,
+                        aniEpType, xref.AniDBStartEpisodeNumber,
+                        xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
+                    req.Save();
+                }
+            }
 
-		    }
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+        }
 
-		    SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
-	    }
+        /*
+        public static void DownloadAllEpisodes()
+        {
+            CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+            List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
 
-	    /*
-		public static void DownloadAllEpisodes()
-		{
-			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-			List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
+            List<int> tvDBIDs = new List<int>();
+            foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
+            {
+                if (!tvDBIDs.Contains(xref.TvDBID)) tvDBIDs.Add(xref.TvDBID);
+            }
 
-			List<int> tvDBIDs = new List<int>();
-			foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
-			{
-				if (!tvDBIDs.Contains(xref.TvDBID)) tvDBIDs.Add(xref.TvDBID);
-			}
+            DownloadAllEpisodes(tvDBIDs);
+        }
 
-			DownloadAllEpisodes(tvDBIDs);
-		}
-
-	    public static void DownloadAllEpisodes(List<int> tvDBIDs)
-		{
-			foreach (int tvid in tvDBIDs)
-			{
-				CommandRequest_TvDBUpdateSeriesAndEpisodes cmd = new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvid, false);
-				cmd.Save();
-			}
-		}
-	    */
+        public static void DownloadAllEpisodes(List<int> tvDBIDs)
+        {
+            foreach (int tvid in tvDBIDs)
+            {
+                CommandRequest_TvDBUpdateSeriesAndEpisodes cmd = new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvid, false);
+                cmd.Save();
+            }
+        }
+        */
 
         public static void ScanForMatches()
         {
@@ -1037,8 +1042,8 @@ namespace Shoko.Models.TvDB
 
                 if (anime != null)
                 {
-	                if (!anime.GetSearchOnTvDB()) continue; // Don't log if it isn't supposed to be there
-	                logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
+                    if (!anime.GetSearchOnTvDB()) continue; // Don't log if it isn't supposed to be there
+                    logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
                     if (anime.GetIsTvDBLinkDisabled())
                     {
                         logger.Trace("Skipping scan tvDB link because it is disabled: " + anime.MainTitle);
@@ -1080,7 +1085,6 @@ namespace Shoko.Models.TvDB
 
             try
             {
-
                 // record the tvdb server time when we started
                 // we record the time now instead of after we finish, to include any possible misses
                 string currentTvDBServerTime = CurrentServerTime;
@@ -1104,7 +1108,7 @@ namespace Shoko.Models.TvDB
                 // get the time we last did a TvDB update
                 // if this is the first time it will be null
                 // update the anidb info ever 24 hours
-               
+
                 ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
 
                 string lastServerTime = "";
@@ -1131,7 +1135,8 @@ namespace Shoko.Models.TvDB
                     {
                         if (allTvDBIDs.Contains(id)) tvDBIDs.Add(id);
                     }
-                    logger.Trace("{0} TvDB local series have been updated since last download", tvDBIDs.Count.ToString());
+                    logger.Trace("{0} TvDB local series have been updated since last download",
+                        tvDBIDs.Count.ToString());
                 }
                 else
                 {
@@ -1143,7 +1148,7 @@ namespace Shoko.Models.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"IncrementalTvDBUpdate: " + ex.ToString());
+                logger.Error(ex, "IncrementalTvDBUpdate: " + ex.ToString());
                 return "";
             }
         }

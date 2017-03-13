@@ -17,12 +17,16 @@ namespace Shoko.Server.Repositories
     public class AniDB_Anime_TitleRepository : BaseCachedRepository<AniDB_Anime_Title, int>
     {
         private PocoIndex<int, AniDB_Anime_Title, int> Animes;
+
         public override void PopulateIndexes()
         {
             Animes = new PocoIndex<int, AniDB_Anime_Title, int>(Cache, a => a.AnimeID);
         }
 
-        private AniDB_Anime_TitleRepository() { }
+        private AniDB_Anime_TitleRepository()
+        {
+        }
+
         public static AniDB_Anime_TitleRepository Create()
         {
             return new AniDB_Anime_TitleRepository();
@@ -33,8 +37,9 @@ namespace Shoko.Server.Repositories
             return entity.AniDB_Anime_TitleID;
         }
 
-        public override void RegenerateDb() { }
-
+        public override void RegenerateDb()
+        {
+        }
 
 
         public List<AniDB_Anime_Title> GetByAnimeID(int id)
@@ -111,6 +116,5 @@ namespace Shoko.Server.Repositories
                 return new List<AniDB_Anime_Title>(titles);
             }*/
         }
-
     }
 }

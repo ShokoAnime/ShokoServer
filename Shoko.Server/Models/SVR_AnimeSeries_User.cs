@@ -13,6 +13,7 @@ namespace Shoko.Server.Models
         public SVR_AnimeSeries_User()
         {
         }
+
         public int PlexContractVersion { get; set; }
         public byte[] PlexContractBlob { get; set; }
         public int PlexContractSize { get; set; }
@@ -86,7 +87,6 @@ namespace Shoko.Server.Models
                     RepoFactory.GroupFilter.Save(gf);
             }
         }
-
 
 
         public SVR_AnimeSeries_User(int userID, int seriesID)

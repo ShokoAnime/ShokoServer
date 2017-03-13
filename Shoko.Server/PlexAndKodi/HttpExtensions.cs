@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
 using Nancy;
-
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;
 
@@ -16,10 +15,11 @@ namespace Shoko.Server.PlexAndKodi
 {
     public static class HttpExtensions
     {
-        public static string ServerUrl(this IProvider prov, int port, string path, bool externalip = false, bool forcescheme=false)
+        public static string ServerUrl(this IProvider prov, int port, string path, bool externalip = false,
+            bool forcescheme = false)
         {
             Tuple<string, string> scheme_host = prov?.GetSchemeHost(externalip);
-            if (scheme_host==null || forcescheme)
+            if (scheme_host == null || forcescheme)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;
             }
@@ -28,19 +28,21 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-	        Request req = prov?.Nancy?.Request;
-            
-            string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Host;
-            string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri.Scheme;
+            Request req = prov?.Nancy?.Request;
+
+            string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
+                              ?.RequestUri.Host;
+            string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
+                                ?.RequestUri.Scheme;
             if (host == null)
             {
                 var context = System.ServiceModel.OperationContext.Current;
-                if (context != null && context.IncomingMessageHeaders?.To!=null)
+                if (context != null && context.IncomingMessageHeaders?.To != null)
                 {
                     Uri ur = context.IncomingMessageHeaders?.To;
                     host = ur.Host;
                     scheme = ur.Scheme;
-           	    }
+                }
             }
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
@@ -55,10 +57,11 @@ namespace Shoko.Server.PlexAndKodi
         public static string ReplaceSchemeHost(this IProvider prov, string str, bool externalip = false)
         {
             Tuple<string, string> scheme_host = prov.GetSchemeHost(externalip);
-            if (scheme_host==null)
-                scheme_host=new Tuple<string, string>("http","127.0.0.1");
+            if (scheme_host == null)
+                scheme_host = new Tuple<string, string>("http", "127.0.0.1");
             return str?.Replace("{SCHEME}", scheme_host.Item1).Replace("{HOST}", scheme_host.Item2);
         }
+
         public static string GetQueryParameter(this IProvider prov, string name)
         {
             if (prov?.Nancy?.Request != null)
@@ -71,6 +74,7 @@ namespace Shoko.Server.PlexAndKodi
                 return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];
             return null;
         }
+
         public static bool IsExternalRequest(this IProvider prov)
         {
             if (!NAT.UPnPPortAvailable)
@@ -80,6 +84,7 @@ namespace Shoko.Server.PlexAndKodi
                 return false;
             return true;
         }
+
         public static string RequestHeader(this IProvider prov, string name)
         {
             if (prov?.Nancy?.Request?.Headers != null)
@@ -87,7 +92,8 @@ namespace Shoko.Server.PlexAndKodi
                 if (prov.Nancy.Request.Headers.Keys.Contains(name))
                     return prov.Nancy.Request.Headers[name].ElementAt(0);
             }
-            else if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
+            else if (WebOperationContext.Current != null &&
+                     WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
                 return WebOperationContext.Current.IncomingRequest.Headers[name];
             return null;
         }
@@ -101,11 +107,14 @@ namespace Shoko.Server.PlexAndKodi
             string platform = prov.RequestHeader("X-Plex-Platform");
             return new PlexDeviceInfo(device, product, version, platform);
         }
-        public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers, string contentype=null)
+
+        public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers,
+            string contentype = null)
         {
             if (prov?.Nancy?.After != null)
             {
-                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value)).ToList();
+                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value))
+                    .ToList();
                 prov.Nancy.After.AddItemToEndOfPipeline((ctx) =>
                 {
                     ctx.Response.WithHeaders(tps.ToArray());
@@ -129,9 +138,9 @@ namespace Shoko.Server.PlexAndKodi
             headers.Add("Access-Control-Allow-Origin", "*");
             headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT, HEAD");
             headers.Add("Access-Control-Max-Age", "1209600");
-            headers.Add("Access-Control-Allow-Headers", "accept, x-plex-token, x-plex-client-identifier, x-plex-username, x-plex-product, x-plex-device, x-plex-platform, x-plex-platform-version, x-plex-version, x-plex-device-name");
+            headers.Add("Access-Control-Allow-Headers",
+                "accept, x-plex-token, x-plex-client-identifier, x-plex-username, x-plex-product, x-plex-device, x-plex-platform, x-plex-platform-version, x-plex-version, x-plex-device-name");
             return headers;
         }
-     
     }
 }

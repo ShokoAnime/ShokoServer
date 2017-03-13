@@ -76,7 +76,7 @@ namespace Shoko.Server.FileHelper
             [MarshalAs(UnmanagedType.Bool)] bool getCRC32,
             [MarshalAs(UnmanagedType.Bool)] bool getMD5,
             [MarshalAs(UnmanagedType.Bool)] bool getSHA1
-            );
+        );
 
         // Calculates hash immediately (with progress)
         protected static bool CalculateHashes_dll(string strFileName, ref byte[] hash, OnHashProgress HashProgress,
@@ -97,7 +97,7 @@ namespace Shoko.Server.FileHelper
             if (hash == null || hash.Length == 0)
                 return string.Empty;
 
-            StringBuilder hex = new StringBuilder(length*2);
+            StringBuilder hex = new StringBuilder(length * 2);
             for (int x = start; x < start + length; x++)
             {
                 hex.AppendFormat("{0:x2}", hash[x]);
@@ -133,7 +133,7 @@ namespace Shoko.Server.FileHelper
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                 }
 
                 if (!gotHash)
@@ -165,12 +165,12 @@ namespace Shoko.Server.FileHelper
             long nBytesRemaining = (long) fs.Length;
             int nBytesToRead = 0;
 
-            long nBlocks = nBytes/lChunkSize;
-            long nRemainder = nBytes%lChunkSize; //mod
+            long nBlocks = nBytes / lChunkSize;
+            long nRemainder = nBytes % lChunkSize; //mod
             if (nRemainder > 0)
                 nBlocks++;
 
-            byte[] baED2KHash = new byte[16*nBlocks];
+            byte[] baED2KHash = new byte[16 * nBlocks];
 
             if (nBytes > lChunkSize)
                 nBytesToRead = lChunkSize;
@@ -200,7 +200,7 @@ namespace Shoko.Server.FileHelper
                 if (getED2k)
                 {
                     byte[] baHash = md4.ComputeHash(ByteArray, 0, nBytesRead);
-                    int j = (int) ((iChunkCount - 1)*16);
+                    int j = (int) ((iChunkCount - 1) * 16);
                     for (int i = 0; i < 16; i++)
                         baED2KHash[j + i] = baHash[i];
                 }
@@ -209,7 +209,7 @@ namespace Shoko.Server.FileHelper
                 if (getSHA1) sha1.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
                 if (getCRC32) crc32.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
 
-                int percentComplete = (int) ((float) iChunkCount/(float) nBlocks*100);
+                int percentComplete = (int) ((float) iChunkCount / (float) nBlocks * 100);
                 if (onHashProgress != null)
                     onHashProgress(strPath, percentComplete);
 

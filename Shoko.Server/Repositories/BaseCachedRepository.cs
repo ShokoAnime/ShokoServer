@@ -9,7 +9,7 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Repositories
 {
     // ReSharper disable once InconsistentNaming
-    public abstract class BaseCachedRepository<T,S> : IRepository<T,S> where T: class
+    public abstract class BaseCachedRepository<T, S> : IRepository<T, S> where T : class
     {
         internal PocoCache<S, T> Cache;
 
@@ -25,7 +25,9 @@ namespace Shoko.Server.Repositories
         public virtual void Populate(ISessionWrapper session, bool displayname = true)
         {
             if (displayname)
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name.Replace("SVR_",string.Empty), string.Empty);
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
+                    string.Empty);
 
             Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(), SelectKey);
             PopulateIndexes();
@@ -50,8 +52,9 @@ namespace Shoko.Server.Repositories
         {
             int cnt = 0;
             int max = collection.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen");
-	        if (max <= 0) return;
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(T).Name, " DbRegen");
+            if (max <= 0) return;
             foreach (T g in collection)
             {
                 try
@@ -65,13 +68,15 @@ namespace Shoko.Server.Repositories
                 if (displayme)
                 {
                     cnt++;
-                    if (cnt%10 == 0)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + cnt + "/" + max);
+                    if (cnt % 10 == 0)
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name,
+                            " DbRegen - " + cnt + "/" + max);
                 }
             }
             if (displayme)
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + max + "/" + max);
-
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + max + "/" + max);
         }
 
 
@@ -115,6 +120,7 @@ namespace Shoko.Server.Repositories
         {
             Delete(GetByID(id));
         }
+
         public virtual void Delete(T cr)
         {
             if (cr != null)
@@ -133,6 +139,7 @@ namespace Shoko.Server.Repositories
                 EndDeleteCallback?.Invoke(cr);
             }
         }
+
         public virtual void Delete(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
@@ -157,6 +164,7 @@ namespace Shoko.Server.Repositories
                 EndDeleteCallback?.Invoke(cr);
             }
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void DeleteWithOpenTransaction(ISession session, S id)
         {
@@ -173,6 +181,7 @@ namespace Shoko.Server.Repositories
                 session.Delete(cr);
             }
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void DeleteWithOpenTransaction(ISession session, List<T> objs)
         {
@@ -185,6 +194,7 @@ namespace Shoko.Server.Repositories
                 session.Delete(cr);
             }
         }
+
         public virtual void Save(T obj)
         {
             BeginSaveCallback?.Invoke(obj);
@@ -203,7 +213,7 @@ namespace Shoko.Server.Repositories
 
         public virtual void Save(IReadOnlyCollection<T> objs)
         {
-            if (objs.Count==0)
+            if (objs.Count == 0)
                 return;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -215,7 +225,6 @@ namespace Shoko.Server.Repositories
                         SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                     }
                     transaction.Commit();
-
                 }
             }
             foreach (T obj in objs)
@@ -248,6 +257,7 @@ namespace Shoko.Server.Repositories
             SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             Cache.Update(obj);
         }
+
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void SaveWithOpenTransaction(ISession session, List<T> objs)
         {

@@ -78,7 +78,7 @@ namespace Shoko.Server.PlexAndKodi.Plex
         private static string ToHex(string ka)
         {
             byte[] ba = Encoding.UTF8.GetBytes(ka);
-            StringBuilder hex = new StringBuilder(ba.Length*2);
+            StringBuilder hex = new StringBuilder(ba.Length * 2);
             foreach (byte b in ba)
                 hex.AppendFormat("{0:x2}", b);
             return hex.ToString();
@@ -86,10 +86,10 @@ namespace Shoko.Server.PlexAndKodi.Plex
 
         private static string FromHex(string hex)
         {
-            byte[] raw = new byte[hex.Length/2];
+            byte[] raw = new byte[hex.Length / 2];
             for (int i = 0; i < raw.Length; i++)
             {
-                raw[i] = Convert.ToByte(hex.Substring(i*2, 2), 16);
+                raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
             }
             return Encoding.UTF8.GetString(raw);
         }

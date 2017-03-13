@@ -176,15 +176,14 @@ namespace Shoko.Server
         public static IOrderedEnumerable<CL_AnimeGroup_User> Order(IEnumerable<CL_AnimeGroup_User> groups,
             GroupFilterSortingCriteria gfsc, bool isfirst)
         {
-
             switch (gfsc.SortType)
             {
                 case GroupFilterSorting.Year:
                     if (gfsc.SortDirection == GroupFilterSortDirection.Asc)
-                        return Order(groups, a => a.Stat_AirDate_Min,gfsc.SortDirection,isfirst);
+                        return Order(groups, a => a.Stat_AirDate_Min, gfsc.SortDirection, isfirst);
                     return Order(groups, a => a.Stat_AirDate_Max, gfsc.SortDirection, isfirst);
                 case GroupFilterSorting.AniDBRating:
-                    return Order(groups, a=>a.Stat_AniDBRating,gfsc.SortDirection,isfirst);
+                    return Order(groups, a => a.Stat_AniDBRating, gfsc.SortDirection, isfirst);
                 case GroupFilterSorting.EpisodeAddedDate:
                     return Order(groups, a => a.EpisodeAddedDate, gfsc.SortDirection, isfirst);
                 case GroupFilterSorting.EpisodeAirDate:
@@ -209,7 +208,8 @@ namespace Shoko.Server
             }
         }
 
-        private static IOrderedEnumerable<CL_AnimeGroup_User> Order<T>(IEnumerable<CL_AnimeGroup_User> groups, Func<CL_AnimeGroup_User, T> o,
+        private static IOrderedEnumerable<CL_AnimeGroup_User> Order<T>(IEnumerable<CL_AnimeGroup_User> groups,
+            Func<CL_AnimeGroup_User, T> o,
             GroupFilterSortDirection direc, bool isfirst)
         {
             if (isfirst)
@@ -222,9 +222,10 @@ namespace Shoko.Server
             {
                 if (direc == GroupFilterSortDirection.Asc)
                     return ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenBy(o);
-                return ((IOrderedEnumerable<CL_AnimeGroup_User>)groups).ThenByDescending(o);
+                return ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenByDescending(o);
             }
         }
+
         /*
         public static List<SortPropOrFieldAndDirection> GetSortDescriptions(GroupFilter gf)
         {

@@ -11,11 +11,12 @@ using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_JMMUser: JMMUser, Nancy.Security.IUserIdentity
+    public class SVR_JMMUser : JMMUser, Nancy.Security.IUserIdentity
     {
         public SVR_JMMUser()
         {
         }
+
         /// <summary>
         /// Returns whether a user is allowed to view this series
         /// </summary>
@@ -49,7 +50,7 @@ namespace Shoko.Server.Models
 
         public static bool CompareUser(JMMUser olduser, JMMUser newuser)
         {
-            if (olduser == null || olduser.HideCategories==newuser.HideCategories)
+            if (olduser == null || olduser.HideCategories == newuser.HideCategories)
                 return true;
             return false;
         }
@@ -81,15 +82,11 @@ namespace Shoko.Server.Models
         [ScriptIgnore]
         public string UserName
         {
-            get
-            {
-                return Username;
-            }
+            get { return Username; }
         }
 
         [ScriptIgnore]
         public IEnumerable<string> Claims { get; set; }
-
 
 
         public SVR_JMMUser(string username)

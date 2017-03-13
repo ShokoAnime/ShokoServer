@@ -7,7 +7,7 @@ namespace Shoko.Server.ImageDownload
     {
         public static string GetBaseImagesPath()
         {
-            if (!string.IsNullOrEmpty(ServerSettings.ImagesPath) && Directory.Exists(ServerSettings.ImagesPath)) 
+            if (!string.IsNullOrEmpty(ServerSettings.ImagesPath) && Directory.Exists(ServerSettings.ImagesPath))
                 return ServerSettings.ImagesPath;
             string imagepath = ServerSettings.DefaultImagePath;
             if (!Directory.Exists(imagepath))

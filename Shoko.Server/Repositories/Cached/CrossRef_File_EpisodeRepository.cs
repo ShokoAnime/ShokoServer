@@ -30,7 +30,6 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-
         }
 
         private CrossRef_File_EpisodeRepository()
@@ -42,9 +41,10 @@ namespace Shoko.Server.Repositories
             };
             EndDeleteCallback = (obj) =>
             {
-                if (obj!=null && obj.AnimeID > 0)
+                if (obj != null && obj.AnimeID > 0)
                 {
-                    logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}", obj.AnimeID);
+                    logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}",
+                        obj.AnimeID);
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
                 }
             };
@@ -72,7 +72,6 @@ namespace Shoko.Server.Repositories
         }
 
 
-
         public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
         {
             return Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList();
@@ -92,7 +91,6 @@ namespace Shoko.Server.Repositories
         public List<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         {
             return Episodes.GetMultiple(episodeID);
-
         }
     }
 }

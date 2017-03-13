@@ -19,7 +19,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheDeleteXRefFileEpisode, extraParams = new string[] { Hash, EpisodeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheDeleteXRefFileEpisode,
+                    extraParams = new string[] {Hash, EpisodeID.ToString()}
+                };
             }
         }
 

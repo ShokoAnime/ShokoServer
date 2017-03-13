@@ -13,30 +13,29 @@ namespace Shoko.Server.API.v1.Implementations
     public class ShokoServiceImplementationKodi : IShokoServerKodi
     {
         CommonImplementation _impl = new CommonImplementation();
-        ShokoServiceImplementation service=new ShokoServiceImplementation();
+        ShokoServiceImplementation service = new ShokoServiceImplementation();
         public static Logger logger = LogManager.GetCurrentClassLogger();
 
 
         public Stream GetSupportImage(string name)
         {
             return _impl.GetSupportImage(name);
-
         }
 
         public MediaContainer GetFilters(string userId)
         {
-            return _impl.GetFilters(new KodiProvider { Nancy = RestModule.CurrentModule }, userId);
-
+            return _impl.GetFilters(new KodiProvider {Nancy = RestModule.CurrentModule}, userId);
         }
 
         public MediaContainer GetMetadata(string userId, int type, string id, int? filterid)
         {
-            return _impl.GetMetadata(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, type, id, null, false, filterid);            
+            return _impl.GetMetadata(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, type, id, null, false,
+                filterid);
         }
 
         public PlexContract_Users GetUsers()
         {
-            return _impl.GetUsers(new KodiProvider { Nancy = RestModule.CurrentModule });
+            return _impl.GetUsers(new KodiProvider {Nancy = RestModule.CurrentModule});
         }
 
         public Response Version()
@@ -46,42 +45,47 @@ namespace Shoko.Server.API.v1.Implementations
 
         public MediaContainer Search(string userId, int limit, string query)
         {
-            return _impl.Search(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, limit, query, false);
+            return _impl.Search(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, limit, query, false);
         }
 
         public MediaContainer SearchTag(string userId, int limit, string query)
         {
-            return _impl.Search(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, limit, query, true);
+            return _impl.Search(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, limit, query, true);
         }
 
         public Response ToggleWatchedStatusOnGroup(string userId, int groupid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnGroup(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, groupid, status);
+            return _impl.ToggleWatchedStatusOnGroup(new KodiProvider {Nancy = RestModule.CurrentModule}, userId,
+                groupid, status);
         }
 
         public Response ToggleWatchedStatusOnSeries(string userId, int serieid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnSeries(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, serieid, status);
+            return _impl.ToggleWatchedStatusOnSeries(new KodiProvider {Nancy = RestModule.CurrentModule}, userId,
+                serieid, status);
         }
 
         public Response ToggleWatchedStatusOnEpisode(string userId, int epid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnEpisode(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, epid, status);
+            return _impl.ToggleWatchedStatusOnEpisode(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, epid,
+                status);
         }
 
         public Response Vote(string userId, int id, float votevalue, int votetype)
         {
-            return _impl.VoteAnime(new KodiProvider { Nancy = RestModule.CurrentModule }, userId, id, votevalue, votetype);
+            return _impl.VoteAnime(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue,
+                votetype);
         }
 
         public Response TraktScrobble(string userId, int type, float progress, int status)
         {
-            return _impl.TraktScrobble(new KodiProvider { Nancy = RestModule.CurrentModule }, userId,type, progress, status);
+            return _impl.TraktScrobble(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, type, progress,
+                status);
         }
 
         public Response Rescan(int vlid)
         {
-            Response r=new Response();
+            Response r = new Response();
             try
             {
                 string output = service.RescanFile(vlid);

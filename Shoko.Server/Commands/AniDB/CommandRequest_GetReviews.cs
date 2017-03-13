@@ -23,7 +23,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GetReviewInfo, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.GetReviewInfo,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -50,7 +54,7 @@ namespace Shoko.Server.Commands
                 return;
 
                 // we will always assume that an anime was downloaded via http first
-             
+
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
                 if (anime != null)

@@ -21,33 +21,45 @@ namespace Shoko.Server.PlexAndKodi
     {
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0?excludetags=" +
+                prov.ExcludeTags);
         }
 
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" + gid+ "?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" + gid +
+                "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid + "?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid +
+                "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid + "?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) type + "/" + vid + "?excludetags=" +
+                prov.ExcludeTags);
         }
 
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid + "?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid +
+                "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string ConstructFakeIosThumb(this IProvider prov, int userid, string thumburl, string arturl)
         {
             string r = Helper.Base64EncodeUrl(thumburl + "|" + arturl);
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.FakeIosThumb + "/" + r +
+                "/0?excludetags=" + prov.ExcludeTags);
 /*
 
             try
@@ -68,29 +80,39 @@ namespace Shoko.Server.PlexAndKodi
 
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetFilters/" + userid+"?excludetags="+prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetFilters/" + userid + "?excludetags=" + prov.ExcludeTags);
         }
 
-        public static string ConstructSearchUrl(this IProvider prov, string userid, int limit, string query, bool searchTag)
+        public static string ConstructSearchUrl(this IProvider prov, string userid, int limit, string query,
+            bool searchTag)
         {
             if (searchTag)
             {
-                return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query) + "?excludetags=" + prov.ExcludeTags);
+                return prov.ServerUrl(prov.ServicePort,
+                    prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
+                    WebUtility.UrlEncode(query) + "?excludetags=" + prov.ExcludeTags);
             }
             else
             {
-                return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query) + "?excludetags=" + prov.ExcludeTags);
+                return prov.ServerUrl(prov.ServicePort,
+                    prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
+                    WebUtility.UrlEncode(query) + "?excludetags=" + prov.ExcludeTags);
             }
         }
 
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/0?excludetags=" +
+                prov.ExcludeTags);
         }
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
-            return prov.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/" + pid + "?excludetags=" + prov.ExcludeTags);
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid +
+                "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string GenPoster(this ImageDetails im, IProvider prov, string fallbackimage = "plex_404V.png")
@@ -107,14 +129,16 @@ namespace Shoko.Server.PlexAndKodi
             return prov.ConstructImageLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this Metro_Anime_Episode im, IProvider prov, string fallbackimage = "plex_404.png")
+        public static string GenPoster(this Metro_Anime_Episode im, IProvider prov,
+            string fallbackimage = "plex_404.png")
         {
             if ((im == null) || (im.ImageID == 0))
                 return prov.ConstructSupportImageLinkTV(fallbackimage);
             return prov.ConstructTVThumbLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this CL_AniDB_Anime_DefaultImage im, IProvider prov, string fallbackimage = "plex_404V.png")
+        public static string GenPoster(this CL_AniDB_Anime_DefaultImage im, IProvider prov,
+            string fallbackimage = "plex_404V.png")
         {
             if ((im == null) || (im.AnimeID == 0))
                 return prov.ConstructSupportImageLink(fallbackimage);
@@ -160,7 +184,8 @@ namespace Shoko.Server.PlexAndKodi
 
         public static void GenerateKey(this Video v, IProvider prov, int userid)
         {
-            switch ((Shoko.Models.PlexAndKodi.AnimeTypes)Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes),v.AnimeType, true))
+            switch ((Shoko.Models.PlexAndKodi.AnimeTypes) Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes),
+                v.AnimeType, true))
             {
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroup:
                     v.Key = prov.ConstructGroupIdUrl(userid, v.Id);
@@ -171,7 +196,7 @@ namespace Shoko.Server.PlexAndKodi
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
                     Helper.AddLinksToAnimeEpisodeVideo(prov, v, userid);
-                    AddResumePosition(v,prov,userid);
+                    AddResumePosition(v, prov, userid);
                     break;
             }
         }
@@ -180,15 +205,17 @@ namespace Shoko.Server.PlexAndKodi
         {
             switch (
                 (Shoko.Models.PlexAndKodi.AnimeTypes)
-                    Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes), v.AnimeType, true))
+                Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes), v.AnimeType, true))
             {
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
-                    if (v.Medias!=null)
+                    if (v.Medias != null)
                     {
-                        VideoLocal_User vl=v.Medias.Select(a=> RepoFactory.VideoLocal.GetByID(int.Parse(a.Id))).Where(a => a != null).Select(a => a.GetUserRecord(userid))
-                                .Where(a => a != null)
-                                .OrderByDescending(a => a.ResumePosition)
-                                .FirstOrDefault();                       
+                        VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(int.Parse(a.Id)))
+                            .Where(a => a != null)
+                            .Select(a => a.GetUserRecord(userid))
+                            .Where(a => a != null)
+                            .OrderByDescending(a => a.ResumePosition)
+                            .FirstOrDefault();
                         if (vl != null && vl.ResumePosition > 0)
                         {
                             v.ViewOffset = vl.ResumePosition.ToString();
@@ -281,87 +308,89 @@ namespace Shoko.Server.PlexAndKodi
             v.ReplaceSchemeHost(prov);
             return v;
         }
+
         public static Stream CopyTo(this Stream s, Stream o)
         {
-            o.Title=s.Title;
-            o.Language=s.Language;
-            o.Key=s.Key;
-            o.Duration=s.Duration;
-            o.Height=s.Height;
-            o.Width=s.Width;
-            o.Bitrate=s.Bitrate;
+            o.Title = s.Title;
+            o.Language = s.Language;
+            o.Key = s.Key;
+            o.Duration = s.Duration;
+            o.Height = s.Height;
+            o.Width = s.Width;
+            o.Bitrate = s.Bitrate;
             o.SubIndex = s.SubIndex;
             o.Id = s.Id;
-            o.ScanType=s.ScanType;
-            o.RefFrames=s.RefFrames;
-            o.Profile=s.Profile;
-            o.Level=s.Level;
-            o.HeaderStripping=s.HeaderStripping;
-            o.HasScalingMatrix=s.HasScalingMatrix;
-            o.FrameRateMode=s.FrameRateMode;
-            o.File=s.File;
-            o.FrameRate=s.FrameRate;
-            o.ColorSpace=s.ColorSpace;
-            o.CodecID=s.CodecID;
-            o.ChromaSubsampling=s.ChromaSubsampling;
-            o.Cabac=s.Cabac;
-            o.BitDepth=s.BitDepth;
-            o.Index=s.Index;
-            o.idx=s.idx;
-            o.Codec=s.Codec;
-            o.StreamType=s.StreamType;
-            o.Orientation=s.Orientation;
-            o.QPel=s.QPel;
-            o.GMC=s.GMC;
-            o.BVOP=s.BVOP;
-            o.SamplingRate=s.SamplingRate;
-            o.LanguageCode=s.LanguageCode;
-            o.Channels=s.Channels;
-            o.Selected=s.Selected;
-            o.DialogNorm=s.DialogNorm;
-            o.BitrateMode=s.BitrateMode;
-            o.Format=s.Format;
-            o.Default=s.Default;
-            o.Forced=s.Forced;
-            o.PixelAspectRatio=s.PixelAspectRatio;
-            o.PA=s.PA;
+            o.ScanType = s.ScanType;
+            o.RefFrames = s.RefFrames;
+            o.Profile = s.Profile;
+            o.Level = s.Level;
+            o.HeaderStripping = s.HeaderStripping;
+            o.HasScalingMatrix = s.HasScalingMatrix;
+            o.FrameRateMode = s.FrameRateMode;
+            o.File = s.File;
+            o.FrameRate = s.FrameRate;
+            o.ColorSpace = s.ColorSpace;
+            o.CodecID = s.CodecID;
+            o.ChromaSubsampling = s.ChromaSubsampling;
+            o.Cabac = s.Cabac;
+            o.BitDepth = s.BitDepth;
+            o.Index = s.Index;
+            o.idx = s.idx;
+            o.Codec = s.Codec;
+            o.StreamType = s.StreamType;
+            o.Orientation = s.Orientation;
+            o.QPel = s.QPel;
+            o.GMC = s.GMC;
+            o.BVOP = s.BVOP;
+            o.SamplingRate = s.SamplingRate;
+            o.LanguageCode = s.LanguageCode;
+            o.Channels = s.Channels;
+            o.Selected = s.Selected;
+            o.DialogNorm = s.DialogNorm;
+            o.BitrateMode = s.BitrateMode;
+            o.Format = s.Format;
+            o.Default = s.Default;
+            o.Forced = s.Forced;
+            o.PixelAspectRatio = s.PixelAspectRatio;
+            o.PA = s.PA;
             return o;
         }
+
         public static Part CopyTo(this Part s, Part o)
         {
             o.Accessible = s.Accessible;
-            o.Exists=s.Exists;
+            o.Exists = s.Exists;
             o.Streams = new List<Stream>();
             o.Streams = s.Streams?.Select(a => a.CopyTo(new Stream())).ToList();
-            o.Size=s.Size;
-            o.Duration=s.Duration;
-            o.Key=s.Key;
-            o.LocalKey=s.LocalKey;
-            o.Container=s.Container;
-            o.Id=s.Id;
-            o.File=s.File;
-            o.OptimizedForStreaming=s.OptimizedForStreaming;
-            o.Extension=s.Extension;
-            o.Has64bitOffsets=s.Has64bitOffsets;
+            o.Size = s.Size;
+            o.Duration = s.Duration;
+            o.Key = s.Key;
+            o.LocalKey = s.LocalKey;
+            o.Container = s.Container;
+            o.Id = s.Id;
+            o.File = s.File;
+            o.OptimizedForStreaming = s.OptimizedForStreaming;
+            o.Extension = s.Extension;
+            o.Has64bitOffsets = s.Has64bitOffsets;
             return o;
         }
 
         public static Media CopyTo(this Media v, Media o)
         {
-            o.Parts=v.Parts?.Select(a=>a.CopyTo(new Part())).ToList();
-            o.Duration=v.Duration;
-            o.VideoFrameRate=v.VideoFrameRate;
-            o.Container=v.Container;
-            o.VideoCodec=v.VideoCodec;
-            o.AudioCodec=v.AudioCodec;
-            o.AudioChannels=v.AudioChannels;
-            o.AspectRatio=v.AspectRatio;
-            o.Height=v.Height;
-            o.Width=v.Width;
-            o.Bitrate=v.Bitrate;
-            o.Id=v.Id;
-            o.VideoResolution=v.VideoResolution;
-            o.OptimizedForStreaming=v.OptimizedForStreaming;
+            o.Parts = v.Parts?.Select(a => a.CopyTo(new Part())).ToList();
+            o.Duration = v.Duration;
+            o.VideoFrameRate = v.VideoFrameRate;
+            o.Container = v.Container;
+            o.VideoCodec = v.VideoCodec;
+            o.AudioCodec = v.AudioCodec;
+            o.AudioChannels = v.AudioChannels;
+            o.AspectRatio = v.AspectRatio;
+            o.Height = v.Height;
+            o.Width = v.Width;
+            o.Bitrate = v.Bitrate;
+            o.Id = v.Id;
+            o.VideoResolution = v.VideoResolution;
+            o.OptimizedForStreaming = v.OptimizedForStreaming;
             return o;
         }
 
@@ -399,12 +428,12 @@ namespace Shoko.Server.PlexAndKodi
 
         public static Hub CopyTo(this Hub v, Hub o)
         {
-            o.Key=v.Key;
-            o.Type=v.Type;
-            o.HubIdentifier=v.HubIdentifier;
-            o.Size=v.Size;
-            o.Title=v.Title;
-            o.More=v.More;
+            o.Key = v.Key;
+            o.Type = v.Type;
+            o.HubIdentifier = v.HubIdentifier;
+            o.Size = v.Size;
+            o.Title = v.Title;
+            o.More = v.More;
             return o;
         }
 
@@ -414,73 +443,74 @@ namespace Shoko.Server.PlexAndKodi
             o.ImageType = v.ImageType;
             return o;
         }
+
         // This should be the same as a ShallowCopy, but I did just learn the difference 2 days ago, so I might be wrong
         public static Video CopyTo<T>(this Video v, T o) where T : Video
-	    {
-		    o.AirDate = v.AirDate;
-		    o.IsMovie = v.IsMovie;
-		    o.Id = v.Id;
-		    o.AnimeType = v.AnimeType;
-		    o.Art = v.Art;
-		    o.Url = v.Url;
-		    o.Thumb = v.Thumb;
-		    o.Banner = v.Banner;
-		    o.ParentThumb = v.ParentThumb;
-		    o.GrandparentThumb = v.GrandparentThumb;
-		    o.ParentArt = v.ParentArt;
-		    o.GrandparentArt = v.GrandparentArt;
-		    o.RatingKey = v.RatingKey;
-		    o.ParentRatingKey = v.ParentRatingKey;
-		    o.GrandparentRatingKey = v.GrandparentRatingKey;
-		    o.Key = v.Key;
-		    o.ParentKey = v.ParentKey;
-		    o.GrandparentKey = v.GrandparentKey;
-		    o.Index = v.Index;
-		    o.ParentIndex = v.ParentIndex;
-		    o.Guid = v.Guid;
-		    o.Type = v.Type;
-		    o.Title = v.Title;
-		    o.Title1 = v.Title1;
-		    o.Title2 = v.Title2;
-		    o.ParentTitle = v.ParentTitle;
-		    o.GrandparentTitle = v.GrandparentTitle;
-		    o.Summary = v.Summary;
-		    o.Year = v.Year;
-		    o.Duration = v.Duration;
-		    o.EpisodeCount = v.EpisodeCount;
-		    o.UpdatedAt = v.UpdatedAt;
-		    o.AddedAt = v.AddedAt;
-		    o.LastViewedAt = v.LastViewedAt;
-		    o.OriginallyAvailableAt = v.OriginallyAvailableAt;
-		    o.LeafCount = v.LeafCount;
-		    o.ChildCount = v.ChildCount;
-		    o.ViewedLeafCount = v.ViewedLeafCount;
-		    o.OriginalTitle = v.OriginalTitle;
-		    o.SourceTitle = v.SourceTitle;
-		    o.Rating = v.Rating;
-	        o.UserRating = v.UserRating;
-	        o.Season = v.Season;
-		    o.ViewCount = v.ViewCount;
-		    o.ViewOffset = v.ViewOffset;
-		    o.PrimaryExtraKey = v.PrimaryExtraKey;
-		    o.ChapterSource = v.ChapterSource;
-		    o.Tagline = v.Tagline;
-		    o.ContentRating = v.ContentRating;
-		    o.Studio = v.Studio;
-		    o.ExtraType = v.ExtraType;
-		    o.EpisodeType = v.EpisodeType;
-		    o.EpisodeNumber = v.EpisodeNumber;
-		    o.Group = v.Group; //We use contract group as reference so, we dont need to copy it.
-		    o.Medias = v.Medias?.Select(a => a.CopyTo(new Media())).ToList();
-		    o.Roles = v.Roles?.Select(a => a.CopyTo(new RoleTag())).ToList();
-		    o.Extras = v.Extras?.CopyTo(new Extras());
+        {
+            o.AirDate = v.AirDate;
+            o.IsMovie = v.IsMovie;
+            o.Id = v.Id;
+            o.AnimeType = v.AnimeType;
+            o.Art = v.Art;
+            o.Url = v.Url;
+            o.Thumb = v.Thumb;
+            o.Banner = v.Banner;
+            o.ParentThumb = v.ParentThumb;
+            o.GrandparentThumb = v.GrandparentThumb;
+            o.ParentArt = v.ParentArt;
+            o.GrandparentArt = v.GrandparentArt;
+            o.RatingKey = v.RatingKey;
+            o.ParentRatingKey = v.ParentRatingKey;
+            o.GrandparentRatingKey = v.GrandparentRatingKey;
+            o.Key = v.Key;
+            o.ParentKey = v.ParentKey;
+            o.GrandparentKey = v.GrandparentKey;
+            o.Index = v.Index;
+            o.ParentIndex = v.ParentIndex;
+            o.Guid = v.Guid;
+            o.Type = v.Type;
+            o.Title = v.Title;
+            o.Title1 = v.Title1;
+            o.Title2 = v.Title2;
+            o.ParentTitle = v.ParentTitle;
+            o.GrandparentTitle = v.GrandparentTitle;
+            o.Summary = v.Summary;
+            o.Year = v.Year;
+            o.Duration = v.Duration;
+            o.EpisodeCount = v.EpisodeCount;
+            o.UpdatedAt = v.UpdatedAt;
+            o.AddedAt = v.AddedAt;
+            o.LastViewedAt = v.LastViewedAt;
+            o.OriginallyAvailableAt = v.OriginallyAvailableAt;
+            o.LeafCount = v.LeafCount;
+            o.ChildCount = v.ChildCount;
+            o.ViewedLeafCount = v.ViewedLeafCount;
+            o.OriginalTitle = v.OriginalTitle;
+            o.SourceTitle = v.SourceTitle;
+            o.Rating = v.Rating;
+            o.UserRating = v.UserRating;
+            o.Season = v.Season;
+            o.ViewCount = v.ViewCount;
+            o.ViewOffset = v.ViewOffset;
+            o.PrimaryExtraKey = v.PrimaryExtraKey;
+            o.ChapterSource = v.ChapterSource;
+            o.Tagline = v.Tagline;
+            o.ContentRating = v.ContentRating;
+            o.Studio = v.Studio;
+            o.ExtraType = v.ExtraType;
+            o.EpisodeType = v.EpisodeType;
+            o.EpisodeNumber = v.EpisodeNumber;
+            o.Group = v.Group; //We use contract group as reference so, we dont need to copy it.
+            o.Medias = v.Medias?.Select(a => a.CopyTo(new Media())).ToList();
+            o.Roles = v.Roles?.Select(a => a.CopyTo(new RoleTag())).ToList();
+            o.Extras = v.Extras?.CopyTo(new Extras());
             o.Related = v.Related?.Select(a => a.CopyTo(new Hub())).ToList();
-		    o.Tags = v.Tags?.Select(a => a.CopyTo(new Tag())).ToList();
-		    o.Genres = v.Genres?.Select(a => a.CopyTo(new Tag())).ToList();
+            o.Tags = v.Tags?.Select(a => a.CopyTo(new Tag())).ToList();
+            o.Genres = v.Genres?.Select(a => a.CopyTo(new Tag())).ToList();
             o.Titles = v.Titles?.Select(a => a.CopyTo(new AnimeTitle())).ToList();
-		    o.Fanarts = v.Fanarts?.Select(a => a.CopyTo(new Contract_ImageDetails())).ToList();
-		    o.Banners = v.Banners?.Select(a => a.CopyTo(new Contract_ImageDetails())).ToList();
+            o.Fanarts = v.Fanarts?.Select(a => a.CopyTo(new Contract_ImageDetails())).ToList();
+            o.Banners = v.Banners?.Select(a => a.CopyTo(new Contract_ImageDetails())).ToList();
             return o;
-	    }
+        }
     }
 }

@@ -44,12 +44,12 @@
         /// Disable genres/tags in Serie result
         /// </summary>
         public int notag = 0;
-        
+
         /// <summary>
         /// GET/SET: Identyfication number of object
         /// </summary>
         public int id { get; set; }
-        
+
         /// <summary>
         /// Rating value used in voting
         /// </summary>

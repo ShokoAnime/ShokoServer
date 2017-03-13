@@ -8,7 +8,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Place,int>
+    public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Place, int>
     {
         private PocoIndex<int, SVR_VideoLocal_Place, int> VideoLocals;
         private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
@@ -16,7 +16,6 @@ namespace Shoko.Server.Repositories.Cached
 
         private VideoLocal_PlaceRepository()
         {
-            
         }
 
         public static VideoLocal_PlaceRepository Create()
@@ -44,10 +43,12 @@ namespace Shoko.Server.Repositories.Cached
         {
             return ImportFolders.GetMultiple(importFolderID);
         }
+
         public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
         {
             return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
         }
+
         public override void Delete(SVR_VideoLocal_Place obj)
         {
             base.Delete(obj);
@@ -56,14 +57,21 @@ namespace Shoko.Server.Repositories.Cached
                 RepoFactory.AnimeEpisode.Save(ep);
             }
         }
+
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Delete(IReadOnlyCollection<SVR_VideoLocal_Place> objs) { throw new NotSupportedException(); }
+        public override void Delete(IReadOnlyCollection<SVR_VideoLocal_Place> objs)
+        {
+            throw new NotSupportedException();
+        }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Delete(int id) { throw new NotSupportedException(); }
+        public override void Delete(int id)
+        {
+            throw new NotSupportedException();
+        }
 
 
         public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
@@ -85,7 +93,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
                     filePath = filePath.TrimStart('\\');
-                    return new Tuple<SVR_ImportFolder, string>(ifolder,filePath);
+                    return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
                 }
             }
             return null;
@@ -95,6 +103,5 @@ namespace Shoko.Server.Repositories.Cached
         {
             return VideoLocals.GetMultiple(videolocalid);
         }
-
     }
 }

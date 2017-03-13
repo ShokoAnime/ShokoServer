@@ -32,7 +32,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SearchTMDb, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SearchTMDb,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -65,7 +69,6 @@ namespace Shoko.Server.Commands
                     {
                         try
                         {
-                   
                             Azure_CrossRef_AniDB_Other crossRef =
                                 AzureWebAPI.Get_CrossRefAniDBOther(AnimeID,
                                     CrossRefType.MovieDB);
@@ -109,7 +112,8 @@ namespace Shoko.Server.Commands
                     {
                         foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
+                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                                continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 

@@ -65,7 +65,8 @@ namespace Shoko.Server
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private static bool EvaluateTestA(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestA(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+            List<AniDB_Episode> episodes)
         {
             try
             {
@@ -86,7 +87,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -124,7 +125,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -160,7 +161,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -196,7 +197,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -241,7 +242,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -266,7 +267,8 @@ namespace Shoko.Server
                 if (aniFile == null) return false;
 
                 if (
-                    test.Trim().Equals(Constants.FileRenameReserved.None, StringComparison.InvariantCultureIgnoreCase) &&
+                    test.Trim()
+                        .Equals(Constants.FileRenameReserved.None, StringComparison.InvariantCultureIgnoreCase) &&
                     vid.GetAniDBFile().Subtitles.Count == 0)
                 {
                     if (notCondition)
@@ -296,7 +298,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -365,7 +367,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -435,7 +437,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -512,7 +514,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -588,7 +590,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -637,7 +639,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -686,7 +688,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -735,7 +737,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -781,7 +783,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -848,7 +850,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -915,7 +917,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -972,7 +974,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -1089,7 +1091,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -1101,7 +1103,8 @@ namespace Shoko.Server
         /// <param name="vid"></param>
         /// <param name="anime"></param>
         /// <returns></returns>
-        private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes,
+        private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+            List<AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
             try
@@ -1276,7 +1279,8 @@ namespace Shoko.Server
                         {
                             if (
                                 ti.TitleType.Trim()
-                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                        StringComparison.InvariantCultureIgnoreCase) ||
                                 ti.TitleType.Trim()
                                     .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
                                         StringComparison.InvariantCultureIgnoreCase))
@@ -1306,7 +1310,8 @@ namespace Shoko.Server
                         {
                             if (
                                 ti.TitleType.Trim()
-                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                        StringComparison.InvariantCultureIgnoreCase) ||
                                 ti.TitleType.Trim()
                                     .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
                                         StringComparison.InvariantCultureIgnoreCase))
@@ -1335,7 +1340,8 @@ namespace Shoko.Server
                         {
                             if (
                                 ti.TitleType.Trim()
-                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                    .Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                        StringComparison.InvariantCultureIgnoreCase) ||
                                 ti.TitleType.Trim()
                                     .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
                                         StringComparison.InvariantCultureIgnoreCase))
@@ -1676,7 +1682,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -1797,8 +1803,11 @@ namespace Shoko.Server
 
             if (string.IsNullOrEmpty(newFileName)) return string.Empty;
 
-            string ext = Path.GetExtension(vid.GetBestVideoLocalPlace()?.FilePath ?? vid.FileName); //Prefer VideoLocal_Place as this is more accurate.
-            if (string.IsNullOrEmpty(ext)) return string.Empty; // fail if we get a blank extension, something went wrong.
+            string ext =
+                Path.GetExtension(vid.GetBestVideoLocalPlace()?.FilePath ??
+                                  vid.FileName); //Prefer VideoLocal_Place as this is more accurate.
+            if (string.IsNullOrEmpty(ext))
+                return string.Empty; // fail if we get a blank extension, something went wrong.
 
             // finally add back the extension
             return $"{newFileName.Replace("`", "'")}{ext}";
@@ -1858,7 +1867,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -1895,9 +1904,11 @@ namespace Shoko.Server
                     {
                         if (
                             ti.TitleType.Trim()
-                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                    StringComparison.InvariantCultureIgnoreCase) ||
                             ti.TitleType.Trim()
-                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
+                                    StringComparison.InvariantCultureIgnoreCase))
                         {
                             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameEnglish, ti.Title);
                         }
@@ -1918,9 +1929,11 @@ namespace Shoko.Server
                     {
                         if (
                             ti.TitleType.Trim()
-                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                    StringComparison.InvariantCultureIgnoreCase) ||
                             ti.TitleType.Trim()
-                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
+                                    StringComparison.InvariantCultureIgnoreCase))
                         {
                             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameRomaji, ti.Title);
                         }
@@ -1941,9 +1954,11 @@ namespace Shoko.Server
                     {
                         if (
                             ti.TitleType.Trim()
-                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) ||
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                    StringComparison.InvariantCultureIgnoreCase) ||
                             ti.TitleType.Trim()
-                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                .Equals(Shoko.Models.Constants.AnimeTitleType.Official,
+                                    StringComparison.InvariantCultureIgnoreCase))
                         {
                             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameKanji, ti.Title);
                         }
@@ -2183,37 +2198,37 @@ namespace Shoko.Server
 
             #endregion
 
-	        #region Video Height
+            #region Video Height
 
-	        if (action.Trim().Contains(Constants.FileRenameTag.VideoHeight))
-	        {
-		        string res = "";
-		        bool hasResolution = true;
-		        if (aniFile != null)
-		        {
-			        res = aniFile.File_VideoResolution;
-			        if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
-				        hasResolution = false;
-			        if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown,
-				        StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
-		        }
-		        else
-			        hasResolution = false;
+            if (action.Trim().Contains(Constants.FileRenameTag.VideoHeight))
+            {
+                string res = "";
+                bool hasResolution = true;
+                if (aniFile != null)
+                {
+                    res = aniFile.File_VideoResolution;
+                    if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
+                        hasResolution = false;
+                    if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown,
+                        StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+                }
+                else
+                    hasResolution = false;
 
-		        if (!hasResolution)
-		        {
-			        // try the video info
-			        if (vid != null) res = vid.VideoResolution;
-		        }
-		        res = res.Trim();
-		        if (res.Length > 0) res = res.Split('x')[0];
+                if (!hasResolution)
+                {
+                    // try the video info
+                    if (vid != null) res = vid.VideoResolution;
+                }
+                res = res.Trim();
+                if (res.Length > 0) res = res.Split('x')[0];
 
-		        newFileName = newFileName.Replace(Constants.FileRenameTag.VideoHeight, res);
-	        }
+                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoHeight, res);
+            }
 
-	        #endregion
+            #endregion
 
-	        #region Year
+            #region Year
 
             if (action.Trim().Contains(Constants.FileRenameTag.Year))
             {
@@ -2296,7 +2311,8 @@ namespace Shoko.Server
             return action;
         }
 
-        private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes,
+        private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+            List<AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
             line = line.Trim();
@@ -2325,7 +2341,7 @@ namespace Shoko.Server
                         {
                             foundAND = true;
                             string thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
-                                // remove any spacing
+                            // remove any spacing
                             //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
                             char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
@@ -2354,7 +2370,7 @@ namespace Shoko.Server
                             {
                                 string thisLineRemainder =
                                     line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
-                                    // remove any spacing
+                                // remove any spacing
                                 //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
                                 char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
@@ -2376,7 +2392,8 @@ namespace Shoko.Server
             return false;
         }
 
-        private static bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+        private static bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid,
+            SVR_AniDB_File aniFile,
             List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             testCondition = testCondition.Trim();
@@ -2430,7 +2447,6 @@ namespace Shoko.Server
         {
             try
             {
-
                 RenameScript defaultScript = RepoFactory.RenameScript.GetDefaultScript();
 
                 if (defaultScript == null) return string.Empty;
@@ -2439,7 +2455,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return string.Empty;
             }
         }

@@ -89,7 +89,7 @@ namespace AniDBAPI
 
             int lMinutes = 0;
             int.TryParse(sDetails[2].Trim(), out lMinutes);
-            int secs = lMinutes*60;
+            int secs = lMinutes * 60;
             LengthSeconds = secs;
 
             string epno = GetValidatedEpisodeNumber(sDetails[5].Trim());
@@ -131,7 +131,7 @@ namespace AniDBAPI
             string length = AniDBHTTPHelper.TryGetProperty(node, "length");
             int lMinutes = 0;
             int.TryParse(length, out lMinutes);
-            int secs = lMinutes*60;
+            int secs = lMinutes * 60;
             LengthSeconds = secs;
 
             decimal rating = 0;
@@ -201,7 +201,7 @@ namespace AniDBAPI
 
             int lMinutes = 0;
             int.TryParse(sDetails[15].Trim(), out lMinutes);
-            int secs = lMinutes*60;
+            int secs = lMinutes * 60;
             LengthSeconds = secs;
 
             string epno = GetValidatedEpisodeNumber(sDetails[18].Trim());
@@ -345,6 +345,4 @@ namespace AniDBAPI
             return sb.ToString();
         }
     }
-
-
 }

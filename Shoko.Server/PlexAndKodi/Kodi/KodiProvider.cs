@@ -18,7 +18,7 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
         public bool AutoWatch => false; //turn off marking watched on stream side (plex)
 
-        public bool EnableRolesInLists { get; } =true;
+        public bool EnableRolesInLists { get; } = true;
         public bool EnableAnimeTitlesInLists { get; } = true;
         public bool EnableGenresInLists { get; } = true;
 
@@ -32,20 +32,21 @@ namespace Shoko.Server.PlexAndKodi.Kodi
 
         public string ShortUrl(string url)
         {
-			// Faster and More accurate than regex
-			try
-			{
-				Uri uri = new Uri(url);
-				return uri.PathAndQuery;
-			}
-			catch
-			{
-				// if this fails, then there is a problem
-				return url;
-			}
+            // Faster and More accurate than regex
+            try
+            {
+                Uri uri = new Uri(url);
+                return uri.PathAndQuery;
+            }
+            catch
+            {
+                // if this fails, then there is a problem
+                return url;
+            }
         }
 
-        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = false, bool nocache = false, BreadCrumbs info = null)
+        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = false,
+            bool nocache = false, BreadCrumbs info = null)
         {
             MediaContainer m = new MediaContainer();
             m.Title1 = m.Title2 = title;
@@ -64,6 +65,5 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         public bool RemoveFileAttribute { get; } = false;
         public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = false;
         public NancyModule Nancy { get; set; }
-
     }
 }

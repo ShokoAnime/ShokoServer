@@ -17,17 +17,21 @@ namespace Shoko.Server.UI
         public string Code { get; private set; }
         public List<string> Scopes { get; private set; } = new List<string>();
         private Uri uri;
-        public LoginForm(string name, string authurl, string clientid, List<string> scopes, string redirect, bool scopecommaseparated)
+
+        public LoginForm(string name, string authurl, string clientid, List<string> scopes, string redirect,
+            bool scopecommaseparated)
         {
             InitializeComponent();
-            this.Title=string.IsNullOrEmpty(name) ? "Login" : name;
+            this.Title = string.IsNullOrEmpty(name) ? "Login" : name;
             WebView.Navigated += WebView_Navigated;
             WebView.Navigating += WebView_Navigating;
             string responsetype = "code";
             string sep = scopecommaseparated ? "," : " ";
-            string url = string.Format(AuthUrl, HttpUtility.UrlEncode(clientid), HttpUtility.UrlEncode(string.Join(sep, scopes)), HttpUtility.UrlEncode(responsetype), HttpUtility.UrlEncode(redirect), authurl);
-            uri=new Uri(url);
-            this.Visibility=Visibility.Visible;
+            string url = string.Format(AuthUrl, HttpUtility.UrlEncode(clientid),
+                HttpUtility.UrlEncode(string.Join(sep, scopes)), HttpUtility.UrlEncode(responsetype),
+                HttpUtility.UrlEncode(redirect), authurl);
+            uri = new Uri(url);
+            this.Visibility = Visibility.Visible;
         }
 
         private void WebView_Navigating(object sender, NavigatingCancelEventArgs e)
@@ -40,7 +44,7 @@ namespace Shoko.Server.UI
             CheckUrl(e.Uri.ToString());
         }
 
-        bool checke=false;
+        bool checke = false;
 
         private void CheckUrl(string url)
         {
@@ -65,7 +69,7 @@ namespace Shoko.Server.UI
                     }
                 }
                 DialogResult = Code != string.Empty;
-                checke=true;
+                checke = true;
                 Close();
             }
         }

@@ -6,7 +6,6 @@ namespace Shoko.Server.Mappings
 {
     public class ScanFileMap : ClassMap<ScanFile>
     {
-
         public ScanFileMap()
         {
             Table("ScanFile");

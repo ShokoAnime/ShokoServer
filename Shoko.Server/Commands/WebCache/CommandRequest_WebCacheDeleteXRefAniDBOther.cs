@@ -19,8 +19,13 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct PrettyDescription
         {
-            get {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheDeleteXRefAniDBOther, extraParams = new string[] { AnimeID.ToString() } };
+            get
+            {
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheDeleteXRefAniDBOther,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -54,7 +59,8 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBOther_{0}_{1}", AnimeID, CrossRefType);
+            this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBOther_{0}_{1}", AnimeID,
+                CrossRefType);
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -76,7 +82,8 @@ namespace Shoko.Server.Commands
                 this.AnimeID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "AnimeID"));
                 this.CrossRefType =
-                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "CrossRefType"));
+                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther",
+                        "CrossRefType"));
             }
 
             return true;

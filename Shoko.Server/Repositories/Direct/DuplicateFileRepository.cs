@@ -10,13 +10,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private DuplicateFileRepository()
         {
-            
         }
 
         public static DuplicateFileRepository Create()
         {
             return new DuplicateFileRepository();
         }
+
         public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1,
             int folderID2)
         {

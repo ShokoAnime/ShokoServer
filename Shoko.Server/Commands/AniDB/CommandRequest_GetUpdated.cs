@@ -26,7 +26,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GetUpdatedAnime, extraParams = new string[0] };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.GetUpdatedAnime,
+                    extraParams = new string[0]
+                };
             }
         }
 
@@ -52,7 +56,8 @@ namespace Shoko.Server.Commands
                 List<int> animeIDsToUpdate = new List<int>();
 
                 // check the automated update table to see when the last time we ran this command
-                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+                ScheduledUpdate sched =
+                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);

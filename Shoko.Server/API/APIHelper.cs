@@ -18,31 +18,30 @@ namespace Shoko.Server.API
 
         public static string ConstructUnsortUrl(bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/file/unsort",  short_url);
+            return APIHelper.ProperURL("/api/file/unsort", short_url);
         }
 
         [Obsolete]
         public static string ConstructGroupIdUrl(string gid, bool short_url = false)
         {
-            return APIHelper.ProperURL("__TEST__" + (int)JMMType.Group + "/" + gid, short_url);      
+            return APIHelper.ProperURL("__TEST__" + (int) JMMType.Group + "/" + gid, short_url);
         }
 
         [Obsolete]
         public static string ConstructSerieIdUrl(string sid, bool short_url = false)
         {
-
-            return APIHelper.ProperURL("__TEST__" + (int)JMMType.Serie + " / " + sid,  short_url);
+            return APIHelper.ProperURL("__TEST__" + (int) JMMType.Serie + " / " + sid, short_url);
         }
 
         [Obsolete]
         public static string ConstructVideoUrl(string vid, JMMType type, bool short_url = false)
         {
-            return APIHelper.ProperURL("__TEST__" + (int)type + "/" + vid, short_url);
+            return APIHelper.ProperURL("__TEST__" + (int) type + "/" + vid, short_url);
         }
 
         public static string ConstructFilterIdUrl(int groupfilter_id, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/filter?id=" + groupfilter_id,  short_url);    
+            return APIHelper.ProperURL("/api/filter?id=" + groupfilter_id, short_url);
         }
 
         public static string ConstructFilterUrl(bool short_url = false)
@@ -61,29 +60,31 @@ namespace Shoko.Server.API
         {
             if (searchTag)
             {
-                return APIHelper.ProperURL("/api/searchTag/" + limit + "/" + System.Net.WebUtility.UrlEncode(query), short_url);
+                return APIHelper.ProperURL("/api/searchTag/" + limit + "/" + System.Net.WebUtility.UrlEncode(query),
+                    short_url);
             }
             else
             {
-                return APIHelper.ProperURL("/api/search/" + limit + "/" + System.Net.WebUtility.UrlEncode(query), short_url);
+                return APIHelper.ProperURL("/api/search/" + limit + "/" + System.Net.WebUtility.UrlEncode(query),
+                    short_url);
             }
         }
 
         [Obsolete]
         public static string ConstructPlaylistUrl(bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/metadata/" + (int)JMMType.Playlist + "/0", short_url);
+            return APIHelper.ProperURL("/api/metadata/" + (int) JMMType.Playlist + "/0", short_url);
         }
 
         [Obsolete]
         public static string ConstructPlaylistIdUrl(int pid, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/metadata/" + (int)JMMType.Playlist + "/" + pid, short_url);
+            return APIHelper.ProperURL("/api/metadata/" + (int) JMMType.Playlist + "/" + pid, short_url);
         }
 
         public static string ConstructSupportImageLink(string name, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/image/support/"+ name, short_url);
+            return APIHelper.ProperURL("/api/image/support/" + name, short_url);
         }
 
         public static string ConstructImageLinkFromRest(string path, bool short_url = false)
@@ -111,7 +112,7 @@ namespace Shoko.Server.API
             // Regardless of ',' or '.', ratio will not parse as int
             if (string.IsNullOrEmpty(url)) return null;
             string link = url.ToLower();
-            string[] split = link.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] split = link.Split(new char[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
             int type, id;
             if (int.TryParse(split[split.Length - 1], out id)) // no ratio
             {
@@ -119,7 +120,8 @@ namespace Shoko.Server.API
                 {
                     return ConstructImageLinkFromTypeAndId(type, id, short_url);
                 }
-            } else if (int.TryParse(split[split.Length - 2], out id)) // ratio
+            }
+            else if (int.TryParse(split[split.Length - 2], out id)) // ratio
             {
                 if (int.TryParse(split[split.Length - 3], out type))
                 {
@@ -150,8 +152,12 @@ namespace Shoko.Server.API
                         Video v = ag.GetPlexContract(uid);
                         if (v?.Art != null && v.Thumb != null)
                         {
-                            ob.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Art), index = 0 });
-                            ob.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Thumb), index = 0 });
+                            ob.art.fanart.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(v.Art), index = 0});
+                            ob.art.thumb.Add(new Art()
+                            {
+                                url = APIHelper.ConstructImageLinkFromRest(v.Thumb),
+                                index = 0
+                            });
                             break;
                         }
                     }
@@ -179,13 +185,25 @@ namespace Shoko.Server.API
 
                     if (fanart != null)
                     {
-                        ob.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)fanart.ImageType, fanart.ImageID), index = ob.art.fanart.Count });
-                        ob.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)fanart.ImageType, fanart.ImageID), index = ob.art.thumb.Count });
+                        ob.art.fanart.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId((int) fanart.ImageType, fanart.ImageID),
+                            index = ob.art.fanart.Count
+                        });
+                        ob.art.thumb.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId((int) fanart.ImageType, fanart.ImageID),
+                            index = ob.art.thumb.Count
+                        });
                     }
 
-                    if (banner!= null)
+                    if (banner != null)
                     {
-                        ob.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)banner.ImageType, banner.ImageID), index = ob.art.banner.Count });
+                        ob.art.banner.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId((int) banner.ImageType, banner.ImageID),
+                            index = ob.art.banner.Count
+                        });
                     }
 
                     if (ob.art.fanart.Count > 0)
@@ -220,7 +238,7 @@ namespace Shoko.Server.API
             else
             {
                 return "";
-            }      
+            }
         }
     }
 }

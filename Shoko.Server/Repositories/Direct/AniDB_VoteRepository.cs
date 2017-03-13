@@ -14,43 +14,41 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_VoteRepository : BaseDirectRepository<AniDB_Vote, int>
     {
-
         private AniDB_VoteRepository()
         {
             EndSaveCallback = (cr) =>
-            {
-                if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    if (cr.VoteType == (int) AniDBVoteType.Anime || cr.VoteType == (int) AniDBVoteType.AnimeTemp)
+                    {
+                        SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    }
+                    else if (cr.VoteType == (int) AniDBVoteType.Episode)
+                    {
+                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                        RepoFactory.AnimeEpisode.Save(ep);
+                    }
                 }
-                else if (cr.VoteType == (int)AniDBVoteType.Episode)
-                {
-                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-            }
-
-            ;
+                ;
             EndDeleteCallback = (cr) =>
-            {
-                if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    if (cr.VoteType == (int) AniDBVoteType.Anime || cr.VoteType == (int) AniDBVoteType.AnimeTemp)
+                    {
+                        SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    }
+                    else if (cr.VoteType == (int) AniDBVoteType.Episode)
+                    {
+                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                        RepoFactory.AnimeEpisode.Save(ep);
+                    }
                 }
-                else if (cr.VoteType == (int)AniDBVoteType.Episode)
-                {
-                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-            }
-
-            ;
+                ;
         }
 
         public static AniDB_VoteRepository Create()
         {
             return new AniDB_VoteRepository();
         }
+
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -112,7 +110,8 @@ namespace Shoko.Server.Repositories.Direct
             var votesByAnime = session
                 .CreateCriteria<AniDB_Vote>()
                 .Add(Restrictions.InG(nameof(AniDB_Vote.EntityID), animeIDs))
-                .Add(Restrictions.In(nameof(AniDB_Vote.VoteType), new[] { (int)AniDBVoteType.Anime, (int)AniDBVoteType.AnimeTemp }))
+                .Add(Restrictions.In(nameof(AniDB_Vote.VoteType),
+                    new[] {(int) AniDBVoteType.Anime, (int) AniDBVoteType.AnimeTemp}))
                 .List<AniDB_Vote>()
                 .GroupBy(v => v.EntityID)
                 .ToDictionary(g => g.Key, g => g.FirstOrDefault());

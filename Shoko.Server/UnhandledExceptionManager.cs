@@ -53,7 +53,7 @@ namespace Shoko.Server
         private static extern int GetDC(int hwnd);
 
         [DllImport("user32", EntryPoint = "ReleaseDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true
-            )]
+        )]
         private static extern int ReleaseDC(int hwnd, int hdc);
 
         #endregion "win32api screenshot calls"
@@ -159,7 +159,7 @@ namespace Shoko.Server
                 dtBuild =
                     Convert.ToDateTime("01/01/2000")
                         .AddDays((double) objVersion.Build)
-                        .AddSeconds((double) (objVersion.Revision*2));
+                        .AddSeconds((double) (objVersion.Revision * 2));
                 if (TimeZone.IsDaylightSavingTime(DateTime.Now,
                     TimeZone.CurrentTimeZone.GetDaylightChanges(DateTime.Now.Year)))
                 {

@@ -24,7 +24,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.Actions_SyncVotes, extraParams = new string[0] };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.Actions_SyncVotes,
+                    extraParams = new string[0]
+                };
             }
         }
 
@@ -43,7 +47,6 @@ namespace Shoko.Server.Commands
 
             try
             {
-
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
                 cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
@@ -56,7 +59,8 @@ namespace Shoko.Server.Commands
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
                             // we can only have anime permanent or anime temp but not both
-                            if (myVote.VoteType == enAniDBVoteType.Anime || myVote.VoteType == enAniDBVoteType.AnimeTemp)
+                            if (myVote.VoteType == enAniDBVoteType.Anime ||
+                                myVote.VoteType == enAniDBVoteType.AnimeTemp)
                             {
                                 if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
                                     dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)

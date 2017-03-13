@@ -61,7 +61,7 @@ namespace Shoko.Server.Providers.MovieDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
 

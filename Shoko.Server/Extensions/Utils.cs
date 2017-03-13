@@ -13,10 +13,10 @@ namespace Shoko.Server.Extensions
 {
     public static class Utils
     {
-		public static bool Contains(this string item, string other, StringComparison comparer)
-		{
-			return item.IndexOf(other, comparer) >= 0;
-		}
+        public static bool Contains(this string item, string other, StringComparison comparer)
+        {
+            return item.IndexOf(other, comparer) >= 0;
+        }
 
         public static void ShallowCopyTo(this object s, object d)
         {
@@ -31,7 +31,7 @@ namespace Shoko.Server.Extensions
             ;
         }
 
-        public static void AddRange<K,V>(this Dictionary<K,V> dict, Dictionary<K,V> otherdict)
+        public static void AddRange<K, V>(this Dictionary<K, V> dict, Dictionary<K, V> otherdict)
         {
             otherdict.ForEach(a =>
             {
@@ -39,24 +39,28 @@ namespace Shoko.Server.Extensions
             });
         }
 
-	    public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
-	    {
-		    // Trim, to lower in both lists, remove null and empty strings
-		    HashSet<string> listhash = list.Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-		    HashSet<string> itemhash = items.Select(a => a.ToLowerInvariant().Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-		    return listhash.Overlaps(itemhash);
-	    }
+        public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
+        {
+            // Trim, to lower in both lists, remove null and empty strings
+            HashSet<string> listhash = list.Select(a => a.ToLowerInvariant().Trim())
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+            HashSet<string> itemhash = items.Select(a => a.ToLowerInvariant().Trim())
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+            return listhash.Overlaps(itemhash);
+        }
 
-	    public static bool FindIn(this string item, IEnumerable<string> list)
+        public static bool FindIn(this string item, IEnumerable<string> list)
         {
             return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
         }
 
-	    public static int? ParseNullableInt(this string input)
-	    {
-		    int output;
-		    return int.TryParse(input, out output) ? output : (int?) null;
-	    }
+        public static int? ParseNullableInt(this string input)
+        {
+            int output;
+            return int.TryParse(input, out output) ? output : (int?) null;
+        }
 
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
@@ -101,15 +105,21 @@ namespace Shoko.Server.Extensions
             contract.ServerPosterPath = c.ServerPosterPath;
             contract.SeriesForNameOverride = c.SeriesForNameOverride;
 
-            contract.Stat_AllCustomTags = new HashSet<string>(c.Stat_AllCustomTags,StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllCustomTags =
+                new HashSet<string>(c.Stat_AllCustomTags, StringComparer.InvariantCultureIgnoreCase);
             contract.Stat_AllTags = new HashSet<string>(c.Stat_AllTags, StringComparer.InvariantCultureIgnoreCase);
-	        contract.Stat_AllYears = new HashSet<int>(c.Stat_AllYears);
-	        contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllVideoQuality = new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AudioLanguages = new HashSet<string>(c.Stat_AudioLanguages, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllYears = new HashSet<int>(c.Stat_AllYears);
+            contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes,
+                StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllVideoQuality =
+                new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes,
+                StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AudioLanguages =
+                new HashSet<string>(c.Stat_AudioLanguages, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages,
+                StringComparer.InvariantCultureIgnoreCase);
             return contract;
         }
 

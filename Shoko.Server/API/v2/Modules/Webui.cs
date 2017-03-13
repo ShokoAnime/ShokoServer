@@ -65,7 +65,9 @@ namespace Shoko.Server.API.v2.Modules
                 var client = new System.Net.WebClient();
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");
-                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/tags/" + tag_name));
+                var response = client.DownloadString(
+                    new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/tags/" +
+                            tag_name));
 
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
                 string url = "";
@@ -103,7 +105,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             //list all files from root /webui/ and all directories
             string[] files = Directory.GetFiles("webui");
-            string[] directories = Directory.GetDirectories("webui");            
+            string[] directories = Directory.GetDirectories("webui");
 
             try
             {
@@ -113,7 +115,10 @@ namespace Shoko.Server.API.v2.Modules
                 client.DownloadFile(url, "webui\\latest.zip");
 
                 //create 'old' dictionary
-                if (!Directory.Exists("webui\\old")) { System.IO.Directory.CreateDirectory("webui\\old"); }
+                if (!Directory.Exists("webui\\old"))
+                {
+                    System.IO.Directory.CreateDirectory("webui\\old");
+                }
                 try
                 {
                     //move all directories and files to 'old' folder as fallback recovery
@@ -144,7 +149,10 @@ namespace Shoko.Server.API.v2.Modules
                         File.Delete("webui\\latest.zip");
 
                         //save version type>version that was installed successful
-                        if (File.Exists("webui\\index.ver")) { File.Delete("webui\\index.ver"); }
+                        if (File.Exists("webui\\index.ver"))
+                        {
+                            File.Delete("webui\\index.ver");
+                        }
                         File.AppendAllText("webui\\index.ver", channel + ">" + version);
 
                         return APIStatus.statusOK();
@@ -202,7 +210,8 @@ namespace Shoko.Server.API.v2.Modules
             var client = new System.Net.WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
-            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/latest"));
+            var response = client.DownloadString(new Uri(
+                "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/latest"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
@@ -246,7 +255,8 @@ namespace Shoko.Server.API.v2.Modules
             var client = new System.Net.WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "shokoserver");
-            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases"));
+            var response = client.DownloadString(new Uri(
+                "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
@@ -258,7 +268,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         foreach (dynamic file in obj.assets)
                         {
-                            if ((string)file.name == "latest.zip")
+                            if ((string) file.name == "latest.zip")
                             {
                                 return obj.tag_name;
                             }
@@ -271,7 +281,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         foreach (dynamic file in obj.assets)
                         {
-                            if ((string)file.name == "latest.zip")
+                            if ((string) file.name == "latest.zip")
                             {
                                 return obj.tag_name;
                             }
@@ -292,14 +302,14 @@ namespace Shoko.Server.API.v2.Modules
             {
                 try
                 {
-                    WebUI_Settings settings = JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.WebUI_Settings);
+                    WebUI_Settings settings =
+                        JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.WebUI_Settings);
                     return settings;
                 }
                 catch
                 {
                     return APIStatus.internalError("error while reading webui settings");
                 }
-
             }
             else
             {

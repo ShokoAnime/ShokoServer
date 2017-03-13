@@ -42,10 +42,11 @@ namespace Shoko.Server.LZ4
                 return null;
             try
             {
-                return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize)), new JsonSerializerSettings
-                {
-                    Error = HandleDeserializationError
-                });
+                return JsonConvert.DeserializeObject<T>(
+                    Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize)), new JsonSerializerSettings
+                    {
+                        Error = HandleDeserializationError
+                    });
             }
             catch (Exception e)
             {
@@ -58,6 +59,7 @@ namespace Shoko.Server.LZ4
             var currentError = errorArgs.ErrorContext.Error.Message;
             errorArgs.ErrorContext.Handled = true;
         }
+
         public static byte[] Encode(byte[] input, int inputOffset, int inputLength)
         {
             if (is64bit)

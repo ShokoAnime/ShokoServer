@@ -36,7 +36,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.DownloadImage, extraParams = new string[] { EntityID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.DownloadImage,
+                    extraParams = new string[] {EntityID.ToString()}
+                };
             }
         }
 
@@ -67,111 +71,88 @@ namespace Shoko.Server.Commands
                     case JMMImageType.AniDB_Cover:
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(EntityID);
                         if (anime == null) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, anime, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_Episode:
-
                         TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
                         if (ep == null) return;
                         if (string.IsNullOrEmpty(ep.Filename)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, ep, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_FanArt:
-
                         TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
                         if (fanart == null) return;
                         if (string.IsNullOrEmpty(fanart.BannerPath)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, fanart, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_Cover:
-
                         TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
                         if (poster == null) return;
                         if (string.IsNullOrEmpty(poster.BannerPath)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, poster, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_Banner:
-
                         TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (wideBanner == null) return;
                         if (string.IsNullOrEmpty(wideBanner.BannerPath)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, wideBanner, ForceDownload);
                         break;
 
                     case JMMImageType.MovieDB_Poster:
-
                         MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
                         if (moviePoster == null) return;
                         if (string.IsNullOrEmpty(moviePoster.URL)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, moviePoster, ForceDownload);
                         break;
 
                     case JMMImageType.MovieDB_FanArt:
-
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
                         if (movieFanart == null) return;
                         if (string.IsNullOrEmpty(movieFanart.URL)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, movieFanart, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Poster:
-
                         Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
                         if (traktPoster == null) return;
                         if (string.IsNullOrEmpty(traktPoster.ImageURL)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, traktPoster, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Fanart:
-
                         Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
                         if (traktFanart == null) return;
                         if (string.IsNullOrEmpty(traktFanart.ImageURL)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, traktFanart, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Friend:
-
                         Trakt_Friend friend = RepoFactory.Trakt_Friend.GetByID(EntityID);
                         if (friend == null) return;
                         if (string.IsNullOrEmpty(friend.Avatar)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, friend, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Episode:
-
                         Trakt_Episode traktEp = RepoFactory.Trakt_Episode.GetByID(EntityID);
                         if (traktEp == null) return;
                         if (string.IsNullOrEmpty(traktEp.EpisodeImage)) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, traktEp, ForceDownload);
                         break;
 
                     case JMMImageType.AniDB_Character:
                         AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
                         if (chr == null) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
                         break;
 
                     case JMMImageType.AniDB_Creator:
                         AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
                         if (creator == null) return;
-
                         req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
                         break;
                 }
@@ -306,7 +287,6 @@ namespace Shoko.Server.Commands
 
                 case JMMImageType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
-
                     if (thumbNailOnly)
                         return string.Format(Constants.URLS.TvDB_Images, fanart.ThumbnailPath);
                     else
@@ -325,7 +305,6 @@ namespace Shoko.Server.Commands
                     return string.Format(Constants.URLS.MovieDB_Images, moviePoster.URL);
 
                 case JMMImageType.MovieDB_FanArt:
-
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
                     return string.Format(Constants.URLS.MovieDB_Images, movieFanart.URL);
 
@@ -363,17 +342,14 @@ namespace Shoko.Server.Commands
             switch (req.ImageType)
             {
                 case JMMImageType.AniDB_Cover:
-
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     return anime.PosterPath;
 
                 case JMMImageType.TvDB_Episode:
-
                     TvDB_Episode ep = req.ImageData as TvDB_Episode;
                     return ep.GetFullImagePath();
 
                 case JMMImageType.TvDB_FanArt:
-
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
                     if (thumbNailOnly)
                         return fanart.GetFullThumbnailPath();
@@ -381,22 +357,18 @@ namespace Shoko.Server.Commands
                         return fanart.GetFullImagePath();
 
                 case JMMImageType.TvDB_Cover:
-
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
                     return poster.GetFullImagePath();
 
                 case JMMImageType.TvDB_Banner:
-
                     TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
                     return wideBanner.GetFullImagePath();
 
                 case JMMImageType.MovieDB_Poster:
-
                     MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
                     return moviePoster.GetFullImagePath();
 
                 case JMMImageType.MovieDB_FanArt:
-
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
                     return movieFanart.GetFullImagePath();
 

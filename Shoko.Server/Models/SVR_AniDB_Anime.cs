@@ -29,8 +29,6 @@ namespace Shoko.Server.Models
 {
     public class SVR_AniDB_Anime : AniDB_Anime
     {
-
-
         #region DB columns
 
         public int ContractVersion { get; set; }
@@ -38,7 +36,6 @@ namespace Shoko.Server.Models
         public int ContractSize { get; set; }
 
         public const int CONTRACT_VERSION = 6;
-
 
         #endregion
 
@@ -106,7 +103,7 @@ namespace Shoko.Server.Models
             {
                 tvDBEpisodes.AddRange(RepoFactory.TvDB_Episode.GetBySeriesID(session, xref.TvDBID));
             }
-            return tvDBEpisodes.OrderBy(a=>a.SeasonNumber).ThenBy(a=>a.EpisodeNumber).ToList();
+            return tvDBEpisodes.OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
         }
 
         private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
@@ -144,7 +141,7 @@ namespace Shoko.Server.Models
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                 }
             }
             return dictTvDBEpisodes;
@@ -187,7 +184,7 @@ namespace Shoko.Server.Models
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                 }
             }
             return dictTvDBSeasons;
@@ -236,7 +233,7 @@ namespace Shoko.Server.Models
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                 }
             }
             return dictTvDBSeasonsSpecials;
@@ -396,7 +393,8 @@ namespace Shoko.Server.Models
 
         public CrossRef_AniDB_Other GetCrossRefMovieDB(ISessionWrapper criteriaFactory)
         {
-            return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(criteriaFactory, this.AnimeID, CrossRefType.MovieDB);
+            return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(criteriaFactory, this.AnimeID,
+                CrossRefType.MovieDB);
         }
 
 
@@ -457,7 +455,8 @@ namespace Shoko.Server.Models
 
         public AniDB_Anime_DefaultImage GetDefaultPoster(ISessionWrapper criteriaFactory)
         {
-            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(criteriaFactory, this.AnimeID, (int) ImageSizeType.Poster);
+            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(criteriaFactory, this.AnimeID,
+                (int) ImageSizeType.Poster);
         }
 
         public string PosterPathNoDefault
@@ -468,7 +467,6 @@ namespace Shoko.Server.Models
                 return fileName;
             }
         }
-
 
 
         public string GetDefaultPosterPathNoBlanks()
@@ -494,24 +492,24 @@ namespace Shoko.Server.Models
                         return this.PosterPath;
 
                     case ImageEntityType.TvDB_Cover:
-
-                        TvDB_ImagePoster tvPoster = RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
+                        TvDB_ImagePoster tvPoster =
+                            RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
                         if (tvPoster != null)
                             return tvPoster.GetFullImagePath();
                         else
                             return this.PosterPath;
 
                     case ImageEntityType.Trakt_Poster:
-
-                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
+                        Trakt_ImagePoster traktPoster =
+                            RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
                         if (traktPoster != null)
                             return traktPoster.GetFullImagePath();
                         else
                             return this.PosterPath;
 
                     case ImageEntityType.MovieDB_Poster:
-
-                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
+                        MovieDB_Poster moviePoster =
+                            RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
                         if (moviePoster != null)
                             return moviePoster.GetFullImagePath();
                         else
@@ -547,39 +545,36 @@ namespace Shoko.Server.Models
                         return details;
 
                     case ImageEntityType.TvDB_Cover:
-
-                        TvDB_ImagePoster tvPoster = RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
+                        TvDB_ImagePoster tvPoster =
+                            RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
                         if (tvPoster != null)
                             details = new ImageDetails()
                             {
                                 ImageType = JMMImageType.TvDB_Cover,
                                 ImageID = tvPoster.TvDB_ImagePosterID
                             };
-
                         return details;
 
                     case ImageEntityType.Trakt_Poster:
-
-                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
+                        Trakt_ImagePoster traktPoster =
+                            RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
                         if (traktPoster != null)
                             details = new ImageDetails()
                             {
                                 ImageType = JMMImageType.Trakt_Poster,
                                 ImageID = traktPoster.Trakt_ImagePosterID
                             };
-
                         return details;
 
                     case ImageEntityType.MovieDB_Poster:
-
-                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
+                        MovieDB_Poster moviePoster =
+                            RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
                         if (moviePoster != null)
                             details = new ImageDetails()
                             {
                                 ImageType = JMMImageType.MovieDB_Poster,
                                 ImageID = moviePoster.MovieDB_PosterID
                             };
-
                         return details;
                 }
             }
@@ -597,7 +592,8 @@ namespace Shoko.Server.Models
 
         public AniDB_Anime_DefaultImage GetDefaultFanart(ISessionWrapper factory)
         {
-            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(factory, this.AnimeID, (int) ImageSizeType.Fanart);
+            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(factory, this.AnimeID,
+                (int) ImageSizeType.Fanart);
         }
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
@@ -615,26 +611,25 @@ namespace Shoko.Server.Models
             ImageDetails details = null;
             if (GetDefaultFanart(session) == null)
             {
-	            List<CL_AniDB_Anime_DefaultImage> fanarts = Contract.AniDBAnime.Fanarts;
-	            if (fanarts == null || fanarts.Count == 0) return null;
-	            CL_AniDB_Anime_DefaultImage art = fanarts[fanartRandom.Next(0, fanarts.Count)];
-	            details = new ImageDetails()
-	            {
-					ImageID = art.AniDB_Anime_DefaultImageID,
-		            ImageType = (JMMImageType)art.ImageType
-	            };
-	            return details;
+                List<CL_AniDB_Anime_DefaultImage> fanarts = Contract.AniDBAnime.Fanarts;
+                if (fanarts == null || fanarts.Count == 0) return null;
+                CL_AniDB_Anime_DefaultImage art = fanarts[fanartRandom.Next(0, fanarts.Count)];
+                details = new ImageDetails()
+                {
+                    ImageID = art.AniDB_Anime_DefaultImageID,
+                    ImageType = (JMMImageType) art.ImageType
+                };
+                return details;
             }
             else
             {
-	            // TODO Move this to contract as well
-	            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
-	            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
+                // TODO Move this to contract as well
+                AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+                ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
 
                 switch (imageType)
                 {
                     case ImageEntityType.TvDB_FanArt:
-
                         TvDB_ImageFanart tvFanart = RepoFactory.TvDB_ImageFanart.GetByID(session, fanart.ImageParentID);
                         if (tvFanart != null)
                             details = new ImageDetails()
@@ -642,23 +637,20 @@ namespace Shoko.Server.Models
                                 ImageType = JMMImageType.TvDB_FanArt,
                                 ImageID = tvFanart.TvDB_ImageFanartID
                             };
-
                         return details;
 
                     case ImageEntityType.Trakt_Fanart:
-
-                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(session, fanart.ImageParentID);
+                        Trakt_ImageFanart traktFanart =
+                            RepoFactory.Trakt_ImageFanart.GetByID(session, fanart.ImageParentID);
                         if (traktFanart != null)
                             details = new ImageDetails()
                             {
                                 ImageType = JMMImageType.Trakt_Fanart,
                                 ImageID = traktFanart.Trakt_ImageFanartID
                             };
-
                         return details;
 
                     case ImageEntityType.MovieDB_FanArt:
-
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(session, fanart.ImageParentID);
                         if (movieFanart != null)
                             details = new ImageDetails()
@@ -666,7 +658,6 @@ namespace Shoko.Server.Models
                                 ImageType = JMMImageType.MovieDB_FanArt,
                                 ImageID = movieFanart.MovieDB_FanartID
                             };
-
                         return details;
                 }
             }
@@ -709,34 +700,31 @@ namespace Shoko.Server.Models
             }
             else
             {
-	            // TODO Move this to contract as well
-	            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
-	            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
+                // TODO Move this to contract as well
+                AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+                ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
 
                 switch (imageType)
                 {
                     case ImageEntityType.TvDB_FanArt:
-
-                        TvDB_ImageFanart tvFanart = RepoFactory.TvDB_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
+                        TvDB_ImageFanart tvFanart =
+                            RepoFactory.TvDB_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
                         if (tvFanart != null)
                             return String.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
-
                         break;
 
                     case ImageEntityType.Trakt_Fanart:
-
-                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
+                        Trakt_ImageFanart traktFanart =
+                            RepoFactory.Trakt_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
                         if (traktFanart != null)
                             return traktFanart.ImageURL;
-
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-
-                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(GetDefaultFanart(session).ImageParentID);
+                        MovieDB_Fanart movieFanart =
+                            RepoFactory.MovieDB_Fanart.GetByID(GetDefaultFanart(session).ImageParentID);
                         if (movieFanart != null)
                             return movieFanart.URL;
-
                         break;
                 }
             }
@@ -754,7 +742,8 @@ namespace Shoko.Server.Models
 
         public AniDB_Anime_DefaultImage GetDefaultWideBanner(ISessionWrapper session)
         {
-            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.WideBanner);
+            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(session, this.AnimeID,
+                (int) ImageSizeType.WideBanner);
         }
 
         public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
@@ -769,46 +758,44 @@ namespace Shoko.Server.Models
         {
             Random bannerRandom = new Random();
 
-		    ImageDetails details = null;
-	        AniDB_Anime_DefaultImage banner = GetDefaultWideBanner();
-	        if (banner == null)
-		    {
-			    // get a random banner (only tvdb)
-			    if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
-			    {
-				    // MovieDB doesn't have banners
-				    return null;
-			    }
-			    else
-			    {
-				    List<CL_AniDB_Anime_DefaultImage> banners = Contract.AniDBAnime.Banners;
-				    if (banners == null || banners.Count == 0) return null;
-				    CL_AniDB_Anime_DefaultImage art = banners[bannerRandom.Next(0, banners.Count)];
-				    details = new ImageDetails()
-				    {
-					    ImageID = art.AniDB_Anime_DefaultImageID,
-					    ImageType = (JMMImageType) art.ImageType
-				    };
-				    return details;
-			    }
-		    }
-		    else
-		    {
-			    ImageEntityType imageType = (ImageEntityType) banner.ImageParentType;
+            ImageDetails details = null;
+            AniDB_Anime_DefaultImage banner = GetDefaultWideBanner();
+            if (banner == null)
+            {
+                // get a random banner (only tvdb)
+                if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+                {
+                    // MovieDB doesn't have banners
+                    return null;
+                }
+                else
+                {
+                    List<CL_AniDB_Anime_DefaultImage> banners = Contract.AniDBAnime.Banners;
+                    if (banners == null || banners.Count == 0) return null;
+                    CL_AniDB_Anime_DefaultImage art = banners[bannerRandom.Next(0, banners.Count)];
+                    details = new ImageDetails()
+                    {
+                        ImageID = art.AniDB_Anime_DefaultImageID,
+                        ImageType = (JMMImageType) art.ImageType
+                    };
+                    return details;
+                }
+            }
+            else
+            {
+                ImageEntityType imageType = (ImageEntityType) banner.ImageParentType;
 
                 switch (imageType)
                 {
                     case ImageEntityType.TvDB_Banner:
-
-						details = new ImageDetails()
-						{
-							ImageType = JMMImageType.TvDB_Banner,
-							ImageID = banner.ToClient(session).TVWideBanner.TvDB_ImageWideBannerID
-						};
-
-					    return details;
-			    }
-		    }
+                        details = new ImageDetails()
+                        {
+                            ImageType = JMMImageType.TvDB_Banner,
+                            ImageID = banner.ToClient(session).TVWideBanner.TvDB_ImageWideBannerID
+                        };
+                        return details;
+                }
+            }
 
             return null;
         }
@@ -828,7 +815,6 @@ namespace Shoko.Server.Models
                 return temp;
             }
         }
-
 
 
         public List<AniDB_Tag> GetTags()
@@ -907,10 +893,7 @@ namespace Shoko.Server.Models
         [XmlIgnore]
         public List<AniDB_Anime_Review> AnimeReviews
         {
-            get
-            {
-                return RepoFactory.AniDB_Anime_Review.GetByAnimeID(AnimeID);
-            }
+            get { return RepoFactory.AniDB_Anime_Review.GetByAnimeID(AnimeID); }
         }
 
         public List<SVR_AniDB_Anime> GetAllRelatedAnime()
@@ -1050,7 +1033,8 @@ namespace Shoko.Server.Models
                         for (int i = 0; i < titles.Count; i++)
                         {
                             if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                                titles[i].TitleType.Trim().ToUpper() == Shoko.Models.Constants.AnimeTitleType.Main.ToUpper())
+                                titles[i].TitleType.Trim().ToUpper() ==
+                                Shoko.Models.Constants.AnimeTitleType.Main.ToUpper())
                                 return titles[i].Title;
                         }
                     }
@@ -1059,7 +1043,8 @@ namespace Shoko.Server.Models
                     for (int i = 0; i < titles.Count; i++)
                     {
                         if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                            titles[i].TitleType.Trim().ToUpper() == Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                            titles[i].TitleType.Trim().ToUpper() ==
+                            Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
                             return titles[i].Title;
                     }
 
@@ -1069,7 +1054,8 @@ namespace Shoko.Server.Models
                         for (int i = 0; i < titles.Count; i++)
                         {
                             if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                                titles[i].TitleType.Trim().ToUpper() == Shoko.Models.Constants.AnimeTitleType.Synonym.ToUpper())
+                                titles[i].TitleType.Trim().ToUpper() ==
+                                Shoko.Models.Constants.AnimeTitleType.Synonym.ToUpper())
                                 return titles[i].Title;
                         }
                     }
@@ -1086,15 +1072,11 @@ namespace Shoko.Server.Models
             }
         }
 
-        
 
         [XmlIgnore]
         public List<AniDB_Episode> AniDBEpisodes
         {
-            get
-            {
-                return RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
-            }
+            get { return RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID); }
         }
 
         public List<AniDB_Episode> GetAniDBEpisodes()
@@ -1157,7 +1139,8 @@ namespace Shoko.Server.Models
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
         {
             logger.Trace("------------------------------------------------");
-            logger.Trace(String.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle));
+            logger.Trace(
+                String.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle));
             logger.Trace("------------------------------------------------");
 
             Stopwatch taskTimer = new Stopwatch();
@@ -1231,7 +1214,7 @@ namespace Shoko.Server.Models
         {
             if (eps == null) return;
 
-            
+
             this.EpisodeCountSpecial = 0;
             this.EpisodeCountNormal = 0;
 
@@ -1242,8 +1225,9 @@ namespace Shoko.Server.Models
             {
                 //
                 // we need to do this check because some times AniDB will replace an existing episode with a new episode
-                List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(epraw.AnimeID, (enEpisodeType)epraw.EpisodeType, epraw.EpisodeNumber);
-                
+                List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
+                    epraw.AnimeID, (enEpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
+
                 // delete any old records
                 foreach (AniDB_Episode epOld in existingEps)
                 {
@@ -1284,7 +1268,6 @@ namespace Shoko.Server.Models
 
         private void CreateTitles(List<Raw_AniDB_Anime_Title> titles)
         {
-
             if (titles == null) return;
 
             this.AllTitles = "";
@@ -1329,7 +1312,8 @@ namespace Shoko.Server.Models
 
                 newTagIDs.Add(tag.TagID);
 
-                AniDB_Anime_Tag anime_tag = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID);
+                AniDB_Anime_Tag anime_tag =
+                    RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID);
                 if (anime_tag == null) anime_tag = new AniDB_Anime_Tag();
 
                 anime_tag.Populate(rawtag);
@@ -1357,7 +1341,8 @@ namespace Shoko.Server.Models
             ISessionWrapper sessionWrapper = session.Wrap();
 
             // delete all the existing cross references just in case one has been removed
-            List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(sessionWrapper, AnimeID);
+            List<AniDB_Anime_Character> animeChars =
+                RepoFactory.AniDB_Anime_Character.GetByAnimeID(sessionWrapper, AnimeID);
 
             RepoFactory.AniDB_Anime_Character.Delete(animeChars);
 
@@ -1373,7 +1358,8 @@ namespace Shoko.Server.Models
             foreach (Raw_AniDB_Character rawchar in chars)
             {
                 // delete existing relationships to seiyuu's
-                List<AniDB_Character_Seiyuu> allCharSei = RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, rawchar.CharID);
+                List<AniDB_Character_Seiyuu> allCharSei =
+                    RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, rawchar.CharID);
                 foreach (AniDB_Character_Seiyuu xref in allCharSei)
                     charSeiyuusToDelete.Add(xref);
             }
@@ -1396,7 +1382,8 @@ namespace Shoko.Server.Models
                 foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
                 {
                     // save the link between character and seiyuu
-                    AniDB_Character_Seiyuu acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(session, rawchar.CharID,
+                    AniDB_Character_Seiyuu acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(session,
+                        rawchar.CharID,
                         rawSeiyuu.SeiyuuID);
                     if (acc == null)
                     {
@@ -1419,7 +1406,6 @@ namespace Shoko.Server.Models
             RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
             RepoFactory.AniDB_Seiyuu.Save(seiyuuToSave.Values.ToList());
             RepoFactory.AniDB_Character_Seiyuu.Save(seiyuuXrefToSave);
-
         }
 
         private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations)
@@ -1432,7 +1418,8 @@ namespace Shoko.Server.Models
 
             foreach (Raw_AniDB_RelatedAnime rawrel in rels)
             {
-                AniDB_Anime_Relation anime_rel = RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(session, rawrel.AnimeID,
+                AniDB_Anime_Relation anime_rel = RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(session,
+                    rawrel.AnimeID,
                     rawrel.RelatedAnimeID);
                 if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
 
@@ -1469,7 +1456,8 @@ namespace Shoko.Server.Models
 
             foreach (Raw_AniDB_SimilarAnime rawsim in sims)
             {
-                AniDB_Anime_Similar anime_sim = RepoFactory.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(session, rawsim.AnimeID,
+                AniDB_Anime_Similar anime_sim = RepoFactory.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(session,
+                    rawsim.AnimeID,
                     rawsim.SimilarAnimeID);
                 if (anime_sim == null) anime_sim = new AniDB_Anime_Similar();
 
@@ -1488,7 +1476,8 @@ namespace Shoko.Server.Models
             List<AniDB_Recommendation> recsToSave = new List<AniDB_Recommendation>();
             foreach (Raw_AniDB_Recommendation rawRec in recs)
             {
-                AniDB_Recommendation rec = RepoFactory.AniDB_Recommendation.GetByAnimeIDAndUserID(session, rawRec.AnimeID, rawRec.UserID);                
+                AniDB_Recommendation rec =
+                    RepoFactory.AniDB_Recommendation.GetByAnimeIDAndUserID(session, rawRec.AnimeID, rawRec.UserID);
                 if (rec == null)
                     rec = new AniDB_Recommendation();
                 rec.Populate(rawRec);
@@ -1533,7 +1522,6 @@ namespace Shoko.Server.Models
         }
 
 
-
         private CL_AniDB_Anime GenerateContract(ISessionWrapper session, List<AniDB_Anime_Title> titles)
         {
             List<CL_AniDB_Character> characters = GetCharactersContract();
@@ -1560,14 +1548,15 @@ namespace Shoko.Server.Models
             cl.DefaultImagePoster = defPoster?.ToClient(session);
             cl.DefaultImageWideBanner = defBanner?.ToClient(session);
 
-	        return cl;
+            return cl;
         }
 
         private CL_AniDB_Anime GenerateContract(List<AniDB_Anime_Title> titles, DefaultAnimeImages defaultImages,
-            List<CL_AniDB_Character> characters, IEnumerable<MovieDB_Fanart> movDbFanart, IEnumerable<TvDB_ImageFanart> tvDbFanart,
+            List<CL_AniDB_Character> characters, IEnumerable<MovieDB_Fanart> movDbFanart,
+            IEnumerable<TvDB_ImageFanart> tvDbFanart,
             IEnumerable<TvDB_ImageWideBanner> tvDbBanners)
         {
-            CL_AniDB_Anime cl = this.ToClient();          
+            CL_AniDB_Anime cl = this.ToClient();
             cl.FormattedTitle = GetFormattedTitle(titles);
             cl.Characters = characters;
 
@@ -1582,7 +1571,7 @@ namespace Shoko.Server.Models
             {
                 cl.Fanarts = movDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int)JMMImageType.MovieDB_FanArt,
+                        ImageType = (int) JMMImageType.MovieDB_FanArt,
                         MovieFanart = a,
                         AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
                     })
@@ -1592,24 +1581,24 @@ namespace Shoko.Server.Models
             {
                 cl.Fanarts = tvDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int)JMMImageType.TvDB_FanArt,
+                        ImageType = (int) JMMImageType.TvDB_FanArt,
                         TVFanart = a,
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
                     })
                     .ToList();
                 cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int)JMMImageType.TvDB_Banner,
+                        ImageType = (int) JMMImageType.TvDB_Banner,
                         TVWideBanner = a,
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
                     })
                     .ToList();
             }
 
-	        if (cl.Fanarts?.Count == 0) cl.Fanarts = null;
-	        if (cl.Banners?.Count == 0) cl.Banners = null;
+            if (cl.Fanarts?.Count == 0) cl.Fanarts = null;
+            if (cl.Banners?.Count == 0) cl.Banners = null;
 
-	        return cl;
+            return cl;
         }
 
         public List<CL_AniDB_Character> GetCharactersContract()
@@ -1618,7 +1607,6 @@ namespace Shoko.Server.Models
 
             try
             {
-
                 List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(this.AnimeID);
                 if (animeChars == null || animeChars.Count == 0) return chars;
 
@@ -1631,12 +1619,13 @@ namespace Shoko.Server.Models
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
             return chars;
         }
 
-        public static void UpdateContractDetailedBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AniDB_Anime> animeColl)
+        public static void UpdateContractDetailedBatch(ISessionWrapper session,
+            IReadOnlyCollection<SVR_AniDB_Anime> animeColl)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -1681,32 +1670,35 @@ namespace Shoko.Server.Models
                 // Anime titles
                 contract.AnimeTitles = titlesByAnime[anime.AnimeID]
                     .Select(t => new CL_AnimeTitle
-                        {
-                            AnimeID = t.AnimeID,
-                            Language = t.Language,
-                            Title = t.Title,
-                            TitleType = t.TitleType
-                        }).ToList();
+                    {
+                        AnimeID = t.AnimeID,
+                        Language = t.Language,
+                        Title = t.Title,
+                        TitleType = t.TitleType
+                    })
+                    .ToList();
 
                 // Anime tags
                 var dictAnimeTags = animeTagsByAnime[anime.AnimeID]
                     .ToDictionary(t => t.TagID);
 
-                contract.Tags = tagsByAnime[anime.AnimeID].Select(t =>
+                contract.Tags = tagsByAnime[anime.AnimeID]
+                    .Select(t =>
                     {
                         AniDB_Anime_Tag animeTag = null;
                         CL_AnimeTag ctag = new CL_AnimeTag
-                            {
-                                GlobalSpoiler = t.GlobalSpoiler,
-                                LocalSpoiler = t.LocalSpoiler,
-                                TagDescription = t.TagDescription,
-                                TagID = t.TagID,
-                                TagName = t.TagName,
-                                Weight = dictAnimeTags.TryGetValue(t.TagID, out animeTag) ? animeTag.Weight : 0
-                            };
+                        {
+                            GlobalSpoiler = t.GlobalSpoiler,
+                            LocalSpoiler = t.LocalSpoiler,
+                            TagDescription = t.TagDescription,
+                            TagID = t.TagID,
+                            TagName = t.TagName,
+                            Weight = dictAnimeTags.TryGetValue(t.TagID, out animeTag) ? animeTag.Weight : 0
+                        };
 
                         return ctag;
-                    }).ToList();
+                    })
+                    .ToList();
 
                 // Custom tags
                 contract.CustomTags = custTagsByAnime[anime.AnimeID];
@@ -1740,7 +1732,8 @@ namespace Shoko.Server.Models
                 // Anime video quality
                 HashSet<string> vidQual;
 
-                contract.Stat_AllVideoQuality = vidQualByAnime.TryGetValue(anime.AnimeID, out vidQual) ? vidQual
+                contract.Stat_AllVideoQuality = vidQualByAnime.TryGetValue(anime.AnimeID, out vidQual)
+                    ? vidQual
                     : new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
                 // Episode video quality
@@ -1748,7 +1741,8 @@ namespace Shoko.Server.Models
 
                 contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
-                if (epVidQualByAnime.TryGetValue(anime.AnimeID, out vidQualStat) && vidQualStat.VideoQualityEpisodeCount.Count > 0)
+                if (epVidQualByAnime.TryGetValue(anime.AnimeID, out vidQualStat) &&
+                    vidQualStat.VideoQualityEpisodeCount.Count > 0)
                 {
                     contract.Stat_AllVideoQuality_Episodes.UnionWith(vidQualStat.VideoQualityEpisodeCount
                         .Where(kvp => kvp.Value >= anime.EpisodeCountNormal)
@@ -1823,7 +1817,8 @@ namespace Shoko.Server.Models
             //logger.Trace(" XXXX 06");
 
             // audio languages
-            Dictionary<int, LanguageStat> dicAudio = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, this.AnimeID);
+            Dictionary<int, LanguageStat> dicAudio =
+                RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, this.AnimeID);
             foreach (KeyValuePair<int, LanguageStat> kvp in dicAudio)
             {
                 foreach (string lanName in kvp.Value.LanguageNames)
@@ -1836,7 +1831,8 @@ namespace Shoko.Server.Models
             //logger.Trace(" XXXX 07");
 
             // subtitle languages
-            Dictionary<int, LanguageStat> dicSubtitle = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, this.AnimeID);
+            Dictionary<int, LanguageStat> dicSubtitle =
+                RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, this.AnimeID);
             foreach (KeyValuePair<int, LanguageStat> kvp in dicSubtitle)
             {
                 foreach (string lanName in kvp.Value.LanguageNames)
@@ -1915,9 +1911,9 @@ namespace Shoko.Server.Models
                 // first get all the main characters
                 foreach (
                     AniDB_Anime_Character animeChar in
-                        animeChars.Where(
-                            item =>
-                                item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+                    animeChars.Where(
+                        item =>
+                            item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
                 {
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(session, animeChar.CharID);
                     if (chr != null)
@@ -1927,10 +1923,10 @@ namespace Shoko.Server.Models
                 // now get the rest
                 foreach (
                     AniDB_Anime_Character animeChar in
-                        animeChars.Where(
-                            item =>
-                                !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
-                    )
+                    animeChars.Where(
+                        item =>
+                            !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
+                )
                 {
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(session, animeChar.CharID);
                     if (chr != null)
@@ -2008,7 +2004,8 @@ namespace Shoko.Server.Models
             return series;
         }
 
-        public static void GetRelatedAnimeRecursive(ISessionWrapper session, int animeID, ref List<SVR_AniDB_Anime> relList,
+        public static void GetRelatedAnimeRecursive(ISessionWrapper session, int animeID,
+            ref List<SVR_AniDB_Anime> relList,
             ref List<int> relListIDs, ref List<int> searchedIDs)
         {
             SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
@@ -2025,7 +2022,8 @@ namespace Shoko.Server.Models
                 SVR_AniDB_Anime relAnime = RepoFactory.AniDB_Anime.GetByAnimeID(session, rel.RelatedAnimeID);
                 if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
                 {
-	                if(SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower())) continue;
+                    if (SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower()))
+                        continue;
                     relList.Add(relAnime);
                     relListIDs.Add(relAnime.AnimeID);
                     if (!searchedIDs.Contains(rel.RelatedAnimeID))

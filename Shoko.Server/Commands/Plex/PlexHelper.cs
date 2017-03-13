@@ -71,7 +71,7 @@ namespace Shoko.Server.Commands.Plex
             if (keys == null)
                 return new PlexSeries[0];
 
-            List<PlexSeries>  toReturn = new List<PlexSeries>();
+            List<PlexSeries> toReturn = new List<PlexSeries>();
 
             for (int i = 0; i < keys.Count; i++)
             {
@@ -79,8 +79,9 @@ namespace Shoko.Server.Commands.Plex
                 string key = attributes?["key"].Value;
                 if (string.IsNullOrEmpty(key)) continue;
 
-                
-                XmlDocument doc = GetXml($"http://{ServerSettings.Plex_Server}{key.Substring(0, key.Length - 9)}/allLeaves");
+
+                XmlDocument doc = GetXml(
+                    $"http://{ServerSettings.Plex_Server}{key.Substring(0, key.Length - 9)}/allLeaves");
                 var files = doc.SelectNodes("/MediaContainer/Video");
 
                 PlexSeries series = new PlexSeries()
@@ -100,7 +101,11 @@ namespace Shoko.Server.Commands.Plex
 
                     series.Episodes.Add(new PlexEpisode()
                     {
-                        File = file, Key = ratingKey, LastWatched = lastWatchedUnix, WatchCount = watchCount, Helper = this
+                        File = file,
+                        Key = ratingKey,
+                        LastWatched = lastWatchedUnix,
+                        WatchCount = watchCount,
+                        Helper = this
                     });
                 }
 
@@ -127,7 +132,7 @@ namespace Shoko.Server.Commands.Plex
                 // get the response
                 var httpResponse = (HttpWebResponse) req.GetResponse();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.Error("Error in {1}: {0}", ex, nameof(RequestFromPlex));
             }
@@ -219,7 +224,7 @@ namespace Shoko.Server.Commands.Plex
         {
             _user.PlexToken = "";
             new ShokoServiceImplementation().SaveUser(_user);
-        } 
+        }
 
         private string GetPlexToken()
         {
@@ -268,7 +273,6 @@ namespace Shoko.Server.Commands.Plex
 
     internal class PlexEpisode
     {
-        
         public int WatchCount { get; set; }
         public long LastWatched { get; set; }
         public uint Key { get; set; }

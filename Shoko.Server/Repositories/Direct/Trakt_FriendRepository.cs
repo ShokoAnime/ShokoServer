@@ -11,13 +11,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private Trakt_FriendRepository()
         {
-            
         }
 
         public static Trakt_FriendRepository Create()
         {
             return new Trakt_FriendRepository();
         }
+
         public Trakt_Friend GetByUsername(string username)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -35,6 +35,5 @@ namespace Shoko.Server.Repositories.Direct
 
             return obj;
         }
-
     }
 }

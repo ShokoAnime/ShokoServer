@@ -12,13 +12,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private TvDB_EpisodeRepository()
         {
-            
         }
 
         public static TvDB_EpisodeRepository Create()
         {
             return new TvDB_EpisodeRepository();
         }
+
         public TvDB_Episode GetByTvDBID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -115,6 +115,5 @@ namespace Shoko.Server.Repositories.Direct
                 return new List<TvDB_Episode>(objs);
             }
         }
-
     }
 }

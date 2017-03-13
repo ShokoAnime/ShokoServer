@@ -66,9 +66,8 @@ namespace LZ4ps
         private const int NOTCOMPRESSIBLE_DETECTIONLEVEL = 6;
 
 #if !UNSAFE
-
-    /// <summary>Buffer length when Buffer.BlockCopy becomes faster than straight loop.
-    /// Please note that safe implementation REQUIRES it to be greater (not even equal) than 8.</summary>
+/// <summary>Buffer length when Buffer.BlockCopy becomes faster than straight loop.
+/// Please note that safe implementation REQUIRES it to be greater (not even equal) than 8.</summary>
 		private const int BLOCK_COPY_LIMIT = 16;
 
 #endif
@@ -79,11 +78,13 @@ namespace LZ4ps
 
         private const int MINMATCH = 4;
 #pragma warning disable 162
+
         // ReSharper disable once UnreachableCode
         private const int SKIPSTRENGTH =
             NOTCOMPRESSIBLE_DETECTIONLEVEL > 2
                 ? NOTCOMPRESSIBLE_DETECTIONLEVEL
                 : 2;
+
 #pragma warning restore 162
         private const int COPYLENGTH = 8;
         private const int LASTLITERALS = 5;
@@ -104,15 +105,16 @@ namespace LZ4ps
 
         private const int HASH_LOG = MEMORY_USAGE - 2;
         private const int HASH_TABLESIZE = 1 << HASH_LOG;
-        private const int HASH_ADJUST = MINMATCH*8 - HASH_LOG;
+        private const int HASH_ADJUST = MINMATCH * 8 - HASH_LOG;
 
         private const int HASH64K_LOG = HASH_LOG + 1;
         private const int HASH64K_TABLESIZE = 1 << HASH64K_LOG;
-        private const int HASH64K_ADJUST = MINMATCH*8 - HASH64K_LOG;
+        private const int HASH64K_ADJUST = MINMATCH * 8 - HASH64K_LOG;
 
         private const int HASHHC_LOG = MAXD_LOG - 1;
         private const int HASHHC_TABLESIZE = 1 << HASHHC_LOG;
-        private const int HASHHC_ADJUST = MINMATCH*8 - HASHHC_LOG;
+
+        private const int HASHHC_ADJUST = MINMATCH * 8 - HASHHC_LOG;
         //private const int HASHHC_MASK = HASHHC_TABLESIZE - 1;
 
         private static readonly int[] DECODER_TABLE_32 = {0, 3, 2, 3, 0, 0, 0, 0};
@@ -144,7 +146,7 @@ namespace LZ4ps
         /// <returns>Maximum number of bytes needed for compressed buffer.</returns>
         public static int MaximumOutputLength(int inputLength)
         {
-            return inputLength + inputLength/255 + 16;
+            return inputLength + inputLength / 255 + 16;
         }
 
         #endregion

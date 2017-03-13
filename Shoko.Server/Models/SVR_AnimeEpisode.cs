@@ -18,6 +18,7 @@ namespace Shoko.Server.Models
         public SVR_AnimeEpisode()
         {
         }
+
         #region Server DB columns
 
         public int PlexContractVersion { get; set; }
@@ -25,6 +26,7 @@ namespace Shoko.Server.Models
         public int PlexContractSize { get; set; }
 
         #endregion
+
         public const int PLEXCONTRACT_VERSION = 6;
 
 
@@ -63,10 +65,7 @@ namespace Shoko.Server.Models
 
         public AniDB_Episode AniDB_Episode
         {
-            get
-            {
-                return RepoFactory.AniDB_Episode.GetByEpisodeID(this.AniDB_EpisodeID);
-            }
+            get { return RepoFactory.AniDB_Episode.GetByEpisodeID(this.AniDB_EpisodeID); }
         }
 
         public SVR_AnimeEpisode_User GetUserRecord(int userID)
@@ -111,60 +110,58 @@ namespace Shoko.Server.Models
 
         public List<CrossRef_File_Episode> FileCrossRefs
         {
-            get
-            {
-                return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
-            }
+            get { return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID); }
         }
 
-	    public TvDB_Episode TvDBEpisode
-	    {
-		    get
-		    {
-			    using (var session = DatabaseFactory.SessionFactory.OpenSession())
-			    {
-				    AniDB_Episode aep = AniDB_Episode;
-				    List<CrossRef_AniDB_TvDBV2> xref_tvdb =
-					    RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
-						    aep.EpisodeType, aep.EpisodeNumber);
-				    if (xref_tvdb != null && xref_tvdb.Count > 0)
-				    {
-					    CrossRef_AniDB_TvDBV2 xref_tvdb2 = xref_tvdb[0];
-					    int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
-					                   (xref_tvdb2.AniDBStartEpisodeNumber - 1);
-					    TvDB_Episode tvep = null;
-					    int season = xref_tvdb2.TvDBSeasonNumber;
-					    List<TvDB_Episode> tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
-					    tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber);
-					    if (tvep != null) return tvep;
+        public TvDB_Episode TvDBEpisode
+        {
+            get
+            {
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                {
+                    AniDB_Episode aep = AniDB_Episode;
+                    List<CrossRef_AniDB_TvDBV2> xref_tvdb =
+                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
+                            aep.EpisodeType, aep.EpisodeNumber);
+                    if (xref_tvdb != null && xref_tvdb.Count > 0)
+                    {
+                        CrossRef_AniDB_TvDBV2 xref_tvdb2 = xref_tvdb[0];
+                        int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
+                                       (xref_tvdb2.AniDBStartEpisodeNumber - 1);
+                        TvDB_Episode tvep = null;
+                        int season = xref_tvdb2.TvDBSeasonNumber;
+                        List<TvDB_Episode> tvdb_eps =
+                            RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
+                        tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber);
+                        if (tvep != null) return tvep;
 
-					    int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
-					    int previousSeasonsCount = 0;
-					    // we checked once, so increment the season
-					    season++;
-					    previousSeasonsCount += tvdb_eps.Count;
-					    do
-					    {
-						    if (season == 0) break; // Specials will often be wrong
-						    if (season > lastSeason) break;
-						    if (epnumber - previousSeasonsCount <= 0) break;
-						    // This should be 1 or 0, hopefully 1
-						    tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
-						    tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber - previousSeasonsCount);
+                        int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
+                        int previousSeasonsCount = 0;
+                        // we checked once, so increment the season
+                        season++;
+                        previousSeasonsCount += tvdb_eps.Count;
+                        do
+                        {
+                            if (season == 0) break; // Specials will often be wrong
+                            if (season > lastSeason) break;
+                            if (epnumber - previousSeasonsCount <= 0) break;
+                            // This should be 1 or 0, hopefully 1
+                            tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
+                            tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber - previousSeasonsCount);
 
-						    if (tvep != null)
-						    {
-							    break;
-						    }
-						    previousSeasonsCount += tvdb_eps.Count;
-						    season++;
-					    } while (true);
-					    return tvep;
-				    }
-				    return null;
-			    }
-		    }
-	    }
+                            if (tvep != null)
+                            {
+                                break;
+                            }
+                            previousSeasonsCount += tvdb_eps.Count;
+                            season++;
+                        } while (true);
+                        return tvep;
+                    }
+                    return null;
+                }
+            }
+        }
 
         public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
@@ -221,7 +218,7 @@ namespace Shoko.Server.Models
             // get all the cross refs
             foreach (CrossRef_File_Episode xref in FileCrossRefs)
             {
-                SVR_VideoLocal v=RepoFactory.VideoLocal.GetByHash(xref.Hash);
+                SVR_VideoLocal v = RepoFactory.VideoLocal.GetByHash(xref.Hash);
                 if (v != null)
                     contracts.Add(v.ToClientDetailed(userID));
             }
@@ -234,8 +231,8 @@ namespace Shoko.Server.Models
 
         public CL_AnimeEpisode_User GetUserContract(int userid, ISessionWrapper session = null)
         {
-            lock(_lock) //Make it atomic on creation
-            { 
+            lock (_lock) //Make it atomic on creation
+            {
                 SVR_AnimeEpisode_User rr = GetUserRecord(userid);
                 if (rr != null)
                     return rr.Contract;

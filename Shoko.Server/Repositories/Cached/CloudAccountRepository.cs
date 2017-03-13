@@ -8,10 +8,7 @@ namespace Shoko.Server.Repositories.Cached
     {
         private CloudAccountRepository()
         {
-            EndSaveCallback = (obj) =>
-            {
-                obj.NeedSave = false;
-            };
+            EndSaveCallback = (obj) => { obj.NeedSave = false; };
         }
 
         public static CloudAccountRepository Create()
@@ -26,12 +23,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void PopulateIndexes()
         {
-            
         }
 
         public override void RegenerateDb()
         {
-
         }
     }
 }

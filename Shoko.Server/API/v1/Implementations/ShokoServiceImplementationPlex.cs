@@ -22,12 +22,13 @@ namespace Shoko.Server.API.v1.Implementations
 
         public MediaContainer GetMetadata(string userId, int type, string id, string historyinfo, int? filterid)
         {
-            return _impl.GetMetadata(new PlexProvider { Nancy = RestModule.CurrentModule },userId,type, id, historyinfo, false, filterid);
+            return _impl.GetMetadata(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, type, id, historyinfo,
+                false, filterid);
         }
 
         public PlexContract_Users GetUsers()
         {
-            return _impl.GetUsers(new PlexProvider { Nancy = RestModule.CurrentModule });
+            return _impl.GetUsers(new PlexProvider {Nancy = RestModule.CurrentModule});
         }
 
         public MediaContainer Search(string userId, int limit, string query)
@@ -37,12 +38,14 @@ namespace Shoko.Server.API.v1.Implementations
 
         public Response ToggleWatchedStatusOnEpisode(string userId, int epid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnEpisode(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, epid, status);
+            return _impl.ToggleWatchedStatusOnEpisode(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, epid,
+                status);
         }
 
         public Response Vote(string userId, int id, float votevalue, int votetype)
         {
-            return _impl.VoteAnime(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue, votetype);
+            return _impl.VoteAnime(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue,
+                votetype);
         }
     }
 }

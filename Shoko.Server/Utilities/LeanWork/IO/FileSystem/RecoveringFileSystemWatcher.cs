@@ -20,28 +20,26 @@ namespace LeanWork.IO.FileSystem
 
         public RecoveringFileSystemWatcher()
             : base()
-        { }
+        {
+        }
 
         public RecoveringFileSystemWatcher(string path)
             : base(path, "*.*")
-        { }
+        {
+        }
 
         public RecoveringFileSystemWatcher(string path, string filter)
             : base(path, filter)
-        { }
+        {
+        }
 
         //To allow consumer to cancel default error handling
         private EventHandler<FileWatcherErrorEventArgs> _onErrorHandler = null;
+
         public new event EventHandler<FileWatcherErrorEventArgs> Error
         {
-            add
-            {
-                _onErrorHandler += value;
-            }
-            remove
-            {
-                _onErrorHandler -= value;
-            }
+            add { _onErrorHandler += value; }
+            remove { _onErrorHandler -= value; }
         }
 
         public new bool EnableRaisingEvents
@@ -77,10 +75,7 @@ namespace LeanWork.IO.FileSystem
             {
                 _monitorTimer = new System.Threading.Timer(_monitorTimer_Elapsed);
 
-                Disposed += (_, __) =>
-                {
-                    _monitorTimer.Dispose();
-                };
+                Disposed += (_, __) => { _monitorTimer.Dispose(); };
 
                 ReStartIfNeccessary(TimeSpan.Zero);
             }
@@ -146,10 +141,11 @@ namespace LeanWork.IO.FileSystem
                 _monitorTimer.Change(delay, Timeout.InfiniteTimeSpan);
             }
             catch (ObjectDisposedException)
-            { } //ignore timer disposed     
+            {
+            } //ignore timer disposed     
         }
 
-       private void BufferingFileSystemWatcher_Error(object sender, ErrorEventArgs e)
+        private void BufferingFileSystemWatcher_Error(object sender, ErrorEventArgs e)
         {
             //These exceptions have the same HResult
             var NetworkNameNoLongerAvailable = -2147467259; //occurs on network outage
@@ -170,7 +166,8 @@ namespace LeanWork.IO.FileSystem
                              - Will recover automatically.");
                 ReStartIfNeccessary(DirectoryRetryInterval);
             }
-            else if (ex is Win32Exception && (ex.HResult == NetworkNameNoLongerAvailable | ex.HResult == AccessIsDenied))
+            else if (ex is Win32Exception && (ex.HResult == NetworkNameNoLongerAvailable |
+                                              ex.HResult == AccessIsDenied))
             {
                 _trace.Debug(ex.Message);
                 _trace.Debug("Will try to recover automatically!");
@@ -217,7 +214,7 @@ namespace LeanWork.IO.FileSystem
             if (eventHandler != null)
             {
                 if (SynchronizingObject != null && this.SynchronizingObject.InvokeRequired)
-                    SynchronizingObject.BeginInvoke(eventHandler, new object[] { this, e });
+                    SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);
             }

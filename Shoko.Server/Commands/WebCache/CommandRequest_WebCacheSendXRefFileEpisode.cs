@@ -20,7 +20,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheSendXRefFileEpisode, extraParams = new string[] { CrossRef_File_EpisodeID.ToString() } };  
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheSendXRefFileEpisode,
+                    extraParams = new string[] {CrossRef_File_EpisodeID.ToString()}
+                };
             }
         }
 
@@ -57,7 +61,8 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheSendXRefFileEpisode{0}", this.CrossRef_File_EpisodeID);
+            this.CommandID = string.Format("CommandRequest_WebCacheSendXRefFileEpisode{0}",
+                this.CrossRef_File_EpisodeID);
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

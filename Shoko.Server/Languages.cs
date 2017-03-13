@@ -10,10 +10,10 @@ namespace Shoko.Server
             {
                 string[] lans = new string[]
                 {
-                    "EN", "X-JAT", "JA", "AR", "BD", "BG", "CA", "CS", "CZ"
-                    , "DA", "DK", "DE", "EL", "ES", "ET", "FI", "FR", "GL", "GR", "HE", "HU", "IL", "IT"
-                    , "KO", "LT", "MN", "MS", "MY", "NL", "NO", "PL", "PT", "PT-BR", "RO", "RU", "SK", "SL"
-                    , "SR", "SV", "SE", "TH", "TR", "UK", "UA", "VI", "ZH", "ZH-HANS", "ZH-HANT"
+                    "EN", "X-JAT", "JA", "AR", "BD", "BG", "CA", "CS", "CZ", "DA", "DK", "DE", "EL", "ES", "ET", "FI",
+                    "FR", "GL", "GR", "HE", "HU", "IL", "IT", "KO", "LT", "MN", "MS", "MY", "NL", "NO", "PL", "PT",
+                    "PT-BR", "RO", "RU", "SK", "SL", "SR", "SV", "SE", "TH", "TR", "UK", "UA", "VI", "ZH", "ZH-HANS",
+                    "ZH-HANT"
                 };
                 return lans;
             }

@@ -17,7 +17,8 @@ namespace Shoko.Server.Databases
 
         public override string ToString()
         {
-            return "DATABASE ERROR: "+DatabaseCommand.Version+"."+DatabaseCommand.Revision+" "+DatabaseCommand.CommandName+" | "+Message;
+            return "DATABASE ERROR: " + DatabaseCommand.Version + "." + DatabaseCommand.Revision + " " +
+                   DatabaseCommand.CommandName + " | " + Message;
         }
     }
 }

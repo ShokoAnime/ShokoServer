@@ -24,7 +24,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.VoteAnime, extraParams = new string[] { AnimeID.ToString(), VoteValue.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.VoteAnime,
+                    extraParams = new string[] {AnimeID.ToString(), VoteValue.ToString()}
+                };
             }
         }
 

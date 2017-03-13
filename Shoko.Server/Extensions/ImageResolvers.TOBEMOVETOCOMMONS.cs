@@ -192,6 +192,7 @@ namespace Shoko.Server.Extensions
 
             return System.IO.Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.SeiyuuID), seiyuu.PicName);
         }
+
         //The resources need to be moved
         public static string GetAnimeTypeDescription(this AniDB_Anime anidbanime)
         {

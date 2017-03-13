@@ -7,11 +7,12 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Obsolete
 {
     [Obsolete]
-    public class CrossRef_AniDB_Trakt 
+    public class CrossRef_AniDB_Trakt
     {
         public CrossRef_AniDB_Trakt()
         {
         }
+
         public int CrossRef_AniDB_TraktID { get; private set; }
         public int AnimeID { get; set; }
         public string TraktID { get; set; }
@@ -30,6 +31,5 @@ namespace Shoko.Server.Obsolete
         {
             return RepoFactory.Trakt_Show.GetByTraktSlug(session, TraktID);
         }
-
     }
 }

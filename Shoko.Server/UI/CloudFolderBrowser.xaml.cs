@@ -36,7 +36,6 @@ namespace Shoko.Server
         }
 
 
-
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
@@ -62,10 +61,10 @@ namespace Shoko.Server
                 TreeViewItem item = GenerateFromDirectory(n);
                 if (parts.Length > pos)
                 {
-                    if (n.Name.Equals(parts[pos],StringComparison.InvariantCultureIgnoreCase))
+                    if (n.Name.Equals(parts[pos], StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (pos<parts.Length-1)
-                            RecursiveAddFromDirectory(item.Items,n,parts,pos+1);
+                        if (pos < parts.Length - 1)
+                            RecursiveAddFromDirectory(item.Items, n, parts, pos + 1);
                         item.IsSelected = true;
                     }
                 }
@@ -81,13 +80,13 @@ namespace Shoko.Server
             while (initialpath.StartsWith("\\"))
                 initialpath = initialpath.Substring(1);
             string[] pars = initialpath.Split(new char[] {'\\'}, StringSplitOptions.RemoveEmptyEntries);
-            if (pars.Length>0 && _account.FileSystem.Name == pars[0])
+            if (pars.Length > 0 && _account.FileSystem.Name == pars[0])
             {
-                string[] pars2=new string[pars.Length-1];
-                Array.Copy(pars,1,pars2,0,pars.Length-1);
+                string[] pars2 = new string[pars.Length - 1];
+                Array.Copy(pars, 1, pars2, 0, pars.Length - 1);
                 pars = pars2;
             }
-            RecursiveAddFromDirectory(TrView.Items,_account.FileSystem,pars,0);
+            RecursiveAddFromDirectory(TrView.Items, _account.FileSystem, pars, 0);
             this.Cursor = Cursors.Arrow;
         }
 
@@ -101,34 +100,37 @@ namespace Shoko.Server
             item.Expanded += Item_Expanded;
             return item;
         }
+
         private void Item_Expanded(object sender, RoutedEventArgs e)
         {
             this.Cursor = Cursors.Wait;
-            TreeViewItem item = (TreeViewItem)sender;
-            if (item.Items.Count>0 && item.Items[0]==obj)
+            TreeViewItem item = (TreeViewItem) sender;
+            if (item.Items.Count > 0 && item.Items[0] == obj)
             {
                 item.Items.Clear();
                 try
                 {
                     IDirectory dir = (IDirectory) item.Tag;
                     dir.Populate();
-                    foreach(IDirectory d in dir.Directories.OrderBy(a=>a.Name))
+                    foreach (IDirectory d in dir.Directories.OrderBy(a => a.Name))
                         item.Items.Add(GenerateFromDirectory(d));
                 }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                }
             }
             this.Cursor = Cursors.Arrow;
         }
+
         private void TrView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            TreeView tree = (TreeView)sender;
+            TreeView tree = (TreeView) sender;
             TreeViewItem item = tree.SelectedItem as TreeViewItem;
             if (item != null)
             {
-                IDirectory dir = (IDirectory)item.Tag;
+                IDirectory dir = (IDirectory) item.Tag;
                 SelectedPath = dir.FullName;
             }
         }
-
     }
 }

@@ -19,14 +19,11 @@ namespace Shoko.Server.FileHelper
         /// <param name="fileName"></param>
         /// <param name="hashInfo"></param>
         /// <param name="vidInfo"></param>
-
-
         public static Hashes GetHashInfo(string fileName, bool forceRefresh, Hasher.OnHashProgress hashProgress,
             bool getCRC32, bool getMD5, bool getSHA1)
         {
             return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
         }
-
 
 
         public static bool IsVideo(string fileName)
@@ -63,7 +60,7 @@ namespace Shoko.Server.FileHelper
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in GetVideoExtensions: " + ex.ToString());
+                logger.Error(ex, "Error in GetVideoExtensions: " + ex.ToString());
             }
 
             return extList;

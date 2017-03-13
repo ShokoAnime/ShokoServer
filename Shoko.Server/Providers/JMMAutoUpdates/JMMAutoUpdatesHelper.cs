@@ -16,10 +16,10 @@ namespace Shoko.Server.Providers.JMMAutoUpdates
             string[] numbers = version.Split('.');
             if (numbers.Length != 4) return 0;
 
-            return int.Parse(numbers[3])*100 +
-                   int.Parse(numbers[2])*100*100 +
-                   int.Parse(numbers[1])*100*100*100 +
-                   int.Parse(numbers[0])*100*100*100*100;
+            return int.Parse(numbers[3]) * 100 +
+                   int.Parse(numbers[2]) * 100 * 100 +
+                   int.Parse(numbers[1]) * 100 * 100 * 100 +
+                   int.Parse(numbers[0]) * 100 * 100 * 100 * 100;
         }
 
         /*
@@ -57,7 +57,8 @@ namespace Shoko.Server.Providers.JMMAutoUpdates
                 XmlDocument xmldoc = new XmlDocument();
                 xmldoc.LoadXml(xml);
                 // Load something into xmldoc
-                var nodeVersion = xmldoc.SelectSingleNode(string.Format("//versioncheck/shokoserver/{0}/version", channel.ToLower()));
+                var nodeVersion = xmldoc.SelectSingleNode(
+                    string.Format("//versioncheck/shokoserver/{0}/version", channel.ToLower()));
                 versionNumber = nodeVersion.InnerText;
                 ServerState.Instance.ApplicationVersionLatest = versionNumber;
             }

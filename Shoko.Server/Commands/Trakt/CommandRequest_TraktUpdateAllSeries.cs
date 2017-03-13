@@ -25,7 +25,7 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateTrakt, extraParams = new string[0] };
+                return new QueueStateStruct() {queueState = QueueStateEnum.UpdateTrakt, extraParams = new string[0]};
             }
         }
 
@@ -47,7 +47,8 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
+                ScheduledUpdate sched =
+                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();

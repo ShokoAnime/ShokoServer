@@ -36,8 +36,6 @@
 
         #region Labels
 
-
-
         // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
         public struct FileRenameTag
         {
@@ -56,8 +54,8 @@
             public static readonly string FileVersion = "%ver";
             public static readonly string Source = "%src";
             public static readonly string Resolution = "%res";
-	        public static readonly string VideoHeight = "%vdh";
-	        public static readonly string Year = "%yea";
+            public static readonly string VideoHeight = "%vdh";
+            public static readonly string Year = "%yea";
             public static readonly string Episodes = "%eps"; // Total number of episodes
             public static readonly string Type = "%typ"; // Type [unknown, TV, OVA, Movie, TV Special, Other, web]
             public static readonly string FileID = "%fid";
@@ -157,6 +155,7 @@
             public static readonly string AniDB_Images = @"http://img7.anidb.net/pics/anime/{0}";
 
             public static readonly string TvDB_Series = @"http://thetvdb.com/?tab=series&id={0}";
+
             //public static readonly string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
             public static readonly string TvDB_Images = @"http://thetvdb.com/banners/{0}";
 
@@ -239,9 +238,5 @@
             public static readonly string thumbsMAL = @"MAL";
             public static readonly string thumbsMovieDB = @"MovieDB";
         }
-
-
     }
-
-
 }

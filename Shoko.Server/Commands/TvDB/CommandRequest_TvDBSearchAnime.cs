@@ -32,7 +32,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SearchTvDB, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SearchTvDB,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -69,7 +73,8 @@ namespace Shoko.Server.Commands
                             {
                                 // check again to see if there are any links, user may have manually added links while
                                 // this command was in the queue
-                                List<CrossRef_AniDB_TvDBV2> xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+                                List<CrossRef_AniDB_TvDBV2> xrefTemp =
+                                    RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
                                 if (xrefTemp != null && xrefTemp.Count > 0) return;
 
                                 foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
@@ -79,7 +84,7 @@ namespace Shoko.Server.Commands
                                     {
                                         logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
                                         TvDBHelper.LinkAniDBTvDB(AnimeID,
-                                            (enEpisodeType)xref.AniDBStartEpisodeType,
+                                            (enEpisodeType) xref.AniDBStartEpisodeType,
                                             xref.AniDBStartEpisodeNumber,
                                             xref.TvDBID, xref.TvDBSeasonNumber,
                                             xref.TvDBStartEpisodeNumber, true, true);
@@ -120,7 +125,8 @@ namespace Shoko.Server.Commands
                     {
                         foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper()) continue;
+                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                                continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
@@ -149,18 +155,19 @@ namespace Shoko.Server.Commands
                 TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
                 TvDBHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
 
-	            // add links for multiple seasons (for long shows)
-	            List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
-	            foreach (int season in seasons)
-	            {
-		            if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
-		            TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season).Find(a => a.EpisodeNumber == 1);
-		            if (ep?.AbsoluteNumber != null)
-		            {
-		                AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
-		                    season, tvser?.SeriesName ?? "");
-		            }
-	            }
+                // add links for multiple seasons (for long shows)
+                List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
+                foreach (int season in seasons)
+                {
+                    if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
+                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season)
+                        .Find(a => a.EpisodeNumber == 1);
+                    if (ep?.AbsoluteNumber != null)
+                    {
+                        AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
+                            season, tvser?.SeriesName ?? "");
+                    }
+                }
                 return true;
             }
             else if (results.Count > 1)
@@ -179,19 +186,21 @@ namespace Shoko.Server.Commands
                         TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
                         TvDBHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
 
-	                    // add links for multiple seasons (for long shows)
-	                    List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
-	                    foreach (int season in seasons)
-	                    {
-		                    if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
-		                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season).Find(a => a.EpisodeNumber == 1);
-		                    if (ep?.AbsoluteNumber != null)
-		                    {
-		                        AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
-		                            season, tvser?.SeriesName ?? "");
-		                    }
-	                    }
-	                    return true;
+                        // add links for multiple seasons (for long shows)
+                        List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
+                        foreach (int season in seasons)
+                        {
+                            if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
+                            TvDB_Episode ep = RepoFactory.TvDB_Episode
+                                .GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season)
+                                .Find(a => a.EpisodeNumber == 1);
+                            if (ep?.AbsoluteNumber != null)
+                            {
+                                AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
+                                    season, tvser?.SeriesName ?? "");
+                            }
+                        }
+                        return true;
                     }
                 }
                 logger.Trace("No english results found, so SKIPPING: {0}", searchCriteria);
@@ -200,7 +209,8 @@ namespace Shoko.Server.Commands
             return false;
         }
 
-        private static void AddCrossRef_AniDB_TvDBV2(int animeID, int anistart, int tvdbID, int tvdbSeason, string title)
+        private static void AddCrossRef_AniDB_TvDBV2(int animeID, int anistart, int tvdbID, int tvdbSeason,
+            string title)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {

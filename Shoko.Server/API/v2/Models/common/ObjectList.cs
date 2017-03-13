@@ -32,7 +32,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
             FILE = 1,
             EPISODE = 2,
-            SERIE = 3                       
+            SERIE = 3
         }
-    } 
+    }
 }

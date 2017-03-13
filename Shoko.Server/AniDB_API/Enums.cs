@@ -9,7 +9,6 @@
     }
 
 
-
     public enum enAniDBVoteType
     {
         Anime = 1,
@@ -60,6 +59,7 @@
         LoginFailed = 5,
         LoggingOut = 6,
         LoginRequired = 7,
+
         //File
         HashingFile = 10,
         HashComplete = 11,
@@ -84,6 +84,7 @@
         GotEpisodeInfo = 30,
         GettingEpisodeInfo = 32,
         NoSuchEpisode = 33,
+
         //Anime
         GettingAnimeInfo = 41,
         GotAnimeInfo = 42,
@@ -93,28 +94,34 @@
         GettingGroupStatus = 46,
         GotGroupStatus = 47,
         NoGroupsFound = 48,
+
         //My List
         GettingMyListFileInfo = 50,
         NoSuchMyListFile = 51,
         GotMyListFileInfo = 52,
         GettingMyListStats = 53,
         GotMyListStats = 54,
+
         //Char
         GotCharInfo = 60,
         GettingCharInfo = 61,
         NoSuchChar = 62,
+
         //Creator
         GotCreatorInfo = 70,
         GettingCreatorInfo = 71,
         NoSuchCreator = 72,
+
         // Calendar
         GotCalendar = 81,
         CalendarEmpty = 82,
         GettingCalendar = 83,
+
         // Review
         GotReview = 91,
         GettingReview = 92,
         NoSuchReview = 93,
+
         // Vote
         Voted = 111,
         AddingVote = 112,
@@ -126,9 +133,11 @@
         InvalidVoteValue = 118,
         PermVoteNotAllowed = 119,
         PermVoteAlready = 120,
+
         //Misc
         StatusUpdate = 40,
         OtherError = 100,
+
         // HTTP,
         GettingAnimeHTTP = 121,
         GotAnimeInfoHTTP = 122,
@@ -136,17 +145,21 @@
         GotMyListHTTP = 124,
         GettingVotesHTTP = 125,
         GotVotesHTTP = 126,
+
         // Notify List
         GotNotifyList = 130,
         GettingNotifyList = 131,
+
         // Notify Get
         GotNotifyGet = 140,
         GettingNotifyGet = 141,
         NoSuchNotify = 142,
+
         // Updated
         GotUpdated = 151,
         GettingUpdated = 152,
         NoUpdates = 153,
+
         // Group
         GettingGroup = 160,
         GotGroup = 161,

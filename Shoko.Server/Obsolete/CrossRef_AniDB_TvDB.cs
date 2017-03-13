@@ -8,7 +8,7 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Models
 {
     [Obsolete]
-    public class CrossRef_AniDB_TvDB 
+    public class CrossRef_AniDB_TvDB
     {
         public CrossRef_AniDB_TvDB()
         {
@@ -19,6 +19,7 @@ namespace Shoko.Server.Models
         public int TvDBID { get; set; }
         public int TvDBSeasonNumber { get; set; }
         public int CrossRefSource { get; set; }
+
         public TvDB_Series GetTvDBSeries()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

@@ -30,6 +30,7 @@ using System;
 namespace LZ4pn
 {
 #if UNSAFE
+
     /// <summary>Unsafe LZ4 codec.</summary>
     public static partial class LZ4Codec
     {
@@ -466,7 +467,7 @@ namespace LZ4pn
 
             fixed (ushort* ct = &hc4.chainTable[0])
             {
-                BlockFill((byte*) ct, MAXD*sizeof(ushort), 0xFF);
+                BlockFill((byte*) ct, MAXD * sizeof(ushort), 0xFF);
             }
 
             hc4.src_base = src;
@@ -609,5 +610,6 @@ namespace LZ4pn
 
         #endregion
     }
+
 #endif
 }

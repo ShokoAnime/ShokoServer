@@ -22,8 +22,13 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct PrettyDescription
         {
-            get {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTrakt, extraParams = new string[] { AnimeID.ToString() } };
+            get
+            {
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTrakt,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 

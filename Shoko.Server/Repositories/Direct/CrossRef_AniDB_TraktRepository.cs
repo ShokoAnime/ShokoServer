@@ -12,13 +12,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private CrossRef_AniDB_TraktRepository()
         {
-            
         }
 
         public static CrossRef_AniDB_TraktRepository Create()
         {
             return new CrossRef_AniDB_TraktRepository();
         }
+
         public CrossRef_AniDB_Trakt GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

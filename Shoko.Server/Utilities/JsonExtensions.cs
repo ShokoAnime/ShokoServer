@@ -64,7 +64,7 @@ namespace Shoko.Server.Utilities
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in Serialization: " + ex.ToString());
+                logger.Error(ex, "Error in Serialization: " + ex.ToString());
                 return new List<T>();
             }
         }

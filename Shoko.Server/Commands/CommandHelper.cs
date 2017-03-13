@@ -8,28 +8,87 @@ using Shoko.Server.Commands.WebCache;
 
 namespace Shoko.Server.Commands
 {
-    public enum QueueStateEnum {
-        AnimeInfo=1, DeleteError, DownloadImage, DownloadMalWatched, DownloadTvDBImages, FileInfo, GetCalendar, GetEpisodeList, GetFileInfo, GetReleaseGroup,
-        GetReleaseInfo, GetReviewInfo, GettingTvDB, GetUpdatedAnime, HashingFile, Idle, Paused, Queued, ReadingMedia, RefreshAnime, SearchMal, SearchTMDb, SearchTrakt,
-        SearchTvDB, SendAnimeAzure, SendAnimeFull, SendAnimeTitle, SendAnonymousData, StartingGeneral, StartingHasher, StartingImages, SyncMyList, SyncTrakt,
-        SyncTraktEpisodes, SyncTraktSeries, SyncVotes, TraktAddHistory, UpdateMALWatched, UpdateMyListInfo, UpdateMyListStats, UpdateTrakt, UpdateTraktData, UploadMALWatched,
-        VoteAnime, WebCacheDeleteXRefAniDBMAL, WebCacheDeleteXRefAniDBOther, WebCacheDeleteXRefAniDBTrakt, WebCacheDeleteXRefAniDBTvDB, WebCacheDeleteXRefFileEpisode, WebCacheSendXRefAniDBMAL,
-        WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes,
-        LinkAniDBTvDB, CheckingFile, RefreshGroupFilter, SyncPlex
+    public enum QueueStateEnum
+    {
+        AnimeInfo = 1,
+        DeleteError,
+        DownloadImage,
+        DownloadMalWatched,
+        DownloadTvDBImages,
+        FileInfo,
+        GetCalendar,
+        GetEpisodeList,
+        GetFileInfo,
+        GetReleaseGroup,
+        GetReleaseInfo,
+        GetReviewInfo,
+        GettingTvDB,
+        GetUpdatedAnime,
+        HashingFile,
+        Idle,
+        Paused,
+        Queued,
+        ReadingMedia,
+        RefreshAnime,
+        SearchMal,
+        SearchTMDb,
+        SearchTrakt,
+        SearchTvDB,
+        SendAnimeAzure,
+        SendAnimeFull,
+        SendAnimeTitle,
+        SendAnonymousData,
+        StartingGeneral,
+        StartingHasher,
+        StartingImages,
+        SyncMyList,
+        SyncTrakt,
+        SyncTraktEpisodes,
+        SyncTraktSeries,
+        SyncVotes,
+        TraktAddHistory,
+        UpdateMALWatched,
+        UpdateMyListInfo,
+        UpdateMyListStats,
+        UpdateTrakt,
+        UpdateTraktData,
+        UploadMALWatched,
+        VoteAnime,
+        WebCacheDeleteXRefAniDBMAL,
+        WebCacheDeleteXRefAniDBOther,
+        WebCacheDeleteXRefAniDBTrakt,
+        WebCacheDeleteXRefAniDBTvDB,
+        WebCacheDeleteXRefFileEpisode,
+        WebCacheSendXRefAniDBMAL,
+        WebCacheSendXRefAniDBOther,
+        WebCacheSendXRefAniDBTrakt,
+        WebCacheSendXRefAniDBTvDB,
+        WebCacheSendXRefFileEpisode,
+        AniDB_MyListAdd,
+        AniDB_MyListDelete,
+        AniDB_GetTitles,
+        Actions_SyncVotes,
+        LinkAniDBTvDB,
+        CheckingFile,
+        RefreshGroupFilter,
+        SyncPlex
     };
 
     public struct QueueStateStruct
     {
         public QueueStateEnum queueState;
         public string[] extraParams;
+
         public string formatMessage()
         {
             string formatString = getFormatString(queueState);
             return string.Format(formatString, extraParams);
         }
+
         private string getFormatString(QueueStateEnum id)
         {
-            switch (id) {
+            switch (id)
+            {
                 case QueueStateEnum.AnimeInfo:
                     return Shoko.Commons.Properties.Resources.Command_AnimeInfo;
                 case QueueStateEnum.DeleteError:
@@ -60,9 +119,9 @@ namespace Shoko.Server.Commands
                     return Shoko.Commons.Properties.Resources.Command_GetUpdatedAnime;
                 case QueueStateEnum.HashingFile:
                     return Shoko.Commons.Properties.Resources.Command_HashingFile;
-	            case QueueStateEnum.CheckingFile:
-		            return Shoko.Commons.Properties.Resources.Command_CheckingFile;
-	            case QueueStateEnum.Idle:
+                case QueueStateEnum.CheckingFile:
+                    return Shoko.Commons.Properties.Resources.Command_CheckingFile;
+                case QueueStateEnum.Idle:
                     return Shoko.Commons.Properties.Resources.Command_Idle;
                 case QueueStateEnum.Paused:
                     return Shoko.Commons.Properties.Resources.Command_Paused;
@@ -150,14 +209,14 @@ namespace Shoko.Server.Commands
                     return Shoko.Commons.Properties.Resources.Actions_SyncVotes;
                 case QueueStateEnum.LinkAniDBTvDB:
                     return Shoko.Commons.Properties.Resources.Command_LinkAniDBTvDB;
-	            case QueueStateEnum.RefreshGroupFilter:
-		            return Shoko.Commons.Properties.Resources.Command_RefreshGroupFilter;
+                case QueueStateEnum.RefreshGroupFilter:
+                    return Shoko.Commons.Properties.Resources.Command_RefreshGroupFilter;
                 case QueueStateEnum.SyncPlex:
                     return Shoko.Commons.Properties.Resources.Command_SyncPlex;
-	            default:
-                    throw new System.Exception("Unknown queue state format string"); ;
+                default:
+                    throw new System.Exception("Unknown queue state format string");
+                    ;
             }
-
         }
     }
 
@@ -268,7 +327,8 @@ namespace Shoko.Server.Commands
                     return (ICommandRequest) cr_CommandRequest_Azure_SendAnimeTitle;
 
                 case CommandRequestType.AniDB_GetTitles:
-                    CommandRequest_GetAniDBTitles cr_CommandRequest_GetAniDBTitles = new CommandRequest_GetAniDBTitles();
+                    CommandRequest_GetAniDBTitles cr_CommandRequest_GetAniDBTitles =
+                        new CommandRequest_GetAniDBTitles();
                     cr_CommandRequest_GetAniDBTitles.LoadFromDBCommand(crdb);
                     return (ICommandRequest) cr_CommandRequest_GetAniDBTitles;
 
@@ -291,7 +351,8 @@ namespace Shoko.Server.Commands
                     return (ICommandRequest) cr_CommandRequest_Azure_SendUserInfo;
 
                 case CommandRequestType.AniDB_UpdateMylistStats:
-                    CommandRequest_UpdateMylistStats cr_AniDB_UpdateMylistStats = new CommandRequest_UpdateMylistStats();
+                    CommandRequest_UpdateMylistStats cr_AniDB_UpdateMylistStats =
+                        new CommandRequest_UpdateMylistStats();
                     cr_AniDB_UpdateMylistStats.LoadFromDBCommand(crdb);
                     return (ICommandRequest) cr_AniDB_UpdateMylistStats;
 
@@ -532,10 +593,10 @@ namespace Shoko.Server.Commands
                     cr_linkAniDBTvDB.LoadFromDBCommand(crdb);
                     return cr_linkAniDBTvDB;
 
-	            case CommandRequestType.Refresh_GroupFilter:
-		            CommandRequest_RefreshGroupFilter cr_refreshGroupFilter = new CommandRequest_RefreshGroupFilter();
-		            cr_refreshGroupFilter.LoadFromDBCommand(crdb);
-		            return cr_refreshGroupFilter;
+                case CommandRequestType.Refresh_GroupFilter:
+                    CommandRequest_RefreshGroupFilter cr_refreshGroupFilter = new CommandRequest_RefreshGroupFilter();
+                    cr_refreshGroupFilter.LoadFromDBCommand(crdb);
+                    return cr_refreshGroupFilter;
 
                 case CommandRequestType.Plex_Sync:
                     CommandRequest_PlexSyncWatched cr_PlexSync = new CommandRequest_PlexSyncWatched();

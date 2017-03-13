@@ -23,7 +23,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.AniDB_MyListDelete, extraParams = new string[] { Hash, FileID.ToString() } };               
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.AniDB_MyListDelete,
+                    extraParams = new string[] {Hash, FileID.ToString()}
+                };
             }
         }
 
@@ -66,7 +70,6 @@ namespace Shoko.Server.Commands
                             ShokoService.AnidbProcessor.DeleteFileFromMyList(FileID);
                         else
                             ShokoService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
-
                         logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
                         break;
 
@@ -160,7 +163,8 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 this.Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
-                this.FileSize = long.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
+                this.FileSize = long.Parse(
+                    TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
                 this.FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
             }
 

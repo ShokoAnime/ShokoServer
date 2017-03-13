@@ -10,13 +10,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private CrossRef_Subtitles_AniDB_FileRepository()
         {
-            
         }
 
         public static CrossRef_Subtitles_AniDB_FileRepository Create()
         {
             return new CrossRef_Subtitles_AniDB_FileRepository();
         }
+
         public List<CrossRef_Subtitles_AniDB_File> GetByFileID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

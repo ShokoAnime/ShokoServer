@@ -9,13 +9,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private FileFfdshowPresetRepository()
         {
-            
         }
 
         public static FileFfdshowPresetRepository Create()
         {
             return new FileFfdshowPresetRepository();
         }
+
         public FileFfdshowPreset GetByHashAndSize(string hash, long fsize)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

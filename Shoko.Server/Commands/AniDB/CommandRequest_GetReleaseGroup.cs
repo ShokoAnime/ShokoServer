@@ -24,7 +24,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GetReleaseInfo, extraParams = new string[] { GroupID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.GetReleaseInfo,
+                    extraParams = new string[] {GroupID.ToString()}
+                };
             }
         }
 

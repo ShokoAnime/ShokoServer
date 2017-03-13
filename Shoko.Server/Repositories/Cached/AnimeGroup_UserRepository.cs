@@ -32,7 +32,8 @@ namespace Shoko.Server.Repositories.Cached
                 if (!Changes.ContainsKey(cr.JMMUserID))
                     Changes[cr.JMMUserID] = new ChangeTracker<int>();
                 Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
-                logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}", cr.AnimeGroupID);
+                logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
+                    cr.AnimeGroupID);
                 cr.DeleteFromFilters();
             };
         }
@@ -66,25 +67,28 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_AnimeGroup_User> grps =
                 Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name, " DbRegen");
-	        if (max <= 0) return;
-	        foreach (SVR_AnimeGroup_User g in grps)
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeGroup_User).Name, " DbRegen");
+            if (max <= 0) return;
+            foreach (SVR_AnimeGroup_User g in grps)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeGroup_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
         public override void Save(IReadOnlyCollection<SVR_AnimeGroup_User> objs)
         {
-            foreach(SVR_AnimeGroup_User grp in objs)
+            foreach (SVR_AnimeGroup_User grp in objs)
                 Save(grp);
         }
 
@@ -237,6 +241,5 @@ namespace Shoko.Server.Repositories.Cached
                 return Changes[userid];
             return new ChangeTracker<int>();
         }
-
     }
 }

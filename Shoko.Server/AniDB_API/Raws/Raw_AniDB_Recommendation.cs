@@ -6,7 +6,9 @@ namespace AniDBAPI
     {
         public int AnimeID { get; set; }
         public int UserID { get; set; }
+
         public string RecommendationTypeText { get; set; }
+
         //public int RecommendationType { get; set; }
         public string RecommendationText { get; set; }
 

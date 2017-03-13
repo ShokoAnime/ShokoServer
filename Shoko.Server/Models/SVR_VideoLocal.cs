@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using AniDBAPI;
-
 using FluentNHibernate.Utils;
 using Shoko.Commons.Utils;
 using Shoko.Models;
@@ -23,7 +22,6 @@ using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-
 using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Models
@@ -33,7 +31,9 @@ namespace Shoko.Server.Models
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public SVR_VideoLocal()
-        { }
+        {
+        }
+
         #region DB columns
 
         public int MediaVersion { get; set; }
@@ -45,7 +45,6 @@ namespace Shoko.Server.Models
 
         [ScriptIgnore]
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
-
 
 
         public const int MEDIA_VERSION = 2;
@@ -148,7 +147,6 @@ namespace Shoko.Server.Models
         }
 
 
-
         internal List<CrossRef_File_Episode> EpisodeCrossRefs
         {
             get
@@ -201,7 +199,6 @@ namespace Shoko.Server.Models
                 {
                     logger.Warn("File not found: " + fullname);
                     return null;
-
                 }
                 return fobj.Result as IFile;
             }
@@ -211,9 +208,10 @@ namespace Shoko.Server.Models
                 return null;
             }
         }
+
         public IFile GetBestFileLink()
         {
-            IFile file=null;
+            IFile file = null;
             foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
                 if (p != null)
@@ -225,6 +223,7 @@ namespace Shoko.Server.Models
             }
             return file;
         }
+
         public SVR_VideoLocal_Place GetBestVideoLocalPlace()
         {
             foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
@@ -264,7 +263,6 @@ namespace Shoko.Server.Models
             bool updateStatsCache, int userID,
             bool syncTrakt, bool updateWatchedDate)
         {
-
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null) return;
 
@@ -465,7 +463,6 @@ namespace Shoko.Server.Models
         }
 
 
-
         public CL_VideoLocal ToClient(int userID)
         {
             CL_VideoLocal cl = new CL_VideoLocal();
@@ -495,11 +492,15 @@ namespace Shoko.Server.Models
             }
             if (userRecord != null)
                 cl.ResumePosition = userRecord.ResumePosition;
-            cl.Media = GetMediaFromUser(userID);           
+            cl.Media = GetMediaFromUser(userID);
             return cl;
         }
-        private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]", RegexOptions.Compiled);
+
+        private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
+            RegexOptions.Compiled);
+
         private static Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
+
         public Media GetMediaFromUser(int userID)
         {
             Media n = null;
@@ -524,21 +525,35 @@ namespace Shoko.Server.Models
             if (n?.Parts == null) return n;
             foreach (Part p in n.Parts)
             {
-                string name = UrlSafe.Replace(Path.GetFileName(FileName), " ").Replace("  ", " ").Replace("  ", " ").Trim();
-                name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..", ".").Replace("..", ".").Replace("__", "_").Replace("__", "_").Replace(" ", "_").Replace("_.", ".");
+                string name = UrlSafe.Replace(Path.GetFileName(FileName), " ")
+                    .Replace("  ", " ")
+                    .Replace("  ", " ")
+                    .Trim();
+                name = UrlSafe2.Replace(name, string.Empty)
+                    .Trim()
+                    .Replace("..", ".")
+                    .Replace("..", ".")
+                    .Replace("__", "_")
+                    .Replace("__", "_")
+                    .Replace(" ", "_")
+                    .Replace("_.", ".");
                 while (name.StartsWith("_"))
                     name = name.Substring(1);
                 while (name.StartsWith("."))
                     name = name.Substring(1);
-                p.Key = ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
+                p.Key = ((IProvider) null).ReplaceSchemeHost(
+                    ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                 if (p.Streams == null) continue;
                 foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                 {
-                    s.Key = ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructFileStream(userID, s.File, false));
+                    s.Key =
+                        ((IProvider) null).ReplaceSchemeHost(
+                            ((IProvider) null).ConstructFileStream(userID, s.File, false));
                 }
             }
             return n;
         }
+
         public CL_VideoDetailed ToClientDetailed(int userID)
         {
             CL_VideoDetailed cl = new CL_VideoDetailed();
@@ -577,7 +592,7 @@ namespace Shoko.Server.Models
                 cl.VideoLocal_IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
                 cl.VideoLocal_WatchedDate = userRecord.WatchedDate;
             }
-            if (userRecord!=null)
+            if (userRecord != null)
                 cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
             cl.VideoInfo_AudioBitrate = AudioBitrate;
             cl.VideoInfo_AudioCodec = AudioCodec;
@@ -674,7 +689,7 @@ namespace Shoko.Server.Models
                 cl.IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
                 cl.WatchedDate = userRecord.WatchedDate;
             }
-            if (userRecord!=null)
+            if (userRecord != null)
                 cl.ResumePosition = userRecord.ResumePosition;
             return cl;
         }

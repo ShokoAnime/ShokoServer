@@ -15,6 +15,7 @@ namespace Shoko.Server.Utilities
         private Stream _fstream;
         private StreamWriter _writer;
 #endif
+
         public delegate void CrossPositionHandler(long position);
 
         public event CrossPositionHandler CrossPositionCrossed;
@@ -71,12 +72,12 @@ namespace Shoko.Server.Utilities
         }
 
         public override int Read(byte[] buffer, int offset, int count)
-        {            
+        {
             if (count > _bytesLeft)
             {
                 count = (int) _bytesLeft;
             }
-           
+
             long oldpos = _stream.Position;
 #if DEBUG_STREAM
             _writer.WriteLine("POSITION: " + oldpos.ToString("X8") + " OFFSET: " + offset.ToString("X8") + " NeedCount: " + count.ToString("X8"));
@@ -109,7 +110,6 @@ namespace Shoko.Server.Utilities
                 }
             }
             return read;
-          
         }
 
         public override long Seek(long offset, SeekOrigin origin)

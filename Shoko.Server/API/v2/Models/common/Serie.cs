@@ -10,15 +10,19 @@ using Shoko.Server.Models;
 namespace Shoko.Server.API.v2.Models.common
 {
     [DataContract]
-    public class Serie : BaseDirectory,IComparable
+    public class Serie : BaseDirectory, IComparable
     {
-        public override string type { get { return "serie"; } }
+        public override string type
+        {
+            get { return "serie"; }
+        }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Episode> eps { get; set; }
+
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public int ismovie { get; set; }
 
@@ -29,7 +33,8 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Serie GenerateFromVideoLocal(SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all)
+        public static Serie GenerateFromVideoLocal(SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level,
+            bool all)
         {
             Serie sr = new Serie();
 
@@ -44,7 +49,8 @@ namespace Shoko.Server.API.v2.Models.common
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all)
+        public static Serie GenerateFromAnimeSeries(SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
+            bool all)
         {
             Serie sr = new Serie();
 
@@ -61,8 +67,11 @@ namespace Shoko.Server.API.v2.Models.common
             sr.userrating = nv.UserRating;
             sr.titles = nv.Titles;
             sr.name = nv.Title;
-	        sr.season = nv.Season;
-            if (nv.IsMovie ) { sr.ismovie = 1; }
+            sr.season = nv.Season;
+            if (nv.IsMovie)
+            {
+                sr.ismovie = 1;
+            }
 
             Random rand = new Random();
             Contract_ImageDetails art = new Contract_ImageDetails();
@@ -87,7 +96,10 @@ namespace Shoko.Server.API.v2.Models.common
                 });
             }
 
-            if (!string.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
+            if (!string.IsNullOrEmpty(nv.Thumb))
+            {
+                sr.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0});
+            }
 
             if (!nocast)
             {
@@ -96,11 +108,46 @@ namespace Shoko.Server.API.v2.Models.common
                     foreach (RoleTag rtg in nv.Roles)
                     {
                         Role new_role = new Role();
-                        if (!String.IsNullOrEmpty(rtg.Value)) { new_role.name = rtg.Value; } else { new_role.name = ""; }
-                        if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); } else { new_role.namepic = ""; }
-                        if (!String.IsNullOrEmpty(rtg.Role)) { new_role.role = rtg.Role; } else { rtg.Role = ""; }
-                        if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; }
-                        if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); } else { new_role.rolepic = ""; }
+                        if (!String.IsNullOrEmpty(rtg.Value))
+                        {
+                            new_role.name = rtg.Value;
+                        }
+                        else
+                        {
+                            new_role.name = "";
+                        }
+                        if (!String.IsNullOrEmpty(rtg.TagPicture))
+                        {
+                            new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture);
+                        }
+                        else
+                        {
+                            new_role.namepic = "";
+                        }
+                        if (!String.IsNullOrEmpty(rtg.Role))
+                        {
+                            new_role.role = rtg.Role;
+                        }
+                        else
+                        {
+                            rtg.Role = "";
+                        }
+                        if (!String.IsNullOrEmpty(rtg.RoleDescription))
+                        {
+                            new_role.roledesc = rtg.RoleDescription;
+                        }
+                        else
+                        {
+                            new_role.roledesc = "";
+                        }
+                        if (!String.IsNullOrEmpty(rtg.RolePicture))
+                        {
+                            new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture);
+                        }
+                        else
+                        {
+                            new_role.rolepic = "";
+                        }
                         sr.roles.Add(new_role);
                     }
                 }
@@ -132,10 +179,10 @@ namespace Shoko.Server.API.v2.Models.common
                         if (new_ep != null)
                         {
                             sr.eps.Add(new_ep);
+                        }
                     }
-                }
                     sr.eps = sr.eps.OrderBy(a => a.epnumber).ToList();
-            }
+                }
             }
 
             return sr;
@@ -145,7 +192,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
             Serie a = obj as Serie;
             if (a == null) return 1;
-            int s,s1;
+            int s, s1;
             // try year first, as it is more likely to have relevannt data
             if (int.TryParse(a.year, out s1) && int.TryParse(year, out s))
             {
@@ -153,10 +200,12 @@ namespace Shoko.Server.API.v2.Models.common
                 if (s > s1) return 1;
             }
             // Does it have an air date? Sort by it
-            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")) && !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
+            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")) &&
+                !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
             {
                 DateTime d, d1;
-                if (DateTime.TryParseExact(a.air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out d1) &&
+                if (DateTime.TryParseExact(a.air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                        out d1) &&
                     DateTime.TryParseExact(air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out d))
                 {
                     if (d < d1) return -1;

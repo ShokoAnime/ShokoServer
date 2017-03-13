@@ -16,8 +16,13 @@ namespace Shoko.Server.Repositories
     {
         private PocoIndex<int, AniDB_Anime_Tag, int> Animes;
 
-        private AniDB_Anime_TagRepository() { }
-        public override void RegenerateDb() { }
+        private AniDB_Anime_TagRepository()
+        {
+        }
+
+        public override void RegenerateDb()
+        {
+        }
 
         public static AniDB_Anime_TagRepository Create()
         {
@@ -50,7 +55,6 @@ namespace Shoko.Server.Repositories
         }
 
 
-
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
             return Animes.GetMultiple(id);
@@ -65,7 +69,6 @@ namespace Shoko.Server.Repositories
                 return new List<AniDB_Anime_Tag>(tags);
             }*/
         }
-
 
 
         public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)

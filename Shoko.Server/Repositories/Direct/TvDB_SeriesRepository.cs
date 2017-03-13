@@ -14,13 +14,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private TvDB_SeriesRepository()
         {
-            
         }
 
         public static TvDB_SeriesRepository Create()
         {
             return new TvDB_SeriesRepository();
         }
+
         public TvDB_Series GetByTvDBID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -37,7 +37,8 @@ namespace Shoko.Server.Repositories.Direct
                 .UniqueResult<TvDB_Series>();
         }
 
-        public ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session, int[] animeIds)
+        public ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session,
+            int[] animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -59,8 +60,9 @@ namespace Shoko.Server.Repositories.Direct
                 .AddEntity("series", typeof(TvDB_Series))
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .ToLookup(r => ((CrossRef_AniDB_TvDBV2)r[0]).AnimeID,
-                    r => new Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>((CrossRef_AniDB_TvDBV2)r[0], (TvDB_Series)r[1]));
+                .ToLookup(r => ((CrossRef_AniDB_TvDBV2) r[0]).AnimeID,
+                    r => new Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>((CrossRef_AniDB_TvDBV2) r[0],
+                        (TvDB_Series) r[1]));
 
             return tvDbSeriesByAnime;
         }

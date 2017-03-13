@@ -10,7 +10,6 @@ namespace Shoko.Server.Repositories.Direct
     {
         private CommandRequestRepository()
         {
-            
         }
 
         public static CommandRequestRepository Create()
@@ -35,7 +34,7 @@ namespace Shoko.Server.Repositories.Direct
             return cr;
         }
 
-      
+
         public CommandRequest GetNextDBCommandRequestGeneral()
         {
             /*SELECT TOP 1 CommandRequestID
@@ -142,7 +141,8 @@ namespace Shoko.Server.Repositories.Direct
                     .CreateCriteria(typeof(CommandRequest))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.HashFile))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
-                    .SetProjection(Projections.Count("CommandRequestID")).UniqueResult();
+                    .SetProjection(Projections.Count("CommandRequestID"))
+                    .UniqueResult();
 
                 return (int) cnt;
             }
@@ -155,7 +155,8 @@ namespace Shoko.Server.Repositories.Direct
                 var cnt = session
                     .CreateCriteria(typeof(CommandRequest))
                     .Add(Restrictions.Eq("CommandType", (int) CommandRequestType.HashFile))
-                    .SetProjection(Projections.Count("CommandRequestID")).UniqueResult();
+                    .SetProjection(Projections.Count("CommandRequestID"))
+                    .UniqueResult();
 
                 return (int) cnt;
             }
@@ -168,11 +169,11 @@ namespace Shoko.Server.Repositories.Direct
                 var cnt = session
                     .CreateCriteria(typeof(CommandRequest))
                     .Add(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
-                    .SetProjection(Projections.Count("CommandRequestID")).UniqueResult();
+                    .SetProjection(Projections.Count("CommandRequestID"))
+                    .UniqueResult();
 
                 return (int) cnt;
             }
         }
-
     }
 }

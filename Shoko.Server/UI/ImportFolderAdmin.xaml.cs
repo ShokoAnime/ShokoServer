@@ -49,7 +49,8 @@ namespace Shoko.Server
                         MessageBox.Show(
                             string.Format(Shoko.Commons.Properties.Resources.ImportFolders_RemoveFolder,
                                 ns.ImportFolderLocation),
-                            Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                            Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
                     {
                         this.Cursor = Cursors.Wait;

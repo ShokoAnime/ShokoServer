@@ -10,13 +10,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private IgnoreAnimeRepository()
         {
-            
         }
 
         public static IgnoreAnimeRepository Create()
         {
             return new IgnoreAnimeRepository();
         }
+
         public IgnoreAnime GetByAnimeUserType(int animeID, int userID, int ignoreType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -58,6 +58,5 @@ namespace Shoko.Server.Repositories.Direct
                 return new List<IgnoreAnime>(objs);
             }
         }
-
     }
 }

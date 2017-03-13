@@ -45,7 +45,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in APIUtils.DownloadWebPage: {0}");
+                logger.Error(ex, "Error in APIUtils.DownloadWebPage: {0}");
                 return "";
             }
         }
@@ -71,7 +71,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in APIUtils.DownloadWebBinary: {0}");
+                logger.Error(ex, "Error in APIUtils.DownloadWebBinary: {0}");
                 return null;
             }
         }

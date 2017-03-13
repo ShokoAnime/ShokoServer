@@ -20,7 +20,8 @@ namespace Shoko.Server.Models
         public SVR_CloudAccount()
         {
         }
-        public new string Provider 
+
+        public new string Provider
         {
             get { return base.Provider; }
             set
@@ -28,7 +29,7 @@ namespace Shoko.Server.Models
                 base.Provider = value;
                 if (!string.IsNullOrEmpty(value))
                 {
-                    _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name ==value);
+                    _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == value);
                     if (_plugin != null)
                     {
                         Bitmap = _plugin.CreateIconImage();
@@ -36,10 +37,12 @@ namespace Shoko.Server.Models
                 }
             }
         }
+
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        public BitmapImage Bitmap { get;  set; }
+        public BitmapImage Bitmap { get; set; }
+
         public byte[] Icon => _plugin?.Icon;
         private ICloudPlugin _plugin;
 
@@ -58,13 +61,13 @@ namespace Shoko.Server.Models
             }
             set
             {
-                if (value!=null)
+                if (value != null)
                     ServerState.Instance.ConnectedFileSystems[Name] = value;
                 else if (ServerState.Instance.ConnectedFileSystems.ContainsKey(Name))
                     ServerState.Instance.ConnectedFileSystems.Remove(Name);
-                    
             }
         }
+
         internal bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
 
 
@@ -85,7 +88,7 @@ namespace Shoko.Server.Models
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
             Bitmap = _plugin.CreateIconImage();
-            FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(owner), auth, ConnectionString);            
+            FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(owner), auth, ConnectionString);
             if (!res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
             string userauth = res.Result.GetUserAuthorization();
@@ -96,6 +99,7 @@ namespace Shoko.Server.Models
             }
             return res.Result;
         }
+
         public static SVR_CloudAccount CreateLocalFileSystemAccount()
         {
             return new SVR_CloudAccount
@@ -104,7 +108,5 @@ namespace Shoko.Server.Models
                 Provider = "Local File System"
             };
         }
-
-
     }
 }

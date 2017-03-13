@@ -5,7 +5,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate,int>
+    public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, int>
     {
         private ScheduledUpdateRepository()
         {
@@ -15,6 +15,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             return new ScheduledUpdateRepository();
         }
+
         public ScheduledUpdate GetByUpdateType(int uptype)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

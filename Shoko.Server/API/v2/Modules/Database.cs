@@ -104,7 +104,7 @@ namespace Shoko.Server.API.v2.Modules
                 return HttpStatusCode.BadRequest;
             }
         }
-        
+
         /// <summary>
         /// Test and run database
         /// </summary>
@@ -119,16 +119,20 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 else if (ServerState.Instance.DatabaseIsSQLServer)
                 {
-                    if (string.IsNullOrEmpty(ServerSettings.DatabaseName) || string.IsNullOrEmpty(ServerSettings.DatabasePassword)
-                        || string.IsNullOrEmpty(ServerSettings.DatabaseServer) || string.IsNullOrEmpty(ServerSettings.DatabaseUsername))
+                    if (string.IsNullOrEmpty(ServerSettings.DatabaseName) ||
+                        string.IsNullOrEmpty(ServerSettings.DatabasePassword)
+                        || string.IsNullOrEmpty(ServerSettings.DatabaseServer) ||
+                        string.IsNullOrEmpty(ServerSettings.DatabaseUsername))
                     {
                         return HttpStatusCode.BadRequest;
                     }
                 }
                 else if (ServerState.Instance.DatabaseIsMySQL)
                 {
-                    if (string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) || string.IsNullOrEmpty(ServerSettings.MySQL_Password)
-                        || string.IsNullOrEmpty(ServerSettings.MySQL_Hostname) || string.IsNullOrEmpty(ServerSettings.MySQL_Username))
+                    if (string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) ||
+                        string.IsNullOrEmpty(ServerSettings.MySQL_Password)
+                        || string.IsNullOrEmpty(ServerSettings.MySQL_Hostname) ||
+                        string.IsNullOrEmpty(ServerSettings.MySQL_Username))
                     {
                         return HttpStatusCode.BadRequest;
                     }

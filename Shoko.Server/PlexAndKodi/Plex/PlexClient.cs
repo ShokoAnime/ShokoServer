@@ -19,5 +19,4 @@ namespace Shoko.Server.PlexAndKodi.Plex
         Other,
         None
     }
-
 }

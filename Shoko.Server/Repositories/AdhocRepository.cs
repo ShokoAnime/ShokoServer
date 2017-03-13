@@ -20,13 +20,13 @@ namespace Shoko.Server.Repositories
     {
         private AdhocRepository()
         {
-            
         }
 
         public static AdhocRepository Create()
         {
             return new AdhocRepository();
         }
+
         #region Video Quality
 
         /// <summary>
@@ -188,7 +188,8 @@ namespace Shoko.Server.Repositories
         /// <param name="animeGroupIds">The optional list of group IDs to limit the results to.
         /// If <c>null</c> is specified, then results for ALL groups will be returned.</param>
         /// <returns>A <see cref="ILookup{TKey,TElement}"/> containing all video quality grouped by anime group ID.</returns>
-        public ILookup<int, string> GetAllVideoQualityByGroup(ISessionWrapper session, IReadOnlyCollection<int> animeGroupIds = null)
+        public ILookup<int, string> GetAllVideoQualityByGroup(ISessionWrapper session,
+            IReadOnlyCollection<int> animeGroupIds = null)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -224,7 +225,7 @@ namespace Shoko.Server.Repositories
                 .AddScalar("AnimeGroupID", NHibernateUtil.Int32)
                 .AddScalar("File_Source", NHibernateUtil.String)
                 .List<object[]>()
-                .ToLookup(r => (int)r[0], r => (string)r[1]);
+                .ToLookup(r => (int) r[0], r => (string) r[1]);
 
             return results;
         }
@@ -243,16 +244,16 @@ namespace Shoko.Server.Repositories
 
             System.Data.IDbCommand command = session.Connection.CreateCommand();
             command.CommandText = "SELECT anifile.File_Source "
-               + "FROM AnimeSeries ser "
-               + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-               + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-               + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-               + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-               + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-               + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
+                                  + "FROM AnimeSeries ser "
+                                  + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                                  + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                                  + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                                  + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                                  + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                                  + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
             // See Note 1
             command.CommandText += "where anime.AnimeID = " + animeID.ToString()
-                + " GROUP BY anifile.File_Source ";
+                                   + " GROUP BY anifile.File_Source ";
 
             using (IDataReader rdr = command.ExecuteReader())
             {
@@ -268,7 +269,8 @@ namespace Shoko.Server.Repositories
             return vidQuals;
         }
 
-        public Dictionary<int, HashSet<string>> GetAllVideoQualityByAnime(ISessionWrapper session, ICollection<int> animeIDs)
+        public Dictionary<int, HashSet<string>> GetAllVideoQualityByAnime(ISessionWrapper session,
+            ICollection<int> animeIDs)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -326,20 +328,22 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public Dictionary<int, AnimeVideoQualityStat> GetEpisodeVideoQualityStatsByAnime(ISessionWrapper session, IReadOnlyCollection<int> animeIds = null)
+        public Dictionary<int, AnimeVideoQualityStat> GetEpisodeVideoQualityStatsByAnime(ISessionWrapper session,
+            IReadOnlyCollection<int> animeIds = null)
         {
             Dictionary<int, AnimeVideoQualityStat> dictStats = new Dictionary<int, AnimeVideoQualityStat>();
 
             using (IDbCommand command = session.Connection.CreateCommand())
             {
                 command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber "
-                    + "FROM AnimeSeries ser "
-                    + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                    + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                    + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                    + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                    + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                    + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
+                                      + "FROM AnimeSeries ser "
+                                      + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                                      + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                                      + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                                      + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                                      + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                                      +
+                                      "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
                 // See Note 1
                 command.CommandText += "WHERE aniep.EpisodeType = 1 "; // normal episodes only
 
@@ -353,7 +357,8 @@ namespace Shoko.Server.Repositories
                     command.CommandText += "AND anime.AnimeID IN (" + String.Join(",", animeIds) + ") ";
                 }
 
-                command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber "
+                command.CommandText +=
+                    "GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber "
                     + "ORDER BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
 
                 using (IDataReader rdr = command.ExecuteReader())
@@ -369,11 +374,11 @@ namespace Shoko.Server.Repositories
                         if (!dictStats.TryGetValue(animeID, out stat))
                         {
                             stat = new AnimeVideoQualityStat
-                                {
-                                    AnimeID = animeID,
-                                    MainTitle = mainTitle,
-                                    VideoQualityEpisodeCount = new Dictionary<string, int>()
-                                };
+                            {
+                                AnimeID = animeID,
+                                MainTitle = mainTitle,
+                                VideoQualityEpisodeCount = new Dictionary<string, int>()
+                            };
                             dictStats.Add(animeID, stat);
                         }
 
@@ -395,17 +400,18 @@ namespace Shoko.Server.Repositories
 
             System.Data.IDbCommand command = session.Connection.CreateCommand();
             command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber "
-                + "from AnimeSeries ser "
-                + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
+                                  + "from AnimeSeries ser "
+                                  + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                                  + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                                  + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                                  + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                                  + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                                  + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
             // See Note 1
             command.CommandText += "WHERE aniep.EpisodeType = 1 " // normal episodes only
-                + "AND anime.AnimeID =  " + aID.ToString()
-                + " GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
+                                   + "AND anime.AnimeID =  " + aID.ToString()
+                                   +
+                                   " GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
 
             using (IDataReader rdr = command.ExecuteReader())
             {
@@ -580,14 +586,14 @@ namespace Shoko.Server.Repositories
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
             const string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
-                + "FROM AnimeSeries ser  "
-                + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
-                + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID";
+                                 + "FROM AnimeSeries ser  "
+                                 + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                                 + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                                 + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                                 + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                                 + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                                 + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
+                                 + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID";
 
             var rows = session.CreateSQLQuery(query)
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
@@ -622,19 +628,20 @@ namespace Shoko.Server.Repositories
         private string GetAudioLanguageStatsByAnimeSQL(string animeIdPredicate)
         {
             string sql = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
-               + "FROM AnimeSeries ser  "
-               + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-               + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-               + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-               + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-               + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-               + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
-               + "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID "
-               + "WHERE anime.AnimeID " + animeIdPredicate;
+                         + "FROM AnimeSeries ser  "
+                         + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                         + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                         + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                         + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                         + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                         + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
+                         + "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID "
+                         + "WHERE anime.AnimeID " + animeIdPredicate;
             return sql;
         }
 
-        private Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnimeResults(ISessionWrapper session, string animeIdPredicate)
+        private Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnimeResults(ISessionWrapper session,
+            string animeIdPredicate)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
             string query = GetAudioLanguageStatsByAnimeSQL(animeIdPredicate);
@@ -680,10 +687,11 @@ namespace Shoko.Server.Repositories
 
         public Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(ISessionWrapper session, int aID)
         {
-            return GetAudioLanguageStatsByAnimeResults(session, " = " +aID);
+            return GetAudioLanguageStatsByAnimeResults(session, " = " + aID);
         }
 
-        public Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(ISessionWrapper session, ICollection<int> aIDs)
+        public Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(ISessionWrapper session,
+            ICollection<int> aIDs)
         {
             if (aIDs.Count == 0)
             {
@@ -708,7 +716,8 @@ namespace Shoko.Server.Repositories
             return GetSubtitleLanguageStatsByAnimeResults(session, " = " + aID);
         }
 
-        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(ISessionWrapper session, ICollection<int> aIDs)
+        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(ISessionWrapper session,
+            ICollection<int> aIDs)
         {
             if (aIDs.Count == 0)
             {
@@ -720,19 +729,20 @@ namespace Shoko.Server.Repositories
             return GetSubtitleLanguageStatsByAnimeResults(session, predicate);
         }
 
-        private Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnimeResults(ISessionWrapper session, string animeIdPredicate)
+        private Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnimeResults(ISessionWrapper session,
+            string animeIdPredicate)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
             string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
-                + "FROM AnimeSeries ser  "
-                + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
-                + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID "
-                + "WHERE anime.AnimeID " + animeIdPredicate;
+                           + "FROM AnimeSeries ser  "
+                           + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                           + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                           + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                           + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                           + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                           + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
+                           + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID "
+                           + "WHERE anime.AnimeID " + animeIdPredicate;
 
             var rows = session.CreateSQLQuery(query)
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
@@ -771,6 +781,7 @@ namespace Shoko.Server.Repositories
     {
         public int AnimeID { get; set; }
         public string MainTitle { get; set; }
+
         public Dictionary<string, int> VideoQualityEpisodeCount { get; set; }
         // video quality / number of episodes that match that quality
     }

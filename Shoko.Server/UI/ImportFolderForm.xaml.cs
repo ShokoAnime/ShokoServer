@@ -89,7 +89,7 @@ namespace Shoko.Server
             if (comboProvider.SelectedIndex == 0)
                 importFldr.CloudID = null;
             else
-                importFldr.CloudID = ((SVR_CloudAccount)comboProvider.SelectedItem).CloudID;
+                importFldr.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
         }
 
         void btnChooseFolder_Click(object sender, RoutedEventArgs e)
@@ -109,10 +109,10 @@ namespace Shoko.Server
             }
             else
             {
-                CloudFolderBrowser frm=new CloudFolderBrowser();
+                CloudFolderBrowser frm = new CloudFolderBrowser();
                 frm.Owner = this;
                 frm.Init(importFldr, txtImportFolderLocation.Text);
-                bool? result=frm.ShowDialog();
+                bool? result = frm.ShowDialog();
                 if (result.HasValue && result.Value)
                     txtImportFolderLocation.Text = frm.SelectedPath;
             }
@@ -145,7 +145,9 @@ namespace Shoko.Server
 
                 ImportFolder contract = new ImportFolder();
                 contract.ImportFolderID = importFldr.ImportFolderID;
-                contract.ImportFolderType = (int)(importFldr.CloudID.HasValue ? ImportFolderType.Cloud : ImportFolderType.HDD);
+                contract.ImportFolderType = (int) (importFldr.CloudID.HasValue
+                    ? ImportFolderType.Cloud
+                    : ImportFolderType.HDD);
                 contract.ImportFolderName = "NA";
                 contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
                 contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
@@ -158,7 +160,8 @@ namespace Shoko.Server
                 ShokoServiceImplementation imp = new ShokoServiceImplementation();
                 CL_Response<ImportFolder> response = imp.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
-                    MessageBox.Show(response.ErrorMessage, Shoko.Commons.Properties.Resources.Error, MessageBoxButton.OK,
+                    MessageBox.Show(response.ErrorMessage, Shoko.Commons.Properties.Resources.Error,
+                        MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 importFldr = null;
                 ServerInfo.Instance.RefreshImportFolders();
@@ -199,7 +202,8 @@ namespace Shoko.Server
                 chkDropSource.IsChecked = importFldr.IsDropSource == 1;
                 chkIsWatched.IsChecked = importFldr.IsWatched == 1;
                 if (ifldr.CloudID.HasValue)
-                    comboProvider.SelectedItem = ServerInfo.Instance.FolderProviders.FirstOrDefault(a => a.CloudID == ifldr.CloudID.Value);
+                    comboProvider.SelectedItem =
+                        ServerInfo.Instance.FolderProviders.FirstOrDefault(a => a.CloudID == ifldr.CloudID.Value);
                 else
                     comboProvider.SelectedIndex = 0;
                 txtImportFolderLocation.Focus();

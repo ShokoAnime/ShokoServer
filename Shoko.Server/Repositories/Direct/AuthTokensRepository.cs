@@ -8,13 +8,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private AuthTokensRepository()
         {
-            
         }
 
         public static AuthTokensRepository Create()
         {
             return new AuthTokensRepository();
         }
+
         public AuthTokens GetByAuthID(int authID)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

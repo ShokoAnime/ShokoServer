@@ -10,7 +10,7 @@ using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode,int>
+    public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int>
     {
         private PocoIndex<int, SVR_AnimeEpisode, int> Series;
         private PocoIndex<int, SVR_AnimeEpisode, int> EpisodeIDs;
@@ -19,7 +19,8 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
+                RepoFactory.AnimeEpisode_User.Delete(
+                    RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
             };
         }
 
@@ -45,9 +46,10 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_AnimeEpisode> grps =
                 Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeEpisode.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen");
-	        if (max <= 0) return;
-	        foreach (SVR_AnimeEpisode g in grps)
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeEpisode).Name, " DbRegen");
+            if (max <= 0) return;
+            foreach (SVR_AnimeEpisode g in grps)
             {
                 try
                 {
@@ -59,14 +61,14 @@ namespace Shoko.Server.Repositories.Cached
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen - " + cnt + "/" + max);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name,
+                        " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen - " + max + "/" + max);
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeEpisode).Name, " DbRegen - " + max + "/" + max);
         }
-
-
-
 
 
         private void UpdatePlexContract(SVR_AnimeEpisode e)
@@ -77,7 +79,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void Save(IReadOnlyCollection<SVR_AnimeEpisode> objs)
         {
-            foreach(SVR_AnimeEpisode ep in objs)
+            foreach (SVR_AnimeEpisode ep in objs)
                 Save(ep);
         }
 
@@ -117,9 +119,11 @@ namespace Shoko.Server.Repositories.Cached
         public SVR_AnimeEpisode GetByFilename(string name)
         {
             return RepoFactory.VideoLocalPlace.GetAll()
-                .Where(v => name.Equals(v.FilePath.Split('\\').LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))
+                .Where(v => name.Equals(v.FilePath.Split('\\').LastOrDefault(),
+                    StringComparison.InvariantCultureIgnoreCase))
                 .Select(a => a.VideoLocal.GetAnimeEpisodes())
-                .FirstOrDefault()?.FirstOrDefault();
+                .FirstOrDefault()
+                ?.FirstOrDefault();
         }
 
 
@@ -131,10 +135,12 @@ namespace Shoko.Server.Repositories.Cached
         /// </summary>
         /// <param name="hash"></param>
         /// <returns></returns>
-
         public List<SVR_AnimeEpisode> GetByHash(string hash)
         {
-            return RepoFactory.CrossRef_File_Episode.GetByHash(hash).Select(a => GetByAniDBEpisodeID(a.EpisodeID)).Where(a => a != null).ToList();
+            return RepoFactory.CrossRef_File_Episode.GetByHash(hash)
+                .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
+                .Where(a => a != null)
+                .ToList();
             /*
             return
                 session.CreateQuery(
@@ -145,8 +151,13 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
-
-            List<string> hashes = ignoreVariations ? RepoFactory.VideoLocal.GetAll().Where(a=>a.IsVariation==0).Select(a => a.Hash).Where(a => a != string.Empty).ToList() : RepoFactory.VideoLocal.GetAll().Select(a => a.Hash).Where(a => a != string.Empty).ToList();
+            List<string> hashes = ignoreVariations
+                ? RepoFactory.VideoLocal.GetAll()
+                    .Where(a => a.IsVariation == 0)
+                    .Select(a => a.Hash)
+                    .Where(a => a != string.Empty)
+                    .ToList()
+                : RepoFactory.VideoLocal.GetAll().Select(a => a.Hash).Where(a => a != string.Empty).ToList();
             return RepoFactory.CrossRef_File_Episode.GetAll()
                 .Where(a => hashes.Contains(a.Hash))
                 .GroupBy(a => a.EpisodeID)
@@ -213,7 +224,8 @@ namespace Shoko.Server.Repositories.Cached
         public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
         {
             List<int> eps =
-                RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid).Where(a=>a.WatchedDate.HasValue)
+                RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid)
+                    .Where(a => a.WatchedDate.HasValue)
                     .Select(a => a.AnimeEpisodeID)
                     .ToList();
             return GetBySeriesID(seriesid).Where(a => !eps.Contains(a.AnimeEpisodeID)).ToList();
@@ -233,8 +245,5 @@ namespace Shoko.Server.Repositories.Cached
         {
             return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();
         }
-
-
-
     }
 }

@@ -12,13 +12,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private Trakt_ImageFanartRepository()
         {
-            
         }
 
         public static Trakt_ImageFanartRepository Create()
         {
             return new Trakt_ImageFanartRepository();
         }
+
         public List<Trakt_ImageFanart> GetByShowID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -50,6 +50,5 @@ namespace Shoko.Server.Repositories.Direct
                 return obj;
             }
         }
-
     }
 }

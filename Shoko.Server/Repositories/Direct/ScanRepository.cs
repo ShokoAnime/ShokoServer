@@ -8,7 +8,6 @@ namespace Shoko.Server.Repositories.Direct
     {
         private ScanRepository()
         {
-            
         }
 
         public static ScanRepository Create()

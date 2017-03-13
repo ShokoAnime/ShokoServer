@@ -22,7 +22,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheSendXRefAniDBTrakt, extraParams = new string[] { CrossRef_AniDB_TraktID.ToString() } }; 
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.WebCacheSendXRefAniDBTrakt,
+                    extraParams = new string[] {CrossRef_AniDB_TraktID.ToString()}
+                };
             }
         }
 

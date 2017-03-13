@@ -16,13 +16,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private AniDB_CharacterRepository()
         {
-            
         }
 
         public static AniDB_CharacterRepository Create()
         {
             return new AniDB_CharacterRepository();
         }
+
         public AniDB_Character GetByCharID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -40,7 +40,8 @@ namespace Shoko.Server.Repositories.Direct
             return cr;
         }
 
-        public ILookup<int, AnimeCharacterAndSeiyuu> GetCharacterAndSeiyuuByAnime(ISessionWrapper session, int[] animeIds)
+        public ILookup<int, AnimeCharacterAndSeiyuu> GetCharacterAndSeiyuuByAnime(ISessionWrapper session,
+            int[] animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -76,17 +77,18 @@ namespace Shoko.Server.Repositories.Direct
                 .AddScalar("CharType", NHibernateUtil.String)
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .Select(r => new AnimeCharacterAndSeiyuu((int)r[0], (AniDB_Character)r[1], (AniDB_Seiyuu)r[2], (string)r[3]))
+                .Select(r => new AnimeCharacterAndSeiyuu((int) r[0], (AniDB_Character) r[1], (AniDB_Seiyuu) r[2],
+                    (string) r[3]))
                 .ToLookup(ac => ac.AnimeID);
 
             return animeChars;
         }
-
     }
 
     public class AnimeCharacterAndSeiyuu
     {
-        public AnimeCharacterAndSeiyuu(int animeID, AniDB_Character character, AniDB_Seiyuu seiyuu = null, string characterType = null)
+        public AnimeCharacterAndSeiyuu(int animeID, AniDB_Character character, AniDB_Seiyuu seiyuu = null,
+            string characterType = null)
         {
             if (character == null)
                 throw new ArgumentNullException(nameof(character));

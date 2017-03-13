@@ -24,7 +24,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.AniDB_GetTitles, extraParams = new string[0] };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.AniDB_GetTitles,
+                    extraParams = new string[0]
+                };
             }
         }
 
@@ -64,7 +68,6 @@ namespace Shoko.Server.Commands
                     b.Append(enc.GetString(data, 0, bytes));
 
                 zis.Close();
-
 
 
                 string[] lines = b.ToString().Split('\n');

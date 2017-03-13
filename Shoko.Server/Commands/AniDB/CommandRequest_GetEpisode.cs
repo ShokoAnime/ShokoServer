@@ -25,7 +25,11 @@ namespace Shoko.Server.Commands.AniDB
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GetEpisodeList, extraParams = new string[] { EpisodeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.GetEpisodeList,
+                    extraParams = new string[] {EpisodeID.ToString()}
+                };
             }
         }
 
@@ -61,7 +65,6 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (epInfo != null)
                 {
-
                     //Change, AniDB_File do not create Series Episodes does.
 
 

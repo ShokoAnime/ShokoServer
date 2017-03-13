@@ -12,11 +12,10 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniDB_Other,int>
+    public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniDB_Other, int>
     {
         private CrossRef_AniDB_OtherRepository()
         {
-            
         }
 
         public static CrossRef_AniDB_OtherRepository Create()
@@ -41,7 +40,8 @@ namespace Shoko.Server.Repositories.Direct
         /// <param name="xrefTypes">The types of cross references to find.</param>
         /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps anime ID to their associated other cross references.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public ILookup<int, CrossRef_AniDB_Other> GetByAnimeIDsAndType(ISessionWrapper session, IReadOnlyCollection<int> animeIds,
+        public ILookup<int, CrossRef_AniDB_Other> GetByAnimeIDsAndType(ISessionWrapper session,
+            IReadOnlyCollection<int> animeIds,
             params CrossRefType[] xrefTypes)
         {
             if (session == null)

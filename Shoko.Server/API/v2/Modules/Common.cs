@@ -31,7 +31,8 @@ namespace Shoko.Server.API.v2.Modules
 
         public Common() : base("/api")
         {
-            this.RequiresAuthentication(); // its a setting per module, so every call made to this module requires apikey
+            this
+                .RequiresAuthentication(); // its a setting per module, so every call made to this module requires apikey
 
             #region 1. import folders
 
@@ -412,9 +413,11 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     if (string.IsNullOrEmpty(vid.Hash))
                     {
-                        return APIStatus.badRequest("Could not Update a cloud file without hash, hash it locally first");
+                        return APIStatus.badRequest(
+                            "Could not Update a cloud file without hash, hash it locally first");
                     }
-                    Commands.CommandRequest_ProcessFile cmd = new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                    Commands.CommandRequest_ProcessFile cmd =
+                        new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
                     cmd.Save();
                 }
                 catch (Exception ex)
@@ -542,7 +545,7 @@ namespace Shoko.Server.API.v2.Modules
         private object BigSearch()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser) this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             string query = para.query.ToLowerInvariant();
@@ -561,7 +564,9 @@ namespace Shoko.Server.API.v2.Modules
                 search_group.name = para.query;
                 search_group.series = new List<Serie>();
 
-                search_group.series = (List<Serie>)(Search(query, para.limit, para.limit_tag, (int)para.offset, para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0));
+                search_group.series = (List<Serie>) (Search(query, para.limit, para.limit_tag, (int) para.offset,
+                    para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+                    para.fuzzy != 0));
                 search_group.size = search_group.series.Count();
                 search_filter.groups.Add(search_group);
                 search_filter.size = search_filter.groups.Count();
@@ -915,7 +920,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetFileOffset()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser) this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             // allow to offset be 0 to reset position
@@ -931,7 +936,6 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     return APIStatus.notFound404();
                 }
-                
             }
             else
             {
@@ -1009,7 +1013,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllEpisodes(user.JMMUserID, para.limit, (int)para.offset, para.level, para.all != 0);
+                return GetAllEpisodes(user.JMMUserID, para.limit, (int) para.offset, para.level, para.all != 0);
             }
             else
             {
@@ -1156,8 +1160,14 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     ShokoServiceImplementation impl = new ShokoServiceImplementation();
                     int type = 2;
-                    if (para.ismovie == 0) { type = 2; }
-                    else { type = 1; }
+                    if (para.ismovie == 0)
+                    {
+                        type = 2;
+                    }
+                    else
+                    {
+                        type = 1;
+                    }
                     switch (impl.TraktScrobble(para.id, type, para.progress, para.status))
                     {
                         case 200:
@@ -1177,7 +1187,6 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return APIStatus.internalError();
             }
-            
         }
 
         #region internal function
@@ -1350,7 +1359,8 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllSeries(para.nocast != 0, para.limit, (int)para.offset, para.notag != 0, para.level, para.all != 0);
+                return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
+                    para.all != 0);
             }
             else
             {
@@ -1383,7 +1393,8 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id != 0)
             {
-                return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.limit);
+                return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
+                    para.all != 0, para.limit);
             }
             else
             {
@@ -1500,7 +1511,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.limit_tag, (int)para.offset, para.tags, user.JMMUserID,
+                return Search(para.query, para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
                     para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
@@ -1526,7 +1537,8 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (para.query != "")
             {
-                return Search(para.query, para.limit, para.limit_tag, (int)para.offset, 1, user.JMMUserID, para.nocast != 0,
+                return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
+                    para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.fuzzy != 0);
             }
             else
@@ -1543,11 +1555,12 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSeriesFromEpisode()
         {
             Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            JMMUser user = (JMMUser) this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
-                return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
+                return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
+                    para.all != 0);
             }
             else
             {
@@ -1727,6 +1740,7 @@ namespace Shoko.Server.API.v2.Modules
 
         private static readonly char[] InvalidPathChars =
             $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
+
         private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
 
         internal static string SanitizeFuzzy(string value, bool replaceInvalid)
@@ -1746,7 +1760,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="query"></param>
         /// <param name="distLevenshtein"></param>
         /// <param name="limit"></param>
-        private static void CheckTitlesFuzzy(SVR_AnimeSeries a, string query, ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein, int limit)
+        private static void CheckTitlesFuzzy(SVR_AnimeSeries a, string query,
+            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
@@ -1779,7 +1794,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="query"></param>
         /// <param name="distLevenshtein"></param>
         /// <param name="limit"></param>
-        private static void CheckTagsFuzzy(SVR_AnimeSeries a, string query, ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein, int limit)
+        private static void CheckTagsFuzzy(SVR_AnimeSeries a, string query,
+            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
             int dist = int.MaxValue;
@@ -1845,7 +1861,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all"></param>
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
-        internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast, bool notag, int level, bool all, bool fuzzy)
+        internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast,
+            bool notag, int level, bool all, bool fuzzy)
         {
             query = query.ToLowerInvariant();
 
@@ -1856,10 +1873,12 @@ namespace Shoko.Server.API.v2.Modules
             Dictionary<SVR_AnimeSeries, string> series = new Dictionary<SVR_AnimeSeries, string>();
             ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName).FindInEnumerable(user.GetHideCategories()))
+                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                .FindInEnumerable(user.GetHideCategories()))
                 .AsParallel();
 
             #region Search_TitlesOnly
+
             switch (tagSearch)
             {
                 case 0:
@@ -1867,14 +1886,17 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         series = allSeries
                             .Where(a => Join(",", a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title), fuzzy)
-                                            .IndexOf(SanitizeFuzzy(query, fuzzy), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                                            .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
+                                                StringComparison.InvariantCultureIgnoreCase) >= 0)
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                             .ToDictionary(a => a, a => "");
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all, ser.Value));
+                                series_list.Add(
+                                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                        ser.Value));
                                 if (series_list.Count >= limit)
                                 {
                                     break;
@@ -1900,7 +1922,8 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level,
+                                    all,
                                     ser.Value));
                                 if (series_list.Count >= limit)
                                 {
@@ -1920,8 +1943,10 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         series = allSeries
                             .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                                        (a.Contract.AniDBAnime.Tags.Select(b => b.TagName).Contains(query,
-                                             StringComparer.InvariantCultureIgnoreCase) || a.Contract.AniDBAnime.CustomTags
+                                        (a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                             .Contains(query,
+                                                 StringComparer.InvariantCultureIgnoreCase) || a.Contract.AniDBAnime
+                                             .CustomTags
                                              .Select(b => b.TagName)
                                              .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
@@ -1930,7 +1955,9 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all, ser.Value));
+                                series_list.Add(
+                                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                        ser.Value));
                                 if (series_list.Count >= realLimit)
                                 {
                                     break;
@@ -1956,7 +1983,8 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level,
+                                    all,
                                     ser.Value));
                                 if (series_list.Count >= realLimit)
                                 {
@@ -1972,13 +2000,13 @@ namespace Shoko.Server.API.v2.Modules
                     break;
                 default:
                     bool use_extra = limit_tag != 0;
-
                     if (!fuzzy || query.Length >= (IntPtr.Size * 8))
                     {
                         series = allSeries
                             .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                                         Join(",", a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title), fuzzy)
-                                            .IndexOf(SanitizeFuzzy(query,fuzzy), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                                            .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
+                                                StringComparison.InvariantCultureIgnoreCase) >= 0)
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                             .ToDictionary(a => a, a => "");
 
@@ -1987,19 +2015,24 @@ namespace Shoko.Server.API.v2.Modules
                         series = series.ToList().Take(limit).ToDictionary(a => a.Key, a => a.Value);
                         if (tag_limit > 0)
                             series.AddRange(allSeries.Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                                                                 (a.Contract.AniDBAnime.Tags.Select(b => b.TagName).Contains(query,
-                                                                      StringComparer.InvariantCultureIgnoreCase) || a
+                                                                 (a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                                                      .Contains(query,
+                                                                          StringComparer.InvariantCultureIgnoreCase) ||
+                                                                  a
                                                                       .Contract
                                                                       .AniDBAnime.CustomTags.Select(b => b.TagName)
                                                                       .Contains(query,
                                                                           StringComparer.InvariantCultureIgnoreCase)))
                                 .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                                .Take(tag_limit).ToDictionary(a => a, a => ""));
+                                .Take(tag_limit)
+                                .ToDictionary(a => a, a => ""));
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all, ser.Value));
+                                series_list.Add(
+                                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                        ser.Value));
                             }
                             else
                             {
@@ -2034,7 +2067,8 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level,
+                                    all,
                                     ser.Value));
                             }
                             else
@@ -2045,6 +2079,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     break;
             }
+
             #endregion
 
             return series_list;
@@ -2068,7 +2103,8 @@ namespace Shoko.Server.API.v2.Modules
                     int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
                         ? (int) enAniDBVoteType.Anime
                         : (int) enAniDBVoteType.AnimeTemp;
-                    Commands.CommandRequest_VoteAnime cmdVote = new Commands.CommandRequest_VoteAnime(id, voteType, Convert.ToDecimal(score));
+                    Commands.CommandRequest_VoteAnime cmdVote =
+                        new Commands.CommandRequest_VoteAnime(id, voteType, Convert.ToDecimal(score));
                     cmdVote.Save();
                     return APIStatus.statusOK();
                 }
@@ -2162,7 +2198,7 @@ namespace Shoko.Server.API.v2.Modules
             filters.name = "Filters";
             filters.viewed = 0;
             filters.url = APIHelper.ConstructFilterUrl();
-            List <SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
+            List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                              (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))
@@ -2222,7 +2258,7 @@ namespace Shoko.Server.API.v2.Modules
                 Filters fgs = Filters.GenerateFromGroupFilter(gf, uid, nocast, notag, all, level);
                 return fgs;
             }
-            
+
             Filter filter = Filter.GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
             return filter;
         }
@@ -2249,7 +2285,8 @@ namespace Shoko.Server.API.v2.Modules
             }
             else
             {
-                return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.filter);
+                return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+                    para.filter);
             }
         }
 

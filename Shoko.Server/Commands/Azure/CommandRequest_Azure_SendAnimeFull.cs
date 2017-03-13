@@ -23,7 +23,11 @@ namespace Shoko.Server.Commands.Azure
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SendAnimeFull, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SendAnimeFull,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -46,7 +50,8 @@ namespace Shoko.Server.Commands.Azure
             {
                 bool process =
                     ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-                    ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase) ||
+                    ServerSettings.AniDB_Username.Equals("jmediamanager",
+                        StringComparison.InvariantCultureIgnoreCase) ||
                     ServerSettings.AniDB_Username.Equals("jmmtesting", StringComparison.InvariantCultureIgnoreCase);
 
                 if (!process) return;

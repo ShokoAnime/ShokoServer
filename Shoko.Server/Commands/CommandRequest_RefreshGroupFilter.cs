@@ -32,17 +32,21 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.RefreshGroupFilter, extraParams = new string[] { GroupFilterID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.RefreshGroupFilter,
+                    extraParams = new string[] {GroupFilterID.ToString()}
+                };
             }
         }
 
         public override void ProcessCommand()
         {
-	        SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
-	        if (gf == null) return;
-	        gf.EvaluateAnimeSeries();
-	        gf.EvaluateAnimeGroups();
-	        RepoFactory.GroupFilter.Save(gf);
+            SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
+            if (gf == null) return;
+            gf.EvaluateAnimeSeries();
+            gf.EvaluateAnimeGroups();
+            RepoFactory.GroupFilter.Save(gf);
         }
 
         public override void GenerateCommandID()

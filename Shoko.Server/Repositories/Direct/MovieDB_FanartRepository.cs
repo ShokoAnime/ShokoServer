@@ -16,13 +16,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private MovieDB_FanartRepository()
         {
-            
         }
 
         public static MovieDB_FanartRepository Create()
         {
             return new MovieDB_FanartRepository();
         }
+
         public MovieDB_Fanart GetByOnlineID(string url)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -78,10 +78,10 @@ namespace Shoko.Server.Repositories.Direct
                     WHERE adbOther.CrossRefType = :crossRefType AND adbOther.AnimeID IN (:animeIds)")
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
                 .AddEntity("mdbFanart", typeof(MovieDB_Fanart))
-                .SetInt32("crossRefType", (int)CrossRefType.MovieDB)
+                .SetInt32("crossRefType", (int) CrossRefType.MovieDB)
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .ToLookup(r => (int)r[0], r => (MovieDB_Fanart)r[1]);
+                .ToLookup(r => (int) r[0], r => (MovieDB_Fanart) r[1]);
 
             return fanartByAnime;
         }

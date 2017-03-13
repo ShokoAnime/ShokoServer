@@ -8,6 +8,7 @@
         // Website links
         // http://docs.trakt.apiary.io/#introduction/website-media-links
         public const string WebsiteShow = TraktConstants.BaseWebsiteURL + @"/shows/{0}";
+
         public const string WebsiteMovie = TraktConstants.BaseWebsiteURL + @"/movies/{0}"; // /shows/:slug/seasons/:num
 
         public const string WebsiteSeason = TraktConstants.BaseWebsiteURL + @"/shows/{0}/seasons/{1}";

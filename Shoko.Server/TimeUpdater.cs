@@ -31,7 +31,7 @@ namespace Shoko.Server
             action = exec_routine;
             updaction = update_routine;
             timeout = seconds;
-            timer = new Timer(UpdateStateWorker, null, seconds*1000, seconds*1000);
+            timer = new Timer(UpdateStateWorker, null, seconds * 1000, seconds * 1000);
         }
 
         public void Update(T t, U u)
@@ -83,7 +83,7 @@ namespace Shoko.Server
                         DateJoinU p = procdic[ser];
                         action(ser, p.Parameters);
                     }
-                    timer.Change(timeout*1000, timeout*1000);
+                    timer.Change(timeout * 1000, timeout * 1000);
                 });
             }
         }

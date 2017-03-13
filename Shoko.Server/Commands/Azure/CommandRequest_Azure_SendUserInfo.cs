@@ -21,7 +21,11 @@ namespace Shoko.Server.Commands.Azure
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.SendAnonymousData, extraParams = new string[0] };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.SendAnonymousData,
+                    extraParams = new string[0]
+                };
             }
         }
 

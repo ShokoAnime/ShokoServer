@@ -40,7 +40,6 @@ namespace Shoko.Server.Repositories.Cached
                         Save(ngrp, false, true);
                 }
             };
-
         }
 
         public static AnimeGroupRepository Create()
@@ -61,22 +60,26 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            List<SVR_AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < SVR_AnimeGroup.CONTRACT_VERSION).ToList();
+            List<SVR_AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < SVR_AnimeGroup.CONTRACT_VERSION)
+                .ToList();
             int max = grps.Count;
             int cnt = 0;
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name, " DbRegen");
-	        if (max <= 0) return;
-	        foreach (SVR_AnimeGroup g in grps)
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeGroup).Name, " DbRegen");
+            if (max <= 0) return;
+            foreach (SVR_AnimeGroup g in grps)
             {
                 Save(g, true, false, false);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                typeof(AnimeGroup).Name,
                 " DbRegen - " + max + "/" + max);
         }
 
@@ -84,14 +87,21 @@ namespace Shoko.Server.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(SVR_AnimeGroup obj) { throw new NotSupportedException(); }
+        public override void Save(SVR_AnimeGroup obj)
+        {
+            throw new NotSupportedException();
+        }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_AnimeGroup> objs) { throw new NotSupportedException(); }
-
-        public void Save(SVR_AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
+        public override void Save(IReadOnlyCollection<SVR_AnimeGroup> objs)
         {
+            throw new NotSupportedException();
+        }
 
+        public void Save(SVR_AnimeGroup grp, bool updategrpcontractstats, bool recursive,
+            bool verifylockedFilters = true)
+        {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
@@ -99,7 +109,7 @@ namespace Shoko.Server.Repositories.Cached
                 lock (grp)
                 {
                     if (grp.AnimeGroupID == 0)
-                    //We are creating one, and we need the AnimeGroupID before Update the contracts
+                        //We are creating one, and we need the AnimeGroupID before Update the contracts
                     {
                         grp.Contract = null;
                         using (var transaction = session.BeginTransaction())
@@ -119,17 +129,18 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 if (verifylockedFilters)
                 {
-                    RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false, grp.Contract.Stat_AllTags,grp.Contract.Stat_AllYears);
+                    RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false, grp.Contract.Stat_AllTags,
+                        grp.Contract.Stat_AllYears);
                     //This call will create extra years or tags if the Group have a new year or tag
                     grp.UpdateGroupFilters(types, null);
                 }
                 if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
                     SVR_AnimeGroup pgroup = GetByID(grp.AnimeGroupParentID.Value);
-					// This will avoid the recursive error that would be possible, it won't update it, but that would be
-					// the least of the issues
-					if(pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
-						Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
+                    // This will avoid the recursive error that would be possible, it won't update it, but that would be
+                    // the least of the issues
+                    if (pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
+                        Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
                 }
             }
         }

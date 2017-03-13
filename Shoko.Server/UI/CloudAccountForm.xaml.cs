@@ -37,6 +37,7 @@ namespace Shoko.Server
         public static Scanner Instance { get; set; } = new Scanner();
 
         public event PropertyChangedEventHandler PropertyChanged;
+
         public void NotifyPropertyChanged(string propname)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
@@ -59,9 +60,11 @@ namespace Shoko.Server
         {
             try
             {
-                if (!string.IsNullOrEmpty(txtCloudAccountName.Text) && comboProvider.SelectedItem != null && !string.IsNullOrEmpty(WorkingAccount.ConnectionString) && (WorkingAccount?.FileSystem != null))
+                if (!string.IsNullOrEmpty(txtCloudAccountName.Text) && comboProvider.SelectedItem != null &&
+                    !string.IsNullOrEmpty(WorkingAccount.ConnectionString) && (WorkingAccount?.FileSystem != null))
                 {
-                    if (ServerInfo.Instance.CloudAccounts.Any(a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
+                    if (ServerInfo.Instance.CloudAccounts.Any(
+                        a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
                     {
                         Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
                         return;
@@ -97,7 +100,8 @@ namespace Shoko.Server
             {
                 if (!string.IsNullOrEmpty(txtCloudAccountName.Text) && comboProvider.SelectedItem != null)
                 {
-                    if (ServerInfo.Instance.CloudAccounts.Any(a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
+                    if (ServerInfo.Instance.CloudAccounts.Any(
+                        a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
                     {
                         Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
                         return;
@@ -109,7 +113,6 @@ namespace Shoko.Server
                     {
                         try
                         {
-
                             WorkingAccount.FileSystem = WorkingAccount.Connect(this);
                             SetConnectStatus();
                         }
@@ -131,8 +134,8 @@ namespace Shoko.Server
                                 }
                                 sb.AppendLine();
                             }
-                            Application.Current.Dispatcher.Invoke(() => { TextStatus.Text = sb.ToString(); });          
-                            logger.Error(sb.ToString());              
+                            Application.Current.Dispatcher.Invoke(() => { TextStatus.Text = sb.ToString(); });
+                            logger.Error(sb.ToString());
                             //Display or log the error based on your application.
                         }
                         catch (Exception ex)
@@ -156,31 +159,34 @@ namespace Shoko.Server
                         ? Shoko.Commons.Properties.Resources.CloudAccount_Connected
                         : Shoko.Commons.Properties.Resources.CloudAccount_NotConnected);
             this.OnPropertyChanged(() => IsConnected, () => IsNotConnected);
-
         }
-        public bool EnableConnect => (comboProvider.SelectedIndex >= 0 && !string.IsNullOrEmpty(txtCloudAccountName.Text));
+
+        public bool EnableConnect => (comboProvider.SelectedIndex >= 0 &&
+                                      !string.IsNullOrEmpty(txtCloudAccountName.Text));
 
         private SVR_CloudAccount WorkingAccount;
         private SVR_CloudAccount SaveAccount;
 
         public void Init(SVR_CloudAccount account)
         {
-
             SaveAccount = account;
 
-            WorkingAccount = account != null ? new SVR_CloudAccount
-            {
-                CloudID=account.CloudID,
-                Name=account.Name,
-                ConnectionString = account.ConnectionString,
-                Provider=account.Provider
-        } : new SVR_CloudAccount();
+            WorkingAccount = account != null
+                ? new SVR_CloudAccount
+                {
+                    CloudID = account.CloudID,
+                    Name = account.Name,
+                    ConnectionString = account.ConnectionString,
+                    Provider = account.Provider
+                }
+                : new SVR_CloudAccount();
             SetConnectStatus();
             try
             {
                 if (!string.IsNullOrEmpty(WorkingAccount.Provider))
                 {
-                    ServerInfo.CloudProvider v = ServerInfo.Instance.CloudProviders.FirstOrDefault(a => a.Name == WorkingAccount.Provider);
+                    ServerInfo.CloudProvider v =
+                        ServerInfo.Instance.CloudProviders.FirstOrDefault(a => a.Name == WorkingAccount.Provider);
                     if (v != null)
                         comboProvider.SelectedItem = v;
                 }

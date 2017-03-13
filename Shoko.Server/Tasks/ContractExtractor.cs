@@ -28,76 +28,80 @@ namespace Shoko.Server.Tasks
         static ContractExtractor()
         {
             ContractExtractors.Add("AniDB_Anime", (sw, za) =>
+            {
+                ExtractContracts<SVR_AniDB_Anime, CL_AniDB_AnimeDetailed>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AniDB_Anime, CL_AniDB_AnimeDetailed>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AniDB_Anime>("AniDB_Anime\\a", a => a.AnimeID));
-                            pb.Select(s => s.ContractSize);
-                            pb.Select(s => s.ContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AniDB_Anime>("AniDB_Anime\\a", a => a.AnimeID));
+                    pb.Select(s => s.ContractSize);
+                    pb.Select(s => s.ContractBlob);
+                    return pb;
                 });
+            });
             ContractExtractors.Add("AnimeEpisode", (sw, za) =>
+            {
+                ExtractContracts<SVR_AnimeEpisode, Video>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AnimeEpisode, Video>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode>("AnimeEpisode\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
-                            pb.Select(s => s.PlexContractSize);
-                            pb.Select(s => s.PlexContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode>("AnimeEpisode\\s", a => a.AnimeSeriesID, "_e",
+                        a => a.AnimeEpisodeID));
+                    pb.Select(s => s.PlexContractSize);
+                    pb.Select(s => s.PlexContractBlob);
+                    return pb;
                 });
+            });
             ContractExtractors.Add("AnimeEpisode_User", (sw, za) =>
+            {
+                ExtractContracts<SVR_AnimeEpisode_User, CL_AnimeEpisode_User>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AnimeEpisode_User, CL_AnimeEpisode_User>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode_User>("AnimeEpisode_User\\u", a => a.JMMUserID,
-                                "\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
-                            pb.Select(s => s.ContractSize);
-                            pb.Select(s => s.ContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode_User>("AnimeEpisode_User\\u", a => a.JMMUserID,
+                        "\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
+                    pb.Select(s => s.ContractSize);
+                    pb.Select(s => s.ContractBlob);
+                    return pb;
                 });
+            });
             ContractExtractors.Add("AnimeGroup", (sw, za) =>
+            {
+                ExtractContracts<SVR_AnimeGroup, CL_AnimeGroup_User>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AnimeGroup, CL_AnimeGroup_User>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AnimeGroup>("AnimeGroup\\g", a => a.AnimeGroupID));
-                            pb.Select(s => s.ContractSize);
-                            pb.Select(s => s.ContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AnimeGroup>("AnimeGroup\\g", a => a.AnimeGroupID));
+                    pb.Select(s => s.ContractSize);
+                    pb.Select(s => s.ContractBlob);
+                    return pb;
                 });
+            });
             ContractExtractors.Add("AnimeGroup_User", (sw, za) =>
+            {
+                ExtractContracts<SVR_AnimeGroup_User, Video>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AnimeGroup_User, Video>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AnimeGroup_User>("AnimeGroup_User\\u", a => a.JMMUserID, "\\g", a => a.AnimeGroupID));
-                            pb.Select(s => s.PlexContractSize);
-                            pb.Select(s => s.PlexContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AnimeGroup_User>("AnimeGroup_User\\u", a => a.JMMUserID,
+                        "\\g", a => a.AnimeGroupID));
+                    pb.Select(s => s.PlexContractSize);
+                    pb.Select(s => s.PlexContractBlob);
+                    return pb;
                 });
+            });
             ContractExtractors.Add("AnimeSeries", (sw, za) =>
+            {
+                ExtractContracts<SVR_AnimeSeries, CL_AnimeSeries_User>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AnimeSeries, CL_AnimeSeries_User>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AnimeSeries>("AnimeSeries\\g", a => a.AnimeGroupID, "_s", a => a.AnimeSeriesID));
-                            pb.Select(s => s.ContractSize);
-                            pb.Select(s => s.ContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AnimeSeries>("AnimeSeries\\g", a => a.AnimeGroupID, "_s",
+                        a => a.AnimeSeriesID));
+                    pb.Select(s => s.ContractSize);
+                    pb.Select(s => s.ContractBlob);
+                    return pb;
                 });
+            });
             ContractExtractors.Add("AnimeSeries_User", (sw, za) =>
+            {
+                ExtractContracts<SVR_AnimeSeries_User, Video>(sw, za, pb =>
                 {
-                    ExtractContracts<SVR_AnimeSeries_User, Video>(sw, za, pb =>
-                        {
-                            pb.Select(CreateEntryNameProjection<SVR_AnimeSeries_User>("AnimeSeries_User\\u", a => a.JMMUserID, "\\s", a => a.AnimeSeriesID));
-                            pb.Select(s => s.PlexContractSize);
-                            pb.Select(s => s.PlexContractBlob);
-                            return pb;
-                        });
+                    pb.Select(CreateEntryNameProjection<SVR_AnimeSeries_User>("AnimeSeries_User\\u", a => a.JMMUserID,
+                        "\\s", a => a.AnimeSeriesID));
+                    pb.Select(s => s.PlexContractSize);
+                    pb.Select(s => s.PlexContractBlob);
+                    return pb;
                 });
+            });
         }
 
         private static IProjection CreateEntryNameProjection<T>(string prefix, Expression<Func<T, object>> keyCol)
@@ -166,7 +170,8 @@ namespace Shoko.Server.Tasks
             using (ZipArchive zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
             {
                 if (String.IsNullOrEmpty(entityType))
-                {   // When no entityType has been specified, we'll just dump everything
+                {
+                    // When no entityType has been specified, we'll just dump everything
                     foreach (var contractDumpAction in ContractExtractors.Values)
                     {
                         contractDumpAction(session, zip);
@@ -201,35 +206,35 @@ namespace Shoko.Server.Tasks
                 .SelectList(fieldBuilder)
                 .List<object[]>();
             var jsonSerializer = new JsonSerializer
-                {
-                    Formatting = Formatting.Indented,
-                    NullValueHandling = NullValueHandling.Include
-                };
+            {
+                Formatting = Formatting.Indented,
+                NullValueHandling = NullValueHandling.Include
+            };
             var zipLock = new object();
 
             // We should be able to get a bit of a perf boost using parallelism. However, since we're locking on
             // writing to the zip archive, using any more than 2 threads would be pointless in this case
-            Parallel.ForEach(records, new ParallelOptions { MaxDegreeOfParallelism = 2 }, record =>
+            Parallel.ForEach(records, new ParallelOptions {MaxDegreeOfParallelism = 2}, record =>
+            {
+                string zipEntryName = record[0].ToString();
+                int contractLen = (int) record[1];
+                byte[] contractBinary = (byte[]) record[2];
+
+                if (contractLen > 0 && contractBinary != null)
                 {
-                    string zipEntryName = record[0].ToString();
-                    int contractLen = (int)record[1];
-                    byte[] contractBinary = (byte[])record[2];
+                    TContract contract = CompressionHelper.DeserializeObject<TContract>(contractBinary, contractLen);
 
-                    if (contractLen > 0 && contractBinary != null)
+                    lock (zipLock)
                     {
-                        TContract contract = CompressionHelper.DeserializeObject<TContract>(contractBinary, contractLen);
+                        ZipArchiveEntry archiveEntry = zip.CreateEntry(zipEntryName, CompressionLevel.Optimal);
 
-                        lock (zipLock)
+                        using (StreamWriter writer = new StreamWriter(archiveEntry.Open(), Encoding.UTF8))
                         {
-                            ZipArchiveEntry archiveEntry = zip.CreateEntry(zipEntryName, CompressionLevel.Optimal);
-
-                            using (StreamWriter writer = new StreamWriter(archiveEntry.Open(), Encoding.UTF8))
-                            {
-                                jsonSerializer.Serialize(writer, contract);
-                            }
+                            jsonSerializer.Serialize(writer, contract);
                         }
                     }
-                });
+                }
+            });
         }
     }
 }

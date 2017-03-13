@@ -46,7 +46,7 @@ namespace Shoko.Server.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return GetEmptyAnimes();
             }
             if (searchResultXML.Trim().Length == 0) return GetEmptyAnimes();
@@ -110,7 +110,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                     }
                     catch (Exception ex)
                     {
-                        logger.Error( ex,ex.ToString());
+                        logger.Error(ex, ex.ToString());
                     }
                 }
             }
@@ -130,7 +130,7 @@ namespace Shoko.Server.Providers.MyAnimeList
         private static string SendMALAuthenticatedRequest(string url)
         {
             HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
-            webReq.Timeout = 30*1000;
+            webReq.Timeout = 30 * 1000;
             webReq.Credentials = new NetworkCredential(ServerSettings.MAL_Username, ServerSettings.MAL_Password);
             webReq.PreAuthenticate = true;
             webReq.UserAgent = "api-jmm-7EC61C5283B99DC1CFE9A3730BF507CE";
@@ -163,7 +163,7 @@ namespace Shoko.Server.Providers.MyAnimeList
 
                 string url = "https://myanimelist.net/api/account/verify_credentials.xml";
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
-                webReq.Timeout = 30*1000;
+                webReq.Timeout = 30 * 1000;
                 webReq.Credentials = new NetworkCredential(username, password);
                 webReq.PreAuthenticate = true;
                 webReq.UserAgent = "api-jmm-7EC61C5283B99DC1CFE9A3730BF507CE";
@@ -203,7 +203,7 @@ namespace Shoko.Server.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -366,7 +366,7 @@ namespace Shoko.Server.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return null;
             }
         }
@@ -436,7 +436,7 @@ namespace Shoko.Server.Providers.MyAnimeList
 
                 int score = 0;
                 if (ser.GetAnime().UserVote != null)
-                    score = (int) (ser.GetAnime().UserVote.VoteValue/100);
+                    score = (int) (ser.GetAnime().UserVote.VoteValue / 100);
 
                 // e.g.
                 // AniDB - Code Geass R2
@@ -539,13 +539,15 @@ namespace Shoko.Server.Providers.MyAnimeList
                     if (animeListHashtable.ContainsKey(malID))
                     {
                         ModifyAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
-                        confirmationMessage = string.Format("MAL successfully updated (MAL MODIFY), mal id: {0}, ep: {1}, score: {2}", malID,
+                        confirmationMessage = string.Format(
+                            "MAL successfully updated (MAL MODIFY), mal id: {0}, ep: {1}, score: {2}", malID,
                             lastWatchedEpNumber, score);
                     }
                     else
                     {
                         AddAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
-                        confirmationMessage = string.Format("MAL successfully updated (MAL ADD), mal id: {0}, ep: {1}, score: {2}", malID,
+                        confirmationMessage = string.Format(
+                            "MAL successfully updated (MAL ADD), mal id: {0}, ep: {1}, score: {2}", malID,
                             lastWatchedEpNumber, score);
                     }
                     logger.Trace(confirmationMessage);
@@ -553,7 +555,7 @@ namespace Shoko.Server.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -581,8 +583,8 @@ namespace Shoko.Server.Providers.MyAnimeList
                 string res = "";
 
                 string animeValuesXMLString = string.Format(
-                        "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
-                        lastEpisodeWatched, status, score);
+                    "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
+                    lastEpisodeWatched, status, score);
 
                 res =
                     SendMALAuthenticatedRequest("https://myanimelist.net/api/animelist/add/" + animeId + ".xml" +
@@ -597,7 +599,7 @@ namespace Shoko.Server.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -609,8 +611,8 @@ namespace Shoko.Server.Providers.MyAnimeList
             {
                 string res = "";
                 string animeValuesXMLString = string.Format(
-                            "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
-                            lastEpisodeWatched, status, score);
+                    "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
+                    lastEpisodeWatched, status, score);
 
                 res =
                     SendMALAuthenticatedRequest("https://myanimelist.net/api/animelist/update/" + animeId + ".xml" +
@@ -624,7 +626,7 @@ namespace Shoko.Server.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -652,7 +654,8 @@ namespace Shoko.Server.Providers.MyAnimeList
             "\x00a5-yen", "\x00a6-brvbar", "\x00a7-sect", "\x00a8-uml", "\x00a9-copy", "\x00aa-ordf", "\x00ab-laquo",
             "\x00ac-not", "\x00ad-shy", "\x00ae-reg", "\x00af-macr", "\x00b0-deg", "\x00b1-plusmn", "\x00b2-sup2",
             "\x00b3-sup3",
-            "\x00b4-acute", "\x00b5-micro", "\x00b6-para", "\x00b7-middot", "\x00b8-cedil", "\x00b9-sup1", "\x00ba-ordm",
+            "\x00b4-acute", "\x00b5-micro", "\x00b6-para", "\x00b7-middot", "\x00b8-cedil", "\x00b9-sup1",
+            "\x00ba-ordm",
             "\x00bb-raquo",
             "\x00bc-frac14", "\x00bd-frac12", "\x00be-frac34", "\x00bf-iquest", "\x00c0-Agrave", "\x00c1-Aacute",
             "\x00c2-Acirc",

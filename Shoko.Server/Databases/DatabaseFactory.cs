@@ -44,6 +44,7 @@ namespace Shoko.Server.Databases
         }
 
         private static IDatabase _instance;
+
         public static IDatabase Instance
         {
             get
@@ -87,7 +88,7 @@ namespace Shoko.Server.Databases
                         Shoko.Commons.Properties.Resources.Database_NotSupportedVersion;
                     return false;
                 }
-                if (version!=0 && version < Instance.RequiredVersion)
+                if (version != 0 && version < Instance.RequiredVersion)
                 {
                     ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Backup;
                     Instance.BackupDatabase(Instance.GetDatabaseBackupName(version));
@@ -108,14 +109,16 @@ namespace Shoko.Server.Databases
                             "Database Error :\n\r " + ex.ToString() +
                             "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
-                        ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseFail;
+                        ServerState.Instance.CurrentSetupStatus =
+                            Shoko.Commons.Properties.Resources.Server_DatabaseFail;
                     }
                     else
                     {
                         if (ex is TimeoutException)
                         {
                             logger.Error(ex, "Database TimeOut: " + ex.ToString());
-                            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseTimeOut;
+                            ServerState.Instance.CurrentSetupStatus =
+                                Shoko.Commons.Properties.Resources.Server_DatabaseTimeOut;
                         }
                     }
                     return false;
@@ -125,7 +128,7 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Could not init database: " + ex.ToString());
+                logger.Error(ex, "Could not init database: " + ex.ToString());
                 ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseFail;
                 return false;
             }

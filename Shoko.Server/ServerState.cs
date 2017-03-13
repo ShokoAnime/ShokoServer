@@ -21,10 +21,11 @@ namespace Shoko.Server
 
         public ServerState()
         {
-            ConnectedFileSystems=new Dictionary<string, IFileSystem>();
+            ConnectedFileSystems = new Dictionary<string, IFileSystem>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
         public void NotifyPropertyChanged(string propname)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
@@ -36,10 +37,7 @@ namespace Shoko.Server
         public bool DatabaseAvailable
         {
             get { return databaseAvailable; }
-            set
-            {
-                this.SetField(()=>databaseAvailable, value);
-            }
+            set { this.SetField(() => databaseAvailable, value); }
         }
 
         private bool serverOnline = false;
@@ -47,10 +45,7 @@ namespace Shoko.Server
         public bool ServerOnline
         {
             get { return serverOnline; }
-            set
-            {
-                this.SetField(()=>serverOnline, value);
-            }
+            set { this.SetField(() => serverOnline, value); }
         }
 
 
@@ -59,10 +54,7 @@ namespace Shoko.Server
         public string CurrentSetupStatus
         {
             get { return currentSetupStatus; }
-            set
-{
-                this.SetField(()=>currentSetupStatus,value);
-            }
+            set { this.SetField(() => currentSetupStatus, value); }
         }
 
         private bool databaseIsSQLite = false;
@@ -70,10 +62,7 @@ namespace Shoko.Server
         public bool DatabaseIsSQLite
         {
             get { return databaseIsSQLite; }
-            set
-{
-                this.SetField(()=>databaseIsSQLite,value);
-            }
+            set { this.SetField(() => databaseIsSQLite, value); }
         }
 
         private bool databaseIsSQLServer = false;
@@ -81,10 +70,7 @@ namespace Shoko.Server
         public bool DatabaseIsSQLServer
         {
             get { return databaseIsSQLServer; }
-            set
-{
-                this.SetField(()=>databaseIsSQLServer,value);
-            }
+            set { this.SetField(() => databaseIsSQLServer, value); }
         }
 
         private bool databaseIsMySQL = false;
@@ -92,10 +78,7 @@ namespace Shoko.Server
         public bool DatabaseIsMySQL
         {
             get { return databaseIsMySQL; }
-            set
-{
-                this.SetField(()=>databaseIsMySQL,value);
-            }
+            set { this.SetField(() => databaseIsMySQL, value); }
         }
 
         private string baseImagePath = "";
@@ -103,10 +86,7 @@ namespace Shoko.Server
         public string BaseImagePath
         {
             get { return baseImagePath; }
-            set
-{
-                this.SetField(()=>baseImagePath,value);
-            }
+            set { this.SetField(() => baseImagePath, value); }
         }
 
         private bool newVersionAvailable = false;
@@ -114,10 +94,7 @@ namespace Shoko.Server
         public bool NewVersionAvailable
         {
             get { return newVersionAvailable; }
-            set
-{
-                this.SetField(()=>newVersionAvailable,value);
-            }
+            set { this.SetField(() => newVersionAvailable, value); }
         }
 
         private string newVersionNumber = "";
@@ -125,10 +102,7 @@ namespace Shoko.Server
         public string NewVersionNumber
         {
             get { return newVersionNumber; }
-            set
-{
-                this.SetField(()=>newVersionNumber,value);
-            }
+            set { this.SetField(() => newVersionNumber, value); }
         }
 
         private string newVersionDownloadLink = "";
@@ -136,10 +110,7 @@ namespace Shoko.Server
         public string NewVersionDownloadLink
         {
             get { return newVersionDownloadLink; }
-            set
-{
-                this.SetField(()=>newVersionDownloadLink,value);
-            }
+            set { this.SetField(() => newVersionDownloadLink, value); }
         }
 
         private string applicationVersion = "";
@@ -147,10 +118,7 @@ namespace Shoko.Server
         public string ApplicationVersion
         {
             get { return applicationVersion; }
-            set
-{
-                this.SetField(()=>applicationVersion,value);
-            }
+            set { this.SetField(() => applicationVersion, value); }
         }
 
         private string applicationVersionExtra = "";
@@ -158,10 +126,7 @@ namespace Shoko.Server
         public string ApplicationVersionExtra
         {
             get { return applicationVersionExtra; }
-            set
-            {
-                this.SetField(() => applicationVersionExtra, value);
-            }
+            set { this.SetField(() => applicationVersionExtra, value); }
         }
 
         private string applicationVersionLatest = "";
@@ -169,10 +134,7 @@ namespace Shoko.Server
         public string ApplicationVersionLatest
         {
             get { return applicationVersionLatest; }
-            set
-{
-                this.SetField(()=>applicationVersionLatest,value);
-            }
+            set { this.SetField(() => applicationVersionLatest, value); }
         }
 
         private string aniDB_Username = "";
@@ -180,10 +142,7 @@ namespace Shoko.Server
         public string AniDB_Username
         {
             get { return aniDB_Username; }
-            set
-{
-                this.SetField(()=>aniDB_Username,value);
-            }
+            set { this.SetField(() => aniDB_Username, value); }
         }
 
         private string aniDB_Password = "";
@@ -191,10 +150,7 @@ namespace Shoko.Server
         public string AniDB_Password
         {
             get { return aniDB_Password; }
-            set
-{
-                this.SetField(()=>aniDB_Password,value);
-            }
+            set { this.SetField(() => aniDB_Password, value); }
         }
 
         private string aniDB_ServerAddress = "";
@@ -202,10 +158,7 @@ namespace Shoko.Server
         public string AniDB_ServerAddress
         {
             get { return aniDB_ServerAddress; }
-            set
-{
-                this.SetField(()=>aniDB_ServerAddress,value);
-            }
+            set { this.SetField(() => aniDB_ServerAddress, value); }
         }
 
         private string aniDB_ServerPort = "";
@@ -213,10 +166,7 @@ namespace Shoko.Server
         public string AniDB_ServerPort
         {
             get { return aniDB_ServerPort; }
-            set
-{
-                this.SetField(()=>aniDB_ServerPort,value);
-            }
+            set { this.SetField(() => aniDB_ServerPort, value); }
         }
 
         private string aniDB_ClientPort = "";
@@ -224,10 +174,7 @@ namespace Shoko.Server
         public string AniDB_ClientPort
         {
             get { return aniDB_ClientPort; }
-            set
-{
-                this.SetField(()=>aniDB_ClientPort,value);
-            }
+            set { this.SetField(() => aniDB_ClientPort, value); }
         }
 
         private string aniDB_TestStatus = "";
@@ -235,10 +182,7 @@ namespace Shoko.Server
         public string AniDB_TestStatus
         {
             get { return aniDB_TestStatus; }
-            set
-{
-                this.SetField(()=>aniDB_TestStatus,value);
-            }
+            set { this.SetField(() => aniDB_TestStatus, value); }
         }
 
         private bool minOnStartup = false;
@@ -246,10 +190,7 @@ namespace Shoko.Server
         public bool MinOnStartup
         {
             get { return minOnStartup; }
-            set
-{
-                this.SetField(()=>minOnStartup,value);
-            }
+            set { this.SetField(() => minOnStartup, value); }
         }
 
         private bool maxOnStartup = true;
@@ -257,12 +198,8 @@ namespace Shoko.Server
         public bool MaxOnStartup
         {
             get { return maxOnStartup; }
-            set
-{
-                this.SetField(()=>maxOnStartup,value);
-            }
+            set { this.SetField(() => maxOnStartup, value); }
         }
-
 
 
         private string vLCLocation = "";
@@ -270,30 +207,23 @@ namespace Shoko.Server
         public string VLCLocation
         {
             get { return vLCLocation; }
-            set
-{
-                this.SetField(()=>vLCLocation,value);
-            }
+            set { this.SetField(() => vLCLocation, value); }
         }
 
         private bool isAutostartEnabled = false;
+
         public bool IsAutostartEnabled
         {
             get { return isAutostartEnabled; }
-            set
-{
-                this.SetField(()=>isAutostartEnabled,value);
-            }
+            set { this.SetField(() => isAutostartEnabled, value); }
         }
 
         private bool isAutostartDisabled = false;
+
         public bool IsAutostartDisabled
         {
             get { return isAutostartDisabled; }
-            set
-{
-                this.SetField(()=>isAutostartDisabled,value);
-            }
+            set { this.SetField(() => isAutostartDisabled, value); }
         }
 
         /* Swith this to "Registry" when we no longer need elevated run level */
@@ -302,14 +232,11 @@ namespace Shoko.Server
         public readonly string autostartTaskName = "JMMServer";
 
         public readonly string autostartKey = "JMMServer";
+
         public RegistryKey autostartRegistryKey
         {
-            get
-            {
-                return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-            }
+            get { return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true); }
         }
-
 
 
         public Dictionary<string, IFileSystem> ConnectedFileSystems { get; private set; }
@@ -340,13 +267,15 @@ namespace Shoko.Server
                 {
                     logger.DebugException("Unable to get autostart registry value", ex);
                 }
-            } else if(autostartMethod == AutostartMethod.TaskScheduler)
+            }
+            else if (autostartMethod == AutostartMethod.TaskScheduler)
             {
                 Task task = TaskService.Instance.GetTask(autostartTaskName);
                 if (task != null && task.State != TaskState.Disabled)
                 {
                     IsAutostartEnabled = true;
-                } else
+                }
+                else
                 {
                     IsAutostartEnabled = false;
                 }

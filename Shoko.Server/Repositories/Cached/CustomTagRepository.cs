@@ -16,7 +16,8 @@ namespace Shoko.Server.Repositories
         {
             DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
-                RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
+                RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses,
+                    RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
             };
         }
 
@@ -41,9 +42,9 @@ namespace Shoko.Server.Repositories
         public List<CustomTag> GetByAnimeID(int animeID)
         {
             return RepoFactory.CrossRef_CustomTag.GetByAnimeID(animeID)
-                    .Select(a => GetByID(a.CustomTagID))
-                    .Where(a => a != null)
-                    .ToList();
+                .Select(a => GetByID(a.CustomTagID))
+                .Where(a => a != null)
+                .ToList();
             /*
             var tags =
                 session.CreateQuery(
@@ -56,9 +57,13 @@ namespace Shoko.Server.Repositories
         }
 
 
-         public Dictionary<int, List<CustomTag>> GetByAnimeIDs(ISessionWrapper session, int[] animeIDs)
-         {
-            return animeIDs.ToDictionary(a => a, a=> RepoFactory.CrossRef_CustomTag.GetByAnimeID(a).Select(b => GetByID(b.CustomTagID)).Where(b => b != null).ToList());
+        public Dictionary<int, List<CustomTag>> GetByAnimeIDs(ISessionWrapper session, int[] animeIDs)
+        {
+            return animeIDs.ToDictionary(a => a,
+                a => RepoFactory.CrossRef_CustomTag.GetByAnimeID(a)
+                    .Select(b => GetByID(b.CustomTagID))
+                    .Where(b => b != null)
+                    .ToList());
             /*
                 throw new ArgumentNullException(nameof(session));
             if (animeIDs == null)

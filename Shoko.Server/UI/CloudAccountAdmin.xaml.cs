@@ -25,9 +25,8 @@ namespace Shoko.Server
         {
             object obj = lbCloudAccounts.SelectedItem;
             if (obj == null) return;
-            SVR_CloudAccount ns = (SVR_CloudAccount)obj;
+            SVR_CloudAccount ns = (SVR_CloudAccount) obj;
             EditAccount(ns);
-
         }
 
 
@@ -40,9 +39,12 @@ namespace Shoko.Server
             {
                 if (obj.GetType() == typeof(SVR_CloudAccount))
                 {
-                    SVR_CloudAccount ns = (SVR_CloudAccount)obj;
+                    SVR_CloudAccount ns = (SVR_CloudAccount) obj;
 
-                    MessageBoxResult res = MessageBox.Show(string.Format(Shoko.Commons.Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,ns.Provider), Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult res = MessageBox.Show(
+                        string.Format(Shoko.Commons.Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,
+                            ns.Provider), Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
                     {
                         Cursor = Cursors.Wait;
@@ -65,8 +67,8 @@ namespace Shoko.Server
             frm.Init(account);
             frm.ShowDialog();
             ServerInfo.Instance.RefreshCloudAccounts();
-
         }
+
         void btnAddCloudAccount_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -80,7 +82,6 @@ namespace Shoko.Server
         }
 
 
-
         private Window GetTopParent()
         {
             DependencyObject dpParent = Parent;
@@ -91,9 +92,5 @@ namespace Shoko.Server
 
             return dpParent as Window;
         }
-
-
-
-
     }
 }

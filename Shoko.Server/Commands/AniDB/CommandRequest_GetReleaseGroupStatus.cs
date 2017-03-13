@@ -28,7 +28,11 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.GetReleaseGroup, extraParams = new string[] { AnimeID.ToString() } };
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.GetReleaseGroup,
+                    extraParams = new string[] {AnimeID.ToString()}
+                };
             }
         }
 
@@ -71,7 +75,8 @@ namespace Shoko.Server.Commands
                             if (ts.TotalDays > 50)
                             {
                                 // don't skip if we have never downloaded this info before
-                                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
+                                List<AniDB_GroupStatus> grpStatuses =
+                                    RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
                                 if (grpStatuses != null && grpStatuses.Count > 0)
                                 {
                                     skip = true;
@@ -106,7 +111,8 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetReleaseGroupStatus: {0} - {1}", AnimeID, ex.ToString());
+                logger.Error("Error processing CommandRequest_GetReleaseGroupStatus: {0} - {1}", AnimeID,
+                    ex.ToString());
                 return;
             }
         }

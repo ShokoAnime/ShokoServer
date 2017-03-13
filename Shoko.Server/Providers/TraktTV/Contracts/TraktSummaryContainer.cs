@@ -40,7 +40,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -91,7 +91,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -108,7 +108,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 

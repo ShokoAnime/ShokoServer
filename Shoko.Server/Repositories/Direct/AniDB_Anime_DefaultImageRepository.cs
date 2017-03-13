@@ -11,13 +11,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private AniDB_Anime_DefaultImageRepository()
         {
-            
         }
 
         public static AniDB_Anime_DefaultImageRepository Create()
         {
             return new AniDB_Anime_DefaultImageRepository();
         }
+
         public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -26,7 +26,8 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISessionWrapper session, int animeid, int imageType)
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISessionWrapper session, int animeid,
+            int imageType)
         {
             AniDB_Anime_DefaultImage cr = session
                 .CreateCriteria(typeof(AniDB_Anime_DefaultImage))
@@ -48,6 +49,5 @@ namespace Shoko.Server.Repositories.Direct
                 return new List<AniDB_Anime_DefaultImage>(cats);
             }
         }
-
     }
 }

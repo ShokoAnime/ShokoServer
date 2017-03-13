@@ -4,14 +4,13 @@ using Shoko.Server.API.v2.Models.core;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Unauth: Nancy.NancyModule
+    public class Unauth : Nancy.NancyModule
     {
         public static int version = 1;
 
         public Unauth()
         {
             Get["/api/version"] = x => { return GetVersion(); };
-
         }
 
         /// <summary>
@@ -78,6 +77,5 @@ namespace Shoko.Server.API.v2.Modules
 
             return list;
         }
-
     }
 }

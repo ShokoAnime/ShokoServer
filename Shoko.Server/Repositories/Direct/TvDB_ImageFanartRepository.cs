@@ -13,16 +13,15 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class TvDB_ImageFanartRepository : BaseDirectRepository<TvDB_ImageFanart, int>
     {
-
         private TvDB_ImageFanartRepository()
         {
-            
         }
 
         public static TvDB_ImageFanartRepository Create()
         {
             return new TvDB_ImageFanartRepository();
         }
+
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -75,10 +74,9 @@ namespace Shoko.Server.Repositories.Direct
                 .AddEntity("tvdbFanart", typeof(TvDB_ImageFanart))
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
-                .ToLookup(r => (int)r[0], r => (TvDB_ImageFanart)r[1]);
+                .ToLookup(r => (int) r[0], r => (TvDB_ImageFanart) r[1]);
 
             return fanartByAnime;
         }
-
     }
 }

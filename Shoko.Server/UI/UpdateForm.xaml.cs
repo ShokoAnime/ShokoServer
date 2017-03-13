@@ -29,7 +29,7 @@ namespace Shoko.Server.UI
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 

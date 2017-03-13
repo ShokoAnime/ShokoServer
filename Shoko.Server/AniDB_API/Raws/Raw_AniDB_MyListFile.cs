@@ -132,7 +132,7 @@ namespace AniDBAPI
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,"Error processing View Date HTTP: " + ex.ToString());
+                    logger.Error(ex, "Error processing View Date HTTP: " + ex.ToString());
                 }
             }
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
@@ -32,9 +31,17 @@ namespace Shoko.Server.Commands
             get
             {
                 if (vlocal != null)
-                    return new QueueStateStruct() { queueState = QueueStateEnum.FileInfo, extraParams = new string[] { vlocal.FileName } };
+                    return new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.FileInfo,
+                        extraParams = new string[] {vlocal.FileName}
+                    };
                 else
-                    return new QueueStateStruct() { queueState = QueueStateEnum.FileInfo, extraParams = new string[] { VideoLocalID.ToString() } };
+                    return new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.FileInfo,
+                        extraParams = new string[] {VideoLocalID.ToString()}
+                    };
             }
         }
 
@@ -84,7 +91,6 @@ namespace Shoko.Server.Commands
 
             lock (vidLocal)
             {
-
                 SVR_AniDB_File aniFile = null;
 
                 if (!ForceAniDB)
@@ -289,10 +295,7 @@ namespace Shoko.Server.Commands
                         RepoFactory.AnimeGroup.Save(grp, true, false);
                     }
                 }
-                vidLocal.Places.ForEach(a =>
-                {
-                    a.RenameAndMoveAsRequired();
-                });
+                vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
 
                 // update stats for groups and series

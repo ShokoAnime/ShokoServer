@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using System.IO;
 using System.Text;
 using Shoko.Models.Server;
@@ -100,7 +99,7 @@ namespace Shoko.Server.Providers.MovieDB
             if (ServerSettings.MovieDB_AutoPosters || isTrakt)
             {
                 foreach (MovieDB_Poster poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId)
-                    )
+                )
                 {
                     if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
@@ -130,7 +129,7 @@ namespace Shoko.Server.Providers.MovieDB
             if (ServerSettings.MovieDB_AutoFanart || isTrakt)
             {
                 foreach (MovieDB_Fanart fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId)
-                    )
+                )
                 {
                     if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {
@@ -184,6 +183,7 @@ namespace Shoko.Server.Providers.MovieDB
 
             return results;
         }
+
         public static List<MovieDB_Movie_Result> SearchWithTVShowID(int id, bool isTrakt)
         {
             List<MovieDB_Movie_Result> results = new List<MovieDB_Movie_Result>();
@@ -195,7 +195,6 @@ namespace Shoko.Server.Providers.MovieDB
 
                 if (result != null)
                 {
-
                     logger.Info("Got TMDB results for id: {0} | show name: {1}", id, result.Name);
                     MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
                     Movie movie = client.GetMovie(result.Id);
@@ -237,7 +236,7 @@ namespace Shoko.Server.Providers.MovieDB
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in ParseBanners: " + ex.ToString());
+                logger.Error(ex, "Error in ParseBanners: " + ex.ToString());
             }
         }
 
@@ -259,7 +258,8 @@ namespace Shoko.Server.Providers.MovieDB
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
 
-            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref =
+                RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null)
                 xref = new CrossRef_AniDB_Other();
 
@@ -283,7 +283,8 @@ namespace Shoko.Server.Providers.MovieDB
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref =
+                RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null) return;
 
             RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);

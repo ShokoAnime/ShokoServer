@@ -9,13 +9,13 @@ namespace Shoko.Server.Repositories.Direct
     {
         private AniDB_ReviewRepository()
         {
-            
         }
 
         public static AniDB_ReviewRepository Create()
         {
             return new AniDB_ReviewRepository();
         }
+
         public AniDB_Review GetByReviewID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -27,6 +27,5 @@ namespace Shoko.Server.Repositories.Direct
                 return cr;
             }
         }
-
     }
 }
