@@ -152,8 +152,7 @@ namespace MediaInfoLib
         [DllImport("MediaInfo.dll")]
         private static extern IntPtr MediaInfo_Count_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber);
 
-        #region
-         Changes from original mediainfo that handle automatic loading the correct library depending of the os used x86/x64
+        #region Changes from original mediainfo that handle automatic loading the correct library depending of the os used x86/x64
 
         [System.Flags]
         internal enum LoadLibraryFlags : uint
