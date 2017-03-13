@@ -1243,5 +1243,10 @@ namespace Shoko.Server.Models
 
 		    return true;
 	    }
+
+        public override int GetHashCode()
+        {
+            return 0; // Always use equals
+        }
     }
 }

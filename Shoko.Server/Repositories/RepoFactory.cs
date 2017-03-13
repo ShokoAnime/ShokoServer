@@ -1,4 +1,5 @@
 ﻿using System;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
@@ -128,30 +129,37 @@ namespace Shoko.Server.Repositories
             AnimeGroup_User.Populate();
 
             // Update Contracts if necessary
-            JMMUser.RegenerateDb();
-            CloudAccount.RegenerateDb();
-            ImportFolder.RegenerateDb();
-            AniDB_Anime.RegenerateDb();
-            AniDB_Episode.RegenerateDb();
-            AniDB_File.RegenerateDb();
-            AniDB_Anime_Title.RegenerateDb();
-            AniDB_Anime_Tag.RegenerateDb();
-            AniDB_Tag.RegenerateDb();
-            CustomTag.RegenerateDb();
-            CrossRef_CustomTag.RegenerateDb();
-            CrossRef_File_Episode.RegenerateDb();
-            VideoLocalPlace.RegenerateDb();
-            VideoLocal.RegenerateDb();
-            VideoLocalUser.RegenerateDb();
-            AnimeEpisode.RegenerateDb();
-            AnimeEpisode_User.RegenerateDb();
-            AnimeSeries.RegenerateDb();
-            AnimeSeries_User.RegenerateDb();
-            AnimeGroup.RegenerateDb();
-            AnimeGroup_User.RegenerateDb();
+            try
+            {
+                JMMUser.RegenerateDb();
+                CloudAccount.RegenerateDb();
+                ImportFolder.RegenerateDb();
+                AniDB_Anime.RegenerateDb();
+                AniDB_Episode.RegenerateDb();
+                AniDB_File.RegenerateDb();
+                AniDB_Anime_Title.RegenerateDb();
+                AniDB_Anime_Tag.RegenerateDb();
+                AniDB_Tag.RegenerateDb();
+                CustomTag.RegenerateDb();
+                CrossRef_CustomTag.RegenerateDb();
+                CrossRef_File_Episode.RegenerateDb();
+                VideoLocalPlace.RegenerateDb();
+                VideoLocal.RegenerateDb();
+                VideoLocalUser.RegenerateDb();
+                AnimeEpisode.RegenerateDb();
+                AnimeEpisode_User.RegenerateDb();
+                AnimeSeries.RegenerateDb();
+                AnimeSeries_User.RegenerateDb();
+                AnimeGroup.RegenerateDb();
+                AnimeGroup_User.RegenerateDb();
 
-	        GroupFilter.RegenerateDb();
-	        GroupFilter.PostProcess();
+                GroupFilter.RegenerateDb();
+                GroupFilter.PostProcess();
+            }
+            catch (Exception e)
+            {
+                LogManager.GetCurrentClassLogger().Error(e, "There was an error starting the Database Factory");
+            }
             CleanUpMemory();
         }
 

@@ -79,11 +79,11 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-
         public void PostProcess()
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
             {
                 if (g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
@@ -99,8 +99,10 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_GroupFilter gf in PostProcessFilters)
             {
                 cnt++;
-                ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
-                    Shoko.Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " + gf.GroupFilterName);
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Shoko.Commons.Properties.Resources.Database_Cache, t,
+                    Shoko.Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
+                    gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
                     gf.EvaluateAnimeGroups();
@@ -110,42 +112,43 @@ namespace Shoko.Server.Repositories.Cached
                 Save(gf);
             }
 
-	        // Clean up. This will populate empty conditions and remove duplicate filters
-	        ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache, t,
-		        " " + Shoko.Commons.Properties.Resources.GroupFilter_Cleanup);
-	        IReadOnlyList<SVR_GroupFilter> all = GetAll();
-	        HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
-	        List<SVR_GroupFilter> notin = all.Except(set)?.ToList();
-		    Delete(notin);
+            // Clean up. This will populate empty conditions and remove duplicate filters
+            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+                t,
+                " " + Shoko.Commons.Properties.Resources.GroupFilter_Cleanup);
+            IReadOnlyList<SVR_GroupFilter> all = GetAll();
+            HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
+            List<SVR_GroupFilter> notin = all.Except(set)?.ToList();
+            Delete(notin);
 
-	        // Remove orphaned group filter conditions
-	        List<GroupFilterCondition> toremove = new List<GroupFilterCondition>();
-	        foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll())
-	        {
-		        if (RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null) toremove.Add(condition);
-	        }
-		    RepoFactory.GroupFilterCondition.Delete(toremove);
+            // Remove orphaned group filter conditions
+            List<GroupFilterCondition> toremove = new List<GroupFilterCondition>();
+            foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll())
+            {
+                if (RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null) toremove.Add(condition);
+            }
+            RepoFactory.GroupFilterCondition.Delete(toremove);
 
-	        CleanUpEmptyTagAndYearFilters();
+            CleanUpEmptyTagAndYearFilters();
 
             PostProcessFilters = null;
         }
 
 
         //TODO Cleanup function for Empty Tags and Empty Years
-	    public void CleanUpEmptyTagAndYearFilters()
-	    {
-		    List<SVR_GroupFilter> toremove = new List<SVR_GroupFilter>();
-		    foreach (SVR_GroupFilter gf in GetAll())
-		    {
-			    if (gf.GroupsIds.Count == 0 && string.IsNullOrEmpty(gf.GroupsIdsString) && gf.SeriesIds.Count == 0 &&
-			        string.IsNullOrEmpty(gf.SeriesIdsString))
-			    {
-				    toremove.Add(gf);
-			    }
-		    }
-		    Delete(toremove);
-	    }
+        public void CleanUpEmptyTagAndYearFilters()
+        {
+            List<SVR_GroupFilter> toremove = new List<SVR_GroupFilter>();
+            foreach (SVR_GroupFilter gf in GetAll())
+            {
+                if (gf.GroupsIds.Count == 0 && string.IsNullOrEmpty(gf.GroupsIdsString) && gf.SeriesIds.Count == 0 &&
+                    string.IsNullOrEmpty(gf.SeriesIdsString))
+                {
+                    toremove.Add(gf);
+                }
+            }
+            Delete(toremove);
+        }
         
 
         public void CreateOrVerifyLockedFilters()
