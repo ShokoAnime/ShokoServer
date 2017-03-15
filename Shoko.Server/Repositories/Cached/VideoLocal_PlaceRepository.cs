@@ -49,6 +49,11 @@ namespace Shoko.Server.Repositories.Cached
             return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
         }
 
+        public List<SVR_VideoLocal_Place> GetByFilePathAndImportFolderType(string filePath, int folderType)
+        {
+            return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
+        }
+
         public override void Delete(SVR_VideoLocal_Place obj)
         {
             base.Delete(obj);

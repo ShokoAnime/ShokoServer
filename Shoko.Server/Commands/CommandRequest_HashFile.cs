@@ -168,20 +168,27 @@ namespace Shoko.Server.Commands
 
 
             SVR_VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(filePath, nshareID);
-            SVR_VideoLocal vlocal;
+            SVR_VideoLocal vlocal = null;
 
             if (vlocalplace != null)
             {
                 vlocal = vlocalplace.VideoLocal;
                 logger.Trace("VideoLocal record found in database: {0}", vlocal.VideoLocalID);
 
-                if (ForceHash)
+                if (vlocalplace.FullServerPath == null)
+                {
+                    if (vlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(vlocal);
+                    RepoFactory.VideoLocalPlace.Delete(vlocalplace);
+                    vlocalplace = null;
+                    vlocal = null;
+                } else if (ForceHash)
                 {
                     vlocal.FileSize = filesize;
                     vlocal.DateTimeUpdated = DateTime.Now;
                 }
             }
-            else
+
+            if (vlocalplace == null)
             {
                 logger.Trace("VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal();
@@ -231,6 +238,8 @@ namespace Shoko.Server.Commands
                             RepoFactory.FileNameHash.Delete(fnh.FileNameHashID);
                         }
                     }
+                    // reinit this to check if we erased them
+                    fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(vlocal.FileName, vlocal.FileSize);
 
                     if (fnhashes != null && fnhashes.Count == 1)
                     {
@@ -282,6 +291,14 @@ namespace Shoko.Server.Commands
                 SVR_VideoLocal_Place prep = tlocal?.Places.FirstOrDefault(
                     a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
                          vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                // clean up, if there is a 'duplicate file' that is invalid, remove it.
+                if (prep != null && prep.FullServerPath == null)
+                {
+                    if (tlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(tlocal);
+                    RepoFactory.VideoLocalPlace.Delete(prep);
+                    prep = null;
+                }
+
                 if (prep != null)
                 {
                     // delete the VideoLocal record
