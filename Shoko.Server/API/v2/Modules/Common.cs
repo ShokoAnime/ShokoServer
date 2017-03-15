@@ -2132,7 +2132,7 @@ namespace Shoko.Server.API.v2.Modules
                     RepoFactory.AniDB_Vote.Save(thisVote);
 
                     Commands.CommandRequest_VoteAnime cmdVote =
-                        new Commands.CommandRequest_VoteAnime(id, voteType, Convert.ToDecimal(score));
+                        new Commands.CommandRequest_VoteAnime(id, voteType, Convert.ToDecimal(score / 100));
                     cmdVote.Save();
                     return APIStatus.statusOK();
                 }
