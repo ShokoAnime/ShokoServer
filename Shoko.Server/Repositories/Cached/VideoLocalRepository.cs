@@ -111,11 +111,28 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 var toRemove = new List<SVR_VideoLocal>();
                 var comparer = new VideoLocalComparer();
+
                 foreach (string hash in locals.Keys)
                 {
-                    var values = locals[hash];
+                    List<SVR_VideoLocal> values = locals[hash];
                     values.Sort(comparer);
-                    toRemove.AddRange(values.Except(values.First()));
+                    SVR_VideoLocal to = values.First();
+                    List<SVR_VideoLocal> froms = values.Except(to).ToList();
+                    foreach (SVR_VideoLocal from in froms)
+                    {
+                        List<SVR_VideoLocal_Place> places = from.Places;
+                        if (places == null || places.Count == 0) continue;
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            foreach (SVR_VideoLocal_Place place in places)
+                            {
+                                place.VideoLocalID = to.VideoLocalID;
+                                RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(session, place);
+                            }
+                            transaction.Commit();
+                        }
+                    }
+                    toRemove.AddRange(froms);
                 }
 
                 using (var transaction = session.BeginTransaction())
