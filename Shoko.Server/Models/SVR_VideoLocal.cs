@@ -496,6 +496,18 @@ namespace Shoko.Server.Models
             return cl;
         }
 
+        // is the videolocal empty. This isn't complete, but without one or more of these the record is useless
+        public bool IsEmpty()
+        {
+            if (!string.IsNullOrEmpty(Hash)) return false;
+            if (!string.IsNullOrEmpty(MD5)) return false;
+            if (!string.IsNullOrEmpty(CRC32)) return false;
+            if (!string.IsNullOrEmpty(SHA1)) return false;
+            if (!string.IsNullOrEmpty(FileName)) return false;
+            if (FileSize > 0) return false;
+            return true;
+        }
+
         private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
             RegexOptions.Compiled);
 
@@ -692,6 +704,26 @@ namespace Shoko.Server.Models
             if (userRecord != null)
                 cl.ResumePosition = userRecord.ResumePosition;
             return cl;
+        }
+    }
+
+    // This is a comparer used to sort the completeness of a videolocal, more complete first.
+    // Because this is only used for comparing completeness of hashes, it does NOT follow the strict equality rules
+    public class VideoLocalComparer : IComparer<VideoLocal>
+    {
+        public int Compare(VideoLocal x, VideoLocal y)
+        {
+            if (x == null) return 1;
+            if (y == null) return -1;
+            if (string.IsNullOrEmpty(x.Hash)) return 1;
+            if (string.IsNullOrEmpty(y.Hash)) return -1;
+            if (string.IsNullOrEmpty(x.CRC32)) return 1;
+            if (string.IsNullOrEmpty(y.CRC32)) return -1;
+            if (string.IsNullOrEmpty(x.MD5)) return 1;
+            if (string.IsNullOrEmpty(y.MD5)) return -1;
+            if (string.IsNullOrEmpty(x.SHA1)) return 1;
+            if (string.IsNullOrEmpty(y.SHA1)) return -1;
+            return x.HashSource.CompareTo(y.HashSource);
         }
     }
 }

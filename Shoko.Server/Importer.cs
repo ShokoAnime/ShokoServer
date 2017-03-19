@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using FluentNHibernate.Utils;
 using Shoko.Models;
 using Shoko.Models.Server;
 using Shoko.Models.Azure;
@@ -841,13 +842,44 @@ namespace Shoko.Server
                     {
                         FileSystemResult<IObject> obj = null;
                         if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
-                        if (obj == null || obj.IsOk && !(obj.Result is IDirectory)) continue;
+                        if (obj == null || obj.IsOk || obj.Result is IDirectory) continue;
                         // delete video local record
                         vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     }
                 }
 
-                IReadOnlyList<SVR_VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll();
+                List<SVR_VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
+                // remove duplicate and/or empty videolocals
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (SVR_VideoLocal remove in videoLocalsAll.Where(a => a.IsEmpty()).ToList())
+                    {
+                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
+                    }
+                    transaction.Commit();
+                }
+
+                Dictionary<string, List<SVR_VideoLocal>> locals = videoLocalsAll
+                    .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                    .GroupBy(a => a.Hash)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                var toRemove = new List<SVR_VideoLocal>();
+                var comparer = new VideoLocalComparer();
+                foreach (string hash in locals.Keys)
+                {
+                    List<SVR_VideoLocal> values = locals[hash];
+                    values.Sort(comparer);
+                    toRemove.AddRange(values.Except(values.First()));
+                }
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (SVR_VideoLocal remove in toRemove)
+                    {
+                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
+                    }
+                    transaction.Commit();
+                }
+
                 foreach (SVR_VideoLocal v in videoLocalsAll)
                 {
                     List<SVR_VideoLocal_Place> places = v.Places;

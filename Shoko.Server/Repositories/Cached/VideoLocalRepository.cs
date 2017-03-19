@@ -8,6 +8,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 
@@ -94,8 +95,39 @@ namespace Shoko.Server.Repositories.Cached
             catch (Exception e)
             {
             }
-        }
 
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                Dictionary<string, List<SVR_VideoLocal>> locals = Cache.Values.Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                    .GroupBy(a => a.Hash)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (SVR_VideoLocal remove in Cache.Values.Where(a => a.IsEmpty()).ToList())
+                    {
+                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
+                    }
+                    transaction.Commit();
+                }
+                var toRemove = new List<SVR_VideoLocal>();
+                var comparer = new VideoLocalComparer();
+                foreach (string hash in locals.Keys)
+                {
+                    var values = locals[hash];
+                    values.Sort(comparer);
+                    toRemove.AddRange(values.Except(values.First()));
+                }
+
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (SVR_VideoLocal remove in toRemove)
+                    {
+                        DeleteWithOpenTransaction(session, remove);
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
 
         public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
         {
