@@ -20,6 +20,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Extensions;
+using Shoko.Server.Providers.TraktTV;
 using Utils = Shoko.Server.Utils;
 
 namespace Shoko.Models.TvDB
@@ -901,8 +902,7 @@ namespace Shoko.Models.TvDB
 
                 if (!excludeFromWebCache)
                 {
-                    CommandRequest_WebCacheSendXRefAniDBTvDB req =
-                        new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
+                    var req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
                     req.Save();
                 }
 
@@ -913,10 +913,13 @@ namespace Shoko.Models.TvDB
                     if (trakt.Count != 0)
                     {
                         // remove them and rescan
-                        trakt.ForEach(a => RepoFactory.CrossRef_AniDB_TraktV2.Delete(a));
+                        foreach (CrossRef_AniDB_TraktV2 a in trakt)
+                        {
+                            RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                        }
                     }
 
-                    CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
+                    var cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
                     cmd2.Save(session);
                 }
             }
@@ -965,6 +968,17 @@ namespace Shoko.Models.TvDB
 
         public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType = -1)
         {
+            // check for Trakt associations
+            List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+            if (trakt.Count != 0)
+            {
+                // remove them and rescan
+                foreach (CrossRef_AniDB_TraktV2 a in trakt)
+                {
+                    RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                }
+            }
+
             List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, animeID);
             if (xrefs == null || xrefs.Count == 0) return;
 

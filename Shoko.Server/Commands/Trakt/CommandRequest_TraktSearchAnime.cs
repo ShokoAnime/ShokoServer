@@ -67,6 +67,7 @@ namespace Shoko.Server.Commands
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
+                    bool doReturn = false;
 
                     // first check if the user wants to use the web cache
                     if (ServerSettings.WebCache_Trakt_Get)
@@ -83,17 +84,17 @@ namespace Shoko.Server.Commands
                                 foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
                                 {
                                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
-                                    if (showInfo != null)
-                                    {
-                                        logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
-                                            showInfo.title);
-                                        TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                            (enEpisodeType) xref.AniDBStartEpisodeType,
-                                            xref.AniDBStartEpisodeNumber,
-                                            xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
-                                        return;
-                                    }
+                                    if (showInfo == null) continue;
+
+                                    logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
+                                        showInfo.title);
+                                    TraktTVHelper.LinkAniDBTrakt(AnimeID,
+                                        (enEpisodeType) xref.AniDBStartEpisodeType,
+                                        xref.AniDBStartEpisodeNumber,
+                                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
+                                    doReturn = true;
                                 }
+                                if (doReturn) return;
                             }
                         }
                         catch (Exception ex)
@@ -115,49 +116,42 @@ namespace Shoko.Server.Commands
                             List<TraktV2SearchTvDBIDShowResult> searchResults =
                                 TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,
                                     tvXRef.TvDBID.ToString());
-                            if (searchResults != null && searchResults.Count > 0)
+                            if (searchResults == null || searchResults.Count <= 0) continue;
+                            // since we are searching by ID, there will only be one 'show' result
+                            TraktV2Show resShow = null;
+                            foreach (TraktV2SearchTvDBIDShowResult res in searchResults)
                             {
-                                // since we are searching by ID, there will only be one 'show' result
-                                TraktV2Show resShow = null;
-                                foreach (TraktV2SearchTvDBIDShowResult res in searchResults)
-                                {
-                                    if (res.ResultType == SearchIDType.Show)
-                                    {
-                                        resShow = res.show;
-                                        break;
-                                    }
-                                }
-
-                                if (resShow != null)
-                                {
-                                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(resShow.ids.slug);
-                                    if (showInfo != null && showInfo.ids != null)
-                                    {
-                                        // make sure the season specified by TvDB also exists on Trakt
-                                        Trakt_Show traktShow =
-                                            RepoFactory.Trakt_Show.GetByTraktSlug(session, showInfo.ids.slug);
-                                        if (traktShow != null)
-                                        {
-                                            Trakt_Season traktSeason = RepoFactory.Trakt_Season.GetByShowIDAndSeason(
-                                                session,
-                                                traktShow.Trakt_ShowID,
-                                                xrefTvDBs[0].TvDBSeasonNumber);
-                                            if (traktSeason != null)
-                                            {
-                                                logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
-                                                    AnimeID, showInfo.title);
-                                                TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                                    (enEpisodeType) tvXRef.AniDBStartEpisodeType,
-                                                    tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
-                                                    tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
-                                                    true);
-                                                return;
-                                            }
-                                        }
-                                    }
-                                }
+                                if (res.ResultType != SearchIDType.Show) continue;
+                                resShow = res.show;
+                                break;
                             }
+
+                            if (resShow == null) continue;
+
+                            TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(resShow.ids.slug);
+                            if (showInfo?.ids == null) continue;
+
+                            // make sure the season specified by TvDB also exists on Trakt
+                            Trakt_Show traktShow =
+                                RepoFactory.Trakt_Show.GetByTraktSlug(session, showInfo.ids.slug);
+                            if (traktShow == null) continue;
+
+                            Trakt_Season traktSeason = RepoFactory.Trakt_Season.GetByShowIDAndSeason(
+                                session,
+                                traktShow.Trakt_ShowID,
+                                tvXRef.TvDBSeasonNumber);
+                            if (traktSeason == null) continue;
+
+                            logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
+                                AnimeID, showInfo.title);
+                            TraktTVHelper.LinkAniDBTrakt(AnimeID,
+                                (enEpisodeType) tvXRef.AniDBStartEpisodeType,
+                                tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
+                                tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
+                                true);
+                            doReturn = true;
                         }
+                        if (doReturn) return;
                     }
 
                     // finally lets try searching Trakt directly
@@ -173,19 +167,18 @@ namespace Shoko.Server.Commands
                     if (ProcessSearchResults(session, results, searchCriteria)) return;
 
 
-                    if (results.Count == 0)
+                    if (results.Count != 0) return;
+
+                    foreach (AniDB_Anime_Title title in anime.GetTitles())
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
-                        {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
-                                continue;
+                        if (!string.Equals(title.TitleType, Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                            continue;
 
-                            if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+                        if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
 
-                            results = TraktTVHelper.SearchShowV2(searchCriteria);
-                            logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
-                            if (ProcessSearchResults(session, results, title.Title)) return;
-                        }
+                        results = TraktTVHelper.SearchShowV2(searchCriteria);
+                        logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
+                        if (ProcessSearchResults(session, results, title.Title)) return;
                     }
                 }
             }
@@ -222,7 +215,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TraktSearchAnime{0}", this.AnimeID);
+            this.CommandID = $"CommandRequest_TraktSearchAnime{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
