@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Models.Azure;
 using Shoko.Models;
@@ -33,12 +34,6 @@ namespace Shoko.Server.Models
         THIRD = 5000
     }
 
-    public enum DELAY_NOT_FOUND
-    {
-        FIRST = 750,
-        SECOND = 30000
-    }
-
     public class SVR_VideoLocal_Place : VideoLocal_Place
     {
         public SVR_VideoLocal_Place()
@@ -61,14 +56,15 @@ namespace Shoko.Server.Models
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public void RenameFile(string renameScript)
+        // returns false if we should try again after the timer
+        private bool RenameFile(string renameScript)
         {
             string renamed = RenameFileHelper.GetNewFileName(VideoLocal, renameScript);
-            if (string.IsNullOrEmpty(renamed)) return;
+            if (string.IsNullOrEmpty(renamed)) return true;
 
             IFileSystem filesys = ImportFolder.FileSystem;
             if (filesys == null)
-                return;
+                return true;
             // actually rename the file
             string fullFileName = this.FullServerPath;
 
@@ -78,7 +74,7 @@ namespace Shoko.Server.Models
             if ((re == null) || (!re.IsOk))
             {
                 logger.Error("Error could not find the original file for renaming: " + fullFileName);
-                return;
+                return false;
             }
             IObject file = re.Result;
             // actually rename the file
@@ -92,14 +88,14 @@ namespace Shoko.Server.Models
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     logger.Info($"Renaming file SKIPPED! no change From ({fullFileName}) to ({newFullName})");
-                    return;
+                    return true;
                 }
 
                 FileSystemResult r = file?.FileSystem?.Resolve(newFullName);
                 if (r != null && r.IsOk)
                 {
                     logger.Info($"Renaming file SKIPPED! Destination Exists ({newFullName})");
-                    return;
+                    return true;
                 }
 
                 r = file.Rename(renamed);
@@ -107,7 +103,7 @@ namespace Shoko.Server.Models
                 {
                     logger.Info(
                         $"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r?.Error ?? "Result is null"}");
-                    return;
+                    return false;
                 }
 
                 logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
@@ -115,7 +111,7 @@ namespace Shoko.Server.Models
                 if (tup == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
-                    return;
+                    return false;
                 }
                 this.FilePath = tup.Item2;
                 RepoFactory.VideoLocalPlace.Save(this);
@@ -125,6 +121,7 @@ namespace Shoko.Server.Models
                 logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                 logger.Error(ex, ex.ToString());
             }
+            return true;
         }
 
         public void RemoveRecord()
@@ -345,28 +342,57 @@ namespace Shoko.Server.Models
 
         public void RenameAndMoveAsRequired()
         {
-            RenameIfRequired();
+            bool retry = RenameIfRequired();
+            if (!retry)
+            {
+                Thread.Sleep((int)DELAY_IN_USE.FIRST);
+                retry = RenameIfRequired();
+                if (!retry)
+                {
+                    Thread.Sleep((int) DELAY_IN_USE.SECOND);
+                    retry = RenameIfRequired();
+                    if (!retry)
+                    {
+                        Thread.Sleep((int) DELAY_IN_USE.THIRD);
+                        retry = RenameIfRequired();
+                        if (!retry)
+                        {
+                            // Don't bother moving if we can't rename
+                            return;
+                        }
+                    }
+                }
+            }
+            retry = MoveFileIfRequired();
+            if (retry) return;
+            Thread.Sleep((int)DELAY_IN_USE.FIRST);
+            retry = MoveFileIfRequired();
+            if (retry) return;
+            Thread.Sleep((int) DELAY_IN_USE.SECOND);
+            retry = MoveFileIfRequired();
+            if (retry) return;
+            Thread.Sleep((int) DELAY_IN_USE.THIRD);
             MoveFileIfRequired();
         }
 
-        private void RenameIfRequired()
+        // returns false if we should retry
+        private bool RenameIfRequired()
         {
             try
             {
                 RenameScript defaultScript = RepoFactory.RenameScript.GetDefaultScript();
 
-                if (defaultScript == null) return;
-
-                RenameFile(defaultScript.Script);
+                return defaultScript == null || RenameFile(defaultScript.Script);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return;
+                return true;
             }
         }
 
-        private void MoveFileIfRequired()
+        // returns false if we should retry
+        private bool MoveFileIfRequired()
         {
             try
             {
@@ -377,56 +403,60 @@ namespace Shoko.Server.Models
                 if (ImportFolder.IsDropSource == 0)
                 {
                     logger.Trace("Not moving file as it is NOT in the drop folder: {0}", this.FullServerPath);
-                    return;
+                    return true;
                 }
                 IFileSystem f = this.ImportFolder.FileSystem;
                 if (f == null)
                 {
                     logger.Trace("Unable to MOVE, filesystem not working: {0}", this.FullServerPath);
-                    return;
+                    return true;
                 }
 
                 FileSystemResult<IObject> fsrresult = f.Resolve(FullServerPath);
                 if (!fsrresult.IsOk)
                 {
-                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
-                    return;
+                    logger.Error("Could not find or access the file to move: {0}", this.FullServerPath);
+                    // this can happen due to file locks, so retry
+                    return false;
                 }
                 IFile source_file = fsrresult.Result as IFile;
                 if (source_file == null)
                 {
-                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
-                    return;
+                    logger.Error("Could not move the file (it isn't a file): {0}", this.FullServerPath);
+                    // this means it isn't a file, but something else, so don't retry
+                    return true;
                 }
                 // find the default destination
                 SVR_ImportFolder destFolder = null;
                 foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
-                    .Where(a => a.CloudID == ImportFolder.CloudID))
+                    .Where(a => a != null && a.CloudID == ImportFolder.CloudID).ToList())
                 {
-                    if (fldr.IsDropDestination == 1)
-                    {
-                        destFolder = fldr;
-                        break;
-                    }
+                    if (!fldr.FolderIsDropDestination) continue;
+                    IFileSystem fs = fldr.FileSystem;
+                    FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
+                    if (fsresult == null || !fsresult.IsOk) continue;
+
+                    destFolder = fldr;
+                    break;
                 }
 
-                if (destFolder == null) return;
-
-                FileSystemResult<IObject> re = f.Resolve(destFolder.ImportFolderLocation);
-                if (!re.IsOk)
-                    return;
+                if (destFolder == null)
+                {
+                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
+                    return true;
+                }
 
                 // keep the original drop folder for later (take a copy, not a reference)
                 SVR_ImportFolder dropFolder = this.ImportFolder;
 
                 // we can only move the file if it has an anime associated with it
                 List<CrossRef_File_Episode> xrefs = this.VideoLocal.EpisodeCrossRefs;
-                if (xrefs.Count == 0) return;
+                if (xrefs.Count == 0) return true;
                 CrossRef_File_Episode xref = xrefs[0];
 
                 // find the series associated with this episode
                 SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                if (series == null) return;
+                if (series == null) return true;
 
                 // find where the other files are stored for this series
                 // if there are no other files except for this one, it means we need to create a new location
@@ -435,7 +465,7 @@ namespace Shoko.Server.Models
 
                 // sort the episodes by air date, so that we will move the file to the location of the latest episode
                 List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes()
-                    .OrderByDescending(a => a.AniDB_EpisodeID)
+                    .OrderByDescending(a => a.AniDB_Episode.AirDate)
                     .ToList();
 
                 IDirectory destination = null;
@@ -464,22 +494,21 @@ namespace Shoko.Server.Models
                         .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
                                                       b.ImportFolder.IsDropSource == 0)))
                     {
-                        if (vid.VideoLocalID != this.VideoLocalID)
-                        {
-                            SVR_VideoLocal_Place place =
-                                vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
-                            string thisFileName = place?.FullServerPath;
-                            string folderName = Path.GetDirectoryName(thisFileName);
+                        if (vid.VideoLocalID == this.VideoLocalID) continue;
 
-                            FileSystemResult<IObject> dir = f.Resolve(folderName);
-                            if (dir.IsOk)
-                            {
-                                destination = (IDirectory) dir.Result;
-                                newFullPath = folderName;
-                                foundLocation = true;
-                                break;
-                            }
-                        }
+                        SVR_VideoLocal_Place place =
+                            vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
+                        string thisFileName = place?.FullServerPath;
+                        string folderName = Path.GetDirectoryName(thisFileName);
+
+                        FileSystemResult<IObject> dir = f.Resolve(folderName);
+                        if (!dir.IsOk) continue;
+                        destination = dir.Result as IDirectory;
+                        // Not a directory
+                        if (destination == null) continue;
+                        newFullPath = folderName;
+                        foundLocation = true;
+                        break;
                     }
                     if (foundLocation) break;
                 }
@@ -487,7 +516,7 @@ namespace Shoko.Server.Models
                 if (!foundLocation)
                 {
                     // we need to create a new folder
-                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().PreferredTitle);
+                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetSeriesName());
 
                     newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
                     FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
@@ -505,11 +534,13 @@ namespace Shoko.Server.Models
                         else
                         {
                             logger.Error("Import folder couldn't be resolved: {0}", destFolder.ImportFolderLocation);
+                            newFullPath = null;
                         }
                     }
                     else if (dirn.Result is IFile)
                     {
                         logger.Error("Destination folder is a file: {0}", newFolderName);
+                        newFullPath = null;
                     }
                     else
                     {
@@ -519,7 +550,7 @@ namespace Shoko.Server.Models
 
                 if (string.IsNullOrEmpty(newFullPath))
                 {
-                    return;
+                    return true;
                 }
 
                 // We've already resolved FullServerPath, so it doesn't need to be checked
@@ -528,7 +559,7 @@ namespace Shoko.Server.Models
                 if (tup == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
-                    return;
+                    return true;
                 }
 
                 logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
@@ -577,9 +608,9 @@ namespace Shoko.Server.Models
                     FileSystemResult fr = source_file.Move(destination);
                     if (!fr.IsOk)
                     {
-                        logger.Error("Unable to MOVE file: {0} to {1} error {2)", this.FullServerPath,
-                            newFullServerPath, fr?.Error ?? String.Empty);
-                        return;
+                        logger.Error("Unable to MOVE file: {0} to {1} error {2}", this.FullServerPath,
+                            newFullServerPath, fr?.Error ?? "No Error String");
+                        return false;
                     }
                     string originalFileName = this.FullServerPath;
 
@@ -640,6 +671,7 @@ namespace Shoko.Server.Models
                 string msg = $"Could not MOVE file: {this.FullServerPath} -- {ex.ToString()}";
                 logger.Error(ex, msg);
             }
+            return true;
         }
 
         private void RecursiveDeleteEmptyDirectories(IDirectory dir, bool importfolder)
