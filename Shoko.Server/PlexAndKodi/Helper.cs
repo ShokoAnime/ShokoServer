@@ -386,28 +386,22 @@ namespace Shoko.Server.PlexAndKodi
 
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        List<CrossRef_AniDB_TvDBV2> xref_tvdb2 =
-                            RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
-                                aep.EpisodeType, aep.EpisodeNumber);
-                        if (xref_tvdb2 != null && xref_tvdb2.Count > 0)
-                        {
-                            TvDB_Episode tvep = GetTvDBEpisodeFromAniDB(session, aep, xref_tvdb2[0]);
+                        TvDB_Episode tvep = ep?.TvDBEpisode;
 
-                            if (tvep != null)
-                            {
-                                l.Thumb = tvep.GenPoster(null);
-                                l.Summary = tvep.Overview;
-                                l.Season = string.Format("{0}x{1:0#}", tvep.SeasonNumber, tvep.EpisodeNumber);
-                            }
-                            else
-                            {
-                                string anime = "[Blank]";
-                                SVR_AnimeSeries ser = ep.GetAnimeSeries();
-                                if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
-                                LogManager.GetCurrentClassLogger()
-                                    .Error("Episode " + aep.EpisodeNumber + ": " + aep.EnglishName + " from " + anime +
-                                           " is out of range for its TvDB Link. Please relink it.");
-                            }
+                        if (tvep != null)
+                        {
+                            l.Thumb = tvep.GenPoster(null);
+                            l.Summary = tvep.Overview;
+                            l.Season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:0#}";
+                        }
+                        else
+                        {
+                            string anime = "[Blank]";
+                            SVR_AnimeSeries ser = ep.GetAnimeSeries();
+                            if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
+                            LogManager.GetCurrentClassLogger()
+                                .Error($"Episode {aep.EpisodeNumber}: {aep.EnglishName} from {anime} is out of range"+
+                                       " for its TvDB Link. Please relink it.");
                         }
                     }
 
@@ -424,7 +418,7 @@ namespace Shoko.Server.PlexAndKodi
                         {
                             l.Thumb = tvdb_ep.GenPoster(null);
                             l.Summary = tvdb_ep.Overview;
-                            l.Season = string.Format("{0}x{1:0#}", tvdb_ep.SeasonNumber, tvdb_ep.EpisodeNumber);
+                            l.Season = $"{tvdb_ep.SeasonNumber}x{tvdb_ep.EpisodeNumber:0#}";
                         }
                     }
 
@@ -438,45 +432,6 @@ namespace Shoko.Server.PlexAndKodi
             }
             l.Id = ep.AnimeEpisodeID.ToString();
             return l;
-        }
-
-        private static TvDB_Episode GetTvDBEpisodeFromAniDB(ISession session, AniDB_Episode aep,
-            CrossRef_AniDB_TvDBV2 xref_tvdb2)
-        {
-            int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
-                           (xref_tvdb2.AniDBStartEpisodeNumber - 1);
-            TvDB_Episode tvep = null;
-            int season = xref_tvdb2.TvDBSeasonNumber;
-            List<TvDB_Episode> tvdb_eps =
-                RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
-            tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber);
-            if (tvep != null) return tvep;
-
-            int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
-            int previousSeasonsCount = 0;
-            // we checked once, so increment the season
-            season++;
-            previousSeasonsCount += tvdb_eps.Count;
-            do
-            {
-                if (season == 0) break; // Specials will often be wrong
-                if (season > lastSeason) break;
-                if (epnumber - previousSeasonsCount <= 0) break;
-                // This should be 1 or 0, hopefully 1
-                tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
-                tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber - previousSeasonsCount);
-
-                AddCrossRef_AniDB_TvDBV2(session, aep.AnimeID, previousSeasonsCount + 1, xref_tvdb2.TvDBID, season,
-                    xref_tvdb2.GetTvDBSeries()?.SeriesName ?? "");
-
-                if (tvep != null)
-                {
-                    break;
-                }
-                previousSeasonsCount += tvdb_eps.Count;
-                season++;
-            } while (true);
-            return tvep;
         }
 
         private static void AddCrossRef_AniDB_TvDBV2(ISession session, int animeID, int anistart, int tvdbID,
