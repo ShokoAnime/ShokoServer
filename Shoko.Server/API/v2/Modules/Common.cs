@@ -2118,7 +2118,7 @@ namespace Shoko.Server.API.v2.Modules
                     if (thisVote == null)
                     {
                         thisVote = new AniDB_Vote();
-                        thisVote.EntityID = id;
+                        thisVote.EntityID = ser.AniDB_ID;
                     }
 
                     if (score <= 10)
@@ -2132,7 +2132,7 @@ namespace Shoko.Server.API.v2.Modules
                     RepoFactory.AniDB_Vote.Save(thisVote);
 
                     Commands.CommandRequest_VoteAnime cmdVote =
-                        new Commands.CommandRequest_VoteAnime(id, voteType, Convert.ToDecimal(score / 100));
+                        new Commands.CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
                     cmdVote.Save();
                     return APIStatus.statusOK();
                 }
