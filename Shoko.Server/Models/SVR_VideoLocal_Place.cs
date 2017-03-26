@@ -188,10 +188,13 @@ namespace Shoko.Server.Models
         {
             logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
             SVR_VideoLocal v = VideoLocal;
-            if (v.Places.Count <= 1)
+
+            List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
+            eps?.ForEach(a => episodesToUpdate.Add(a));
+            eps?.Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
+
+            if (v?.Places?.Count <= 1)
             {
-                v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
-                v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -204,8 +207,6 @@ namespace Shoko.Server.Models
             }
             else
             {
-                v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
-                v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
