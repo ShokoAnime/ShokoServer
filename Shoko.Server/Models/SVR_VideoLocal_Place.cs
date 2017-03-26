@@ -46,7 +46,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                if (string.IsNullOrEmpty(ImportFolder.ImportFolderLocation) || string.IsNullOrEmpty(FilePath))
+                if (string.IsNullOrEmpty(ImportFolder?.ImportFolderLocation) || string.IsNullOrEmpty(FilePath))
                     return null;
                 return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
             }
@@ -62,7 +62,7 @@ namespace Shoko.Server.Models
             string renamed = RenameFileHelper.GetNewFileName(VideoLocal, renameScript);
             if (string.IsNullOrEmpty(renamed)) return true;
 
-            IFileSystem filesys = ImportFolder.FileSystem;
+            IFileSystem filesys = ImportFolder?.FileSystem;
             if (filesys == null)
                 return true;
             // actually rename the file
