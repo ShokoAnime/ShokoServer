@@ -432,9 +432,14 @@ namespace Shoko.Server.Models
                     .Where(a => a != null && a.CloudID == ImportFolder.CloudID).ToList())
                 {
                     if (!fldr.FolderIsDropDestination) continue;
+                    if (fldr.FolderIsDropSource) continue;
                     IFileSystem fs = fldr.FileSystem;
                     FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
                     if (fsresult == null || !fsresult.IsOk) continue;
+
+                    string tempNewPath = Path.Combine(fldr.ImportFolderLocation, FilePath);
+                    fsresult = fs.Resolve(tempNewPath);
+                    if (fsresult.IsOk) continue;
 
                     destFolder = fldr;
                     break;
@@ -492,17 +497,24 @@ namespace Shoko.Server.Models
 
                     foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
                         .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
-                                                      b.ImportFolder.IsDropSource == 0)))
+                                                      b.ImportFolder.IsDropSource == 0)).ToList())
                     {
                         if (vid.VideoLocalID == this.VideoLocalID) continue;
 
                         SVR_VideoLocal_Place place =
                             vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
                         string thisFileName = place?.FullServerPath;
+                        if (thisFileName == null) continue;
                         string folderName = Path.GetDirectoryName(thisFileName);
 
                         FileSystemResult<IObject> dir = f.Resolve(folderName);
                         if (!dir.IsOk) continue;
+                        // ensure we aren't moving to the current directory
+                        if (folderName.Equals(Path.GetDirectoryName(FullServerPath),
+                            StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            continue;
+                        }
                         destination = dir.Result as IDirectory;
                         // Not a directory
                         if (destination == null) continue;
@@ -559,6 +571,13 @@ namespace Shoko.Server.Models
                 if (tup == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
+                    return true;
+                }
+
+                // Last ditch effort to ensure we aren't moving a file unto itself
+                if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    logger.Error($"Resolved to move {newFullServerPath} unto itself. NOT MOVING");
                     return true;
                 }
 
