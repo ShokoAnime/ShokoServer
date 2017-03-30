@@ -519,7 +519,7 @@ namespace Shoko.Server.Models
             if (Media == null)
             {
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
-                if (pl?.FullServerPath != null && pl.ImportFolder != null)
+                if (pl?.FullServerPath != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
                     FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
@@ -556,7 +556,7 @@ namespace Shoko.Server.Models
                 p.Key = ((IProvider) null).ReplaceSchemeHost(
                     ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                 if (p.Streams == null) continue;
-                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
+                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3").ToList())
                 {
                     s.Key =
                         ((IProvider) null).ReplaceSchemeHost(
