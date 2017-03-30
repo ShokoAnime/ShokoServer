@@ -1767,11 +1767,12 @@ namespace Shoko.Server.API.v2.Modules
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
             int dist = int.MaxValue;
             string match = "";
-            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title))
+            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
                 int newDist;
                 int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
+                if (query.Length <= 4 || title.Length <= 4) k = 0;
                 if (Utils.BitapFuzzySearch(title, query, k, out newDist) == -1) continue;
                 if (newDist < dist)
                 {
@@ -1803,7 +1804,7 @@ namespace Shoko.Server.API.v2.Modules
             if (a?.Contract?.AniDBAnime?.Tags != null &&
                 a.Contract.AniDBAnime.Tags.Count > 0)
             {
-                foreach (string tag in a.Contract.AniDBAnime.Tags.Select(b => b.TagName))
+                foreach (string tag in a.Contract.AniDBAnime.Tags.Select(b => b.TagName).ToList())
                 {
                     if (string.IsNullOrEmpty(tag)) continue;
                     int newDist;
@@ -1827,7 +1828,7 @@ namespace Shoko.Server.API.v2.Modules
 
             dist = int.MaxValue;
             match = "";
-            foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName))
+            foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName).ToList())
             {
                 if (string.IsNullOrEmpty(customTag)) continue;
                 int newDist;
@@ -1910,8 +1911,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein =
-                            new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
                         allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
 
                         series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
@@ -1971,8 +1971,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein =
-                            new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
                         allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, realLimit));
 
                         series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
@@ -2042,8 +2041,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein =
-                            new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
                         allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
 
                         series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
