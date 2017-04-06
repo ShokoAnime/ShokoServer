@@ -48,9 +48,14 @@ namespace Shoko.Server.Repositories.Direct
                 .Add(Restrictions.Eq("SeriesID", seriesID))
                 .List<TvDB_Episode>();
 
-            return new List<TvDB_Episode>(objs);
+            return objs.ToList();
         }
 
+        /// <summary>
+        /// Returns a set of all tvdb seasons in a series
+        /// </summary>
+        /// <param name="seriesID"></param>
+        /// <returns>distinct list of integers
         public List<int> GetSeasonNumbersForSeries(int seriesID)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -59,6 +64,12 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
+        /// <summary>
+        /// Returns a set of all tvdb seasons in a series
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="seriesID"></param>
+        /// <returns>distinct list of integers</returns>
         public List<int> GetSeasonNumbersForSeries(ISession session, int seriesID)
         {
             /*var objs = session
@@ -74,6 +85,11 @@ namespace Shoko.Server.Repositories.Direct
             return objs.ToList();
         }
 
+        /// <summary>
+        /// Returns the last TvDB Season Number, or -1 if unable
+        /// </summary>
+        /// <param name="seriesID">The TvDB series ID</param>
+        /// <returns>The last TvDB Season Number, or -1 if unable</returns>
         public int getLastSeasonForSeries(int seriesID)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -85,6 +101,7 @@ namespace Shoko.Server.Repositories.Direct
         /// <summary>
         /// Returns the last TvDB Season Number, or -1 if unable
         /// </summary>
+        /// <param name="session"></param>
         /// <param name="seriesID">The TvDB series ID</param>
         /// <returns>The last TvDB Season Number, or -1 if unable</returns>
         public int getLastSeasonForSeries(ISession session, int seriesID)
@@ -97,6 +114,12 @@ namespace Shoko.Server.Repositories.Direct
             return (int)(result ?? -1);
         }
 
+        /// <summary>
+        /// Gets all episodes for a series and season
+        /// </summary>
+        /// <param name="seriesID">AnimeSeries ID</param>
+        /// <param name="seasonNumber">TvDB season number</param>
+        /// <returns>List of TvDB_Episodes</returns>
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumber(int seriesID, int seasonNumber)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -105,6 +128,13 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
+        /// <summary>
+        /// Gets all episodes for a series and season
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="seriesID">AnimeSeries ID</param>
+        /// <param name="seasonNumber">TvDB season number</param>
+        /// <returns>List of TvDB_Episodes</returns>
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumber(ISession session, int seriesID, int seasonNumber)
         {
             var objs = session
@@ -179,6 +209,12 @@ namespace Shoko.Server.Repositories.Direct
                 .UniqueResult<int>();
         }
 
+        /// <summary>
+        /// Returns a sorted list of all episodes in a season
+        /// </summary>
+        /// <param name="seriesID"></param>
+        /// <param name="seasonNumber"></param>
+        /// <returns></returns>
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumberSorted(int seriesID, int seasonNumber)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
