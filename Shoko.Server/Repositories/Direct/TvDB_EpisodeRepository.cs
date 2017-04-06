@@ -92,7 +92,7 @@ namespace Shoko.Server.Repositories.Direct
             // normally bad practice, but we are running a max(), so there will only ever be 0 or 1 result
             var result = session
                 .CreateSQLQuery(
-                    "select max(SeasonNumber) from TvDB_Episode\nwhere SeriesID = :sid\nOrder By SeasonNumber")
+                    "select max(SeasonNumber) from TvDB_Episode\nwhere SeriesID = :sid")
                 .SetInt32("sid", seriesID).UniqueResult();
             return (int)(result ?? -1);
         }
