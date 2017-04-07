@@ -833,6 +833,7 @@
     </Compile>
     <Compile Include="Utilities\LogReader.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
+    <Compile Include="Utils.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
