@@ -1215,38 +1215,8 @@ namespace Shoko.Server
                 if (ep == null)
                     return "Could not find episode record";
 
-                CrossRef_File_Episode xref = new CrossRef_File_Episode();
-                try
-                {
-                    xref.PopulateManually(vid, ep);
-                }
-                catch (Exception ex)
-                {
-                    string msg = string.Format("Error populating XREF: {0}", vid.ToStringDetailed());
-                    throw;
-                }
-                RepoFactory.CrossRef_File_Episode.Save(xref);
-                CommandRequest_WebCacheSendXRefFileEpisode cr =
-                    new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
-                cr.Save();
-                vid.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
-
-                SVR_AnimeSeries ser = ep.GetAnimeSeries();
-                ser.EpisodeAddedDate = DateTime.Now;
-                RepoFactory.AnimeSeries.Save(ser, false, true);
-
-                //Update will re-save
-                ser.QueueUpdateStats();
-
-
-                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                {
-                    grp.EpisodeAddedDate = DateTime.Now;
-                    RepoFactory.AnimeGroup.Save(grp, false, false);
-                }
-
-                CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
-                cmdAddFile.Save();
+                var com = new CommandRequest_LinkFileManually(videoLocalID, animeEpisodeID);
+                com.Save();
                 return "";
             }
             catch (Exception ex)
