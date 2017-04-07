@@ -19,6 +19,7 @@ namespace Shoko.Server.Commands
     {
         public int VideoLocalID { get; set; }
         public int EpisodeID { get; set; }
+        public int Percentage { get; set; }
 
         private SVR_AnimeEpisode episode = null;
         private SVR_VideoLocal vlocal = null;
@@ -69,6 +70,10 @@ namespace Shoko.Server.Commands
             try
             {
                 xref.PopulateManually(vlocal, episode);
+                if (Percentage > 0 && Percentage <= 100)
+                {
+                    xref.Percentage = Percentage;
+                }
             }
             catch (Exception ex)
             {
@@ -126,6 +131,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
                 this.EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
+                this.Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
             }
 
             return true;

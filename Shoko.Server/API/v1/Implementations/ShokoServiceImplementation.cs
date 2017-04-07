@@ -1253,27 +1253,9 @@ namespace Shoko.Server
                     if (ep == null)
                         return "Could not find episode record";
 
-
-                    CrossRef_File_Episode xref = new CrossRef_File_Episode();
-                    xref.PopulateManually(vid, ep);
-                    RepoFactory.CrossRef_File_Episode.Save(xref);
-
-                    CommandRequest_WebCacheSendXRefFileEpisode cr =
-                        new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
-                    cr.Save();
+                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
+                    com.Save();
                 }
-                vid.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
-                ser.EpisodeAddedDate = DateTime.Now;
-                RepoFactory.AnimeSeries.Save(ser, false, true);
-
-                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                {
-                    grp.EpisodeAddedDate = DateTime.Now;
-                    RepoFactory.AnimeGroup.Save(grp, false, false);
-                }
-
-                //Update will re-save
-                ser.QueueUpdateStats();
 
                 return "";
             }
@@ -1295,8 +1277,8 @@ namespace Shoko.Server
                     return "Could not find anime series record";
 
                 int epNumber = startingEpisodeNumber;
+                int total = startingEpisodeNumber + videoLocalIDs.Count - 2;
                 int count = 1;
-
 
                 foreach (int videoLocalID in videoLocalIDs)
                 {
@@ -1317,39 +1299,16 @@ namespace Shoko.Server
                     if (ep == null)
                         return "Could not find episode record";
 
-
-                    CrossRef_File_Episode xref = new CrossRef_File_Episode();
-                    xref.PopulateManually(vid, ep);
-
-                    // TODO do this properly
+                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
                     if (singleEpisode)
                     {
-                        xref.EpisodeOrder = count;
-                        if (videoLocalIDs.Count > 5)
-                            xref.Percentage = 100;
-                        else
-                            xref.Percentage = GetEpisodePercentages(videoLocalIDs.Count)[count - 1];
+                        com.Percentage = (int) Math.Round((double) count / total * 100);
                     }
+                    com.Save();
 
-                    RepoFactory.CrossRef_File_Episode.Save(xref);
-                    CommandRequest_WebCacheSendXRefFileEpisode cr =
-                        new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
-                    cr.Save();
-                    vid.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
                     count++;
                     if (!singleEpisode) epNumber++;
                 }
-                ser.EpisodeAddedDate = DateTime.Now;
-                RepoFactory.AnimeSeries.Save(ser, false, true);
-
-                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                {
-                    grp.EpisodeAddedDate = DateTime.Now;
-                    RepoFactory.AnimeGroup.Save(grp, false, false);
-                }
-
-                // update epidsode added stats
-                ser.QueueUpdateStats();
             }
             catch (Exception ex)
             {
@@ -1357,17 +1316,6 @@ namespace Shoko.Server
             }
 
             return "";
-        }
-
-        private int[] GetEpisodePercentages(int numEpisodes)
-        {
-            if (numEpisodes == 1) return new int[] {100};
-            if (numEpisodes == 2) return new int[] {50, 100};
-            if (numEpisodes == 3) return new int[] {33, 66, 100};
-            if (numEpisodes == 4) return new int[] {25, 50, 75, 100};
-            if (numEpisodes == 5) return new int[] {20, 40, 60, 80, 100};
-
-            return new int[] {100};
         }
 
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID)
