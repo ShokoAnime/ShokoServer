@@ -2068,6 +2068,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Linking File: {0} to Episode: {1}.
+        /// </summary>
+        public static string Command_LinkFileManually {
+            get {
+                return ResourceManager.GetString("Command_LinkFileManually", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Paused.
         /// </summary>
         public static string Command_Paused {
@@ -2788,7 +2797,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AniDB Start:.
+        ///   Looks up a localized string similar to AniDB Starting Episode:.
         /// </summary>
         public static string CommunityLinks_AniDBStart {
             get {
@@ -2797,7 +2806,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Approval Exists.
+        ///   Looks up a localized string similar to Approved Link Exists.
         /// </summary>
         public static string CommunityLinks_ApprovalExists {
             get {

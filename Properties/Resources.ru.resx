@@ -750,18 +750,6 @@
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Голосование: {0} - {1}</value>
   </data>
-  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
-    <value>Удаление крест ref Anidb к MAL веб-кэша: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
-    <value>Удаление крест ref Anidb к другой веб-кэша: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
-    <value>Удаление крест ref Anidb тракт из веб-кэша: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
-    <value>Удаление крест ref Anidb к TvDB веб-кэша: {0}!</value>
-  </data>
   <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
     <value>Удаление крест ref для эпизод в веб кэш файла: {0}-{1}!</value>
   </data>
@@ -779,12 +767,6 @@
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Отправка перекрестные ссылки для эпизод в веб кэш файла: {0}!</value>
-  </data>
-  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
-    <value>AniDB начало:</value>
-  </data>
-  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
-    <value>Одобрено</value>
   </data>
   <data name="CommunityLinks_AutoLink" xml:space="preserve">
     <value>Связать автоматически</value>
@@ -5234,5 +5216,44 @@
   </data>
   <data name="Users_FamilyFriendly" xml:space="preserve">
     <value>Семейные</value>
+  </data>
+  <data name="Actions_SyncPlex" xml:space="preserve">
+    <value>Состояние синхронизации Plex смотреть!</value>
+  </data>
+  <data name="Command_SyncPlex" xml:space="preserve">
+    <value>Синхронизация Плекс для пользователя: {0}!</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Ссылка!</value>
+  </data>
+  <data name="Plex_Link" xml:space="preserve">
+    <value>Ссылка к</value>
+  </data>
+  <data name="Plex_NoPin" xml:space="preserve">
+    <value>No pin</value>
+  </data>
+  <data name="Plex_PinMessage" xml:space="preserve">
+    <value>Plex Pin:!</value>
+  </data>
+  <data name="Command_LinkFileManually" xml:space="preserve">
+    <value>Связывание файла: {0} эпизод: {1}!</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB начиная эпизод:</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Существует утвержденный ссылка</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Удаление крест ref Anidb к MAL веб-кэша: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Удаление крест ref Anidb к другой веб-кэша: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Удаление крест ref Anidb тракт из веб-кэша: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Удаление крест ref Anidb к TvDB веб-кэша: {0}</value>
   </data>
 </root>

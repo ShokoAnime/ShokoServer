@@ -750,18 +750,6 @@
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Abstimmung: {0}: {1}</value>
   </data>
-  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
-    <value>Cross Ref für Anidb, MAL aus Webcache löschen: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
-    <value>Cross Ref für Anidb zueinander aus Webcache löschen: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
-    <value>Cross Ref für Anidb, Trakt aus Webcache löschen: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
-    <value>Cross Ref für Anidb, TvDB aus Webcache löschen: {0}!</value>
-  </data>
   <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
     <value>Cross Ref für Episode an Web-Cache-Datei löschen: {0}-{1}!</value>
   </data>
@@ -779,12 +767,6 @@
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Cross Ref für Episode an Web-Cache-Datei senden: {0}!</value>
-  </data>
-  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
-    <value>AniDB Start:</value>
-  </data>
-  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
-    <value>Genehmigung vorhanden ist</value>
   </data>
   <data name="CommunityLinks_AutoLink" xml:space="preserve">
     <value>Automatische Verknüpfung</value>
@@ -5234,5 +5216,44 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   </data>
   <data name="Users_FamilyFriendly" xml:space="preserve">
     <value>Familienfreundlich</value>
+  </data>
+  <data name="Actions_SyncPlex" xml:space="preserve">
+    <value>Plex Watch Synchronisierungsstatus!</value>
+  </data>
+  <data name="Command_SyncPlex" xml:space="preserve">
+    <value>Synchronisierung für Benutzer</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Plex_Link" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Plex_NoPin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Plex_PinMessage" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Command_LinkFileManually" xml:space="preserve">
+    <value>Verknüpfung-Datei: {0}, Episode: {1}!</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB ab Episode:</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Zugelassene Verbindung besteht</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Cross Ref für Anidb, MAL aus Webcache löschen: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Cross Ref für Anidb zueinander aus Webcache löschen: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Cross Ref für Anidb, Trakt aus Webcache löschen: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Cross Ref für Anidb, TvDB aus Webcache löschen: {0}</value>
   </data>
 </root>

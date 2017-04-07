@@ -750,18 +750,6 @@
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Votação: {0} - {1}</value>
   </data>
-  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
-    <value>Excluindo Cruz ref para Anidb de MAL do cache web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
-    <value>Excluindo Cruz ref para Anidb outros de cache de web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
-    <value>Excluindo Cruz ref para Anidb para Trakt do cache web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
-    <value>Excluindo Cruz ref para Anidb para TvDB de cache de web: {0}!</value>
-  </data>
   <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
     <value>Exclusão de cruz ref para arquivo episódio ao cache de web: {0}-{1}!</value>
   </data>
@@ -779,12 +767,6 @@
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Envio de cruz ref para arquivo episódio ao cache de web: {0}!</value>
-  </data>
-  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
-    <value>AniDB início:</value>
-  </data>
-  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
-    <value>Existe aprovação</value>
   </data>
   <data name="CommunityLinks_AutoLink" xml:space="preserve">
     <value>Auto Link</value>
@@ -5234,5 +5216,44 @@
   </data>
   <data name="Users_FamilyFriendly" xml:space="preserve">
     <value>Família-amigável</value>
+  </data>
+  <data name="Actions_SyncPlex" xml:space="preserve">
+    <value>Status de sincronização relógio Plex!</value>
+  </data>
+  <data name="Command_SyncPlex" xml:space="preserve">
+    <value>Como sincronizar Plex para usuário: {0}!</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="Plex_Link" xml:space="preserve">
+    <value>Linkar para</value>
+  </data>
+  <data name="Plex_NoPin" xml:space="preserve">
+    <value>Sem pino</value>
+  </data>
+  <data name="Plex_PinMessage" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="Command_LinkFileManually" xml:space="preserve">
+    <value>Vinculação de arquivo: {0} ao episódio: {1}!</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB começando episódio:</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Existe Link aprovado</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Excluindo Cruz ref para Anidb de MAL do cache web: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Excluindo Cruz ref para Anidb outros de cache de web: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Excluindo Cruz ref para Anidb para Trakt do cache web: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Excluindo Cruz ref para Anidb para TvDB de cache de web: {0}</value>
   </data>
 </root>

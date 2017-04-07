@@ -750,18 +750,6 @@
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Voting: {0} - {1}</value>
   </data>
-  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
-    <value>Deleting cross ref for Anidb to MAL from web cache: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
-    <value>Deleting cross ref for Anidb to Other from web cache: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
-    <value>Deleting cross ref for Anidb to Trakt from web cache: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
-    <value>Deleting cross ref for Anidb to TvDB from web cache: {0}!</value>
-  </data>
   <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
     <value>Deleting cross ref for file to episode to web cache: {0}-{1}!</value>
   </data>
@@ -779,12 +767,6 @@
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Sending cross ref for file to episode to web cache: {0}!</value>
-  </data>
-  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
-    <value>AniDB Start:</value>
-  </data>
-  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
-    <value>Approval Exists</value>
   </data>
   <data name="CommunityLinks_AutoLink" xml:space="preserve">
     <value>Auto Link</value>
@@ -5252,5 +5234,26 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   </data>
   <data name="Plex_PinMessage" xml:space="preserve">
     <value>Plex Pin:</value>
+  </data>
+  <data name="Command_LinkFileManually" xml:space="preserve">
+    <value>Linking File: {0} to Episode: {1}!</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB Starting Episode:</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Approved Link Exists</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to MAL from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to Other from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to Trakt from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to TvDB from web cache: {0}</value>
   </data>
 </root>

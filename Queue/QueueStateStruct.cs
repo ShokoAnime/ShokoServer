@@ -139,6 +139,8 @@ namespace Shoko.Commons.Queue
                     return Resources.Actions_SyncVotes;
                 case QueueStateEnum.LinkAniDBTvDB:
                     return Resources.Command_LinkAniDBTvDB;
+                case QueueStateEnum.LinkFileManually:
+                    return Resources.Command_LinkFileManually;
                 default:
                     return "Unknown";
             }

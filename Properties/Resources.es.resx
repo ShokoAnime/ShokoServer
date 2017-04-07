@@ -750,18 +750,6 @@
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Votación: {0} - {1}</value>
   </data>
-  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
-    <value>Eliminar referencia para Anidb de la Cruz a MAL de la memoria caché de web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
-    <value>Eliminar referencia para Anidb de la Cruz otro de caché web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
-    <value>Eliminar referencia para Anidb de la Cruz a Trakt de caché web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
-    <value>Eliminar referencia para Anidb de la Cruz a TvDB de caché web: {0}!</value>
-  </data>
   <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
     <value>Eliminar referencia a episodio para caché web archivo de la Cruz: {0}-{1}.</value>
   </data>
@@ -776,15 +764,6 @@
   </data>
   <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
     <value>Enviar referencia de la Cruz para Anidb TvDB de caché web: {0}!</value>
-  </data>
-  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
-    <value>Enviar referencia de la Cruz a episodio para caché web archivo: {0}!</value>
-  </data>
-  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
-    <value>Inicio AniDB:</value>
-  </data>
-  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
-    <value>Aprobación existe</value>
   </data>
   <data name="CommunityLinks_AutoLink" xml:space="preserve">
     <value>Auto Link</value>
@@ -5234,5 +5213,47 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   </data>
   <data name="Users_FamilyFriendly" xml:space="preserve">
     <value>Hotel familiar</value>
+  </data>
+  <data name="Actions_SyncPlex" xml:space="preserve">
+    <value>¡Estado de sincronización reloj Plex!</value>
+  </data>
+  <data name="Command_SyncPlex" xml:space="preserve">
+    <value>Sincronización de Plex para el usuario: {0}!</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Enlace</value>
+  </data>
+  <data name="Plex_Link" xml:space="preserve">
+    <value>Enlazado a</value>
+  </data>
+  <data name="Plex_NoPin" xml:space="preserve">
+    <value>¡No Pin!</value>
+  </data>
+  <data name="Plex_PinMessage" xml:space="preserve">
+    <value>Pin</value>
+  </data>
+  <data name="Command_LinkFileManually" xml:space="preserve">
+    <value>Enlace a archivo: {0} al episodio: {1}.</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>Episodio a partir de AniDB:</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Existe vínculo aprobado</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz a MAL de la memoria caché de web: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz otro de caché web: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz a Trakt de caché web: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz a TvDB de caché web: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Enviar referencia de la Cruz a episodio para caché web archivo: {0}</value>
   </data>
 </root>

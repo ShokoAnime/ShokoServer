@@ -750,18 +750,6 @@
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Vote : {0} - {1}</value>
   </data>
-  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
-    <value>Suppression de croix ref pour Anidb pour MAL de cache web: {0} !</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
-    <value>Suppression de croix ref pour Anidb aux autres de cache web: {0} !</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
-    <value>Suppression de croix ref pour Anidb à Trakt de cache web: {0} !</value>
-  </data>
-  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
-    <value>Suppression de croix ref pour Anidb à TvDB de cache web: {0} !</value>
-  </data>
   <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
     <value>Suppression ref croix pour le fichier d&amp;#39;épisode à cache Web: {0} - {1}!</value>
   </data>
@@ -779,12 +767,6 @@
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Envoi de croix Réf fichier épisode de cache web: {0} !</value>
-  </data>
-  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
-    <value>AniDB Start :</value>
-  </data>
-  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
-    <value>Approbation existe</value>
   </data>
   <data name="CommunityLinks_AutoLink" xml:space="preserve">
     <value>Auto Link</value>
@@ -5234,5 +5216,44 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="Users_FamilyFriendly" xml:space="preserve">
     <value>Environnement familial</value>
+  </data>
+  <data name="Actions_SyncPlex" xml:space="preserve">
+    <value>État de synchronisation de Plex Watch !</value>
+  </data>
+  <data name="Command_SyncPlex" xml:space="preserve">
+    <value>Synchronisation des Plex pour utilisateur : {0} !</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Lien</value>
+  </data>
+  <data name="Plex_Link" xml:space="preserve">
+    <value>Établir un lien avec</value>
+  </data>
+  <data name="Plex_NoPin" xml:space="preserve">
+    <value>Pas de code Pin !</value>
+  </data>
+  <data name="Plex_PinMessage" xml:space="preserve">
+    <value>Goupille de Plex : !</value>
+  </data>
+  <data name="Command_LinkFileManually" xml:space="preserve">
+    <value>Liaison fichier : {0} à épisode : {1} !</value>
+  </data>
+  <data name="CommunityLinks_AniDBStart" xml:space="preserve">
+    <value>AniDB épisode à partir :</value>
+  </data>
+  <data name="CommunityLinks_ApprovalExists" xml:space="preserve">
+    <value>Il existe des lien approuvé</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Suppression de croix ref pour Anidb pour MAL de cache web : {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Suppression de croix ref pour Anidb aux autres de cache web : {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Suppression de croix ref pour Anidb à Trakt de cache web : {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Suppression de croix ref pour Anidb à TvDB de cache web : {0}</value>
   </data>
 </root>
