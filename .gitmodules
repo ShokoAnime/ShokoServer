@@ -4,6 +4,3 @@
 [submodule "CloudFileSystem"]
 	path = CloudFileSystem
 	url = https://github.com/maxpiva/CloudFileSystem
-[submodule "NutzCode.CloudFileSystem"]
-	path = NutzCode.CloudFileSystem
-	url = https://github.com/maxpiva/NutzCode.CloudFileSystem.git
