@@ -1277,7 +1277,7 @@ namespace Shoko.Server
                     return "Could not find anime series record";
 
                 int epNumber = startingEpisodeNumber;
-                int total = startingEpisodeNumber + videoLocalIDs.Count - 2;
+                int total = startingEpisodeNumber + videoLocalIDs.Count - 1;
                 int count = 1;
 
                 foreach (int videoLocalID in videoLocalIDs)
