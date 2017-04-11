@@ -1169,7 +1169,7 @@ xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /
 if $(ConfigurationName) == Debug goto :exit
 cd "$(TargetDir)"
 mkdir Merge
-$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
+"$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe" /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
 
 del JMMServer.exe
 del JMMServer.pdb
