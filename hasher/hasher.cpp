@@ -10,7 +10,7 @@
 #include <tchar.h>
 #include <stdio.h>
 #include <windows.h>
-
+#include <string>
 
 /////////////////////////////////////////////////////////////////////////////////
 #define ED2K_CHUNK_SIZE  9728000
@@ -18,22 +18,24 @@
 
 extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
+	std::wstring fileName(L"\\\\?\\"); // prepend "disable long file name check" prefix
+	fileName.append(pszFile);
+
 	struct _stat64 statFile;
-	if (_wstat64(pszFile, &statFile) != 0)
+	if (_wstat64(fileName.c_str(), &statFile) != 0)
 		return 1;
 	if (statFile.st_size <= 0)
 		return 6;
 
 	//hash file in chunks of 9728000 bytes
-	UINT uChunkSize = 9728000;
-	UINT nChunks = (UINT)(statFile.st_size / uChunkSize);
-	UINT64 uChunkSizeLast = statFile.st_size % uChunkSize;
+	UINT nChunks = (UINT)(statFile.st_size / ED2K_CHUNK_SIZE);
+	UINT64 uChunkSizeLast = statFile.st_size % ED2K_CHUNK_SIZE;
 	if (uChunkSizeLast > 0)
 		nChunks++;
 	else
-		uChunkSizeLast = uChunkSize;
+		uChunkSizeLast = ED2K_CHUNK_SIZE;
 
-	HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	HANDLE hFile = CreateFileW(fileName.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 2;
 
@@ -53,7 +55,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(LPCWSTR pszF
 
 	while (nChunk < nChunks)
 	{
-		UINT64 uCurrentChunkSize = (nChunk == nChunks - 1)?uChunkSizeLast:uChunkSize;
+		UINT64 uCurrentChunkSize = (nChunk == nChunks - 1) ? uChunkSizeLast : ED2K_CHUNK_SIZE;
 
 		//calculate MD4 of chunk
 		MD4Engine.Reset();
@@ -91,7 +93,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(LPCWSTR pszF
 		//report progress
 		if (pHashProgress)
 		{
-			int nResult = (*pHashProgress)(pszFile, (int)((float)uReadTotal / statFile.st_size * 100));
+			int nResult = (*pHashProgress)(pszFile, (int)(uReadTotal / (float)statFile.st_size * 100));
 			if (nResult == 0)
 			{
 				nStatus = 4;
@@ -141,7 +143,6 @@ static const unsigned int NumBlocksPow = 3;
 static const unsigned int NumBlocks = 1 << NumBlocksPow;
 static const unsigned int NumBlocksMask = NumBlocks - 1;
 static const unsigned int BlockSize = 1024 * 1024;
-static const unsigned int uChunkSize = 9728000;
 
 #define LODWORD(l) ((DWORD)((DWORDLONG)(l)))
 #define HIDWORD(l) ((DWORD)(((DWORDLONG)(l)>>32)&0xFFFFFFFF))
@@ -149,21 +150,23 @@ static const unsigned int uChunkSize = 9728000;
 
 extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
+	std::wstring fileName(L"\\\\?\\"); // prepend "disable long file name check" prefix
+	fileName.append(pszFile);
+
 	//get file size
 	struct _stat64 statFile;
-	if (_wstat64(pszFile, &statFile) != 0)
+	if (_wstat64(fileName.c_str(), &statFile) != 0)
 		return 1;
 	if (statFile.st_size <= 0)
 		return 6;
-	unsigned __int64 FileSize = statFile.st_size;
 
 	//hash file in chunks of 9728000 bytes
-	UINT nChunks = (UINT)(statFile.st_size / uChunkSize);
-	if (statFile.st_size % uChunkSize > 0)
+	UINT nChunks = (UINT)(statFile.st_size / ED2K_CHUNK_SIZE);
+	if (statFile.st_size % ED2K_CHUNK_SIZE > 0)
 		nChunks++;
 
 	//open file
-	HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
+	HANDLE hFile = CreateFileW(fileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
 		FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN, 0);       
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 2;
@@ -175,7 +178,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 	OSVERSIONINFOW osVersion;
 	SecureZeroMemory(&osVersion, sizeof(OSVERSIONINFOW));
 	osVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
-	if (GetVersionExW(&osVersion) && osVersion.dwMajorVersion > 5)
+	if (GetVersionExW(&osVersion) && (osVersion.dwMajorVersion > 5))
 	{
 		FILE_IO_PRIORITY_HINT_INFO priorityHint;
 		priorityHint.PriorityHint = IoPriorityHintVeryLow;
@@ -205,19 +208,17 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 	unsigned int nLastProgress = -1;
 	unsigned char * pTemp = new unsigned char[nChunks*16];
 	UINT nChunk = 0;
-	unsigned __int64 uChunkEnd = min(uChunkSize, FileSize);
+	unsigned __int64 uChunkEnd = min(ED2K_CHUNK_SIZE, statFile.st_size);
 	MD4 md4;
 	DigestSHA sha1;
 	DigestCRC crc32;
 	DigestMD5 md5;
 
-	
-	TCHAR szMsg[255] = {0};
 	int nStatus = 0;
 	do		
 	{   
 		//read blocks, keep 8 I/O requests active
-		while (iWriterPos - iReaderPos != NumBlocks  && iIOPos < FileSize)
+		while (((iWriterPos - iReaderPos) != NumBlocks) && (iIOPos < statFile.st_size))
 		{
 			overlapped[iWriterPos & NumBlocksMask].Offset = LODWORD(iIOPos);
 			overlapped[iWriterPos & NumBlocksMask].OffsetHigh = HIDWORD(iIOPos);
@@ -244,7 +245,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 		//wait until next block is ready
 		DWORD dwBytesRead = 0;
 		const int iMaskedReaderPos = iReaderPos & NumBlocksMask;
-		if (iPos < FileSize && !GetOverlappedResult(hFile, &overlapped[iMaskedReaderPos], &dwBytesRead, TRUE))
+		if ((iPos < statFile.st_size) && !GetOverlappedResult(hFile, &overlapped[iMaskedReaderPos], &dwBytesRead, TRUE))
 		{
 			nStatus = 4;
 			CancelIo(hFile);
@@ -282,9 +283,9 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 
 			//prepare for next chunk
 			nChunk++;
-			uChunkEnd += uChunkSize;
-			if (FileSize < uChunkEnd)
-				uChunkEnd = FileSize;
+			uChunkEnd += ED2K_CHUNK_SIZE;
+			if (statFile.st_size < uChunkEnd)
+				uChunkEnd = statFile.st_size;
 
 			//update MD4 of next chunk if data was left on the block
 			DWORD dwBytesChunkNext = dwBytesRead - dwBytesChunkLeft;
@@ -302,7 +303,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 		iPos += dwBytesRead;
 
 		//report progress
-		int nProgress = (int)((float)iPos / statFile.st_size * 100);
+		int nProgress = (int)(iPos / (float)statFile.st_size * 100);
 		if (pHashProgress && nLastProgress != nProgress)
 		{
 			int nResult = (*pHashProgress)(pszFile, nProgress);
@@ -362,5 +363,5 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 
 extern "C" __declspec(dllexport) int __cdecl CalculateHashes(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
-	return (0 == CalculateHashes_AsyncIO(pszFile, pResult, pHashProgress, getCRC32, getMD5, getSHA1)) ? TRUE : FALSE;
+	return CalculateHashes_AsyncIO(pszFile, pResult, pHashProgress, getCRC32, getMD5, getSHA1);
 }
