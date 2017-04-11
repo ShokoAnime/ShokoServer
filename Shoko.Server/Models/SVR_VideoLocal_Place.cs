@@ -343,20 +343,20 @@ namespace Shoko.Server.Models
 
         public void RenameAndMoveAsRequired()
         {
-            bool retry = RenameIfRequired();
-            if (!retry)
+            bool succeeded = RenameIfRequired();
+            if (!succeeded)
             {
                 Thread.Sleep((int)DELAY_IN_USE.FIRST);
-                retry = RenameIfRequired();
-                if (!retry)
+                succeeded = RenameIfRequired();
+                if (!succeeded)
                 {
                     Thread.Sleep((int) DELAY_IN_USE.SECOND);
-                    retry = RenameIfRequired();
-                    if (!retry)
+                    succeeded = RenameIfRequired();
+                    if (!succeeded)
                     {
                         Thread.Sleep((int) DELAY_IN_USE.THIRD);
-                        retry = RenameIfRequired();
-                        if (!retry)
+                        succeeded = RenameIfRequired();
+                        if (!succeeded)
                         {
                             // Don't bother moving if we can't rename
                             return;
@@ -364,14 +364,14 @@ namespace Shoko.Server.Models
                     }
                 }
             }
-            retry = MoveFileIfRequired();
-            if (retry) return;
+            succeeded = MoveFileIfRequired();
+            if (succeeded) return;
             Thread.Sleep((int)DELAY_IN_USE.FIRST);
-            retry = MoveFileIfRequired();
-            if (retry) return;
+            succeeded = MoveFileIfRequired();
+            if (succeeded) return;
             Thread.Sleep((int) DELAY_IN_USE.SECOND);
-            retry = MoveFileIfRequired();
-            if (retry) return;
+            succeeded = MoveFileIfRequired();
+            if (succeeded) return;
             Thread.Sleep((int) DELAY_IN_USE.THIRD);
             MoveFileIfRequired();
         }
@@ -448,7 +448,7 @@ namespace Shoko.Server.Models
 
                 if (destFolder == null)
                 {
-                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
+                    logger.Error("Could not find a valid destination: {0}", this.FullServerPath);
                     return true;
                 }
 

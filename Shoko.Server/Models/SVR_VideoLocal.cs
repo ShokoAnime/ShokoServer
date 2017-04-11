@@ -705,6 +705,32 @@ namespace Shoko.Server.Models
                 cl.ResumePosition = userRecord.ResumePosition;
             return cl;
         }
+
+        public bool MergeInfoFrom(VideoLocal vl)
+        {
+            bool changed = false;
+            if (string.IsNullOrEmpty(Hash) && !string.IsNullOrEmpty(vl.Hash))
+            {
+                Hash = vl.Hash;
+                changed = true;
+            }
+            if (string.IsNullOrEmpty(CRC32) && !string.IsNullOrEmpty(vl.CRC32))
+            {
+                CRC32 = vl.CRC32;
+                changed = true;
+            }
+            if (string.IsNullOrEmpty(MD5) && !string.IsNullOrEmpty(vl.MD5))
+            {
+                MD5 = vl.MD5;
+                changed = true;
+            }
+            if (string.IsNullOrEmpty(SHA1) && !string.IsNullOrEmpty(vl.SHA1))
+            {
+                SHA1 = vl.SHA1;
+                changed = true;
+            }
+            return changed;
+        }
     }
 
     // This is a comparer used to sort the completeness of a videolocal, more complete first.

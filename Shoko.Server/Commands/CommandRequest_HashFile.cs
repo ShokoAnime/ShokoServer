@@ -286,64 +286,71 @@ namespace Shoko.Server.Commands
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
                 SVR_VideoLocal tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+                bool duplicate = false;
+                bool changed = false;
 
-                bool intercloudfolder = false;
-                SVR_VideoLocal_Place prep = tlocal?.Places.FirstOrDefault(
-                    a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
-                         vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
-                // clean up, if there is a 'duplicate file' that is invalid, remove it.
-                if (prep != null && prep.FullServerPath == null)
+                if (tlocal != null)
                 {
-                    if (tlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(tlocal);
-                    RepoFactory.VideoLocalPlace.Delete(prep);
-                    prep = null;
-                }
-
-                if (prep != null)
-                {
-                    // delete the VideoLocal record
-                    logger.Warn("Deleting duplicate video file record");
-                    logger.Warn("---------------------------------------------");
-                    logger.Warn($"Keeping record for: {vlocalplace.FullServerPath}");
-                    logger.Warn($"Deleting record for: {prep.FullServerPath}");
-                    logger.Warn("---------------------------------------------");
-
-                    // check if we have a record of this in the database, if not create one
-                    List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
-                        vlocalplace.FilePath,
-                        prep.FilePath,
-                        vlocalplace.ImportFolderID, prep.ImportFolderID);
-                    if (dupFiles.Count == 0)
-                        dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(prep.FilePath,
-                            vlocalplace.FilePath, prep.ImportFolderID, vlocalplace.ImportFolderID);
-
-                    if (dupFiles.Count == 0)
-                    {
-                        DuplicateFile dup = new DuplicateFile();
-                        dup.DateTimeUpdated = DateTime.Now;
-                        dup.FilePathFile1 = vlocalplace.FilePath;
-                        dup.FilePathFile2 = prep.FilePath;
-                        dup.ImportFolderIDFile1 = vlocalplace.ImportFolderID;
-                        dup.ImportFolderIDFile2 = prep.ImportFolderID;
-                        dup.Hash = vlocal.Hash;
-                        RepoFactory.DuplicateFile.Save(dup);
-                    }
-                    //Notify duplicate, don't delete
-                }
-                else if (tlocal != null)
-                {
+                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
+                    changed = tlocal.MergeInfoFrom(vlocal);
                     vlocal = tlocal;
-                    intercloudfolder = true;
+                    SVR_VideoLocal_Place prep = tlocal.Places.FirstOrDefault(
+                        a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
+                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                    // clean up, if there is a 'duplicate file' that is invalid, remove it.
+                    if (prep != null && prep.FullServerPath == null)
+                    {
+                        if (tlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(tlocal);
+                        RepoFactory.VideoLocalPlace.Delete(prep);
+                        prep = null;
+                    }
+
+                    prep = tlocal.Places.FirstOrDefault(
+                        a => a.ImportFolder.CloudID == folder.CloudID &&
+                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+
+                    if (prep != null)
+                    {
+                        // delete the VideoLocal record
+                        logger.Warn("Found Duplicate File");
+                        logger.Warn("---------------------------------------------");
+                        logger.Warn($"New File: {vlocalplace.FullServerPath}");
+                        logger.Warn($"Existing File: {prep.FullServerPath}");
+                        logger.Warn("---------------------------------------------");
+
+                        // check if we have a record of this in the database, if not create one
+                        List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
+                            vlocalplace.FilePath,
+                            prep.FilePath,
+                            vlocalplace.ImportFolderID, prep.ImportFolderID);
+                        if (dupFiles.Count == 0)
+                            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(prep.FilePath,
+                                vlocalplace.FilePath, prep.ImportFolderID, vlocalplace.ImportFolderID);
+
+                        if (dupFiles.Count == 0)
+                        {
+                            DuplicateFile dup = new DuplicateFile();
+                            dup.DateTimeUpdated = DateTime.Now;
+                            dup.FilePathFile1 = vlocalplace.FilePath;
+                            dup.FilePathFile2 = prep.FilePath;
+                            dup.ImportFolderIDFile1 = vlocalplace.ImportFolderID;
+                            dup.ImportFolderIDFile2 = prep.ImportFolderID;
+                            dup.Hash = vlocal.Hash;
+                            RepoFactory.DuplicateFile.Save(dup);
+                        }
+                        //Notify duplicate, don't delete
+                        duplicate = true;
+                    }
                 }
 
 
-                if (!intercloudfolder)
+                if (!duplicate || changed)
                     RepoFactory.VideoLocal.Save(vlocal, true);
 
                 vlocalplace.VideoLocalID = vlocal.VideoLocalID;
                 RepoFactory.VideoLocalPlace.Save(vlocalplace);
 
-                if (intercloudfolder)
+                if (duplicate)
                 {
                     CommandRequest_ProcessFile cr_procfile3 =
                         new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
