@@ -388,6 +388,8 @@
     <Compile Include="Databases\DatabaseFactory.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
+    <Compile Include="Import\FileQualityFilter.cs" />
+    <Compile Include="Import\Importer.cs" />
     <Compile Include="Models\SVR_CloudAccount.cs" />
     <Compile Include="Models\SVR_VideoLocal_Place.cs" />
     <Compile Include="Extensions\Utils.cs" />
@@ -647,7 +649,6 @@
     <Compile Include="Enums.cs" />
     <Compile Include="ImageDownload\ImageDownloadRequest.cs" />
     <Compile Include="ImageDownload\ImageUtils.cs" />
-    <Compile Include="Importer.cs" />
     <Compile Include="ShokoService.cs" />
     <Compile Include="Languages.cs" />
     <Compile Include="Mappings\AniDB_AnimeMap.cs" />

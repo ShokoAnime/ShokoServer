@@ -77,6 +77,9 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int import_folder_id { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = true)]
+        public int is_preferred { get; set; }
+
         public RawFile()
         {
         }
