@@ -15,7 +15,7 @@
 
             <ResourceDictionary>
                 <ResourceDictionary.MergedDictionaries>
-                    <ResourceDictionary Source="/Shoko.UI;component/Forms/UIStyles.xaml" />
+                    <ResourceDictionary Source="/Shoko.Server;component/Forms/UIStyles.xaml" />
                 </ResourceDictionary.MergedDictionaries>
 
                 <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
