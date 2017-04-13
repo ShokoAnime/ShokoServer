@@ -41,7 +41,6 @@ using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.UI;
 using UPnP;
 
 namespace Shoko.Server

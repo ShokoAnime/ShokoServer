@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Shoko.Server</RootNamespace>
-    <AssemblyName>ShokoServer</AssemblyName>
+    <AssemblyName>Shoko.Server</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -502,6 +502,8 @@
     <Compile Include="Commands\QueueStateEventArgs.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="UI\AuthProvider.cs" />
+    <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationMetro.cs" />
@@ -644,7 +646,6 @@
     <Compile Include="Enums.cs" />
     <Compile Include="ImageDownload\ImageDownloadRequest.cs" />
     <Compile Include="ImageDownload\ImageUtils.cs" />
-    <Compile Include="Importer.cs" />
     <Compile Include="ShokoService.cs" />
     <Compile Include="Languages.cs" />
     <Compile Include="Mappings\AniDB_AnimeMap.cs" />
