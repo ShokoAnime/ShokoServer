@@ -1037,27 +1037,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
-xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
-
-if $(ConfigurationName) == Debug goto :exit
-cd "$(TargetDir)"
-mkdir Merge
-"$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe" /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
-
-del JMMServer.exe
-del JMMServer.pdb
-move Merge\* .
-del Shoko.Models.*
-del Shoko.commons.*
-del NutzCode.*.*
-del AppGlue.*
-del Pri.LongPath.*
-rmdir Merge
-
-:exit</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>
