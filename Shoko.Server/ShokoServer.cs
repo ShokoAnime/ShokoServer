@@ -262,7 +262,7 @@ namespace Shoko.Server
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
             string newApplicationPath =
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
+                    System.Reflection.Assembly.GetEntryAssembly().GetName().Name);
             if (Directory.Exists(oldApplicationPath) && !Directory.Exists(newApplicationPath))
             {
                 try
@@ -1140,7 +1140,7 @@ namespace Shoko.Server
                 // get the latest version as according to the release
 
                 // get the user's version
-                System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+                System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
                 if (a == null)
                 {
                     logger.Error("Could not get current version");
@@ -1653,7 +1653,7 @@ namespace Shoko.Server
                 try
                 {
                     state.autostartRegistryKey.SetValue(state.autostartKey,
-                        '"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+                        '"' + System.Reflection.Assembly.GetEntryAssembly().Location + '"');
                     state.LoadSettings();
                 }
                 catch (Exception ex)
@@ -1677,7 +1677,7 @@ namespace Shoko.Server
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
 
-                td.Actions.Add('"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+                td.Actions.Add('"' + System.Reflection.Assembly.GetEntryAssembly().Location + '"');
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();
@@ -1742,7 +1742,7 @@ namespace Shoko.Server
 
         public void CheckForUpdates()
         {
-            System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+            System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
             if (a != null)
             {
                 ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);

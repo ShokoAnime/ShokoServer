@@ -59,7 +59,7 @@ namespace Shoko.Server
         //in this way, we could host two JMMServers int the same machine
 
         public static string DefaultInstance { get; set; } =
-            System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+            System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
 
         public static string ApplicationPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
@@ -96,7 +96,7 @@ namespace Shoko.Server
                     bool startedWithFreshConfig = false;
 
                     string programlocation =
-                        Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                        Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
                     List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>();
 
                     if (!string.IsNullOrEmpty(programlocation) && !string.IsNullOrEmpty(ApplicationPath))
@@ -2064,7 +2064,7 @@ namespace Shoko.Server
 
             logger.Info("-------------------- SYSTEM INFO -----------------------");
 
-            System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+            System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
             try
             {
                 if (Utils.GetApplicationVersion(a) != null)
@@ -2098,7 +2098,7 @@ namespace Shoko.Server
             {
                 string mediaInfoVersion = "**** MediaInfo - DLL Not found *****";
 
-                string mediaInfoPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                string mediaInfoPath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 FileInfo fi = new FileInfo(mediaInfoPath);
                 mediaInfoPath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                     "MediaInfo.dll");
@@ -2113,7 +2113,7 @@ namespace Shoko.Server
 
                 string hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
-                string fullHasherexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                string fullHasherexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 fi = new FileInfo(fullHasherexepath);
                 fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                     "hasher.dll");

@@ -180,16 +180,20 @@ namespace MediaInfoLib
         {
             if (moduleHandle == IntPtr.Zero)
             {
-                string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                FileInfo fi = new FileInfo(fullexepath);
-                fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "MediaInfo.dll");
-                string curlpath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "libcurl.dll");
-                NLog.LogManager.GetCurrentClassLogger().Trace(string.Format("Using MediaInfo at: {0}", fullexepath));
+                string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                if (!string.IsNullOrEmpty(fullexepath))
+                {
+                    FileInfo fi = new FileInfo(fullexepath);
+                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
+                        "MediaInfo.dll");
+                    string curlpath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
+                        "libcurl.dll");
+                    NLog.LogManager.GetCurrentClassLogger()
+                        .Trace(string.Format("Using MediaInfo at: {0}", fullexepath));
 
-                moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
-                curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
+                    moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                    curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
+                }
             }
             try
             {

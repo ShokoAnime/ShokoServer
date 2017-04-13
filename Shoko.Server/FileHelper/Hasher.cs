@@ -52,12 +52,16 @@ namespace Shoko.Server.FileHelper
 
         static Hasher()
         {
-            string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            FileInfo fi = new FileInfo(fullexepath);
-            fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "hasher.dll");
+            string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
             try
             {
-                Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                if (fullexepath != null)
+                {
+                    FileInfo fi = new FileInfo(fullexepath);
+                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
+                        "hasher.dll");
+                    Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                }
             }
             catch (Exception)
             {
