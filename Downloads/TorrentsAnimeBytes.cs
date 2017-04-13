@@ -327,7 +327,7 @@ namespace Shoko.Commons.Downloads
                 return new List<TorrentLink>();
             }
 
-            /*string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            /*string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
 
 			string fileName = "source.txt";
 			string fileNameWithPath = Path.Combine(appPath, fileName);

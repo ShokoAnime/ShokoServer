@@ -1165,7 +1165,7 @@ namespace Shoko.Commons.Extensions
         public static string GetSiteURL(this MovieDB_Movie movie) => String.Format(Shoko.Models.Constants.URLS.MovieDB_Series, movie.MovieId);
         public static string GetSiteURL(this CL_MALAnime_Response malresponse) => String.Format(Shoko.Models.Constants.URLS.MAL_Series, malresponse.id);
         public static string GetOverview(this CL_MALAnime_Response malresponse) => Formatting.ReparseDescription(malresponse.synopsis);
-        public static string GetPosterPath(this CL_MALAnime_Response malresponse) => String.IsNullOrEmpty(malresponse.image) ? $"pack://application:,,,/{Assembly.GetExecutingAssembly().GetName().Name};component/Images/blankposter.png" : malresponse.image;
+        public static string GetPosterPath(this CL_MALAnime_Response malresponse) => String.IsNullOrEmpty(malresponse.image) ? $"pack://application:,,,/{Assembly.GetEntryAssembly().GetName().Name};component/Images/blankposter.png" : malresponse.image;
         public static string GetSeriesURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => String.Format(Shoko.Models.Constants.URLS.TvDB_Series, crosstvdb.TvDBID);
         public static string GetAniDBURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => String.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstvdb.AnimeID);
         public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TvDBV2 crosstvdb) => EnumTranslator.EpisodeTypeTranslated((enEpisodeType) crosstvdb.AniDBStartEpisodeType);
