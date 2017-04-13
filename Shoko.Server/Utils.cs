@@ -408,7 +408,9 @@ namespace Shoko.Server
         public static bool FuzzyMatches(this string text, string query)
         {
             int dist;
-            return BitapFuzzySearch(text, query, 2, out dist) > -1;
+            int k = Math.Max(Math.Min((int) (text.Length / 6D), (int) (query.Length / 6D)), 1);
+            if (query.Length <= 4 || text.Length <= 4) k = 0;
+            return BitapFuzzySearch(text, query, k, out dist) > -1;
         }
 
         /// <summary>

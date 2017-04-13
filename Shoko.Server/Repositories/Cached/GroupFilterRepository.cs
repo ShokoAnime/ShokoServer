@@ -125,7 +125,7 @@ namespace Shoko.Server.Repositories.Cached
 
             // Remove orphaned group filter conditions
             List<GroupFilterCondition> toremove = new List<GroupFilterCondition>();
-            foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll())
+            foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll().ToList())
             {
                 if (RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null) toremove.Add(condition);
             }
@@ -163,6 +163,7 @@ namespace Shoko.Server.Repositories.Cached
                 //Continue Watching
                 // check if it already exists
 
+                // TODO Replace with a "Validating Default Filters"
                 ServerState.Instance.CurrentSetupStatus = string.Format(
                     Shoko.Commons.Properties.Resources.Database_Cache, t,
                     " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);

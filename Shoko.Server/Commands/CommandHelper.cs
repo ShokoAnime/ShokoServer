@@ -71,7 +71,8 @@ namespace Shoko.Server.Commands
         LinkAniDBTvDB,
         CheckingFile,
         RefreshGroupFilter,
-        SyncPlex
+        SyncPlex,
+        LinkFileManually,
     };
 
     public struct QueueStateStruct
@@ -213,6 +214,8 @@ namespace Shoko.Server.Commands
                     return Shoko.Commons.Properties.Resources.Command_RefreshGroupFilter;
                 case QueueStateEnum.SyncPlex:
                     return Shoko.Commons.Properties.Resources.Command_SyncPlex;
+                case QueueStateEnum.LinkFileManually:
+                    return Shoko.Commons.Properties.Resources.Command_LinkFileManually;
                 default:
                     throw new System.Exception("Unknown queue state format string");
                     ;
@@ -266,6 +269,7 @@ namespace Shoko.Server.Commands
         // CommandRequest_MovieDBSearchAnime
         // CommandRequest_TraktSearchAnime
         // CommandRequest_MALSearchAnime
+        // CommandRequest_LinkFileManually
         //------
         // Pri 9
         //------
@@ -602,6 +606,10 @@ namespace Shoko.Server.Commands
                     CommandRequest_PlexSyncWatched cr_PlexSync = new CommandRequest_PlexSyncWatched();
                     cr_PlexSync.LoadFromDBCommand(crdb);
                     return cr_PlexSync;
+                case CommandRequestType.LinkFileManually:
+                    CommandRequest_LinkFileManually cr_LinkFile = new CommandRequest_LinkFileManually();
+                    cr_LinkFile.LoadFromDBCommand(crdb);
+                    return cr_LinkFile;
             }
 
             return null;

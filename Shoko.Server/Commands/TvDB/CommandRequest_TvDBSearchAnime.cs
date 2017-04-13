@@ -160,8 +160,7 @@ namespace Shoko.Server.Commands
                 foreach (int season in seasons)
                 {
                     if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
-                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season)
-                        .Find(a => a.EpisodeNumber == 1);
+                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(results[0].SeriesID, season, 1);
                     if (ep?.AbsoluteNumber != null)
                     {
                         AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
@@ -192,8 +191,7 @@ namespace Shoko.Server.Commands
                         {
                             if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
                             TvDB_Episode ep = RepoFactory.TvDB_Episode
-                                .GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season)
-                                .Find(a => a.EpisodeNumber == 1);
+                                .GetBySeriesIDSeasonNumberAndEpisode(results[0].SeriesID, season, 1);
                             if (ep?.AbsoluteNumber != null)
                             {
                                 AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,

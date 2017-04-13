@@ -188,10 +188,13 @@ namespace Shoko.Server.Models
         {
             logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
             SVR_VideoLocal v = VideoLocal;
-            if (v.Places.Count <= 1)
+
+            List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
+            eps?.ForEach(a => episodesToUpdate.Add(a));
+            eps?.Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
+
+            if (v?.Places?.Count <= 1)
             {
-                v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
-                v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -204,8 +207,6 @@ namespace Shoko.Server.Models
             }
             else
             {
-                v.GetAnimeEpisodes().ForEach(a => episodesToUpdate.Add(a));
-                v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -342,20 +343,20 @@ namespace Shoko.Server.Models
 
         public void RenameAndMoveAsRequired()
         {
-            bool retry = RenameIfRequired();
-            if (!retry)
+            bool succeeded = RenameIfRequired();
+            if (!succeeded)
             {
                 Thread.Sleep((int)DELAY_IN_USE.FIRST);
-                retry = RenameIfRequired();
-                if (!retry)
+                succeeded = RenameIfRequired();
+                if (!succeeded)
                 {
                     Thread.Sleep((int) DELAY_IN_USE.SECOND);
-                    retry = RenameIfRequired();
-                    if (!retry)
+                    succeeded = RenameIfRequired();
+                    if (!succeeded)
                     {
                         Thread.Sleep((int) DELAY_IN_USE.THIRD);
-                        retry = RenameIfRequired();
-                        if (!retry)
+                        succeeded = RenameIfRequired();
+                        if (!succeeded)
                         {
                             // Don't bother moving if we can't rename
                             return;
@@ -363,14 +364,14 @@ namespace Shoko.Server.Models
                     }
                 }
             }
-            retry = MoveFileIfRequired();
-            if (retry) return;
+            succeeded = MoveFileIfRequired();
+            if (succeeded) return;
             Thread.Sleep((int)DELAY_IN_USE.FIRST);
-            retry = MoveFileIfRequired();
-            if (retry) return;
+            succeeded = MoveFileIfRequired();
+            if (succeeded) return;
             Thread.Sleep((int) DELAY_IN_USE.SECOND);
-            retry = MoveFileIfRequired();
-            if (retry) return;
+            succeeded = MoveFileIfRequired();
+            if (succeeded) return;
             Thread.Sleep((int) DELAY_IN_USE.THIRD);
             MoveFileIfRequired();
         }
@@ -432,9 +433,14 @@ namespace Shoko.Server.Models
                     .Where(a => a != null && a.CloudID == ImportFolder.CloudID).ToList())
                 {
                     if (!fldr.FolderIsDropDestination) continue;
+                    if (fldr.FolderIsDropSource) continue;
                     IFileSystem fs = fldr.FileSystem;
                     FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
                     if (fsresult == null || !fsresult.IsOk) continue;
+
+                    string tempNewPath = Path.Combine(fldr.ImportFolderLocation, FilePath);
+                    fsresult = fs.Resolve(tempNewPath);
+                    if (fsresult.IsOk) continue;
 
                     destFolder = fldr;
                     break;
@@ -442,7 +448,7 @@ namespace Shoko.Server.Models
 
                 if (destFolder == null)
                 {
-                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
+                    logger.Error("Could not find a valid destination: {0}", this.FullServerPath);
                     return true;
                 }
 
@@ -492,17 +498,24 @@ namespace Shoko.Server.Models
 
                     foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
                         .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
-                                                      b.ImportFolder.IsDropSource == 0)))
+                                                      b.ImportFolder.IsDropSource == 0)).ToList())
                     {
                         if (vid.VideoLocalID == this.VideoLocalID) continue;
 
                         SVR_VideoLocal_Place place =
                             vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
                         string thisFileName = place?.FullServerPath;
+                        if (thisFileName == null) continue;
                         string folderName = Path.GetDirectoryName(thisFileName);
 
                         FileSystemResult<IObject> dir = f.Resolve(folderName);
                         if (!dir.IsOk) continue;
+                        // ensure we aren't moving to the current directory
+                        if (folderName.Equals(Path.GetDirectoryName(FullServerPath),
+                            StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            continue;
+                        }
                         destination = dir.Result as IDirectory;
                         // Not a directory
                         if (destination == null) continue;
@@ -559,6 +572,13 @@ namespace Shoko.Server.Models
                 if (tup == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
+                    return true;
+                }
+
+                // Last ditch effort to ensure we aren't moving a file unto itself
+                if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    logger.Error($"Resolved to move {newFullServerPath} unto itself. NOT MOVING");
                     return true;
                 }
 

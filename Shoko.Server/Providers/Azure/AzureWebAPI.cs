@@ -1,10 +1,11 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using System.Web;
 using Newtonsoft.Json;
 using NLog;
@@ -960,22 +961,36 @@ namespace Shoko.Server.Providers.Azure
         /// <returns></returns>
         public static List<Azure_FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
         {
-            string uri = string.Format(@"http://{0}/api/FileHash/{1}?p={2}", azureHostBaseAddress, (int) hashType,
-                hashDetails);
-            string msg = string.Format("Getting File Hash From Cache: {0} - {1}", hashType, hashDetails);
+            return Get_FileHashWithTask(hashType, hashDetails).Result;
+        }
 
-            DateTime start = DateTime.Now;
-            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+        // TODO wrap the rest of these in timeout tasks
+        public static async Task<List<Azure_FileHash>> Get_FileHashWithTask(FileHashType hashType, string hashDetails)
+        {
+            Task<List<Azure_FileHash>> task = new Task<List<Azure_FileHash>>(() =>
+            {
+                string uri = string.Format(@"http://{0}/api/FileHash/{1}?p={2}", azureHostBaseAddress, (int) hashType,
+                    hashDetails);
+                string msg = string.Format("Getting File Hash From Cache: {0} - {1}", hashType, hashDetails);
 
-            string json = GetDataJson(uri);
+                DateTime start = DateTime.Now;
+                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            TimeSpan ts = DateTime.Now - start;
-            msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
-            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+                string json = GetDataJson(uri);
 
-            List<Azure_FileHash> hashes = JsonConvert.DeserializeObject<List<Azure_FileHash>>(json) ??
-                                          new List<Azure_FileHash>();
-            return hashes;
+                TimeSpan ts = DateTime.Now - start;
+                msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
+                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+                return JsonConvert.DeserializeObject<List<Azure_FileHash>>(json) ??
+                         new List<Azure_FileHash>();
+            });
+
+            if (await Task.WhenAny(task, Task.Delay(30000)) == task)
+            {
+                return await task;
+            }
+            return await Task.FromResult(new List<Azure_FileHash>());
         }
 
         #endregion

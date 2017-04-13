@@ -74,9 +74,10 @@ namespace Shoko.Server.Repositories.Direct
                 .Add(Restrictions.Eq("AnimeID", id))
                 .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
                 .Add(Restrictions.Le("AniDBStartEpisodeNumber", aniEpisodeNumber))
+                .AddOrder(Order.Desc("AniDBStartEpisodeNumber"))
                 .List<CrossRef_AniDB_TvDBV2>();
 
-            return new List<CrossRef_AniDB_TvDBV2>(xrefs);
+            return xrefs.ToList();
         }
 
         public CrossRef_AniDB_TvDBV2 GetByTvDBID(ISession session, int id, int season, int episodeNumber, int animeID,

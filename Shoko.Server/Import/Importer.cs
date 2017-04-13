@@ -340,7 +340,7 @@ namespace Shoko.Server
                     if (vl.FullServerPath == null)
                     {
                         logger.Info("Invalid File Path found. Removing: " + vl.VideoLocal_Place_ID);
-                        RepoFactory.VideoLocalPlace.Delete(vl);
+                        vl.RemoveRecord();
                         continue;
                     }
                     dictFilesExisting[vl.FullServerPath] = vl;

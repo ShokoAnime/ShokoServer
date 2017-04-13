@@ -519,7 +519,7 @@ namespace Shoko.Server.Models
             if (Media == null)
             {
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
-                if (pl?.FullServerPath != null && pl.ImportFolder != null)
+                if (pl?.FullServerPath != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
                     FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
@@ -556,7 +556,7 @@ namespace Shoko.Server.Models
                 p.Key = ((IProvider) null).ReplaceSchemeHost(
                     ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                 if (p.Streams == null) continue;
-                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
+                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3").ToList())
                 {
                     s.Key =
                         ((IProvider) null).ReplaceSchemeHost(
@@ -704,6 +704,32 @@ namespace Shoko.Server.Models
             if (userRecord != null)
                 cl.ResumePosition = userRecord.ResumePosition;
             return cl;
+        }
+
+        public bool MergeInfoFrom(VideoLocal vl)
+        {
+            bool changed = false;
+            if (string.IsNullOrEmpty(Hash) && !string.IsNullOrEmpty(vl.Hash))
+            {
+                Hash = vl.Hash;
+                changed = true;
+            }
+            if (string.IsNullOrEmpty(CRC32) && !string.IsNullOrEmpty(vl.CRC32))
+            {
+                CRC32 = vl.CRC32;
+                changed = true;
+            }
+            if (string.IsNullOrEmpty(MD5) && !string.IsNullOrEmpty(vl.MD5))
+            {
+                MD5 = vl.MD5;
+                changed = true;
+            }
+            if (string.IsNullOrEmpty(SHA1) && !string.IsNullOrEmpty(vl.SHA1))
+            {
+                SHA1 = vl.SHA1;
+                changed = true;
+            }
+            return changed;
         }
     }
 
