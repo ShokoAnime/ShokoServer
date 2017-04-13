@@ -57,7 +57,7 @@ namespace Shoko.Server.API.v2.Modules
                         break;
                 }
 
-                //MainWindow.workerSetupDB.RunWorkerAsync();
+                //ShokoServer.workerSetupDB.RunWorkerAsync();
                 return HttpStatusCode.OK;
             }
             else
@@ -138,7 +138,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                 }
 
-                MainWindow.workerSetupDB.RunWorkerAsync();
+                ShokoServer.workerSetupDB.RunWorkerAsync();
                 return HttpStatusCode.OK;
             }
             catch (Exception ex)
@@ -153,7 +153,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object CheckDB()
         {
-            if (!MainWindow.workerSetupDB.IsBusy)
+            if (!ShokoServer.workerSetupDB.IsBusy)
             {
                 if (ServerState.Instance.ServerOnline)
                 {

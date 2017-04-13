@@ -43,43 +43,43 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructImageLink(this IProvider prov, int type, int id)
         {
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/" + type + "/" + id);
+                ShokoServer.PathAddressREST + "/" + type + "/" + id);
         }
 
         public static string ConstructSupportImageLink(this IProvider prov, string name)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/Support/" + name + "/" + relation);
+                ShokoServer.PathAddressREST + "/Support/" + name + "/" + relation);
         }
 
         public static string ConstructSupportImageLinkTV(this IProvider prov, string name)
         {
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/Support/" + name);
+                ShokoServer.PathAddressREST + "/Support/" + name);
         }
 
         public static string ConstructThumbLink(this IProvider prov, int type, int id)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/Thumb/" + type + "/" + id + "/" + relation);
+                ShokoServer.PathAddressREST + "/Thumb/" + type + "/" + id + "/" + relation);
         }
 
         public static string ConstructTVThumbLink(this IProvider prov, int type, int id)
         {
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/Thumb/" + type + "/" + id + "/1.3333");
+                ShokoServer.PathAddressREST + "/Thumb/" + type + "/" + id + "/1.3333");
         }
 
         public static string ConstructCharacterImage(this IProvider prov, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/2/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), ShokoServer.PathAddressREST + "/2/" + id);
         }
 
         public static string ConstructSeiyuuImage(this IProvider prov, int id)
         {
-            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/3/" + id);
+            return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort), ShokoServer.PathAddressREST + "/3/" + id);
         }
 
         public static Lazy<Dictionary<string, double>> _relations =

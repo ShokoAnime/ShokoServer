@@ -42,7 +42,7 @@ namespace Shoko.Server.Models
 
         internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
-        internal string FullServerPath
+        public string FullServerPath
         {
             get
             {

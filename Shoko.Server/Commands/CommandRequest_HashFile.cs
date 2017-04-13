@@ -270,7 +270,7 @@ namespace Shoko.Server.Commands
                     DateTime start = DateTime.Now;
                     logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
+                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, ShokoServer.OnHashProgress,
                         true, true, true);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
@@ -418,7 +418,7 @@ namespace Shoko.Server.Commands
                     tp.Add("CRC32");
                 logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
                 // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
+                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, ShokoServer.OnHashProgress,
                     needcrc32, needmd5, needsha1);
                 TimeSpan ts = DateTime.Now - start;
                 logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),

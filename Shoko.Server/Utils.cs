@@ -684,15 +684,24 @@ namespace Shoko.Server
             return methodBase.Name;
         }
 
+        public class ErrorEventArgs : EventArgs
+        {
+            public string Message { get; internal set; }
+        }
+
+        public static event EventHandler<ErrorEventArgs> ErrorMessage; 
+
         public static void ShowErrorMessage(Exception ex)
         {
-            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ErrorMessage?.Invoke(null, new ErrorEventArgs(){Message = ex.Message});
             logger.Error(ex, ex.ToString());
         }
 
         public static void ShowErrorMessage(string msg)
         {
-            MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg });
             logger.Error(msg);
         }
 

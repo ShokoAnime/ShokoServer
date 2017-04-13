@@ -2,16 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
-using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
-using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using AuthProvider = Shoko.Server.UI.AuthProvider;
 
 namespace Shoko.Server.Models
 {
@@ -47,13 +44,13 @@ namespace Shoko.Server.Models
         private ICloudPlugin _plugin;
 
 
-        internal IFileSystem FileSystem
+        public IFileSystem FileSystem
         {
             get
             {
                 if (!ServerState.Instance.ConnectedFileSystems.ContainsKey(Name))
                 {
-                    ServerState.Instance.ConnectedFileSystems[Name] = Connect(MainWindow.Instance);
+                    ServerState.Instance.ConnectedFileSystems[Name] = Connect();
                     if (NeedSave)
                         RepoFactory.CloudAccount.Save(this);
                 }
@@ -68,7 +65,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        internal bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
+        public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
 
 
         internal bool NeedSave { get; set; } = false;
@@ -76,7 +73,7 @@ namespace Shoko.Server.Models
 
         private static AuthorizationFactory AuthInstance = new AuthorizationFactory("AppGlue.dll");
 
-        public IFileSystem Connect(Window owner)
+        public IFileSystem Connect()
         {
             if (string.IsNullOrEmpty(Provider))
                 throw new Exception("Empty provider supplied");
@@ -88,7 +85,7 @@ namespace Shoko.Server.Models
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
             Bitmap = _plugin.CreateIconImage();
-            FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(owner), auth, ConnectionString);
+            FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(), auth, ConnectionString);
             if (!res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
             string userauth = res.Result.GetUserAuthorization();

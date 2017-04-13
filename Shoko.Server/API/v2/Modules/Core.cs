@@ -320,7 +320,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SyncAniDBList()
         {
-            MainWindow.SyncMyList();
+            ShokoServer.SyncMyList();
             return APIStatus.statusOK();
         }
 
@@ -736,7 +736,7 @@ namespace Shoko.Server.API.v2.Modules
 
         private object RunCloudImport()
         {
-            MainWindow.RunImport();
+            ShokoServer.RunImport();
             return APIStatus.statusOK();
         }
 
@@ -750,7 +750,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object StartRotateLogs()
         {
-            MainWindow.logrotator.Start();
+            ShokoServer.logrotator.Start();
             return APIStatus.statusOK();
         }
 

@@ -303,7 +303,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object RunImport()
         {
-            MainWindow.RunImport();
+            ShokoServer.RunImport();
             return APIStatus.statusOK();
         }
 
@@ -324,10 +324,6 @@ namespace Shoko.Server.API.v2.Modules
 
         private object ListUPNP()
         {
-            UPNPLib.UPnPDeviceFinder discovery = new UPNPLib.UPnPDeviceFinder();
-            UPnPFinderCallback call = new UPnPFinderCallback();
-            discovery.StartAsyncFind(discovery.CreateAsyncFind("urn:schemas-upnp-org:device:MediaServer:1", 0, call));
-
             //TODO APIv2 ListUPNP: Need a tweak as this now should return it as list?
             return APIStatus.notImplemented();
         }
@@ -355,7 +351,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object RemoveMissingFiles()
         {
-            MainWindow.RemoveMissingFiles();
+            ShokoServer.RemoveMissingFiles();
             return APIStatus.statusOK();
         }
 
@@ -377,7 +373,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object UpdateMediaInfo()
         {
-            MainWindow.RefreshAllMediaInfo();
+            ShokoServer.RefreshAllMediaInfo();
             return APIStatus.statusOK();
         }
 
@@ -388,7 +384,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object HashSync()
         {
-            MainWindow.SyncHashes();
+            ShokoServer.SyncHashes();
             return APIStatus.statusOK();
         }
 
@@ -2179,7 +2175,7 @@ namespace Shoko.Server.API.v2.Modules
 
         private object RunCloudImport()
         {
-            MainWindow.RunImport();
+            ShokoServer.RunImport();
             return APIStatus.statusOK();
         }
 

@@ -83,8 +83,8 @@ namespace AniDBAPI.Commands
                 }
                 else
                 {
-                    //string msg = commandText.Replace(MainWindow.settings.Username, "******");
-                    //msg = msg.Replace(MainWindow.settings.Password, "******");
+                    //string msg = commandText.Replace(ShokoServer.settings.Username, "******");
+                    //msg = msg.Replace(ShokoServer.settings.Password, "******");
                     //MyAnimeLog.Write("commandText: {0}", msg);
                 }
                 bool repeatcmd;

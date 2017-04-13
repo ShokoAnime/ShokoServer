@@ -22,35 +22,35 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0?excludetags=" +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0?excludetags=" +
                 prov.ExcludeTags);
         }
 
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" + gid +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Group + "/" + gid +
                 "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid +
                 "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) type + "/" + vid + "?excludetags=" +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) type + "/" + vid + "?excludetags=" +
                 prov.ExcludeTags);
         }
 
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid +
                 "?excludetags=" + prov.ExcludeTags);
         }
 
@@ -58,7 +58,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             string r = Helper.Base64EncodeUrl(thumburl + "|" + arturl);
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.FakeIosThumb + "/" + r +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.FakeIosThumb + "/" + r +
                 "/0?excludetags=" + prov.ExcludeTags);
 /*
 
@@ -67,21 +67,21 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
                 {
-                    return Helper.ServerUrl(prov.ServicePort, "/api/getmetadata/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
+                    return Helper.ServerUrl(prov.ServicePort, "/api/Metadata/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
                 }
                 else
                 {
-                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Metadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
                 }
             }
-            catch { return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0"); }
+            catch { return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Metadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0"); }
             */
         }
 
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetFilters/" + userid + "?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Filters/" + userid + "?excludetags=" + prov.ExcludeTags);
         }
 
         public static string ConstructSearchUrl(this IProvider prov, string userid, int limit, string query,
@@ -104,14 +104,14 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/0?excludetags=" +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Playlist + "/0?excludetags=" +
                 prov.ExcludeTags);
         }
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid +
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid +
                 "?excludetags=" + prov.ExcludeTags);
         }
 

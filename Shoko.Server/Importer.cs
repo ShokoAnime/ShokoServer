@@ -201,7 +201,7 @@ namespace Shoko.Server
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
-                            Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, MainWindow.OnHashProgress,
+                            Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, ShokoServer.OnHashProgress,
                                 true,
                                 true,
                                 true);

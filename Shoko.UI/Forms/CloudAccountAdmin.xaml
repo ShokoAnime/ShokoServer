@@ -1,0 +1,112 @@
+﻿<UserControl x:Class="Shoko.UI.Forms.CloudAccountAdmin"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Shoko.UI.Forms"
+             xmlns:jmmServer="clr-namespace:Shoko.UI"
+             xmlns:server="clr-namespace:Shoko.Server;assembly=ShokoServer"
+             xmlns:forms="clr-namespace:Shoko.UI.Forms"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="400">
+    <StackPanel Orientation="Vertical">
+
+        <StackPanel.Resources>
+
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="/Shoko.UI;component/Forms/UIStyles.xaml" />
+                </ResourceDictionary.MergedDictionaries>
+
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+                <!-- ImportFolderTemplate -->
+                <DataTemplate x:Key="CloudTemplate">
+
+                    <StackPanel Orientation="Horizontal" Height="24">
+                        <Image Height="24" Width="24" Source="{Binding Path=Bitmap}" VerticalAlignment="Center"
+                               Margin="0,0,5,0"/>
+                        <TextBlock Margin="5,0,10,0" Text="{Binding Path=Name}"
+                                   VerticalAlignment="Center" FontWeight="DemiBold" />
+                        <TextBlock Margin="0,0,2,0" Text="(" VerticalAlignment="Center" />
+                        <TextBlock Margin="0,0,2,0" Text="{Binding Path=Provider}" VerticalAlignment="Center" />
+                        <TextBlock Margin="0,0,5,0" Text=")" VerticalAlignment="Center" />
+                    </StackPanel>
+                </DataTemplate>
+
+
+            </ResourceDictionary>
+
+
+        </StackPanel.Resources>
+
+        <Border Style="{DynamicResource ToolbarBorderControlStyle}" Background="FloralWhite" Margin="0,0,0,5"
+                Padding="5" DockPanel.Dock="Top" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="25" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,4,0" Grid.Column="0"
+                       VerticalAlignment="Top" />
+                <TextBlock VerticalAlignment="Center"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Info}"
+                           Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1" Grid.Row="0"/>
+                <Image Height="16" Width="16" Source="/Images/16_warning.png" Margin="5,2,4,0" Grid.Column="0" Grid.Row="1"
+                       VerticalAlignment="Top" />
+                <TextBlock VerticalAlignment="Center"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Info2}"
+                           Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1" Grid.Row="1" />
+                <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="2" Margin="0,0,5,0">
+                    <TextBlock VerticalAlignment="Center"
+                            Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=LearnMore}"
+                            Margin="0,0,5,0" />
+                    <forms:HyperLinkStandard VerticalAlignment="Center" Margin="0,5,5,5"
+                                         DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Title}"
+                                         URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_CloudAccounts}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Title}"
+                           Margin="10,10,0,10" FontWeight="DemiBold" />
+                <ListBox Margin="10,0,0,10" Name="lbCloudAccounts" BorderThickness="0" Background="AntiqueWhite"
+                         HorizontalAlignment="Left" VerticalAlignment="Top"
+                         ItemTemplate="{StaticResource CloudTemplate}"
+                         ItemContainerStyle="{DynamicResource ListBoxItemStyleFolders}"
+                         ItemsSource="{Binding Source={x:Static server:ServerInfo.Instance},Path=CloudAccounts}" />
+            </StackPanel>
+
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal">
+            <Button HorizontalAlignment="Left" Name="btnDeleteCloudAccount" Margin="10,0,0,0"
+                    Style="{DynamicResource RoundButtonStyle}" Width="Auto" >
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Height="16" Width="16" Source="/Images/16_cancel.png" Margin="1,0,5,0" />
+                    <TextBlock VerticalAlignment="Center"
+                               Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Remove}"
+                               Margin="0,0,5,0" />
+                </StackPanel>
+            </Button>
+
+            <Button HorizontalAlignment="Left" Name="btnAddCloudAccount" Margin="10,0,0,0"
+                    Style="{DynamicResource RoundButtonStyle}" Width="Auto">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Height="16" Width="17" Source="/Images/16_add.png" Margin="1,0,5,0" />
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Add}" Margin="0,0,5,0" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+    </StackPanel>
+</UserControl>
