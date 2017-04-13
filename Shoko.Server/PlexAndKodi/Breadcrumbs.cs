@@ -53,7 +53,7 @@ namespace Shoko.Server.PlexAndKodi
 
         public void UpdateKey(string md5)
         {
-            if (Key.Contains("/GetMetadata/") && !Key.Contains(md5))
+            if (Key.Contains("/Metadata/") && !Key.Contains(md5))
                 Key += "/" + md5;
         }
 
@@ -61,7 +61,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             if (Key != null)
             {
-                if (addkey && Key.Contains("/GetMetadata/"))
+                if (addkey && Key.Contains("/Metadata/"))
                     m.Key = prov.Proxyfy(Key + "/" + ToKey());
                 else
                     m.Key = prov.Proxyfy(Key);

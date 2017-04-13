@@ -52,12 +52,16 @@ namespace Shoko.Server.FileHelper
 
         static Hasher()
         {
-            string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            FileInfo fi = new FileInfo(fullexepath);
-            fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "hasher.dll");
+            string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
             try
             {
-                Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                if (fullexepath != null)
+                {
+                    FileInfo fi = new FileInfo(fullexepath);
+                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
+                        "hasher.dll");
+                    Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                }
             }
             catch (Exception)
             {
@@ -79,16 +83,14 @@ namespace Shoko.Server.FileHelper
         );
 
         // Calculates hash immediately (with progress)
-        protected static bool CalculateHashes_dll(string strFileName, ref byte[] hash, OnHashProgress HashProgress,
+        protected static int CalculateHashes_dll(string strFileName, ref byte[] hash, OnHashProgress HashProgress,
             bool getCRC32, bool getMD5, bool getSHA1)
         {
             logger.Trace("Using DLL to hash file: {0}", strFileName);
             OnHashProgress pHashProgress = new OnHashProgress(HashProgress);
             GCHandle gcHashProgress = GCHandle.Alloc(pHashProgress); //to make sure the GC doesn't dispose the delegate
 
-            int nResult = CalculateHashes_callback_dll(strFileName, hash, pHashProgress, getCRC32, getMD5, getSHA1);
-
-            return nResult == 0;
+            return CalculateHashes_callback_dll(strFileName, hash, pHashProgress, getCRC32, getMD5, getSHA1);
         }
 
 
@@ -120,9 +122,11 @@ namespace Shoko.Server.FileHelper
             {
                 byte[] hash = new byte[56];
                 bool gotHash = false;
+                int rval = -1;
                 try
                 {
-                    if (CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1))
+                    rval = CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1);
+                    if (0 == rval)
                     {
                         rhash.ED2K = HashToString(hash, 0, 16);
                         if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
@@ -136,13 +140,10 @@ namespace Shoko.Server.FileHelper
                     logger.Error(ex, ex.ToString());
                 }
 
-                if (!gotHash)
-                {
-                    logger.Error("Error using DLL to get hash (Functon returned FALSE), trying C# code instead: {0}",
-                        strPath);
-                    return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
-                }
-                return rhash;
+                if (gotHash)
+                    return rhash;
+                
+                logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {0}", rval, strPath);
             }
             return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
         }

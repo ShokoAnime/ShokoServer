@@ -1,0 +1,115 @@
+﻿<Window x:Class="Shoko.UI.Forms.AdminMessagesForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Shoko.UI"
+        xmlns:server="clr-namespace:Shoko.Server;assembly=Shoko.Server"
+        xmlns:forms="clr-namespace:Shoko.UI.Forms"
+        ShowInTaskbar="False" WindowStyle="ToolWindow"
+        WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="Manual"
+        Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Admin_AdminMessages}" Height="300" Width="500">
+    <Grid>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="/Forms/UIStyles.xaml" />
+                </ResourceDictionary.MergedDictionaries>
+
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+                <!-- ListBoxItemStyleMessages -->
+                <Style x:Key="ListBoxItemStyleMessages" TargetType="ListBoxItem">
+                    <Setter Property="Background" Value="FloralWhite" />
+                    <Setter Property="Foreground" Value="Black" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="5" />
+                    <Setter Property="BorderBrush" Value="DarkGray" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <Style.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="2" />
+                        </Style>
+                    </Style.Resources>
+                </Style>
+
+                <!-- AdminMessageTemplate -->
+                <DataTemplate x:Key="AdminMessageTemplate">
+
+                    <Grid Margin="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,10,5,5"
+                                    Grid.Column="1" Grid.Row="0" VerticalAlignment="Top">
+
+                            <TextBlock Text="{Binding Path=MessageDateAsDate}" FontWeight="Bold" FontSize="14"
+                                       Foreground="DarkBlue" VerticalAlignment="Center" />
+                            <forms:HyperLinkStandard VerticalAlignment="Center"
+                                                     DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Admin_MoreInfo}"
+                                                     URL="{Binding Path=MessageURL}" Margin="10,0,0,0"
+                                                     Visibility="{Binding Path=HasMessageURL, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                        </StackPanel>
+
+                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Message}" HorizontalAlignment="Stretch"
+                                   Margin="10,5,10,5" VerticalAlignment="Top" TextWrapping="Wrap" />
+
+                    </Grid>
+
+                </DataTemplate>
+            </ResourceDictionary>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+
+        <Border Grid.Row="0" Grid.Column="0" Margin="0" Padding="5" Background="White" BorderBrush="LightGray"
+                BorderThickness="1">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Image Height="24" Width="24" Source="/Images/db.ico" Margin="0,0,5,0" />
+
+                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Admin_AdminMessages}" FontSize="20"
+                           VerticalAlignment="Center" />
+
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray"
+                BorderThickness="1">
+
+            <ListBox Name="lbMessages" BorderThickness="0" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Stretch"
+                     Margin="0"
+                     VirtualizingStackPanel.IsVirtualizing="True" ScrollViewer.CanContentScroll="True"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ItemsSource="{Binding Source={x:Static server:ServerInfo.Instance},Path=AdminMessages}"
+                     ItemTemplate="{StaticResource AdminMessageTemplate}"
+                     Background="Transparent" ItemContainerStyle="{StaticResource ListBoxItemStyleMessages}"
+                     VerticalAlignment="Stretch">
+
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListBox>
+
+        </Border>
+
+
+    </Grid>
+</Window>

@@ -20,11 +20,11 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.UI;
+//using Shoko.Server.UI;
 using AniDBFileDeleteType = Shoko.Models.Enums.AniDBFileDeleteType;
-using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;
-using OpenFileDialog = System.Windows.Forms.OpenFileDialog;
+//using Application = System.Windows.Application;
+//using MessageBox = System.Windows.MessageBox;
+//using OpenFileDialog = System.Windows.Forms.OpenFileDialog;
 
 namespace Shoko.Server
 {
@@ -35,7 +35,7 @@ namespace Shoko.Server
         internal static Dictionary<string, string> appSettings = new Dictionary<string, string>();
         private static bool migrationError = false;
         private static bool migrationActive = false;
-        private static MigrationForm migrationForm;
+        //private static MigrationForm migrationForm;
 
 
         private static string Get(string key)
@@ -59,12 +59,21 @@ namespace Shoko.Server
         //in this way, we could host two JMMServers int the same machine
 
         public static string DefaultInstance { get; set; } =
-            System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+            System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
 
         public static string ApplicationPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
 
         public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
+
+        public class ReasonedEventArgs : EventArgs
+        {
+            public string Reason { get; set; }
+            public Exception Exception { get; set; }
+        }
+
+        public static event EventHandler<ReasonedEventArgs> ServerShutdown;
+        public static event EventHandler<ReasonedEventArgs> ServerError;
 
         /// <summary>
         /// Load setting from custom file - ex. read setting from backup
@@ -87,7 +96,7 @@ namespace Shoko.Server
                     bool startedWithFreshConfig = false;
 
                     string programlocation =
-                        Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                        Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
                     List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>();
 
                     if (!string.IsNullOrEmpty(programlocation) && !string.IsNullOrEmpty(ApplicationPath))
@@ -261,7 +270,7 @@ namespace Shoko.Server
 
                         logger.Info("User is admin so starting migration.");
 
-                        Migration m = null;
+                        //Migration m = null;
                         try
                         {
                             /*
@@ -331,9 +340,13 @@ namespace Shoko.Server
                         // Only restart app upon successfull completion otherwise show error and shut down
                         if (migrationError)
                         {
-                            MessageBox.Show(
-                                $"{Shoko.Commons.Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application.");
-                            MainWindow.Instance.ApplicationShutdown();
+                            ServerShutdown?.Invoke(null,
+                                new ReasonedEventArgs
+                                {
+                                    Reason =
+                                        $"{Shoko.Commons.Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application."
+                                });
+                            return;
                         }
                         else
                         {
@@ -370,13 +383,12 @@ namespace Shoko.Server
                     if (!Utils.IsAdministrator())
                         message = "Failed to set folder permissions, do you want to try and reset folder permissions?";
 
-                    System.Windows.Forms.DialogResult dr =
-                        System.Windows.Forms.MessageBox.Show(message, "Failed to set folder permissions",
-                            MessageBoxButtons.YesNo);
-
-                    switch (dr)
+                    CancelReasonEventArgs args = new CancelReasonEventArgs(message, "Failed to set folder permissions");
+                    YesNoRequired?.Invoke(null, args);
+                    
+                    switch (args.Cancel)
                     {
-                        case DialogResult.Yes:
+                        case false:
                             // gonna try grant access again in advance
                             try
                             {
@@ -387,7 +399,7 @@ namespace Shoko.Server
                             }
                             Utils.RestartAsAdmin();
                             break;
-                        case DialogResult.No:
+                        case true:
                             System.Windows.Application.Current.Shutdown();
                             Environment.Exit(0);
                             break;
@@ -401,9 +413,26 @@ namespace Shoko.Server
                 MessageBox.Show($"{Shoko.Commons.Properties.Resources.Migration_LoadError} {e.Message}",
                     Shoko.Commons.Properties.Resources.Migration_LoadError);
                 logger.Error(e);
-                MainWindow.Instance.ApplicationShutdown();
+                ServerShutdown?.Invoke(null, new ReasonedEventArgs {Exception = e});
             }
         }
+
+        public class CancelReasonEventArgs : CancelEventArgs
+        {
+            public CancelReasonEventArgs(string reason, string formTitle)
+            {
+                FormTitle = formTitle;
+                Reason = reason;
+            }
+
+            public string Reason { get; }
+            public string FormTitle { get; }
+        }
+
+        public class FileEventArgs : EventArgs { public string FileName { get; set; } }
+
+        public static event EventHandler<CancelReasonEventArgs> YesNoRequired;
+        public static event EventHandler<FileEventArgs> LocateFile;
 
         public static void LoadLegacySettingsFromFile(bool locateAutomatically)
         {
@@ -501,20 +530,18 @@ namespace Shoko.Server
         public static string LocateLegacyConfigFile()
         {
             string configPath = "";
-            MessageBoxResult dr = MessageBox.Show(Shoko.Commons.Properties.Resources.LocateSettingsFileDialog,
-                Shoko.Commons.Properties.Resources.LocateSettingsFile, MessageBoxButton.YesNo);
-            switch (dr)
-            {
-                case MessageBoxResult.Yes:
-                    OpenFileDialog openFileDialog = new OpenFileDialog();
-                    openFileDialog.Filter = "JMM config|JMMServer.exe.config;settings.json";
-                    DialogResult browseFile = openFileDialog.ShowDialog();
-                    if (browseFile == DialogResult.OK && !string.IsNullOrEmpty(openFileDialog.FileName.Trim()))
-                    {
-                        configPath = openFileDialog.FileName;
-                    }
-                    break;
-            }
+
+            CancelReasonEventArgs args = new CancelReasonEventArgs(
+                Commons.Properties.Resources.LocateSettingsFileDialog,
+                Commons.Properties.Resources.LocateSettingsFile);
+            YesNoRequired?.Invoke(null, args);
+
+            if (args.Cancel) return configPath;
+
+            FileEventArgs fea = new FileEventArgs();
+            LocateFile?.Invoke(null, fea);
+            if (!string.IsNullOrEmpty(fea.FileName))
+                configPath = fea.FileName;
 
             return configPath;
         }
@@ -540,6 +567,9 @@ namespace Shoko.Server
         {
             LoadSettingsFromFile("", false);
         }
+        
+        public static event EventHandler MigrationStarted;
+        public static event EventHandler<RunWorkerCompletedEventArgs> MigrationEnded;
 
         private static void MigrationIndicatorForm()
         {
@@ -551,9 +581,7 @@ namespace Shoko.Server
             // Start the worker.
             bg.RunWorkerAsync();
 
-            // Display the migration form.
-            migrationForm = new MigrationForm();
-            migrationForm.Show();
+            MigrationStarted?.Invoke(bg, null);
         }
 
         private static void bg_migrationStart(object sender, DoWorkEventArgs e)
@@ -570,13 +598,12 @@ namespace Shoko.Server
             // Note, you may need to cast it to the desired data type.
             //object result = e.Result;
 
-            // Close the migration indicator form.
-            migrationForm?.Close();
+            MigrationEnded?.Invoke(sender, e);
         }
 
         private static void WaitForMigrationThenRestart()
         {
-            string exePath = System.Windows.Forms.Application.ExecutablePath;
+            string exePath = System.Reflection.Assembly.GetEntryAssembly().FullName;//System.Windows.Forms.Application.ExecutablePath;
             logger.Log(LogLevel.Info, $"WaitForMigrationThenRestart executable path: {exePath}");
 
             try
@@ -2037,7 +2064,7 @@ namespace Shoko.Server
 
             logger.Info("-------------------- SYSTEM INFO -----------------------");
 
-            System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+            System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
             try
             {
                 if (Utils.GetApplicationVersion(a) != null)
@@ -2061,16 +2088,17 @@ namespace Shoko.Server
 
             logger.Info($"Operating System: {Utils.GetOSInfo()}");
 
-            string screenSize = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width.ToString() + "x" +
-                                System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height.ToString();
-            logger.Info($"Screen Size: {screenSize}");
+            //This is no longer accessible.
+            //string screenSize = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width.ToString() + "x" +
+            //                    System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height.ToString();
+            //logger.Info($"Screen Size: {screenSize}");
 
 
             try
             {
                 string mediaInfoVersion = "**** MediaInfo - DLL Not found *****";
 
-                string mediaInfoPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                string mediaInfoPath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 FileInfo fi = new FileInfo(mediaInfoPath);
                 mediaInfoPath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                     "MediaInfo.dll");
@@ -2085,7 +2113,7 @@ namespace Shoko.Server
 
                 string hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
-                string fullHasherexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                string fullHasherexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 fi = new FileInfo(fullHasherexepath);
                 fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                     "hasher.dll");

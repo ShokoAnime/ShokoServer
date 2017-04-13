@@ -1,0 +1,114 @@
+﻿<Window x:Class="Shoko.UI.Forms.AboutForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Shoko.UI"
+        xmlns:server="clr-namespace:Shoko.Server;assembly=Shoko.Server"
+        xmlns:forms="clr-namespace:Shoko.UI.Forms"
+        ShowInTaskbar="False" WindowStyle="ToolWindow"
+        WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
+        Width="Auto" Height="Auto"
+        Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=ShokoServer}"
+        Name="aboutWindow" Icon="/ShokoServer;component/db.ico">
+    <Grid>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="pack://application:,,,/Forms/UIStyles.xaml" />
+                </ResourceDictionary.MergedDictionaries>
+
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+                <RoutedUICommand x:Key="ScanFolderCommand" Text="ScanFolderCommand" />
+            </ResourceDictionary>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+
+        <!-- Selected series details -->
+
+        <Border Grid.Row="0" Grid.Column="0" Margin="0" Padding="5" Background="White" BorderBrush="LightGray"
+                BorderThickness="1">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <Image Height="24" Width="24" Source="/Images/db.ico" Margin="0,0,5,0" />
+
+                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=ShokoServer}" FontSize="20"
+                           VerticalAlignment="Center" />
+                <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="20" Foreground="DarkGray"
+                           Text="{Binding Source={x:Static server:ServerState.Instance},Path=ApplicationVersion}"
+                           VerticalAlignment="Center" />
+                <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="16" Foreground="DarkGray"
+                           Text="{Binding Source={x:Static server:ServerState.Instance},Path=ApplicationVersionExtra}"
+                           VerticalAlignment="Center" />
+
+
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray"
+                BorderThickness="1" VerticalAlignment="Top">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="5,6"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=About_Home}"
+                           VerticalAlignment="Center" />
+                <forms:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5,6,5,5"
+                                         DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Home}"
+                                         URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Home}" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="5,6"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=About_Blog}"
+                           VerticalAlignment="Center" />
+                <forms:HyperLinkStandard Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="5,5,5,6"
+                                         DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Blog}"
+                                         URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Blog}" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="5,4.864,5,6"
+                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=About_Project}"
+                           VerticalAlignment="Center" />
+                <forms:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="5,4.864,5,5"
+                                         DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_GitHub}"
+                                         URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Github}" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="5,2,5,5" Text="MediaPortal Forum"
+                           VerticalAlignment="Center" />
+                <forms:HyperLinkStandard Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="5,2,5,5"
+                                         DisplayText="http://forum.team-mediaportal.com/threads/my-anime-3.107475/"
+                                         URL="http://forum.team-mediaportal.com/threads/my-anime-3.107475/" />
+            </Grid>
+        </Border>
+
+        <!-- Update button -->
+
+        <StackPanel Grid.Row="2" Grid.Column="0"  Orientation="Horizontal" HorizontalAlignment="Center" Margin="5,5,0,10">
+            <Button Name="btnUpdates" Margin="0,0,0,0" Style="{DynamicResource FlatButtonStyle}" HorizontalAlignment="Left" Click="btnUpdates_Click">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Image Height="16" Width="16" Source="/Images/16_tick.png" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=About_UpdateCheck}" Margin="0,0,5,0"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+        <ComboBox x:Name="cbUpdateChannel" HorizontalAlignment="Left" Margin="405,7,0,0" Grid.Row="2" VerticalAlignment="Top" Width="85" DropDownClosed="cbUpdateChannel_DropDownClosed" SelectionChanged="cbUpdateChannel_SelectionChanged"/>
+
+    </Grid>
+</Window>

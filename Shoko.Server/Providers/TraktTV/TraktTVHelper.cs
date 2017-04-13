@@ -312,7 +312,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                     ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
 
-                    //MainWindow.UpdateTraktFriendInfo(true);
+                    //ShokoServer.UpdateTraktFriendInfo(true);
 
                     return "Success";
                 }

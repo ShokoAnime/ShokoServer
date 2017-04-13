@@ -3094,8 +3094,8 @@ namespace Shoko.Server
                 {
                     ServerInfo.Instance.RefreshImportFolders();
                 });
-                MainWindow.StopWatchingFiles();
-                MainWindow.StartWatchingFiles();
+                ShokoServer.StopWatchingFiles();
+                ShokoServer.StartWatchingFiles();
 
                 return response;
             }
@@ -3109,18 +3109,18 @@ namespace Shoko.Server
 
         public string DeleteImportFolder(int importFolderID)
         {
-            MainWindow.DeleteImportFolder(importFolderID);
+            ShokoServer.DeleteImportFolder(importFolderID);
             return "";
         }
 
         public void RunImport()
         {
-            MainWindow.RunImport();
+            ShokoServer.RunImport();
         }
 
         public void SyncHashes()
         {
-            MainWindow.SyncHashes();
+            ShokoServer.SyncHashes();
         }
 
         public void ScanDropFolders()
@@ -3130,17 +3130,17 @@ namespace Shoko.Server
 
         public void ScanFolder(int importFolderID)
         {
-            MainWindow.ScanFolder(importFolderID);
+            ShokoServer.ScanFolder(importFolderID);
         }
 
         public void RemoveMissingFiles()
         {
-            MainWindow.RemoveMissingFiles();
+            ShokoServer.RemoveMissingFiles();
         }
 
         public void SyncMyList()
         {
-            MainWindow.SyncMyList();
+            ShokoServer.SyncMyList();
         }
 
         public void SyncVotes()
@@ -7750,7 +7750,7 @@ namespace Shoko.Server
 
         public void RefreshAllMediaInfo()
         {
-            MainWindow.RefreshAllMediaInfo();
+            ShokoServer.RefreshAllMediaInfo();
         }
 
         public CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID)

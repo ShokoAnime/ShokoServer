@@ -228,11 +228,11 @@ namespace AniDBAPI.Commands
                 }
             }
 
-            if (xmlResult.Trim().Length > 0)
-                WriteAnimeHTTPToFile(animeID, xmlResult);
-
             if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
 
+            if (xmlResult.Trim().Length > 0)
+                WriteAnimeHTTPToFile(animeID, xmlResult);
+            
             if (docAnime != null)
             {
                 anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);

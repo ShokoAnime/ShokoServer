@@ -8,25 +8,18 @@ using System.Text;
 using System.Threading;
 using AniDBAPI;
 using AniDBAPI.Commands;
-using Shoko.Server.Commands.Azure;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using NHibernate;
 using NLog;
 using System.Windows;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.UI;
-
 
 namespace Shoko.Server
 {
@@ -147,6 +140,8 @@ namespace Shoko.Server
             get { return extendPauseReason; }
             set { extendPauseReason = value; }
         }
+
+        public static event EventHandler LoginFailed;
 
         public AniDBHelper()
         {
@@ -317,15 +312,7 @@ namespace Shoko.Server
 
             if (ev != enHelperActivityType.LoggedIn)
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail,
-                        Shoko.Commons.Properties.Resources.Error,
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-
-                    InitialSetupForm frm = new InitialSetupForm();
-                    frm.ShowDialog();
-                });
+                LoginFailed?.Invoke(this, null);
 
                 //BaseConfig.MyAnimeLog.Write("ProcessCommands: Login Failed!");
                 //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.LoginFailed, ""));

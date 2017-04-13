@@ -55,7 +55,7 @@ namespace Shoko.Server.PlexAndKodi.Plex
 
         public string ExcludeTags => "Kodi";
 
-        public string ServiceAddress => MainWindow.PathAddressPlex;
+        public string ServiceAddress => ShokoServer.PathAddressPlex;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
         public bool UseBreadCrumbs => true;
         public bool ConstructFakeIosParent => true;

@@ -71,7 +71,7 @@ namespace Shoko.Server.Models
         }
 
 
-        internal List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+        public List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
 
         public void CollectContractMemory()

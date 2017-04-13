@@ -146,7 +146,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        internal SVR_CloudAccount CloudAccount
+        public SVR_CloudAccount CloudAccount
         {
             get { return CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null; }
         }

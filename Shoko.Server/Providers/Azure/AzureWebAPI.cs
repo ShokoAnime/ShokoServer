@@ -707,7 +707,7 @@ namespace Shoko.Server.Providers.Azure
                 uinfo.DashboardType = null;
                 uinfo.VideoPlayer = vidPlayer;
 
-                System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+                System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
                 try
                 {
                     if (a != null) uinfo.JMMServerVersion = Utils.GetApplicationVersion(a);

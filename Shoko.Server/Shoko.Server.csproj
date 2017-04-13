@@ -6,10 +6,10 @@
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{DA8F0783-0F82-4106-9860-6F09BA2EA522}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Shoko.Server</RootNamespace>
-    <AssemblyName>ShokoServer</AssemblyName>
+    <AssemblyName>Shoko.Server</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -63,7 +63,8 @@
     <ApplicationIcon>db.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>Shoko.Server.App</StartupObject>
+    <StartupObject>
+    </StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
@@ -235,7 +236,6 @@
     <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
@@ -251,10 +251,10 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
+    <!-- <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </ApplicationDefinition>
+    </ApplicationDefinition> -->
     <Compile Include="AniDBHelper.cs" />
     <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
     <Compile Include="AniDB_API\AniDBLib.cs" />
@@ -388,6 +388,9 @@
     <Compile Include="Databases\DatabaseFactory.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
+    <Compile Include="Import\FileQualityFilter.cs" />
+    <Compile Include="Import\Importer.cs" />
+    <Compile Include="ShokoServer.cs" />
     <Compile Include="Models\SVR_CloudAccount.cs" />
     <Compile Include="Models\SVR_VideoLocal_Place.cs" />
     <Compile Include="Extensions\Utils.cs" />
@@ -433,12 +436,6 @@
     <Compile Include="Mappings\ScanMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="MigrationDirectory.cs" />
-    <Compile Include="MigrationForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MigrationForm.Designer.cs">
-      <DependentUpon>MigrationForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
@@ -505,6 +502,8 @@
     <Compile Include="Commands\QueueStateEventArgs.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="UI\AuthProvider.cs" />
+    <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationMetro.cs" />
@@ -647,7 +646,6 @@
     <Compile Include="Enums.cs" />
     <Compile Include="ImageDownload\ImageDownloadRequest.cs" />
     <Compile Include="ImageDownload\ImageUtils.cs" />
-    <Compile Include="Importer.cs" />
     <Compile Include="ShokoService.cs" />
     <Compile Include="Languages.cs" />
     <Compile Include="Mappings\AniDB_AnimeMap.cs" />
@@ -772,54 +770,7 @@
     <Compile Include="Utilities\SubStream.cs" />
     <Compile Include="Tasks\ContractExtractor.cs" />
     <Compile Include="TimeUpdater.cs" />
-    <Compile Include="UI\AboutForm.xaml.cs">
-      <DependentUpon>AboutForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\AdminMessagesForm.xaml.cs">
-      <DependentUpon>AdminMessagesForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\AuthProvider.cs" />
-    <Compile Include="UI\CloudAccountAdmin.xaml.cs">
-      <DependentUpon>CloudAccountAdmin.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\CloudAccountForm.xaml.cs">
-      <DependentUpon>CloudAccountForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\CloudFolderBrowser.xaml.cs">
-      <DependentUpon>CloudFolderBrowser.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\HyperLinkStandard.xaml.cs">
-      <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\ImportFolderForm.xaml.cs">
-      <DependentUpon>ImportFolderForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\ImportFolderAdmin.xaml.cs">
-      <DependentUpon>ImportFolderAdmin.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\InitialSetupForm.xaml.cs">
-      <DependentUpon>InitialSetupForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Integrity.xaml.cs">
-      <DependentUpon>Integrity.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\LoginForm.xaml.cs">
-      <DependentUpon>LoginForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\Migration.xaml.cs">
-      <DependentUpon>Migration.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\PasswordBoxAssistant.cs" />
-    <Compile Include="UI\ScanImportFolders.xaml.cs">
-      <DependentUpon>ScanImportFolders.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UI\ServerInfo.cs" />
-    <Compile Include="UI\UpdateForm.xaml.cs">
-      <DependentUpon>UpdateForm.xaml</DependentUpon>
-    </Compile>
     <Compile Include="UnhandledExceptionManager.cs" />
-    <Compile Include="UPnPData.cs" />
-    <Compile Include="UPnPServerBrowserDialog.cs" />
     <Compile Include="UserCulture.cs" />
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
@@ -835,78 +786,6 @@
     <Compile Include="Utilities\LogReader.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Page Include="UI\AboutForm.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\AdminMessagesForm.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\CloudAccountAdmin.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\CloudAccountForm.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\CloudFolderBrowser.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\HyperLinkStandard.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\ImportFolderForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\ImportFolderAdmin.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\InitialSetupForm.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\Integrity.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\LoginForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\Migration.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\ScanImportFolders.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\UIStyles.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\UpdateForm.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -917,9 +796,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="MigrationForm.resx">
-      <DependentUpon>MigrationForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -1161,27 +1037,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
-xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
-
-if $(ConfigurationName) == Debug goto :exit
-cd "$(TargetDir)"
-mkdir Merge
-"$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe" /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
-
-del JMMServer.exe
-del JMMServer.pdb
-move Merge\* .
-del Shoko.Models.*
-del Shoko.commons.*
-del NutzCode.*.*
-del AppGlue.*
-del Pri.LongPath.*
-rmdir Merge
-
-:exit</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>

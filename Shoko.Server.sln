@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26127.3
+VisualStudioVersion = 15.0.26403.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Server", "Shoko.Server\Shoko.Server.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 EndProject
@@ -24,6 +24,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Commons", "Shoko.Commons\Shoko.Commons.csproj", "{E0399140-9902-4F38-909D-85E42717EC30}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Models", "Shoko.Commons\Shoko.Models\Shoko.Models.csproj", "{F73F9DF6-580A-4341-B516-8717626F9D42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.UI", "Shoko.UI\Shoko.UI.csproj", "{FFBA1303-E60F-4353-9ECA-434B263AF699}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -192,6 +194,22 @@ Global
 		{F73F9DF6-580A-4341-B516-8717626F9D42}.Release|Win32.Build.0 = Release|Any CPU
 		{F73F9DF6-580A-4341-B516-8717626F9D42}.Release|x64.ActiveCfg = Release|Any CPU
 		{F73F9DF6-580A-4341-B516-8717626F9D42}.Release|x64.Build.0 = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|Win32.Build.0 = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Debug|x64.Build.0 = Debug|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Win32.ActiveCfg = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Win32.Build.0 = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|x64.ActiveCfg = Release|Any CPU
+		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

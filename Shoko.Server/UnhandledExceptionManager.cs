@@ -60,18 +60,9 @@ namespace Shoko.Server
 
         private static System.Reflection.Assembly ParentAssembly()
         {
-            if (_objParentAssembly == null)
-            {
-                if (System.Reflection.Assembly.GetEntryAssembly() == null)
-                {
-                    _objParentAssembly = System.Reflection.Assembly.GetCallingAssembly();
-                }
-                else
-                {
-                    _objParentAssembly = System.Reflection.Assembly.GetEntryAssembly();
-                }
-            }
-            return _objParentAssembly;
+            return _objParentAssembly ?? (_objParentAssembly =
+                       System.Reflection.Assembly.GetEntryAssembly() ??
+                       System.Reflection.Assembly.GetCallingAssembly());
         }
 
         //--
@@ -93,10 +84,6 @@ namespace Shoko.Server
             //-- we may get the wrong assembly at exception time!
             ParentAssembly();
 
-            //-- for winforms applications
-            System.Windows.Forms.Application.ThreadException -= ThreadExceptionHandler;
-            System.Windows.Forms.Application.ThreadException += ThreadExceptionHandler;
-
             //-- for console applications
             System.AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
             System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
@@ -108,7 +95,7 @@ namespace Shoko.Server
         //--
         //-- handles Application.ThreadException event
         //--
-        private static void ThreadExceptionHandler(System.Object sender, System.Threading.ThreadExceptionEventArgs e)
+        public static void ThreadExceptionHandler(System.Object sender, System.Threading.ThreadExceptionEventArgs e)
         {
             GenericExceptionHandler(e.Exception);
         }
@@ -305,8 +292,6 @@ namespace Shoko.Server
                 _strExceptionType = "";
             }
 
-            System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.WaitCursor;
-
             //-- log this error to various locations
             try
             {
@@ -324,8 +309,6 @@ namespace Shoko.Server
                 //-- generic catch because any exceptions inside the UEH
                 //-- will cause the code to terminate immediately
             }
-
-            System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.Default;
 
             //-- display message to the user - this is disabled for now since we don't have a UI for exceptions.
             ExceptionToUI();
@@ -474,25 +457,6 @@ namespace Shoko.Server
             else
             {
                 return System.AppDomain.CurrentDomain.BaseDirectory + System.AppDomain.CurrentDomain.FriendlyName + ".";
-            }
-        }
-
-        //--
-        //-- take a desktop screenshot of our exception
-        //-- note that this fires BEFORE the user clicks on the OK dismissing the crash dialog
-        //-- so the crash dialog itself will not be displayed
-        //--
-        private static void ExceptionToScreenshot()
-        {
-            //-- note that screenshotname does NOT include the file type extension
-            try
-            {
-                TakeScreenshotPrivate(GetApplicationPath() + _strScreenshotName);
-                _blnLogToScreenshotOK = true;
-            }
-            catch (Exception ex)
-            {
-                _blnLogToScreenshotOK = false;
             }
         }
 
@@ -823,51 +787,6 @@ namespace Shoko.Server
                     lngCompression);
             objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
         }
-
-        //--
-        //-- takes a screenshot of the desktop and saves to filename and format specified
-        //--
-        private static void TakeScreenshotPrivate(string strFilename)
-        {
-            Rectangle objRectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds;
-            Bitmap objBitmap = new Bitmap(objRectangle.Right, objRectangle.Bottom);
-            Graphics objGraphics = null;
-            IntPtr hdcDest = default(IntPtr);
-            int hdcSrc = 0;
-            const int SRCCOPY = 0xcc0020;
-            string strFormatExtension = null;
-
-            //objGraphics = objGraphics.FromImage(objBitmap);
-            objGraphics = Graphics.FromImage(objBitmap);
-
-            //-- get a device context to the windows desktop and our destination  bitmaps
-            hdcSrc = GetDC(0);
-            hdcDest = objGraphics.GetHdc();
-            //-- copy what is on the desktop to the bitmap
-            BitBlt(hdcDest.ToInt32(), 0, 0, objRectangle.Right, objRectangle.Bottom, hdcSrc, 0, 0, SRCCOPY);
-            //-- release device contexts
-            objGraphics.ReleaseHdc(hdcDest);
-            ReleaseDC(0, hdcSrc);
-
-            strFormatExtension = _ScreenshotImageFormat.ToString().ToLower();
-            if (System.IO.Path.GetExtension(strFilename) != "." + strFormatExtension)
-            {
-                strFilename += "." + strFormatExtension;
-            }
-            switch (strFormatExtension)
-            {
-                case "jpeg":
-                    BitmapToJPEG(objBitmap, strFilename, 80);
-                    break;
-                default:
-                    objBitmap.Save(strFilename, _ScreenshotImageFormat);
-                    break;
-            }
-
-            //-- save the complete path/filename of the screenshot for possible later use
-            _strScreenshotFullPath = strFilename;
-        }
-
 
         //--
         //-- get IP address of this machine

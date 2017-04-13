@@ -9,6 +9,7 @@ using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using Newtonsoft.Json;
+using NHibernate.Util;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -96,11 +97,12 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 6. Files
 
-            Get["/file"] = _ => { return GetFile(); };
-            Get["/file/count"] = _ => { return CountFiles(); };
-            Get["/file/recent"] = _ => { return GetRecentFiles(); };
-            Get["/file/unsort"] = _ => { return GetUnsort(); };
-            Post["/file/offset"] = _ => { return SetFileOffset(); };
+            Get["/file"] = _ => GetFile();
+            Get["/file/count"] = _ => CountFiles();
+            Get["/file/recent"] = _ => GetRecentFiles();
+            Get["/file/unsort"] = _ => GetUnsort();
+            Get["/file/multiples"] = _ => GetMultipleFiles();
+            Post["/file/offset"] = _ => SetFileOffset();
 
             #endregion
 
@@ -304,7 +306,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object RunImport()
         {
-            MainWindow.RunImport();
+            ShokoServer.RunImport();
             return APIStatus.statusOK();
         }
 
@@ -325,10 +327,6 @@ namespace Shoko.Server.API.v2.Modules
 
         private object ListUPNP()
         {
-            UPNPLib.UPnPDeviceFinder discovery = new UPNPLib.UPnPDeviceFinder();
-            UPnPFinderCallback call = new UPnPFinderCallback();
-            discovery.StartAsyncFind(discovery.CreateAsyncFind("urn:schemas-upnp-org:device:MediaServer:1", 0, call));
-
             //TODO APIv2 ListUPNP: Need a tweak as this now should return it as list?
             return APIStatus.notImplemented();
         }
@@ -356,7 +354,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object RemoveMissingFiles()
         {
-            MainWindow.RemoveMissingFiles();
+            ShokoServer.RemoveMissingFiles();
             return APIStatus.statusOK();
         }
 
@@ -378,7 +376,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object UpdateMediaInfo()
         {
-            MainWindow.RefreshAllMediaInfo();
+            ShokoServer.RefreshAllMediaInfo();
             return APIStatus.statusOK();
         }
 
@@ -389,7 +387,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object HashSync()
         {
-            MainWindow.SyncHashes();
+            ShokoServer.SyncHashes();
             return APIStatus.statusOK();
         }
 
@@ -867,6 +865,39 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return GetFileById(para.id, para.level, user.JMMUserID);
             }
+        }
+
+        /// <summary>
+        /// handle /api/file/multiple
+        /// </summary>
+        /// <returns></returns>
+        private object GetMultipleFiles()
+        {
+            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            int userID = user.JMMUserID;
+            Dictionary<int,Serie> results = new Dictionary<int, Serie>();
+            try
+            {
+                foreach (SVR_AnimeEpisode ep in RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true))
+                {
+                    Serie serie = null;
+                    SVR_AnimeSeries series = ep.GetAnimeSeries();
+                    if (results.ContainsKey(series.AnimeSeriesID)) serie = results[series.AnimeSeriesID];
+                    if (serie == null)
+                        serie =
+                            Serie.GenerateFromAnimeSeries(series, userID, para.nocast == 1, para.notag == 1, 0, false);
+                    if (serie.eps == null) serie.eps = new List<Episode>();
+                    serie.eps.Add(Episode.GenerateFromAnimeEpisode(ep, userID, 1));
+                    results[series.AnimeSeriesID] = serie;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+            }
+            return results.Values;
         }
 
         /// <summary>
@@ -2272,7 +2303,7 @@ namespace Shoko.Server.API.v2.Modules
 
         private object RunCloudImport()
         {
-            MainWindow.RunImport();
+            ShokoServer.RunImport();
             return APIStatus.statusOK();
         }
 
