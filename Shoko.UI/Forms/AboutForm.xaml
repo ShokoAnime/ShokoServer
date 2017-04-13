@@ -13,7 +13,7 @@
         <Grid.Resources>
             <ResourceDictionary>
                 <ResourceDictionary.MergedDictionaries>
-                    <ResourceDictionary Source="/Forms/UIStyles.xaml" />
+                    <ResourceDictionary Source="pack://application:,,,/Forms/UIStyles.xaml" />
                 </ResourceDictionary.MergedDictionaries>
 
                 <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
