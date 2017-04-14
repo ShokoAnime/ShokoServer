@@ -38,21 +38,21 @@ namespace Shoko.Server
         //private static MigrationForm migrationForm;
 
 
-        private static string Get(string key)
+        public static string Get(string key)
         {
             if (appSettings.ContainsKey(key))
                 return appSettings[key];
             return null;
         }
 
-        private static void Set(string key, string value)
+        public static bool Set(string key, string value)
         {
             string orig = Get(key);
-            if (value != orig)
-            {
-                appSettings[key] = value;
-                SaveSettings();
-            }
+            if (value == orig) return false;
+
+            appSettings[key] = value;
+            SaveSettings();
+            return true;
         }
 
 

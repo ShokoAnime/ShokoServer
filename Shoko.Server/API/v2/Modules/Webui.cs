@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using Newtonsoft.Json;
@@ -16,14 +17,14 @@ namespace Shoko.Server.API.v2.Modules
         {
             this.RequiresAuthentication();
 
-            Get["/install"] = _ => { return InstallWebUI(); };
-            Get["/update/stable"] = _ => { return WebUIStableUpdate(); };
-            Get["/latest/stable"] = _ => { return WebUILatestStableVersion(); };
-            Get["/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
-            Get["/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
-            Get["/config"] = _ => { return GetWebUIConfig(); };
-            Post["/config"] = _ => { return SetWebUIConfig(); };
-            Get["/theme"] = _ => { return GetWebUIThemes(); };
+            Get["/install", true] = async (x,ct) => await Task.Factory.StartNew(InstallWebUI);
+            Get["/update/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIStableUpdate);
+            Get["/latest/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestStableVersion);
+            Get["/update/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIUnstableUpdate);
+            Get["/latest/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestUnstableVersion);
+            Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIConfig);
+            Post["/config", true] = async (x,ct) => await Task.Factory.StartNew(SetWebUIConfig);
+            Get["/theme", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIThemes);
         }
 
         /// <summary>

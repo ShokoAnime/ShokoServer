@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using Nancy;
 using Shoko.Models.Client;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
@@ -33,7 +34,7 @@ namespace Shoko.Server.API.v2.Models.common
             groups = new List<Group>();
         }
 
-        internal static Filter GenerateFromGroupFilter(SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
+        internal static Filter GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
             bool all)
         {
             List<Group> groups = new List<Group>();
@@ -67,7 +68,7 @@ namespace Shoko.Server.API.v2.Models.common
                                 art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
                                 filter.art.fanart.Add(new Art()
                                 {
-                                    url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
                                     index = 0
                                 });
                                 rand_art_iteration = 3;
@@ -78,14 +79,14 @@ namespace Shoko.Server.API.v2.Models.common
                                     art = contract.Banners[rand.Next(contract.Banners.Count)];
                                     filter.art.banner.Add(new Art()
                                     {
-                                        url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
                                         index = 0
                                     });
                                     if (!string.IsNullOrEmpty(contract.Thumb))
                                     {
                                         filter.art.thumb.Add(new Art()
                                         {
-                                            url = APIHelper.ConstructImageLinkFromRest(contract.Thumb),
+                                            url = APIHelper.ConstructImageLinkFromRest(ctx, contract.Thumb),
                                             index = 0
                                         });
                                     }
@@ -103,7 +104,7 @@ namespace Shoko.Server.API.v2.Models.common
                             SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
                             if (ag == null) continue;
                             Group group =
-                                Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, (level - 1), all,
+                                Group.GenerateFromAnimeGroup(ctx, ag, uid, nocast, notag, (level - 1), all,
                                     filter.id);
                             groups.Add(group);
                             order.Add(ag.GetUserContract(uid), group);
@@ -124,7 +125,7 @@ namespace Shoko.Server.API.v2.Models.common
             }
 
             filter.viewed = 0;
-            filter.url = APIHelper.ConstructFilterIdUrl(filter.id);
+            filter.url = APIHelper.ConstructFilterIdUrl(ctx, filter.id);
 
             return filter;
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Nancy;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -19,7 +20,7 @@ namespace Shoko.Server.API.v2.Modules
     {
         public PlexWebhook() : base("/plex")
         {
-            Post["/"] = o => WebhookPost();
+            Post["/", true] = async (x,ct) => await Task.Factory.StartNew(WebhookPost);
         }
 
         object WebhookPost()

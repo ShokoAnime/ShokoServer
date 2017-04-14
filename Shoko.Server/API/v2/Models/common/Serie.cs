@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
+using Nancy;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v2.Models.common
@@ -33,7 +34,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Serie GenerateFromVideoLocal(SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level,
+        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level,
             bool all)
         {
             Serie sr = new Serie();
@@ -42,14 +43,14 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 foreach (SVR_AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid, nocast, notag, level, all);
+                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all);
                 }
             }
 
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
+        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
             bool all)
         {
             Serie sr = new Serie();
@@ -80,7 +81,7 @@ namespace Shoko.Server.API.v2.Models.common
                 art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
                 sr.art.fanart.Add(new Art()
                 {
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
                     index = 0
                 });
             }
@@ -91,14 +92,14 @@ namespace Shoko.Server.API.v2.Models.common
 
                 sr.art.banner.Add(new Art()
                 {
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
                     index = 0
                 });
             }
 
             if (!string.IsNullOrEmpty(nv.Thumb))
             {
-                sr.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0});
+                sr.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(ctx, nv.Thumb), index = 0});
             }
 
             if (!nocast)
@@ -118,7 +119,7 @@ namespace Shoko.Server.API.v2.Models.common
                         }
                         if (!String.IsNullOrEmpty(rtg.TagPicture))
                         {
-                            new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture);
+                            new_role.namepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture);
                         }
                         else
                         {
@@ -142,7 +143,7 @@ namespace Shoko.Server.API.v2.Models.common
                         }
                         if (!String.IsNullOrEmpty(rtg.RolePicture))
                         {
-                            new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture);
+                            new_role.rolepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture);
                         }
                         else
                         {
@@ -175,7 +176,7 @@ namespace Shoko.Server.API.v2.Models.common
                     foreach (SVR_AnimeEpisode ae in ael)
                     {
                         if (!all && (ae?.GetVideoLocals()?.Count ?? 0) == 0) continue;
-                        Episode new_ep = Episode.GenerateFromAnimeEpisode(ae, uid, (level - 1));
+                        Episode new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae, uid, (level - 1));
                         if (new_ep != null)
                         {
                             sr.eps.Add(new_ep);

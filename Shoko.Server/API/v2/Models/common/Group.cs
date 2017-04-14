@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using Nancy;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -27,7 +28,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Group GenerateFromAnimeGroup(SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
+        public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
             bool all, int filterid)
         {
             Group g = new Group();
@@ -63,7 +64,7 @@ namespace Shoko.Server.API.v2.Models.common
                     art = vag.Fanarts[rand.Next(vag.Fanarts.Count)];
                     g.art.fanart.Add(new Art()
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
                         index = 0
                     });
                 }
@@ -73,12 +74,12 @@ namespace Shoko.Server.API.v2.Models.common
                     art = vag.Banners[rand.Next(vag.Banners.Count)];
                     g.art.banner.Add(new Art()
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(art.ImageType, art.ImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
                         index = 0
                     });
                     if (!string.IsNullOrEmpty(vag.Thumb))
                     {
-                        g.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(vag.Thumb), index = 0});
+                        g.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(ctx, vag.Thumb), index = 0});
                     }
                 }
 
@@ -100,7 +101,7 @@ namespace Shoko.Server.API.v2.Models.common
                             }
                             if (!String.IsNullOrEmpty(rtg.TagPicture))
                             {
-                                new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture);
+                                new_role.namepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture);
                             }
                             else
                             {
@@ -124,7 +125,7 @@ namespace Shoko.Server.API.v2.Models.common
                             }
                             if (!String.IsNullOrEmpty(rtg.RolePicture))
                             {
-                                new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture);
+                                new_role.rolepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture);
                             }
                             else
                             {
@@ -167,7 +168,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (!series.Contains(ada.AnimeSeriesID)) continue;
                     }
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ada, uid, nocast, notag, (level - 1), all));
+                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all));
                 }
                 // This should be faster
                 g.series.Sort();
