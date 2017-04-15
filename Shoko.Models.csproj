@@ -88,6 +88,7 @@
     <Compile Include="Enums\enEpisodeSourceType.cs" />
     <Compile Include="Enums\enEpisodeType.cs" />
     <Compile Include="Enums\EpisodeDisplayStyle.cs" />
+    <Compile Include="Enums\FileQualityFilter.cs" />
     <Compile Include="Enums\FileSearchCriteria.cs" />
     <Compile Include="Enums\IgnoreAnimeType.cs" />
     <Compile Include="Enums\ImageDownloadEventType.cs" />
