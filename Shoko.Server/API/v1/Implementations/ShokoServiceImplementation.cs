@@ -2688,6 +2688,7 @@ namespace Shoko.Server
                 ServerSettings.AutoGroupSeries = contractIn.AutoGroupSeries;
                 ServerSettings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
                 ServerSettings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+                ServerSettings.FileQualityFilterPreferences = contractIn.FileQualityFilterPreferences;
                 ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
                 ServerSettings.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
                 ServerSettings.Hash_CRC32 = contractIn.Hash_CRC32;

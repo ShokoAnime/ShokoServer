@@ -207,6 +207,16 @@ namespace Shoko.Server
                         if (HasAllNecessaryFields(previousSettings))
                         {
                             appSettings = previousSettings;
+                            if (appSettings.ContainsKey("FileQualityFilterPreferences"))
+                            {
+                                FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
+                                    appSettings["FileQualityFilterPreferences"]);
+                                FileQualityFilter.Settings = prefs;
+                            }
+                            else
+                            {
+                                appSettings["FileQualityFilterPreferences"] = FileQualityFilterPreferences;
+                            }
                             settingsValid = true;
                         }
                     }
@@ -214,6 +224,16 @@ namespace Shoko.Server
                     {
                         startedWithFreshConfig = true;
                         LoadLegacySettingsFromFile(true);
+                        if (appSettings.ContainsKey("FileQualityFilterPreferences"))
+                        {
+                            FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
+                                appSettings["FileQualityFilterPreferences"]);
+                            FileQualityFilter.Settings = prefs;
+                        }
+                        else
+                        {
+                            appSettings["FileQualityFilterPreferences"] = FileQualityFilterPreferences;
+                        }
                     }
 
 
@@ -1627,6 +1647,23 @@ namespace Shoko.Server
             set { Set("AutoGroupSeriesUseScoreAlgorithm", value.ToString()); }
         }
 
+        public static string FileQualityFilterPreferences
+        {
+            get
+            {
+                string val = null;
+                try
+                {
+                    val = Get("FileQualityFilterPreferences");
+                }
+                catch (Exception e)
+                {
+                }
+                return val ?? JsonConvert.SerializeObject(FileQualityFilter.Settings);
+            }
+            set => Set("FileQualityFilterPreferences", value);
+        }
+
         public static string LanguagePreference
         {
             get { return Get("LanguagePreference"); }
@@ -2010,6 +2047,7 @@ namespace Shoko.Server
             contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
             contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
             contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
+            contract.FileQualityFilterPreferences = ServerSettings.FileQualityFilterPreferences;
             contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
             contract.RunImportOnStart = ServerSettings.RunImportOnStart;
             contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
@@ -2208,6 +2246,7 @@ namespace Shoko.Server
 
             logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
             logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
+            logger.Info("FileQualityFilterPreferences: {0}", FileQualityFilterPreferences);
             logger.Info("LanguagePreference: {0}", LanguagePreference);
             logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
             logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);
