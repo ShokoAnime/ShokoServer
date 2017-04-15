@@ -71,6 +71,7 @@ namespace Shoko.Models.Client
         public bool AutoGroupSeries { get; set; }
 		public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 		public string AutoGroupSeriesRelationExclusions { get; set; }
+        public string FileQualityFilterPreferences { get; set; }
         public bool RunImportOnStart { get; set; }
         public bool ScanDropFoldersOnStart { get; set; }
         public bool Hash_CRC32 { get; set; }
@@ -102,7 +103,7 @@ namespace Shoko.Models.Client
         public int MAL_UpdateFrequency { get; set; }
         public bool MAL_NeverDecreaseWatchedNums { get; set; }
 
-        // LogRotato
+        // LogRotator
         public bool RotateLogs { get; set; }
         public bool RotateLogs_Zip { get; set; }
         public bool RotateLogs_Delete { get; set; }
