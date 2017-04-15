@@ -70,22 +70,24 @@ namespace Shoko.Server
             NOTIN
         }
 
-        public static Dictionary<Tuple<int, int>, string> Resolutions169;
-        public static Dictionary<Tuple<int, int>, string> Resolutions43;
+        public static Dictionary<int, string> ResolutionArea;
+        public static Dictionary<int, string> ResolutionAreaOld;
 
         static FileQualityFilter()
         {
-            Resolutions169 = new Dictionary<Tuple<int, int>, string>();
-            Resolutions169.Add(new Tuple<int, int>(3840,2160), "2160p");
-            Resolutions169.Add(new Tuple<int, int>(2560,1440), "1440p");
-            Resolutions169.Add(new Tuple<int, int>(1920,1080), "1080p");
-            Resolutions169.Add(new Tuple<int, int>(1280,720), "720p");
-            Resolutions169.Add(new Tuple<int, int>(1024,576), "576p");
-            Resolutions169.Add(new Tuple<int, int>(853,480), "480p");
+            ResolutionArea = new Dictionary<int, string>();
+            ResolutionArea.Add(3840*2160, "2160p");
+            ResolutionArea.Add(2560*1440, "1440p");
+            ResolutionArea.Add(1920*1080, "1080p");
+            ResolutionArea.Add(1280*720, "720p");
+            ResolutionArea.Add(1024*576, "576p");
+            ResolutionArea.Add(853*480, "480p");
 
-            Resolutions43 = new Dictionary<Tuple<int, int>, string>();
-            Resolutions43.Add(new Tuple<int, int>(720,576), "576p");
-            Resolutions43.Add(new Tuple<int, int>(720,480), "480p");
+            ResolutionAreaOld = new Dictionary<int, string>();
+            ResolutionAreaOld.Add(720*576, "576p");
+            ResolutionAreaOld.Add(720*480, "480p");
+            ResolutionAreaOld.Add(480*360, "360p");
+            ResolutionAreaOld.Add(320*240, "240p");
         }
 
         #region Checks
@@ -183,21 +185,45 @@ namespace Shoko.Server
 
         private static bool CheckResolution(AniDB_File aniFile)
         {
+            Tuple<int, int> resTuple = GetResolutionInternal(aniFile);
+            string res = GetResolution(resTuple);
+            if (res == null) return false;
+
+            int resArea = resTuple.Item1 * resTuple.Item2;
+
             FileQualityFilterOperationType operationType = RequiredResolutionOperator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.EQUALS:
-
+                    return res.Equals(RequiredResolutions.FirstOrDefault());
                 case FileQualityFilterOperationType.GREATER_EQ:
-
-                case FileQualityFilterOperationType.LESS_EQ:
-
-                case FileQualityFilterOperationType.IN:
-
-                case FileQualityFilterOperationType.NOTIN:
+                    List<int> keysGT = ResolutionArea.Keys.Where(a => resArea >= a).ToList();
+                    keysGT.AddRange(ResolutionAreaOld.Keys.Where(a => resArea >= a));
+                    List<string> valuesGT = new List<string>();
+                    foreach (int key in keysGT)
+                    {
+                        if (ResolutionArea.ContainsKey(key)) valuesGT.Add(ResolutionArea[key]);
+                        if (ResolutionAreaOld.ContainsKey(key)) valuesGT.Add(ResolutionAreaOld[key]);
+                    }
+                    if (valuesGT.FindInEnumerable(RequiredResolutions)) return true;
                     break;
+                case FileQualityFilterOperationType.LESS_EQ:
+                    List<int> keysLT = ResolutionArea.Keys.Where(a => resArea <= a).ToList();
+                    keysLT.AddRange(ResolutionAreaOld.Keys.Where(a => resArea <= a));
+                    List<string> valuesLT = new List<string>();
+                    foreach (int key in keysLT)
+                    {
+                        if (ResolutionArea.ContainsKey(key)) valuesLT.Add(ResolutionArea[key]);
+                        if (ResolutionAreaOld.ContainsKey(key)) valuesLT.Add(ResolutionAreaOld[key]);
+                    }
+                    if (valuesLT.FindInEnumerable(RequiredResolutions)) return true;
+                    break;
+                case FileQualityFilterOperationType.IN:
+                    return RequiredResolutions.Contains(res);
+                case FileQualityFilterOperationType.NOTIN:
+                    return !RequiredResolutions.Contains(res);
             }
-            return true;
+            return false;
         }
 
         private static bool CheckSource(AniDB_File aniFile)
@@ -353,14 +379,15 @@ namespace Shoko.Server
 
         private static int CompareResolutionTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            Tuple<int, int> oldRes = GetResolution(oldFile);
-            Tuple<int, int> newRes = GetResolution(newFile);
+            string oldRes = GetResolution(oldFile);
+            string newRes = GetResolution(newFile);
 
             if (newRes == null || oldRes == null) return 0;
-            if (newRes.Item1 * newRes.Item2 > oldRes.Item1 * oldRes.Item2) return -1;
-            if (newRes.Item1 * newRes.Item2 < oldRes.Item1 * oldRes.Item2) return 1;
-
-            return 0;
+            if (!_resolutions.Contains(newRes)) return 0;
+            if (!_resolutions.Contains(oldRes)) return -1;
+            int newIndex = Array.IndexOf(_resolutions, newRes);
+            int oldIndex = Array.IndexOf(_resolutions, oldRes);
+            return newIndex.CompareTo(oldIndex);
         }
 
         private static int CompareSourceTo(AniDB_File newFile, AniDB_File oldFile)
@@ -374,8 +401,7 @@ namespace Shoko.Server
         private static int CompareSubGroupTo(AniDB_File newFile, AniDB_File oldFile)
         {
             if (!_subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant())) return 0;
-            if (_subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant()) &&
-                !_subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant())) return 0;
+            if (!_subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant())) return 0;
             // The above ensures that _subgroups contains both, so no need to check for -1 in this case
             int newIndex = Array.IndexOf(_subgroups, newFile.Anime_GroupName.ToLowerInvariant());
             int oldIndex = Array.IndexOf(_subgroups, oldFile.Anime_GroupName.ToLowerInvariant());
@@ -433,9 +459,48 @@ namespace Shoko.Server
 
         #region Information from Models (Operations that aren't simple)
 
-        private static Tuple<int, int> GetResolution(AniDB_File oldFile)
+        private static string GetResolution(AniDB_File aniFile)
         {
-            string[] res = oldFile.File_VideoResolution.Split('x');
+            return GetResolution(GetResolutionInternal(aniFile));
+        }
+
+        private static string GetResolution(Tuple<int, int> res)
+        {
+            if (res == null) return null;
+            // not precise, but we are rounding and calculating distance anyway
+            double sixteenNine = 1.777778;
+            double fourThirds = 1.333333;
+            double ratio = res.Item1 / res.Item2;
+
+            if (Math.Abs(ratio - sixteenNine) < Math.Abs(ratio - fourThirds))
+            {
+                int area = res.Item1 * res.Item2;
+                int key = int.MaxValue;
+                foreach (int resArea in ResolutionArea.Keys.ToList())
+                {
+                    int dist = Math.Abs(resArea - area);
+                    if (dist < key) key = dist;
+                }
+                if (key == int.MaxValue) return null;
+                return ResolutionArea[key];
+            }
+            else
+            {
+                int area = res.Item1 * res.Item2;
+                int key = int.MaxValue;
+                foreach (int resArea in ResolutionAreaOld.Keys.ToList())
+                {
+                    int dist = Math.Abs(resArea - area);
+                    if (dist < key) key = dist;
+                }
+                if (key == int.MaxValue) return null;
+                return ResolutionAreaOld[key];
+            }
+        }
+
+        private static Tuple<int, int> GetResolutionInternal(AniDB_File aniFile)
+        {
+            string[] res = aniFile.File_VideoResolution.Split('x');
             if (res.Length != 2) return null;
             int oldWidth = 0;
             int oldHeight = 0;
@@ -444,8 +509,6 @@ namespace Shoko.Server
             if (oldWidth == 0 || oldHeight == 0) return null;
             return new Tuple<int, int>(oldWidth, oldHeight);
         }
-
-
         #endregion
     }
 }
