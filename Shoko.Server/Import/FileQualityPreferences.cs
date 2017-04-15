@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using static Shoko.Server.FileQualityFilter;
+using static Shoko.Models.FileQualityFilter;
 
 namespace Shoko.Server
 {
@@ -14,7 +14,7 @@ namespace Shoko.Server
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
         [JsonConverter(typeof(StringEnumConverter))]
         [DataMember(Name = "Types")]
-        internal static FileQualityFilter.FileQualityFilterType[] _types =
+        internal static FileQualityFilterType[] _types =
         {
             FileQualityFilterType.SOURCE, FileQualityFilterType.RESOLUTION, FileQualityFilterType.AUDIOSTREAMCOUNT,
             FileQualityFilterType.SUBSTREAMCOUNT, FileQualityFilterType.SUBGROUP, FileQualityFilterType.CHAPTER,
@@ -64,7 +64,7 @@ namespace Shoko.Server
         /// This is a list, in order, of the operations. Accepts no arguments.
         [JsonConverter(typeof(StringEnumConverter))]
         [DataMember(Name = "RequiredTypes")]
-        internal static FileQualityFilter.FileQualityFilterType[] _requiredtypes =
+        internal static FileQualityFilterType[] _requiredtypes =
         {
             FileQualityFilterType.SOURCE, FileQualityFilterType.CHAPTER, FileQualityFilterType.VERSION
         };
@@ -129,7 +129,7 @@ namespace Shoko.Server
         #region Internal Getters and Setters
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
         [IgnoreDataMember]
-        public static List<FileQualityFilter.FileQualityFilterType> TypePreferences
+        public static List<FileQualityFilterType> TypePreferences
         {
             get => _types.ToList();
             set => _types = value.ToArray();
@@ -177,7 +177,7 @@ namespace Shoko.Server
 
 
         [IgnoreDataMember]
-        public static List<FileQualityFilter.FileQualityFilterType> RequiredTypes
+        public static List<FileQualityFilterType> RequiredTypes
         {
             get => _requiredtypes.ToList();
             set => _requiredtypes = value.ToArray();

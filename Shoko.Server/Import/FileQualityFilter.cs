@@ -5,6 +5,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using static Shoko.Server.FileQualityPreferences;
+using static Shoko.Models.FileQualityFilter;
 
 namespace Shoko.Server
 {
@@ -47,28 +48,6 @@ namespace Shoko.Server
         reference said enum through a CompareByType
 
         */
-
-        public enum FileQualityFilterType
-        {
-            RESOLUTION,
-            SOURCE,
-            VERSION,
-            AUDIOSTREAMCOUNT,
-            VIDEOCODEC,
-            AUDIOCODEC,
-            CHAPTER,
-            SUBGROUP,
-            SUBSTREAMCOUNT
-        }
-
-        public enum FileQualityFilterOperationType
-        {
-            EQUALS,
-            LESS_EQ,
-            GREATER_EQ,
-            IN,
-            NOTIN
-        }
 
         public static Dictionary<int, string> ResolutionArea;
         public static Dictionary<int, string> ResolutionAreaOld;
