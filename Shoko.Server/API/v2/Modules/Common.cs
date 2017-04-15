@@ -890,7 +890,25 @@ namespace Shoko.Server.API.v2.Modules
                         serie =
                             Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1, para.notag == 1, 0, false);
                     if (serie.eps == null) serie.eps = new List<Episode>();
-                    serie.eps.Add(Episode.GenerateFromAnimeEpisode(Context, ep, userID, 1));
+                    Episode episode = Episode.GenerateFromAnimeEpisode(Context, ep, userID, 0);
+                    List<SVR_VideoLocal> vls = ep.GetVideoLocals();
+                    if (vls.Count > 0)
+                    {
+                        episode.files = new List<RawFile>();
+                        vls.Sort(FileQualityFilter.CompareTo);
+                        bool first = true;
+                        foreach (SVR_VideoLocal vl in vls)
+                        {
+                            RawFile file = new RawFile(Context, vl, 0, userID);
+                            if (first)
+                            {
+                                file.is_preferred = 1;
+                                first = false;
+                            }
+                            episode.files.Add(file);
+                        }
+                    }
+                    serie.eps.Add(episode);
                     results[series.AnimeSeriesID] = serie;
                 }
             }

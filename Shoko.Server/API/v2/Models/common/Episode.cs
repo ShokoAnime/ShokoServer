@@ -104,17 +104,10 @@ namespace Shoko.Server.API.v2.Models.common
                         List<SVR_VideoLocal> vls = aep.GetVideoLocals();
                         if (vls.Count > 0)
                         {
-                            vls.Sort(FileQualityFilter.CompareTo);
                             ep.files = new List<RawFile>();
-                            bool first = true;
                             foreach (SVR_VideoLocal vl in vls)
                             {
                                 RawFile file = new RawFile(ctx, vl, (level - 1), uid);
-                                if (first)
-                                {
-                                    file.is_preferred = 1;
-                                    first = false;
-                                }
                                 ep.files.Add(file);
                             }
                         }
