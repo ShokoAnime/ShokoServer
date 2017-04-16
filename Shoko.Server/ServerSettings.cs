@@ -1647,6 +1647,17 @@ namespace Shoko.Server
             set { Set("AutoGroupSeriesUseScoreAlgorithm", value.ToString()); }
         }
 
+        public static bool FileQualityFilterEnabled
+        {
+            get
+            {
+                bool val = false;
+                bool.TryParse(Get("FileQualityFilterEnabled"), out val);
+                return val;
+            }
+            set => Set("FileQualityFilterEnabled", value.ToString());
+        }
+
         public static string FileQualityFilterPreferences
         {
             get
@@ -2047,6 +2058,7 @@ namespace Shoko.Server
             contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
             contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
             contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
+            contract.FileQualityFilterEnabled = ServerSettings.FileQualityFilterEnabled;
             contract.FileQualityFilterPreferences = ServerSettings.FileQualityFilterPreferences;
             contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
             contract.RunImportOnStart = ServerSettings.RunImportOnStart;

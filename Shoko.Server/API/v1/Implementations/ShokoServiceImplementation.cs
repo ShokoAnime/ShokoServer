@@ -2688,6 +2688,7 @@ namespace Shoko.Server
                 ServerSettings.AutoGroupSeries = contractIn.AutoGroupSeries;
                 ServerSettings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
                 ServerSettings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+                ServerSettings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
                 ServerSettings.FileQualityFilterPreferences = contractIn.FileQualityFilterPreferences;
                 ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
                 ServerSettings.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
@@ -3592,7 +3593,7 @@ namespace Shoko.Server
                 if ((place == null) || (place.VideoLocal == null))
                     return "Database entry does not exist";
                 SVR_VideoLocal vid = place.VideoLocal;
-                logger.Info("Deleting video local place record and file: {0}", place.FullServerPath);
+                logger.Info("Deleting video local place record and file: {0}", (place.FullServerPath ?? place.VideoLocal_Place_ID.ToString()));
 
                 IFileSystem fileSystem = place.ImportFolder?.FileSystem;
                 if (fileSystem == null)
@@ -3600,6 +3601,12 @@ namespace Shoko.Server
                     logger.Error("Unable to delete file, filesystem not found. Removing record.");
                     place.RemoveRecord();
                     return "Unable to delete file, filesystem not found. Removing record.";
+                }
+                if (place.FullServerPath == null)
+                {
+                    logger.Error("Unable to delete file, FullServerPath is null. Removing record.");
+                    place.RemoveRecord();
+                    return "Unable to delete file, FullServerPath is null. Removing record.";
                 }
                 FileSystemResult<IObject> fr = fileSystem.Resolve(place.FullServerPath);
                 if (fr == null || !fr.IsOk)

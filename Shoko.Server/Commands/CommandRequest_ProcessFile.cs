@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
@@ -293,6 +294,30 @@ namespace Shoko.Server.Commands
                     {
                         grp.EpisodeAddedDate = DateTime.Now;
                         RepoFactory.AnimeGroup.Save(grp, true, false);
+                    }
+
+                    if (ServerSettings.FileQualityFilterEnabled)
+                    {
+                        // We do this inside, as the info will not be available as needed otherwise
+                        List<SVR_VideoLocal> videoLocals =
+                            aniFile?.EpisodeIDs?.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a))
+                                .Where(b => b != null)
+                                .ToList();
+                        if (videoLocals != null)
+                        {
+                            videoLocals.Sort(FileQualityFilter.CompareTo);
+                            List<SVR_VideoLocal> keep = videoLocals
+                                .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                                .ToList();
+                            foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                            if (videoLocals.Contains(vidLocal)) videoLocals.Remove(vidLocal);
+                            videoLocals = videoLocals.Where(FileQualityFilter.CheckFileKeep).ToList();
+
+                            foreach (SVR_VideoLocal toDelete in videoLocals)
+                            {
+                                toDelete.Places.ForEach(a => a.RemoveAndDeleteFile());
+                            }
+                        }
                     }
                 }
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });

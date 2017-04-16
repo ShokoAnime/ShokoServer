@@ -341,6 +341,57 @@ namespace Shoko.Server.Models
             return false;
         }
 
+        public void RemoveAndDeleteFile()
+        {
+            try
+            {
+                SVR_VideoLocal vid = VideoLocal;
+                logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
+
+                IFileSystem fileSystem = ImportFolder?.FileSystem;
+                if (fileSystem == null)
+                {
+                    logger.Error("Unable to delete file, filesystem not found. Removing record.");
+                    RemoveRecord();
+                    return;
+                }
+                if (FullServerPath == null)
+                {
+                    logger.Error("Unable to delete file, fullserverpath is null. Removing record.");
+                    RemoveRecord();
+                    return;
+                }
+                FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
+                if (fr == null || !fr.IsOk)
+                {
+                    logger.Error($"Unable to find file. Removing Record: {FullServerPath}");
+                    RemoveRecord();
+                    return;
+                }
+                IFile file = fr.Result as IFile;
+                if (file == null)
+                {
+                    logger.Error($"Seems '{FullServerPath}' is a directory.");
+                    RemoveRecord();
+                    return;
+                }
+                FileSystemResult fs = file.Delete(false);
+                if (fs == null || !fs.IsOk)
+                {
+                    logger.Error($"Unable to delete file '{FullServerPath}'");
+                    return;
+                }
+                RemoveRecord();
+                // For deletion of files from Trakt, we will rely on the Daily sync
+
+                return;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
+
         public void RenameAndMoveAsRequired()
         {
             bool succeeded = RenameIfRequired();
