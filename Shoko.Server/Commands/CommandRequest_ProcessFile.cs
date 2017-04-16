@@ -311,7 +311,7 @@ namespace Shoko.Server.Commands
                                 .ToList();
                             foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
                             if (videoLocals.Contains(vidLocal)) videoLocals.Remove(vidLocal);
-                            videoLocals = videoLocals.Where(FileQualityFilter.CheckFileKeep).ToList();
+                            videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
 
                             foreach (SVR_VideoLocal toDelete in videoLocals)
                             {
