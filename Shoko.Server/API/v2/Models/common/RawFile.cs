@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Shoko.Server.Models;
 using System.Runtime.Serialization;
+using Nancy;
 using Shoko.Models.Server;
 
 namespace Shoko.Server.API.v2.Models.common
@@ -84,7 +85,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        public RawFile(SVR_VideoLocal vl, int level, int uid)
+        public RawFile(NancyContext ctx, SVR_VideoLocal vl, int level, int uid)
         {
             if (vl != null)
             {
@@ -142,7 +143,7 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     media = new MediaInfo();
 
-                    url = APIHelper.ConstructVideoLocalStream(uid, vl.Media.Id, "file." + vl.Media.Container, false);
+                    url = APIHelper.ConstructVideoLocalStream(ctx, uid, vl.Media.Id, "file." + vl.Media.Container, false);
 
                     MediaInfo new_media = new MediaInfo();
 

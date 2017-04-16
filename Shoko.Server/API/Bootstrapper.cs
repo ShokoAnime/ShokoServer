@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Nancy.Rest.Module;
 using Shoko.Server.API.v2.Modules;
 using Shoko.Server.PlexAndKodi.Kodi;
@@ -64,10 +66,10 @@ namespace Shoko.Server.API
             StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
 
-            pipelines.OnError += (NancyContext ctx, Exception ex) => onError(ctx, ex);
+            pipelines.OnError += (ctx, ex) => onError(ctx, ex);
 
-            pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
-            pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
+            pipelines.BeforeRequest += BeforeProcessing;
+            pipelines.AfterRequest += AfterProcessing;
 
             #region CORS Enable
 
@@ -117,8 +119,6 @@ namespace Shoko.Server.API
 
         private Response BeforeProcessing(NancyContext ctx)
         {
-            // Request will always be populated!
-            Core.request = ctx.Request;
             return null;
         }
 
@@ -132,8 +132,6 @@ namespace Shoko.Server.API
                 ctx.Response.WithHeaders(tps.ToArray());
                 ctx.Response.ContentType = "text/plain";
             }
-            // Set to null after request as not to interfere with contract generation
-            Core.request = null;
         }
     }
 

@@ -20,6 +20,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using System.Threading.Tasks;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -32,130 +33,130 @@ namespace Shoko.Server.API.v2.Modules
 
         public Common() : base("/api")
         {
-            this
-                .RequiresAuthentication(); // its a setting per module, so every call made to this module requires apikey
+            // its a setting per module, so every call made to this module requires apikey
+            this.RequiresAuthentication();
 
             #region 1. import folders
 
-            Get["/folder/list"] = x => { return GetFolders(); };
-            Get["/folder/count"] = x => { return CountFolders(); };
-            Post["/folder/add"] = x => { return AddFolder(); };
-            Post["/folder/edit"] = x => { return EditFolder(); };
-            Post["/folder/delete"] = x => { return DeleteFolder(); };
-            Get["/folder/import"] = _ => { return RunImport(); };
-            Get["/folder/scan"] = _ => { return ScanDropFolders(); };
+            Get["/folder/list", true] = async (x,ct) => await Task.Factory.StartNew(GetFolders);
+            Get["/folder/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFolders);
+            Post["/folder/add", true] = async (x,ct) => await Task.Factory.StartNew(AddFolder);
+            Post["/folder/edit", true] = async (x,ct) => await Task.Factory.StartNew(EditFolder);
+            Post["/folder/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteFolder);
+            Get["/folder/import", true] = async (x,ct) => await Task.Factory.StartNew(RunImport);
+            Get["/folder/scan", true] = async (x, ct) => await Task.Factory.StartNew(ScanDropFolders);
 
             #endregion
 
             #region 2. upnp
 
-            Post["/upnp/list"] = x => { return ListUPNP(); };
-            Post["/upnp/add"] = x => { return AddUPNP(); };
-            Post["/upnp/delete"] = x => { return DeleteUPNP(); };
+            Post["/upnp/list", true] = async (x, ct) => await Task.Factory.StartNew(ListUPNP);
+            Post["/upnp/add", true] = async (x, ct) => await Task.Factory.StartNew(AddUPNP);
+            Post["/upnp/delete", true] = async (x, ct) => await Task.Factory.StartNew(DeleteUPNP);
 
             #endregion
 
             #region 3. Actions
 
-            Get["/remove_missing_files"] = _ => { return RemoveMissingFiles(); };
-            Get["/stats_update"] = _ => { return UpdateStats(); };
-            Get["/mediainfo_update"] = _ => { return UpdateMediaInfo(); };
-            Get["/hash/sync"] = _ => { return HashSync(); };
-            Get["/rescan"] = x => { return RescanVideoLocal(); };
-            Get["/rehash"] = x => { return RehashVideoLocal(); };
+            Get["/remove_missing_files", true] = async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles);
+            Get["/stats_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateStats);
+            Get["/mediainfo_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo);
+            Get["/hash/sync", true] = async (x,ct) => await Task.Factory.StartNew(HashSync);
+            Get["/rescan", true] = async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal);
+            Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal);
 
             #endregion
 
             #region 4. Misc
 
-            Get["/myid/get"] = _ => { return MyID(); };
-            Get["/news/get"] = _ => { return GetNews(5); };
-            Get["/dashboard"] = _ => { return GetDashboard(); };
-            Get["/search"] = _ => { return BigSearch(); };
+            Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID);
+            Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5));
+            Get["/dashboard", true] = async (x,ct) => await Task.Factory.StartNew(GetDashboard);
+            Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch);
 
             #endregion
 
             #region 5. Queue
 
-            Get["/queue/get"] = _ => { return GetQueue(); };
-            Get["/queue/pause"] = _ => { return PauseQueue(); };
-            Get["/queue/start"] = _ => { return StartQueue(); };
-            Get["/queue/hash/get"] = _ => { return GetHasherQueue(); };
-            Get["/queue/hash/pause"] = _ => { return PauseHasherQueue(); };
-            Get["/queue/hash/start"] = _ => { return StartHasherQueue(); };
-            Get["/queue/hash/clear"] = _ => { return ClearHasherQueue(); };
-            Get["/queue/general/get"] = _ => { return GetGeneralQueue(); };
-            Get["/queue/general/pause"] = _ => { return PauseGeneralQueue(); };
-            Get["/queue/general/start"] = _ => { return StartGeneralQueue(); };
-            Get["/queue/general/clear"] = _ => { return ClearGeneralQueue(); };
-            Get["/queue/images/get"] = _ => { return GetImagesQueue(); };
-            Get["/queue/images/pause"] = _ => { return PauseImagesQueue(); };
-            Get["/queue/images/start"] = _ => { return StartImagesQueue(); };
-            Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
+            Get["/queue/get", true] = async (x,ct) => await Task.Factory.StartNew(GetQueue);
+            Get["/queue/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseQueue);
+            Get["/queue/start", true] = async (x,ct) => await Task.Factory.StartNew(StartQueue);
+            Get["/queue/hash/get", true] = async (x,ct) => await Task.Factory.StartNew(GetHasherQueue);
+            Get["/queue/hash/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseHasherQueue);
+            Get["/queue/hash/start", true] = async (x,ct) => await Task.Factory.StartNew(StartHasherQueue);
+            Get["/queue/hash/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearHasherQueue);
+            Get["/queue/general/get", true] = async (x,ct) => await Task.Factory.StartNew(GetGeneralQueue);
+            Get["/queue/general/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseGeneralQueue);
+            Get["/queue/general/start", true] = async (x,ct) => await Task.Factory.StartNew(StartGeneralQueue);
+            Get["/queue/general/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearGeneralQueue);
+            Get["/queue/images/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagesQueue);
+            Get["/queue/images/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseImagesQueue);
+            Get["/queue/images/start", true] = async (x,ct) => await Task.Factory.StartNew(StartImagesQueue);
+            Get["/queue/images/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearImagesQueue);
 
             #endregion
 
             #region 6. Files
 
-            Get["/file"] = _ => GetFile();
-            Get["/file/count"] = _ => CountFiles();
-            Get["/file/recent"] = _ => GetRecentFiles();
-            Get["/file/unsort"] = _ => GetUnsort();
-            Get["/file/multiples"] = _ => GetMultipleFiles();
-            Post["/file/offset"] = _ => SetFileOffset();
+            Get["/file", true] = async (x,ct) => await Task.Factory.StartNew(GetFile);
+            Get["/file/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFiles);
+            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(() => GetRecentFiles(0,0));
+            Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort);
+            Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles);
+            Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset);
 
             #endregion
 
             #region 7. Episodes
 
-            Get["/ep"] = x => { return GetEpisode(); };
-            Get["/ep/recent"] = x => { return GetRecentEpisodes(); };
-            Get["/ep/watch"] = x => { return MarkEpisodeAsWatched(); };
-            Get["/ep/unwatch"] = x => { return MarkEpisodeAsUnwatched(); };
-            Get["/ep/vote"] = x => { return VoteOnEpisode(); };
-            Get["/ep/unsort"] = _ => { return GetUnsort(); };
-            Get["/ep/scrobble"] = x => { return EpisodeScrobble(); };
-            Get["/ep/getbyfilename"] = x => { return GetEpisodeFromName(); };
+            Get["/ep", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisode);
+            Get["/ep/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes);
+            Get["/ep/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched);
+            Get["/ep/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched);
+            Get["/ep/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode);
+            Get["/ep/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort);
+            Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble);
+            Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName);
 
             #endregion
 
             #region 8. Series
 
-            Get["/serie"] = _ => { return GetSerie(); };
-            Get["/serie/count"] = _ => { return CountSerie(); };
-            Get["/serie/recent"] = _ => { return GetSeriesRecent(); };
-            Get["/serie/search"] = x => { return SearchForSerie(); };
-            Get["/serie/tag"] = x => { return SearchForTag(); };
-            Get["/serie/byfolder"] = x => { return GetSeriesByFolderId(); };
-            Get["/serie/watch"] = x => { return MarkSerieAsWatched(); };
-            Get["/serie/unwatch"] = x => { return MarkSerieAsUnwatched(); };
-            Get["/serie/vote"] = x => { return VoteOnSerie(); };
-            Get["/serie/fromep"] = x => { return GetSeriesFromEpisode(); };
-            Get["/serie/startswith"] = x => { return SearchStartsWith(); };
+            Get["/serie", true] = async (x,ct) => await Task.Factory.StartNew(GetSerie);
+            Get["/serie/count", true] = async (x,ct) => await Task.Factory.StartNew(CountSerie);
+            Get["/serie/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent);
+            Get["/serie/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchForSerie);
+            Get["/serie/tag", true] = async (x,ct) => await Task.Factory.StartNew(SearchForTag);
+            Get["/serie/byfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId);
+            Get["/serie/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched);
+            Get["/serie/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched);
+            Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie);
+            Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode);
+            Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith);
 
             #endregion
 
             #region 9. Cloud accounts
 
-            Get["/cloud/list"] = _ => { return GetCloudAccounts(); };
-            Get["/cloud/count"] = _ => { return GetCloudAccountsCount(); };
-            Post["/cloud/add"] = x => { return AddCloudAccount(); };
-            Post["/cloud/delete"] = x => { return DeleteCloudAccount(); };
-            Get["/cloud/import"] = _ => { return RunCloudImport(); };
+            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts);
+            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount);
+            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount);
+            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount);
+            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport);
 
             #endregion
 
             #region 10. Filters
 
-            Get["/filter"] = _ => { return GetFilters(); };
+            Get["/filter", true] = async (x,ct) => await Task.Factory.StartNew(GetFilters);
 
             #endregion
 
             #region 11. Groups
 
-            Get["/group"] = _ => { return GetGroups(); };
-            Get["/group/watch"] = _ => { return MarkGroupAsWatched(); };
-            Get["/group/unwatch"] = _ => { return MarkGroupAsUnwatched(); };
+            Get["/group", true] = async (x,ct) => await Task.Factory.StartNew(GetGroups);
+            Get["/group/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched);
+            Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched);
 
             #endregion
         }
@@ -880,16 +881,37 @@ namespace Shoko.Server.API.v2.Modules
             Dictionary<int,Serie> results = new Dictionary<int, Serie>();
             try
             {
-                foreach (SVR_AnimeEpisode ep in RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true))
+                List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true);
+                foreach(SVR_AnimeEpisode ep in list)
                 {
                     Serie serie = null;
                     SVR_AnimeSeries series = ep.GetAnimeSeries();
                     if (results.ContainsKey(series.AnimeSeriesID)) serie = results[series.AnimeSeriesID];
                     if (serie == null)
                         serie =
-                            Serie.GenerateFromAnimeSeries(series, userID, para.nocast == 1, para.notag == 1, 0, false);
+                            Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1,
+                                para.notag == 1, 0,
+                                false);
                     if (serie.eps == null) serie.eps = new List<Episode>();
-                    serie.eps.Add(Episode.GenerateFromAnimeEpisode(ep, userID, 1));
+                    Episode episode = Episode.GenerateFromAnimeEpisode(Context, ep, userID, 0);
+                    List<SVR_VideoLocal> vls = ep.GetVideoLocals();
+                    if (vls.Count > 0)
+                    {
+                        episode.files = new List<RawFile>();
+                        vls.Sort(FileQualityFilter.CompareTo);
+                        bool first = true;
+                        foreach (SVR_VideoLocal vl in vls)
+                        {
+                            RawFile file = new RawFile(Context, vl, 0, userID);
+                            if (first)
+                            {
+                                file.is_preferred = 1;
+                                first = false;
+                            }
+                            episode.files.Add(file);
+                        }
+                    }
+                    serie.eps.Add(episode);
                     results[series.AnimeSeriesID] = serie;
                 }
             }
@@ -940,7 +962,7 @@ namespace Shoko.Server.API.v2.Modules
             List<RawFile> list = new List<RawFile>();
             foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
             {
-                list.Add(new RawFile(file, para.level, user.JMMUserID));
+                list.Add(new RawFile(Context, file, para.level, user.JMMUserID));
             }
 
             return list;
@@ -964,7 +986,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (para.offset == 0)
                 {
-                    RawFile v = new RawFile(vl, para.level, user.JMMUserID);
+                    RawFile v = new RawFile(Context, vl, para.level, user.JMMUserID);
                     lst.Add(v);
                     if (para.limit != 0)
                     {
@@ -1027,7 +1049,7 @@ namespace Shoko.Server.API.v2.Modules
             SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(file_id);
             if (vl != null)
             {
-                RawFile rawfile = new RawFile(vl, level, uid);
+                RawFile rawfile = new RawFile(Context, vl, level, uid);
                 return rawfile;
             }
             else
@@ -1052,7 +1074,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetAll(limit_x))
             {
-                list.Add(new RawFile(file, level, uid));
+                list.Add(new RawFile(Context, file, level, uid));
                 if (limit != 0)
                 {
                     if (list.Count >= limit)
@@ -1105,7 +1127,7 @@ namespace Shoko.Server.API.v2.Modules
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(para.filename);
             if (aep != null)
             {
-                return Episode.GenerateFromAnimeEpisode(aep, user.JMMUserID, 0);
+                return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0);
             }
             else
             {
@@ -1136,7 +1158,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = Episode.GenerateFromAnimeEpisode(aep, user.JMMUserID, para.level);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, para.level);
                     if (ep != null)
                     {
                         lst.Add(ep);
@@ -1305,7 +1327,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (offset == 0)
                 {
-                    eps.Add(Episode.GenerateFromAnimeEpisodeID(id, uid, level));
+                    eps.Add(Episode.GenerateFromAnimeEpisodeID(Context, id, uid, level));
                     if (limit != 0)
                     {
                         if (eps.Count >= limit)
@@ -1336,7 +1358,7 @@ namespace Shoko.Server.API.v2.Modules
                 SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (aep != null)
                 {
-                    Episode ep = Episode.GenerateFromAnimeEpisode(aep, uid, level);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, uid, level);
                     if (ep != null)
                     {
                         return ep;
@@ -1492,7 +1514,7 @@ namespace Shoko.Server.API.v2.Modules
 
             foreach (SVR_AnimeSeries aser in series)
             {
-                allseries.Add(Serie.GenerateFromAnimeSeries(aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
+                allseries.Add(Serie.GenerateFromAnimeSeries(Context, aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
                     para.level, para.all != 0));
             }
 
@@ -1664,7 +1686,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             foreach (SVR_VideoLocal vl in vlpall)
             {
-                Serie ser = Serie.GenerateFromVideoLocal(vl, uid, nocast, notag, level, all);
+                Serie ser = Serie.GenerateFromVideoLocal(Context, vl, uid, nocast, notag, level, all);
                 allseries.Add(ser);
                 if (allseries.Count >= limit)
                 {
@@ -1690,7 +1712,7 @@ namespace Shoko.Server.API.v2.Modules
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
             if (aep != null)
             {
-                return Serie.GenerateFromAnimeSeries(aep.GetAnimeSeries(), uid, nocast, notag, level, all);
+                return Serie.GenerateFromAnimeSeries(Context, aep.GetAnimeSeries(), uid, nocast, notag, level, all);
             }
             else
             {
@@ -1716,7 +1738,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (offset <= 0)
                 {
-                    allseries.Add(Serie.GenerateFromAnimeSeries(asi, user.JMMUserID, nocast, notag, level, all));
+                    allseries.Add(Serie.GenerateFromAnimeSeries(Context, asi, user.JMMUserID, nocast, notag, level, all));
                     if (limit != 0)
                     {
                         if (allseries.Count >= limit)
@@ -1744,7 +1766,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
-            Serie ser = Serie.GenerateFromAnimeSeries(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
+            Serie ser = Serie.GenerateFromAnimeSeries(Context, RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
                 nocast, notag, level, all);
             return ser;
         }
@@ -1966,7 +1988,7 @@ namespace Shoko.Server.API.v2.Modules
                             if (offset == 0)
                             {
                                 series_list.Add(
-                                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                    SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level, all,
                                         ser.Value));
                                 if (series_list.Count >= limit)
                                 {
@@ -1992,7 +2014,7 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level,
+                                series_list.Add(SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level,
                                     all,
                                     ser.Value));
                                 if (series_list.Count >= limit)
@@ -2026,7 +2048,7 @@ namespace Shoko.Server.API.v2.Modules
                             if (offset == 0)
                             {
                                 series_list.Add(
-                                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                    SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level, all,
                                         ser.Value));
                                 if (series_list.Count >= realLimit)
                                 {
@@ -2052,7 +2074,7 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level,
+                                series_list.Add(SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level,
                                     all,
                                     ser.Value));
                                 if (series_list.Count >= realLimit)
@@ -2100,7 +2122,7 @@ namespace Shoko.Server.API.v2.Modules
                             if (offset == 0)
                             {
                                 series_list.Add(
-                                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                                    SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level, all,
                                         ser.Value));
                             }
                             else
@@ -2135,7 +2157,7 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             if (offset == 0)
                             {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level,
+                                series_list.Add(SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level,
                                     all,
                                     ser.Value));
                             }
@@ -2196,7 +2218,7 @@ namespace Shoko.Server.API.v2.Modules
             foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
             {
                 series_list.Add(
-                    SearchResult.GenerateFromAnimeSeries(ser.Key, uid, nocast, notag, level, all,
+                    SearchResult.GenerateFromAnimeSeries(Context, ser.Key, uid, nocast, notag, level, all,
                         ser.Value));
                 if (series_list.Count >= limit)
                 {
@@ -2349,7 +2371,7 @@ namespace Shoko.Server.API.v2.Modules
             filters.id = 0;
             filters.name = "Filters";
             filters.viewed = 0;
-            filters.url = APIHelper.ConstructFilterUrl();
+            filters.url = APIHelper.ConstructFilterUrl(Context);
             List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
@@ -2359,7 +2381,7 @@ namespace Shoko.Server.API.v2.Modules
 
             foreach (SVR_GroupFilter gf in allGfs)
             {
-                Filter filter = Filter.GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
+                Filter filter = Filter.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, level, all);
                 _filters.Add(filter);
             }
 
@@ -2369,15 +2391,15 @@ namespace Shoko.Server.API.v2.Modules
             {
                 Filter filter = new Filter();
 
-                filter.url = APIHelper.ConstructUnsortUrl();
+                filter.url = APIHelper.ConstructUnsortUrl(Context);
                 filter.name = "Unsort";
                 filter.art.fanart.Add(new Art()
                 {
-                    url = APIHelper.ConstructSupportImageLink("plex_unsort.png"),
+                    url = APIHelper.ConstructSupportImageLink(Context, "plex_unsort.png"),
                     index = 0
                 });
                 filter.art.thumb.Add(
-                    new Art() {url = APIHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0});
+                    new Art() {url = APIHelper.ConstructSupportImageLink(Context, "plex_unsort.png"), index = 0});
                 filter.size = vids.Count;
                 filter.viewed = 0;
 
@@ -2407,11 +2429,11 @@ namespace Shoko.Server.API.v2.Modules
             if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
                 // if it's a directory, it IS a filter-inception;
-                Filters fgs = Filters.GenerateFromGroupFilter(gf, uid, nocast, notag, all, level);
+                Filters fgs = Filters.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, all, level);
                 return fgs;
             }
 
-            Filter filter = Filter.GenerateFromGroupFilter(gf, uid, nocast, notag, level, all);
+            Filter filter = Filter.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, level, all);
             return filter;
         }
 
@@ -2498,7 +2520,7 @@ namespace Shoko.Server.API.v2.Modules
             foreach (SVR_AnimeGroup_User gr in allGrps)
             {
                 SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
-                Group grp = Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, 0);
+                Group grp = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, 0);
                 grps.Add(grp);
             }
             return grps;
@@ -2515,12 +2537,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all">add all known episodes</param>
         /// <param name="filterid"></param>
         /// <returns>Group or APIStatus</returns>
-        internal static object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid)
+        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid)
         {
             SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
             if (ag != null)
             {
-                Group gr = Group.GenerateFromAnimeGroup(ag, uid, nocast, notag, level, all, filterid);
+                Group gr = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, filterid);
                 return gr;
             }
             else

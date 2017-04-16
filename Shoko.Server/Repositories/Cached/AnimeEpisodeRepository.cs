@@ -5,6 +5,7 @@ using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 
@@ -151,19 +152,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
-            List<string> hashes = ignoreVariations
-                ? RepoFactory.VideoLocal.GetAll()
-                    .Where(a => a.IsVariation == 0)
-                    .Select(a => a.Hash)
-                    .Where(a => a != string.Empty)
-                    .ToList()
-                : RepoFactory.VideoLocal.GetAll().Select(a => a.Hash).Where(a => a != string.Empty).ToList();
-            return RepoFactory.CrossRef_File_Episode.GetAll()
-                .Where(a => hashes.Contains(a.Hash))
-                .GroupBy(a => a.EpisodeID)
-                .Where(a => a.Count() > 1)
-                .Select(a => GetByAniDBEpisodeID(a.Key))
-                .ToList();
+            string ignoreVariationsQuery =
+                @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+            string countVariationsQuery =
+                @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                IList<int> ids = ignoreVariations
+                    ? session.CreateSQLQuery(ignoreVariationsQuery).List<int>()
+                    : session.CreateSQLQuery(countVariationsQuery).List<int>();
+                return ids.Select(GetByAniDBEpisodeID).ToList();
+            }
             /*
 
             using (var session = JMMService.SessionFactory.OpenSession())

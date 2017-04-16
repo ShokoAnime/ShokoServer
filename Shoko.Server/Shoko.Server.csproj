@@ -389,6 +389,7 @@
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
     <Compile Include="Import\FileQualityFilter.cs" />
+    <Compile Include="Import\FileQualityPreferences.cs" />
     <Compile Include="Import\Importer.cs" />
     <Compile Include="ShokoServer.cs" />
     <Compile Include="Models\SVR_CloudAccount.cs" />

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
@@ -84,6 +85,26 @@ namespace Shoko.Server.Commands
             CommandRequest_WebCacheSendXRefFileEpisode cr =
                 new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
+
+            if (ServerSettings.FileQualityFilterEnabled)
+            {
+                List<SVR_VideoLocal> videoLocals = episode.GetVideoLocals();
+                if (videoLocals != null)
+                {
+                    videoLocals.Sort(FileQualityFilter.CompareTo);
+                    List<SVR_VideoLocal> keep = videoLocals.Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                        .ToList();
+                    foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                    if (videoLocals.Contains(vlocal)) videoLocals.Remove(vlocal);
+                    videoLocals = videoLocals.Where(FileQualityFilter.CheckFileKeep).ToList();
+
+                    foreach (SVR_VideoLocal toDelete in videoLocals)
+                    {
+                        toDelete.Places.ForEach(a => a.RemoveAndDeleteFile());
+                    }
+                }
+            }
+
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
             SVR_AnimeSeries ser = episode.GetAnimeSeries();

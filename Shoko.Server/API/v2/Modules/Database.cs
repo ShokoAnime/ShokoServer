@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
@@ -16,10 +17,10 @@ namespace Shoko.Server.API.v2.Modules
                 this.RequiresAuthentication();
             }
 
-            Post["/set"] = _ => { return SetupDB(); };
-            Get["/get"] = _ => { return GetDB(); };
-            Get["/start"] = _ => { return RunDB(); };
-            Get["/check"] = _ => { return CheckDB(); };
+            Post["/set", true] = async (x,ct) => await Task.Factory.StartNew(SetupDB);
+            Get["/get", true] = async (x,ct) => await Task.Factory.StartNew(GetDB);
+            Get["/start", true] = async (x,ct) => await Task.Factory.StartNew(RunDB);
+            Get["/check", true] = async (x,ct) => await Task.Factory.StartNew(CheckDB);
         }
 
         #region Setup

@@ -16,7 +16,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             // Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
             // return apikey=yzx
-            Post["/"] = x =>
+            Post["/", true] = async (x,ct) =>
             {
                 string apiKey = "";
 
@@ -44,7 +44,7 @@ namespace Shoko.Server.API.v2.Modules
 
             //remove apikey from database
             //pass it as ?apikey=xyz
-            Delete["/"] = x =>
+            Delete["/", true] = async (x,ct) =>
             {
                 var apiKey = (string) this.Request.Query.apikey;
                 if (UserDatabase.RemoveApiKey(apiKey))

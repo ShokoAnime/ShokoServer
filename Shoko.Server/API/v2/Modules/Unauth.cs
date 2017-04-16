@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Pri.LongPath;
 using Shoko.Server.API.v2.Models.core;
 
@@ -10,7 +11,7 @@ namespace Shoko.Server.API.v2.Modules
 
         public Unauth()
         {
-            Get["/api/version"] = x => { return GetVersion(); };
+            Get["/api/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion);
         }
 
         /// <summary>

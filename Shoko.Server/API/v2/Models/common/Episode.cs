@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
+using Nancy;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Server.Models;
@@ -37,20 +38,20 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        internal static Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisodeID(NancyContext ctx, int anime_episode_id, int uid, int level)
         {
             Episode ep = new Episode();
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+                ep = GenerateFromAnimeEpisode(ctx, Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
                     level);
             }
 
             return ep;
         }
 
-        internal static Episode GenerateFromAnimeEpisode(SVR_AnimeEpisode aep, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level)
         {
             Episode ep = new Episode();
             if (aep != null)
@@ -85,7 +86,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         ep.art.thumb.Add(new Art()
                         {
-                            url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Thumb),
+                            url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Thumb),
                             index = 0
                         });
                     }
@@ -93,7 +94,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         ep.art.fanart.Add(new Art()
                         {
-                            url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Art),
+                            url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Art),
                             index = 0
                         });
                     }
@@ -103,17 +104,10 @@ namespace Shoko.Server.API.v2.Models.common
                         List<SVR_VideoLocal> vls = aep.GetVideoLocals();
                         if (vls.Count > 0)
                         {
-                            vls.Sort(FileQualityFilter.CompareTo);
                             ep.files = new List<RawFile>();
-                            bool first = true;
                             foreach (SVR_VideoLocal vl in vls)
                             {
-                                RawFile file = new RawFile(vl, (level - 1), uid);
-                                if (first)
-                                {
-                                    file.is_preferred = 1;
-                                    first = false;
-                                }
+                                RawFile file = new RawFile(ctx, vl, (level - 1), uid);
                                 ep.files.Add(file);
                             }
                         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
@@ -29,100 +30,98 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 01.Settings
 
-            Post["/config/port/set"] = _ => { return SetPort(); };
-            Get["/config/port/get"] = _ => { return GetPort(); };
-            Post["/config/imagepath/set"] = _ => { return SetImagepath(); };
-            Get["/config/imagepath/get"] = _ => { return GetImagepath(); };
-            Get["/config/export"] = _ => { return ExportConfig(); };
-            Post["/config/import"] = _ => { return ImportConfig(); };
+            Post["/config/port/set", true] = async (x,ct) => await Task.Factory.StartNew(SetPort);
+            Get["/config/port/get", true] = async (x,ct) => await Task.Factory.StartNew(GetPort);
+            Post["/config/imagepath/set", true] = async (x,ct) => await Task.Factory.StartNew(SetImagepath);
+            Get["/config/imagepath/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagepath);
+            Get["/config/export", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig);
+            Post["/config/import", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig);
 
             #endregion
 
             #region 02.AniDB
 
-            Post["/anidb/set"] = _ => { return SetAniDB(); };
-            Get["/anidb/get"] = _ => { return GetAniDB(); };
-            Get["/anidb/test"] = _ => { return TestAniDB(); };
-            Get["/anidb/votes/sync"] = _ => { return SyncAniDBVotes(); };
-            Get["/anidb/list/sync"] = _ => { return SyncAniDBList(); };
-            Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
+            Post["/anidb/set", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB);
+            Get["/anidb/get", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB);
+            Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB);
+            Get["/anidb/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes);
+            Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList);
+            Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB);
 
             #endregion
 
             #region 03.MyAnimeList
 
-            Post["/mal/set"] = _ => { return SetMAL(); };
-            Get["/mal/get"] = _ => { return GetMAL(); };
-            Get["/mal/test"] = _ => { return TestMAL(); };
-            Get["/mal/update"] = _ => { return ScanMAL(); };
-            Get["/mal/download"] = _ => { return DownloadFromMAL(); };
-            Get["/mal/upload"] = _ => { return UploadToMAL(); };
-            //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
+            Post["/mal/set", true] = async (x,ct) => await Task.Factory.StartNew(SetMAL);
+            Get["/mal/get", true] = async (x,ct) => await Task.Factory.StartNew(GetMAL);
+            Get["/mal/test", true] = async (x,ct) => await Task.Factory.StartNew(TestMAL);
+            Get["/mal/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanMAL);
+            Get["/mal/download", true] = async (x,ct) => await Task.Factory.StartNew(DownloadFromMAL);
+            Get["/mal/upload", true] = async (x,ct) => await Task.Factory.StartNew(UploadToMAL);
+            //Get["/mal/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncMALVotes); <-- not implemented as CommandRequest
 
             #endregion
 
             #region 04.Trakt
 
-            Post["/trakt/set"] = _ => { return SetTraktPIN(); };
-            Get["/trakt/get"] = _ => { return GetTrakt(); };
-            Get["/trakt/create"] = _ => { return CreateTrakt(); };
-            Get["/trakt/sync"] = _ => { return SyncTrakt(); };
-            Get["/trakt/update"] = _ => { return ScanTrakt(); };
+            Post["/trakt/set", true] = async (x,ct) => await Task.Factory.StartNew(SetTraktPIN);
+            Get["/trakt/get", true] = async (x,ct) => await Task.Factory.StartNew(GetTrakt);
+            Get["/trakt/create", true] = async (x,ct) => await Task.Factory.StartNew(CreateTrakt);
+            Get["/trakt/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncTrakt);
+            Get["/trakt/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTrakt);
 
             #endregion
 
             #region 05.TvDB
 
-            Get["/tvdb/update"] = _ => { return ScanTvDB(); };
+            Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB);
 
             #endregion
 
             #region 06.MovieDB
 
-            Get["/moviedb/update"] = _ => { return ScanMovieDB(); };
+            Get["/moviedb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanMovieDB);
 
             #endregion
 
             #region 07.User
 
-            Get["/user/list"] = _ => { return GetUsers(); };
-            Post["/user/create"] = _ => { return CreateUser(); };
-            Post["/user/delete"] = _ => { return DeleteUser(); };
-            Post["/user/password"] = _ => { return ChangePassword(); };
-            Post["/user/password/{uid}"] = x => { return ChangePassword(x.uid); };
+            Get["/user/list", true] = async (x,ct) => await Task.Factory.StartNew(GetUsers);
+            Post["/user/create", true] = async (x,ct) => await Task.Factory.StartNew(CreateUser);
+            Post["/user/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteUser);
+            Post["/user/password", true] = async (x,ct) => await Task.Factory.StartNew(ChangePassword);
+            Post["/user/password/{uid}", true] = async (x,ct) => await Task.Factory.StartNew(() => ChangePassword(x.uid));
 
             #endregion
 
             #region 08.OS-based operations
 
-            Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
-            Post["/os/folder"] = x => { return GetOSFolder(x.folder); };
-            Get["/os/drives"] = _ => { return GetOSDrives(); };
+            Get["/os/folder/base", true] = async (x,ct) => await Task.Factory.StartNew(GetOSBaseFolder);
+            Post["/os/folder", true] = async (x,ct) => await Task.Factory.StartNew(() => GetOSFolder(x.folder));
+            Get["/os/drives", true] = async (x,ct) => await Task.Factory.StartNew(GetOSDrives);
 
             #endregion
 
             #region 09.Cloud accounts
 
-            Get["/cloud/list"] = _ => { return GetCloudAccounts(); };
-            Get["/cloud/count"] = _ => { return GetCloudAccountsCount(); };
-            Post["/cloud/add"] = x => { return AddCloudAccount(); };
-            Post["/cloud/delete"] = x => { return DeleteCloudAccount(); };
-            Get["/cloud/import"] = _ => { return RunCloudImport(); };
+            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts);
+            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount);
+            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount);
+            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount);
+            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport);
 
             #endregion
 
             #region 10.Logs
 
-            Get["/log/get"] = x => { return GetLog(10, 0); };
-            Get["/log/get/{max}/{position}"] = x => { return GetLog((int) x.max, (int) x.position); };
-            Post["/log/rotate"] = x => { return SetRotateLogs(); };
-            Get["/log/rotate"] = x => { return GetRotateLogs(); };
-            Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
+            Get["/log/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetLog(10, 0));
+            Get["/log/get/{max}/{position}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetLog((int) x.max, (int) x.position));
+            Post["/log/rotate", true] = async (x,ct) => await Task.Factory.StartNew(SetRotateLogs);
+            Get["/log/rotate", true] = async (x,ct) => await Task.Factory.StartNew(GetRotateLogs);
+            Get["/log/rotate/start", true] = async (x,ct) => await Task.Factory.StartNew(StartRotateLogs);
 
             #endregion
         }
-
-        [ThreadStatic] internal static Nancy.Request request;
 
         #region 01.Settings
 
@@ -231,6 +230,16 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return APIStatus.internalError("Error while importing settings");
             }
+        }
+
+        private object GetSetting(string setting)
+        {
+            return ServerSettings.Get(setting);
+        }
+
+        private object SetSetting(string setting, string value)
+        {
+            return ServerSettings.Set(setting, value);
         }
 
         #endregion

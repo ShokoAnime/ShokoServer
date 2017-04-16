@@ -4,6 +4,7 @@ using Shoko.Server.PlexAndKodi;
 using System;
 using Shoko.Server.API.v2.Models.common;
 using System.Collections.Generic;
+using Nancy;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Modules;
 using Shoko.Server.Models;
@@ -16,97 +17,97 @@ namespace Shoko.Server.API
     {
         #region Contructors
 
-        public static string ConstructUnsortUrl(bool short_url = false)
+        public static string ConstructUnsortUrl(NancyContext ctx, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/file/unsort", short_url);
+            return APIHelper.ProperURL(ctx, "/api/file/unsort", short_url);
         }
 
         [Obsolete]
-        public static string ConstructGroupIdUrl(string gid, bool short_url = false)
+        public static string ConstructGroupIdUrl(NancyContext ctx, string gid, bool short_url = false)
         {
-            return APIHelper.ProperURL("__TEST__" + (int) JMMType.Group + "/" + gid, short_url);
+            return APIHelper.ProperURL(ctx, "__TEST__" + (int) JMMType.Group + "/" + gid, short_url);
         }
 
         [Obsolete]
-        public static string ConstructSerieIdUrl(string sid, bool short_url = false)
+        public static string ConstructSerieIdUrl(NancyContext ctx, string sid, bool short_url = false)
         {
-            return APIHelper.ProperURL("__TEST__" + (int) JMMType.Serie + " / " + sid, short_url);
+            return APIHelper.ProperURL(ctx, "__TEST__" + (int) JMMType.Serie + " / " + sid, short_url);
         }
 
         [Obsolete]
-        public static string ConstructVideoUrl(string vid, JMMType type, bool short_url = false)
+        public static string ConstructVideoUrl(NancyContext ctx, string vid, JMMType type, bool short_url = false)
         {
-            return APIHelper.ProperURL("__TEST__" + (int) type + "/" + vid, short_url);
+            return APIHelper.ProperURL(ctx, "__TEST__" + (int) type + "/" + vid, short_url);
         }
 
-        public static string ConstructFilterIdUrl(int groupfilter_id, bool short_url = false)
+        public static string ConstructFilterIdUrl(NancyContext ctx, int groupfilter_id, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/filter?id=" + groupfilter_id, short_url);
+            return APIHelper.ProperURL(ctx, "/api/filter?id=" + groupfilter_id, short_url);
         }
 
-        public static string ConstructFilterUrl(bool short_url = false)
+        public static string ConstructFilterUrl(NancyContext ctx, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/filter", short_url);
-        }
-
-        [Obsolete]
-        public static string ConstructFiltersUrl(bool short_url = false)
-        {
-            return APIHelper.ProperURL("__TEST__", short_url);
+            return APIHelper.ProperURL(ctx, "/api/filter", short_url);
         }
 
         [Obsolete]
-        public static string ConstructSearchUrl(string limit, string query, bool searchTag, bool short_url = false)
+        public static string ConstructFiltersUrl(NancyContext ctx, bool short_url = false)
+        {
+            return APIHelper.ProperURL(ctx, "__TEST__", short_url);
+        }
+
+        [Obsolete]
+        public static string ConstructSearchUrl(NancyContext ctx, string limit, string query, bool searchTag, bool short_url = false)
         {
             if (searchTag)
             {
-                return APIHelper.ProperURL("/api/searchTag/" + limit + "/" + System.Net.WebUtility.UrlEncode(query),
+                return APIHelper.ProperURL(ctx, "/api/searchTag/" + limit + "/" + System.Net.WebUtility.UrlEncode(query),
                     short_url);
             }
             else
             {
-                return APIHelper.ProperURL("/api/search/" + limit + "/" + System.Net.WebUtility.UrlEncode(query),
+                return APIHelper.ProperURL(ctx, "/api/search/" + limit + "/" + System.Net.WebUtility.UrlEncode(query),
                     short_url);
             }
         }
 
         [Obsolete]
-        public static string ConstructPlaylistUrl(bool short_url = false)
+        public static string ConstructPlaylistUrl(NancyContext ctx, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/metadata/" + (int) JMMType.Playlist + "/0", short_url);
+            return APIHelper.ProperURL(ctx, "/api/metadata/" + (int) JMMType.Playlist + "/0", short_url);
         }
 
         [Obsolete]
-        public static string ConstructPlaylistIdUrl(int pid, bool short_url = false)
+        public static string ConstructPlaylistIdUrl(NancyContext ctx, int pid, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/metadata/" + (int) JMMType.Playlist + "/" + pid, short_url);
+            return APIHelper.ProperURL(ctx, "/api/metadata/" + (int) JMMType.Playlist + "/" + pid, short_url);
         }
 
-        public static string ConstructSupportImageLink(string name, bool short_url = false)
+        public static string ConstructSupportImageLink(NancyContext ctx, string name, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/image/support/" + name, short_url);
+            return APIHelper.ProperURL(ctx, "/api/image/support/" + name, short_url);
         }
 
-        public static string ConstructImageLinkFromRest(string path, bool short_url = false)
+        public static string ConstructImageLinkFromRest(NancyContext ctx, string path, bool short_url = false)
         {
-            return ConvertRestImageToNonRestUrl(path, short_url);
+            return ConvertRestImageToNonRestUrl(ctx, path, short_url);
         }
 
-        public static string ConstructImageLinkFromTypeAndId(int type, int id, bool short_url = false)
+        public static string ConstructImageLinkFromTypeAndId(NancyContext ctx, int type, int id, bool short_url = false)
         {
-            return APIHelper.ProperURL("/api/image/" + type.ToString() + "/" + id.ToString());
+            return APIHelper.ProperURL(ctx, "/api/image/" + type.ToString() + "/" + id.ToString());
         }
 
-        public static string ConstructVideoLocalStream(int userid, string vid, string name, bool autowatch)
+        public static string ConstructVideoLocalStream(NancyContext ctx, int userid, string vid, string name, bool autowatch)
         {
-            return APIHelper.ProperURL("/Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name);
+            return APIHelper.ProperURL(ctx, "/Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name);
         }
 
         #endregion
 
         #region Converters
 
-        private static string ConvertRestImageToNonRestUrl(string url, bool short_url)
+        private static string ConvertRestImageToNonRestUrl(NancyContext ctx, string url, bool short_url)
         {
             // Rest URLs should always end in either type/id or type/id/ratio
             // Regardless of ',' or '.', ratio will not parse as int
@@ -118,25 +119,25 @@ namespace Shoko.Server.API
             {
                 if (int.TryParse(split[split.Length - 2], out type))
                 {
-                    return ConstructImageLinkFromTypeAndId(type, id, short_url);
+                    return ConstructImageLinkFromTypeAndId(ctx, type, id, short_url);
                 }
             }
             else if (int.TryParse(split[split.Length - 2], out id)) // ratio
             {
                 if (int.TryParse(split[split.Length - 3], out type))
                 {
-                    return ConstructImageLinkFromTypeAndId(type, id, short_url);
+                    return ConstructImageLinkFromTypeAndId(ctx, type, id, short_url);
                 }
             }
             return null; // invalid url, which did not end in type/id[/ratio]
         }
 
-        public static Filter FilterFromGroupFilter(SVR_GroupFilter gg, int uid)
+        public static Filter FilterFromGroupFilter(NancyContext ctx, SVR_GroupFilter gg, int uid)
         {
             Filter ob = new Filter();
             ob.name = gg.GroupFilterName;
             ob.id = gg.GroupFilterID;
-            ob.url = APIHelper.ConstructFilterIdUrl(gg.GroupFilterID);
+            ob.url = APIHelper.ConstructFilterIdUrl(ctx, gg.GroupFilterID);
 
             if (gg.GroupsIds.ContainsKey(uid))
             {
@@ -152,10 +153,10 @@ namespace Shoko.Server.API
                         Video v = ag.GetPlexContract(uid);
                         if (v?.Art != null && v.Thumb != null)
                         {
-                            ob.art.fanart.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(v.Art), index = 0});
+                            ob.art.fanart.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(ctx, v.Art), index = 0});
                             ob.art.thumb.Add(new Art()
                             {
-                                url = APIHelper.ConstructImageLinkFromRest(v.Thumb),
+                                url = APIHelper.ConstructImageLinkFromRest(ctx, v.Thumb),
                                 index = 0
                             });
                             break;
@@ -166,12 +167,12 @@ namespace Shoko.Server.API
             return ob;
         }
 
-        public static Filter FilterFromAnimeGroup(SVR_AnimeGroup grp, int uid)
+        public static Filter FilterFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup grp, int uid)
         {
             Filter ob = new Filter();
             ob.name = grp.GroupName;
             ob.id = grp.AnimeGroupID;
-            ob.url = APIHelper.ConstructFilterIdUrl(grp.AnimeGroupID);
+            ob.url = APIHelper.ConstructFilterIdUrl(ctx, grp.AnimeGroupID);
             ob.size = -1;
             ob.viewed = -1;
 
@@ -187,12 +188,12 @@ namespace Shoko.Server.API
                     {
                         ob.art.fanart.Add(new Art()
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId((int) fanart.ImageType, fanart.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) fanart.ImageType, fanart.ImageID),
                             index = ob.art.fanart.Count
                         });
                         ob.art.thumb.Add(new Art()
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId((int) fanart.ImageType, fanart.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) fanart.ImageType, fanart.ImageID),
                             index = ob.art.thumb.Count
                         });
                     }
@@ -201,7 +202,7 @@ namespace Shoko.Server.API
                     {
                         ob.art.banner.Add(new Art()
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId((int) banner.ImageType, banner.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) banner.ImageType, banner.ImageID),
                             index = ob.art.banner.Count
                         });
                     }
@@ -217,18 +218,18 @@ namespace Shoko.Server.API
 
         #endregion
 
-        private static string ProperURL(string path, bool short_url = false)
+        private static string ProperURL(NancyContext ctx, string path, bool short_url = false)
         {
-            return ProperURL(Core.request.Url.Port, path, short_url);
+            return ProperURL(ctx, ctx.Request.Url.Port, path, short_url);
         }
 
-        private static string ProperURL(int? port, string path, bool short_url = false)
+        private static string ProperURL(NancyContext ctx, int? port, string path, bool short_url = false)
         {
             if (!string.IsNullOrEmpty(path))
             {
                 if (!short_url)
                 {
-                    return Core.request.Url.Scheme + "://" + Core.request.Url.HostName + ":" + port + path;
+                    return ctx.Request.Url.Scheme + "://" + ctx.Request.Url.HostName + ":" + port + path;
                 }
                 else
                 {
