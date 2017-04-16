@@ -881,14 +881,17 @@ namespace Shoko.Server.API.v2.Modules
             Dictionary<int,Serie> results = new Dictionary<int, Serie>();
             try
             {
-                foreach (SVR_AnimeEpisode ep in RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true))
+                List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true);
+                foreach(SVR_AnimeEpisode ep in list)
                 {
                     Serie serie = null;
                     SVR_AnimeSeries series = ep.GetAnimeSeries();
                     if (results.ContainsKey(series.AnimeSeriesID)) serie = results[series.AnimeSeriesID];
                     if (serie == null)
                         serie =
-                            Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1, para.notag == 1, 0, false);
+                            Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1,
+                                para.notag == 1, 0,
+                                false);
                     if (serie.eps == null) serie.eps = new List<Episode>();
                     Episode episode = Episode.GenerateFromAnimeEpisode(Context, ep, userID, 0);
                     List<SVR_VideoLocal> vls = ep.GetVideoLocals();
