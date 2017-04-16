@@ -14,7 +14,6 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using File = System.IO.File;
 
 namespace Shoko.Commons.Extensions
 {
