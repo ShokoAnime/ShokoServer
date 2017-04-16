@@ -15,6 +15,7 @@ using Shoko.Models;
 using Microsoft.Win32;
 using NLog;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using NLog.Targets;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -656,7 +657,7 @@ namespace Shoko.Server
                 if (appSettings.Count == 1)
                     return; //Somehow debugging may fuck up the settings so this shit will eject
                 string path = Path.Combine(ApplicationPath, "settings.json");
-                File.WriteAllText(path, JsonConvert.SerializeObject(appSettings));
+                File.WriteAllText(path, JsonConvert.SerializeObject(appSettings, Formatting.Indented));
             }
         }
 
@@ -1670,7 +1671,7 @@ namespace Shoko.Server
                 catch (Exception e)
                 {
                 }
-                return val ?? JsonConvert.SerializeObject(FileQualityFilter.Settings);
+                return val ?? JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
             }
             set => Set("FileQualityFilterPreferences", value);
         }
