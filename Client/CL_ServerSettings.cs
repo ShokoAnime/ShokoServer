@@ -71,6 +71,7 @@ namespace Shoko.Models.Client
         public bool AutoGroupSeries { get; set; }
 		public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 		public string AutoGroupSeriesRelationExclusions { get; set; }
+        public bool FileQualityFilterEnabled { get; set; }
         public string FileQualityFilterPreferences { get; set; }
         public bool RunImportOnStart { get; set; }
         public bool ScanDropFoldersOnStart { get; set; }
