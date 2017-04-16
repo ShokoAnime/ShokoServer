@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Pri.LongPath;
 using Shoko.Models.Server;
-using Directory = Pri.LongPath.Directory;
 
 namespace Shoko.Commons
 {
