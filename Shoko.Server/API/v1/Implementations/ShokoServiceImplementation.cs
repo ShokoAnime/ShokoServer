@@ -46,6 +46,11 @@ namespace Shoko.Server
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public IList<string> GetAllReleaseGroups()
+        {
+            return SVR_AniDB_Anime.GetAllReleaseGroups();
+        }
+
         public List<CL_AnimeGroup_User> GetAllGroups(int userID)
         {
             List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();

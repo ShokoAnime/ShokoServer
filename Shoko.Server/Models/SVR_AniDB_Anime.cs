@@ -70,6 +70,21 @@ namespace Shoko.Server.Models
         // these files come from AniDB but we don't directly save them
         private string reviewIDListRAW;
 
+        public static IList<string> GetAllReleaseGroups()
+        {
+            string query =
+                @"SELECT Anime_GroupName
+FROM AniDB_File
+GROUP BY Anime_GroupName
+ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                IList<string> result = session.CreateSQLQuery(query).List<string>();
+                if (result.Contains("raw/unknown")) result.Remove("raw/unknown");
+                return result;
+            }
+        }
+
 
         [XmlIgnore]
         public string PosterPath
