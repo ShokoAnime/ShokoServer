@@ -19,6 +19,7 @@ using Newtonsoft.Json.Converters;
 using NLog.Targets;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
 //using Shoko.Server.UI;
@@ -210,9 +211,16 @@ namespace Shoko.Server
                             appSettings = previousSettings;
                             if (appSettings.ContainsKey("FileQualityFilterPreferences"))
                             {
-                                FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
-                                    appSettings["FileQualityFilterPreferences"]);
-                                FileQualityFilter.Settings = prefs;
+                                try
+                                {
+                                    FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
+                                        appSettings["FileQualityFilterPreferences"], new StringEnumConverter());
+                                    FileQualityFilter.Settings = prefs;
+                                }
+                                catch (Exception ex)
+                                {
+                                    appSettings["FileQualityFilterPreferences"] = JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
+                                }
                             }
                             else
                             {
@@ -227,9 +235,16 @@ namespace Shoko.Server
                         LoadLegacySettingsFromFile(true);
                         if (appSettings.ContainsKey("FileQualityFilterPreferences"))
                         {
-                            FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
-                                appSettings["FileQualityFilterPreferences"]);
-                            FileQualityFilter.Settings = prefs;
+                            try
+                            {
+                                FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
+                                    appSettings["FileQualityFilterPreferences"], new StringEnumConverter());
+                                FileQualityFilter.Settings = prefs;
+                            }
+                            catch (Exception ex)
+                            {
+                                appSettings["FileQualityFilterPreferences"] = JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
+                            }
                         }
                         else
                         {
@@ -2259,6 +2274,7 @@ namespace Shoko.Server
 
             logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
             logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
+            logger.Info("FileQualityFilterEnabled: {0}", FileQualityFilterEnabled);
             logger.Info("FileQualityFilterPreferences: {0}", FileQualityFilterPreferences);
             logger.Info("LanguagePreference: {0}", LanguagePreference);
             logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);

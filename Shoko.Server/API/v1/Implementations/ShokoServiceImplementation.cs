@@ -46,6 +46,55 @@ namespace Shoko.Server
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public IList<string> GetAllReleaseGroups()
+        {
+            return SVR_AniDB_Anime.GetAllReleaseGroups();
+        }
+
+        public void DeleteMultipleFilesWithPreferences(int userID)
+        {
+            List<CL_AnimeEpisode_User> eps = GetAllEpisodesWithMultipleFiles(userID, false, true);
+            List<SVR_VideoLocal> videoLocals =
+                eps.SelectMany(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID).GetVideoLocals())
+                    .Where(b => b != null)
+                    .ToList();
+            if (videoLocals != null)
+            {
+                videoLocals.Sort(FileQualityFilter.CompareTo);
+                List<SVR_VideoLocal> keep = videoLocals
+                    .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                    .ToList();
+                foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
+
+                foreach (SVR_VideoLocal toDelete in videoLocals)
+                {
+                    toDelete.Places.ForEach(a => a.RemoveAndDeleteFile());
+                }
+            }
+        }
+
+        public List<CL_VideoLocal> PreviewDeleteMultipleFilesWithPreferences(int userID)
+        {
+            List<CL_AnimeEpisode_User> eps = GetAllEpisodesWithMultipleFiles(userID, false, true);
+            List<SVR_VideoLocal> videoLocals =
+                eps.SelectMany(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID).GetVideoLocals())
+                    .Where(b => b != null)
+                    .ToList();
+            if (videoLocals != null)
+            {
+                videoLocals.Sort(FileQualityFilter.CompareTo);
+                List<SVR_VideoLocal> keep = videoLocals
+                    .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                    .ToList();
+                foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
+
+                return videoLocals.Select(a => a.ToClient(userID)).ToList();
+            }
+            return null;
+        }
+
         public List<CL_AnimeGroup_User> GetAllGroups(int userID)
         {
             List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();
