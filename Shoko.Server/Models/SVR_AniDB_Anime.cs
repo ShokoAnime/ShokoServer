@@ -2006,14 +2006,17 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             RepoFactory.AnimeSeries.Save(series, false, false);
 
             // check for TvDB associations
-            CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
-            cmd.Save();
-
-            // check for Trakt associations
-            if (ServerSettings.Trakt_IsEnabled && !String.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (this.Restricted == 0)
             {
-                CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
-                cmd2.Save();
+                CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
+                cmd.Save();
+
+                // check for Trakt associations
+                if (ServerSettings.Trakt_IsEnabled && !String.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                {
+                    CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
+                    cmd2.Save();
+                }
             }
 
             return series;
