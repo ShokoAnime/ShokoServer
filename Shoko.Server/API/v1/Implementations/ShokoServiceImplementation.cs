@@ -46,9 +46,9 @@ namespace Shoko.Server
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public IList<string> GetAllReleaseGroups()
+        public List<string> GetAllReleaseGroups()
         {
-            return SVR_AniDB_Anime.GetAllReleaseGroups();
+            return SVR_AniDB_Anime.GetAllReleaseGroups().ToList();
         }
 
         public void DeleteMultipleFilesWithPreferences(int userID)
