@@ -5256,4 +5256,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>L'eliminazione di croce ref per Anidb a TvDB dalla cache web: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Eliminare dalle preferenze</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Eliminare i file per le regole di selezione di qualità nelle impostazioni.</value>
+  </data>
 </root>

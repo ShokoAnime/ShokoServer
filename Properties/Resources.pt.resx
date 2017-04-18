@@ -5256,4 +5256,10 @@
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Excluindo Cruz ref para Anidb para TvDB de cache de web: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Excluir por preferências</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Exclua arquivos as regras de seleção de qualidade nas configurações.</value>
+  </data>
 </root>

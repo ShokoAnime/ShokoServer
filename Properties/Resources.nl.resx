@@ -5256,4 +5256,10 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Cross-ref voor Anidb aan TvDB uit webcache verwijderen: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Door voorkeuren verwijderen</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Verwijder bestanden door de selectieregels van de kwaliteit in de instellingen.</value>
+  </data>
 </root>

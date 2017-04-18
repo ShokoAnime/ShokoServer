@@ -5256,4 +5256,10 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Cross Ref für Anidb, TvDB aus Webcache löschen: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Löschen von Voreinstellungen</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Löschen Sie Dateien durch die Auswahlregeln Qualität in den Einstellungen.</value>
+  </data>
 </root>

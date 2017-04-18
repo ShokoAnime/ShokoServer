@@ -5256,4 +5256,10 @@
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Удаление крест ref Anidb к TvDB веб-кэша: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Удалить настройки</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Удалите файлы правил выбора качества в настройках.</value>
+  </data>
 </root>

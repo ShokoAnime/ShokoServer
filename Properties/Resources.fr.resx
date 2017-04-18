@@ -5256,4 +5256,10 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Suppression de croix ref pour Anidb à TvDB de cache web : {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Supprimer des préférences</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Supprimer des fichiers par les règles de sélection de qualité dans les paramètres.</value>
+  </data>
 </root>

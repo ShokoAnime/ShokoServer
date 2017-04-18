@@ -5256,4 +5256,10 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Deleting cross ref for Anidb to TvDB from web cache: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Delete by Preferences</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Delete files by the quality selection rules in the settings.</value>
+  </data>
 </root>

@@ -5258,4 +5258,10 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Command_LinkFileManually" xml:space="preserve">
     <value>Linking File: {0} to Episode: {1}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Delete by Preferences</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Delete files by the quality selection rules in the settings.</value>
+  </data>
 </root>

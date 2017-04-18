@@ -3571,6 +3571,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Delete by Preferences.
+        /// </summary>
+        public static string DeleteMultipleFilesWithPreferences_Name {
+            get {
+                return ResourceManager.GetString("DeleteMultipleFilesWithPreferences_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete files by the quality selection rules in the settings..
+        /// </summary>
+        public static string DeleteMultipleFilesWithPreferences_Tooltip {
+            get {
+                return ResourceManager.GetString("DeleteMultipleFilesWithPreferences_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Delete Series.
         /// </summary>
         public static string DeleteSeries {

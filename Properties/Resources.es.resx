@@ -5256,4 +5256,10 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Enviar referencia de la Cruz a episodio para caché web archivo: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Eliminar preferencias</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Eliminar archivos de las reglas de selección de calidad en los ajustes.</value>
+  </data>
 </root>

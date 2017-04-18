@@ -5258,4 +5258,10 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
     <value>Usunięcie Krzyża ref do Anidb do TvDB z pamięci podręcznej sieci web: {0}</value>
   </data>
+  <data name="DeleteMultipleFilesWithPreferences_Name" xml:space="preserve">
+    <value>Aby usunąć Preferencje</value>
+  </data>
+  <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
+    <value>Usuń pliki przez reguły wyboru jakości w ustawieniach.</value>
+  </data>
 </root>
