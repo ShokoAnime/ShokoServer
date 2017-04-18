@@ -325,6 +325,12 @@ namespace Shoko.Models.Interfaces
         [Rest("File/ManuallyLinked/{userID}", Verbs.Get)]
         List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID);
 
+        [Rest("File/PreviewDeleteMultipleFilesWithPreferences/{userID}", Verbs.Get)]
+        List<CL_VideoLocal> PreviewDeleteMultipleFilesWithPreferences(int userID);
+
+        [Rest("File/DeleteMultipleFilesWithPreferences/{userID}", Verbs.Get)]
+        void DeleteMultipleFilesWithPreferences(int userID);
+
         [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
         void ReevaluateDuplicateFiles();
 
@@ -460,6 +466,9 @@ namespace Shoko.Models.Interfaces
 
         [Rest("AniDB/Anime/Ignore/{ignoreAnimeID}", Verbs.Delete)]
         void RemoveIgnoreAnime(int ignoreAnimeID);
+
+        [Rest("ReleaseGroups", Verbs.Get)]
+        List<string> GetAllReleaseGroups();
 
         #endregion
 
