@@ -59,6 +59,14 @@ namespace Shoko.Models
         [DataMember]
         public bool Prefer8BitVideo = false;
 
+        /// <summary>
+        /// Allow deletion of the file being imported.
+        /// Main use case is if you set your client to dl everything and let Shoko pick the best
+        /// If ServerSettings.FileQualityFilterEnabled is not true, this does nothing
+        /// </summary>
+        [DataMember]
+        public bool AllowDeletionOfImportedFiles = false;
+
         /// These are used to determine whether or not a file that isn't found to be the most preferred is kept.
         /// Each Setting must have an operation type, except for Types
         /// All checks must pass to keep a file.
