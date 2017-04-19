@@ -503,6 +503,7 @@
       xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y
       xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
 
+      goto :exit
       if $(ConfigurationName) == Debug goto :exit
       cd "$(TargetDir)"
       mkdir Merge
