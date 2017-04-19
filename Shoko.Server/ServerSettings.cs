@@ -224,7 +224,7 @@ namespace Shoko.Server
                             }
                             else
                             {
-                                appSettings["FileQualityFilterPreferences"] = FileQualityFilterPreferences;
+                                appSettings["FileQualityFilterPreferences"] = JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
                             }
                             settingsValid = true;
                         }
@@ -248,7 +248,7 @@ namespace Shoko.Server
                         }
                         else
                         {
-                            appSettings["FileQualityFilterPreferences"] = FileQualityFilterPreferences;
+                            appSettings["FileQualityFilterPreferences"] = JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
                         }
                     }
 
@@ -1688,7 +1688,21 @@ namespace Shoko.Server
                 }
                 return val ?? JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
             }
-            set => Set("FileQualityFilterPreferences", value);
+            set
+            {
+                try
+                {
+                    FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
+                        value, new StringEnumConverter());
+                    FileQualityFilter.Settings = prefs;
+                    Set("FileQualityFilterPreferences", value);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error("Error Deserializing json into FileQualityPreferences. json was :" + value);
+                }
+
+            }
         }
 
         public static string LanguagePreference

@@ -617,7 +617,8 @@ namespace Shoko.Server
                 ServerSettings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
                 ServerSettings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
                 ServerSettings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
-                ServerSettings.FileQualityFilterPreferences = contractIn.FileQualityFilterPreferences;
+                if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
+                    ServerSettings.FileQualityFilterPreferences = contractIn.FileQualityFilterPreferences;
                 ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
                 ServerSettings.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
                 ServerSettings.Hash_CRC32 = contractIn.Hash_CRC32;

@@ -310,7 +310,8 @@ namespace Shoko.Server.Commands
                                 .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
                                 .ToList();
                             foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
-                            if (videoLocals.Contains(vidLocal)) videoLocals.Remove(vidLocal);
+                            if (!FileQualityFilter.Settings.AllowDeletionOfImportedFiles &&
+                                videoLocals.Contains(vidLocal)) videoLocals.Remove(vidLocal);
                             videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
 
                             foreach (SVR_VideoLocal toDelete in videoLocals)
