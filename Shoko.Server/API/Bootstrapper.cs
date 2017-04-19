@@ -44,6 +44,7 @@ namespace Shoko.Server.API
         protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines,
             NancyContext context)
         {
+            StaticConfiguration.EnableRequestTracing = true;
             var configuration =
                 new StatelessAuthenticationConfiguration(nancyContext =>
                 {
