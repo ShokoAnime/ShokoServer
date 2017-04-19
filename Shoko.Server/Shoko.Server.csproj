@@ -323,9 +323,11 @@
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\APIHelper.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementation.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationKodi.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationPlex.cs" />
+    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation_Entities.cs" />
+    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation.cs" />
+    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation_Utilities.cs" />
     <Compile Include="API\v1\Modules\KodiModule.cs" />
     <Compile Include="API\v1\Modules\MetroModule.cs" />
     <Compile Include="API\v1\Modules\ImageModule.cs" />
