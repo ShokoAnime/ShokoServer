@@ -1528,7 +1528,17 @@ namespace Shoko.Server
             //nancy will rewrite localhost into http://+:port
             HostConfiguration config = new HostConfiguration();
             // set Nancy Hosting config here
-            config.UnhandledExceptionCallback = exception => { logger.Error(exception); };
+            config.UnhandledExceptionCallback = exception =>
+            {
+                if (exception is System.Net.HttpListenerException)
+                {
+                    logger.Error("An network serve operation took too long and timed out.");
+                }
+                else
+                {
+                    logger.Error(exception);
+                }
+            };
             // This requires admin, so throw an error if it fails
             // Don't let Nancy do this. We do it ourselves.
             // This needs to throw an error for our url registration to call.
