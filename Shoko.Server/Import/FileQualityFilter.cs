@@ -275,8 +275,8 @@ namespace Shoko.Server
         // -1 if oldFile is to be deleted, 0 if they are comparatively equal, 1 if the oldFile is better
         public static int CompareTo(this SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            var oldEp = oldFile.GetAniDBFile();
-            var newEp = newFile.GetAniDBFile();
+            var oldEp = oldFile?.GetAniDBFile();
+            var newEp = newFile?.GetAniDBFile();
             if (newEp == null) return 1;
             if (oldEp == null) return -1;
             int result = 0;
@@ -452,40 +452,40 @@ namespace Shoko.Server
             // not precise, but we are rounding and calculating distance anyway
             double sixteenNine = 1.777778;
             double fourThirds = 1.333333;
-            double ratio = res.Item1 / res.Item2;
+            double ratio = (double) res.Item1 / res.Item2;
 
-            if (Math.Abs(ratio - sixteenNine) < Math.Abs(ratio - fourThirds))
+            if ((ratio - sixteenNine) * (ratio - sixteenNine) < (ratio - fourThirds) * (ratio - fourThirds))
             {
-                int area = res.Item1 * res.Item2;
-                int keyDist = int.MaxValue;
+                long area = res.Item1 * res.Item2;
+                double keyDist = double.MaxValue;
                 int key = 0;
                 foreach (int resArea in ResolutionArea.Keys.ToList())
                 {
-                    int dist = Math.Abs(resArea - area);
+                    double dist = Math.Sqrt((resArea - area) * (resArea - area));
                     if (dist < keyDist)
                     {
                         keyDist = dist;
                         key = resArea;
                     }
                 }
-                if (keyDist == int.MaxValue) return null;
+                if (Math.Abs(keyDist - double.MaxValue) < 0.01D) return null;
                 return ResolutionArea[key];
             }
             else
             {
-                int area = res.Item1 * res.Item2;
-                int keyDist = int.MaxValue;
+                double area = res.Item1 * res.Item2;
+                double keyDist = double.MaxValue;
                 int key = 0;
                 foreach (int resArea in ResolutionAreaOld.Keys.ToList())
                 {
-                    int dist = Math.Abs(resArea - area);
+                    double dist = Math.Sqrt((resArea - area) * (resArea - area));
                     if (dist < keyDist)
                     {
                         keyDist = dist;
                         key = resArea;
                     }
                 }
-                if (keyDist == int.MaxValue) return null;
+                if (Math.Abs(keyDist - long.MaxValue) < 0.01D) return null;
                 return ResolutionAreaOld[key];
             }
         }
