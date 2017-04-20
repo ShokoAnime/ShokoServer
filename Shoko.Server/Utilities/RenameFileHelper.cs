@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using Shoko.Models.Server;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Pri.LongPath;
 
 namespace Shoko.Server
 {
