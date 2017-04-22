@@ -5304,4 +5304,22 @@
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Preferências</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Tipos de</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Estas são usar para comparar a qualidade dos arquivos. A ordem dos tipos determina a importância da comparação.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Estes são usados para determinar quais arquivos para manter ou eliminar. Todas as verificações devem passar para o arquivo a ser mantido. Arquivos não vai ser eliminados se houver somente um por episódio.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Permita a exclusão de arquivos como eles estão sendo importados se não cumprirem as normas. Isso se aplica quando a exclusão na importação está habilitada</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Excluir na importação</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Executar essa verificação na importação e apagar arquivos antigos, se não cumprirem as normas.</value>
+  </data>
 </root>

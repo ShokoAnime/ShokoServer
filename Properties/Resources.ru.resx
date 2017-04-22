@@ -5304,4 +5304,22 @@
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Предпочтения</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Типы</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Они используют для сравнения качества файлов. Порядок типов определяет значение сравнения.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Они используются, чтобы определить, какие файлы нужно сохранить или удалить. Для файла, чтобы сохранить должны пройти все проверки. Файлы не будут удалены, если есть только один за эпизод.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Разрешить удаление файлов, как они импортируются если они не соответствуют стандартам. Это применяется, когда удаление на импорт включен</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Удалить на импорт</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Запуск этой проверки на импорт и удалить старые файлы, если они не соответствуют стандартам.</value>
+  </data>
 </root>

@@ -5304,4 +5304,22 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Préférences</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Types de</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Ceux-ci sont utilisés pour comparer la qualité des fichiers. L’ordre des Types détermine l’importance de la comparaison.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Ceux-ci sont utilisés pour déterminer les fichiers à conserver ou supprimer. Tous les chèques doivent passer pour le fichier à conserver. Fichiers ne sera pas être supprimés s’il n’y a qu’un seul par épisode.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Autoriser la suppression des fichiers comme ils sont importés si elles ne répondent pas aux normes. Ceci s’applique lorsque la suppression lors de l’importation est activée</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Supprimer à l’importation</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Exécuter ce contrôle à l’importation et supprimer les anciens fichiers si elles ne répondent pas aux normes.</value>
+  </data>
 </root>

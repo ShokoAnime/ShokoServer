@@ -5304,4 +5304,22 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Preferencias</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Tipos</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Éstos se utilizan para comparar la calidad de los archivos. El orden de tipos determina la importancia de la comparación.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Estos se utilizan para determinar los archivos para mantener o eliminar. Todos los cheques deben pasar a ser guardado el archivo. Archivos no se eliminan si sólo hay uno por episodio.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Permiten la eliminación de los archivos como están siendo importados si no cumplen con los estándares. Esto se aplica cuando está habilitada la eliminación de la importación</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Eliminar en importación</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Ejecutar esta comprobación sobre la importación y eliminar archivos antiguos si no cumplen con los estándares.</value>
+  </data>
 </root>

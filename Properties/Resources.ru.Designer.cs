@@ -8179,11 +8179,38 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Удалить на импорт.
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Запуск этой проверки на импорт и удалить старые файлы, если они не соответствуют стандартам..
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Предпочтения.
         /// </summary>
         public static string MultipleFilesTab_Preferences {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Preferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Они используют для сравнения качества файлов. Порядок типов определяет значение сравнения..
+        /// </summary>
+        public static string MultipleFilesTab_Preferences_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Preferences_Info", resourceCulture);
             }
         }
         
@@ -8211,6 +8238,24 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Requirements_DeleteImportedFiles {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Разрешить удаление файлов, как они импортируются если они не соответствуют стандартам. Это применяется, когда удаление на импорт включен.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Они используются, чтобы определить, какие файлы нужно сохранить или удалить. Для файла, чтобы сохранить должны пройти все проверки. Файлы не будут удалены, если есть только один за эпизод..
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_Info", resourceCulture);
             }
         }
         
@@ -8283,6 +8328,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Title {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Типы.
+        /// </summary>
+        public static string MultipleFilesTab_Types {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
             }
         }
         

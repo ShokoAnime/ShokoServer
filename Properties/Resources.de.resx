@@ -5304,4 +5304,22 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Einstellungen</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Typen</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Diese sind verwenden, um die Qualität der Dateien zu vergleichen. Die Reihenfolge der Arten bestimmt die Bedeutung des Vergleichs.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Diese werden verwendet, um festzustellen, welche Dateien zu behalten oder löschen. Alle Prüfungen bestanden werden, müssen für die Datei gehalten werden. Dateien werden nicht gelöscht, wenn es nur einen pro Episode.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Löschen von Dateien zu ermöglichen, da sie importiert werden, wenn sie nicht den Standards entsprechen. Dies gilt, wenn beim Import löschen aktiviert ist</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Beim Import löschen</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Führen Sie diese Überprüfung auf Import und löschen Sie alte Dateien, wenn sie nicht den Standards entsprechen.</value>
+  </data>
 </root>

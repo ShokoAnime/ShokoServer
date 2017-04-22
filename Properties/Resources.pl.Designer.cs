@@ -8179,11 +8179,38 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Usuń na Import.
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Biegać ten test na import i usunąć stare pliki, jeśli nie spełniają one normy..
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Preferencje.
         /// </summary>
         public static string MultipleFilesTab_Preferences {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Preferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Są one służy do porównywania jakości plików. Kolejność typów określa znaczenie porównania..
+        /// </summary>
+        public static string MultipleFilesTab_Preferences_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Preferences_Info", resourceCulture);
             }
         }
         
@@ -8211,6 +8238,24 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Requirements_DeleteImportedFiles {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Zezwalaj na usuwanie plików jak one są przywożone, jeśli nie spełniają one normy. Ma to zastosowanie, gdy usuwanie na import jest włączona.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Są one używane do określenia, które pliki, aby zachować lub usunąć. Wszystkie kontrole muszą przejść do pliku być na bieżąco. Pliki nie zostaną usunięte, jeśli istnieje tylko jeden epizod..
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_Info", resourceCulture);
             }
         }
         
@@ -8283,6 +8328,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Title {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Typy.
+        /// </summary>
+        public static string MultipleFilesTab_Types {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
             }
         }
         

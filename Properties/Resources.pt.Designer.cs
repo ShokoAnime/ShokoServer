@@ -8179,11 +8179,38 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Excluir na importação.
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Executar essa verificação na importação e apagar arquivos antigos, se não cumprirem as normas..
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Preferências.
         /// </summary>
         public static string MultipleFilesTab_Preferences {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Preferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Estas são usar para comparar a qualidade dos arquivos. A ordem dos tipos determina a importância da comparação..
+        /// </summary>
+        public static string MultipleFilesTab_Preferences_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Preferences_Info", resourceCulture);
             }
         }
         
@@ -8211,6 +8238,24 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Requirements_DeleteImportedFiles {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Permita a exclusão de arquivos como eles estão sendo importados se não cumprirem as normas. Isso se aplica quando a exclusão na importação está habilitada.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Estes são usados para determinar quais arquivos para manter ou eliminar. Todas as verificações devem passar para o arquivo a ser mantido. Arquivos não vai ser eliminados se houver somente um por episódio..
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_Info", resourceCulture);
             }
         }
         
@@ -8283,6 +8328,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Title {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tipos de.
+        /// </summary>
+        public static string MultipleFilesTab_Types {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
             }
         }
         

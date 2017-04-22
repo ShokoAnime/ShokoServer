@@ -8179,11 +8179,38 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Verwijderen bij invoer.
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Voer deze controle op invoer en oude bestanden te verwijderen als zij niet aan de normen voldoen..
+        /// </summary>
+        public static string MultipleFilesTab_EnableDeleteOnImport_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_EnableDeleteOnImport_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Voorkeuren.
         /// </summary>
         public static string MultipleFilesTab_Preferences {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Preferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deze zijn te vergelijken met de kwaliteit van bestanden gebruiken. Het belang van de vergelijking, bepaalt de volgorde van typen..
+        /// </summary>
+        public static string MultipleFilesTab_Preferences_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Preferences_Info", resourceCulture);
             }
         }
         
@@ -8211,6 +8238,24 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Requirements_DeleteImportedFiles {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Verwijdering van bestanden toestaan als ze worden ingevoerd als zij niet aan de normen voldoen. Dit geldt wanneer verwijderen op invoer is ingeschakeld.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deze worden gebruikt om te bepalen welke bestanden moeten worden behouden of verwijderen. Alle controles moeten geven voor het bestand dat moet worden bewaard. Bestanden zullen niet worden verwijderd als er slechts één per aflevering..
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_Info {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_Info", resourceCulture);
             }
         }
         
@@ -8283,6 +8328,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Title {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Typen.
+        /// </summary>
+        public static string MultipleFilesTab_Types {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
             }
         }
         

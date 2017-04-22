@@ -5304,4 +5304,22 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Voorkeuren</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Typen</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Deze zijn te vergelijken met de kwaliteit van bestanden gebruiken. Het belang van de vergelijking, bepaalt de volgorde van typen.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Deze worden gebruikt om te bepalen welke bestanden moeten worden behouden of verwijderen. Alle controles moeten geven voor het bestand dat moet worden bewaard. Bestanden zullen niet worden verwijderd als er slechts één per aflevering.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Verwijdering van bestanden toestaan als ze worden ingevoerd als zij niet aan de normen voldoen. Dit geldt wanneer verwijderen op invoer is ingeschakeld</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Verwijderen bij invoer</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Voer deze controle op invoer en oude bestanden te verwijderen als zij niet aan de normen voldoen.</value>
+  </data>
 </root>

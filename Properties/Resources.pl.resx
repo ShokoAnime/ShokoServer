@@ -5306,4 +5306,22 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Preferencje</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Typy</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Są one służy do porównywania jakości plików. Kolejność typów określa znaczenie porównania.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Są one używane do określenia, które pliki, aby zachować lub usunąć. Wszystkie kontrole muszą przejść do pliku być na bieżąco. Pliki nie zostaną usunięte, jeśli istnieje tylko jeden epizod.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Zezwalaj na usuwanie plików jak one są przywożone, jeśli nie spełniają one normy. Ma to zastosowanie, gdy usuwanie na import jest włączona</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Usuń na Import</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Biegać ten test na import i usunąć stare pliki, jeśli nie spełniają one normy.</value>
+  </data>
 </root>

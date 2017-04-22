@@ -5304,4 +5304,22 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="MultipleFilesTab_Preferences" xml:space="preserve">
     <value>Preferenze</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Tipi</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>Questi sono utilizzare per confrontare la qualità dei file. L'ordine dei tipi determina l'importanza del confronto.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>Questi sono utilizzati per determinare i file da conservare o eliminare. Tutti i controlli devono passare per il file per essere mantenuto. I file non verranno eliminati se c'è una sola per ogni episodio.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Consente l'eliminazione di file in cui sono essere importati se non soddisfano gli standard. Questo si applica quando l'eliminazione su importazione è abilitata</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Elimina durante l'importazione</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Eseguire questo controllo all'importazione ed eliminare i vecchi file se essi non soddisfano le norme.</value>
+  </data>
 </root>

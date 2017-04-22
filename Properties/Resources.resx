@@ -5306,4 +5306,22 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Auto Deletion Settings</value>
   </data>
+  <data name="MultipleFilesTab_Types" xml:space="preserve">
+    <value>Types</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Info" xml:space="preserve">
+    <value>These are use to compare the quality of files. The order of Types determines the importance of comparison.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Info" xml:space="preserve">
+    <value>These are used to determine which files to keep or delete. All checks must pass for the file to be kept. Files won't be deleted if there is only one per episode.</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles_Tooltip" xml:space="preserve">
+    <value>Allow deletion of files as they are being imported if they don't meet the standards. This applies when deleting on import is enabled</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport" xml:space="preserve">
+    <value>Delete on Import</value>
+  </data>
+  <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
+    <value>Run this check on import, and delete old files if they don't meet the standards.</value>
+  </data>
 </root>
