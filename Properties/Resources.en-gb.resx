@@ -5262,4 +5262,46 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Delete files by the quality selection rules in the settings.</value>
   </data>
+  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
+    <value>Preferences</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements" xml:space="preserve">
+    <value>Requirements</value>
+  </data>
+  <data name="MultipleFilesTab_Sources" xml:space="preserve">
+    <value>Sources</value>
+  </data>
+  <data name="MultipleFilesTab_Resolutions" xml:space="preserve">
+    <value>Resolutions</value>
+  </data>
+  <data name="MultipleFilesTab_VideoCodecs" xml:space="preserve">
+    <value>Video Codecs</value>
+  </data>
+  <data name="MultipleFilesTab_AudioCodecs" xml:space="preserve">
+    <value>Audio Codecs</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups" xml:space="preserve">
+    <value>Sub Groups</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Prefer8bit" xml:space="preserve">
+    <value>Prefer 8bit Video</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Require10bit" xml:space="preserve">
+    <value>Require 10bit Video</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
+    <value>Max Number of Files to Keep</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Minimum Audio Stream Count</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Minimum Sub Stream Count</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
+    <value>Allow Deletion of Importing Files</value>
+  </data>
+  <data name="MultipleFilesTab_Title" xml:space="preserve">
+    <value>Auto Deletion Settings</value>
+  </data>
 </root>

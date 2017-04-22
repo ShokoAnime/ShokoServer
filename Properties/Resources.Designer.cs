@@ -8170,6 +8170,132 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Audio Codecs.
+        /// </summary>
+        public static string MultipleFilesTab_AudioCodecs {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_AudioCodecs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preferences.
+        /// </summary>
+        public static string MultipleFilesTab_Preferences {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Preferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Prefer 8bit Video.
+        /// </summary>
+        public static string MultipleFilesTab_Preferences_Prefer8bit {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Preferences_Prefer8bit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Requirements.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allow Deletion of Importing Files.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_DeleteImportedFiles {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_DeleteImportedFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum Audio Stream Count.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_MinimumAudioStreamCount {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_MinimumAudioStreamCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum Sub Stream Count.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_MinimumSubStreamCount {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_MinimumSubStreamCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max Number of Files to Keep.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_NumberOfFilesToKeep {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_NumberOfFilesToKeep", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require 10bit Video.
+        /// </summary>
+        public static string MultipleFilesTab_Requirements_Require10bit {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Requirements_Require10bit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resolutions.
+        /// </summary>
+        public static string MultipleFilesTab_Resolutions {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Resolutions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sources.
+        /// </summary>
+        public static string MultipleFilesTab_Sources {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Sources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sub Groups.
+        /// </summary>
+        public static string MultipleFilesTab_SubGroups {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_SubGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto Deletion Settings.
+        /// </summary>
+        public static string MultipleFilesTab_Title {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Video Codecs.
+        /// </summary>
+        public static string MultipleFilesTab_VideoCodecs {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_VideoCodecs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Episode Range.
         /// </summary>
         public static string MultiTypeRange {

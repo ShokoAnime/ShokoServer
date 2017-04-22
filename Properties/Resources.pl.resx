@@ -5264,4 +5264,46 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Usuń pliki przez reguły wyboru jakości w ustawieniach.</value>
   </data>
+  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
+    <value>Preferencje</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements" xml:space="preserve">
+    <value>Wymagania</value>
+  </data>
+  <data name="MultipleFilesTab_Sources" xml:space="preserve">
+    <value>Źródła</value>
+  </data>
+  <data name="MultipleFilesTab_Resolutions" xml:space="preserve">
+    <value>Rezolucje</value>
+  </data>
+  <data name="MultipleFilesTab_VideoCodecs" xml:space="preserve">
+    <value>Kodery-dekodery wideo</value>
+  </data>
+  <data name="MultipleFilesTab_AudioCodecs" xml:space="preserve">
+    <value>Kodery-dekodery audio</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups" xml:space="preserve">
+    <value>Sub grup</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Prefer8bit" xml:space="preserve">
+    <value>Wolą 8 bitów wideo</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Require10bit" xml:space="preserve">
+    <value>Wymagają 10 bitów wideo</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
+    <value>Maksymalna liczba plików do utrzymania</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Licznik strumienia Audio minimum</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Minimum Sub strumienia hrabia</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
+    <value>Zezwalaj na usuwanie Importowanie plików</value>
+  </data>
+  <data name="MultipleFilesTab_Title" xml:space="preserve">
+    <value>Ustawienia automatycznego usuwania</value>
+  </data>
 </root>

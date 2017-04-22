@@ -5262,4 +5262,46 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Supprimer des fichiers par les règles de sélection de qualité dans les paramètres.</value>
   </data>
+  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
+    <value>Préférences</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements" xml:space="preserve">
+    <value>Exigences en matière</value>
+  </data>
+  <data name="MultipleFilesTab_Sources" xml:space="preserve">
+    <value>Sources</value>
+  </data>
+  <data name="MultipleFilesTab_Resolutions" xml:space="preserve">
+    <value>Résolutions</value>
+  </data>
+  <data name="MultipleFilesTab_VideoCodecs" xml:space="preserve">
+    <value>Codecs vidéo</value>
+  </data>
+  <data name="MultipleFilesTab_AudioCodecs" xml:space="preserve">
+    <value>Codecs audio</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups" xml:space="preserve">
+    <value>Sous-groupes</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Prefer8bit" xml:space="preserve">
+    <value>Préférez les 8 bit vidéo</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Require10bit" xml:space="preserve">
+    <value>Nécessitent peu 10 vidéo</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
+    <value>Max nombre de fichiers à conserver</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Comte de flux Audio minimum</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Nombre minimum sup Stream</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
+    <value>Autoriser la suppression de l’importation de fichiers</value>
+  </data>
+  <data name="MultipleFilesTab_Title" xml:space="preserve">
+    <value>Paramètres de suppression automatique</value>
+  </data>
 </root>

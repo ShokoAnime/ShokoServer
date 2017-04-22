@@ -5262,4 +5262,46 @@
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Exclua arquivos as regras de seleção de qualidade nas configurações.</value>
   </data>
+  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
+    <value>Preferências</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements" xml:space="preserve">
+    <value>Requisitos</value>
+  </data>
+  <data name="MultipleFilesTab_Sources" xml:space="preserve">
+    <value>Fontes</value>
+  </data>
+  <data name="MultipleFilesTab_Resolutions" xml:space="preserve">
+    <value>Resoluções</value>
+  </data>
+  <data name="MultipleFilesTab_VideoCodecs" xml:space="preserve">
+    <value>Codecs de vídeo</value>
+  </data>
+  <data name="MultipleFilesTab_AudioCodecs" xml:space="preserve">
+    <value>Codecs de áudio</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups" xml:space="preserve">
+    <value>Subgrupos</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Prefer8bit" xml:space="preserve">
+    <value>Prefiro o vídeo de 8 bits</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Require10bit" xml:space="preserve">
+    <value>Requerem pouco 10 vídeo</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
+    <value>Número máximo de arquivos para manter</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Contagem de fluxo de áudio de mínimo</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Contagem de mínimo Sub Stream</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
+    <value>Permitir a exclusão de importação de arquivos</value>
+  </data>
+  <data name="MultipleFilesTab_Title" xml:space="preserve">
+    <value>Configurações de exclusão automática</value>
+  </data>
 </root>

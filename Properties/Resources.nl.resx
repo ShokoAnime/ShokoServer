@@ -5262,4 +5262,46 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Verwijder bestanden door de selectieregels van de kwaliteit in de instellingen.</value>
   </data>
+  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
+    <value>Voorkeuren</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements" xml:space="preserve">
+    <value>Vereisten</value>
+  </data>
+  <data name="MultipleFilesTab_Sources" xml:space="preserve">
+    <value>Bronnen</value>
+  </data>
+  <data name="MultipleFilesTab_Resolutions" xml:space="preserve">
+    <value>Resoluties</value>
+  </data>
+  <data name="MultipleFilesTab_VideoCodecs" xml:space="preserve">
+    <value>Video-Codecs</value>
+  </data>
+  <data name="MultipleFilesTab_AudioCodecs" xml:space="preserve">
+    <value>Audiocodecs</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups" xml:space="preserve">
+    <value>Subgroepen</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences_Prefer8bit" xml:space="preserve">
+    <value>Liever 8 bit Video</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_Require10bit" xml:space="preserve">
+    <value>Nodig 10 bit Video</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
+    <value>Max aantal bestanden te houden</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Minimum Audio Stream graaf</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Minimum Sub Stream graaf</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
+    <value>Verwijdering van het importeren van bestanden toestaan</value>
+  </data>
+  <data name="MultipleFilesTab_Title" xml:space="preserve">
+    <value>Automatische verwijdering instellingen</value>
+  </data>
 </root>
