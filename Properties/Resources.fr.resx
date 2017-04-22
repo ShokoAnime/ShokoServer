@@ -5262,9 +5262,6 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Supprimer des fichiers par les règles de sélection de qualité dans les paramètres.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Préférences</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Exigences en matière</value>
   </data>
@@ -5303,5 +5300,8 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Paramètres de suppression automatique</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Préférences</value>
   </data>
 </root>

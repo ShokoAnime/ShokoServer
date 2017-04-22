@@ -5262,9 +5262,6 @@
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Exclua arquivos as regras de seleção de qualidade nas configurações.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Preferências</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Requisitos</value>
   </data>
@@ -5303,5 +5300,8 @@
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Configurações de exclusão automática</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Preferências</value>
   </data>
 </root>

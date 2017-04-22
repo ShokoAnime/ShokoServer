@@ -5262,9 +5262,6 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Delete files by the quality selection rules in the settings.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Preferences</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Requirements</value>
   </data>
@@ -5303,5 +5300,8 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Auto Deletion Settings</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Preferences</value>
   </data>
 </root>

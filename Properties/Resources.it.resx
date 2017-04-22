@@ -5262,9 +5262,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Eliminare i file per le regole di selezione di qualità nelle impostazioni.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Preferenze</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Requisiti</value>
   </data>
@@ -5303,5 +5300,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Impostazioni di eliminazione automatica</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Preferenze</value>
   </data>
 </root>

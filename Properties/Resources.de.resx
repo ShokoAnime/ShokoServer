@@ -5262,9 +5262,6 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Löschen Sie Dateien durch die Auswahlregeln Qualität in den Einstellungen.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Einstellungen</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Anforderungen</value>
   </data>
@@ -5303,5 +5300,8 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Auto-löschen-Einstellungen</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Einstellungen</value>
   </data>
 </root>

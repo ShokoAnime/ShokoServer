@@ -5264,9 +5264,6 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Usuń pliki przez reguły wyboru jakości w ustawieniach.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Preferencje</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Wymagania</value>
   </data>
@@ -5305,5 +5302,8 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Ustawienia automatycznego usuwania</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Preferencje</value>
   </data>
 </root>

@@ -8181,9 +8181,9 @@ namespace Shoko.Commons.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Préférences.
         /// </summary>
-        public static string MultipleFIlesTab_Preferences {
+        public static string MultipleFilesTab_Preferences {
             get {
-                return ResourceManager.GetString("MultipleFIlesTab_Preferences", resourceCulture);
+                return ResourceManager.GetString("MultipleFilesTab_Preferences", resourceCulture);
             }
         }
         

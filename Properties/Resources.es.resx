@@ -5262,9 +5262,6 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Eliminar archivos de las reglas de selección de calidad en los ajustes.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Preferencias</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Requisitos</value>
   </data>
@@ -5303,5 +5300,8 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Configuración de eliminación automática</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Preferencias</value>
   </data>
 </root>

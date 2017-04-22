@@ -5262,9 +5262,6 @@
   <data name="DeleteMultipleFilesWithPreferences_Tooltip" xml:space="preserve">
     <value>Удалите файлы правил выбора качества в настройках.</value>
   </data>
-  <data name="MultipleFIlesTab_Preferences" xml:space="preserve">
-    <value>Предпочтения</value>
-  </data>
   <data name="MultipleFilesTab_Requirements" xml:space="preserve">
     <value>Требования к</value>
   </data>
@@ -5303,5 +5300,8 @@
   </data>
   <data name="MultipleFilesTab_Title" xml:space="preserve">
     <value>Параметры автоматического удаления</value>
+  </data>
+  <data name="MultipleFilesTab_Preferences" xml:space="preserve">
+    <value>Предпочтения</value>
   </data>
 </root>
