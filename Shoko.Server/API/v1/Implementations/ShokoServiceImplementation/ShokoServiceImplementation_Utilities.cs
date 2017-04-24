@@ -283,75 +283,78 @@ namespace Shoko.Server
                     ret.VideoLocal = null;
                     ret.NewFileName = string.Format("ERROR: Could not find file record");
                     ret.Success = false;
+                    return ret;
                 }
-                else
+
+                ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+
+                if (string.IsNullOrEmpty(ret.NewFileName))
                 {
                     ret.VideoLocal = null;
-                    ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+                    ret.Success = false;
+                    return ret;
+                }
 
-                    if (!string.IsNullOrEmpty(ret.NewFileName))
+                string name = string.Empty;
+                if (vid.Places.Count > 0)
+                {
+                    foreach (SVR_VideoLocal_Place place in vid.Places)
                     {
-                        string name = string.Empty;
-                        if (vid.Places.Count > 0)
+                        // check if the file exists
+                        string fullFileName = place.FullServerPath;
+                        IFileSystem fs = place.ImportFolder.FileSystem;
+                        FileSystemResult<IObject> obj = fs.Resolve(fullFileName);
+                        if (!obj.IsOk || obj.Result is IDirectory)
                         {
-                            foreach (SVR_VideoLocal_Place place in vid.Places)
+                            ret.NewFileName = "Error could not find the original file";
+                            ret.Success = false;
+                            return ret;
+                        }
+
+                        // actually rename the file
+                        string path = Path.GetDirectoryName(fullFileName);
+                        string newFullName = Path.Combine(path, ret.NewFileName);
+
+                        try
+                        {
+                            logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName,
+                                newFullName));
+
+                            if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                             {
-                                // check if the file exists
-                                string fullFileName = place.FullServerPath;
-                                IFileSystem fs = place.ImportFolder.FileSystem;
-                                FileSystemResult<IObject> obj = fs.Resolve(fullFileName);
-                                if (!obj.IsOk || obj.Result is IDirectory)
-                                {
-                                    ret.NewFileName = "Error could not find the original file";
-                                    ret.Success = false;
-                                    return ret;
-                                }
-
-                                // actually rename the file
-                                string path = Path.GetDirectoryName(fullFileName);
-                                string newFullName = Path.Combine(path, ret.NewFileName);
-
-                                try
-                                {
-                                    logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName,
-                                        newFullName));
-
-                                    if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
-                                    {
-                                        logger.Info(string.Format(
-                                            "Renaming file SKIPPED, no change From ({0}) to ({1})",
-                                            fullFileName, newFullName));
-                                        ret.NewFileName = newFullName;
-                                    }
-                                    else
-                                    {
-                                        string dir = Path.GetDirectoryName(newFullName);
-
-                                        ((IFile) obj.Result).Rename(ret.NewFileName);
-                                        logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})",
-                                            fullFileName,
-                                            newFullName));
-                                        ret.NewFileName = newFullName;
-                                        var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                                        place.FilePath = tup.Item2;
-                                        name = Path.GetFileName(tup.Item2);
-                                        RepoFactory.VideoLocalPlace.Save(place);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}",
-                                        fullFileName,
-                                        newFullName, ex.Message));
-                                    logger.Error(ex, ex.ToString());
-                                    ret.Success = false;
-                                    ret.NewFileName = ex.Message;
-                                }
+                                logger.Info(string.Format(
+                                    "Renaming file SKIPPED, no change From ({0}) to ({1})",
+                                    fullFileName, newFullName));
+                                ret.NewFileName = newFullName;
                             }
-                            vid.FileName = name;
-                            RepoFactory.VideoLocal.Save(vid, true);
+                            else
+                            {
+                                string dir = Path.GetDirectoryName(newFullName);
+
+                                ((IFile) obj.Result).Rename(ret.NewFileName);
+                                logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})",
+                                    fullFileName,
+                                    newFullName));
+                                ret.NewFileName = newFullName;
+                                var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+                                place.FilePath = tup.Item2;
+                                name = Path.GetFileName(tup.Item2);
+                                RepoFactory.VideoLocalPlace.Save(place);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}",
+                                fullFileName,
+                                newFullName, ex.Message));
+                            logger.Error(ex, ex.ToString());
+                            ret.Success = false;
+                            ret.NewFileName = ex.Message;
                         }
                     }
+                    vid.FileName = name;
+                    ret.VideoLocal.FileName = name;
+                    RepoFactory.VideoLocal.Save(vid, true);
                 }
             }
             catch (Exception ex)
@@ -371,7 +374,7 @@ namespace Shoko.Server
             {
                 foreach (int vid in videoLocalIDs)
                 {
-                    RenameFile(vid, renameRules);
+                    ret.Add(RenameFile(vid, renameRules));
                 }
             }
             catch (Exception ex)
