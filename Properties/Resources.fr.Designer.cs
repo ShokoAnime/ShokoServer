@@ -8260,7 +8260,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Comte de flux Audio minimum.
+        ///   Looks up a localized string similar to Comte de flux audio.
         /// </summary>
         public static string MultipleFilesTab_Requirements_MinimumAudioStreamCount {
             get {
@@ -8269,7 +8269,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Nombre minimum sup Stream.
+        ///   Looks up a localized string similar to Comte de Sub Stream.
         /// </summary>
         public static string MultipleFilesTab_Requirements_MinimumSubStreamCount {
             get {
@@ -8323,6 +8323,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Ajouter un sous groupe.
+        /// </summary>
+        public static string MultipleFilesTab_SubGroups_Add {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_SubGroups_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Paramètres de suppression automatique.
         /// </summary>
         public static string MultipleFilesTab_Title {
@@ -8337,6 +8346,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Types {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ajouter un Type de condition.
+        /// </summary>
+        public static string MultipleFilesTab_Types_Add {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types_Add", resourceCulture);
             }
         }
         

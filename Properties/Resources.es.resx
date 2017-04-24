@@ -5289,12 +5289,6 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
     <value>Número máximo de archivos que se conservan</value>
   </data>
-  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
-    <value>Conteo mínimo Audio Stream</value>
-  </data>
-  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
-    <value>Mínimo flujo de Sub cuenta</value>
-  </data>
   <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
     <value>Permite la eliminación de la importación de archivos</value>
   </data>
@@ -5321,5 +5315,17 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   </data>
   <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
     <value>Ejecutar esta comprobación sobre la importación y eliminar archivos antiguos si no cumplen con los estándares.</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups_Add" xml:space="preserve">
+    <value>Agregar un grupo de Sub</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Cuenta de flujo de audio</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Cuenta corriente del sub</value>
+  </data>
+  <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
+    <value>Agregar un tipo de requisito</value>
   </data>
 </root>

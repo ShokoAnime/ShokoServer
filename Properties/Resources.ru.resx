@@ -5289,12 +5289,6 @@
   <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
     <value>Максимальное количество файлов для того чтобы держать</value>
   </data>
-  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
-    <value>Минимальный поток аудио фото</value>
-  </data>
-  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
-    <value>Минимальный поток Sub фото</value>
-  </data>
   <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
     <value>Разрешить удаление импорт файлов</value>
   </data>
@@ -5321,5 +5315,17 @@
   </data>
   <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
     <value>Запуск этой проверки на импорт и удалить старые файлы, если они не соответствуют стандартам.</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups_Add" xml:space="preserve">
+    <value>Добавление группы Sub</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Количество аудио поток</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Количество Sub поток</value>
+  </data>
+  <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
+    <value>Добавление типа требование</value>
   </data>
 </root>

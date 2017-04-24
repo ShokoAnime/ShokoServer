@@ -507,7 +507,13 @@ namespace Shoko.Commons.Extensions
         }
 
         public static string GetLocalFileSystemFullPath(this CL_VideoLocal_Place vidlocalPlace) => FolderMappings.Instance.TranslateFile(vidlocalPlace.ImportFolder, vidlocalPlace.FilePath);
-        public static string GetFullPath(this CL_VideoLocal_Place vidlocalPlace) => Path.Combine(vidlocalPlace.ImportFolder.ImportFolderLocation, vidlocalPlace.FilePath);
+
+        public static string GetFullPath(this CL_VideoLocal_Place vidlocalPlace) =>
+            vidlocalPlace.ImportFolder?.ImportFolderLocation == null
+                ? null
+                : (vidlocalPlace.FilePath == null
+                    ? null
+                    : Path.Combine(vidlocalPlace.ImportFolder.ImportFolderLocation, vidlocalPlace.FilePath));
         public static string GetFileName(this CL_VideoLocal_Place vidlocalPlace) => Path.GetFileName(vidlocalPlace.FilePath);
         public static string GetFileDirectory(this CL_VideoLocal_Place vidlocalPlace) => Path.GetDirectoryName(vidlocalPlace.GetFullPath());
         public static string GetFormattedFileSize(this CL_VideoLocal videolocal) => Formatting.FormatFileSize(videolocal.FileSize);

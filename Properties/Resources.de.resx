@@ -5289,12 +5289,6 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
     <value>Maximale Anzahl von Dateien zu behalten</value>
   </data>
-  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
-    <value>Minimum-Audiostream Graf</value>
-  </data>
-  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
-    <value>Minimum Sub Stream Graf</value>
-  </data>
   <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
     <value>Lassen Sie löschen von Dateien importieren zu</value>
   </data>
@@ -5321,5 +5315,17 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   </data>
   <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
     <value>Führen Sie diese Überprüfung auf Import und löschen Sie alte Dateien, wenn sie nicht den Standards entsprechen.</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups_Add" xml:space="preserve">
+    <value>Fügen Sie eine Sub-Gruppe</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Anzahl der Audio-Stream</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Anzahl der Sub Stream</value>
+  </data>
+  <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
+    <value>Fügen Sie einen Anforderungstyp</value>
   </data>
 </root>

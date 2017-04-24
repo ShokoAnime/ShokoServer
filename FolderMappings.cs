@@ -57,8 +57,9 @@ namespace Shoko.Commons
 
         public string TranslateFile(ImportFolder impfolder, string path)
         {
+            if (impfolder == null) return string.Empty;
             if (impfolder.CloudID.HasValue)
-                return string.Empty;
+                return "Somewhere over the rainbow (in the clouds)";
             string result=TranslateFile(impfolder.ImportFolderID, path);
             try
             {
@@ -77,8 +78,9 @@ namespace Shoko.Commons
         }
         public string TranslateDirectory(ImportFolder impfolder, string path)
         {
+            if (impfolder == null) return string.Empty;
             if (impfolder.CloudID.HasValue)
-                return string.Empty;
+                return "Somewhere over the rainbow (in the clouds)";
             string result=TranslateDirectory(impfolder.ImportFolderID, path);
             try
             {
@@ -101,7 +103,7 @@ namespace Shoko.Commons
             LoadCheck();
             if (string.IsNullOrEmpty(path))
                 return string.Empty;
-            if (!_mappings.ContainsKey(folderid))
+            if (!_mappings.ContainsKey(folderid) || _mappings[folderid] == null)
                 return string.Empty;
             string start = Path.Combine(_mappings[folderid], path);
             try

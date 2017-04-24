@@ -5289,12 +5289,6 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
     <value>Max nombre de fichiers à conserver</value>
   </data>
-  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
-    <value>Comte de flux Audio minimum</value>
-  </data>
-  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
-    <value>Nombre minimum sup Stream</value>
-  </data>
   <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
     <value>Autoriser la suppression de l’importation de fichiers</value>
   </data>
@@ -5321,5 +5315,17 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
     <value>Exécuter ce contrôle à l’importation et supprimer les anciens fichiers si elles ne répondent pas aux normes.</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups_Add" xml:space="preserve">
+    <value>Ajouter un sous groupe</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Comte de flux audio</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Comte de Sub Stream</value>
+  </data>
+  <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
+    <value>Ajouter un Type de condition</value>
   </data>
 </root>

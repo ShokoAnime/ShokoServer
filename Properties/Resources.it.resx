@@ -5289,12 +5289,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="MultipleFilesTab_Requirements_NumberOfFilesToKeep" xml:space="preserve">
     <value>Numero massimo di file da mantenere</value>
   </data>
-  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
-    <value>Conteggio minimo Audio Stream</value>
-  </data>
-  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
-    <value>Conteggio minimo sotto corrente</value>
-  </data>
   <data name="MultipleFilesTab_Requirements_DeleteImportedFiles" xml:space="preserve">
     <value>Consente l'eliminazione di importazione di file</value>
   </data>
@@ -5321,5 +5315,17 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="MultipleFilesTab_EnableDeleteOnImport_Tooltip" xml:space="preserve">
     <value>Eseguire questo controllo all'importazione ed eliminare i vecchi file se essi non soddisfano le norme.</value>
+  </data>
+  <data name="MultipleFilesTab_SubGroups_Add" xml:space="preserve">
+    <value>Aggiungere un gruppo di Sub</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumAudioStreamCount" xml:space="preserve">
+    <value>Audio Stream totali</value>
+  </data>
+  <data name="MultipleFilesTab_Requirements_MinimumSubStreamCount" xml:space="preserve">
+    <value>Conteggio flusso sub</value>
+  </data>
+  <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
+    <value>Aggiungere un tipo di requisito</value>
   </data>
 </root>

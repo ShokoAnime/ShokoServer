@@ -8260,7 +8260,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Minimum Audio Stream Count.
+        ///   Looks up a localized string similar to Audio Stream Count.
         /// </summary>
         public static string MultipleFilesTab_Requirements_MinimumAudioStreamCount {
             get {
@@ -8269,7 +8269,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Minimum Sub Stream Count.
+        ///   Looks up a localized string similar to Sub Stream Count.
         /// </summary>
         public static string MultipleFilesTab_Requirements_MinimumSubStreamCount {
             get {
@@ -8323,6 +8323,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add a Sub Group.
+        /// </summary>
+        public static string MultipleFilesTab_SubGroups_Add {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_SubGroups_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Auto Deletion Settings.
         /// </summary>
         public static string MultipleFilesTab_Title {
@@ -8337,6 +8346,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Types {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add a Requirement Type.
+        /// </summary>
+        public static string MultipleFilesTab_Types_Add {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types_Add", resourceCulture);
             }
         }
         

@@ -8260,7 +8260,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Минимальный поток аудио фото.
+        ///   Looks up a localized string similar to Количество аудио поток.
         /// </summary>
         public static string MultipleFilesTab_Requirements_MinimumAudioStreamCount {
             get {
@@ -8269,7 +8269,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Минимальный поток Sub фото.
+        ///   Looks up a localized string similar to Количество Sub поток.
         /// </summary>
         public static string MultipleFilesTab_Requirements_MinimumSubStreamCount {
             get {
@@ -8323,6 +8323,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Добавление группы Sub.
+        /// </summary>
+        public static string MultipleFilesTab_SubGroups_Add {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_SubGroups_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Параметры автоматического удаления.
         /// </summary>
         public static string MultipleFilesTab_Title {
@@ -8337,6 +8346,15 @@ namespace Shoko.Commons.Properties {
         public static string MultipleFilesTab_Types {
             get {
                 return ResourceManager.GetString("MultipleFilesTab_Types", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Добавление типа требование.
+        /// </summary>
+        public static string MultipleFilesTab_Types_Add {
+            get {
+                return ResourceManager.GetString("MultipleFilesTab_Types_Add", resourceCulture);
             }
         }
         
