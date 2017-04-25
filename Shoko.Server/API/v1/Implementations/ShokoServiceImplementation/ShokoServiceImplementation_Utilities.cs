@@ -1373,9 +1373,9 @@ namespace Shoko.Server
                 SVR_AniDB_File ani = videoLocals.First().GetAniDBFile();
                 contract.AudioStreamCount = videoLocals.First()
                     .Media.Parts.SelectMany(a => a.Streams)
-                    .Count(a => a.StreamType == "2");
+                    .Count(a => a.StreamType.Equals("2"));
                 contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode);
-                contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum != enEpisodeType.Episode);
+                contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;
                 contract.GroupNameShort = key.Key.GroupNameShort;
                 contract.NormalEpisodeNumbers = eps.Where(a => a.EpisodeTypeEnum == enEpisodeType.Episode)
