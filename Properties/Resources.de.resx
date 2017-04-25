@@ -5328,4 +5328,10 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Fügen Sie einen Anforderungstyp</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Dual Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi-Audio</value>
+  </data>
 </root>

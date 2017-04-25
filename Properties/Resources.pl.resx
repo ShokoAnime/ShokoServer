@@ -5330,4 +5330,10 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Dodaj typ wymagania</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Dual Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi Audio</value>
+  </data>
 </root>

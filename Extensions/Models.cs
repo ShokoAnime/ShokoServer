@@ -570,6 +570,26 @@ namespace Shoko.Commons.Extensions
             return bitDepth == 12;
         }
 
+        public static bool IsDualAudio(this CL_VideoDetailed videodetailed)
+        {
+            if (videodetailed.HasAniDBFile())
+            {
+                return videodetailed.AniDB_File_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
+                    .Length == 2;
+            }
+            return false;
+        }
+
+        public static bool IsMultiAudio(this CL_VideoDetailed videodetailed)
+        {
+            if (videodetailed.HasAniDBFile())
+            {
+                return videodetailed.AniDB_File_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
+                           .Length > 2;
+            }
+            return false;
+        }
+
         public static int GetVideoWidth(this CL_VideoDetailed videodetailed)
         {
             int videoWidth = 0;

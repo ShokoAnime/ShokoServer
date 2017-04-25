@@ -5328,4 +5328,10 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Add a Requirement Type</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Dual Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi Audio</value>
+  </data>
 </root>

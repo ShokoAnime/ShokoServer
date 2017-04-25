@@ -5328,4 +5328,10 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Agregar un tipo de requisito</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Audio Dual</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi Audio</value>
+  </data>
 </root>

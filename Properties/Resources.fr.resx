@@ -5328,4 +5328,10 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Ajouter un Type de condition</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Dual Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi Audio</value>
+  </data>
 </root>

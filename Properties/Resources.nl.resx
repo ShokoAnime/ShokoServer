@@ -5328,4 +5328,10 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Een vereiste Type toevoegen</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Dubbele Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi Audio</value>
+  </data>
 </root>

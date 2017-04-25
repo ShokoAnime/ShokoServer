@@ -5328,4 +5328,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Aggiungere un tipo di requisito</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Doppio Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi Audio</value>
+  </data>
 </root>

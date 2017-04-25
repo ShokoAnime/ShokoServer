@@ -1393,6 +1393,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dual Audio.
+        /// </summary>
+        public static string Audio_Dual {
+            get {
+                return ResourceManager.GetString("Audio_Dual", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multi Audio.
+        /// </summary>
+        public static string Audio_Multi {
+            get {
+                return ResourceManager.GetString("Audio_Multi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Available.
         /// </summary>
         public static string Available {

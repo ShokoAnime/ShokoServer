@@ -5328,4 +5328,10 @@
   <data name="MultipleFilesTab_Types_Add" xml:space="preserve">
     <value>Adicionar um tipo de exigência</value>
   </data>
+  <data name="Audio_Dual" xml:space="preserve">
+    <value>Dual Audio</value>
+  </data>
+  <data name="Audio_Multi" xml:space="preserve">
+    <value>Multi-áudio</value>
+  </data>
 </root>
