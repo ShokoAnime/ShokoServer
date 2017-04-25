@@ -126,8 +126,8 @@ namespace Shoko.Server
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
             if (!MigrateProgramDataLocation())
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.Migration_LoadError,
-                    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+
+                Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.Migration_LoadError);
                 Environment.Exit(1);
             }
 
@@ -237,25 +237,6 @@ namespace Shoko.Server
             return true;
         }
 
-        private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
-        {
-            foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
-            {
-                if (!string.IsNullOrEmpty(user.PlexToken))
-                {
-                    new CommandRequest_PlexSyncWatched(user).Save();
-                }
-            }
-        }
-
-        private void BtnSetDefault_Click(object sender, RoutedEventArgs e)
-        {
-            string imagePath = ServerSettings.DefaultImagePath;
-            if (!Directory.Exists(imagePath))
-                Directory.CreateDirectory(imagePath);
-            ServerSettings.ImagesPath = imagePath;
-        }
-
         public bool MigrateProgramDataLocation()
         {
             string oldApplicationPath =
@@ -298,6 +279,7 @@ namespace Shoko.Server
 
         void UninstallJMMServer()
         {
+            if (Utils.IsRunningOnMono()) return; //This will be handled by the OS or user, as we cannot reliably learn what package management system they use.
             try
             {
                 // Check in registry if installed
@@ -309,11 +291,10 @@ namespace Shoko.Server
 
                 if (!string.IsNullOrEmpty(jmmServerUninstallPath))
                 {
+                    
                     // Ask if user wants to uninstall first
-                    MessageBoxResult dr =
-                        MessageBox.Show(Shoko.Commons.Properties.Resources.DuplicateInstallDetectedQuestion,
-                            Shoko.Commons.Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
-                    if (dr == MessageBoxResult.Yes)
+                    if (ServerSettings.CallYesNo(Shoko.Commons.Properties.Resources.DuplicateInstallDetectedQuestion,
+                        Shoko.Commons.Properties.Resources.DuplicateInstallDetected))
                     {
                         try
                         {
@@ -353,7 +334,7 @@ namespace Shoko.Server
             {
                 if (Utils.IsAdministrator())
                 {
-                    MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
+                    Utils.ShowErrorMessage("Settings the ports, after that JMMServer will quit, run again in normal mode");
 
                     try
                     {
@@ -361,43 +342,26 @@ namespace Shoko.Server
                     }
                     catch (Exception exception)
                     {
-                        MessageBox.Show("Unable start hosting");
+                        Utils.ShowErrorMessage("Unable start hosting");
                         logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
                         logger.Error(exception);
                     }
                     finally
                     {
-                        ApplicationShutdown();
+                        ShutDown();
                     }
                     return false;
                 }
                 else
                 {
-                    MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
+                    Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
                     logger.Error(e);
-                    ApplicationShutdown();
+                    ShutDown();
                     return false;
                 }
             }
             return true;
         }
-
-        public void ApplicationShutdown()
-        {
-            try
-            {
-                ThreadStart ts = () =>
-                {
-                    Application.Current.Shutdown();
-                };
-                new Thread(ts).Start();
-            }
-            catch (Exception ex)
-            {
-                logger.Log(LogLevel.Error, $"Error occured during ApplicationShutdown: {ex.Message}");
-            }
-        }
-
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             // for later use
@@ -409,22 +373,6 @@ namespace Shoko.Server
         }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
-
-        private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
-        {
-            SyncHashes();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncHashesRunning,
-                Shoko.Commons.Properties.Resources.Success,
-                MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void BtnSyncMedias_Click(object sender, RoutedEventArgs e)
-        {
-            SyncMedias();
-            MessageBox.Show(Shoko.Commons.Properties.Resources.Server_SyncMediasRunning,
-                Shoko.Commons.Properties.Resources.Success,
-                MessageBoxButton.OK, MessageBoxImage.Information);
-        }
 
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
@@ -520,26 +468,6 @@ namespace Shoko.Server
                     logger.Error(ex, ex.ToString());
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
-                }
-            }
-        }
-
-        void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
-        {
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
-            int cnt = 0;
-            foreach (SVR_AniDB_Anime anime in allAnime)
-            {
-                cnt++;
-                logger.Info($"Uploading anime {cnt} of {allAnime.Count} - {anime.MainTitle}");
-
-                try
-                {
-                    CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-                    cmdAzure.Save();
-                }
-                catch
-                {
                 }
             }
         }
@@ -960,30 +888,6 @@ namespace Shoko.Server
                 workerMyAnime2.ReportProgress(0, ma2Progress);
             }
         }
-
-        void ImportManualLinks()
-        {
-            if (workerMyAnime2.IsBusy)
-            {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Import,
-                    Shoko.Commons.Properties.Resources.Error,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-            ofd.Filter = "Sqlite Files (*.DB3)|*.db3";
-            ofd.ShowDialog();
-            if (!string.IsNullOrEmpty(ofd.FileName))
-            {
-                workerMyAnime2.RunWorkerAsync(ofd.FileName);
-            }
-        }
-
-        private void ImportLinksFromMA2(string databasePath)
-        {
-        }
-
         #endregion
 
         private void GenerateAzureList()
@@ -1172,53 +1076,6 @@ namespace Shoko.Server
 
         #region UI events and methods
 
-        private void CommandBinding_ScanFolder(object sender, ExecutedRoutedEventArgs e)
-        {
-            object obj = e.Parameter;
-            if (obj == null) return;
-
-            try
-            {
-                if (obj.GetType() == typeof(SVR_ImportFolder))
-                {
-                    SVR_ImportFolder fldr = (SVR_ImportFolder)obj;
-
-                    ScanFolder(fldr.ImportFolderID);
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.Server_ScanFolder,
-                        Shoko.Commons.Properties.Resources.Success,
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-
-        internal static string GetLocalIPv4(NetworkInterfaceType _type)
-        {
-            string output = "";
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
-                {
-                    IPInterfaceProperties adapterProperties = item.GetIPProperties();
-
-                    if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
-                    {
-                        foreach (UnicastIPAddressInformation ip in adapterProperties.UnicastAddresses)
-                        {
-                            if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                            {
-                                output = ip.Address.ToString();
-                            }
-                        }
-                    }
-                }
-            }
-
-            return output;
-        }
 
         public event EventHandler ServerShutdown;
         public event EventHandler ServerRestart;

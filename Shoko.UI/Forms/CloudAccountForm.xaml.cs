@@ -42,8 +42,15 @@ namespace Shoko.UI.Forms
 
         private IFileSystem fs;
 
-        public bool IsConnected => (WorkingAccount != null && WorkingAccount.IsConnected);
-        public bool IsNotConnected => (WorkingAccount == null || !WorkingAccount.IsConnected);
+        public bool IsConnected
+        {
+            get { return (WorkingAccount != null && WorkingAccount.IsConnected); }
+        }
+
+        public bool IsNotConnected
+        {
+            get { return (WorkingAccount == null || !WorkingAccount.IsConnected); }
+        }
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
@@ -150,8 +157,14 @@ namespace Shoko.UI.Forms
             this.OnPropertyChanged(() => IsConnected, () => IsNotConnected);
         }
 
-        public bool EnableConnect => (comboProvider.SelectedIndex >= 0 &&
-                                      !string.IsNullOrEmpty(txtCloudAccountName.Text));
+        public bool EnableConnect
+        {
+            get
+            {
+                return (comboProvider.SelectedIndex >= 0 &&
+                        !string.IsNullOrEmpty(txtCloudAccountName.Text));
+            }
+        }
 
         private SVR_CloudAccount WorkingAccount;
         private SVR_CloudAccount SaveAccount;

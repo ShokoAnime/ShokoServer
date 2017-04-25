@@ -1037,10 +1037,8 @@ namespace Shoko.Server
                 //hack until gui id dead
                 try
                 {
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
+                    //TODO: Test properly
                         ServerInfo.Instance.RefreshImportFolders();
-                    });
                 }
                 catch
                 {

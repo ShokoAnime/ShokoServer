@@ -95,7 +95,10 @@ namespace Shoko.Server.Databases
                 }
                 try
                 {
+                    logger.Info($"{Instance.GetType()}Instance.CreateAndUpdateSchema()");
                     Instance.CreateAndUpdateSchema();
+
+                    logger.Info($"RepoFactory.Init()");
                     RepoFactory.Init();
                     Instance.ExecuteDatabaseFixes();
                     Instance.PopulateInitialData();
@@ -105,10 +108,9 @@ namespace Shoko.Server.Databases
                     if (ex is DatabaseCommandException)
                     {
                         logger.Error(ex, ex.ToString());
-                        MessageBox.Show(
-                            "Database Error :\n\r " + ex.ToString() +
-                            "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        Utils.ShowErrorMessage(
+                            "Database Error :\n\r " + ex +
+                            "\n\rNotify developers about this error, it will be logged in your logs", "Database Error");
                         ServerState.Instance.CurrentSetupStatus =
                             Shoko.Commons.Properties.Resources.Server_DatabaseFail;
                     }

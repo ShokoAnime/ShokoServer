@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Server", "Shoko.Server\Shoko.Server.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.UI", "Shoko.UI\Shoko.
 		{D24D15AA-3E71-45A5-B2AF-7490681DEF68} = {D24D15AA-3E71-45A5-B2AF-7490681DEF68}
 		{964A62E6-2DAE-4723-926D-D3E9597B5213} = {964A62E6-2DAE-4723-926D-D3E9597B5213}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.CLI", "Shoko.CLI\Shoko.CLI.csproj", "{3A8E0177-9701-4A59-A6CD-16C6908839EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -221,6 +223,22 @@ Global
 		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|Win32.Build.0 = Release|Any CPU
 		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|x64.ActiveCfg = Release|Any CPU
 		{FFBA1303-E60F-4353-9ECA-434B263AF699}.Release|x64.Build.0 = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|Win32.Build.0 = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Debug|x64.Build.0 = Debug|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Win32.ActiveCfg = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Win32.Build.0 = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|x64.ActiveCfg = Release|Any CPU
+		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -48,7 +48,7 @@ namespace Shoko.Server
 
         public void Init()
         {
-            Application.Current.Dispatcher.Invoke(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
+             RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a));
             Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
@@ -74,7 +74,7 @@ namespace Shoko.Server
                 CancelScan();
             RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
             RepoFactory.Scan.Delete(ActiveScan);
-            Application.Current.Dispatcher.Invoke(() => { Scans.Remove(ActiveScan); });
+            Scans.Remove(ActiveScan);
             ActiveScan = null;
         }
 
@@ -127,12 +127,12 @@ namespace Shoko.Server
                 {
                     activeScan = value;
                     Refresh();
-                    Application.Current.Dispatcher.Invoke(() =>
+                    
                     {
                         ActiveErrorFiles.Clear();
                         if (value != null)
                             RepoFactory.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
-                    });
+                    };
                 }
             }
         }
@@ -151,11 +151,10 @@ namespace Shoko.Server
 
         public void AddErrorScan(ScanFile file)
         {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
+            
                 if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
                     ActiveErrorFiles.Add(file);
-            });
+       
         }
 
         private bool cancelIntegrityCheck = false;

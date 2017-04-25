@@ -689,6 +689,7 @@ namespace Shoko.Server
         public class ErrorEventArgs : EventArgs
         {
             public string Message { get; internal set; }
+            public string Title { get; internal set; } = "Error";
         }
 
         public static event EventHandler<ErrorEventArgs> ErrorMessage; 
@@ -704,6 +705,12 @@ namespace Shoko.Server
         {
             //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg });
+            logger.Error(msg);
+        }
+        public static void ShowErrorMessage(string msg, string title)
+        {
+            //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg, Title = title });
             logger.Error(msg);
         }
 
@@ -1524,6 +1531,8 @@ namespace Shoko.Server
 
         public static void RestartAsAdmin()
         {
+            if (Utils.IsRunningOnMono()) return; //Again, mono cannot handle this.
+
             string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "RestartAsAdmin.bat");
             var exeName = Process.GetCurrentProcess().MainModule.FileName;
 
@@ -1554,7 +1563,7 @@ namespace Shoko.Server
                 }
 
                 proc.Start();
-                System.Windows.Application.Current.Shutdown();
+                //System.Windows.Application.Current.Shutdown();
                 Environment.Exit(0);
             }
             catch (Exception ex)
@@ -1586,6 +1595,11 @@ namespace Shoko.Server
                 else
                     return false;
             }
+        }
+
+        public static bool IsRunningOnMono()
+        {
+            return Type.GetType("Mono.Runtime") != null;
         }
     }
 }

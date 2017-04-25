@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
 using NLog;
@@ -175,7 +176,7 @@ namespace Shoko.UI
             };
 
             Utils.ErrorMessage +=
-                (sender, args) => MessageBox.Show(this, args.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                (sender, args) => MessageBox.Show(this, args.Message, args.Title, MessageBoxButton.OK, MessageBoxImage.Error);
 
             AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
             {
@@ -194,6 +195,19 @@ namespace Shoko.UI
                 migrationForm.Show();
             };
 
+            Shoko.Server.Extensions.Utils.CreateIcon += plugin => Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (plugin?.Icon == null)
+                    return null;
+
+                MemoryStream ms = new MemoryStream(plugin.Icon);
+                ms.Seek(0, SeekOrigin.Begin);
+                BitmapImage icon = new BitmapImage();
+                icon.BeginInit();
+                icon.StreamSource = ms;
+                icon.EndInit();
+                return icon;
+            });
         }
 
         private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
@@ -440,7 +454,7 @@ namespace Shoko.UI
                     if (result != System.Windows.Forms.DialogResult.OK) return;
 
                     System.Windows.Forms.Application.Restart();
-                    ShokoServer.Instance.ApplicationShutdown();
+                    //ShokoServer.Instance.s();
                 }
             }
             catch (Exception ex)
@@ -1041,7 +1055,10 @@ namespace Shoko.UI
                 Show();
         }
 
-        void TippuTrayNotify_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e) => this.Show();
+        void TippuTrayNotify_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            this.Show();
+        }
 
         private void CreateMenus()
         {

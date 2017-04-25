@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.Script.Serialization;
-using System.Windows.Media.Imaging;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NLog;
@@ -112,6 +111,8 @@ namespace Shoko.Server.Models
             }
         }
 
+/*
+ * TODO: Linux: Fix up
         private BitmapSource _bitmap;
 
         [ScriptIgnore]
@@ -132,6 +133,7 @@ namespace Shoko.Server.Models
                 return _bitmap;
             }
         }
+*/
 
 
         internal IDirectory BaseDirectory

@@ -28,8 +28,8 @@ namespace Shoko.Server
                 DriveInfo info = new DriveInfo(toDir.Root.Name);
                 if (info.AvailableFreeSpace < size)
                 {
-                    MessageBox.Show($"Unable to migrate directory {fromDir} into {toDir} not enough space",
-                        "Not enough space", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    Utils.ShowErrorMessage($"Unable to migrate directory {fromDir} into {toDir} not enough space",
+                        "Not enough space");
                     return false;
                 }
             }
@@ -62,9 +62,9 @@ namespace Shoko.Server
             }
             catch (Exception e)
             {
-                MessageBox.Show(
+                Utils.ShowErrorMessage(
                     $"We are unable to move the directory '{From}' to '{To}', please move the directory with explorer",
-                    "Migration ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Migration ERROR");
                 return false;
             }
         }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
-using System.Windows.Media.Imaging;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
@@ -29,18 +28,23 @@ namespace Shoko.Server.Models
                     _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == value);
                     if (_plugin != null)
                     {
-                        Bitmap = _plugin.CreateIconImage();
+                        //TODO: Linux: Fix up
+                        //Bitmap = _plugin.CreateIconImage();
                     }
                 }
             }
         }
 
-        [ScriptIgnore]
+       /* [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        public BitmapImage Bitmap { get; set; }
+        public BitmapImage Bitmap { get; set; }*/
 
-        public byte[] Icon => _plugin?.Icon;
+        public byte[] Icon
+        {
+            get { return _plugin?.Icon; }
+        }
+
         private ICloudPlugin _plugin;
 
 
@@ -65,13 +69,19 @@ namespace Shoko.Server.Models
             }
         }
 
-        public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
+        public bool IsConnected
+        {
+            get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
+        }
 
 
         internal bool NeedSave { get; set; } = false;
 
-
-        private static AuthorizationFactory AuthInstance = new AuthorizationFactory("AppGlue.dll");
+        private static AuthorizationFactory _cache; //lazy init, because 
+        private static AuthorizationFactory AuthInstance
+        {
+            get { return new AuthorizationFactory("AppGlue.dll"); }
+        }
 
         public IFileSystem Connect()
         {
@@ -84,7 +94,7 @@ namespace Shoko.Server.Models
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            Bitmap = _plugin.CreateIconImage();
+            //Bitmap = _plugin.CreateIconImage();
             FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(), auth, ConnectionString);
             if (!res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
