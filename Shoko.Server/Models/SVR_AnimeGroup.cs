@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
@@ -15,6 +14,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Pri.LongPath;
 
 namespace Shoko.Server.Models
 {

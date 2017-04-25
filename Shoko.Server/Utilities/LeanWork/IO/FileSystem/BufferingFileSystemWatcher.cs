@@ -3,11 +3,21 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
+using FileSystemWatcher = System.IO.FileSystemWatcher;
+using FileSystemEventHandler = System.IO.FileSystemEventHandler;
+using RenamedEventHandler = System.IO.RenamedEventHandler;
+using ErrorEventHandler = System.IO.ErrorEventHandler;
+using FileSystemEventArgs = System.IO.FileSystemEventArgs;
+using NotifyFilters = System.IO.NotifyFilters;
+using ErrorEventArgs = System.IO.ErrorEventArgs;
+using WatcherChangeTypes = System.IO.WatcherChangeTypes;
+using RenamedEventArgs = System.IO.RenamedEventArgs;
+using SearchOption = System.IO.SearchOption;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Pri.LongPath;
 
 namespace LeanWork.IO.FileSystem
 {
@@ -66,7 +76,8 @@ namespace LeanWork.IO.FileSystem
             get { return _containedFSW.EnableRaisingEvents; }
             set
             {
-                if (_containedFSW.EnableRaisingEvents == value) return;
+                if (_containedFSW.EnableRaisingEvents == value)
+                    return;
 
                 StopRaisingBufferedEvents();
                 _cancellationTokenSource = new CancellationTokenSource();
@@ -226,7 +237,7 @@ namespace LeanWork.IO.FileSystem
             }
             remove
             {
-                _containedFSW.Renamed -= BufferEvent;
+                _containedFSW.Renamed -= BufferRenameEvent;
                 _onRenamedHandler -= value;
             }
         }
@@ -235,8 +246,16 @@ namespace LeanWork.IO.FileSystem
         {
             if (!_fileSystemEventBuffer.TryAdd(e))
             {
-                var ex = new EventQueueOverflowException(
-                    $"Event queue size {_fileSystemEventBuffer.BoundedCapacity} events exceeded.");
+                var ex = new EventQueueOverflowException($"Event queue size {_fileSystemEventBuffer.BoundedCapacity} events exceeded.");
+                InvokeHandler(_onErrorHandler, new ErrorEventArgs(ex));
+            }
+        }
+
+        private void BufferRenameEvent(object _, RenamedEventArgs e)
+        {
+            if (!_fileSystemEventBuffer.TryAdd(e))
+            {
+                var ex = new EventQueueOverflowException($"Event queue size {_fileSystemEventBuffer.BoundedCapacity} events exceeded.");
                 InvokeHandler(_onErrorHandler, new ErrorEventArgs(ex));
             }
         }
@@ -279,8 +298,7 @@ namespace LeanWork.IO.FileSystem
                     if (_onExistedHandler != null || _onAllChangesHandler != null)
                         NotifyExistingFiles();
 
-                    foreach (FileSystemEventArgs e in _fileSystemEventBuffer.GetConsumingEnumerable(
-                        _cancellationTokenSource.Token))
+                    foreach (FileSystemEventArgs e in _fileSystemEventBuffer.GetConsumingEnumerable(_cancellationTokenSource.Token))
                     {
                         if (_onAllChangesHandler != null)
                             InvokeHandler(_onAllChangesHandler, e);
@@ -327,8 +345,7 @@ namespace LeanWork.IO.FileSystem
                 foreach (var fileName in sortedFileNames)
                 {
                     InvokeHandler(_onExistedHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
-                    InvokeHandler(_onAllChangesHandler,
-                        new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
+                    InvokeHandler(_onAllChangesHandler,new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
                 }
             }
             else
@@ -336,8 +353,7 @@ namespace LeanWork.IO.FileSystem
                 foreach (var fileName in Directory.EnumerateFiles(Path))
                 {
                     InvokeHandler(_onExistedHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
-                    InvokeHandler(_onAllChangesHandler,
-                        new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
+                    InvokeHandler(_onAllChangesHandler,new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
                 }
             }
         }

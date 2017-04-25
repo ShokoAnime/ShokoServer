@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.ServiceModel;
 using System.Threading;
@@ -19,7 +18,6 @@ using NLog;
 using Shoko.Server.API.core;
 using NutzCode.CloudFileSystem;
 using Shoko.Server.Commands;
-using Directory = System.IO.Directory;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.MAL;
 using Shoko.Server.Commands.TvDB;
@@ -37,6 +35,7 @@ using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
+using Pri.LongPath;
 
 namespace Shoko.Server
 {
