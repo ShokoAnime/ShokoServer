@@ -32,6 +32,27 @@ namespace Shoko.Commons.Extensions
             return items.OrderBy(i => regex.Replace(selector(i), match => match.Value.PadLeft(maxDigits, '0')), stringComparer ?? StringComparer.CurrentCulture);
         }
 
+        public static string ToRanges(this List<int> ints) {
+            if (ints.Count < 1) return "";
+            ints.Sort();
+            var lng = ints.Count;
+            var fromnums = new List<int>();
+            var tonums = new List<int>();
+            for (var i = 0; i < lng - 1; i++) {
+                if (i == 0)
+                    fromnums.Add(ints[0]);
+                if (ints[i + 1] > ints[i] + 1) {
+                    tonums.Add(ints[i]);
+                    fromnums.Add(ints[i + 1]);
+                }
+            }
+            tonums.Add(ints[lng - 1]);
+            return string.Join(", ", Enumerable.Range(0, tonums.Count).Select(
+                i => fromnums[i].ToString() +
+                     (tonums[i] == fromnums[i] ? "" : "-" + tonums[i].ToString())
+            ));
+        }
+
         public static ILookup<TKey, TSource> ToLazyLookup<TKey, TSource>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
             IEqualityComparer<TKey> comparer = null)
         {

@@ -1097,6 +1097,8 @@ namespace Shoko.Commons.Extensions
         public static bool IsHi08P(this CL_GroupVideoQuality vidquality) => vidquality.VideoBitDepth == 8;
         public static bool IsHi10P(this CL_GroupVideoQuality vidquality) => vidquality.VideoBitDepth == 10;
         public static bool IsHi12P(this CL_GroupVideoQuality vidquality) => vidquality.VideoBitDepth == 12;
+        public static bool IsDualAudio(this CL_GroupVideoQuality vidquality) => vidquality.AudioStreamCount == 2;
+        public static bool IsMultiAudio(this CL_GroupVideoQuality vidquality) => vidquality.AudioStreamCount > 2;
 
         private static int GetVideoWidth(this CL_GroupVideoQuality vidquality)
         {
