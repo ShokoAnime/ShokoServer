@@ -294,7 +294,7 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                string name = string.Empty;
+                string name = vid.FileName;
                 if (vid.Places.Count > 0)
                 {
                     foreach (SVR_VideoLocal_Place place in vid.Places)
@@ -325,6 +325,7 @@ namespace Shoko.Server
                                     "Renaming file SKIPPED, no change From ({0}) to ({1})",
                                     fullFileName, newFullName));
                                 ret.NewFileName = newFullName;
+                                name = Path.GetFileName(fullFileName);
                             }
                             else
                             {
