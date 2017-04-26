@@ -26,7 +26,7 @@ namespace Shoko.Server.Extensions
             //strip out the base URL
             int pos = fanart.URL.IndexOf('/', 0);
             string fname = fanart.URL.Substring(pos + 1, fanart.URL.Length - pos - 1);
-            fname = fname.Replace("/", @"\");
+            fname = fname.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
         }
 
@@ -37,7 +37,7 @@ namespace Shoko.Server.Extensions
             //strip out the base URL
             int pos = movie.URL.IndexOf('/', 0);
             string fname = movie.URL.Substring(pos + 1, movie.URL.Length - pos - 1);
-            fname = fname.Replace("/", @"\");
+            fname = fname.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
         }
 
@@ -64,10 +64,10 @@ namespace Shoko.Server.Extensions
             if (posIDNext <= 0) return "";
 
             string traktID = episode.URL.Substring(posID + 5, posIDNext - posID - 5);
-            traktID = traktID.Replace("/", @"\");
+            traktID = traktID.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
 
             string imageName = episode.EpisodeImage.Substring(pos + 9, episode.EpisodeImage.Length - pos - 9);
-            imageName = imageName.Replace("/", @"\");
+            imageName = imageName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
 
             string relativePath = System.IO.Path.Combine("episodes", traktID);
             relativePath = System.IO.Path.Combine(relativePath, imageName);
@@ -98,7 +98,7 @@ namespace Shoko.Server.Extensions
             if (pos <= 0) return "";
 
             string relativePath = image.ImageURL.Substring(pos + 7, image.ImageURL.Length - pos - 7);
-            relativePath = relativePath.Replace("/", @"\");
+            relativePath = relativePath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
 
             return System.IO.Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
         }
@@ -115,7 +115,7 @@ namespace Shoko.Server.Extensions
             if (pos <= 0) return "";
 
             string relativePath = poster.ImageURL.Substring(pos + 7, poster.ImageURL.Length - pos - 7);
-            relativePath = relativePath.Replace("/", @"\");
+            relativePath = relativePath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
 
             return System.IO.Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
         }
@@ -125,7 +125,7 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(episode.Filename)) return "";
 
             string fname = episode.Filename;
-            fname = episode.Filename.Replace("/", @"\");
+            fname = episode.Filename.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
@@ -134,14 +134,14 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(fanart.BannerPath)) return "";
 
             string fname = fanart.BannerPath;
-            fname = fanart.BannerPath.Replace("/", @"\");
+            fname = fanart.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
         public static string GetFullThumbnailPath(this TvDB_ImageFanart fanart)
         {
             string fname = fanart.ThumbnailPath;
-            fname = fanart.ThumbnailPath.Replace("/", @"\");
+            fname = fanart.ThumbnailPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
@@ -150,7 +150,7 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(poster.BannerPath)) return "";
 
             string fname = poster.BannerPath;
-            fname = poster.BannerPath.Replace("/", @"\");
+            fname = poster.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
@@ -159,7 +159,7 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(banner.BannerPath)) return "";
 
             string fname = banner.BannerPath;
-            fname = banner.BannerPath.Replace("/", @"\");
+            fname = banner.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 

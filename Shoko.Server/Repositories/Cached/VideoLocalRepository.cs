@@ -74,7 +74,7 @@ namespace Shoko.Server.Repositories.Cached
                     //Fix possible paths in filename
                     if (!string.IsNullOrEmpty(a.FileName))
                     {
-                        int b = a.FileName.LastIndexOf("\\");
+                        int b = a.FileName.LastIndexOf($"{System.IO.Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                         if (b > 0)
                             a.FileName = a.FileName.Substring(b + 1);
                     }
@@ -87,7 +87,7 @@ namespace Shoko.Server.Repositories.Cached
                     .ToList()
                     .ForEach(a =>
                     {
-                        int b = a.FileName.LastIndexOf("\\");
+                        int b = a.FileName.LastIndexOf($"{System.IO.Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                         a.FileName = a.FileName.Substring(b + 1);
                         Save(a, false);
                     });

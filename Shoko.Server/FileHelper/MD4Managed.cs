@@ -21,7 +21,7 @@ namespace Shoko.Server.FileHelper
         {
             object obj = CryptoConfig.CreateFromName(hashName);
             // in case machine.config isn't configured to use any MD4 implementation
-            if (obj == null)
+            if (obj == null || Utils.IsRunningOnMono())
                 obj = new MD4Managed();
 
             return (MD4) obj;
