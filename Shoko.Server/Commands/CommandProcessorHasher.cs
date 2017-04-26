@@ -81,7 +81,7 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent(new QueueCountEventArgs(queueCount));
+                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
             }
         }
@@ -103,7 +103,7 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
-                    OnQueueStateChangedEvent(new QueueStateEventArgs(queueState));
+                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
                 }
             }
         }

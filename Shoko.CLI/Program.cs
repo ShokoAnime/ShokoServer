@@ -22,14 +22,10 @@ namespace Shoko.CLI
                     }
                 }
             }
-
-            Console.WriteLine("ServerSettings.LoadSettings()");
+            
             ServerSettings.LoadSettings();
-
-            Console.WriteLine("ServerState.Instance.LoadSettings()");
             ServerState.Instance.LoadSettings();
-
-            Console.WriteLine("ShokoServer.Instance.StartUpServer()");
+            
             ShokoServer.Instance.StartUpServer();
 
             ShokoServer.RunWorkSetupDB();
