@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using FileStream = System.IO.FileStream;
+using FileMode = System.IO.FileMode;
+using FileAccess = System.IO.FileAccess;
+using FileShare = System.IO.FileShare;
+using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
 using System.Threading;
 using System.Xml;
 using Shoko.Models;
 using Shoko.Models.Azure;
 using Shoko.Server.Repositories.Direct;
-using Path = Pri.LongPath.Path;
-using File = Pri.LongPath.File;
-using FileInfo = Pri.LongPath.FileInfo;
+using Pri.LongPath;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -81,7 +83,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_ProcessFile: {0} - {1}", FileName, ex.ToString());
+                logger.Error(ex, "Error processing file: {0}\n{1}", FileName, ex.ToString());
                 return;
             }
         }

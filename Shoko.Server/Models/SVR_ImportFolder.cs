@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.Script.Serialization;
@@ -11,6 +10,7 @@ using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Pri.LongPath;
 
 namespace Shoko.Server.Models
 {

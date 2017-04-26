@@ -1,26 +1,18 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using FluentNHibernate.Utils;
-using Shoko.Models;
 using Shoko.Models.Server;
 using Shoko.Models.Azure;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
-using Nancy.Extensions;
 using Shoko.Server.Commands.Azure;
 using NLog;
 using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Extensions;
 using Shoko.Server.Models;
-using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
@@ -28,8 +20,8 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Models.TvDB;
-using File = Pri.LongPath.File;
 using Shoko.Server.Extensions;
+using File = Pri.LongPath.File;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server

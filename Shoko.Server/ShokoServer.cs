@@ -4,7 +4,11 @@ using System.ComponentModel;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
+using FileSystemEventArgs = System.IO.FileSystemEventArgs;
+using RenamedEventArgs = System.IO.RenamedEventArgs;
+using WatcherChangeTypes = System.IO.WatcherChangeTypes;
+using FileAttributes = System.IO.FileAttributes;
+using SearchOption = System.IO.SearchOption;
 using System.Linq;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
@@ -42,6 +46,7 @@ using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using UPnP;
+using Pri.LongPath;
 
 namespace Shoko.Server
 {
@@ -429,34 +434,40 @@ namespace Shoko.Server
                             // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
                             // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
 
-                            FileAttributes attr = File.GetAttributes(evt.FullPath);
+                            FileAttributes attr = File.GetAttributes(evt.FullPath); // sometimes throws, sometimes not
                             if (attr.HasFlag(FileAttributes.Directory))
                             {
-                                logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                                foreach (string file in files)
+                                if (Directory.Exists(evt.FullPath)) // filter out invalid events
                                 {
-                                    if (FileHashHelper.IsVideo(file))
-                                    {
-                                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+                                    logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                        cmd.Save();
+                                    string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+
+                                    foreach (string file in files)
+                                    {
+                                        if (FileHashHelper.IsVideo(file))
+                                        {
+                                            logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+
+                                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
+                                            cmd.Save();
+                                        }
                                     }
                                 }
                             }
-                            else if (File.Exists(evt.FullPath))
+                            else
                             {
-                                logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                if (File.Exists(evt.FullPath)) // filter out invalid events
                                 {
-                                    logger.Info("Found file {0}", evt.FullPath);
+                                    logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
-                                    cmd.Save();
+                                    if (FileHashHelper.IsVideo(evt.FullPath))
+                                    {
+                                        logger.Info("Found file {0}", evt.FullPath);
+
+                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                        cmd.Save();
+                                    }
                                 }
                             }
                         }
@@ -465,7 +476,7 @@ namespace Shoko.Server
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, ex.ToString());
+                    logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex.ToString());
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
                 }
@@ -1178,8 +1189,8 @@ namespace Shoko.Server
                         fsw.Path = share.ImportFolderLocation;
 
                         // Handle all type of events not just created ones
-                        fsw.Created += fsw_Handler;
-                        fsw.Renamed += fsw_Handler;
+                        fsw.Created += fsw_CreateHandler;
+                        fsw.Renamed += fsw_RenameHandler;
 
                         // Commented out buffer size as it breaks on UNC paths or mapped drives
                         //fsw.InternalBufferSize = 81920;
@@ -1213,7 +1224,20 @@ namespace Shoko.Server
             StopCloudWatchTimer();
         }
 
-        static void fsw_Handler(object sender, FileSystemEventArgs e)
+        static void fsw_CreateHandler(object sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                queueFileEvents.Add(e);
+                StartFileWorker();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
+
+        static void fsw_RenameHandler(object sender, RenamedEventArgs e)
         {
             try
             {
@@ -1385,7 +1409,17 @@ namespace Shoko.Server
             //nancy will rewrite localhost into http://+:port
             HostConfiguration config = new HostConfiguration();
             // set Nancy Hosting config here
-            config.UnhandledExceptionCallback = exception => { logger.Error(exception); };
+            config.UnhandledExceptionCallback = exception =>
+            {
+                if (exception is System.Net.HttpListenerException)
+                {
+                    logger.Error("An network serve operation took too long and timed out.");
+                }
+                else
+                {
+                    logger.Error(exception);
+                }
+            };
             // This requires admin, so throw an error if it fails
             // Don't let Nancy do this. We do it ourselves.
             // This needs to throw an error for our url registration to call.

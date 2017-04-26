@@ -1,12 +1,13 @@
 ﻿using System;
-using System.IO;
+using FileInfo = System.IO.FileInfo;
+using FileStream = System.IO.FileStream;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
-using Path = Pri.LongPath.Path;
+using Pri.LongPath;
 
 namespace Shoko.Server.FileHelper
 {
