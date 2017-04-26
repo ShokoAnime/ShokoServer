@@ -144,6 +144,7 @@
     <Compile Include="Languages\Languages.cs" />
     <Compile Include="Languages\NamingLanguage.cs" />
     <Compile Include="Utils\Misc.cs" />
+    <Compile Include="Utils\NaturalSortComparer.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
