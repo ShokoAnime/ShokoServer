@@ -263,7 +263,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
                 ret.VideoLocal = null;
-                ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+                ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
             return ret;
@@ -316,14 +316,12 @@ namespace Shoko.Server
 
                         try
                         {
-                            logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName,
-                                newFullName));
+                            logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
 
                             if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                             {
-                                logger.Info(string.Format(
-                                    "Renaming file SKIPPED, no change From ({0}) to ({1})",
-                                    fullFileName, newFullName));
+                                logger.Info(
+                                    $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
                                 ret.NewFileName = newFullName;
                                 name = Path.GetFileName(fullFileName);
                             }
@@ -332,9 +330,7 @@ namespace Shoko.Server
                                 string dir = Path.GetDirectoryName(newFullName);
 
                                 ((IFile) obj.Result).Rename(ret.NewFileName);
-                                logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})",
-                                    fullFileName,
-                                    newFullName));
+                                logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
                                 ret.NewFileName = newFullName;
                                 var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
                                 place.FilePath = tup.Item2;
@@ -344,9 +340,7 @@ namespace Shoko.Server
                         }
                         catch (Exception ex)
                         {
-                            logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}",
-                                fullFileName,
-                                newFullName, ex.Message));
+                            logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                             logger.Error(ex, ex.ToString());
                             ret.Success = false;
                             ret.NewFileName = ex.Message;
@@ -361,7 +355,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
                 ret.VideoLocal = null;
-                ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+                ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
             return ret;
