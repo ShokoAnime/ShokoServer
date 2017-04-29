@@ -372,7 +372,7 @@ namespace Shoko.Server
                         if (dirs == null || !dirs.IsOk) return result;
                         return dirs.Result.Select(a => a.FullName).OrderByNatural(a => a).ToList();
                     }
-                    else if (path.Equals("null"))
+                    if (path.Equals("null"))
                     {
                         path = "";
                     }
