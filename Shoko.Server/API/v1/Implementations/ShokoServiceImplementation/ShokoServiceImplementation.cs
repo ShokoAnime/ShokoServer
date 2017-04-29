@@ -17,6 +17,7 @@ using Shoko.Models.Interfaces;
 using NLog;
 using Shoko.Server.API.core;
 using NutzCode.CloudFileSystem;
+using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.MAL;
@@ -353,7 +354,7 @@ namespace Shoko.Server
                     FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
                         .FirstOrDefault(a => a.Name == "Local File System")
                         ?.Init("", null, null);
-                    if (ff.IsOk)
+                    if (ff?.IsOk ?? false)
                         n = ff.Result;
                 }
                 else
@@ -364,14 +365,25 @@ namespace Shoko.Server
                 }
                 if (n != null)
                 {
-                    FileSystemResult<IObject> dirr = n.Resolve(path);
+                    FileSystemResult<IObject> dirr;
+                    if ((n as LocalFileSystem) != null && path.Equals("null"))
+                    {
+                        FileSystemResult<List<IDirectory>> dirs = (n as LocalFileSystem).GetRoots();
+                        if (dirs == null || !dirs.IsOk) return result;
+                        return dirs.Result.Select(a => a.FullName).OrderByNatural(a => a).ToList();
+                    }
+                    else if (path.Equals("null"))
+                    {
+                        path = "";
+                    }
+                    dirr = n.Resolve(path);
                     if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
                         return null;
                     IDirectory dir = dirr.Result as IDirectory;
                     FileSystemResult fr = dir.Populate();
-                    if (!fr.IsOk)
+                    if (!fr?.IsOk ?? true)
                         return result;
-                    return dir.Directories.Select(a => a.FullName).OrderBy(a => a).ToList();
+                    return dir.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
                 }
             }
             catch (Exception ex)
@@ -802,10 +814,10 @@ namespace Shoko.Server
                 ns.IsWatched = contract.IsWatched;
                 ns.ImportFolderType = contract.ImportFolderType;
                 ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID;
-                ;
+
                 RepoFactory.ImportFolder.Save(ns);
 
-                response.Result = ns;
+                response.Result = (ImportFolder) ns;
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
                     ServerInfo.Instance.RefreshImportFolders();

@@ -84,6 +84,9 @@ namespace Shoko.Server.Models
 
         private IFileSystem _filesystem;
 
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public IFileSystem FileSystem
         {
             get
@@ -133,7 +136,9 @@ namespace Shoko.Server.Models
             }
         }
 
-
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public IDirectory BaseDirectory
         {
             get
@@ -157,9 +162,19 @@ namespace Shoko.Server.Models
             get { return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem"; }
         }
 
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public bool FolderIsWatched => IsWatched == 1;
 
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public bool FolderIsDropSource => IsDropSource == 1;
+
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public bool FolderIsDropDestination => IsDropDestination == 1;
 
         public override string ToString()
