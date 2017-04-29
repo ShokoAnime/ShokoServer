@@ -34,6 +34,7 @@ namespace Shoko.Commons.Extensions
 
         public static string ToRanges(this List<int> ints) {
             if (ints.Count < 1) return "";
+            if (ints.Count == 1) return ints[0].ToString();
             ints.Sort();
             var lng = ints.Count;
             var fromnums = new List<int>();
