@@ -50,7 +50,7 @@ namespace Shoko.UI
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            if (!ShokoServer.Instance.StartUpServer())
+            if (!ServerSettings.FirstRun && !ShokoServer.Instance.StartUpServer())
             {
                 MessageBox.Show(Commons.Properties.Resources.Server_Running,
                     Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
