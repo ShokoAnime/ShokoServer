@@ -50,7 +50,7 @@ namespace Shoko.Server
         public static bool Set(string key, string value)
         {
             string orig = Get(key);
-            if (value == orig) return false;
+            if (value.Equals(orig)) return false;
 
             appSettings[key] = value;
             SaveSettings();

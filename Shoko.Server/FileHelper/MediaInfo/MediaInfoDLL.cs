@@ -15,10 +15,10 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 using System;
-using System.IO;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security;
+using Pri.LongPath;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
 
@@ -232,14 +232,14 @@ namespace MediaInfoLib
                 return 0;
             if (MustUseAnsi)
             {
-                IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);
+                IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi("\\\\?\\"+FileName); // prepend "no long path check" prefix
                 int ToReturn = (int) MediaInfoA_Open(Handle, FileName_Ptr);
                 Marshal.FreeHGlobal(FileName_Ptr);
                 return ToReturn;
             }
             try
             {
-                return (int) MediaInfo_Open(Handle, FileName);
+                return (int) MediaInfo_Open(Handle, "\\\\?\\"+FileName); // prepend "no long path check" prefix
             }
             catch (Exception)
             {

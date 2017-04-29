@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
 using AniDBAPI;
@@ -24,6 +23,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
+using Pri.LongPath;
 
 namespace Shoko.Server.Models
 {

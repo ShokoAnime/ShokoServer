@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.Script.Serialization;
@@ -12,6 +11,7 @@ using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Pri.LongPath;
 
 namespace Shoko.Server.Models
 {
@@ -84,7 +84,7 @@ namespace Shoko.Server.Models
 
         private IFileSystem _filesystem;
 
-        internal IFileSystem FileSystem
+        public IFileSystem FileSystem
         {
             get
             {
@@ -134,7 +134,7 @@ namespace Shoko.Server.Models
         }
 
 
-        internal IDirectory BaseDirectory
+        public IDirectory BaseDirectory
         {
             get
             {
@@ -152,15 +152,15 @@ namespace Shoko.Server.Models
         }
 
 
-        internal string CloudAccountName
+        public string CloudAccountName
         {
             get { return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem"; }
         }
 
-        internal bool FolderIsWatched => IsWatched == 1;
+        public bool FolderIsWatched => IsWatched == 1;
 
-        internal bool FolderIsDropSource => IsDropSource == 1;
-        internal bool FolderIsDropDestination => IsDropDestination == 1;
+        public bool FolderIsDropSource => IsDropSource == 1;
+        public bool FolderIsDropDestination => IsDropDestination == 1;
 
         public override string ToString()
         {

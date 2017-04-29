@@ -21,8 +21,8 @@ using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Pri.LongPath;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Models
 {

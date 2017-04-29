@@ -1,9 +1,13 @@
 ﻿using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
 using System;
 using System.ComponentModel;
-using System.IO;
+using FileNotFoundException = System.IO.FileNotFoundException;
+using DirectoryNotFoundException = System.IO.DirectoryNotFoundException;
+using ErrorEventArgs = System.IO.ErrorEventArgs;
+using InternalBufferOverflowException = System.IO.InternalBufferOverflowException;
 using System.Threading;
 using NLog;
+using Pri.LongPath;
 
 namespace LeanWork.IO.FileSystem
 {
