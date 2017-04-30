@@ -14,5 +14,6 @@ namespace Shoko.Models.Enums
         FILE_ISV5 = 32, // file is version 5
         FILE_UNC = 64, // file is uncensored
         FILE_CEN = 128, // file is censored
+        FILE_CHAPTERED = 4096 // file is chaptered, 0 means both not set and false
     }
 }

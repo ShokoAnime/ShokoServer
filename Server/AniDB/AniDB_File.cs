@@ -37,6 +37,7 @@ namespace Shoko.Models.Server
         public int IsCensored { get; set; }
         public int IsDeprecated { get; set; }
         public int InternalVersion { get; set; }
+        public int IsChaptered { get; set; }
 
         #endregion
     }
