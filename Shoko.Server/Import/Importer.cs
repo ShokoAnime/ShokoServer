@@ -834,7 +834,7 @@ namespace Shoko.Server
                     {
                         FileSystemResult<IObject> obj = null;
                         if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
-                        if (obj == null || obj.IsOk || obj.Result is IDirectory) continue;
+                        if (obj != null && obj.IsOk) continue;
                         // delete video local record
                         vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     }
