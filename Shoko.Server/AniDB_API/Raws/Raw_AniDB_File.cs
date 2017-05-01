@@ -77,6 +77,8 @@ namespace AniDBAPI
 
         public int IsDeprecated { get; set; }
 
+	    public int IsChaptered { get; set; }
+
         public int InternalVersion
         {
             get { return 2; }
@@ -209,6 +211,8 @@ namespace AniDBAPI
 
                 if (BitMaskHelper.IsSet(eState, AniDBFileState.FILE_CEN))
                     IsCensored = 1;
+
+	            IsChaptered = BitMaskHelper.IsSet(eState, AniDBFileState.FILE_CHAPTERED) ? 1 : 0;
             }
 
             int isdep = 0;

@@ -93,7 +93,7 @@ namespace Shoko.Server
                         result &= CheckAudioStreamCount(aniFile);
                         break;
                     case FileQualityFilterType.CHAPTER:
-                        result &= CheckChaptered(file);
+                        result &= CheckChaptered(aniFile);
                         break;
                     case FileQualityFilterType.RESOLUTION:
                         result &= CheckResolution(aniFile);
@@ -154,10 +154,9 @@ namespace Shoko.Server
             return true;
         }
 
-        private static bool CheckChaptered(SVR_VideoLocal file)
+        private static bool CheckChaptered(AniDB_File aniFile)
         {
-
-            return true;
+            return aniFile.IsChaptered == 1;
         }
 
         private static bool CheckDeprecated(AniDB_File aniFile)
@@ -294,7 +293,7 @@ namespace Shoko.Server
                         break;
 
                     case FileQualityFilterType.CHAPTER:
-                        result = CompareChapterTo(newFile, oldFile);
+                        result = CompareChapterTo(newEp, oldEp);
                         break;
 
                     case FileQualityFilterType.RESOLUTION:
@@ -354,9 +353,11 @@ namespace Shoko.Server
             return oldStreamCount.CompareTo(newStreamCount);
         }
 
-        private static int CompareChapterTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
+        private static int CompareChapterTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            return 0;
+            if (newFile.IsChaptered == 1 && oldFile.IsChaptered != 1) return -1;
+            if (newFile.IsChaptered != 1 && oldFile.IsChaptered == 1) return 1;
+            return oldFile.IsChaptered.CompareTo(newFile.IsChaptered);
         }
 
         private static int CompareResolutionTo(AniDB_File newFile, AniDB_File oldFile)

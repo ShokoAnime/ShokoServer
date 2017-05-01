@@ -1083,6 +1083,13 @@ namespace Shoko.Server
                         if (!vidsToUpdate.Contains(vid.VideoLocalID))
                             vidsToUpdate.Add(vid.VideoLocalID);
                     }
+
+                    vids = RepoFactory.VideoLocal.GetWithMissingChapters();
+                    foreach (SVR_VideoLocal vid in vids)
+                    {
+                        if (!vidsToUpdate.Contains(vid.VideoLocalID))
+                            vidsToUpdate.Add(vid.VideoLocalID);
+                    }
                 }
 
                 if (outOfDate)
