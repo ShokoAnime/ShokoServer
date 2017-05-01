@@ -15,6 +15,7 @@ namespace Shoko.Models.Client
         public bool NormalComplete { get; set; }
         public int FileCountSpecials { get; set; }
         public bool SpecialsComplete { get; set; }
+        public bool IsChaptered { get; set; }
 
         public double TotalFileSize { get; set; }
         public long TotalRunningTime { get; set; }
