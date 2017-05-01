@@ -250,7 +250,14 @@ namespace Shoko.Server.Commands
                     }
 
                     logger.Trace("Processing command request: {0}", crdb.CommandID);
-                    icr.ProcessCommand();
+                    try
+                    {
+                        icr.ProcessCommand();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex.ToString());
+                    }
                 }
 
                 logger.Trace("Deleting command request: {0}", crdb.CommandID);
