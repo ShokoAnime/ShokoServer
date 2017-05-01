@@ -12,12 +12,15 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
+using NLog;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
     public class CommandRequest_LinkFileManually : CommandRequestImplementation, ICommandRequest
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public int VideoLocalID { get; set; }
         public int EpisodeID { get; set; }
         public int Percentage { get; set; }
@@ -66,6 +69,11 @@ namespace Shoko.Server.Commands
         public override void ProcessCommand()
         {
             vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+            if (null==vlocal)
+            {
+                logger.Info("videolocal object {0} not found", VideoLocalID);
+                return;
+            }
             episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
             CrossRef_File_Episode xref = new CrossRef_File_Episode();
             try
@@ -78,12 +86,11 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                string msg = string.Format("Error populating XREF: {0}", vlocal.ToStringDetailed());
+                logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
                 throw;
             }
             RepoFactory.CrossRef_File_Episode.Save(xref);
-            CommandRequest_WebCacheSendXRefFileEpisode cr =
-                new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
+            CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
             if (ServerSettings.FileQualityFilterEnabled)
