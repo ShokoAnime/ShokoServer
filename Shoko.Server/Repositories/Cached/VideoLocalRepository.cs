@@ -388,6 +388,23 @@ namespace Shoko.Server.Repositories.Cached
             }*/
         }
 
+        public List<SVR_VideoLocal> GetWithMissingChapters()
+        {
+            return RepoFactory.AniDB_File.GetWithWithMissingChapters()
+                .Select(a => GetByHash(a.Hash))
+                .Where(a => a != null)
+                .ToList();
+            /*
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return
+                    session.CreateQuery(
+                        "Select vl.VideoLocalID FROM VideoLocal as vl, AniDB_File as xref WHERE vl.Hash = xref.Hash AND vl.FileSize = xref.FileSize AND xref.InternalVersion= :iver")
+                        .SetParameter("iver", iver)
+                        .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
+            }*/
+        }
+
         /// <summary>
         /// returns all the VideoLocal records associate with an AniDB_Anime Record
         /// </summary>

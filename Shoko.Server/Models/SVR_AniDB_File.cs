@@ -292,6 +292,7 @@ namespace Shoko.Server.Models
             anidbfile.FileVersion = fileInfo.FileVersion;
             anidbfile.IsCensored = fileInfo.IsCensored;
             anidbfile.IsDeprecated = fileInfo.IsDeprecated;
+            anidbfile.IsChaptered = fileInfo.IsChaptered;
             anidbfile.InternalVersion = fileInfo.InternalVersion;
 
             anidbfile.languagesRAW = fileInfo.LanguagesRAW;

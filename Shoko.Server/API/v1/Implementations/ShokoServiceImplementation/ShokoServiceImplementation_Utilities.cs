@@ -1369,6 +1369,7 @@ namespace Shoko.Server
                 contract.AudioStreamCount = videoLocals.First()
                     .Media.Parts.SelectMany(a => a.Streams)
                     .Count(a => a.StreamType.Equals("2"));
+                contract.IsChaptered = (ani?.IsChaptered ?? 0) == 1;
                 contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode);
                 contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;
