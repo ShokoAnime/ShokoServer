@@ -365,6 +365,11 @@
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="Commands\CommandRequest_LinkFileManually.cs" />
+    <Compile Include="Commands\Import\CommandRequest_DownloadImage.cs" />
+    <Compile Include="Commands\Import\CommandRequest_HashFile.cs" />
+    <Compile Include="Commands\Import\CommandRequest_ProcessFile.cs" />
+    <Compile Include="Commands\Import\CommandRequest_ReadMediaInfo.cs" />
+    <Compile Include="Commands\MovieDB\CommandRequest_MovieDBSearchAnime.cs" />
     <Compile Include="Commands\Plex\CommandRequest_PlexSyncWatched.cs" />
     <Compile Include="Commands\Plex\PlexHelper.cs" />
     <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
@@ -459,7 +464,6 @@
     <Compile Include="Commands\CommandRequestImplementation.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_AddFileToMyList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_DeleteFileFromMyList.cs" />
-    <Compile Include="Commands\CommandRequest_DownloadImage.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetAniDBTitles.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetAnimeHTTP.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetCalendar.cs" />
@@ -467,12 +471,8 @@
     <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroupStatus.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetReviews.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetUpdated.cs" />
-    <Compile Include="Commands\CommandRequest_HashFile.cs" />
-    <Compile Include="Commands\CommandRequest_MovieDBSearchAnime.cs" />
-    <Compile Include="Commands\CommandRequest_ProcessFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyVotes.cs" />
-    <Compile Include="Commands\CommandRequest_ReadMediaInfo.cs" />
     <Compile Include="Commands\CommandRequest_RefreshAnime.cs" />
     <Compile Include="Commands\MAL\CommandRequest_MALDownloadStatusFromMAL.cs" />
     <Compile Include="Commands\MAL\CommandRequest_MALSearchAnime.cs" />

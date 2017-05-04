@@ -606,6 +606,7 @@ namespace Shoko.Server
                 ServerSettings.WebCache_UserInfo = contractIn.WebCache_UserInfo;
 
                 // TvDB
+                ServerSettings.TvDB_AutoLink = contractIn.TvDB_AutoLink;
                 ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;
                 ServerSettings.TvDB_AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
                 ServerSettings.TvDB_AutoPosters = contractIn.TvDB_AutoPosters;
@@ -655,6 +656,7 @@ namespace Shoko.Server
                 ServerSettings.Trakt_DownloadPosters = contractIn.Trakt_DownloadPosters;
 
                 // MAL
+                ServerSettings.MAL_AutoLink = contractIn.MAL_AutoLink;
                 ServerSettings.MAL_Username = contractIn.MAL_Username;
                 ServerSettings.MAL_Password = contractIn.MAL_Password;
                 ServerSettings.MAL_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.MAL_UpdateFrequency;
