@@ -183,7 +183,12 @@ namespace Shoko.Server
                         break;
 
                     case FileSearchCriteria.LastOneHundred:
-                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(100);
+                        int number = 100;
+                        if (!string.IsNullOrEmpty(searchCriteria))
+                        {
+                            int.TryParse(searchCriteria, out number);
+                        }
+                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number);
                         foreach (SVR_VideoLocal vid in results2)
                             vids.Add(vid.ToClient(userID));
                         break;
