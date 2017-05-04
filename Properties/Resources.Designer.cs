@@ -9844,6 +9844,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Recent.
+        /// </summary>
+        public static string Rename_Last {
+            get {
+                return ResourceManager.GetString("Rename_Last", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Is Manually Linked.
         /// </summary>
         public static string Rename_ManuallyLinked {

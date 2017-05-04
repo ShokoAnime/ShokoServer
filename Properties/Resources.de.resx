@@ -5340,4 +5340,7 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Versuchen Sie, MAL namentlich Serie automatisch verbinden</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Den letzten</value>
+  </data>
 </root>

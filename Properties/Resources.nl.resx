@@ -5340,4 +5340,7 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Proberen om automatisch koppelen MAL door reeksnaam</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Recente</value>
+  </data>
 </root>

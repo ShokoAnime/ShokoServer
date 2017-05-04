@@ -5340,4 +5340,7 @@
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Попытаться автоматически связать мал по имени серии</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Последние</value>
+  </data>
 </root>

@@ -5340,4 +5340,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Try to automatically link MAL by Series Name</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Recent</value>
+  </data>
 </root>

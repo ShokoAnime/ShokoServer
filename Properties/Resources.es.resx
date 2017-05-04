@@ -5340,4 +5340,7 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Intentar vincular automáticamente MAL por el nombre de la serie</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Recientes</value>
+  </data>
 </root>

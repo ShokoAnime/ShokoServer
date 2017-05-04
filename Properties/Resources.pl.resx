@@ -5342,4 +5342,7 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Spróbuj połączyć automatycznie MAL przez nazwa serii</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Ostatnie</value>
+  </data>
 </root>

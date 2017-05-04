@@ -5340,4 +5340,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Provare a collegare automaticamente MAL di nome serie</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Recenti</value>
+  </data>
 </root>

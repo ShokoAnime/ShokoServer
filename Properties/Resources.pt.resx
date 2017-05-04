@@ -5340,4 +5340,7 @@
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Tentar vincular automaticamente MAL pelo nome da série</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Recentes</value>
+  </data>
 </root>

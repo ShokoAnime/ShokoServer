@@ -5340,4 +5340,7 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Essayez de lier automatiquement MAL par son nom de la série</value>
   </data>
+  <data name="Rename_Last" xml:space="preserve">
+    <value>Ces dernières</value>
+  </data>
 </root>
