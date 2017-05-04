@@ -186,7 +186,8 @@ namespace Shoko.Server
                         int number = 100;
                         if (!string.IsNullOrEmpty(searchCriteria))
                         {
-                            int.TryParse(searchCriteria, out number);
+                            int temp;
+                            if (int.TryParse(searchCriteria, out temp)) number = temp;
                         }
                         List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number);
                         foreach (SVR_VideoLocal vid in results2)
