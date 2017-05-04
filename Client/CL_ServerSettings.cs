@@ -49,8 +49,8 @@ namespace Shoko.Models.Client
         public bool WebCache_MAL_Send { get; set; }
         public bool WebCache_UserInfo { get; set; }
 
-
         // TvDB
+        public bool TvDB_AutoLink { get; set; }
         public bool TvDB_AutoFanart { get; set; }
         public int TvDB_AutoFanartAmount { get; set; }
         public bool TvDB_AutoWideBanners { get; set; }
@@ -61,6 +61,7 @@ namespace Shoko.Models.Client
         public string TvDB_Language { get; set; }
 
         // MovieDB
+        // Auto Linking will follow TvDB preference
         public bool MovieDB_AutoFanart { get; set; }
         public int MovieDB_AutoFanartAmount { get; set; }
         public bool MovieDB_AutoPosters { get; set; }
@@ -88,6 +89,7 @@ namespace Shoko.Models.Client
         public int SeriesNameSource { get; set; }
 
         // Trakt
+        // Auto Linking will follow TvDB preference
         public bool Trakt_IsEnabled { get; set; }
         public string Trakt_AuthToken { get; set; }
         public string Trakt_RefreshToken { get; set; }
@@ -99,6 +101,7 @@ namespace Shoko.Models.Client
         public bool Trakt_DownloadEpisodes { get; set; }
 
         // MAL
+        public bool MAL_AutoLink { get; set; }
         public string MAL_Username { get; set; }
         public string MAL_Password { get; set; }
         public int MAL_UpdateFrequency { get; set; }
