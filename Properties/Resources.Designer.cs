@@ -7432,6 +7432,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Try to automatically link MAL by Series Name.
+        /// </summary>
+        public static string MAL_AutoLink {
+            get {
+                return ResourceManager.GetString("MAL_AutoLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Check MAL Credentials.
         /// </summary>
         public static string MAL_CheckCred {
@@ -14124,6 +14133,15 @@ namespace Shoko.Commons.Properties {
         public static string TryAgain {
             get {
                 return ResourceManager.GetString("TryAgain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Try to automatically link TvDB, Trakt, and MovieDB by Series Name.
+        /// </summary>
+        public static string TvDB_AutoLink {
+            get {
+                return ResourceManager.GetString("TvDB_AutoLink", resourceCulture);
             }
         }
         

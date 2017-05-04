@@ -5336,4 +5336,10 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi Audio</value>
   </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Spróbuj połączyć automatycznie TvDB, Trakt i MovieDB przez nazwa serii</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Spróbuj połączyć automatycznie MAL przez nazwa serii</value>
+  </data>
 </root>

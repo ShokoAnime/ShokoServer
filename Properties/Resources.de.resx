@@ -5334,4 +5334,10 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi-Audio</value>
   </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Versuchen Sie, TvDB, Trakt und MovieDB namentlich Serie automatisch verbinden</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Versuchen Sie, MAL namentlich Serie automatisch verbinden</value>
+  </data>
 </root>

@@ -5334,4 +5334,10 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi Audio</value>
   </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Probeer automatisch koppelen TvDB, Trakt, en MovieDB door de naam van de serie</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Proberen om automatisch koppelen MAL door reeksnaam</value>
+  </data>
 </root>

@@ -5334,4 +5334,10 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi Audio</value>
   </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Intentar vincular automáticamente TvDB Trakt y MovieDB por nombre de la serie</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Intentar vincular automáticamente MAL por el nombre de la serie</value>
+  </data>
 </root>

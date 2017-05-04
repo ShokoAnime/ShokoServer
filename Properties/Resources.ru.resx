@@ -5334,4 +5334,10 @@
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi-аудио</value>
   </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Попытаться автоматически связать TvDB, тракт и MovieDB, название серии</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Попытаться автоматически связать мал по имени серии</value>
+  </data>
 </root>
