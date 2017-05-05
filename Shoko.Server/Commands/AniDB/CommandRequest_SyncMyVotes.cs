@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
+using Shoko.Models.Queue;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.AniDB_API.Commands;

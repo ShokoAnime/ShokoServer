@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 

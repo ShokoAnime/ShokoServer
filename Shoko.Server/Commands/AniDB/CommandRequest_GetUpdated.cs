@@ -6,6 +6,7 @@ using System.Xml;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Commons.Utils;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;

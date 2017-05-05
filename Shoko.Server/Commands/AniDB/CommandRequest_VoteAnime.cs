@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Models.Server;
 using AniDBAPI;
+using Shoko.Models.Queue;
 using Shoko.Server.Commands.MAL;
 
 namespace Shoko.Server.Commands

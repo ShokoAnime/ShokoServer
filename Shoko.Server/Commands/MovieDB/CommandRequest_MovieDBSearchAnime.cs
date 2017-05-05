@@ -7,6 +7,7 @@ using Shoko.Server.Repositories.Direct;
 using NHibernate;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;

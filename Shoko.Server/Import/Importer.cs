@@ -1145,7 +1145,7 @@ namespace Shoko.Server
                                                b.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays))
                 .ToList();
             foreach (SVR_GroupFilter g in evalfilters)
-                g.EvaluateAnimeGroups();
+                g.CalculateGroupsAndSeries();
             if (sched == null)
             {
                 sched = new ScheduledUpdate();

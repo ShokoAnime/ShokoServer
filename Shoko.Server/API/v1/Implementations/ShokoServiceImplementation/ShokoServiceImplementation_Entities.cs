@@ -1895,7 +1895,7 @@ namespace Shoko.Server
                             RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
                         else
                         {
-                            gf.EvaluateAnimeGroups();
+                            gf.CalculateGroupsAndSeries();
                             RepoFactory.GroupFilter.Save(gf);
                         }
                     }
@@ -3006,8 +3006,7 @@ namespace Shoko.Server
                 }
             }
             gf = SVR_GroupFilter.FromClient(contract);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
             response.Result = gf.ToClient();
             return response;

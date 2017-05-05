@@ -13,6 +13,7 @@ using Shoko.Models.Azure;
 using Shoko.Server.Repositories.Direct;
 using Pri.LongPath;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
