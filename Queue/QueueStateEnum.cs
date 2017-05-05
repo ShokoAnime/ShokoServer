@@ -63,6 +63,9 @@ namespace Shoko.Models.Queue
         AniDB_GetTitles,
         Actions_SyncVotes,
         LinkAniDBTvDB,
+        CheckingFile,
+        RefreshGroupFilter,
+        SyncPlex,
         LinkFileManually,
     }
 }
