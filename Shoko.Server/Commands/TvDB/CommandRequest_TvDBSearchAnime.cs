@@ -109,6 +109,8 @@ namespace Shoko.Server.Commands
                         }
                     }
 
+                    if (!ServerSettings.TvDB_AutoLink) return;
+
                     string searchCriteria = "";
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null) return;

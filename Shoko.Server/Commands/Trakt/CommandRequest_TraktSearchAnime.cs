@@ -154,6 +154,9 @@ namespace Shoko.Server.Commands
                         if (doReturn) return;
                     }
 
+                    // Use TvDB setting due to similarity
+                    if (!ServerSettings.TvDB_AutoLink) return;
+
                     // finally lets try searching Trakt directly
                     string searchCriteria = "";
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);

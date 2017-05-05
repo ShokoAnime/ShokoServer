@@ -564,7 +564,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(60, 1, DatabaseFixes.FixTagsWithInclude),
             new DatabaseCommand(61, 1, DatabaseFixes.MakeYearsApplyToSeries),
             new DatabaseCommand(62, 1, "ALTER TABLE JMMUser ADD PlexToken text character set utf8"),
-            new DatabaseCommand(63, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT(-1)"),
+            new DatabaseCommand(63, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT -1"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

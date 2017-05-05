@@ -1027,7 +1027,10 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Select(a => a.ToClient(userID)).ToList();
+                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
+                    .DistinctBy(a => a.Places.First().FilePath)
+                    .Select(a => a.ToClient(userID))
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -2293,6 +2296,14 @@ namespace Shoko.Server
                             new CommandRequest_TraktSearchAnime(anime.AnimeID, false);
                         cmd2.Save(session);
                     }
+
+                    if (anime.AnimeType == (int) enAnimeType.Movie)
+                    {
+                        CommandRequest_MovieDBSearchAnime cmd3 =
+                            new CommandRequest_MovieDBSearchAnime(anime.AnimeID, false);
+                        cmd3.Save(session);
+                    }
+
                     response.Result = ser.GetUserContract(userID);
                     return response;
                 }

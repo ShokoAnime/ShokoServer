@@ -6,6 +6,7 @@ using Nancy;
 using Shoko.Models.Client;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -50,59 +51,46 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     filter.size = groupsh.Count;
 
-                    int rand_art_iteration = 0;
-
                     // Populate Random Art
-                    while (rand_art_iteration < 3)
-                    {
-                        int index = new Random().Next(groupsh.Count);
-                        SVR_AnimeGroup randGrp = Repositories.RepoFactory.AnimeGroup.GetByID(groupsh.ToList()[index]);
-                        Video contract = randGrp?.GetPlexContract(uid);
-                        if (contract != null)
-                        {
-                            Random rand = new Random();
-                            Contract_ImageDetails art = new Contract_ImageDetails();
-                            // contract.Fanarts can be null even if contract isn't
-                            if (contract.Fanarts != null && contract.Fanarts.Count > 0)
-                            {
-                                art = contract.Fanarts[rand.Next(contract.Fanarts.Count)];
-                                filter.art.fanart.Add(new Art()
-                                {
-                                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
-                                    index = 0
-                                });
-                                rand_art_iteration = 3;
+                    List<SVR_AnimeGroup> groupsList = groupsh.Select(a => RepoFactory.AnimeGroup.GetByID(a))
+                        .Where(a => a != null)
+                        .ToList();
 
-                                // we only want banner if we have fanart, other way will desync images
-                                if (contract.Banners != null && contract.Banners.Count > 0)
-                                {
-                                    art = contract.Banners[rand.Next(contract.Banners.Count)];
-                                    filter.art.banner.Add(new Art()
-                                    {
-                                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
-                                        index = 0
-                                    });
-                                    if (!string.IsNullOrEmpty(contract.Thumb))
-                                    {
-                                        filter.art.thumb.Add(new Art()
-                                        {
-                                            url = APIHelper.ConstructImageLinkFromRest(ctx, contract.Thumb),
-                                            index = 0
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                        rand_art_iteration++;
+                    List<Video> arts = groupsList.Select(a => a.GetPlexContract(uid)).Where(contract =>
+                    {
+                        if (!(contract.Fanarts?.Any() ?? false)) return false;
+                        if (!(contract.Banners?.Any() ?? false)) return false;
+                        return !string.IsNullOrEmpty(contract.Art);
+                    }).ToList();
+
+                    if (arts.Count > 0)
+                    {
+                        Random rand = new Random();
+                        Video art = arts[rand.Next(arts.Count)];
+                        var fanart = art.Fanarts[rand.Next(art.Fanarts.Count)];
+                        filter.art.fanart.Add(new Art()
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType, fanart.ImageID)
+                        });
+                        var banner = art.Banners[rand.Next(art.Banners.Count)];
+                        filter.art.banner.Add(new Art()
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType, banner.ImageID)
+                        });
+                        filter.art.thumb.Add(new Art()
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromRest(ctx, art.Thumb)
+                        });
                     }
 
                     Dictionary<CL_AnimeGroup_User, Group> order = new Dictionary<CL_AnimeGroup_User, Group>();
                     if (level > 0)
                     {
-                        foreach (int gp in groupsh)
+                        foreach (SVR_AnimeGroup ag in groupsList)
                         {
-                            SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gp);
-                            if (ag == null) continue;
                             Group group =
                                 Group.GenerateFromAnimeGroup(ctx, ag, uid, nocast, notag, (level - 1), all,
                                     filter.id);

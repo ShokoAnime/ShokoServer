@@ -1358,6 +1358,17 @@ namespace Shoko.Server
 
         #region TvDB
 
+        public static bool TvDB_AutoLink
+        {
+            get
+            {
+                bool val = true;
+                bool.TryParse(Get("TvDB_AutoLink"), out val);
+                return val;
+            }
+            set { Set("TvDB_AutoLink", value.ToString()); }
+        }
+
         public static bool TvDB_AutoFanart
         {
             get
@@ -1927,6 +1938,17 @@ namespace Shoko.Server
 
         #region MAL
 
+        public static bool MAL_AutoLink
+        {
+            get
+            {
+                bool val = true;
+                bool.TryParse(Get("MAL_AutoLink"), out val);
+                return val;
+            }
+            set { Set("MAL_AutoLink", value.ToString()); }
+        }
+
         public static string MAL_Username
         {
             get { return Get("MAL_Username"); }
@@ -2068,6 +2090,7 @@ namespace Shoko.Server
             contract.WebCache_UserInfo = ServerSettings.WebCache_UserInfo;
 
             // TvDB
+            contract.TvDB_AutoLink = ServerSettings.TvDB_AutoLink;
             contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;
             contract.TvDB_AutoFanartAmount = ServerSettings.TvDB_AutoFanartAmount;
             contract.TvDB_AutoPosters = ServerSettings.TvDB_AutoPosters;
@@ -2116,6 +2139,7 @@ namespace Shoko.Server
             contract.Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters;
 
             // MAL
+            contract.MAL_AutoLink = ServerSettings.MAL_AutoLink;
             contract.MAL_Username = ServerSettings.MAL_Username;
             contract.MAL_Password = ServerSettings.MAL_Password;
             contract.MAL_UpdateFrequency = (int) ServerSettings.MAL_UpdateFrequency;
