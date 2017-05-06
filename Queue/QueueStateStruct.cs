@@ -51,6 +51,8 @@ namespace Shoko.Commons.Queue
                     return Resources.Command_GetUpdatedAnime;
                 case QueueStateEnum.HashingFile:
                     return Resources.Command_HashingFile;
+                case QueueStateEnum.CheckingFile:
+                    return Resources.Command_CheckingFile;
                 case QueueStateEnum.Idle:
                     return Resources.Command_Idle;
                 case QueueStateEnum.Paused:
@@ -139,10 +141,14 @@ namespace Shoko.Commons.Queue
                     return Resources.Actions_SyncVotes;
                 case QueueStateEnum.LinkAniDBTvDB:
                     return Resources.Command_LinkAniDBTvDB;
+                case QueueStateEnum.RefreshGroupFilter:
+                    return Resources.Command_RefreshGroupFilter;
+                case QueueStateEnum.SyncPlex:
+                    return Resources.Command_SyncPlex;
                 case QueueStateEnum.LinkFileManually:
                     return Resources.Command_LinkFileManually;
                 default:
-                    return "Unknown";
+                    throw new Exception("Unknown queue state format string");
             }
 
         }

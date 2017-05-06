@@ -103,7 +103,8 @@ namespace Shoko.Commons
             LoadCheck();
             if (string.IsNullOrEmpty(path))
                 return string.Empty;
-            if (!_mappings.ContainsKey(folderid) || _mappings[folderid] == null)
+            if (_mappings == null) return string.Empty;
+            if (!_mappings.ContainsKey(folderid) || string.IsNullOrEmpty(_mappings[folderid]))
                 return string.Empty;
             string start = Path.Combine(_mappings[folderid], path);
             try
@@ -123,7 +124,8 @@ namespace Shoko.Commons
             LoadCheck();
             if (string.IsNullOrEmpty(path))
                 return string.Empty;
-            if (!_mappings.ContainsKey(folderid))
+            if (_mappings == null) return string.Empty;
+            if (!_mappings.ContainsKey(folderid) || string.IsNullOrEmpty(_mappings[folderid]))
                 return string.Empty;
             string start = Path.Combine(_mappings[folderid], path);
             try

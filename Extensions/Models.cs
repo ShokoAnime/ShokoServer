@@ -451,12 +451,16 @@ namespace Shoko.Commons.Extensions
 
         public static string GetLocalFileName1(this CL_DuplicateFile dupfile)
         {
-            return Path.GetFileName(dupfile.GetLocalFilePath1());
+            var path = dupfile.GetLocalFilePath1();
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile1;
+            return Path.GetFileName(path);
         }
 
         public static string GetLocalFileDirectory1(this CL_DuplicateFile dupfile)
         {
-            return Path.GetDirectoryName(dupfile.GetLocalFilePath1());
+            var path = dupfile.GetLocalFilePath1();
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile1;
+            return Path.GetDirectoryName(path);
         }
 
         public static string GetLocalFilePath2(this CL_DuplicateFile dupfile)
@@ -466,12 +470,16 @@ namespace Shoko.Commons.Extensions
 
         public static string GetLocalFileName2(this CL_DuplicateFile dupfile)
         {
-            return Path.GetFileName(dupfile.GetLocalFilePath2());
+            var path = dupfile.GetLocalFilePath2();
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile2;
+            return Path.GetFileName(path);
         }
 
         public static string GetLocalFileDirectory2(this CL_DuplicateFile dupfile)
         {
-            return Path.GetDirectoryName(dupfile.GetLocalFilePath2());
+            var path = dupfile.GetLocalFilePath2();
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile2;
+            return Path.GetDirectoryName(path);
         }
 
         public static string GetEpisodeNumberAndName(this CL_DuplicateFile dupfile)
