@@ -507,6 +507,7 @@ namespace Shoko.Server.Extensions
             series.Banner = TryGetSeriesProperty(doc, "banner");
         }
 
+        [System.Obsolete("PopulateFromSeriesInfo XmlDocument is deprecated, please use PopulateFromSeriesInfo TvDbSharper.Series instead.")]
         public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
         {
             series.SeriesID = 0;
@@ -528,6 +529,12 @@ namespace Shoko.Server.Extensions
             series.Poster = TryGetSeriesProperty(doc, "poster");
         }
 
+        public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Clients.Series.Json.Series apiSeries)
+        {
+
+        }
+
+        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
         public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
         {
             response.Id = String.Empty;
@@ -541,6 +548,15 @@ namespace Shoko.Server.Extensions
             if (series["Overview"] != null) response.Overview = series["Overview"].InnerText;
             if (series["banner"] != null) response.Banner = series["banner"].InnerText;
             if (series["language"] != null) response.Language = series["language"].InnerText;
+        }
+
+        public static void Populate(this TVDB_Series_Search_Response response, TvDbSharper.Clients.Search.Json.SeriesSearchResult series)
+        {
+            response.Id = String.Empty;
+            response.SeriesID = series.Id;
+            response.SeriesName = series.SeriesName;
+            response.Overview = series.Overview;
+            response.Banner = series.Banner;
         }
 
         public static void Populate(this AniDB_Anime_Character character, Raw_AniDB_Character rawChar)

@@ -37,6 +37,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
 using Pri.LongPath;
+using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server
 {
@@ -1799,7 +1800,7 @@ namespace Shoko.Server
         {
             try
             {
-                return ShokoService.TvdbHelper.SearchSeries(criteria);
+                return TvDBApiHelper.SearchSeries(criteria);
             }
             catch (Exception ex)
             {
