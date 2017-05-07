@@ -437,6 +437,7 @@
     <Compile Include="Import\FileQualityFilter.cs" />
     <Compile Include="Import\Importer.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
+    <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="ShokoServer.cs" />
     <Compile Include="Models\SVR_CloudAccount.cs" />
     <Compile Include="Models\SVR_VideoLocal_Place.cs" />

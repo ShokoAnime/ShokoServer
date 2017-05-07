@@ -45,6 +45,7 @@ namespace Shoko.Server.Providers.TvDB
             client.AcceptedLanguage = ServerSettings.TvDB_Language;
             if (client.Authentication.Token == null)
             {
+                TvDBRateLimiter.Instance.EnsureRate();
                 await client.Authentication.AuthenticateAsync(Constants.TvDBURLs.apiKey);
             }
         }
@@ -60,7 +61,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 await _checkAuthorizationAsync();
 
-                logger.Trace("GetSeriesInfo: {0}", seriesID);
+                TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Series.GetAsync(seriesID);
                 Series series = response.Data;
 
@@ -98,6 +99,7 @@ namespace Shoko.Server.Providers.TvDB
                 string url = string.Format(Constants.TvDBURLs.urlSeriesSearch, criteria);
                 logger.Trace("Search TvDB Series: {0}", criteria);
 
+                TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Search.SearchSeriesByNameAsync(criteria);
                 TvDbSharper.Clients.Search.Json.SeriesSearchResult[] series = response.Data;
 
@@ -260,6 +262,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 await _checkAuthorizationAsync();
 
+                TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Languages.GetAllAsync();
                 TvDbSharper.Clients.Languages.Json.Language[] apiLanguages = response.Data;
 
@@ -312,6 +315,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             await _checkAuthorizationAsync();
 
+            TvDBRateLimiter.Instance.EnsureRate();
             var response = await client.Series.GetImagesSummaryAsync(seriesID);
             return response.Data;
         }
@@ -324,6 +328,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 KeyType = type
             };
+            TvDBRateLimiter.Instance.EnsureRate();
             var response = await client.Series.GetImagesAsync(seriesID, query);
             return response.Data;
         }
@@ -624,7 +629,7 @@ namespace Shoko.Server.Providers.TvDB
                 await _checkAuthorizationAsync();
 
                 var tasks = new List<Task<TvDbResponse<BasicEpisode[]>>>();
-
+                TvDBRateLimiter.Instance.EnsureRate();
                 var firstResponse = await client.Series.GetEpisodesAsync(seriesID, 1);
 
                 for (int i = 2; i <= firstResponse.Links.Last; i++)
@@ -809,9 +814,9 @@ namespace Shoko.Server.Providers.TvDB
             try
             {
                 // Unix timestamp is seconds past epoch
-                System.DateTime lastUpdateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+                DateTime lastUpdateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
                 lastUpdateTime = lastUpdateTime.AddSeconds(Int32.Parse(serverTime)).ToLocalTime();
-
+                TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Updates.GetAsync(lastUpdateTime);
 
                 Update[] updates = response.Data;
