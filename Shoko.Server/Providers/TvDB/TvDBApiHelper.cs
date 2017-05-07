@@ -634,6 +634,7 @@ namespace Shoko.Server.Providers.TvDB
 
                 for (int i = 2; i <= firstResponse.Links.Last; i++)
                 {
+                    TvDBRateLimiter.Instance.EnsureRate();
                     tasks.Add(client.Series.GetEpisodesAsync(seriesID, i));
                 }
 
