@@ -296,11 +296,11 @@ namespace Shoko.Server.Providers.TvDB
             {
                 DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
             }
-            if (summary.Poster > 0 || summary.Series > 0 || summary.Series > 0)
+            if (summary.Poster > 0 || summary.Season > 0)
             {
                 DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
             }
-            if (summary.Seasonwide > 0)
+            if (summary.Seasonwide > 0 || summary.Series > 0)
             {
                 DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
             }
@@ -329,8 +329,15 @@ namespace Shoko.Server.Providers.TvDB
                 KeyType = type
             };
             TvDBRateLimiter.Instance.EnsureRate();
-            var response = await client.Series.GetImagesAsync(seriesID, query);
-            return response.Data;
+            try
+            {
+                var response = await client.Series.GetImagesAsync(seriesID, query);
+                return response.Data;
+            } catch (Exception ex)
+            {
+                return new Image[] { };
+            }
+            
         }
 
         public static List<TvDB_ImageFanart> GetFanartOnline(int seriesID)
@@ -397,9 +404,8 @@ namespace Shoko.Server.Providers.TvDB
             {
                 Image[] posters = await GetSeriesImagesAsync(seriesID, KeyType.Poster);
                 Image[] season = await GetSeriesImagesAsync(seriesID, KeyType.Season);
-                Image[] series = await GetSeriesImagesAsync(seriesID, KeyType.Series);
 
-                Image[] images = posters.Concat(season).Concat(series).ToArray();
+                Image[] images = posters.Concat(season).ToArray();
 
                 foreach (Image image in images)
                 {
@@ -450,7 +456,10 @@ namespace Shoko.Server.Providers.TvDB
 
             try
             {
-                Image[] images = await GetSeriesImagesAsync(seriesID, KeyType.Seasonwide);
+                Image[] season = await GetSeriesImagesAsync(seriesID, KeyType.Seasonwide);
+                Image[] series = await GetSeriesImagesAsync(seriesID, KeyType.Series);
+
+                Image[] images = season.Concat(series).ToArray();
 
                 foreach (Image image in images)
                 {
