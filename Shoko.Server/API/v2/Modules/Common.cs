@@ -21,6 +21,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using System.Threading.Tasks;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -1392,20 +1393,12 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (score > 0 && score < 1000)
                 {
-                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(id);
-                    AniDB_Vote thisVote = null;
-                    foreach (AniDB_Vote dbVote in dbVotes)
-                    {
-                        if (dbVote.VoteType == (int) enAniDBVoteType.Episode)
-                        {
-                            thisVote = dbVote;
-                        }
-                    }
+                    AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode);
 
                     if (thisVote == null)
                     {
                         thisVote = new AniDB_Vote();
-                        thisVote.VoteType = (int) enAniDBVoteType.Episode;
+                        thisVote.VoteType = (int) AniDBVoteType.Episode;
                         thisVote.EntityID = id;
                     }
 
@@ -2240,57 +2233,46 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         internal object SerieVote(int id, int score, int uid)
         {
-            if (id > 0)
-            {
-                if (score > 0 && score <= 1000)
-                {
-                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
-                    if (ser == null) return APIStatus.badRequest($"Series with id {id} was not found");
-                    int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
-                        ? (int) enAniDBVoteType.Anime
-                        : (int) enAniDBVoteType.AnimeTemp;
-
-                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(id);
-                    AniDB_Vote thisVote = null;
-                    foreach (AniDB_Vote dbVote in dbVotes)
-                    {
-                        if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                            dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
-                        {
-                            thisVote = dbVote;
-                        }
-                    }
-
-                    if (thisVote == null)
-                    {
-                        thisVote = new AniDB_Vote();
-                        thisVote.EntityID = ser.AniDB_ID;
-                    }
-
-                    if (score <= 10)
-                    {
-                        score = score * 100;
-                    }
-
-                    thisVote.VoteValue = score;
-                    thisVote.VoteType = voteType;
-
-                    RepoFactory.AniDB_Vote.Save(thisVote);
-
-                    Commands.CommandRequest_VoteAnime cmdVote =
-                        new Commands.CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
-                    cmdVote.Save();
-                    return APIStatus.statusOK();
-                }
-                else
-                {
-                    return APIStatus.badRequest("'score' value is wrong");
-                }
-            }
-            else
+            if (id <= 0)
             {
                 return APIStatus.badRequest("'id' value is wrong");
             }
+
+            if (score <= 0 || score > 1000)
+            {
+                return APIStatus.badRequest("'score' value is wrong");
+            }
+
+            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+            if (ser == null) return APIStatus.badRequest($"Series with id {id} was not found");
+            int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
+                ? (int) AniDBVoteType.Anime
+                : (int) AniDBVoteType.AnimeTemp;
+
+            AniDB_Vote thisVote =
+                RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
+                RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime);
+
+            if (thisVote == null)
+            {
+                thisVote = new AniDB_Vote();
+                thisVote.EntityID = ser.AniDB_ID;
+            }
+
+            if (score <= 10)
+            {
+                score = score * 100;
+            }
+
+            thisVote.VoteValue = score;
+            thisVote.VoteType = voteType;
+
+            RepoFactory.AniDB_Vote.Save(thisVote);
+
+            Commands.CommandRequest_VoteAnime cmdVote =
+                new Commands.CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
+            cmdVote.Save();
+            return APIStatus.statusOK();
         }
 
         #endregion

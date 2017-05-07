@@ -761,7 +761,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!int.TryParse(userid, out usid))
                     return rsp;
 
-                if (vt == (int) enAniDBVoteType.Episode)
+                if (vt == (int) AniDBVoteType.Episode)
                 {
                     SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(objid);
                     if (ep == null)
@@ -782,15 +782,7 @@ namespace Shoko.Server.PlexAndKodi
                     logger.Info(msg);
 
                     // lets save to the database and assume it will work
-                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(ep.AnimeEpisodeID);
-                    AniDB_Vote thisVote = null;
-                    foreach (AniDB_Vote dbVote in dbVotes)
-                    {
-                        if (dbVote.VoteType == (int) enAniDBVoteType.Episode)
-                        {
-                            thisVote = dbVote;
-                        }
-                    }
+                    AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
 
                     if (thisVote == null)
                     {
@@ -816,7 +808,7 @@ namespace Shoko.Server.PlexAndKodi
                     cmdVote.Save();
                 }
 
-                if (vt == (int) enAniDBVoteType.Anime)
+                if (vt == (int) AniDBVoteType.Anime)
                 {
                     SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(objid);
                     SVR_AniDB_Anime anime = ser.GetAnime();
@@ -830,24 +822,9 @@ namespace Shoko.Server.PlexAndKodi
                     logger.Info(msg);
 
                     // lets save to the database and assume it will work
-                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(anime.AnimeID);
-                    AniDB_Vote thisVote = null;
-                    foreach (AniDB_Vote dbVote in dbVotes)
-                    {
-                        // we can only have anime permanent or anime temp but not both
-                        if (vt == (int) enAniDBVoteType.Anime || vt == (int) enAniDBVoteType.AnimeTemp)
-                        {
-                            if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                                dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
-                            {
-                                thisVote = dbVote;
-                            }
-                        }
-                        else
-                        {
-                            thisVote = dbVote;
-                        }
-                    }
+                    AniDB_Vote thisVote =
+                        RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp) ??
+                        RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime);
 
                     if (thisVote == null)
                     {

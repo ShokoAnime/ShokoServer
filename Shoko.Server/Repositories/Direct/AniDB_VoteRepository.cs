@@ -53,13 +53,31 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                AniDB_Vote cr = session
+                IList<AniDB_Vote> cr = session
                     .CreateCriteria(typeof(AniDB_Vote))
                     .Add(Restrictions.Eq("EntityID", entID))
                     .Add(Restrictions.Eq("VoteType", (int) voteType))
-                    .UniqueResult<AniDB_Vote>();
+                    .List<AniDB_Vote>();
 
-                return cr;
+                if (cr.Count > 1)
+                {
+                    bool first = true;
+                    foreach (AniDB_Vote dbVote in cr)
+                    {
+                        if (first)
+                        {
+                            first = false;
+                            continue;
+                        }
+                        using (var transact = session.BeginTransaction())
+                        {
+                            RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
+                            transact.Commit();
+                        }
+                    }
+                }
+
+                return cr.FirstOrDefault();
             }
         }
 

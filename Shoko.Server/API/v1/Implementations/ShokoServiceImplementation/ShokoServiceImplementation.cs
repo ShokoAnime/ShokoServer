@@ -2889,8 +2889,8 @@ namespace Shoko.Server
                 List<AniDB_Vote> animeVotes = new List<AniDB_Vote>();
                 foreach (AniDB_Vote vote in allVotes)
                 {
-                    if (vote.VoteType != (int) enAniDBVoteType.Anime &&
-                        vote.VoteType != (int) enAniDBVoteType.AnimeTemp)
+                    if (vote.VoteType != (int) AniDBVoteType.Anime &&
+                        vote.VoteType != (int) AniDBVoteType.AnimeTemp)
                         continue;
 
                     if (dictIgnored.ContainsKey(vote.EntityID)) continue;

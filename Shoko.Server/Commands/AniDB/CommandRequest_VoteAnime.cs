@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Models.Server;
 using AniDBAPI;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Server.Commands.MAL;
 
@@ -55,7 +56,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ShokoService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBAPI.enAniDBVoteType) VoteType);
+                ShokoService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
 
                 if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
                     !string.IsNullOrEmpty(ServerSettings.MAL_Password))
