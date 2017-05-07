@@ -4,7 +4,6 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
@@ -63,7 +62,7 @@ namespace Shoko.Server.Providers.TvDB
 
                 logger.Trace("GetSeriesInfo: {0}", seriesID);
                 var response = await client.Series.GetAsync(seriesID);
-                TvDbSharper.Clients.Series.Json.Series series = response.Data;
+                Series series = response.Data;
 
                 TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(seriesID);
                 if (tvSeries == null)
@@ -96,7 +95,7 @@ namespace Shoko.Server.Providers.TvDB
                 await _checkAuthorizationAsync();
 
                 // Search for a series
-                string url = string.Format(Shoko.Server.Constants.TvDBURLs.urlSeriesSearch, criteria);
+                string url = string.Format(Constants.TvDBURLs.urlSeriesSearch, criteria);
                 logger.Trace("Search TvDB Series: {0}", criteria);
 
                 var response = await client.Search.SearchSeriesByNameAsync(criteria);
@@ -269,12 +268,13 @@ namespace Shoko.Server.Providers.TvDB
 
                 foreach (TvDbSharper.Clients.Languages.Json.Language item in apiLanguages)
                 {
-                    TvDB_Language lan = new TvDB_Language();
-
-                    lan.Id = item.Id;
-                    lan.EnglishName = item.EnglishName;
-                    lan.Name = item.Name;
-                    lan.Abbreviation = item.Abbreviation;
+                    TvDB_Language lan = new TvDB_Language()
+                    {
+                        Id = item.Id,
+                        EnglishName = item.EnglishName,
+                        Name = item.Name,
+                        Abbreviation = item.Abbreviation
+                    };
                     languages.Add(lan);
                 }
             }
@@ -288,18 +288,42 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void DownloadAutomaticImages(int seriesID, bool forceDownload)
         {
-            DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
-            DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
-            DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
+            ImagesSummary summary = GetSeriesImagesCounts(seriesID);
+            if (summary.Fanart > 0)
+            {
+                DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
+            }
+            if (summary.Poster > 0 || summary.Series > 0 || summary.Series > 0)
+            {
+                DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
+            }
+            if (summary.Seasonwide > 0)
+            {
+                DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
+            }
         }
 
-        static async Task<TvDbSharper.Clients.Series.Json.Image[]> GetSeriesImagesAsync(int seriesID, TvDbSharper.Clients.Series.Json.KeyType type)
+        static ImagesSummary GetSeriesImagesCounts(int seriesID)
+        {
+            return Task.Run(async () => await GetSeriesImagesCountsAsync(seriesID)).Result;
+        }
+
+        static async Task<ImagesSummary> GetSeriesImagesCountsAsync(int seriesID)
         {
             await _checkAuthorizationAsync();
 
-            TvDbSharper.Clients.Series.Json.ImagesQuery query = new TvDbSharper.Clients.Series.Json.ImagesQuery();
-            query.KeyType = type;
+            var response = await client.Series.GetImagesSummaryAsync(seriesID);
+            return response.Data;
+        }
 
+        static async Task<Image[]> GetSeriesImagesAsync(int seriesID, KeyType type)
+        {
+            await _checkAuthorizationAsync();
+
+            ImagesQuery query = new ImagesQuery()
+            {
+                KeyType = type
+            };
             var response = await client.Series.GetImagesAsync(seriesID, query);
             return response.Data;
         }
@@ -312,12 +336,12 @@ namespace Shoko.Server.Providers.TvDB
         public static async Task<List<TvDB_ImageFanart>> GetFanartOnlineAsync(int seriesID)
         {
             List<int> validIDs = new List<int>();
-
+            List<TvDB_ImageFanart> tvImages = new List<TvDB_ImageFanart>();
             try
             {
-                TvDbSharper.Clients.Series.Json.Image[] images = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Fanart);
+                Image[] images = await GetSeriesImagesAsync(seriesID, KeyType.Fanart);
 
-                foreach (TvDbSharper.Clients.Series.Json.Image image in images)
+                foreach (Image image in images)
                 {
                     int id = image.Id ?? 0;
                     if (id == 0) { continue; }
@@ -326,13 +350,16 @@ namespace Shoko.Server.Providers.TvDB
                     
                     if (img == null)
                     {
-                        img = new TvDB_ImageFanart();
-                        img.Enabled = 1;
+                        img = new TvDB_ImageFanart()
+                        {
+                            Enabled = 1
+                        };
                     }
-                   
+
                     img.Populate(seriesID, image);
                     img.Language = client.AcceptedLanguage;
                     RepoFactory.TvDB_ImageFanart.Save(img);
+                    tvImages.Add(img);
                     validIDs.Add(id);
                 }
 
@@ -348,7 +375,7 @@ namespace Shoko.Server.Providers.TvDB
                 logger.Error(ex, "Error in TVDBApiHelper.GetSeriesBannersOnlineAsync: " + ex.ToString());
             }
 
-            return null;
+            return tvImages;
         }
 
         public static List<TvDB_ImagePoster> GetPosterOnline(int seriesID)
@@ -359,16 +386,17 @@ namespace Shoko.Server.Providers.TvDB
         public static async Task<List<TvDB_ImagePoster>> GetPosterOnlineAsync(int seriesID)
         {
             List<int> validIDs = new List<int>();
+            List<TvDB_ImagePoster> tvImages = new List<TvDB_ImagePoster>();
 
             try
             {
-                TvDbSharper.Clients.Series.Json.Image[] posters = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Poster);
-                TvDbSharper.Clients.Series.Json.Image[] season = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Season);
-                TvDbSharper.Clients.Series.Json.Image[] series = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Series);
+                Image[] posters = await GetSeriesImagesAsync(seriesID, KeyType.Poster);
+                Image[] season = await GetSeriesImagesAsync(seriesID, KeyType.Season);
+                Image[] series = await GetSeriesImagesAsync(seriesID, KeyType.Series);
 
-                TvDbSharper.Clients.Series.Json.Image[] images = posters.Concat(season).Concat(series).ToArray();
+                Image[] images = posters.Concat(season).Concat(series).ToArray();
 
-                foreach (TvDbSharper.Clients.Series.Json.Image image in images)
+                foreach (Image image in images)
                 {
                     int id = image.Id ?? 0;
                     if (id == 0) { continue; }
@@ -377,14 +405,17 @@ namespace Shoko.Server.Providers.TvDB
 
                     if (img == null)
                     {
-                        img = new TvDB_ImagePoster();
-                        img.Enabled = 1;
+                        img = new TvDB_ImagePoster()
+                        {
+                            Enabled = 1
+                        };
                     }
 
                     img.Populate(seriesID, image);
                     img.Language = client.AcceptedLanguage;
                     RepoFactory.TvDB_ImagePoster.Save(img);
                     validIDs.Add(id);
+                    tvImages.Add(img);
                 }
 
                 // delete any images from the database which are no longer valid
@@ -399,7 +430,7 @@ namespace Shoko.Server.Providers.TvDB
                 logger.Error(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: " + ex.ToString());
             }
 
-            return null;
+            return tvImages;
         }
 
         public static List<TvDB_ImageWideBanner> GetBannerOnline(int seriesID)
@@ -410,12 +441,13 @@ namespace Shoko.Server.Providers.TvDB
         public static async Task<List<TvDB_ImageWideBanner>> GetBannerOnlineAsync(int seriesID)
         {
             List<int> validIDs = new List<int>();
+            List<TvDB_ImageWideBanner> tvImages = new List<TvDB_ImageWideBanner>();
 
             try
             {
-                TvDbSharper.Clients.Series.Json.Image[] images = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Seasonwide);
+                Image[] images = await GetSeriesImagesAsync(seriesID, KeyType.Seasonwide);
 
-                foreach (TvDbSharper.Clients.Series.Json.Image image in images)
+                foreach (Image image in images)
                 {
                     int id = image.Id ?? 0;
                     if (id == 0) { continue; }
@@ -432,6 +464,7 @@ namespace Shoko.Server.Providers.TvDB
                     img.Language = client.AcceptedLanguage;
                     RepoFactory.TvDB_ImageWideBanner.Save(img);
                     validIDs.Add(id);
+                    tvImages.Add(img);
                 }
 
                 // delete any images from the database which are no longer valid
@@ -446,7 +479,7 @@ namespace Shoko.Server.Providers.TvDB
                 logger.Error(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: " + ex.ToString());
             }
 
-            return null;
+            return tvImages;
         }
 
         public static void DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)

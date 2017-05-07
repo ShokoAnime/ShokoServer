@@ -478,36 +478,6 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, XmlNode node,
-            TvDBImageNodeType nodeType)
-        {
-            try
-            {
-                poster.SeriesID = seriesID;
-
-                if (nodeType == TvDBImageNodeType.Series)
-                    poster.SeasonNumber = null;
-                else
-                    poster.SeasonNumber = Int32.Parse(node["Season"].InnerText);
-
-
-                poster.Id = Int32.Parse(node["id"].InnerText);
-                poster.BannerPath = node["BannerPath"].InnerText;
-                poster.BannerType = node["BannerType"].InnerText;
-                poster.BannerType2 = node["BannerType2"].InnerText;
-                poster.Language = node["Language"].InnerText;
-
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex.ToString());
-                return false;
-            }
-        }
-
         public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
         {
             if (image.Id == null)
@@ -518,12 +488,7 @@ namespace Shoko.Server.Extensions
             try
             {
                 poster.SeriesID = seriesID;
-
-                if (image.SubKey == "")
-                    poster.SeasonNumber = null;
-                else
-                    poster.SeasonNumber = Int32.Parse(image.SubKey);
-
+                poster.SeasonNumber = null;
                 poster.Id = image.Id ?? 0;
                 poster.BannerPath = image.FileName;
                 poster.BannerType = image.KeyType;
@@ -533,34 +498,6 @@ namespace Shoko.Server.Extensions
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex.ToString());
-                return false;
-            }
-        }
-
-        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]
-        public static bool Populate(this TvDB_ImageWideBanner banner, int seriesID, XmlNode node,
-            TvDBImageNodeType nodeType)
-        {
-            try
-            {
-                banner.SeriesID = seriesID;
-
-                if (nodeType == TvDBImageNodeType.Series)
-                    banner.SeasonNumber = null;
-                else
-                    banner.SeasonNumber = Int32.Parse(node["Season"].InnerText);
-
-                banner.Id = Int32.Parse(node["id"].InnerText);
-                banner.BannerPath = node["BannerPath"].InnerText;
-                banner.BannerType = node["BannerType"].InnerText;
-                banner.BannerType2 = node["BannerType2"].InnerText;
-                banner.Language = node["Language"].InnerText;
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in TvDB_ImageWideBanner.Populate: " + ex.ToString());
                 return false;
             }
         }
@@ -575,11 +512,14 @@ namespace Shoko.Server.Extensions
             try
             {
                 poster.SeriesID = seriesID;
-
-                if (image.SubKey == "")
-                    poster.SeasonNumber = null;
-                else
+                try
+                {
                     poster.SeasonNumber = Int32.Parse(image.SubKey);
+                }
+                catch (FormatException ex)
+                {
+                    poster.SeasonNumber = null;
+                }
 
                 poster.Id = image.Id ?? 0;
                 poster.BannerPath = image.FileName;
@@ -634,7 +574,21 @@ namespace Shoko.Server.Extensions
 
         public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Clients.Series.Json.Series apiSeries)
         {
+            series.SeriesID = 0;
+            series.Overview = String.Empty;
+            series.SeriesName = String.Empty;
+            series.Status = String.Empty;
+            series.Banner = String.Empty;
+            series.Fanart = String.Empty;
+            series.Lastupdated = String.Empty;
+            series.Poster = String.Empty;
 
+            series.SeriesID = apiSeries.Id;
+            series.SeriesName = apiSeries.SeriesName;
+            series.Overview = apiSeries.Overview;
+            series.Banner = apiSeries.Banner;
+            series.Status = apiSeries.Status;
+            series.Lastupdated = apiSeries.LastUpdated.ToString();
         }
 
         [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
