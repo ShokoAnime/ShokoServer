@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
+using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.AniDB_API.Commands;
@@ -59,11 +61,11 @@ namespace Shoko.Server.Commands
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
                             // we can only have anime permanent or anime temp but not both
-                            if (myVote.VoteType == enAniDBVoteType.Anime ||
-                                myVote.VoteType == enAniDBVoteType.AnimeTemp)
+                            if (myVote.VoteType == AniDBVoteType.Anime ||
+                                myVote.VoteType == AniDBVoteType.AnimeTemp)
                             {
-                                if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                                    dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
+                                if (dbVote.VoteType == (int) AniDBVoteType.Anime ||
+                                    dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
                                 {
                                     thisVote = dbVote;
                                 }
@@ -84,7 +86,7 @@ namespace Shoko.Server.Commands
 
                         RepoFactory.AniDB_Vote.Save(thisVote);
 
-                        if (myVote.VoteType == enAniDBVoteType.Anime || myVote.VoteType == enAniDBVoteType.AnimeTemp)
+                        if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                         {
                             // download the anime info if the user doesn't already have it
                             CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID,

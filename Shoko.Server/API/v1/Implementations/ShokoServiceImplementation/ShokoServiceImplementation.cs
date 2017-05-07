@@ -17,6 +17,7 @@ using Shoko.Models.Interfaces;
 using NLog;
 using Shoko.Server.API.core;
 using NutzCode.CloudFileSystem;
+using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.MAL;
@@ -353,7 +354,7 @@ namespace Shoko.Server
                     FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
                         .FirstOrDefault(a => a.Name == "Local File System")
                         ?.Init("", null, null);
-                    if (ff.IsOk)
+                    if (ff?.IsOk ?? false)
                         n = ff.Result;
                 }
                 else
@@ -364,14 +365,25 @@ namespace Shoko.Server
                 }
                 if (n != null)
                 {
-                    FileSystemResult<IObject> dirr = n.Resolve(path);
+                    FileSystemResult<IObject> dirr;
+                    if ((n as LocalFileSystem) != null && path.Equals("null"))
+                    {
+                        FileSystemResult<List<IDirectory>> dirs = (n as LocalFileSystem).GetRoots();
+                        if (dirs == null || !dirs.IsOk) return result;
+                        return dirs.Result.Select(a => a.FullName).OrderByNatural(a => a).ToList();
+                    }
+                    if (path.Equals("null"))
+                    {
+                        path = "";
+                    }
+                    dirr = n.Resolve(path);
                     if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
                         return null;
                     IDirectory dir = dirr.Result as IDirectory;
                     FileSystemResult fr = dir.Populate();
-                    if (!fr.IsOk)
+                    if (!fr?.IsOk ?? true)
                         return result;
-                    return dir.Directories.Select(a => a.FullName).OrderBy(a => a).ToList();
+                    return dir.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
                 }
             }
             catch (Exception ex)
@@ -594,6 +606,7 @@ namespace Shoko.Server
                 ServerSettings.WebCache_UserInfo = contractIn.WebCache_UserInfo;
 
                 // TvDB
+                ServerSettings.TvDB_AutoLink = contractIn.TvDB_AutoLink;
                 ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;
                 ServerSettings.TvDB_AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
                 ServerSettings.TvDB_AutoPosters = contractIn.TvDB_AutoPosters;
@@ -643,6 +656,7 @@ namespace Shoko.Server
                 ServerSettings.Trakt_DownloadPosters = contractIn.Trakt_DownloadPosters;
 
                 // MAL
+                ServerSettings.MAL_AutoLink = contractIn.MAL_AutoLink;
                 ServerSettings.MAL_Username = contractIn.MAL_Username;
                 ServerSettings.MAL_Password = contractIn.MAL_Password;
                 ServerSettings.MAL_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.MAL_UpdateFrequency;
@@ -802,7 +816,7 @@ namespace Shoko.Server
                 ns.IsWatched = contract.IsWatched;
                 ns.ImportFolderType = contract.ImportFolderType;
                 ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID;
-                ;
+
                 RepoFactory.ImportFolder.Save(ns);
 
                 response.Result = ns;
@@ -2875,8 +2889,8 @@ namespace Shoko.Server
                 List<AniDB_Vote> animeVotes = new List<AniDB_Vote>();
                 foreach (AniDB_Vote vote in allVotes)
                 {
-                    if (vote.VoteType != (int) enAniDBVoteType.Anime &&
-                        vote.VoteType != (int) enAniDBVoteType.AnimeTemp)
+                    if (vote.VoteType != (int) AniDBVoteType.Anime &&
+                        vote.VoteType != (int) AniDBVoteType.AnimeTemp)
                         continue;
 
                     if (dictIgnored.ContainsKey(vote.EntityID)) continue;

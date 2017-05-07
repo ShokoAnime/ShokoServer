@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Threading;
+using Shoko.Models.Queue;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -37,7 +38,7 @@ namespace Shoko.Server.Commands
             {
                 return new QueueStateStruct()
                 {
-                    queueState = QueueStateEnum.RefreshAnime,
+                    queueState = QueueStateEnum.Refresh,
                     extraParams = new string[] {AnimeID.ToString()}
                 };
             }

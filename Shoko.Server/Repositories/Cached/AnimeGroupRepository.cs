@@ -195,7 +195,7 @@ namespace Shoko.Server.Repositories.Cached
             // Then, actually delete the AnimeGroups
             if (excludeGroupId != null)
             {
-                session.CreateQuery("delete AnimeGroup ag where ag.id <> :excludeId")
+                session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
                     .SetInt32("excludeId", excludeGroupId.Value)
                     .ExecuteUpdate();
 
@@ -203,7 +203,7 @@ namespace Shoko.Server.Repositories.Cached
             }
             else
             {
-                session.CreateQuery("delete AnimeGroup ag")
+                session.CreateQuery("delete SVR_AnimeGroup ag")
                     .ExecuteUpdate();
 
                 Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));

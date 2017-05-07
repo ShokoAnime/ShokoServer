@@ -230,8 +230,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Missing Episodes
@@ -246,8 +245,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
 
@@ -263,8 +261,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Newly Airing Series
@@ -279,8 +276,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "30";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Votes Needed
@@ -305,8 +301,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Recently Watched
@@ -321,8 +316,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // TvDB/MovieDB Link Missing
@@ -337,8 +331,7 @@ namespace Shoko.Server.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
         }
 

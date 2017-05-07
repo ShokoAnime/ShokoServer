@@ -2017,6 +2017,13 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
                     cmd2.Save();
                 }
+
+                if (AnimeType == (int) enAnimeType.Movie)
+                {
+                    CommandRequest_MovieDBSearchAnime cmd3 =
+                        new CommandRequest_MovieDBSearchAnime(AnimeID, false);
+                    cmd3.Save();
+                }
             }
 
             return series;

@@ -183,7 +183,13 @@ namespace Shoko.Server
                         break;
 
                     case FileSearchCriteria.LastOneHundred:
-                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(100);
+                        int number = 100;
+                        if (!string.IsNullOrEmpty(searchCriteria))
+                        {
+                            int temp;
+                            if (int.TryParse(searchCriteria, out temp)) number = temp;
+                        }
+                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number);
                         foreach (SVR_VideoLocal vid in results2)
                             vids.Add(vid.ToClient(userID));
                         break;
@@ -263,7 +269,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
                 ret.VideoLocal = null;
-                ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+                ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
             return ret;
@@ -294,7 +300,7 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                string name = string.Empty;
+                string name = vid.FileName;
                 if (vid.Places.Count > 0)
                 {
                     foreach (SVR_VideoLocal_Place place in vid.Places)
@@ -316,24 +322,21 @@ namespace Shoko.Server
 
                         try
                         {
-                            logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName,
-                                newFullName));
+                            logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
 
                             if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                             {
-                                logger.Info(string.Format(
-                                    "Renaming file SKIPPED, no change From ({0}) to ({1})",
-                                    fullFileName, newFullName));
+                                logger.Info(
+                                    $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
                                 ret.NewFileName = newFullName;
+                                name = Path.GetFileName(fullFileName);
                             }
                             else
                             {
                                 string dir = Path.GetDirectoryName(newFullName);
 
                                 ((IFile) obj.Result).Rename(ret.NewFileName);
-                                logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})",
-                                    fullFileName,
-                                    newFullName));
+                                logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
                                 ret.NewFileName = newFullName;
                                 var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
                                 place.FilePath = tup.Item2;
@@ -343,9 +346,7 @@ namespace Shoko.Server
                         }
                         catch (Exception ex)
                         {
-                            logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}",
-                                fullFileName,
-                                newFullName, ex.Message));
+                            logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                             logger.Error(ex, ex.ToString());
                             ret.Success = false;
                             ret.NewFileName = ex.Message;
@@ -360,7 +361,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
                 ret.VideoLocal = null;
-                ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+                ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
             return ret;
@@ -1374,6 +1375,7 @@ namespace Shoko.Server
                 contract.AudioStreamCount = videoLocals.First()
                     .Media.Parts.SelectMany(a => a.Streams)
                     .Count(a => a.StreamType.Equals("2"));
+                contract.IsChaptered = (ani?.IsChaptered ?? 0) == 1;
                 contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode);
                 contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;

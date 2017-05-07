@@ -40,14 +40,15 @@ namespace Shoko.Server.Models
         [XmlIgnore]
         public BitmapImage Bitmap { get; set; }*/
 
-        public byte[] Icon
-        {
-            get { return _plugin?.Icon; }
-        }
-
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
+        public byte[] Icon => _plugin?.Icon;
         private ICloudPlugin _plugin;
 
-
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         public IFileSystem FileSystem
         {
             get
@@ -74,7 +75,9 @@ namespace Shoko.Server.Models
             get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
         }
 
-
+        [ScriptIgnore]
+        [JsonIgnore]
+        [XmlIgnore]
         internal bool NeedSave { get; set; } = false;
 
         private static AuthorizationFactory _cache; //lazy init, because 

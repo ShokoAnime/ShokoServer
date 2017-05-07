@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
+using Shoko.Models.Enums;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v2.Models.common
@@ -57,13 +58,15 @@ namespace Shoko.Server.API.v2.Models.common
 
             Video nv = ser.GetPlexContract(uid);
 
+            List<SVR_AnimeEpisode> ael = ser.GetAnimeEpisodes();
+
             sr.id = ser.AnimeSeriesID;
             sr.summary = nv.Summary;
             sr.year = nv.Year;
             sr.air = nv.AirDate.ToString("dd-MM-yyyy");
-            sr.size = int.Parse(nv.LeafCount);
-            sr.localsize = int.Parse(nv.ChildCount);
-            sr.viewed = int.Parse(nv.ViewedLeafCount);
+
+            GenerateSizes(sr, ael, uid);
+            
             sr.rating = nv.Rating;
             sr.userrating = nv.UserRating;
             sr.titles = nv.Titles;
@@ -75,7 +78,7 @@ namespace Shoko.Server.API.v2.Models.common
             }
 
             Random rand = new Random();
-            Contract_ImageDetails art = new Contract_ImageDetails();
+            Contract_ImageDetails art;
             if (nv.Fanarts != null && nv.Fanarts.Count > 0)
             {
                 art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
@@ -86,7 +89,7 @@ namespace Shoko.Server.API.v2.Models.common
                 });
             }
 
-            if (nv.Banner != null && nv.Fanarts.Count > 0)
+            if (nv.Banner != null && nv.Banners.Count > 0)
             {
                 art = nv.Banners[rand.Next(nv.Banners.Count)];
 
@@ -169,7 +172,6 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (level > 0)
             {
-                List<SVR_AnimeEpisode> ael = ser.GetAnimeEpisodes();
                 if (ael.Count > 0)
                 {
                     sr.eps = new List<Episode>();
@@ -187,6 +189,115 @@ namespace Shoko.Server.API.v2.Models.common
             }
 
             return sr;
+        }
+
+        private static void GenerateSizes(Serie sr, List<SVR_AnimeEpisode> ael, int uid)
+        {
+            int eps = 0;
+            int credits = 0;
+            int specials = 0;
+            int trailers = 0;
+            int parodies = 0;
+            int others = 0;
+            
+            int local_eps = 0;
+            int local_credits = 0;
+            int local_specials = 0;
+            int local_trailers = 0;
+            int local_parodies = 0;
+            int local_others = 0;
+            
+            int watched_eps = 0;
+            int watched_credits = 0;
+            int watched_specials = 0;
+            int watched_trailers = 0;
+            int watched_parodies = 0;
+            int watched_others = 0;
+
+            // single loop. Will help on long shows
+            foreach (SVR_AnimeEpisode ep in ael)
+            {
+                if (ep == null) continue;
+                switch (ep.EpisodeTypeEnum)
+                {
+                    case enEpisodeType.Episode:
+                    {
+                        eps++;
+                        if (ep.PlexContract?.Medias?.Any() ?? false) local_eps++;
+                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_eps++;
+                        break;
+                    }
+                    case enEpisodeType.Credits:
+                    {
+                        credits++;
+                        if (ep.PlexContract?.Medias?.Any() ?? false) local_credits++;
+                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_credits++;
+                        break;
+                    }
+                    case enEpisodeType.Special:
+                    {
+                        specials++;
+                        if (ep.PlexContract?.Medias?.Any() ?? false) local_specials++;
+                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_specials++;
+                        break;
+                    }
+                    case enEpisodeType.Trailer:
+                    {
+                        trailers++;
+                        if (ep.PlexContract?.Medias?.Any() ?? false) local_trailers++;
+                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_trailers++;
+                        break;
+                    }
+                    case enEpisodeType.Parody:
+                    {
+                        parodies++;
+                        if (ep.PlexContract?.Medias?.Any() ?? false) local_parodies++;
+                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_parodies++;
+                        break;
+                    }
+                    case enEpisodeType.Other:
+                    {
+                        others++;
+                        if (ep.PlexContract?.Medias?.Any() ?? false) local_others++;
+                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_others++;
+                        break;
+                    }
+                }
+            }
+
+            sr.size = eps + credits + specials + trailers + parodies + others;
+            sr.localsize = local_eps + local_credits + local_specials + local_trailers + local_parodies + local_others;
+            sr.viewed = watched_eps + watched_credits + watched_specials + watched_trailers + watched_parodies + watched_others;
+            
+            sr.total_sizes = new Sizes()
+            {
+                Episodes = eps,
+                Credits = credits,
+                Specials = specials,
+                Trailers = trailers,
+                Parodies = parodies,
+                Others = others
+            };
+            
+            sr.local_sizes = new Sizes()
+            {
+                Episodes = local_eps,
+                Credits = local_credits,
+                Specials = local_specials,
+                Trailers = local_trailers,
+                Parodies = local_parodies,
+                Others = local_others
+            };
+            
+            sr.watched_sizes = new Sizes()
+            {
+                Episodes = watched_eps,
+                Credits = watched_credits,
+                Specials = watched_specials,
+                Trailers = watched_trailers,
+                Parodies = watched_parodies,
+                Others = watched_others
+            };
         }
 
         public int CompareTo(object obj)

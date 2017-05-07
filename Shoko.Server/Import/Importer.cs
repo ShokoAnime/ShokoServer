@@ -834,7 +834,7 @@ namespace Shoko.Server
                     {
                         FileSystemResult<IObject> obj = null;
                         if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
-                        if (obj == null || obj.IsOk || obj.Result is IDirectory) continue;
+                        if (obj != null && obj.IsOk) continue;
                         // delete video local record
                         vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     }
@@ -1081,6 +1081,13 @@ namespace Shoko.Server
                         if (!vidsToUpdate.Contains(vid.VideoLocalID))
                             vidsToUpdate.Add(vid.VideoLocalID);
                     }
+
+                    vids = RepoFactory.VideoLocal.GetWithMissingChapters();
+                    foreach (SVR_VideoLocal vid in vids)
+                    {
+                        if (!vidsToUpdate.Contains(vid.VideoLocalID))
+                            vidsToUpdate.Add(vid.VideoLocalID);
+                    }
                 }
 
                 if (outOfDate)
@@ -1136,7 +1143,7 @@ namespace Shoko.Server
                                                b.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays))
                 .ToList();
             foreach (SVR_GroupFilter g in evalfilters)
-                g.EvaluateAnimeGroups();
+                g.CalculateGroupsAndSeries();
             if (sched == null)
             {
                 sched = new ScheduledUpdate();

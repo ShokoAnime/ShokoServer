@@ -9,6 +9,7 @@ using Shoko.Server.Repositories.Direct;
 using NHibernate;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -153,6 +154,9 @@ namespace Shoko.Server.Commands
                         }
                         if (doReturn) return;
                     }
+
+                    // Use TvDB setting due to similarity
+                    if (!ServerSettings.TvDB_AutoLink) return;
 
                     // finally lets try searching Trakt directly
                     string searchCriteria = "";

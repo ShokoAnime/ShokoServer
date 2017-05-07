@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Models;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;

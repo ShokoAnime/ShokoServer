@@ -8,6 +8,7 @@ using NHibernate;
 using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
@@ -119,6 +120,24 @@ namespace Shoko.Server.Repositories
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
             return InternalVersions.GetMultiple(version);
+            /*
+            AniDB_File cr = session
+                .CreateCriteria(typeof(AniDB_File))
+                .Add(Restrictions.Eq("MD5", hash))
+                .UniqueResult<AniDB_File>();
+            return cr;*/
+        }
+
+        public List<SVR_AniDB_File> GetWithWithMissingChapters()
+        {
+            // the only containers that support chapters (and will have data on anidb)
+            List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
+                .CreateSQLQuery(
+                    @"SELECT FileID FROM AniDB_File WHERE IsChaptered = -1 AND (File_FileExtension = 'mkv' OR File_FileExtension = 'ogm')")
+                .List<int>()
+                .Select(GetByFileID)
+                .ToList();
+            return list;
             /*
             AniDB_File cr = session
                 .CreateCriteria(typeof(AniDB_File))

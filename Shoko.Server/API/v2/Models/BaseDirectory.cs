@@ -42,6 +42,15 @@ namespace Shoko.Server.API.v2.Models
         public int localsize { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public Sizes total_sizes { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public Sizes local_sizes { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public Sizes watched_sizes { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int viewed { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]

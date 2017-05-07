@@ -5,6 +5,7 @@ using System.Xml;
 using AniDBAPI;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -78,6 +79,8 @@ namespace Shoko.Server.Commands.MAL
                     {
                     }
                 }
+
+                if (!ServerSettings.MAL_AutoLink) return;
 
                 string searchCriteria = "";
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);

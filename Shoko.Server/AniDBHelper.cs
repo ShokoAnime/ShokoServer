@@ -973,7 +973,7 @@ namespace Shoko.Server
             return review;
         }
 
-        public bool VoteAnime(int animeID, decimal voteValue, enAniDBVoteType voteType)
+        public bool VoteAnime(int animeID, decimal voteValue, AniDBVoteType voteType)
         {
             if (!Login()) return false;
 
@@ -990,24 +990,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.Voted || ev == enHelperActivityType.VoteUpdated)
                 {
-                    List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(cmdVote.EntityID);
-                    AniDB_Vote thisVote = null;
-                    foreach (AniDB_Vote dbVote in dbVotes)
-                    {
-                        // we can only have anime permanent or anime temp but not both
-                        if (cmdVote.VoteType == enAniDBVoteType.Anime || cmdVote.VoteType == enAniDBVoteType.AnimeTemp)
-                        {
-                            if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                                dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
-                            {
-                                thisVote = dbVote;
-                            }
-                        }
-                        else
-                        {
-                            thisVote = dbVote;
-                        }
-                    }
+                    AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType);
 
                     if (thisVote == null)
                     {
@@ -1023,7 +1006,7 @@ namespace Shoko.Server
             return false;
         }
 
-        public void VoteAnimeRevoke(int animeID, enAniDBVoteType voteType)
+        public void VoteAnimeRevoke(int animeID, AniDBVoteType voteType)
         {
             VoteAnime(animeID, -1, voteType);
         }

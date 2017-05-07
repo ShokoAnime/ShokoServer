@@ -33,6 +33,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.FileVersion).Not.Nullable();
             Map(x => x.IsCensored).Not.Nullable();
             Map(x => x.IsDeprecated).Not.Nullable();
+            Map(x => x.IsChaptered).Not.Nullable();
             Map(x => x.InternalVersion).Not.Nullable();
             Map(x => x.GroupID).Not.Nullable();
             Map(x => x.Hash).Not.Nullable();

@@ -1,4 +1,5 @@
-﻿using Shoko.Models.Server;
+﻿using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Commands.MAL;
@@ -8,72 +9,6 @@ using Shoko.Server.Commands.WebCache;
 
 namespace Shoko.Server.Commands
 {
-    public enum QueueStateEnum
-    {
-        AnimeInfo = 1,
-        DeleteError,
-        DownloadImage,
-        DownloadMalWatched,
-        DownloadTvDBImages,
-        FileInfo,
-        GetCalendar,
-        GetEpisodeList,
-        GetFileInfo,
-        GetReleaseGroup,
-        GetReleaseInfo,
-        GetReviewInfo,
-        GettingTvDB,
-        GetUpdatedAnime,
-        HashingFile,
-        Idle,
-        Paused,
-        Queued,
-        ReadingMedia,
-        RefreshAnime,
-        SearchMal,
-        SearchTMDb,
-        SearchTrakt,
-        SearchTvDB,
-        SendAnimeAzure,
-        SendAnimeFull,
-        SendAnimeTitle,
-        SendAnonymousData,
-        StartingGeneral,
-        StartingHasher,
-        StartingImages,
-        SyncMyList,
-        SyncTrakt,
-        SyncTraktEpisodes,
-        SyncTraktSeries,
-        SyncVotes,
-        TraktAddHistory,
-        UpdateMALWatched,
-        UpdateMyListInfo,
-        UpdateMyListStats,
-        UpdateTrakt,
-        UpdateTraktData,
-        UploadMALWatched,
-        VoteAnime,
-        WebCacheDeleteXRefAniDBMAL,
-        WebCacheDeleteXRefAniDBOther,
-        WebCacheDeleteXRefAniDBTrakt,
-        WebCacheDeleteXRefAniDBTvDB,
-        WebCacheDeleteXRefFileEpisode,
-        WebCacheSendXRefAniDBMAL,
-        WebCacheSendXRefAniDBOther,
-        WebCacheSendXRefAniDBTrakt,
-        WebCacheSendXRefAniDBTvDB,
-        WebCacheSendXRefFileEpisode,
-        AniDB_MyListAdd,
-        AniDB_MyListDelete,
-        AniDB_GetTitles,
-        Actions_SyncVotes,
-        LinkAniDBTvDB,
-        CheckingFile,
-        RefreshGroupFilter,
-        SyncPlex,
-        LinkFileManually,
-    };
 
     public struct QueueStateStruct
     {
@@ -130,7 +65,7 @@ namespace Shoko.Server.Commands
                     return Shoko.Commons.Properties.Resources.Command_Queued;
                 case QueueStateEnum.ReadingMedia:
                     return Shoko.Commons.Properties.Resources.Command_ReadingMedia;
-                case QueueStateEnum.RefreshAnime:
+                case QueueStateEnum.Refresh:
                     return Shoko.Commons.Properties.Resources.Command_Refresh;
                 case QueueStateEnum.SearchMal:
                     return Shoko.Commons.Properties.Resources.Command_SearchMal;

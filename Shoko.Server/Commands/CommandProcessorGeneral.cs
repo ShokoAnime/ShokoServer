@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using Shoko.Server.Repositories.Direct;
 using NLog;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
@@ -250,7 +251,14 @@ namespace Shoko.Server.Commands
                     }
 
                     logger.Trace("Processing command request: {0}", crdb.CommandID);
-                    icr.ProcessCommand();
+                    try
+                    {
+                        icr.ProcessCommand();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex.ToString());
+                    }
                 }
 
                 logger.Trace("Deleting command request: {0}", crdb.CommandID);

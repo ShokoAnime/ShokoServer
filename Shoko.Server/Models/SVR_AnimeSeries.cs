@@ -512,7 +512,7 @@ namespace Shoko.Server.Models
             {
                 SVR_AnimeGroup parentGroup = RepoFactory.AnimeGroup.GetByID(this.AnimeGroupID);
 
-                while (parentGroup != null && parentGroup.AnimeGroupParentID.HasValue)
+                while (parentGroup?.AnimeGroupParentID != null)
                 {
                     parentGroup = RepoFactory.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
                 }

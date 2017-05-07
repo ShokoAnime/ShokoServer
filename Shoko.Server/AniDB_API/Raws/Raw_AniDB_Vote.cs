@@ -26,7 +26,7 @@ namespace AniDBAPI
         // sRecMessage is the message received from ANIDB file info command
 
 
-        public void ProcessVoteFoundAnime(string sRecMessage, int animeID, enAniDBVoteType vtype)
+        public void ProcessVoteFoundAnime(string sRecMessage, int animeID, AniDBVoteType vtype)
         {
             // remove the header info
             string[] sDetails = sRecMessage.Substring(15).Split('|');
@@ -63,7 +63,7 @@ namespace AniDBAPI
             this.EntityID = animeID;
             this.EpisodeNumber = epno;
             this.VoteValue = int.Parse(sDetails[1].Trim());
-            this.VoteType = (int) enAniDBVoteType.Episode;
+            this.VoteType = (int) AniDBVoteType.Episode;
             this.EpisodeType = (int) epType;
         }
 

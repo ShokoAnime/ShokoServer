@@ -92,7 +92,7 @@ namespace Shoko.Server
         private static BackgroundWorker workerSyncHashes = new BackgroundWorker();
         private static BackgroundWorker workerSyncMedias = new BackgroundWorker();
 
-        public static BackgroundWorker workerSetupDB = new BackgroundWorker();
+        internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
         internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
 
 
@@ -493,6 +493,7 @@ namespace Shoko.Server
 
         public event EventHandler LoginFormNeeded;
         public event EventHandler DatabaseSetup;
+        public event EventHandler DBSetupCompleted; 
         void workerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             bool setupComplete = bool.Parse(e.Result.ToString());
@@ -502,6 +503,8 @@ namespace Shoko.Server
                 ServerInfo.Instance.RefreshCloudAccounts();
                 ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_Complete;
                 ServerState.Instance.ServerOnline = true;
+                ServerSettings.FirstRun = false;
+                ServerSettings.SaveSettings();
             }
             else
             {
@@ -519,13 +522,11 @@ namespace Shoko.Server
                 {
                     LoginFormNeeded?.Invoke(Instance, null);
                 }
+                DBSetupCompleted?.Invoke(Instance, null);
             }
         }
 
-        private void ShowDatabaseSetup()
-        {
-            DatabaseSetup?.Invoke(Instance, null);
-        }
+        private void ShowDatabaseSetup() => DatabaseSetup?.Invoke(Instance, null);
 
         public static void StartFileWorker()
         {

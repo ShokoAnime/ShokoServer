@@ -58,8 +58,6 @@ namespace Shoko.UI
                 Environment.Exit(0);
             }
 
-            ServerSettings.DebugSettingsToLog();
-
             //Create an instance of the NotifyIcon Class
             TippuTrayNotify = new System.Windows.Forms.NotifyIcon();
 
@@ -157,6 +155,17 @@ namespace Shoko.UI
             InitCulture();
             Instance = this;
 
+            if (!ServerSettings.FirstRun)
+            {
+                logger.Info("Already been set up... Initializing DB...");
+                ShokoServer.RunWorkSetupDB();
+            }
+
+            SubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
             ServerSettings.YesNoRequired += (sender, args) =>
             {
                 System.Windows.Forms.DialogResult dr =
@@ -187,6 +196,7 @@ namespace Shoko.UI
                 InitialSetupForm frm = new InitialSetupForm();
                 frm.ShowDialog();
             });
+            ShokoServer.Instance.LoginFormNeeded += (a, e) => Application.Current.Dispatcher.Invoke(() => new InitialSetupForm().ShowDialog());
 
             ServerSettings.MigrationStarted += (a, e) =>
             {
@@ -195,6 +205,8 @@ namespace Shoko.UI
                 migrationForm.Show();
             };
 
+            ShokoServer.Instance.DBSetupCompleted += DBSetupCompleted;
+            ShokoServer.Instance.DatabaseSetup += (sender, args) => ShowDatabaseSetup();
             Shoko.Server.Extensions.Utils.CreateIcon += plugin => Application.Current.Dispatcher.Invoke(() =>
             {
                 if (plugin?.Icon == null)
@@ -548,7 +560,9 @@ namespace Shoko.UI
                     ServerSettings.MySQL_Username = txtMySQL_Username.Text;
                 }
 
-                ShokoServer.workerSetupDB.RunWorkerAsync();
+                logger.Info("Initializing DB...");
+
+                ShokoServer.RunWorkSetupDB();
             }
             catch (Exception ex)
             {
@@ -617,48 +631,11 @@ namespace Shoko.UI
             }
         }
 
-        void workerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        void  DBSetupCompleted(object sender, EventArgs e)
         {
-            bool setupComplete = bool.Parse(e.Result.ToString());
-            if (setupComplete)
-            {
-                ServerInfo.Instance.RefreshImportFolders();
-                ServerInfo.Instance.RefreshCloudAccounts();
-                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_Complete;
-                ServerState.Instance.ServerOnline = true;
-
-                tabControl1.SelectedIndex = 0;
-            }
-            else
-            {
-                ServerState.Instance.ServerOnline = false;
-                if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
-                {
-                    ServerSettings.DatabaseType = "SQLite";
-                    ShowDatabaseSetup();
-                }
-            }
-
             btnSaveDatabaseSettings.IsEnabled = true;
             cboDatabaseType.IsEnabled = true;
             btnRefreshMSSQLServerList.IsEnabled = true;
-
-            if (setupComplete)
-            {
-                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
-                    string.IsNullOrEmpty(ServerSettings.AniDB_Password))
-                {
-                    InitialSetupForm frm = new InitialSetupForm();
-                    frm.Owner = this;
-                    frm.ShowDialog();
-                }
-
-                IReadOnlyList<SVR_ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
-                if (folders.Count == 0)
-                {
-                    tabControl1.SelectedIndex = 1;
-                }
-            }
         }
 
         void btnRefreshMSSQLServerList_Click(object sender, RoutedEventArgs e)
@@ -695,6 +672,8 @@ namespace Shoko.UI
             if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE") cboDatabaseType.SelectedIndex = 0;
             if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER") cboDatabaseType.SelectedIndex = 1;
             if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL") cboDatabaseType.SelectedIndex = 2;
+            cboDatabaseType.IsEnabled = true;
+            btnSaveDatabaseSettings.IsEnabled = true;
         }
 
         #endregion
@@ -806,9 +785,7 @@ namespace Shoko.UI
             Utils.ClearAutoUpdateCache();
 
             ShowDatabaseSetup();
-            logger.Info("Initializing DB...");
 
-            ShokoServer.RunWorkSetupDB();
             ShokoServer.Instance.CheckForUpdates();
             ShokoServer.Instance.UpdateAvailable += (s, args) => new UpdateForm {Owner = Instance}.ShowDialog();
         }
@@ -1128,21 +1105,5 @@ namespace Shoko.UI
         }
 
         #endregion
-
-        static void autoUpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            Importer.CheckForDayFilters();
-            Importer.CheckForCalendarUpdate(false);
-            Importer.CheckForAnimeUpdate(false);
-            Importer.CheckForTvDBUpdates(false);
-            Importer.CheckForMyListSyncUpdate(false);
-            Importer.CheckForTraktAllSeriesUpdate(false);
-            Importer.CheckForTraktTokenUpdate(false);
-            Importer.CheckForMALUpdate(false);
-            Importer.CheckForMyListStatsUpdate(false);
-            Importer.CheckForAniDBFileUpdate(false);
-            Importer.UpdateAniDBTitles();
-            Importer.SendUserInfoUpdate(false);
-        }
     }
 }
