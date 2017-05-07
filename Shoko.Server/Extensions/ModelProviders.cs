@@ -343,6 +343,28 @@ namespace Shoko.Server.Extensions
             episode.Overview = apiEpisode.Overview;
         }
 
+        public static void Populate(this TvDB_Episode episode, TvDbSharper.Clients.Episodes.Json.EpisodeRecord apiEpisode)
+        {
+            episode.Id = apiEpisode.Id;
+            episode.SeriesID = Int32.Parse(apiEpisode.SeriesId);
+            episode.SeasonID = 0;
+            episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
+            episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
+
+            int flag = 0;
+            if (apiEpisode.Filename != String.Empty)
+                flag = 1;
+
+            episode.EpImgFlag = flag;
+            episode.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
+            episode.EpisodeName = apiEpisode.EpisodeName;
+            episode.Overview = apiEpisode.Overview;
+            episode.Filename = apiEpisode.Filename;
+            episode.AirsAfterSeason = apiEpisode.AirsAfterSeason;
+            episode.AirsBeforeEpisode = apiEpisode.AirsBeforeEpisode;
+            episode.AirsBeforeSeason = apiEpisode.AirsBeforeSeason;
+        }
+
         public static void Populate(this TvDB_Episode episode, XmlNode node)
         {
             // used when getting information from full series info

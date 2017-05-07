@@ -18,6 +18,7 @@ using TvDbSharper.BaseSchemas;
 using TvDbSharper.Clients.Series.Json;
 using Shoko.Commons.Extensions;
 using TvDbSharper.Clients.Updates.Json;
+using TvDbSharper.Clients.Episodes.Json;
 
 namespace Shoko.Server.Providers.TvDB
 {
@@ -658,6 +659,29 @@ namespace Shoko.Server.Providers.TvDB
             return apiEpisodes;
         }
 
+        static EpisodeRecord GetEpisodeDetails(int episodeID)
+        {
+            return Task.Run(async () => await GetEpisodeDetailsAsync(episodeID)).Result;
+        }
+
+        static async Task<EpisodeRecord> GetEpisodeDetailsAsync(int episodeID)
+        {
+            try
+            {
+                await _checkAuthorizationAsync();
+
+                TvDBRateLimiter.Instance.EnsureRate();
+                var response = await client.Episodes.GetAsync(episodeID);
+                return response.Data;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TvDBApiHelper.GetEpisodeDetailsAsync: " + ex.ToString());
+            }
+
+            return null;
+        }
+
         public static void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
             try
@@ -688,7 +712,11 @@ namespace Shoko.Server.Providers.TvDB
                         TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(id);
                         if (ep == null)
                             ep = new TvDB_Episode();
-                        ep.Populate(seriesID, item);
+
+                        EpisodeRecord episode = GetEpisodeDetails(id);
+                        if (episode == null)
+                            continue;
+                        ep.Populate(episode);
                         RepoFactory.TvDB_Episode.Save(ep);
 
                         if (downloadImages)
