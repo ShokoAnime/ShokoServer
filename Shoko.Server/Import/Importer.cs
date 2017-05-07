@@ -23,6 +23,7 @@ using Shoko.Models.TvDB;
 using Shoko.Server.Extensions;
 using File = Pri.LongPath.File;
 using Shoko.Server.Repositories;
+using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server
 {
@@ -782,7 +783,7 @@ namespace Shoko.Server
 
         public static void RunImport_ScanTvDB()
         {
-            TvDBHelper.ScanForMatches();
+            TvDBApiHelper.ScanForMatches();
         }
 
         public static void RunImport_ScanTrakt()
@@ -803,7 +804,7 @@ namespace Shoko.Server
 
         public static void RunImport_UpdateTvDB(bool forced)
         {
-            TvDBHelper.UpdateAllInfo(forced);
+            TvDBApiHelper.UpdateAllInfo(forced);
         }
 
         public static void RunImport_UpdateAllAniDB()
@@ -1178,7 +1179,7 @@ namespace Shoko.Server
 
             List<int> tvDBIDs = new List<int>();
             bool tvDBOnline = false;
-            string serverTime = ShokoService.TvdbHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
+            string serverTime = TvDBApiHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
 
             if (tvDBOnline)
             {
@@ -1203,7 +1204,7 @@ namespace Shoko.Server
             sched.UpdateDetails = serverTime;
             RepoFactory.ScheduledUpdate.Save(sched);
 
-            TvDBHelper.ScanForMatches();
+            TvDBApiHelper.ScanForMatches();
         }
 
         public static void CheckForCalendarUpdate(bool forceRefresh)

@@ -14,6 +14,11 @@ using Shoko.Server.Models;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
+using Pri.LongPath;
+using TvDbSharper.BaseSchemas;
+using TvDbSharper.Clients.Series.Json;
+using Shoko.Commons.Extensions;
+using TvDbSharper.Clients.Updates.Json;
 
 namespace Shoko.Server.Providers.TvDB
 {
@@ -21,6 +26,16 @@ namespace Shoko.Server.Providers.TvDB
     {
         static ITvDbClient client = new TvDbClient();
         private static Logger logger = LogManager.GetCurrentClassLogger();
+
+        public static string CurrentServerTime
+        {
+            get
+            {
+                DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToLocalTime();
+                TimeSpan span = (new DateTime().ToLocalTime() - epoch);
+                return span.TotalSeconds.ToString();
+            }
+        }
 
         public TvDBApiHelper()
         {
@@ -231,6 +246,635 @@ namespace Shoko.Server.Providers.TvDB
             }
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+        }
+
+        public static List<TvDB_Language> GetLanguages()
+        {
+            return Task.Run(async () => await GetLanguagesAsync()).Result;
+        }
+
+        public static async Task<List<TvDB_Language>> GetLanguagesAsync()
+        {
+            List<TvDB_Language> languages = new List<TvDB_Language>();
+
+            try
+            {
+                await _checkAuthorizationAsync();
+
+                var response = await client.Languages.GetAllAsync();
+                TvDbSharper.Clients.Languages.Json.Language[] apiLanguages = response.Data;
+
+                if (apiLanguages.Length <= 0)
+                    return languages;
+
+                foreach (TvDbSharper.Clients.Languages.Json.Language item in apiLanguages)
+                {
+                    TvDB_Language lan = new TvDB_Language();
+
+                    lan.Id = item.Id;
+                    lan.EnglishName = item.EnglishName;
+                    lan.Name = item.Name;
+                    lan.Abbreviation = item.Abbreviation;
+                    languages.Add(lan);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
+            }
+
+            return languages;
+        }
+
+        public static void DownloadAutomaticImages(int seriesID, bool forceDownload)
+        {
+            DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
+            DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
+            DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
+        }
+
+        static async Task<TvDbSharper.Clients.Series.Json.Image[]> GetSeriesImagesAsync(int seriesID, TvDbSharper.Clients.Series.Json.KeyType type)
+        {
+            await _checkAuthorizationAsync();
+
+            TvDbSharper.Clients.Series.Json.ImagesQuery query = new TvDbSharper.Clients.Series.Json.ImagesQuery();
+            query.KeyType = type;
+
+            var response = await client.Series.GetImagesAsync(seriesID, query);
+            return response.Data;
+        }
+
+        public static List<TvDB_ImageFanart> GetFanartOnline(int seriesID)
+        {
+            return Task.Run(async () => await GetFanartOnlineAsync(seriesID)).Result;
+        }
+
+        public static async Task<List<TvDB_ImageFanart>> GetFanartOnlineAsync(int seriesID)
+        {
+            List<int> validIDs = new List<int>();
+
+            try
+            {
+                TvDbSharper.Clients.Series.Json.Image[] images = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Fanart);
+
+                foreach (TvDbSharper.Clients.Series.Json.Image image in images)
+                {
+                    int id = image.Id ?? 0;
+                    if (id == 0) { continue; }
+
+                    TvDB_ImageFanart img = RepoFactory.TvDB_ImageFanart.GetByTvDBID(id);
+                    
+                    if (img == null)
+                    {
+                        img = new TvDB_ImageFanart();
+                        img.Enabled = 1;
+                    }
+                   
+                    img.Populate(seriesID, image);
+                    img.Language = client.AcceptedLanguage;
+                    RepoFactory.TvDB_ImageFanart.Save(img);
+                    validIDs.Add(id);
+                }
+
+                // delete any images from the database which are no longer valid
+                foreach (TvDB_ImageFanart img in RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID))
+                {
+                    if (!validIDs.Contains(img.Id))
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TVDBApiHelper.GetSeriesBannersOnlineAsync: " + ex.ToString());
+            }
+
+            return null;
+        }
+
+        public static List<TvDB_ImagePoster> GetPosterOnline(int seriesID)
+        {
+            return Task.Run(async () => await GetPosterOnlineAsync(seriesID)).Result;
+        }
+
+        public static async Task<List<TvDB_ImagePoster>> GetPosterOnlineAsync(int seriesID)
+        {
+            List<int> validIDs = new List<int>();
+
+            try
+            {
+                TvDbSharper.Clients.Series.Json.Image[] posters = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Poster);
+                TvDbSharper.Clients.Series.Json.Image[] season = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Season);
+                TvDbSharper.Clients.Series.Json.Image[] series = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Series);
+
+                TvDbSharper.Clients.Series.Json.Image[] images = posters.Concat(season).Concat(series).ToArray();
+
+                foreach (TvDbSharper.Clients.Series.Json.Image image in images)
+                {
+                    int id = image.Id ?? 0;
+                    if (id == 0) { continue; }
+
+                    TvDB_ImagePoster img = RepoFactory.TvDB_ImagePoster.GetByTvDBID(id);
+
+                    if (img == null)
+                    {
+                        img = new TvDB_ImagePoster();
+                        img.Enabled = 1;
+                    }
+
+                    img.Populate(seriesID, image);
+                    img.Language = client.AcceptedLanguage;
+                    RepoFactory.TvDB_ImagePoster.Save(img);
+                    validIDs.Add(id);
+                }
+
+                // delete any images from the database which are no longer valid
+                foreach (TvDB_ImagePoster img in RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID))
+                {
+                    if (!validIDs.Contains(img.Id))
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImagePosterID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: " + ex.ToString());
+            }
+
+            return null;
+        }
+
+        public static List<TvDB_ImageWideBanner> GetBannerOnline(int seriesID)
+        {
+            return Task.Run(async () => await GetBannerOnlineAsync(seriesID)).Result;
+        }
+
+        public static async Task<List<TvDB_ImageWideBanner>> GetBannerOnlineAsync(int seriesID)
+        {
+            List<int> validIDs = new List<int>();
+
+            try
+            {
+                TvDbSharper.Clients.Series.Json.Image[] images = await GetSeriesImagesAsync(seriesID, TvDbSharper.Clients.Series.Json.KeyType.Seasonwide);
+
+                foreach (TvDbSharper.Clients.Series.Json.Image image in images)
+                {
+                    int id = image.Id ?? 0;
+                    if (id == 0) { continue; }
+
+                    TvDB_ImageWideBanner img = RepoFactory.TvDB_ImageWideBanner.GetByTvDBID(id);
+
+                    if (img == null)
+                    {
+                        img = new TvDB_ImageWideBanner();
+                        img.Enabled = 1;
+                    }
+
+                    img.Populate(seriesID, image);
+                    img.Language = client.AcceptedLanguage;
+                    RepoFactory.TvDB_ImageWideBanner.Save(img);
+                    validIDs.Add(id);
+                }
+
+                // delete any images from the database which are no longer valid
+                foreach (TvDB_ImageWideBanner img in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID))
+                {
+                    if (!validIDs.Contains(img.Id))
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageWideBannerID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: " + ex.ToString());
+            }
+
+            return null;
+        }
+
+        public static void DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)
+        {
+            int imageCount = 0;
+
+            // find out how many images we already have locally
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                ISessionWrapper sessionWrapper = session.Wrap();
+
+                foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart
+                    .GetBySeriesID(sessionWrapper, seriesID))
+                {
+                    if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
+                        imageCount++;
+                }
+            }
+
+            foreach (TvDB_ImageFanart img in images)
+            {
+                if (ServerSettings.TvDB_AutoFanart && imageCount < ServerSettings.TvDB_AutoFanartAmount)
+                {
+                    bool fileExists = File.Exists(img.GetFullImagePath());
+                    if (!fileExists || (fileExists && forceDownload))
+                    {
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageFanartID,
+                            JMMImageType.TvDB_FanArt, forceDownload);
+                        cmd.Save();
+                        imageCount++;
+                    }
+                }
+                else
+                {
+                    //The TvDB_AutoFanartAmount point to download less images than its available
+                    // we should clean those image that we didn't download because those dont exists in local repo
+                    // first we check if file was downloaded
+                    if (!File.Exists(img.GetFullImagePath()))
+                    {
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
+                    }
+                }
+            }
+        }
+
+        public static void DownloadAutomaticImages(List<TvDB_ImagePoster> images, int seriesID, bool forceDownload)
+        {
+            int imageCount = 0;
+
+            // find out how many images we already have locally
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                ISessionWrapper sessionWrapper = session.Wrap();
+
+                foreach (TvDB_ImagePoster fanart in RepoFactory.TvDB_ImagePoster
+                    .GetBySeriesID(sessionWrapper, seriesID))
+                {
+                    if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
+                        imageCount++;
+                }
+            }
+
+            foreach (TvDB_ImagePoster img in images)
+            {
+                if (ServerSettings.TvDB_AutoFanart && imageCount < ServerSettings.TvDB_AutoFanartAmount)
+                {
+                    bool fileExists = File.Exists(img.GetFullImagePath());
+                    if (!fileExists || (fileExists && forceDownload))
+                    {
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImagePosterID,
+                            JMMImageType.TvDB_FanArt, forceDownload);
+                        cmd.Save();
+                        imageCount++;
+                    }
+                }
+                else
+                {
+                    //The TvDB_AutoFanartAmount point to download less images than its available
+                    // we should clean those image that we didn't download because those dont exists in local repo
+                    // first we check if file was downloaded
+                    if (!File.Exists(img.GetFullImagePath()))
+                    {
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImagePosterID);
+                    }
+                }
+            }
+        }
+
+        public static void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
+        {
+            int imageCount = 0;
+
+            // find out how many images we already have locally
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                ISessionWrapper sessionWrapper = session.Wrap();
+
+                foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(session,
+                    seriesID))
+                {
+                    if (!string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()))
+                        imageCount++;
+                }
+            }
+
+            foreach (TvDB_ImageWideBanner img in images)
+            {
+                if (ServerSettings.TvDB_AutoFanart && imageCount < ServerSettings.TvDB_AutoFanartAmount)
+                {
+                    bool fileExists = File.Exists(img.GetFullImagePath());
+                    if (!fileExists || (fileExists && forceDownload))
+                    {
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
+                            JMMImageType.TvDB_FanArt, forceDownload);
+                        cmd.Save();
+                        imageCount++;
+                    }
+                }
+                else
+                {
+                    //The TvDB_AutoFanartAmount point to download less images than its available
+                    // we should clean those image that we didn't download because those dont exists in local repo
+                    // first we check if file was downloaded
+                    if (!File.Exists(img.GetFullImagePath()))
+                    {
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageWideBannerID);
+                    }
+                }
+            }
+        }
+
+        public static List<BasicEpisode> GetEpisodesOnline(int seriesID)
+        {
+            return Task.Run(async () => await GetEpisodesOnlineAsync(seriesID)).Result;
+        }
+
+        static async Task<List<BasicEpisode>> GetEpisodesOnlineAsync(int seriesID)
+        {
+            List<BasicEpisode> apiEpisodes = new List<BasicEpisode>();
+            try
+            {
+                await _checkAuthorizationAsync();
+
+                var tasks = new List<Task<TvDbResponse<BasicEpisode[]>>>();
+
+                var firstResponse = await client.Series.GetEpisodesAsync(seriesID, 1);
+
+                for (int i = 2; i <= firstResponse.Links.Last; i++)
+                {
+                    tasks.Add(client.Series.GetEpisodesAsync(seriesID, i));
+                }
+
+                var results = await Task.WhenAll(tasks);
+
+                apiEpisodes = firstResponse.Data.Concat(results.SelectMany(x => x.Data)).ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync: " + ex.ToString());
+            }
+
+            return apiEpisodes;
+        }
+
+        public static void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
+        {
+            try
+            {
+                // update the series info
+                TvDB_Series tvSeries = GetSeriesInfoOnline(seriesID);
+                if (tvSeries == null) return;
+
+                if (downloadImages)
+                {
+                    DownloadAutomaticImages(seriesID, forceRefresh);
+                }
+
+                // update all the episodes and download episode images
+                // TODO: only basic episode info is provided here 
+                List<BasicEpisode> episodeItems = GetEpisodesOnline(seriesID);
+                logger.Trace("Found {0} Episode nodes", episodeItems.Count.ToString());
+
+                List<int> existingEpIds = new List<int>();
+                foreach (BasicEpisode item in episodeItems)
+                {
+                    try
+                    {
+                        // the episode id
+                        int id = item.Id;
+                        existingEpIds.Add(id);
+
+                        TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(id);
+                        if (ep == null)
+                            ep = new TvDB_Episode();
+                        ep.Populate(seriesID, item);
+                        RepoFactory.TvDB_Episode.Save(ep);
+
+                        if (downloadImages)
+                        {
+                            // download the image for this episode
+                            if (!string.IsNullOrEmpty(ep.Filename))
+                            {
+                                bool fileExists = File.Exists(ep.GetFullImagePath());
+                                if (!fileExists || (fileExists && forceRefresh))
+                                {
+                                    CommandRequest_DownloadImage cmd =
+                                        new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
+                                            JMMImageType.TvDB_Episode, forceRefresh);
+                                    cmd.Save();
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "Error in TVDBHelper.GetEpisodes: " + ex.ToString());
+                    }
+                }
+
+                // get all the existing tvdb episodes, to see if any have been deleted
+                List<TvDB_Episode> allEps = RepoFactory.TvDB_Episode.GetBySeriesID(seriesID);
+                foreach (TvDB_Episode oldEp in allEps)
+                {
+                    if (!existingEpIds.Contains(oldEp.Id))
+                        RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TVDBHelper.GetEpisodes: " + ex.ToString());
+            }
+            
+        }
+
+        public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
+        {
+            CrossRef_AniDB_TvDB_Episode xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBID);
+            if (xref == null)
+                xref = new CrossRef_AniDB_TvDB_Episode();
+
+            xref.AnimeID = animeID;
+            xref.AniDBEpisodeID = aniDBID;
+            xref.TvDBEpisodeID = tvDBID;
+            RepoFactory.CrossRef_AniDB_TvDB_Episode.Save(xref);
+
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+
+            SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
+            RepoFactory.AnimeEpisode.Save(ep);
+
+            logger.Trace("Changed tvdb episode association: {0}", aniDBID);
+        }
+
+        // Removes all TVDB information from a series, bringing it back to a blank state.
+        public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+            int tvSeasonNumber, int tvEpNumber)
+        {
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
+                tvEpNumber, animeID,
+                (int)aniEpType,
+                aniEpNumber);
+            if (xref == null) return;
+
+            RepoFactory.CrossRef_AniDB_TvDBV2.Delete(xref.CrossRef_AniDB_TvDBV2ID);
+
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+
+            CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID,
+                (int)aniEpType, aniEpNumber,
+                tvDBID, tvSeasonNumber, tvEpNumber);
+            req.Save();
+        }
+
+        public static void ScanForMatches()
+        {
+            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+
+            IReadOnlyList<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
+            List<int> alreadyLinked = new List<int>();
+            foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
+            {
+                alreadyLinked.Add(xref.AnimeID);
+            }
+
+            foreach (SVR_AnimeSeries ser in allSeries)
+            {
+                if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
+
+                SVR_AniDB_Anime anime = ser.GetAnime();
+
+                if (anime != null)
+                {
+                    if (!anime.GetSearchOnTvDB()) continue; // Don't log if it isn't supposed to be there
+                    logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
+                    if (anime.GetIsTvDBLinkDisabled())
+                    {
+                        logger.Trace("Skipping scan tvDB link because it is disabled: " + anime.MainTitle);
+                        continue;
+                    }
+                }
+
+                CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(ser.AniDB_ID, false);
+                cmd.Save();
+            }
+        }
+
+        public static void UpdateAllInfo(bool force)
+        {
+            IReadOnlyList<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
+            List<int> alreadyLinked = new List<int>();
+            foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
+            {
+                CommandRequest_TvDBUpdateSeriesAndEpisodes cmd =
+                    new CommandRequest_TvDBUpdateSeriesAndEpisodes(xref.TvDBID, force);
+                cmd.Save();
+            }
+        }
+
+        public static List<int> GetUpdatedSeriesList(string serverTime)
+        {
+            return Task.Run(async () => await GetUpdatedSeriesListAsync(serverTime)).Result;
+        }
+
+        public static async Task<List<int>> GetUpdatedSeriesListAsync(string serverTime)
+        {
+            List<int> seriesList = new List<int>();
+            try
+            {
+                // Unix timestamp is seconds past epoch
+                System.DateTime lastUpdateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+                lastUpdateTime = lastUpdateTime.AddSeconds(Int32.Parse(serverTime)).ToLocalTime();
+
+                var response = await client.Updates.GetAsync(lastUpdateTime);
+
+                Update[] updates = response.Data;
+
+                foreach (Update item in updates)
+                {
+                    seriesList.Add(item.Id);
+                }
+
+                return seriesList;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in GetUpdatedSeriesList: " + ex.ToString());
+                return seriesList;
+            }
+        }
+
+        public static string IncrementalTvDBUpdate(ref List<int> tvDBIDs, ref bool tvDBOnline)
+        {
+            // check if we have record of doing an automated update for the TvDB previously
+            // if we have then we have kept a record of the server time and can do a delta update
+            // otherwise we need to do a full update and keep a record of the time
+
+            List<int> allTvDBIDs = new List<int>();
+            tvDBIDs = new List<int>();
+            tvDBOnline = true;
+
+            try
+            {
+                // record the tvdb server time when we started
+                // we record the time now instead of after we finish, to include any possible misses
+                string currentTvDBServerTime = CurrentServerTime;
+                if (currentTvDBServerTime.Length == 0)
+                {
+                    tvDBOnline = false;
+                    return currentTvDBServerTime;
+                }
+
+                foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+                {
+                    List<CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
+                    if (xrefs == null) continue;
+
+                    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+                    {
+                        if (!allTvDBIDs.Contains(xref.TvDBID)) allTvDBIDs.Add(xref.TvDBID);
+                    }
+                }
+
+                // get the time we last did a TvDB update
+                // if this is the first time it will be null
+                // update the anidb info ever 24 hours
+
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo);
+
+                string lastServerTime = "";
+                if (sched != null)
+                {
+                    TimeSpan ts = DateTime.Now - sched.LastUpdate;
+                    logger.Trace("Last tvdb info update was {0} hours ago", ts.TotalHours.ToString());
+                    if (!string.IsNullOrEmpty(sched.UpdateDetails))
+                        lastServerTime = sched.UpdateDetails;
+
+                    // the UpdateDetails field for this type will actually contain the last server time from
+                    // TheTvDB that a full update was performed
+                }
+
+
+                // get a list of updates from TvDB since that time
+                if (lastServerTime.Length > 0)
+                {
+                    List<int> seriesList = GetUpdatedSeriesList(lastServerTime);
+                    logger.Trace("{0} series have been updated since last download", seriesList.Count.ToString());
+                    logger.Trace("{0} TvDB series locally", allTvDBIDs.Count.ToString());
+
+                    foreach (int id in seriesList)
+                    {
+                        if (allTvDBIDs.Contains(id)) tvDBIDs.Add(id);
+                    }
+                    logger.Trace("{0} TvDB local series have been updated since last download",
+                        tvDBIDs.Count.ToString());
+                }
+                else
+                {
+                    // use the full list
+                    tvDBIDs = allTvDBIDs;
+                }
+
+                return currentTvDBServerTime;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "IncrementalTvDBUpdate: " + ex.ToString());
+                return "";
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands
 {
@@ -50,7 +51,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ShokoService.TvdbHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh, true);
+                TvDBApiHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh, true);
             }
             catch (Exception ex)
             {

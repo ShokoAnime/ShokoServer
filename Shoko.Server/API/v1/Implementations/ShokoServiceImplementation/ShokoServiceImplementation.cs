@@ -161,7 +161,7 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.TvdbHelper.UpdateAllInfoAndImages(seriesID, false, true);
+                TvDBApiHelper.UpdateAllInfoAndImages(seriesID, false, true);
             }
             catch (Exception ex)
             {
@@ -1816,7 +1816,7 @@ namespace Shoko.Server
             try
             {
                 // refresh data from TvDB
-                ShokoService.TvdbHelper.UpdateAllInfoAndImages(seriesID, true, false);
+                TvDBApiHelper.UpdateAllInfoAndImages(seriesID, true, false);
 
                 seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
 
@@ -1871,7 +1871,7 @@ namespace Shoko.Server
         {
             try
             {
-                TvDBHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID, animeID);
+                TvDBApiHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID, animeID);
 
                 return "";
             }
@@ -1913,7 +1913,7 @@ namespace Shoko.Server
                         }
                     }
 
-                    TvDBHelper.RemoveLinkAniDBTvDB(xref.AnimeID, (enEpisodeType) xref.AniDBStartEpisodeType,
+                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AnimeID, (enEpisodeType) xref.AniDBStartEpisodeType,
                         xref.AniDBStartEpisodeNumber,
                         xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
                 }
@@ -1949,7 +1949,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TvDBHelper.RemoveLinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                TvDBApiHelper.RemoveLinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
                     tvEpNumber);
 
                 return "";
@@ -3135,7 +3135,7 @@ namespace Shoko.Server
         {
             try
             {
-                return ShokoService.TvdbHelper.GetLanguages();
+                return TvDBApiHelper.GetLanguages();
             }
             catch (Exception ex)
             {
