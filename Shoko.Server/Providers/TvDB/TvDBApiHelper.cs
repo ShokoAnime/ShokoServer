@@ -337,7 +337,6 @@ namespace Shoko.Server.Providers.TvDB
             {
                 return new Image[] { };
             }
-            
         }
 
         public static List<TvDB_ImageFanart> GetFanartOnline(int seriesID)
@@ -564,7 +563,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (!fileExists || (fileExists && forceDownload))
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImagePosterID,
-                            JMMImageType.TvDB_FanArt, forceDownload);
+                            JMMImageType.TvDB_Cover, forceDownload);
                         cmd.Save();
                         imageCount++;
                     }
@@ -607,7 +606,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (!fileExists || (fileExists && forceDownload))
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
-                            JMMImageType.TvDB_FanArt, forceDownload);
+                            JMMImageType.TvDB_Banner, forceDownload);
                         cmd.Save();
                         imageCount++;
                     }

@@ -10,8 +10,8 @@ namespace Shoko.Server.Providers.TvDB
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         private static readonly TvDBRateLimiter instance = new TvDBRateLimiter();
        
-        private static int ShortDelay = 2500;
-        private static int LongDelay = 4500;
+        private static int ShortDelay = 500;
+        private static int LongDelay = 1000;
 
         // Switch to longer delay after 1 hour
         private static long shortPeriod = 60 * 60 * 1000;
@@ -67,7 +67,7 @@ namespace Shoko.Server.Providers.TvDB
                     return;
                 }
 
-                logger.Trace($"TvDBRateLimiter#{InstanceID}: Time since last request is {delay} ms, throttling for {currentDelay}.");
+                logger.Trace($"TvDBRateLimiter#{InstanceID}: Time since last request is {delay} ms, throttling for {currentDelay} ms.");
                 Thread.Sleep(currentDelay);
 
                 logger.Trace("TvDBRateLimiter#{InstanceID}: Sending TvDB command.");
