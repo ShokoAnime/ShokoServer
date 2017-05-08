@@ -5334,13 +5334,16 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi Audio</value>
   </data>
-  <data name="TvDB_AutoLink" xml:space="preserve">
-    <value>Tenta di collegare automaticamente TvDB, Trakt e MovieDB di nome serie</value>
-  </data>
-  <data name="MAL_AutoLink" xml:space="preserve">
-    <value>Provare a collegare automaticamente MAL di nome serie</value>
-  </data>
   <data name="Rename_Last" xml:space="preserve">
     <value>Recenti</value>
+  </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>AutoLink TvDB serie</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>AutoLink MAL serie</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Impostazioni di Plex</value>
   </data>
 </root>

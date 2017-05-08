@@ -5334,13 +5334,16 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi Audio</value>
   </data>
-  <data name="TvDB_AutoLink" xml:space="preserve">
-    <value>Essayez de lier automatiquement TvDB Trakt et MovieDB par le nom de série</value>
-  </data>
-  <data name="MAL_AutoLink" xml:space="preserve">
-    <value>Essayez de lier automatiquement MAL par son nom de la série</value>
-  </data>
   <data name="Rename_Last" xml:space="preserve">
     <value>Ces dernières</value>
+  </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>AutoLink TvDB série</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>AutoLink MAL série</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Paramètres de plex</value>
   </data>
 </root>

@@ -5334,13 +5334,16 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi Audio</value>
   </data>
-  <data name="TvDB_AutoLink" xml:space="preserve">
-    <value>Try to automatically link TvDB, Trakt, and MovieDB by Series Name</value>
-  </data>
-  <data name="MAL_AutoLink" xml:space="preserve">
-    <value>Try to automatically link MAL by Series Name</value>
-  </data>
   <data name="Rename_Last" xml:space="preserve">
     <value>Recent</value>
+  </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Autolink TvDB Series</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Autolink MAL Series</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex Settings</value>
   </data>
 </root>

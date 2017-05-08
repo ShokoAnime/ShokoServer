@@ -5334,13 +5334,16 @@
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi-аудио</value>
   </data>
-  <data name="TvDB_AutoLink" xml:space="preserve">
-    <value>Попытаться автоматически связать TvDB, тракт и MovieDB, название серии</value>
-  </data>
-  <data name="MAL_AutoLink" xml:space="preserve">
-    <value>Попытаться автоматически связать мал по имени серии</value>
-  </data>
   <data name="Rename_Last" xml:space="preserve">
     <value>Последние</value>
+  </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Автоссылка TvDB серии</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Autolink MAL серии</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex параметры</value>
   </data>
 </root>

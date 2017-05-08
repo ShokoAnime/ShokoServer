@@ -5220,9 +5220,6 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Actions_SyncPlex" xml:space="preserve">
     <value>Plex Watch Synchronisierungsstatus!</value>
   </data>
-  <data name="Command_SyncPlex" xml:space="preserve">
-    <value>Synchronisierung für Benutzer</value>
-  </data>
   <data name="Link" xml:space="preserve">
     <value>Link</value>
   </data>
@@ -5334,13 +5331,19 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi-Audio</value>
   </data>
-  <data name="TvDB_AutoLink" xml:space="preserve">
-    <value>Versuchen Sie, TvDB, Trakt und MovieDB namentlich Serie automatisch verbinden</value>
-  </data>
-  <data name="MAL_AutoLink" xml:space="preserve">
-    <value>Versuchen Sie, MAL namentlich Serie automatisch verbinden</value>
-  </data>
   <data name="Rename_Last" xml:space="preserve">
     <value>Den letzten</value>
+  </data>
+  <data name="Command_SyncPlex" xml:space="preserve">
+    <value>Synchronisierung von Plex für Benutzer: {0}</value>
+  </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>Autolink TvDB Serie</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>Autolink MAL Serie</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex-Einstellungen</value>
   </data>
 </root>

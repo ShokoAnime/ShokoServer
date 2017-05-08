@@ -7432,7 +7432,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Try to automatically link MAL by Series Name.
+        ///   Looks up a localized string similar to Autolink MAL Series.
         /// </summary>
         public static string MAL_AutoLink {
             get {
@@ -12409,6 +12409,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Plex Settings.
+        /// </summary>
+        public static string TAB_Settings_Plex {
+            get {
+                return ResourceManager.GetString("TAB_Settings_Plex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Relation Settings.
         /// </summary>
         public static string TAB_Settings_RelationSettings {
@@ -14146,7 +14155,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Try to automatically link TvDB, Trakt, and MovieDB by Series Name.
+        ///   Looks up a localized string similar to Autolink TvDB Series.
         /// </summary>
         public static string TvDB_AutoLink {
             get {

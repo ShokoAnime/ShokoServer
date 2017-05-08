@@ -5334,13 +5334,16 @@
   <data name="Audio_Multi" xml:space="preserve">
     <value>Multi-áudio</value>
   </data>
-  <data name="TvDB_AutoLink" xml:space="preserve">
-    <value>Tentar vincular automaticamente TvDB Trakt e MovieDB pelo nome da série</value>
-  </data>
-  <data name="MAL_AutoLink" xml:space="preserve">
-    <value>Tentar vincular automaticamente MAL pelo nome da série</value>
-  </data>
   <data name="Rename_Last" xml:space="preserve">
     <value>Recentes</value>
+  </data>
+  <data name="TvDB_AutoLink" xml:space="preserve">
+    <value>AutoLink TvDB série</value>
+  </data>
+  <data name="MAL_AutoLink" xml:space="preserve">
+    <value>AutoLink MAL série</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Configurações de plex</value>
   </data>
 </root>
