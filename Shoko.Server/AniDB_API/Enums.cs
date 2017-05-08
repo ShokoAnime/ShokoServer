@@ -8,15 +8,6 @@
         Deleted = 3
     }
 
-
-    public enum enAniDBVoteType
-    {
-        Anime = 1,
-        AnimeTemp = 2,
-        Group = 3,
-        Episode = 4
-    }
-
     public enum enAniDBCommandType
     {
         Login = 1,

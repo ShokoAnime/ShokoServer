@@ -8,12 +8,14 @@ using AniDBAPI;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Models.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands
 {
@@ -79,11 +81,11 @@ namespace Shoko.Server.Commands
 
                                 foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
                                 {
-                                    TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(xref.TvDBID);
+                                    TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID);
                                     if (tvser != null)
                                     {
                                         logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
-                                        TvDBHelper.LinkAniDBTvDB(AnimeID,
+                                        TvDBApiHelper.LinkAniDBTvDB(AnimeID,
                                             (enEpisodeType) xref.AniDBStartEpisodeType,
                                             xref.AniDBStartEpisodeNumber,
                                             xref.TvDBID, xref.TvDBSeasonNumber,
@@ -118,7 +120,7 @@ namespace Shoko.Server.Commands
                     searchCriteria = anime.MainTitle;
 
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<TVDB_Series_Search_Response> results = ShokoService.TvdbHelper.SearchSeries(searchCriteria);
+                    List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
                     logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
                     if (ProcessSearchResults(results, searchCriteria)) return;
 
@@ -132,7 +134,7 @@ namespace Shoko.Server.Commands
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
-                            results = ShokoService.TvdbHelper.SearchSeries(title.Title);
+                            results = TvDBApiHelper.SearchSeries(title.Title);
                             logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
                             if (ProcessSearchResults(results, title.Title)) return;
                         }
@@ -154,8 +156,8 @@ namespace Shoko.Server.Commands
                 logger.Trace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                     results[0].SeriesName,
                     results[0].SeriesID);
-                TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-                TvDBHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
+                TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID);
+                TvDBApiHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
 
                 // add links for multiple seasons (for long shows)
                 List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
@@ -184,8 +186,8 @@ namespace Shoko.Server.Commands
                         logger.Trace("Found english result for search on {0} --- Linked to {1} ({2})", searchCriteria,
                             sres.SeriesName,
                             sres.SeriesID);
-                        TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-                        TvDBHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
+                        TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID);
+                        TvDBApiHelper.LinkAniDBTvDB(AnimeID, enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
 
                         // add links for multiple seasons (for long shows)
                         List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);

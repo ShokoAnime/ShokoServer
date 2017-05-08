@@ -106,11 +106,12 @@ namespace Shoko.Server.Repositories.Cached
                     Shoko.Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
                     gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
+                    gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
+                    gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
-                    gf.EvaluateAnimeGroups();
-                if (gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION ||
-                    gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
-                    gf.EvaluateAnimeSeries();
+                {
+                    gf.CalculateGroupsAndSeries();
+                }
                 Save(gf);
             }
 
@@ -207,8 +208,7 @@ namespace Shoko.Server.Repositories.Cached
                     gfc.ConditionParameter = "";
                     gfc.GroupFilterID = gf.GroupFilterID;
                     gf.Conditions.Add(gfc);
-                    gf.EvaluateAnimeGroups();
-                    gf.EvaluateAnimeSeries();
+                    gf.CalculateGroupsAndSeries();
                     Save(gf); //Get ID
                 }
                 //Create All filter
@@ -227,8 +227,7 @@ namespace Shoko.Server.Repositories.Cached
                         BaseCondition = 1,
                         SortingCriteria = "5;1"
                     };
-                    gf.EvaluateAnimeGroups();
-                    gf.EvaluateAnimeSeries();
+                    gf.CalculateGroupsAndSeries();
                     Save(gf);
                 }
                 SVR_GroupFilter tagsdirec =
@@ -326,8 +325,7 @@ namespace Shoko.Server.Repositories.Cached
                         gfc.ConditionParameter = s;
                         gfc.GroupFilterID = yf.GroupFilterID;
                         yf.Conditions.Add(gfc);
-                        yf.EvaluateAnimeGroups();
-                        yf.EvaluateAnimeSeries();
+                        yf.CalculateGroupsAndSeries();
                         Save(yf);
                     }
                 }
@@ -390,8 +388,7 @@ namespace Shoko.Server.Repositories.Cached
                         gfc.ConditionParameter = s;
                         gfc.GroupFilterID = yf.GroupFilterID;
                         yf.Conditions.Add(gfc);
-                        yf.EvaluateAnimeGroups();
-                        yf.EvaluateAnimeSeries();
+                        yf.CalculateGroupsAndSeries();
                         Save(yf);
                     }
                 }

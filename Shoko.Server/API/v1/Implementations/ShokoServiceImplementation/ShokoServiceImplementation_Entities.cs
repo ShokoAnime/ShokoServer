@@ -1565,29 +1565,13 @@ namespace Shoko.Server
         /// <param name="voteType"></param>
         public void VoteAnime(int animeID, decimal voteValue, int voteType)
         {
-            //TODO missing userID ?! - brm
-            string msg = string.Format("Voting for anime: {0} - Value: {1}", animeID, voteValue);
+            string msg = $"Voting for anime: {animeID} - Value: {voteValue}";
             logger.Info(msg);
 
             // lets save to the database and assume it will work
-            List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(animeID);
-            AniDB_Vote thisVote = null;
-            foreach (AniDB_Vote dbVote in dbVotes)
-            {
-                // we can only have anime permanent or anime temp but not both
-                if (voteType == (int) enAniDBVoteType.Anime || voteType == (int) enAniDBVoteType.AnimeTemp)
-                {
-                    if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                        dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
-                    {
-                        thisVote = dbVote;
-                    }
-                }
-                else
-                {
-                    thisVote = dbVote;
-                }
-            }
+            AniDB_Vote thisVote =
+                RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
+                RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime);
 
             if (thisVote == null)
             {
@@ -1602,7 +1586,7 @@ namespace Shoko.Server
             else
                 iVoteValue = (int) voteValue;
 
-            msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", animeID, iVoteValue);
+            msg = $"Voting for anime Formatted: {animeID} - Value: {iVoteValue}";
             logger.Info(msg);
 
             thisVote.VoteValue = iVoteValue;
@@ -1621,8 +1605,8 @@ namespace Shoko.Server
             foreach (AniDB_Vote dbVote in dbVotes)
             {
                 // we can only have anime permanent or anime temp but not both
-                if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                    dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
+                if (dbVote.VoteType == (int) AniDBVoteType.Anime ||
+                    dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
                 {
                     thisVote = dbVote;
                 }
@@ -1895,7 +1879,7 @@ namespace Shoko.Server
                             RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
                         else
                         {
-                            gf.EvaluateAnimeGroups();
+                            gf.CalculateGroupsAndSeries();
                             RepoFactory.GroupFilter.Save(gf);
                         }
                     }
@@ -3006,8 +2990,7 @@ namespace Shoko.Server
                 }
             }
             gf = SVR_GroupFilter.FromClient(contract);
-            gf.EvaluateAnimeGroups();
-            gf.EvaluateAnimeSeries();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
             response.Result = gf.ToClient();
             return response;

@@ -1,4 +1,5 @@
 ﻿using System;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -44,8 +45,7 @@ namespace Shoko.Server.Commands
         {
             SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
-            gf.EvaluateAnimeSeries();
-            gf.EvaluateAnimeGroups();
+            gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
         }
 
