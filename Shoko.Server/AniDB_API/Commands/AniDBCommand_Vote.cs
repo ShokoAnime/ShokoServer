@@ -31,9 +31,9 @@ namespace AniDBAPI.Commands
             set { voteValue = value; }
         }
 
-        private enAniDBVoteType voteType = enAniDBVoteType.Anime;
+        private AniDBVoteType voteType = AniDBVoteType.Anime;
 
-        public enAniDBVoteType VoteType
+        public AniDBVoteType VoteType
         {
             get { return voteType; }
             set { voteType = value; }
@@ -78,14 +78,14 @@ namespace AniDBAPI.Commands
                 case "261":
 
                     // this means we were trying to retrieve the vote
-                    if (voteType == enAniDBVoteType.Anime || voteType == enAniDBVoteType.AnimeTemp)
+                    if (voteType == AniDBVoteType.Anime || voteType == AniDBVoteType.AnimeTemp)
                     {
                         // 261 VOTE FOUNDCode Geass Hangyaku no Lelouch|900|1|4521
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
                         vote.ProcessVoteFoundAnime(socketResponse, this.entityID, this.voteType);
                         this.voteValue = vote.VoteValue;
                     }
-                    if (voteType == enAniDBVoteType.Episode)
+                    if (voteType == AniDBVoteType.Episode)
                     {
                         //261 VOTE FOUNDThe Day a New Demon Was Born|700|1|63091
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
@@ -123,7 +123,7 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.AddVote;
         }
 
-        public void Init(int entityid, decimal votevalue, enAniDBVoteType votetype)
+        public void Init(int entityid, decimal votevalue, AniDBVoteType votetype)
         {
             // allow the user to enter a vote value between 1 and 10
             // can be 9.5 etc
@@ -150,16 +150,16 @@ namespace AniDBAPI.Commands
             int iVoteType = 1;
             switch (voteType)
             {
-                case enAniDBVoteType.Anime:
+                case AniDBVoteType.Anime:
                     iVoteType = 1;
                     break;
-                case enAniDBVoteType.AnimeTemp:
+                case AniDBVoteType.AnimeTemp:
                     iVoteType = 2;
                     break;
-                case enAniDBVoteType.Group:
+                case AniDBVoteType.Group:
                     iVoteType = 3;
                     break;
-                case enAniDBVoteType.Episode:
+                case AniDBVoteType.Episode:
                     iVoteType = 1;
                     break;
             }
@@ -188,7 +188,7 @@ namespace AniDBAPI.Commands
                 this.voteValue = (int) (votevalue * 100);
             else
                 this.voteValue = (int) votevalue;
-            this.voteType = enAniDBVoteType.Episode;
+            this.voteType = AniDBVoteType.Episode;
             this.episodeType = epType;
 
             commandID = entityID.ToString();

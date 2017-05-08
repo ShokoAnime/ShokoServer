@@ -8,6 +8,7 @@ using AniDBAPI;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using NutzCode.CloudFileSystem;
+using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;

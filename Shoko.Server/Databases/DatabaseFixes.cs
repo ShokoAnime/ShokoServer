@@ -386,8 +386,7 @@ namespace Shoko.Server.Databases
                             continue;
                         }
                     }
-                    gf.EvaluateAnimeSeries();
-                    gf.EvaluateAnimeGroups();
+                    gf.CalculateGroupsAndSeries();
                     RepoFactory.GroupFilter.Save(gf);
                 }
             }
@@ -405,8 +404,7 @@ namespace Shoko.Server.Databases
                 {
                     if (gf.FilterType != (int) GroupFilterType.Year) continue;
                     gf.ApplyToSeries = 1;
-                    gf.EvaluateAnimeSeries();
-                    gf.EvaluateAnimeGroups();
+                    gf.CalculateGroupsAndSeries();
                     RepoFactory.GroupFilter.Save(gf);
                 }
                 RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();

@@ -206,7 +206,7 @@ namespace Shoko.Server.Tasks
                     }
                     else // All other group filters are to be handled normally
                     {
-                        filter.EvaluateAnimeGroups();
+                        filter.CalculateGroupsAndSeries();
                     }
 
                     filter.UpdateEntityReferenceStrings(updateGroups: true, updateSeries: false);

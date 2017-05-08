@@ -198,7 +198,7 @@ namespace Shoko.Server.Repositories.Cached
                 .GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
             // Then, actually delete the AnimeGroup_Users
-            session.CreateQuery("delete AnimeGroup_User agu")
+            session.CreateQuery("delete SVR_AnimeGroup_User agu")
                 .ExecuteUpdate();
 
             // Now, update the change trackers with all removed records

@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Xml;
 using AniDBAPI;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server.AniDB_API.Raws
 {
@@ -8,14 +9,14 @@ namespace Shoko.Server.AniDB_API.Raws
     {
         public int EntityID { get; set; }
         public int VoteValue { get; set; }
-        public enAniDBVoteType VoteType { get; set; }
+        public AniDBVoteType VoteType { get; set; }
 
 
         public Raw_AniDB_Vote_HTTP()
         {
             EntityID = -1;
             VoteValue = -1;
-            VoteType = enAniDBVoteType.Anime;
+            VoteType = AniDBVoteType.Anime;
         }
 
 
@@ -24,7 +25,7 @@ namespace Shoko.Server.AniDB_API.Raws
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            this.VoteType = enAniDBVoteType.Anime;
+            this.VoteType = AniDBVoteType.Anime;
             this.EntityID = int.Parse(node.Attributes["aid"].Value);
             double val = 0;
             double.TryParse(node.InnerText.Trim(), style, culture, out val);
@@ -38,7 +39,7 @@ namespace Shoko.Server.AniDB_API.Raws
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            this.VoteType = enAniDBVoteType.AnimeTemp;
+            this.VoteType = AniDBVoteType.AnimeTemp;
             this.EntityID = int.Parse(node.Attributes["aid"].Value);
             double val = 0;
             double.TryParse(node.InnerText.Trim(), style, culture, out val);
@@ -52,7 +53,7 @@ namespace Shoko.Server.AniDB_API.Raws
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            this.VoteType = enAniDBVoteType.Episode;
+            this.VoteType = AniDBVoteType.Episode;
             this.EntityID = int.Parse(node.Attributes["eid"].Value);
             double val = 0;
             double.TryParse(node.InnerText.Trim(), style, culture, out val);

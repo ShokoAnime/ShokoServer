@@ -143,12 +143,5 @@ namespace Shoko.Server
         {
             get { return ShokoService.anidbProcessor; }
         }
-
-        private static TvDBHelper tvdbHelper = new TvDBHelper();
-
-        public static TvDBHelper TvdbHelper
-        {
-            get { return ShokoService.tvdbHelper; }
-        }
     }
 }

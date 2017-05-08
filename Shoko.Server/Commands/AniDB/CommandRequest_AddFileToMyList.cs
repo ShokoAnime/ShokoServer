@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Xml;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.MAL;
 using Shoko.Server.Models;

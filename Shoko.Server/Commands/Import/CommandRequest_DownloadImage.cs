@@ -8,6 +8,7 @@ using System.Xml;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;

@@ -361,6 +361,8 @@ namespace Shoko.Server.Extensions
                 Hash = duplicatefile.Hash,
                 ImportFolderIDFile1 = duplicatefile.ImportFolderIDFile1,
                 ImportFolderIDFile2 = duplicatefile.ImportFolderIDFile2,
+                ImportFolder1 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
+                ImportFolder2 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
                 DateTimeUpdated = duplicatefile.DateTimeUpdated
             };
             if (duplicatefile.GetAniDBFile() != null)
