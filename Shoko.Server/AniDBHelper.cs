@@ -201,10 +201,10 @@ namespace Shoko.Server
 
         public void CloseConnections()
         {
-            if (logoutTimer != null) logoutTimer.Stop();
+            logoutTimer?.Stop();
             logoutTimer = null;
             if (soUdp == null) return;
-            soUdp.Shutdown(SocketShutdown.Both);
+            if (soUdp.Connected) soUdp.Shutdown(SocketShutdown.Both);
             soUdp.Close();
             soUdp = null;
         }
