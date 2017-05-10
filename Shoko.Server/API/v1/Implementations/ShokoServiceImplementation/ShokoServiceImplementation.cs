@@ -683,8 +683,8 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
+                logger.Error(ex, "Save server settings exception:\n " + ex.ToString());
                 contract.ErrorMessage = ex.Message;
-                logger.Error(ex, ex.ToString());
             }
             return contract;
         }
