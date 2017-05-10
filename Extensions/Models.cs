@@ -514,7 +514,7 @@ namespace Shoko.Commons.Extensions
             return dupfile.FilePathFile1;
         }
 
-        public static string GetLocalFileSystemFullPath(this CL_VideoLocal_Place vidlocalPlace) => FolderMappings.Instance.TranslateFile(vidlocalPlace.ImportFolder, vidlocalPlace.FilePath);
+        public static string GetLocalFileSystemFullPath(this CL_VideoLocal_Place vidlocalPlace) => FolderMappings.Instance.TranslateFile(vidlocalPlace.ImportFolder, vidlocalPlace.FilePath.Replace('/', Path.DirectorySeparatorChar));
 
         public static string GetFullPath(this CL_VideoLocal_Place vidlocalPlace) =>
             vidlocalPlace.ImportFolder?.ImportFolderLocation == null
