@@ -14965,6 +14965,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Local.
+        /// </summary>
+        public static string Utilities_FolderLocal {
+            get {
+                return ResourceManager.GetString("Utilities_FolderLocal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remote.
+        /// </summary>
+        public static string Utilities_FolderRemote {
+            get {
+                return ResourceManager.GetString("Utilities_FolderRemote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Size.
         /// </summary>
         public static string Utilities_Size {

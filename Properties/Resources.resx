@@ -5348,4 +5348,10 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Plex Settings</value>
   </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Remote</value>
+  </data>
 </root>
