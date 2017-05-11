@@ -281,7 +281,7 @@ namespace Shoko.Server.Models
                 if (m == null)
                 {
                     string name = (ImportFolder.CloudID == null)
-                        ? FullServerPath.Replace("/", "\\")
+                        ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
                         : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
                             VideoLocalID.ToString(), "file", false));
                     m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http

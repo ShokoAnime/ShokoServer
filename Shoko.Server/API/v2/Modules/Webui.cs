@@ -113,21 +113,21 @@ namespace Shoko.Server.API.v2.Modules
                 //download latest version
                 var client = new System.Net.WebClient();
                 client.Headers.Add("User-Agent", "shokoserver");
-                client.DownloadFile(url, "webui\\latest.zip");
+                client.DownloadFile(url, Path.Combine("webui", "latest.zip"));
 
                 //create 'old' dictionary
-                if (!Directory.Exists("webui\\old"))
+                if (!Directory.Exists(Path.Combine("webui", "old")))
                 {
-                    System.IO.Directory.CreateDirectory("webui\\old");
+                    System.IO.Directory.CreateDirectory(Path.Combine("webui", "old"));
                 }
                 try
                 {
                     //move all directories and files to 'old' folder as fallback recovery
                     foreach (string dir in directories)
                     {
-                        if (Directory.Exists(dir) && dir != "webui\\old" && dir != "webui\\tweak")
+                        if (Directory.Exists(dir) && dir != Path.Combine("webui", "old") && dir != Path.Combine("webui", "tweak"))
                         {
-                            string n_dir = dir.Replace("webui", "webui\\old");
+                            string n_dir = dir.Replace("webui", Path.Combine("webui", "old"));
                             Directory.Move(dir, n_dir);
                         }
                     }
@@ -135,7 +135,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         if (File.Exists(file))
                         {
-                            string n_file = file.Replace("webui", "webui\\old");
+                            string n_file = file.Replace("webui", Path.Combine("webui", "old"));
                             File.Move(file, n_file);
                         }
                     }
@@ -143,18 +143,18 @@ namespace Shoko.Server.API.v2.Modules
                     try
                     {
                         //extract latest webui
-                        System.IO.Compression.ZipFile.ExtractToDirectory("webui\\latest.zip", "webui");
+                        System.IO.Compression.ZipFile.ExtractToDirectory(Path.Combine("webui", "latest.zip"), "webui");
 
                         //clean because we already have working updated webui
-                        Directory.Delete("webui\\old", true);
-                        File.Delete("webui\\latest.zip");
+                        Directory.Delete(Path.Combine("webui", "old"), true);
+                        File.Delete(Path.Combine("webui", "latest.zip"));
 
                         //save version type>version that was installed successful
-                        if (File.Exists("webui\\index.ver"))
+                        if (File.Exists(Path.Combine("webui", "index.ver")))
                         {
-                            File.Delete("webui\\index.ver");
+                            File.Delete(Path.Combine("webui", "index.ver"));
                         }
-                        File.AppendAllText("webui\\index.ver", channel + ">" + version);
+                        File.AppendAllText(Path.Combine("webui", "index.ver"), channel + ">" + version);
 
                         return APIStatus.statusOK();
                     }
@@ -350,9 +350,9 @@ namespace Shoko.Server.API.v2.Modules
         private object GetWebUIThemes()
         {
             List<v2.Models.core.OSFile> files = new List<v2.Models.core.OSFile>();
-            if (Directory.Exists("webui\\tweak"))
+            if (Directory.Exists(Path.Combine("webui", "tweak")))
             {
-                DirectoryInfo dir_info = new DirectoryInfo("webui\\tweak");
+                DirectoryInfo dir_info = new DirectoryInfo(Path.Combine("webui", "tweak"));
                 foreach (FileInfo info in dir_info.GetFiles("*.css"))
                 {
                     v2.Models.core.OSFile file = new v2.Models.core.OSFile();

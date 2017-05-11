@@ -8,6 +8,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
+using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
@@ -74,7 +75,7 @@ namespace Shoko.Server.Repositories.Cached
                     //Fix possible paths in filename
                     if (!string.IsNullOrEmpty(a.FileName))
                     {
-                        int b = a.FileName.LastIndexOf($"{System.IO.Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                        int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                         if (b > 0)
                             a.FileName = a.FileName.Substring(b + 1);
                     }
@@ -83,11 +84,11 @@ namespace Shoko.Server.Repositories.Cached
             //Fix possible paths in filename
             try
             {
-                Cache.Values.Where(a => a.FileName.Contains("\\"))
+                Cache.Values.Where(a => a.FileName.Contains(Path.DirectorySeparatorChar))
                     .ToList()
                     .ForEach(a =>
                     {
-                        int b = a.FileName.LastIndexOf($"{System.IO.Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                        int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                         a.FileName = a.FileName.Substring(b + 1);
                         Save(a, false);
                     });

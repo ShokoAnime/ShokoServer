@@ -159,7 +159,7 @@ namespace Shoko.Server.API
                 {
                     context.Response.Contents = stream =>
                     {
-                        var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                        var filename = Path.Combine(_rootPathProvider.GetRootPath(), Path.Combine("webui", "index.html"));
                         using (var file = File.OpenRead(filename))
                         {
                             file.CopyTo(stream);
