@@ -124,10 +124,10 @@ namespace Shoko.Server.Extensions
             byte[] data = CompressionHelper.SerializeObject(m, out outsize);
             r.ED2K = v.ED2KHash;
             r.MediaInfo = new byte[data.Length + 4];
-            r.MediaInfo[0] = (byte) (outsize >> 24);
-            r.MediaInfo[1] = (byte) ((outsize >> 16) & 0xFF);
-            r.MediaInfo[2] = (byte) ((outsize >> 8) & 0xFF);
-            r.MediaInfo[3] = (byte) (outsize & 0xFF);
+            r.MediaInfo[0] = (byte)(outsize >> 24);
+            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
+            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
+            r.MediaInfo[3] = (byte)(outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
             r.Version = SVR_VideoLocal.MEDIA_VERSION;
             r.Username = ServerSettings.AniDB_Username;
@@ -145,10 +145,10 @@ namespace Shoko.Server.Extensions
             byte[] data = CompressionHelper.SerializeObject(m, out outsize);
             r.ED2K = ed2k;
             r.MediaInfo = new byte[data.Length + 4];
-            r.MediaInfo[0] = (byte) (outsize >> 24);
-            r.MediaInfo[1] = (byte) ((outsize >> 16) & 0xFF);
-            r.MediaInfo[2] = (byte) ((outsize >> 8) & 0xFF);
-            r.MediaInfo[3] = (byte) (outsize & 0xFF);
+            r.MediaInfo[0] = (byte)(outsize >> 24);
+            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
+            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
+            r.MediaInfo[3] = (byte)(outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
             r.Version = SVR_VideoLocal.MEDIA_VERSION;
             r.Username = ServerSettings.AniDB_Username;
@@ -282,6 +282,7 @@ namespace Shoko.Server.Extensions
             show.Year = tvshow.Year.ToString();
         }
 
+        [System.Obsolete("This method is deprecated", false)]
         public static void Populate(this TvDB_Episode episode, XmlDocument doc)
         {
             // used when getting information from episode info
@@ -323,6 +324,45 @@ namespace Shoko.Server.Extensions
                 episode.AirsBeforeSeason = abs;
             else
                 episode.AirsBeforeSeason = null;
+        }
+
+        public static void Populate(this TvDB_Episode episode, int seriesId, TvDbSharper.Clients.Series.Json.BasicEpisode apiEpisode)
+        {
+            // used when getting information from episode info
+            // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
+
+            episode.Id = apiEpisode.Id;
+            episode.SeriesID = seriesId;
+            episode.SeasonID = 0;
+            episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
+            episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
+            episode.EpImgFlag = 0;
+            episode.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
+
+            episode.EpisodeName = apiEpisode.EpisodeName;
+            episode.Overview = apiEpisode.Overview;
+        }
+
+        public static void Populate(this TvDB_Episode episode, TvDbSharper.Clients.Episodes.Json.EpisodeRecord apiEpisode)
+        {
+            episode.Id = apiEpisode.Id;
+            episode.SeriesID = Int32.Parse(apiEpisode.SeriesId);
+            episode.SeasonID = 0;
+            episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
+            episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
+
+            int flag = 0;
+            if (apiEpisode.Filename != String.Empty)
+                flag = 1;
+
+            episode.EpImgFlag = flag;
+            episode.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
+            episode.EpisodeName = apiEpisode.EpisodeName;
+            episode.Overview = apiEpisode.Overview;
+            episode.Filename = apiEpisode.Filename;
+            episode.AirsAfterSeason = apiEpisode.AirsAfterSeason;
+            episode.AirsBeforeEpisode = apiEpisode.AirsBeforeEpisode;
+            episode.AirsBeforeSeason = apiEpisode.AirsBeforeSeason;
         }
 
         public static void Populate(this TvDB_Episode episode, XmlNode node)
@@ -413,6 +453,7 @@ namespace Shoko.Server.Extensions
             return "";
         }
 
+        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]
         public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, XmlNode node)
         {
             try
@@ -435,26 +476,45 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, XmlNode node,
-            TvDBImageNodeType nodeType)
+        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
         {
+            if (image.Id == null) {
+                logger.Error("Error in TvDB_ImageFanart.Populate, image.Id is null, series: {0}",seriesID);
+                return false;
+            }
+            try
+            {
+                fanart.SeriesID = seriesID;
+                fanart.Id = image.Id ?? 0;
+                fanart.BannerPath = image.FileName;
+                fanart.BannerType2 = image.Resolution;
+                fanart.Colors = String.Empty;
+                fanart.ThumbnailPath = image.Thumbnail;
+                fanart.VignettePath = String.Empty;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex.ToString());
+                return false;
+            }
+        }
+
+        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
+        {
+            if (image.Id == null)
+            {
+                logger.Error("Error in TvDB_ImagePoster.Populate, image.Id is null, series: {0}", seriesID);
+                return false;
+            }
             try
             {
                 poster.SeriesID = seriesID;
-
-                if (nodeType == TvDBImageNodeType.Series)
-                    poster.SeasonNumber = null;
-                else
-                    poster.SeasonNumber = Int32.Parse(node["Season"].InnerText);
-
-
-                poster.Id = Int32.Parse(node["id"].InnerText);
-                poster.BannerPath = node["BannerPath"].InnerText;
-                poster.BannerType = node["BannerType"].InnerText;
-                poster.BannerType2 = node["BannerType2"].InnerText;
-                poster.Language = node["Language"].InnerText;
-
-
+                poster.SeasonNumber = null;
+                poster.Id = image.Id ?? 0;
+                poster.BannerPath = image.FileName;
+                poster.BannerType = image.KeyType;
+                poster.BannerType2 = image.Resolution;
                 return true;
             }
             catch (Exception ex)
@@ -464,24 +524,29 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner banner, int seriesID, XmlNode node,
-            TvDBImageNodeType nodeType)
+        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
         {
+            if (image.Id == null)
+            {
+                logger.Error("Error in TvDB_ImageWideBanner.Populate, image.Id is null, series: {0}", seriesID);
+                return false;
+            }
             try
             {
-                banner.SeriesID = seriesID;
+                poster.SeriesID = seriesID;
+                try
+                {
+                    poster.SeasonNumber = Int32.Parse(image.SubKey);
+                }
+                catch (FormatException ex)
+                {
+                    poster.SeasonNumber = null;
+                }
 
-                if (nodeType == TvDBImageNodeType.Series)
-                    banner.SeasonNumber = null;
-                else
-                    banner.SeasonNumber = Int32.Parse(node["Season"].InnerText);
-
-                banner.Id = Int32.Parse(node["id"].InnerText);
-                banner.BannerPath = node["BannerPath"].InnerText;
-                banner.BannerType = node["BannerType"].InnerText;
-                banner.BannerType2 = node["BannerType2"].InnerText;
-                banner.Language = node["Language"].InnerText;
-
+                poster.Id = image.Id ?? 0;
+                poster.BannerPath = image.FileName;
+                poster.BannerType = image.KeyType;
+                poster.BannerType2 = image.Resolution;
                 return true;
             }
             catch (Exception ex)
@@ -507,6 +572,7 @@ namespace Shoko.Server.Extensions
             series.Banner = TryGetSeriesProperty(doc, "banner");
         }
 
+        [System.Obsolete("PopulateFromSeriesInfo XmlDocument is deprecated, please use PopulateFromSeriesInfo TvDbSharper.Series instead.")]
         public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
         {
             series.SeriesID = 0;
@@ -528,6 +594,26 @@ namespace Shoko.Server.Extensions
             series.Poster = TryGetSeriesProperty(doc, "poster");
         }
 
+        public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Clients.Series.Json.Series apiSeries)
+        {
+            series.SeriesID = 0;
+            series.Overview = String.Empty;
+            series.SeriesName = String.Empty;
+            series.Status = String.Empty;
+            series.Banner = String.Empty;
+            series.Fanart = String.Empty;
+            series.Lastupdated = String.Empty;
+            series.Poster = String.Empty;
+
+            series.SeriesID = apiSeries.Id;
+            series.SeriesName = apiSeries.SeriesName;
+            series.Overview = apiSeries.Overview;
+            series.Banner = apiSeries.Banner;
+            series.Status = apiSeries.Status;
+            series.Lastupdated = apiSeries.LastUpdated.ToString();
+        }
+
+        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
         public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
         {
             response.Id = String.Empty;
@@ -541,6 +627,15 @@ namespace Shoko.Server.Extensions
             if (series["Overview"] != null) response.Overview = series["Overview"].InnerText;
             if (series["banner"] != null) response.Banner = series["banner"].InnerText;
             if (series["language"] != null) response.Language = series["language"].InnerText;
+        }
+
+        public static void Populate(this TVDB_Series_Search_Response response, TvDbSharper.Clients.Search.Json.SeriesSearchResult series)
+        {
+            response.Id = String.Empty;
+            response.SeriesID = series.Id;
+            response.SeriesName = series.SeriesName;
+            response.Overview = series.Overview;
+            response.Banner = series.Banner;
         }
 
         public static void Populate(this AniDB_Anime_Character character, Raw_AniDB_Character rawChar)
