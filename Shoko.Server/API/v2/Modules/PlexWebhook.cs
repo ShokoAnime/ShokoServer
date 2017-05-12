@@ -13,6 +13,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using Nancy.Security;
+using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -180,7 +181,25 @@ namespace Shoko.Server.API.v2.Modules
                 h.InvalidateToken();
                 return true;
             });
+            Get["/sync", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            {
+                new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
+                return APIStatus.statusOK();
+            });
+            Get["/sync/all", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            {
+                if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.adminNeeded();
+                ShokoServer.Instance.SyncPlex();
+                return APIStatus.statusOK();
+            });
 
+            Get["/sync/{id}", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            {
+                if (((JMMUser)this.Context.CurrentUser).IsAdmin != 1) return APIStatus.adminNeeded();
+                JMMUser user = RepoFactory.JMMUser.GetByID(x.id);
+                ShokoServer.Instance.SyncPlex();
+                return APIStatus.statusOK();
+            });
 #if DEBUG
             Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id)));
 #endif

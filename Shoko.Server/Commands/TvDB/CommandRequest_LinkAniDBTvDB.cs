@@ -4,6 +4,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands.TvDB
 {
@@ -64,7 +65,7 @@ namespace Shoko.Server.Commands.TvDB
 
             try
             {
-                TvDBHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber,
+                TvDBApiHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber,
                     excludeFromWebCache, additiveLink);
             }
             catch (Exception ex)
