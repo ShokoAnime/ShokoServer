@@ -219,16 +219,23 @@ namespace Shoko.Server.API.v2.Modules
         {
             CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
-            string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-            File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);
-            try
+            if (raw_settings.Length != new CL_ServerSettings().ToJSON().Length)
             {
-                ServerSettings.LoadSettingsFromFile(path, true);
-                return APIStatus.statusOK();
+                string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
+                File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);
+                try
+                {
+                    ServerSettings.LoadSettingsFromFile(path, true);
+                    return APIStatus.statusOK();
+                }
+                catch
+                {
+                    return APIStatus.internalError("Error while importing settings");
+                }
             }
-            catch
+            else
             {
-                return APIStatus.internalError("Error while importing settings");
+                return APIStatus.badRequest("Empty settings are not allowed");
             }
         }
 
