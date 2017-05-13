@@ -78,8 +78,7 @@ namespace Shoko.Commons.Utils
             // 10 = start date is a year (2010)
             // 16 = normal start and end date (2010-01-31)
 
-            double secs = 0;
-            Double.TryParse(dateInSeconds, out secs);
+            Double.TryParse(dateInSeconds, out double secs);
             if (secs == 0) return null;
 
             DateTime thisDate = new DateTime(1970, 1, 1, 0, 0, 0);

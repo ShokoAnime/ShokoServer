@@ -557,24 +557,21 @@ namespace Shoko.Commons.Extensions
         public static bool IsHi08P(this CL_VideoDetailed videodetailed)
         {
             if (String.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
-            int bitDepth = 0;
-            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out bitDepth);
+            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
             return bitDepth == 8;
         }
 
         public static bool IsHi10P(this CL_VideoDetailed videodetailed)
         {
             if (String.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
-            int bitDepth = 0;
-            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out bitDepth);
+            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
             return bitDepth == 10;
         }
 
         public static bool IsHi12P(this CL_VideoDetailed videodetailed)
         {
             if (String.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
-            int bitDepth = 0;
-            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out bitDepth);
+            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
             return bitDepth == 12;
         }
 
@@ -622,8 +619,7 @@ namespace Shoko.Commons.Extensions
 
         public static int GetBitDepth(this CL_VideoDetailed videodetailed)
         {
-            int bitDepth = 8;
-            if (!Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out bitDepth))
+            if (!Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth))
                 bitDepth = 8;
 
             return bitDepth;

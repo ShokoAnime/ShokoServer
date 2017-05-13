@@ -69,7 +69,7 @@ namespace Shoko.Commons.Downloads
                 }
 
             }
-            catch (Exception ex)
+            catch
             {
                 return "";
             }
@@ -189,25 +189,24 @@ namespace Shoko.Commons.Downloads
                     torLeech = output.Substring(posLeechStart + leechStart.Length, posLeechEnd - posLeechStart - leechStart.Length);
                 }
 
-                TorrentLink torrentLink = new TorrentLink(TorrentSourceType.BakaBT);
-                torrentLink.TorrentDownloadLink = "";
-                torrentLink.TorrentInfoLink = link;
-                torrentLink.AnimeType = cat;
-                torrentLink.TorrentName = $"[MAIN] {torName.Trim()}";
-                torrentLink.Size = torSize.Trim();
-
+                TorrentLink torrentLink = new TorrentLink(TorrentSourceType.BakaBT)
+                {
+                    TorrentDownloadLink = "",
+                    TorrentInfoLink = link,
+                    AnimeType = cat,
+                    TorrentName = $"[MAIN] {torName.Trim()}",
+                    Size = torSize.Trim()
+                };
                 var strSeeders = torSeed.Trim();
 
-                double dblSeeders;
-                if (double.TryParse(strSeeders, out dblSeeders))
+                if (double.TryParse(strSeeders, out double dblSeeders))
                     torrentLink.Seeders = dblSeeders;
                 else
                     torrentLink.Seeders = double.NaN;
 
                 var strLeechers = torLeech.Trim();
 
-                double dblLeechers;
-                if (double.TryParse(strLeechers, out dblLeechers))
+                if (double.TryParse(strLeechers, out double dblLeechers))
                     torrentLink.Leechers = dblLeechers;
                 else
                     torrentLink.Leechers = double.NaN;
@@ -286,25 +285,24 @@ namespace Shoko.Commons.Downloads
                         torLeechAlt = output.Substring(posLeechStartAlt + leechStartAlt.Length, posLeechEndAlt - posLeechStartAlt - leechStartAlt.Length);
                     }
 
-                    TorrentLink torrentLinkAlt = new TorrentLink(TorrentSourceType.BakaBT);
-                    torrentLinkAlt.TorrentDownloadLink = "";
-                    torrentLinkAlt.TorrentInfoLink = linkAlt;
-                    torrentLinkAlt.AnimeType = cat;
-                    torrentLinkAlt.TorrentName = $"[ALT] {torNameAlt.Trim()}";
-                    torrentLinkAlt.Size = torSizeAlt.Trim();
-
+                    TorrentLink torrentLinkAlt = new TorrentLink(TorrentSourceType.BakaBT)
+                    {
+                        TorrentDownloadLink = "",
+                        TorrentInfoLink = linkAlt,
+                        AnimeType = cat,
+                        TorrentName = $"[ALT] {torNameAlt.Trim()}",
+                        Size = torSizeAlt.Trim()
+                    };
                     var strSeedersAlt = torSeedAlt.Trim();
 
-                    double dblSeedersAlt;
-                    if (double.TryParse(strSeedersAlt, out dblSeedersAlt))
+                    if (double.TryParse(strSeedersAlt, out double dblSeedersAlt))
                         torrentLinkAlt.Seeders = dblSeedersAlt;
                     else
                         torrentLinkAlt.Seeders = double.NaN;
 
                     var strLeechersAlt = torLeechAlt.Trim();
 
-                    double dblLeechersAlt;
-                    if (double.TryParse(strLeechersAlt, out dblLeechersAlt))
+                    if (double.TryParse(strLeechersAlt, out double dblLeechersAlt))
                         torrentLinkAlt.Leechers = dblLeechersAlt;
                     else
                         torrentLinkAlt.Leechers = double.NaN;
@@ -356,7 +354,7 @@ namespace Shoko.Commons.Downloads
 
                 return ParseSource(output);
             }
-            catch (Exception ex)
+            catch
             {
                 return new List<TorrentLink>();
             }
@@ -383,7 +381,7 @@ namespace Shoko.Commons.Downloads
 
                 return ParseSource(output);
             }
-            catch (Exception ex)
+            catch
             {
                 return new List<TorrentLink>();
             }
@@ -442,7 +440,7 @@ namespace Shoko.Commons.Downloads
                 string torDownloadLink = GetTorrentLinkFromTorrentPage(output);
                 torLink.TorrentDownloadLink = $"https://bakabt.me/{torDownloadLink}";
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }

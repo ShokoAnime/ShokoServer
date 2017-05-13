@@ -134,16 +134,14 @@ namespace Shoko.Commons.Downloads
 
                 var strSeeders = torSeed.Trim();
 
-                double dblSeeders;
-                if (double.TryParse(strSeeders, out dblSeeders))
+                if (double.TryParse(strSeeders, out double dblSeeders))
                     torrentLink.Seeders = dblSeeders;
                 else
                     torrentLink.Seeders = double.NaN;
 
                 var strLeechers = torLeech.Trim();
 
-                double dblLeechers;
-                if (double.TryParse(strLeechers, out dblLeechers))
+                if (double.TryParse(strLeechers, out double dblLeechers))
                     torrentLink.Leechers = dblLeechers;
                 else
                     torrentLink.Leechers = double.NaN;
@@ -245,16 +243,14 @@ namespace Shoko.Commons.Downloads
 
                 var strSeeders = torSeed.Trim();
 
-                double dblSeeders;
-                if (double.TryParse(strSeeders, out dblSeeders))
+                if (double.TryParse(strSeeders, out double dblSeeders))
                     torrentLink.Seeders = dblSeeders;
                 else
                     torrentLink.Seeders = double.NaN;
 
                 var strLeechers = torLeech.Trim();
 
-                double dblLeechers;
-                if (double.TryParse(strLeechers, out dblLeechers))
+                if (double.TryParse(strLeechers, out double dblLeechers))
                     torrentLink.Leechers = dblLeechers;
                 else
                     torrentLink.Leechers = double.NaN;

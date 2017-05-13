@@ -82,7 +82,7 @@ namespace Shoko.Commons.Downloads
                     }
 
                 }
-                catch (Exception ex)
+                catch
                 {
                     return "";
                 }
@@ -91,7 +91,7 @@ namespace Shoko.Commons.Downloads
                 //Console.WriteLine(client.DownloadString("http://anilinkz.tv/anime-list"));
 
             }
-            catch (Exception ex)
+            catch
             {
                 return "";
             }
@@ -229,25 +229,24 @@ namespace Shoko.Commons.Downloads
 
                     string torLeech = output.Substring(posTorLeechStart + torLeechStart.Length, posTorLeechEnd - posTorLeechStart - torLeechStart.Length);
 
-                    TorrentLink torrentLink = new TorrentLink(TorrentSourceType.AnimeBytes);
-                    torrentLink.TorrentDownloadLink = $@"http://animebytes.tv/{torDownloadLink}";
-                    torrentLink.TorrentInfoLink = "";
-                    torrentLink.AnimeType = torType;
-                    torrentLink.TorrentName = torName + " - " + torInfo;
-                    torrentLink.Size = torSize.Trim();
-
+                    TorrentLink torrentLink = new TorrentLink(TorrentSourceType.AnimeBytes)
+                    {
+                        TorrentDownloadLink = $@"http://animebytes.tv/{torDownloadLink}",
+                        TorrentInfoLink = "",
+                        AnimeType = torType,
+                        TorrentName = torName + " - " + torInfo,
+                        Size = torSize.Trim()
+                    };
                     var strSeeders = torSeed.Trim();
 
-                    double dblSeeders;
-                    if (double.TryParse(strSeeders, out dblSeeders))
+                    if (double.TryParse(strSeeders, out double dblSeeders))
                         torrentLink.Seeders = dblSeeders;
                     else
                         torrentLink.Seeders = double.NaN;
 
                     var strLeechers = torLeech.Trim();
 
-                    double dblLeechers;
-                    if (double.TryParse(strLeechers, out dblLeechers))
+                    if (double.TryParse(strLeechers, out double dblLeechers))
                         torrentLink.Leechers = dblLeechers;
                     else
                         torrentLink.Leechers = double.NaN;
@@ -295,7 +294,7 @@ namespace Shoko.Commons.Downloads
 
                 return ParseSource(output);
             }
-            catch (Exception ex)
+            catch
             {
                 return new List<TorrentLink>();
             }
@@ -322,7 +321,7 @@ namespace Shoko.Commons.Downloads
 
                 return ParseSource(output);
             }
-            catch (Exception ex)
+            catch
             {
                 return new List<TorrentLink>();
             }

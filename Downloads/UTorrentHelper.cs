@@ -58,9 +58,11 @@ namespace Shoko.Commons.Downloads
             PopulateToken();
 
             // timer for automatic updates
-            torrentsTimer = new System.Timers.Timer();
-            torrentsTimer.AutoReset = false;
-            torrentsTimer.Interval = TorrentSettings.Instance.UTorrentRefreshInterval * 1000; // 5 seconds
+            torrentsTimer = new System.Timers.Timer
+            {
+                AutoReset = false,
+                Interval = TorrentSettings.Instance.UTorrentRefreshInterval * 1000 // 5 seconds
+            };
             torrentsTimer.Elapsed += new System.Timers.ElapsedEventHandler(torrentsTimer_Elapsed);
 
             if (ValidCredentials())
@@ -97,7 +99,7 @@ namespace Shoko.Commons.Downloads
 
                 torrentsTimer.Start();
             }
-            catch (Exception ex)
+            catch
             {
                 torrentsTimer.Start();
             }
@@ -163,7 +165,7 @@ namespace Shoko.Commons.Downloads
                 token = output.Substring(posTorStart + torStart.Length, posTorEnd - posTorStart - torStart.Length);
                 //BaseConfig.MyAnimeLog.Write("token: {0}", token);
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -183,7 +185,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -203,7 +205,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -226,7 +228,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -246,7 +248,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -266,7 +268,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -286,7 +288,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }
@@ -308,9 +310,7 @@ namespace Shoko.Commons.Downloads
             catch (Exception ex)
             {
                 if (ex.ToString().Contains("(400) Bad Request"))
-                {
                     tryAgain = true;
-                }
             }
 
             if (tryAgain)
@@ -386,7 +386,7 @@ namespace Shoko.Commons.Downloads
                 OnInfoEvent("Connected.");
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
@@ -419,19 +419,20 @@ namespace Shoko.Commons.Downloads
                         object[] actualFile = obj as object[];
                         if (actualFile == null) continue;
 
-                        TorrentFile tf = new TorrentFile();
-                        tf.FileName = actualFile[0].ToString();
-                        tf.FileSize = long.Parse(actualFile[1].ToString());
-                        tf.Downloaded = long.Parse(actualFile[2].ToString());
-                        tf.Priority = long.Parse(actualFile[3].ToString());
-
+                        TorrentFile tf = new TorrentFile
+                        {
+                            FileName = actualFile[0].ToString(),
+                            FileSize = long.Parse(actualFile[1].ToString()),
+                            Downloaded = long.Parse(actualFile[2].ToString()),
+                            Priority = long.Parse(actualFile[3].ToString())
+                        };
                         torFiles.Add(tf);
                     }
                 }
 
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
@@ -452,7 +453,7 @@ namespace Shoko.Commons.Downloads
 
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 return;
             }

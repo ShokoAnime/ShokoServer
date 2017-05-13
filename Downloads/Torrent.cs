@@ -278,7 +278,7 @@ namespace Shoko.Commons.Downloads
 
                     return match;
                 }
-                catch (Exception ex)
+                catch
                 {
                     return "";
                 }

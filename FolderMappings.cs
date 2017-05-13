@@ -70,7 +70,7 @@ namespace Shoko.Commons
                         return npath;
                 }
             }
-            catch (Exception e)
+            catch
             {
 
             }
@@ -91,7 +91,7 @@ namespace Shoko.Commons
                         return npath;
                 }
             }
-            catch (Exception e)
+            catch
             {
                 
             }
@@ -112,9 +112,9 @@ namespace Shoko.Commons
                 if (File.Exists(start))
                     return start;
             }
-            catch (Exception e)
+            catch
             {
-                //Security issue, TODO
+                //TODO: Security issue
             }
             return string.Empty;
         }
@@ -133,9 +133,9 @@ namespace Shoko.Commons
                 if (Directory.Exists(start))
                     return start;
             }
-            catch (Exception e)
+            catch
             {
-                //Security issue, TODO
+                //TODO: Security issue
             }
             return string.Empty;
         }
