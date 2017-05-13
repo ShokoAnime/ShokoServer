@@ -81,7 +81,7 @@ namespace Shoko.Server.Commands
                     {
                         if (WatchedDateAsSecs > 0)
                         {
-                            DateTime? watchedDate = Shoko.Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                            DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                             ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, watchedDate);
                         }
                         else
@@ -141,15 +141,13 @@ namespace Shoko.Server.Commands
 
                 string sUpStats = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus",
                     "UpdateSeriesStats");
-                bool upStats = true;
-                if (bool.TryParse(sUpStats, out upStats))
+                if (bool.TryParse(sUpStats, out bool upStats))
                     UpdateSeriesStats = upStats;
 
-                int dateSecs = 0;
                 if (
                     int.TryParse(
                         TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
-                        out dateSecs))
+                        out int dateSecs))
                     WatchedDateAsSecs = dateSecs;
             }
 
@@ -163,13 +161,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

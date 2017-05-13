@@ -12,7 +12,7 @@ namespace Shoko.Server.UI
 
         public delegate Task<AuthResult> OAuthEventHandler(OAuthEventArgs args);
 
-        public Task<AuthResult> Login(AuthRequest request)
+        public Task<AuthResult> LoginAsync(AuthRequest request)
         {
             return OAuthRequest?.Invoke(new OAuthEventArgs(request));
         }

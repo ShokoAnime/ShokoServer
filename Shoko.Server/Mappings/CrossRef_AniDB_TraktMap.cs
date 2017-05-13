@@ -5,7 +5,9 @@ using Shoko.Server.Obsolete;
 
 namespace Shoko.Server.Mappings
 {
+#pragma warning disable CS0612 // Type or member is obsolete
     public class CrossRef_AniDB_TraktMap : ClassMap<CrossRef_AniDB_Trakt>
+#pragma warning restore CS0612 // Type or member is obsolete
     {
         public CrossRef_AniDB_TraktMap()
         {

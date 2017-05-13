@@ -22,9 +22,13 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         {
             comment = shoutText;
             spoiler = isSpoiler;
-            show = new TraktV2ShowPost();
-            show.ids = new TraktV2ShowIdsPost();
-            show.ids.slug = traktSlug;
+            show = new TraktV2ShowPost
+            {
+                ids = new TraktV2ShowIdsPost
+                {
+                    slug = traktSlug
+                }
+            };
         }
     }
 }

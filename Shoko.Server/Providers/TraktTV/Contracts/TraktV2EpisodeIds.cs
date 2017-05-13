@@ -27,8 +27,7 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         {
             get
             {
-                int traktID = 0;
-                if (int.TryParse(trakt, out traktID))
+                if (int.TryParse(trakt, out int traktID))
                     return traktID;
                 else
                     return null;

@@ -55,8 +55,8 @@ namespace Shoko.Server.Commands
                 return;
 
                 // we will always assume that an anime was downloaded via http first
-
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                //Removed code as we have depreciated this effectively.
+                /*SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
                 if (anime != null)
                 {
@@ -68,7 +68,7 @@ namespace Shoko.Server.Commands
                     {
                         ShokoService.AnidbProcessor.GetReviewUDP(animeRev.ReviewID);
                     }
-                }
+                }*/
             }
             catch (Exception ex)
             {
@@ -109,13 +109,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

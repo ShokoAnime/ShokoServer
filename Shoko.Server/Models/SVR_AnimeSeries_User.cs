@@ -35,8 +35,7 @@ namespace Shoko.Server.Models
             set
             {
                 _plexcontract = value;
-                int outsize;
-                PlexContractBlob = CompressionHelper.SerializeObject(value, out outsize, true);
+                PlexContractBlob = CompressionHelper.SerializeObject(value, out int outsize, true);
                 PlexContractSize = outsize;
                 PlexContractVersion = PLEXCONTRACT_VERSION;
             }

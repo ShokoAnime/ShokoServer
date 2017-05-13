@@ -118,8 +118,7 @@ namespace Shoko.Server.Commands
                             string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
                             foreach (string epid in epIDs)
                             {
-                                int id = 0;
-                                if (int.TryParse(epid, out id))
+                                if (int.TryParse(epid, out int id))
                                 {
                                     CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
                                     cmdEp.Save();
@@ -183,13 +182,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

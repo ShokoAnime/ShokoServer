@@ -186,8 +186,7 @@ namespace Shoko.Server
                         int number = 100;
                         if (!string.IsNullOrEmpty(searchCriteria))
                         {
-                            int temp;
-                            if (int.TryParse(searchCriteria, out temp)) number = temp;
+                            if (int.TryParse(searchCriteria, out int temp)) number = temp;
                         }
                         List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number);
                         foreach (SVR_VideoLocal vid in results2)
@@ -242,10 +241,11 @@ namespace Shoko.Server
 
         public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID, string renameRules)
         {
-            CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed();
-            ret.VideoLocalID = videoLocalID;
-            ret.Success = true;
-
+            CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
+            {
+                VideoLocalID = videoLocalID,
+                Success = true
+            };
             try
             {
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
@@ -277,9 +277,11 @@ namespace Shoko.Server
 
         public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string renameRules)
         {
-            CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed();
-            ret.VideoLocalID = videoLocalID;
-            ret.Success = true;
+            CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
+            {
+                VideoLocalID = videoLocalID,
+                Success = true
+            };
             try
             {
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
@@ -399,10 +401,11 @@ namespace Shoko.Server
 
         public CL_Response<RenameScript> SaveRenameScript(RenameScript contract)
         {
-            CL_Response<RenameScript> response = new CL_Response<RenameScript>();
-            response.ErrorMessage = "";
-            response.Result = null;
-
+            CL_Response<RenameScript> response = new CL_Response<RenameScript>
+            {
+                ErrorMessage = "",
+                Result = null
+            };
             try
             {
                 RenameScript script = null;
@@ -500,8 +503,7 @@ namespace Shoko.Server
             try
             {
                 // check if it is a title search or an ID search
-                int aid = 0;
-                if (int.TryParse(titleQuery, out aid))
+                if (int.TryParse(titleQuery, out int aid))
                 {
                     // user is direct entering the anime id
 
@@ -511,12 +513,14 @@ namespace Shoko.Server
                         ServerSettings.AniDB_DownloadRelatedAnime);
                     if (anime != null)
                     {
-                        CL_AnimeSearch res = new CL_AnimeSearch();
-                        res.AnimeID = anime.AnimeID;
-                        res.MainTitle = anime.MainTitle;
-                        res.Titles =
-                            new HashSet<string>(anime.AllTitles.Split(new char[] {'|'},
-                                StringSplitOptions.RemoveEmptyEntries));
+                        CL_AnimeSearch res = new CL_AnimeSearch
+                        {
+                            AnimeID = anime.AnimeID,
+                            MainTitle = anime.MainTitle,
+                            Titles =
+                            new HashSet<string>(anime.AllTitles.Split(new char[] { '|' },
+                                StringSplitOptions.RemoveEmptyEntries))
+                        };
 
                         // check for existing series and group details
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
@@ -544,12 +548,14 @@ namespace Shoko.Server
 
                         foreach (Shoko.Models.Azure.Azure_AnimeIDTitle tit in titles)
                         {
-                            CL_AnimeSearch res = new CL_AnimeSearch();
-                            res.AnimeID = tit.AnimeID;
-                            res.MainTitle = tit.MainTitle;
-                            res.Titles =
-                                new HashSet<string>(tit.Titles.Split(new char[] {'|'},
-                                    StringSplitOptions.RemoveEmptyEntries));
+                            CL_AnimeSearch res = new CL_AnimeSearch
+                            {
+                                AnimeID = tit.AnimeID,
+                                MainTitle = tit.MainTitle,
+                                Titles =
+                                new HashSet<string>(tit.Titles.Split(new char[] { '|' },
+                                    StringSplitOptions.RemoveEmptyEntries))
+                            };
 
                             // check for existing series and group details
                             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
@@ -681,8 +687,10 @@ namespace Shoko.Server
 
                             if (vids.Count == 0)
                             {
-                                CL_MissingEpisode cl = new CL_MissingEpisode();
-                                cl.AnimeID = ser.AniDB_ID;
+                                CL_MissingEpisode cl = new CL_MissingEpisode
+                                {
+                                    AnimeID = ser.AniDB_ID
+                                };
                                 start = DateTime.Now;
                                 cl.AnimeSeries = ser.GetUserContract(userID);
                                 ts = DateTime.Now - start;
@@ -874,9 +882,11 @@ namespace Shoko.Server
                             }
 
 
-                            CL_MissingFile missingFile = new CL_MissingFile();
-                            missingFile.AnimeID = myitem.AnimeID;
-                            missingFile.AnimeTitle = "Data Missing";
+                            CL_MissingFile missingFile = new CL_MissingFile
+                            {
+                                AnimeID = myitem.AnimeID,
+                                AnimeTitle = "Data Missing"
+                            };
                             if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
                             missingFile.EpisodeID = myitem.EpisodeID;
                             AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID);
@@ -1230,8 +1240,7 @@ namespace Shoko.Server
                 {
                     int thisBitDepth = 8;
 
-                    int bitDepth = 0;
-                    if (int.TryParse(vid.VideoBitDepth, out bitDepth))
+                    if (int.TryParse(vid.VideoBitDepth, out int bitDepth))
                         thisBitDepth = bitDepth;
 
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
@@ -1391,8 +1400,7 @@ namespace Shoko.Server
                 string bitDepth = videoLocals.First().VideoBitDepth;
                 if (!string.IsNullOrEmpty(bitDepth))
                 {
-                    int bit;
-                    if (int.TryParse(bitDepth, out bit))
+                    if (int.TryParse(bitDepth, out int bit))
                         contract.VideoBitDepth = bit;
                 }
                 vidQuals.Add(contract);
@@ -1458,12 +1466,13 @@ namespace Shoko.Server
                                 }
                                 if (!foundSummaryRecord)
                                 {
-                                    CL_GroupFileSummary cl = new CL_GroupFileSummary();
-                                    cl.FileCountNormal = 0;
-                                    cl.FileCountSpecials = 0;
-                                    cl.TotalFileSize = 0;
-                                    cl.TotalRunningTime = 0;
-
+                                    CL_GroupFileSummary cl = new CL_GroupFileSummary
+                                    {
+                                        FileCountNormal = 0,
+                                        FileCountSpecials = 0,
+                                        TotalFileSize = 0,
+                                        TotalRunningTime = 0
+                                    };
                                     if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) cl.FileCountNormal++;
                                     if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) cl.FileCountSpecials++;
                                     cl.TotalFileSize += aniFile.FileSize;
@@ -1507,12 +1516,13 @@ namespace Shoko.Server
                                 }
                                 if (!foundSummaryRecord)
                                 {
-                                    CL_GroupFileSummary cl = new CL_GroupFileSummary();
-                                    cl.FileCountNormal = 0;
-                                    cl.FileCountSpecials = 0;
-                                    cl.TotalFileSize = 0;
-                                    cl.TotalRunningTime = 0;
-
+                                    CL_GroupFileSummary cl = new CL_GroupFileSummary
+                                    {
+                                        FileCountNormal = 0,
+                                        FileCountSpecials = 0,
+                                        TotalFileSize = 0,
+                                        TotalRunningTime = 0
+                                    };
                                     if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
                                         cl.FileCountNormal++;
                                     if (animeEp.EpisodeTypeEnum == enEpisodeType.Special)

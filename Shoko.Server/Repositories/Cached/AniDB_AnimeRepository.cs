@@ -53,7 +53,7 @@ namespace Shoko.Server.Repositories
                 int count = 0;
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen");
+                    Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen");
                 if (max <= 0) return;
                 foreach (SVR_AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
                 {
@@ -71,12 +71,12 @@ namespace Shoko.Server.Repositories
                     }
 
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name,
+                        Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name,
                         " DbRegen - " + count + "/" + max);
                 }
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Shoko.Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name,
+                    Commons.Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name,
                     " DbRegen - " + max + "/" + max);
             }
         }
@@ -238,10 +238,9 @@ namespace Shoko.Server.Repositories
                     continue;
                 }
 
-                DefaultAnimeImages defImages;
                 DefaultAnimeImage defImage = new DefaultAnimeImage(aniDbDefImage, parentImage);
 
-                if (!defImagesByAnime.TryGetValue(aniDbDefImage.AnimeID, out defImages))
+                if (!defImagesByAnime.TryGetValue(aniDbDefImage.AnimeID, out DefaultAnimeImages defImages))
                 {
                     defImages = new DefaultAnimeImages {AnimeID = aniDbDefImage.AnimeID};
                     defImagesByAnime.Add(defImages.AnimeID, defImages);
@@ -322,13 +321,8 @@ namespace Shoko.Server.Repositories
 
         public DefaultAnimeImage(AniDB_Anime_DefaultImage aniDbImage, IImageEntity parentImage)
         {
-            if (aniDbImage == null)
-                throw new ArgumentNullException(nameof(aniDbImage));
-            if (parentImage == null)
-                throw new ArgumentNullException(nameof(parentImage));
-
-            AniDBImage = aniDbImage;
-            _parentImage = parentImage;
+            AniDBImage = aniDbImage ?? throw new ArgumentNullException(nameof(aniDbImage));
+            _parentImage = parentImage ?? throw new ArgumentNullException(nameof(parentImage));
         }
 
         public CL_AniDB_Anime_DefaultImage ToContract()

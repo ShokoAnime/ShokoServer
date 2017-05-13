@@ -6,6 +6,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
+#pragma warning disable CS0612 // Type or member is obsolete
     public class CrossRef_AniDB_TvDBRepository : BaseDirectRepository<CrossRef_AniDB_TvDB, int>
     {
         private CrossRef_AniDB_TvDBRepository()
@@ -43,6 +44,7 @@ namespace Shoko.Server.Repositories.Direct
                     .Add(Restrictions.Eq("TvDBID", id))
                     .Add(Restrictions.Eq("TvDBSeasonNumber", season))
                     .UniqueResult<CrossRef_AniDB_TvDB>();
+#pragma warning restore CS0612 // Type or member is obsolete
                 return cr;
             }
         }

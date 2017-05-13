@@ -134,7 +134,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             if ((im == null) || (im.ImageID == 0))
                 return prov.ConstructSupportImageLinkTV(fallbackimage);
-            return prov.ConstructTVThumbLink((int) im.ImageType, im.ImageID);
+            return prov.ConstructTVThumbLink(im.ImageType, im.ImageID);
         }
 
         public static string GenPoster(this CL_AniDB_Anime_DefaultImage im, IProvider prov,
@@ -142,7 +142,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             if ((im == null) || (im.AnimeID == 0))
                 return prov.ConstructSupportImageLink(fallbackimage);
-            return prov.ConstructThumbLink((int) im.ImageType, im.AnimeID);
+            return prov.ConstructThumbLink(im.ImageType, im.AnimeID);
         }
 
         public static string GenPoster(this TvDB_Episode ep, IProvider prov)
@@ -156,7 +156,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             if (im == null)
                 return null;
-            return prov.ConstructImageLink((int) im.ImageType, im.AnimeID);
+            return prov.ConstructImageLink(im.ImageType, im.AnimeID);
         }
 
         public static void RandomizeArt(this MediaContainer m, IProvider prov, List<Video> vids)

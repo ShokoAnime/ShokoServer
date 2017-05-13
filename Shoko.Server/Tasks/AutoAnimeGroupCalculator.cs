@@ -83,10 +83,9 @@ namespace Shoko.Server.Tasks
                 exclusions = exclusionTokens
                     .Select(s =>
                     {
-                        AutoGroupExclude exclude;
 
                         s = s.Replace(" ", String.Empty);
-                        Enum.TryParse(s, true, out exclude);
+                        Enum.TryParse(s, true, out AutoGroupExclude exclude);
 
                         return exclude;
                     })
@@ -212,18 +211,14 @@ namespace Shoko.Server.Tasks
         /// this will just be <paramref name="animeId"/>.</returns>
         public int GetGroupAnimeId(int animeId)
         {
-            int mainAnimeId;
 
             // Check to see if the group for the specified anime has been previously calculated
-            if (_animeGroupMap.TryGetValue(animeId, out mainAnimeId))
+            if (_animeGroupMap.TryGetValue(animeId, out int mainAnimeId))
             {
                 return mainAnimeId;
             }
 
-            Dictionary<int, RelationNode> nodes;
-            HashSet<RelationEdge> edges;
-
-            if (BuildGroupGraph(animeId, out nodes, out edges))
+            if (BuildGroupGraph(animeId, out Dictionary<int, RelationNode> nodes, out HashSet<RelationEdge> edges))
             {
                 mainAnimeId = _mainAnimeSelector(nodes, edges);
 

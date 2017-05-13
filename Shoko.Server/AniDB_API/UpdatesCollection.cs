@@ -28,8 +28,7 @@ namespace Shoko.Server.AniDB_API
                 string[] sids = rawAnimeIDs.Split('|');
                 foreach (string sid in sids)
                 {
-                    int id = 0;
-                    if (int.TryParse(sid, out id)) ids.Add(id);
+                    if (int.TryParse(sid, out int id)) ids.Add(id);
                 }
 
                 return ids;

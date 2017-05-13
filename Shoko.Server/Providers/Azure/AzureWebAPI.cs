@@ -698,15 +698,15 @@ namespace Shoko.Server.Providers.Azure
             {
                 if (string.IsNullOrEmpty(ServerSettings.AniDB_Username)) return null;
 
-                Azure_UserInfo uinfo = new Azure_UserInfo();
+                Azure_UserInfo uinfo = new Azure_UserInfo
+                {
+                    DateTimeUpdated = DateTime.Now,
+                    DateTimeUpdatedUTC = 0,
 
-                uinfo.DateTimeUpdated = DateTime.Now;
-                uinfo.DateTimeUpdatedUTC = 0;
-
-                // Optional JMM Desktop data
-                uinfo.DashboardType = null;
-                uinfo.VideoPlayer = vidPlayer;
-
+                    // Optional JMM Desktop data
+                    DashboardType = null,
+                    VideoPlayer = vidPlayer
+                };
                 System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
                 try
                 {
@@ -961,11 +961,11 @@ namespace Shoko.Server.Providers.Azure
         /// <returns></returns>
         public static List<Azure_FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
         {
-            return Get_FileHashWithTask(hashType, hashDetails).Result;
+            return Get_FileHashWithTaskAsync(hashType, hashDetails).Result;
         }
 
         // TODO wrap the rest of these in timeout tasks
-        public static async Task<List<Azure_FileHash>> Get_FileHashWithTask(FileHashType hashType, string hashDetails)
+        public static async Task<List<Azure_FileHash>> Get_FileHashWithTaskAsync(FileHashType hashType, string hashDetails)
         {
             Task<List<Azure_FileHash>> task = new Task<List<Azure_FileHash>>(() =>
             {

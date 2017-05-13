@@ -39,11 +39,12 @@ namespace Shoko.Server.API.v2.Models.common
             bool all)
         {
             List<Group> groups = new List<Group>();
-            Filter filter = new Filter();
-            filter.name = gf.GroupFilterName;
-            filter.id = gf.GroupFilterID;
-            filter.size = 0;
-
+            Filter filter = new Filter
+            {
+                name = gf.GroupFilterName,
+                id = gf.GroupFilterID,
+                size = 0
+            };
             if (gf.GroupsIds.ContainsKey(uid))
             {
                 HashSet<int> groupsh = gf.GroupsIds[uid];

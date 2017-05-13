@@ -4,15 +4,13 @@
     {
         public static int ProcessAniDBInt(string fld)
         {
-            int iVal = 0;
-            int.TryParse(fld, out iVal);
+            int.TryParse(fld, out int iVal);
             return iVal;
         }
 
         public static long ProcessAniDBLong(string fld)
         {
-            long iVal = 0;
-            long.TryParse(fld, out iVal);
+            long.TryParse(fld, out long iVal);
             return iVal;
         }
 

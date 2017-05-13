@@ -90,7 +90,7 @@ namespace Shoko.Server.Utilities
                     return (T)ser.ReadObject(ms);
                 }*/
             }
-            catch (Exception ex)
+            catch
             {
                 return default(T);
             }

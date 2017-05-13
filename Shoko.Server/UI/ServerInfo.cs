@@ -309,7 +309,7 @@ namespace Shoko.Server
             set { this.SetField(() => notWaitingOnResponseAniDBUDP, value); }
         }
 
-        private string waitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
+        private string waitingOnResponseAniDBUDPString = Commons.Properties.Resources.Command_Idle;
 
         public string WaitingOnResponseAniDBUDPString
         {
@@ -317,7 +317,7 @@ namespace Shoko.Server
             {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                waitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
+                waitingOnResponseAniDBUDPString = Commons.Properties.Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;
             }
             set { this.SetField(() => waitingOnResponseAniDBUDPString, value); }

@@ -27,10 +27,8 @@ namespace Shoko.Server.AniDB_API.Raws
 
             this.VoteType = AniDBVoteType.Anime;
             this.EntityID = int.Parse(node.Attributes["aid"].Value);
-            double val = 0;
-            double.TryParse(node.InnerText.Trim(), style, culture, out val);
-            int ival = 0;
-            int.TryParse((val * (double) 100).ToString(), out ival);
+            double.TryParse(node.InnerText.Trim(), style, culture, out double val);
+            int.TryParse((val * 100).ToString(), out int ival);
             VoteValue = ival;
         }
 
@@ -41,10 +39,8 @@ namespace Shoko.Server.AniDB_API.Raws
 
             this.VoteType = AniDBVoteType.AnimeTemp;
             this.EntityID = int.Parse(node.Attributes["aid"].Value);
-            double val = 0;
-            double.TryParse(node.InnerText.Trim(), style, culture, out val);
-            int ival = 0;
-            int.TryParse((val * (double) 100).ToString(), out ival);
+            double.TryParse(node.InnerText.Trim(), style, culture, out double val);
+            int.TryParse((val * 100).ToString(), out int ival);
             VoteValue = ival;
         }
 
@@ -55,10 +51,8 @@ namespace Shoko.Server.AniDB_API.Raws
 
             this.VoteType = AniDBVoteType.Episode;
             this.EntityID = int.Parse(node.Attributes["eid"].Value);
-            double val = 0;
-            double.TryParse(node.InnerText.Trim(), style, culture, out val);
-            int ival = 0;
-            int.TryParse((val * (double) 100).ToString(), out ival);
+            double.TryParse(node.InnerText.Trim(), style, culture, out double val);
+            int.TryParse((val * 100).ToString(), out int ival);
             VoteValue = ival;
         }
 

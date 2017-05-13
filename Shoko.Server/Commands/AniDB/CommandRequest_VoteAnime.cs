@@ -78,7 +78,7 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_Vote_{0}_{1}_{2}", AnimeID, (int) VoteType, VoteValue);
+            this.CommandID = string.Format("CommandRequest_Vote_{0}_{1}_{2}", AnimeID, VoteType, VoteValue);
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -113,13 +113,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

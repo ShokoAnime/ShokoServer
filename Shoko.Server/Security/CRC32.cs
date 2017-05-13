@@ -116,7 +116,7 @@ namespace Shoko.Server.Security
         /// <summary>
         /// Initializes an implementation of HashAlgorithm.
         /// </summary>
-        public override void Initialize()
+        public sealed override void Initialize()
         {
             m_crc = AllOnes;
         }

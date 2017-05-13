@@ -181,8 +181,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Counter</returns>
         private object CountFolders()
         {
-            Counter count = new Counter();
-            count.count = new ShokoServiceImplementation().GetImportFolders().Count;
+            Counter count = new Counter
+            {
+                count = new ShokoServiceImplementation().GetImportFolders().Count
+            };
             return count;
         }
 
@@ -512,12 +514,14 @@ namespace Shoko.Server.API.v2.Modules
             foreach (dynamic post in news_feed)
             {
                 limit++;
-                WebNews wn = new WebNews();
-                wn.author = post.author;
-                wn.date = post.date;
-                wn.link = post.link;
-                wn.title = System.Web.HttpUtility.HtmlDecode((string) post.title.rendered);
-                wn.description = post.excerpt.rendered;
+                WebNews wn = new WebNews
+                {
+                    author = post.author,
+                    date = post.date,
+                    link = post.link,
+                    title = System.Web.HttpUtility.HtmlDecode((string)post.title.rendered),
+                    description = post.excerpt.rendered
+                };
                 news.Add(wn);
                 if (limit >= max) break;
             }
@@ -557,14 +561,16 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (query != "")
             {
-                Filter search_filter = new Filter();
-                search_filter.name = "Search";
-                search_filter.groups = new List<Group>();
-
-                Group search_group = new Group();
-                search_group.name = para.query;
-                search_group.series = new List<Serie>();
-
+                Filter search_filter = new Filter
+                {
+                    name = "Search",
+                    groups = new List<Group>()
+                };
+                Group search_group = new Group
+                {
+                    name = para.query,
+                    series = new List<Serie>()
+                };
                 search_group.series = (List<Serie>) (Search(query, para.limit, para.limit_tag, (int) para.offset,
                     para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
                     para.fuzzy != 0));
@@ -598,14 +604,16 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (query != "")
             {
-                Filter search_filter = new Filter();
-                search_filter.name = "Search";
-                search_filter.groups = new List<Group>();
-
-                Group search_group = new Group();
-                search_group.name = para.query;
-                search_group.series = new List<Serie>();
-
+                Filter search_filter = new Filter
+                {
+                    name = "Search",
+                    groups = new List<Group>()
+                };
+                Group search_group = new Group
+                {
+                    name = para.query,
+                    series = new List<Serie>()
+                };
                 search_group.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0));
                 search_group.size = search_group.series.Count();
@@ -665,11 +673,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>QueueInfo</returns>
         private object GetHasherQueue()
         {
-            QueueInfo queue = new QueueInfo();
-            queue.count = ServerInfo.Instance.HasherQueueCount;
-            queue.state = ServerInfo.Instance.HasherQueueState;
-            queue.isrunning = ServerInfo.Instance.HasherQueueRunning;
-            queue.ispause = ServerInfo.Instance.HasherQueuePaused;
+            QueueInfo queue = new QueueInfo
+            {
+                count = ServerInfo.Instance.HasherQueueCount,
+                state = ServerInfo.Instance.HasherQueueState,
+                isrunning = ServerInfo.Instance.HasherQueueRunning,
+                ispause = ServerInfo.Instance.HasherQueuePaused
+            };
             return queue;
         }
 
@@ -679,11 +689,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>QueueInfo</returns>
         private object GetGeneralQueue()
         {
-            QueueInfo queue = new QueueInfo();
-            queue.count = ServerInfo.Instance.GeneralQueueCount;
-            queue.state = ServerInfo.Instance.GeneralQueueState;
-            queue.isrunning = ServerInfo.Instance.GeneralQueueRunning;
-            queue.ispause = ServerInfo.Instance.GeneralQueuePaused;
+            QueueInfo queue = new QueueInfo
+            {
+                count = ServerInfo.Instance.GeneralQueueCount,
+                state = ServerInfo.Instance.GeneralQueueState,
+                isrunning = ServerInfo.Instance.GeneralQueueRunning,
+                ispause = ServerInfo.Instance.GeneralQueuePaused
+            };
             return queue;
         }
 
@@ -693,11 +705,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>QueueInfo</returns>
         private object GetImagesQueue()
         {
-            QueueInfo queue = new QueueInfo();
-            queue.count = ServerInfo.Instance.ImagesQueueCount;
-            queue.state = ServerInfo.Instance.ImagesQueueState;
-            queue.isrunning = ServerInfo.Instance.ImagesQueueRunning;
-            queue.ispause = ServerInfo.Instance.ImagesQueuePaused;
+            QueueInfo queue = new QueueInfo
+            {
+                count = ServerInfo.Instance.ImagesQueueCount,
+                state = ServerInfo.Instance.ImagesQueueState,
+                isrunning = ServerInfo.Instance.ImagesQueueRunning,
+                ispause = ServerInfo.Instance.ImagesQueuePaused
+            };
             return queue;
         }
 
@@ -929,8 +943,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Counter</returns>
         private object CountFiles()
         {
-            Counter count = new Counter();
-            count.count = RepoFactory.VideoLocal.GetAll().Count;
+            Counter count = new Counter
+            {
+                count = RepoFactory.VideoLocal.GetAll().Count
+            };
             return count;
         }
 
@@ -1397,14 +1413,16 @@ namespace Shoko.Server.API.v2.Modules
 
                     if (thisVote == null)
                     {
-                        thisVote = new AniDB_Vote();
-                        thisVote.VoteType = (int) AniDBVoteType.Episode;
-                        thisVote.EntityID = id;
+                        thisVote = new AniDB_Vote
+                        {
+                            VoteType = (int)AniDBVoteType.Episode,
+                            EntityID = id
+                        };
                     }
 
                     if (score <= 10)
                     {
-                        score = (int) (score * 100);
+                        score = score * 100;
                     }
 
                     thisVote.VoteValue = score;
@@ -1461,8 +1479,10 @@ namespace Shoko.Server.API.v2.Modules
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
-            Counter count = new Counter();
-            count.count = RepoFactory.AnimeSeries.GetAll().Count;
+            Counter count = new Counter
+            {
+                count = RepoFactory.AnimeSeries.GetAll().Count
+            };
             return count;
         }
 
@@ -1855,10 +1875,9 @@ namespace Shoko.Server.API.v2.Modules
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
-                int newDist;
-                int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
+                int k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
                 if (query.Length <= 4 || title.Length <= 4) k = 0;
-                if (Utils.BitapFuzzySearch(title, query, k, out newDist) == -1) continue;
+                if (Utils.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
                 if (newDist < dist)
                 {
                     match = title;
@@ -1892,9 +1911,8 @@ namespace Shoko.Server.API.v2.Modules
                 foreach (string tag in a.Contract.AniDBAnime.Tags.Select(b => b.TagName).ToList())
                 {
                     if (string.IsNullOrEmpty(tag)) continue;
-                    int newDist;
-                    int k = Math.Min((int) (tag.Length / 6D), (int) (query.Length / 6D));
-                    if (Utils.BitapFuzzySearch(tag, query, k, out newDist) == -1) continue;
+                    int k = Math.Min((int)(tag.Length / 6D), (int)(query.Length / 6D));
+                    if (Utils.BitapFuzzySearch(tag, query, k, out int newDist) == -1) continue;
                     if (newDist < dist)
                     {
                         match = tag;
@@ -1916,9 +1934,8 @@ namespace Shoko.Server.API.v2.Modules
             foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName).ToList())
             {
                 if (string.IsNullOrEmpty(customTag)) continue;
-                int newDist;
-                int k = Math.Min((int) (customTag.Length / 6D), (int) (query.Length / 6D));
-                if (Utils.BitapFuzzySearch(customTag, query, k, out newDist) == -1) continue;
+                int k = Math.Min((int)(customTag.Length / 6D), (int)(query.Length / 6D));
+                if (Utils.BitapFuzzySearch(customTag, query, k, out int newDist) == -1) continue;
                 if (newDist < dist)
                 {
                     match = customTag;
@@ -2255,8 +2272,10 @@ namespace Shoko.Server.API.v2.Modules
 
             if (thisVote == null)
             {
-                thisVote = new AniDB_Vote();
-                thisVote.EntityID = ser.AniDB_ID;
+                thisVote = new AniDB_Vote
+                {
+                    EntityID = ser.AniDB_ID
+                };
             }
 
             if (score <= 10)
@@ -2349,11 +2368,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Filter></returns>
         internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all)
         {
-            Filters filters = new Filters();
-            filters.id = 0;
-            filters.name = "Filters";
-            filters.viewed = 0;
-            filters.url = APIHelper.ConstructFilterUrl(Context);
+            Filters filters = new Filters
+            {
+                id = 0,
+                name = "Filters",
+                viewed = 0,
+                url = APIHelper.ConstructFilterUrl(Context)
+            };
             List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
@@ -2371,10 +2392,11 @@ namespace Shoko.Server.API.v2.Modules
             List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
             if (vids.Count > 0)
             {
-                Filter filter = new Filter();
-
-                filter.url = APIHelper.ConstructUnsortUrl(Context);
-                filter.name = "Unsort";
+                Filter filter = new Filter
+                {
+                    url = APIHelper.ConstructUnsortUrl(Context),
+                    name = "Unsort"
+                };
                 filter.art.fanart.Add(new Art()
                 {
                     url = APIHelper.ConstructSupportImageLink(Context, "plex_unsort.png"),

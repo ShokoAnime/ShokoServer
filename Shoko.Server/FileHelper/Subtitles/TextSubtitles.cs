@@ -119,12 +119,14 @@ namespace Shoko.Server.FileHelper.Subtitles
             ext = ext.Replace("ass", "ssa");
             if (format == null)
                 format = ext;
-            Stream s = new Stream();
-            s.Format = format;
-            s.StreamType = "3";
-            s.File = file.FullName;
-            s.LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language];
-            s.Language = SubtitleHelper.Iso639_1_TO_Languages[language];
+            Stream s = new Stream
+            {
+                Format = format,
+                StreamType = "3",
+                File = file.FullName,
+                LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language],
+                Language = SubtitleHelper.Iso639_1_TO_Languages[language]
+            };
             sts.Add(s);
             return sts;
         }

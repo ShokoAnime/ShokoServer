@@ -92,8 +92,10 @@ namespace Shoko.Server.Repositories
 
         private Changes<T> InternalGetChanges(DateTime date)
         {
-            Changes<T> changes = new Changes<T>();
-            changes.LastChange = DateTime.MinValue;
+            Changes<T> changes = new Changes<T>
+            {
+                LastChange = DateTime.MinValue
+            };
             if (_changes.Values.Count > 0)
                 changes.LastChange = _changes.Values.Max();
             if (_removals.Values.Count > 0)

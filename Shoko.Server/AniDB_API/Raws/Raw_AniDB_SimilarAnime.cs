@@ -30,16 +30,13 @@ namespace AniDBAPI
 
             this.AnimeID = anid;
 
-            int id = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out id);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out int id);
             this.SimilarAnimeID = id;
 
-            int appr = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "approval"), out appr);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "approval"), out int appr);
             this.Approval = appr;
 
-            int tot = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "total"), out tot);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "total"), out int tot);
             this.Total = tot;
         }
     }

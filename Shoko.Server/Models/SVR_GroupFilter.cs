@@ -136,18 +136,17 @@ namespace Shoko.Server.Models
                         string[] spair = sortpair.Split(';');
                         if (spair.Length != 2) continue;
 
-                        int stype = 0;
-                        int sdir = 0;
-
-                        int.TryParse(spair[0], out stype);
-                        int.TryParse(spair[1], out sdir);
+                        int.TryParse(spair[0], out int stype);
+                        int.TryParse(spair[1], out int sdir);
 
                         if (stype > 0 && sdir > 0)
                         {
-                            GroupFilterSortingCriteria gfsc = new GroupFilterSortingCriteria();
-                            gfsc.GroupFilterID = this.GroupFilterID;
-                            gfsc.SortType = (GroupFilterSorting) stype;
-                            gfsc.SortDirection = (GroupFilterSortDirection) sdir;
+                            GroupFilterSortingCriteria gfsc = new GroupFilterSortingCriteria
+                            {
+                                GroupFilterID = this.GroupFilterID,
+                                SortType = (GroupFilterSorting)stype,
+                                SortDirection = (GroupFilterSortDirection)sdir
+                            };
                             sortCriteriaList.Add(gfsc);
                         }
                     }
@@ -168,40 +167,44 @@ namespace Shoko.Server.Models
 
         public CL_GroupFilter ToClient(ISession session)
         {
-            CL_GroupFilter contract = new CL_GroupFilter();
-            contract.GroupFilterID = this.GroupFilterID;
-            contract.GroupFilterName = this.GroupFilterName;
-            contract.ApplyToSeries = this.ApplyToSeries;
-            contract.BaseCondition = this.BaseCondition;
-            contract.SortingCriteria = this.SortingCriteria;
-            contract.Locked = this.Locked;
-            contract.FilterType = this.FilterType;
-            contract.ParentGroupFilterID = this.ParentGroupFilterID;
-            contract.InvisibleInClients = this.InvisibleInClients;
-            contract.FilterConditions = Conditions;
-            contract.Groups = this.GroupsIds;
-            contract.Series = this.SeriesIds;
-            contract.Childs = GroupFilterID == 0
+            CL_GroupFilter contract = new CL_GroupFilter
+            {
+                GroupFilterID = this.GroupFilterID,
+                GroupFilterName = this.GroupFilterName,
+                ApplyToSeries = this.ApplyToSeries,
+                BaseCondition = this.BaseCondition,
+                SortingCriteria = this.SortingCriteria,
+                Locked = this.Locked,
+                FilterType = this.FilterType,
+                ParentGroupFilterID = this.ParentGroupFilterID,
+                InvisibleInClients = this.InvisibleInClients,
+                FilterConditions = Conditions,
+                Groups = this.GroupsIds,
+                Series = this.SeriesIds,
+                Childs = GroupFilterID == 0
                 ? new HashSet<int>()
-                : RepoFactory.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet();
+                : RepoFactory.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet()
+            };
             return contract;
         }
 
         public static SVR_GroupFilter FromClient(CL_GroupFilter gfc)
         {
-            SVR_GroupFilter gf = new SVR_GroupFilter();
-            gf.GroupFilterID = gfc.GroupFilterID;
-            gf.GroupFilterName = gfc.GroupFilterName;
-            gf.ApplyToSeries = gfc.ApplyToSeries;
-            gf.BaseCondition = gfc.BaseCondition;
-            gf.SortingCriteria = gfc.SortingCriteria;
-            gf.Locked = gfc.Locked;
-            gf.InvisibleInClients = gfc.InvisibleInClients;
-            gf.ParentGroupFilterID = gfc.ParentGroupFilterID;
-            gf.FilterType = gfc.FilterType;
-            gf.Conditions = gfc.FilterConditions;
-            gf.GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>();
-            gf.SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>();
+            SVR_GroupFilter gf = new SVR_GroupFilter
+            {
+                GroupFilterID = gfc.GroupFilterID,
+                GroupFilterName = gfc.GroupFilterName,
+                ApplyToSeries = gfc.ApplyToSeries,
+                BaseCondition = gfc.BaseCondition,
+                SortingCriteria = gfc.SortingCriteria,
+                Locked = gfc.Locked,
+                InvisibleInClients = gfc.InvisibleInClients,
+                ParentGroupFilterID = gfc.ParentGroupFilterID,
+                FilterType = gfc.FilterType,
+                Conditions = gfc.FilterConditions,
+                GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>(),
+                SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>()
+            };
             return gf;
         }
 
@@ -215,12 +218,12 @@ namespace Shoko.Server.Models
 
         public CL_GroupFilterExtended ToClientExtended(ISession session, SVR_JMMUser user)
         {
-            CL_GroupFilterExtended contract = new CL_GroupFilterExtended();
-            contract.GroupFilter = this.ToClient();
-            contract.GroupCount = 0;
-            contract.SeriesCount = 0;
-
-
+            CL_GroupFilterExtended contract = new CL_GroupFilterExtended
+            {
+                GroupFilter = this.ToClient(),
+                GroupCount = 0,
+                SeriesCount = 0
+            };
             if (GroupsIds.ContainsKey(user.JMMUserID))
             {
                 contract.GroupCount = GroupsIds[user.JMMUserID].Count;
@@ -297,9 +300,8 @@ namespace Shoko.Server.Models
         public bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user, int jmmUserId)
         {
             bool change = false;
-            HashSet<int> seriesIds;
 
-            SeriesIds.TryGetValue(jmmUserId, out seriesIds);
+            SeriesIds.TryGetValue(jmmUserId, out HashSet<int> seriesIds);
 
             if (seriesIds == null)
             {
@@ -326,9 +328,8 @@ namespace Shoko.Server.Models
         public bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user, int jmmUserId)
         {
             bool change = false;
-            HashSet<int> groupIds;
 
-            GroupsIds.TryGetValue(jmmUserId, out groupIds);
+            GroupsIds.TryGetValue(jmmUserId, out HashSet<int> groupIds);
 
             if (groupIds == null)
             {
@@ -466,8 +467,7 @@ namespace Shoko.Server.Models
             {
                 if (gfc.GetConditionTypeEnum() != GroupFilterConditionType.AnimeGroup) continue;
 
-                int groupID = 0;
-                int.TryParse(gfc.ConditionParameter, out groupID);
+                int.TryParse(gfc.ConditionParameter, out int groupID);
                 if (groupID == 0) break;
 
 
@@ -634,8 +634,7 @@ namespace Shoko.Server.Models
                         DateTime filterDate;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDate = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -658,8 +657,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateEpisodeLastAired;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -680,8 +678,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateSeries;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateSeries = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -703,8 +700,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateEpsiodeWatched;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateEpsiodeWatched = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -727,8 +723,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateEpisodeAdded;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateEpisodeAdded = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -760,7 +755,7 @@ namespace Shoko.Server.Models
                     case GroupFilterConditionType.AniDBRating:
                         decimal dRating = -1;
                         decimal.TryParse(gfc.ConditionParameter, style, culture, out dRating);
-                        decimal thisRating = contractGroup.Stat_AniDBRating / (decimal) 100;
+                        decimal thisRating = contractGroup.Stat_AniDBRating / 100;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.GreaterThan && thisRating < dRating)
                             return false;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LessThan && thisRating > dRating)
@@ -1009,8 +1004,7 @@ namespace Shoko.Server.Models
                         DateTime filterDate;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDate = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -1027,8 +1021,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateEpisodeLastAired;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -1049,8 +1042,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateSeries;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateSeries = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -1070,8 +1062,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateEpsiodeWatched;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateEpsiodeWatched = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -1094,8 +1085,7 @@ namespace Shoko.Server.Models
                         DateTime filterDateEpisodeAdded;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays)
                         {
-                            int days = 0;
-                            int.TryParse(gfc.ConditionParameter, out days);
+                            int.TryParse(gfc.ConditionParameter, out int days);
                             filterDateEpisodeAdded = DateTime.Today.AddDays(0 - days);
                         }
                         else
@@ -1228,7 +1218,7 @@ namespace Shoko.Server.Models
 
                 return new DateTime(year, month, day);
             }
-            catch (Exception ex)
+            catch
             {
                 return DateTime.Today;
             }

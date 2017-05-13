@@ -303,9 +303,8 @@ namespace Shoko.Server.Repositories
                     {
                         int animeId = Convert.ToInt32(reader[0]);
                         string vidQual = reader[1].ToString().Trim();
-                        HashSet<string> vidQualSet;
 
-                        if (!allVidQualPerAnime.TryGetValue(animeId, out vidQualSet))
+                        if (!allVidQualPerAnime.TryGetValue(animeId, out HashSet<string> vidQualSet))
                         {
                             vidQualSet = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
                             allVidQualPerAnime.Add(animeId, vidQualSet);
@@ -369,9 +368,8 @@ namespace Shoko.Server.Repositories
                         string mainTitle = rdr[1].ToString().Trim();
                         string vidQual = rdr[2].ToString().Trim();
                         int epNumber = Convert.ToInt32(rdr[3]);
-                        AnimeVideoQualityStat stat;
 
-                        if (!dictStats.TryGetValue(animeID, out stat))
+                        if (!dictStats.TryGetValue(animeID, out AnimeVideoQualityStat stat))
                         {
                             stat = new AnimeVideoQualityStat
                             {
@@ -382,9 +380,8 @@ namespace Shoko.Server.Repositories
                             dictStats.Add(animeID, stat);
                         }
 
-                        int epCount;
 
-                        stat.VideoQualityEpisodeCount.TryGetValue(vidQual, out epCount);
+                        stat.VideoQualityEpisodeCount.TryGetValue(vidQual, out int epCount);
                         stat.VideoQualityEpisodeCount[vidQual] = epCount + 1;
                     }
                 }
@@ -395,9 +392,10 @@ namespace Shoko.Server.Repositories
 
         public AnimeVideoQualityStat GetEpisodeVideoQualityStatsForAnime(ISessionWrapper session, int aID)
         {
-            AnimeVideoQualityStat stat = new AnimeVideoQualityStat();
-            stat.VideoQualityEpisodeCount = new Dictionary<string, int>();
-
+            AnimeVideoQualityStat stat = new AnimeVideoQualityStat
+            {
+                VideoQualityEpisodeCount = new Dictionary<string, int>()
+            };
             System.Data.IDbCommand command = session.Connection.CreateCommand();
             command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber "
                                   + "from AnimeSeries ser "
@@ -483,10 +481,12 @@ namespace Shoko.Server.Repositories
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
+#pragma warning disable 2100
                 command.CommandText = "SELECT Distinct(lan.LanguageName) ";
                 command.CommandText += "FROM CrossRef_Languages_AniDB_File audio ";
                 command.CommandText += "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID ";
                 command.CommandText += "ORDER BY lan.LanguageName ";
+#pragma warning restore 2100
 
                 using (IDataReader rdr = command.ExecuteReader())
                 {
@@ -566,10 +566,12 @@ namespace Shoko.Server.Repositories
 
                         if (!dictStats.ContainsKey(animeID))
                         {
-                            LanguageStat stat = new LanguageStat();
-                            stat.AnimeID = animeID;
-                            stat.MainTitle = mainTitle;
-                            stat.LanguageNames = new List<string>();
+                            LanguageStat stat = new LanguageStat
+                            {
+                                AnimeID = animeID,
+                                MainTitle = mainTitle,
+                                LanguageNames = new List<string>()
+                            };
                             stat.LanguageNames.Add(lanName);
                             dictStats[animeID] = stat;
                         }
@@ -606,9 +608,8 @@ namespace Shoko.Server.Repositories
                 int animeID = Convert.ToInt32(cols[0]);
                 string mainTitle = cols[1].ToString().Trim();
                 string lanName = cols[2].ToString().Trim();
-                LanguageStat stat = null;
 
-                if (!dictStats.TryGetValue(animeID, out stat))
+                if (!dictStats.TryGetValue(animeID, out LanguageStat stat))
                 {
                     stat = new LanguageStat
                     {
@@ -657,9 +658,8 @@ namespace Shoko.Server.Repositories
                 int animeID = Convert.ToInt32(cols[0]);
                 string mainTitle = cols[1].ToString().Trim();
                 string lanName = cols[2].ToString().Trim();
-                LanguageStat stat = null;
 
-                if (!dictStats.TryGetValue(animeID, out stat))
+                if (!dictStats.TryGetValue(animeID, out LanguageStat stat))
                 {
                     stat = new LanguageStat
                     {
@@ -755,9 +755,8 @@ namespace Shoko.Server.Repositories
                 int animeID = Convert.ToInt32(cols[0]);
                 string mainTitle = cols[1].ToString().Trim();
                 string lanName = cols[2].ToString().Trim();
-                LanguageStat stat = null;
 
-                if (!dictStats.TryGetValue(animeID, out stat))
+                if (!dictStats.TryGetValue(animeID, out LanguageStat stat))
                 {
                     stat = new LanguageStat
                     {

@@ -215,8 +215,7 @@ namespace AniDBAPI
 	            IsChaptered = BitMaskHelper.IsSet(eState, AniDBFileState.FILE_CHAPTERED) ? 1 : 0;
             }
 
-            int isdep = 0;
-            if (int.TryParse(sDetails[6].Trim(), out isdep))
+            if (int.TryParse(sDetails[6].Trim(), out int isdep))
                 IsDeprecated = isdep == 0 ? 0 : 1;
 
             EpisodesRAW = sDetails[2].Trim();

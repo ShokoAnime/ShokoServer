@@ -1063,10 +1063,12 @@ namespace Shoko.Server
 
                 if (epUserRecord == null)
                 {
-                    epUserRecord = new SVR_AnimeEpisode_User();
-                    epUserRecord.PlayedCount = 0;
-                    epUserRecord.StoppedCount = 0;
-                    epUserRecord.WatchedCount = 0;
+                    epUserRecord = new SVR_AnimeEpisode_User
+                    {
+                        PlayedCount = 0,
+                        StoppedCount = 0,
+                        WatchedCount = 0
+                    };
                 }
                 epUserRecord.AnimeEpisodeID = ep.AnimeEpisodeID;
                 epUserRecord.AnimeSeriesID = ep.AnimeSeriesID;
@@ -1368,10 +1370,11 @@ namespace Shoko.Server
             bool watchedStatus, int userID)
         {
             CL_Response<CL_AnimeEpisode_User> response =
-                new CL_Response<CL_AnimeEpisode_User>();
-            response.ErrorMessage = "";
-            response.Result = null;
-
+                new CL_Response<CL_AnimeEpisode_User>
+                {
+                    ErrorMessage = "",
+                    Result = null
+                };
             try
             {
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
@@ -1575,8 +1578,10 @@ namespace Shoko.Server
 
             if (thisVote == null)
             {
-                thisVote = new AniDB_Vote();
-                thisVote.EntityID = animeID;
+                thisVote = new AniDB_Vote
+                {
+                    EntityID = animeID
+                };
             }
             thisVote.VoteType = voteType;
 
@@ -1684,21 +1689,22 @@ namespace Shoko.Server
                     foreach (CL_AnimeEpisode_User ae in GetEpisodesForFile(vi.VideoLocalID, userID))
                     {
                         CL_AnimeSeries_User ase = GetSeries(ae.AnimeSeriesID, userID);
-                        CL_AnimeSeries_FileStats asfs = null;
                         //check if series is in list if not add it
-                        if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
+                        if (list.TryGetValue(ase.AnimeSeriesID, out CL_AnimeSeries_FileStats asfs) == false)
                         {
                             limit++;
                             if (limit >= max)
                             {
                                 continue;
                             }
-                            asfs = new CL_AnimeSeries_FileStats();
-                            asfs.AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle;
-                            asfs.FileCount = 0;
-                            asfs.FileSize = 0;
-                            asfs.Folders = new List<string>();
-                            asfs.AnimeSeriesID = ase.AnimeSeriesID;
+                            asfs = new CL_AnimeSeries_FileStats
+                            {
+                                AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle,
+                                FileCount = 0,
+                                FileSize = 0,
+                                Folders = new List<string>(),
+                                AnimeSeriesID = ase.AnimeSeriesID
+                            };
                             list.Add(ase.AnimeSeriesID, asfs);
                         }
 
@@ -1865,8 +1871,7 @@ namespace Shoko.Server
                         gf.Conditions.Where(a => a.ConditionType == (int) GroupFilterConditionType.AnimeGroup).ToList();
                     foreach (GroupFilterCondition gfc in c)
                     {
-                        int thisGrpID = 0;
-                        int.TryParse(gfc.ConditionParameter, out thisGrpID);
+                        int.TryParse(gfc.ConditionParameter, out int thisGrpID);
                         if (thisGrpID == animeGroupID)
                         {
                             change = true;
@@ -1934,7 +1939,7 @@ namespace Shoko.Server
                         List<CL_AnimeGroup_User> nGroups = new List<CL_AnimeGroup_User>();
                         foreach (CL_AnimeGroup_User cag in retGroups)
                         {
-                            CL_AnimeGroup_User ng = (CL_AnimeGroup_User) cag.DeepCopy();
+                            CL_AnimeGroup_User ng = cag.DeepCopy();
                             if (cag.Stat_SeriesCount == 1)
                             {
                                 if (cag.DefaultAnimeSeriesID.HasValue)
@@ -1991,9 +1996,11 @@ namespace Shoko.Server
 
         public CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request contract, int userID)
         {
-            CL_Response<CL_AnimeGroup_User> contractout = new CL_Response<CL_AnimeGroup_User>();
-            contractout.ErrorMessage = "";
-            contractout.Result = null;
+            CL_Response<CL_AnimeGroup_User> contractout = new CL_Response<CL_AnimeGroup_User>
+            {
+                ErrorMessage = "",
+                Result = null
+            };
             try
             {
                 SVR_AnimeGroup grp = null;
@@ -2009,15 +2016,17 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    grp = new SVR_AnimeGroup();
-                    grp.Description = "";
-                    grp.IsManuallyNamed = 0;
-                    grp.DateTimeCreated = DateTime.Now;
-                    grp.DateTimeUpdated = DateTime.Now;
-                    grp.SortName = "";
-                    grp.MissingEpisodeCount = 0;
-                    grp.MissingEpisodeCountGroups = 0;
-                    grp.OverrideDescription = 0;
+                    grp = new SVR_AnimeGroup
+                    {
+                        Description = "",
+                        IsManuallyNamed = 0,
+                        DateTimeCreated = DateTime.Now,
+                        DateTimeUpdated = DateTime.Now,
+                        SortName = "",
+                        MissingEpisodeCount = 0,
+                        MissingEpisodeCountGroups = 0,
+                        OverrideDescription = 0
+                    };
                 }
 
                 if (string.IsNullOrEmpty(contract.GroupName))
@@ -2060,9 +2069,11 @@ namespace Shoko.Server
 
         public CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID)
         {
-            CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>();
-            contractout.ErrorMessage = "";
-            contractout.Result = null;
+            CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
+            {
+                ErrorMessage = "",
+                Result = null
+            };
             try
             {
                 SVR_AnimeSeries ser = null;
@@ -2128,9 +2139,11 @@ namespace Shoko.Server
 
         public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
         {
-            CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>();
-            contractout.ErrorMessage = "";
-            contractout.Result = null;
+            CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
+            {
+                ErrorMessage = "",
+                Result = null
+            };
             try
             {
                 SVR_AnimeSeries ser = null;
@@ -2151,14 +2164,16 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    ser = new SVR_AnimeSeries();
-                    ser.DateTimeCreated = DateTime.Now;
-                    ser.DefaultAudioLanguage = "";
-                    ser.DefaultSubtitleLanguage = "";
-                    ser.MissingEpisodeCount = 0;
-                    ser.MissingEpisodeCountGroups = 0;
-                    ser.LatestLocalEpisodeNumber = 0;
-                    ser.SeriesNameOverride = "";
+                    ser = new SVR_AnimeSeries
+                    {
+                        DateTimeCreated = DateTime.Now,
+                        DefaultAudioLanguage = "",
+                        DefaultSubtitleLanguage = "",
+                        MissingEpisodeCount = 0,
+                        MissingEpisodeCountGroups = 0,
+                        LatestLocalEpisodeNumber = 0,
+                        SeriesNameOverride = ""
+                    };
                 }
 
 
@@ -2206,9 +2221,11 @@ namespace Shoko.Server
 
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID)
         {
-            CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>();
-            response.Result = null;
-            response.ErrorMessage = "";
+            CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>
+            {
+                Result = null,
+                ErrorMessage = ""
+            };
             try
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -2398,11 +2415,12 @@ namespace Shoko.Server
                 IgnoreAnime ignore = RepoFactory.IgnoreAnime.GetByAnimeUserType(animeID, userID, ignoreType);
                 if (ignore != null) return; // record already exists
 
-                ignore = new IgnoreAnime();
-                ignore.AnimeID = animeID;
-                ignore.IgnoreType = ignoreType;
-                ignore.JMMUserID = userID;
-
+                ignore = new IgnoreAnime
+                {
+                    AnimeID = animeID,
+                    IgnoreType = ignoreType,
+                    JMMUserID = userID
+                };
                 RepoFactory.IgnoreAnime.Save(ignore);
             }
             catch (Exception ex)
@@ -2463,15 +2481,16 @@ namespace Shoko.Server
                     comment.User.Full_name = sht.user.name;
 
                     // comment details
-                    comment.Comment = new CL_Trakt_Comment();
-                    comment.Comment.CommentType = (int) TraktActivityType.Show; // episode or show
-                    comment.Comment.Text = sht.comment;
-                    comment.Comment.Spoiler = sht.spoiler;
-                    comment.Comment.Inserted = sht.CreatedAtDate;
+                    comment.Comment = new CL_Trakt_Comment
+                    {
+                        CommentType = (int)TraktActivityType.Show, // episode or show
+                        Text = sht.comment,
+                        Spoiler = sht.spoiler,
+                        Inserted = sht.CreatedAtDate,
 
-                    // urls
-                    comment.Comment.Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id);
-
+                        // urls
+                        Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id)
+                    };
                     comments.Add(comment);
                 }
             }
@@ -2837,10 +2856,11 @@ namespace Shoko.Server
                         if (voted) continue;
                     }
 
-                    CL_AnimeRating contract = new CL_AnimeRating();
-                    contract.AnimeID = anime.AnimeID;
-                    contract.AnimeDetailed = anime.Contract;
-
+                    CL_AnimeRating contract = new CL_AnimeRating
+                    {
+                        AnimeID = anime.AnimeID,
+                        AnimeDetailed = anime.Contract
+                    };
                     if (dictSeries.ContainsKey(anime.AnimeID))
                     {
                         contract.AnimeSeries = dictSeries[anime.AnimeID].GetUserContract(userID);
@@ -2972,9 +2992,11 @@ namespace Shoko.Server
 
         public CL_Response<CL_GroupFilter> SaveGroupFilter(CL_GroupFilter contract)
         {
-            CL_Response<CL_GroupFilter> response = new CL_Response<CL_GroupFilter>();
-            response.ErrorMessage = string.Empty;
-            response.Result = null;
+            CL_Response<CL_GroupFilter> response = new CL_Response<CL_GroupFilter>
+            {
+                ErrorMessage = string.Empty,
+                Result = null
+            };
 
 
             // Process the group
@@ -3050,10 +3072,12 @@ namespace Shoko.Server
                 foreach (SVR_GroupFilter gf in allGfs)
                 {
                     CL_GroupFilter gfContract = gf.ToClient();
-                    CL_GroupFilterExtended gfeContract = new CL_GroupFilterExtended();
-                    gfeContract.GroupFilter = gfContract;
-                    gfeContract.GroupCount = 0;
-                    gfeContract.SeriesCount = 0;
+                    CL_GroupFilterExtended gfeContract = new CL_GroupFilterExtended
+                    {
+                        GroupFilter = gfContract,
+                        GroupCount = 0,
+                        SeriesCount = 0
+                    };
                     if (gf.GroupsIds.ContainsKey(user.JMMUserID))
                         gfeContract.GroupCount = gf.GroupsIds.Count;
                     gfs.Add(gfeContract);
@@ -3079,10 +3103,12 @@ namespace Shoko.Server
                 foreach (SVR_GroupFilter gf in allGfs)
                 {
                     CL_GroupFilter gfContract = gf.ToClient();
-                    CL_GroupFilterExtended gfeContract = new CL_GroupFilterExtended();
-                    gfeContract.GroupFilter = gfContract;
-                    gfeContract.GroupCount = 0;
-                    gfeContract.SeriesCount = 0;
+                    CL_GroupFilterExtended gfeContract = new CL_GroupFilterExtended
+                    {
+                        GroupFilter = gfContract,
+                        GroupCount = 0,
+                        SeriesCount = 0
+                    };
                     if (gf.GroupsIds.ContainsKey(user.JMMUserID))
                         gfeContract.GroupCount = gf.GroupsIds.Count;
                     gfs.Add(gfeContract);
@@ -3196,9 +3222,10 @@ namespace Shoko.Server
 
         public CL_Response<Playlist> SavePlaylist(Playlist contract)
         {
-            CL_Response<Playlist> contractRet = new CL_Response<Playlist>();
-            contractRet.ErrorMessage = "";
-
+            CL_Response<Playlist> contractRet = new CL_Response<Playlist>
+            {
+                ErrorMessage = ""
+            };
             try
             {
                 // Process the playlist
@@ -3293,9 +3320,10 @@ namespace Shoko.Server
 
         public CL_Response<CrossRef_CustomTag> SaveCustomTagCrossRef(CrossRef_CustomTag contract)
         {
-            CL_Response<CrossRef_CustomTag> contractRet = new CL_Response<CrossRef_CustomTag>();
-            contractRet.ErrorMessage = "";
-
+            CL_Response<CrossRef_CustomTag> contractRet = new CL_Response<CrossRef_CustomTag>
+            {
+                ErrorMessage = ""
+            };
             try
             {
                 // this is an update
@@ -3372,9 +3400,10 @@ namespace Shoko.Server
 
         public CL_Response<CustomTag> SaveCustomTag(CustomTag contract)
         {
-            CL_Response<CustomTag> contractRet = new CL_Response<CustomTag>();
-            contractRet.ErrorMessage = "";
-
+            CL_Response<CustomTag> contractRet = new CL_Response<CustomTag>
+            {
+                ErrorMessage = ""
+            };
             try
             {
                 // this is an update

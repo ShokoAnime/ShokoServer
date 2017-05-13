@@ -74,13 +74,15 @@ namespace Shoko.Server.FileHelper.Subtitles
                     }
                     if (language != null)
                     {
-                        Stream s = new Stream();
-                        s.Format = "vobsub";
-                        s.StreamType = "3";
-                        s.SubIndex = x.ToString();
-                        s.File = basename + ".idx";
-                        s.LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language];
-                        s.Language = SubtitleHelper.Iso639_1_TO_Languages[language];
+                        Stream s = new Stream
+                        {
+                            Format = "vobsub",
+                            StreamType = "3",
+                            SubIndex = x.ToString(),
+                            File = basename + ".idx",
+                            LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language],
+                            Language = SubtitleHelper.Iso639_1_TO_Languages[language]
+                        };
                         ss.Add(s);
                     }
                 }

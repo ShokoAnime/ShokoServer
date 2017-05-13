@@ -48,8 +48,7 @@ namespace Shoko.Server.Commands.Plex
 
         public static PlexHelper GetForUser(JMMUser user)
         {
-            PlexHelper helper;
-            if (Cache.TryGetValue(user.JMMUserID, out helper)) return helper;
+            if (Cache.TryGetValue(user.JMMUserID, out PlexHelper helper)) return helper;
             Cache.Add(user.JMMUserID, helper = new PlexHelper(user));
             return helper;
         }

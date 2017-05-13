@@ -53,9 +53,10 @@ namespace Shoko.Server.Commands
             ns.Add("", "");
 
             XmlSerializer serializer = new XmlSerializer(this.GetType());
-            XmlWriterSettings settings = new XmlWriterSettings();
-            settings.OmitXmlDeclaration = true; // Remove the <?xml version="1.0" encoding="utf-8"?>
-
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                OmitXmlDeclaration = true // Remove the <?xml version="1.0" encoding="utf-8"?>
+            };
             StringBuilder sb = new StringBuilder();
             XmlWriter writer = XmlWriter.Create(sb, settings);
             serializer.Serialize(writer, this, ns);
@@ -104,7 +105,7 @@ namespace Shoko.Server.Commands
                 string prop = doc[keyName][propertyName].InnerText.Trim();
                 return prop;
             }
-            catch (Exception ex)
+            catch
             {
                 //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
                 //BaseConfig.MyAnimeLog.Write("Error in XMLService.TryGetProperty: {0}-{1}", Utils.GetParentMethodName(), ex.ToString());

@@ -56,68 +56,69 @@ namespace Shoko.Server.Extensions
 
         public static int? ParseNullableInt(this string input)
         {
-            int output;
-            return int.TryParse(input, out output) ? output : (int?) null;
+            return int.TryParse(input, out int output) ? output : (int?)null;
         }
 
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
-            CL_AnimeGroup_User contract = new CL_AnimeGroup_User();
-            contract.AnimeGroupID = c.AnimeGroupID;
-            contract.AnimeGroupParentID = c.AnimeGroupParentID;
-            contract.DefaultAnimeSeriesID = c.DefaultAnimeSeriesID;
-            contract.GroupName = c.GroupName;
-            contract.Description = c.Description;
-            contract.IsFave = c.IsFave;
-            contract.IsManuallyNamed = c.IsManuallyNamed;
-            contract.UnwatchedEpisodeCount = c.UnwatchedEpisodeCount;
-            contract.DateTimeUpdated = c.DateTimeUpdated;
-            contract.WatchedEpisodeCount = c.WatchedEpisodeCount;
-            contract.SortName = c.SortName;
-            contract.WatchedDate = c.WatchedDate;
-            contract.EpisodeAddedDate = c.EpisodeAddedDate;
-            contract.LatestEpisodeAirDate = c.LatestEpisodeAirDate;
-            contract.PlayedCount = c.PlayedCount;
-            contract.WatchedCount = c.WatchedCount;
-            contract.StoppedCount = c.StoppedCount;
-            contract.OverrideDescription = c.OverrideDescription;
-            contract.MissingEpisodeCount = c.MissingEpisodeCount;
-            contract.MissingEpisodeCountGroups = c.MissingEpisodeCountGroups;
-            contract.Stat_AirDate_Min = c.Stat_AirDate_Min;
-            contract.Stat_AirDate_Max = c.Stat_AirDate_Max;
-            contract.Stat_EndDate = c.Stat_EndDate;
-            contract.Stat_SeriesCreatedDate = c.Stat_SeriesCreatedDate;
-            contract.Stat_UserVotePermanent = c.Stat_UserVotePermanent;
-            contract.Stat_UserVoteTemporary = c.Stat_UserVoteTemporary;
-            contract.Stat_UserVoteOverall = c.Stat_UserVoteOverall;
-            contract.Stat_IsComplete = c.Stat_IsComplete;
-            contract.Stat_HasFinishedAiring = c.Stat_HasFinishedAiring;
-            contract.Stat_IsCurrentlyAiring = c.Stat_IsCurrentlyAiring;
-            contract.Stat_HasTvDBLink = c.Stat_HasTvDBLink;
-            contract.Stat_HasMALLink = c.Stat_HasMALLink;
-            contract.Stat_HasMovieDBLink = c.Stat_HasMovieDBLink;
-            contract.Stat_HasMovieDBOrTvDBLink = c.Stat_HasMovieDBOrTvDBLink;
-            contract.Stat_SeriesCount = c.Stat_SeriesCount;
-            contract.Stat_EpisodeCount = c.Stat_EpisodeCount;
-            contract.Stat_AniDBRating = c.Stat_AniDBRating;
-            contract.ServerPosterPath = c.ServerPosterPath;
-            contract.SeriesForNameOverride = c.SeriesForNameOverride;
+            CL_AnimeGroup_User contract = new CL_AnimeGroup_User
+            {
+                AnimeGroupID = c.AnimeGroupID,
+                AnimeGroupParentID = c.AnimeGroupParentID,
+                DefaultAnimeSeriesID = c.DefaultAnimeSeriesID,
+                GroupName = c.GroupName,
+                Description = c.Description,
+                IsFave = c.IsFave,
+                IsManuallyNamed = c.IsManuallyNamed,
+                UnwatchedEpisodeCount = c.UnwatchedEpisodeCount,
+                DateTimeUpdated = c.DateTimeUpdated,
+                WatchedEpisodeCount = c.WatchedEpisodeCount,
+                SortName = c.SortName,
+                WatchedDate = c.WatchedDate,
+                EpisodeAddedDate = c.EpisodeAddedDate,
+                LatestEpisodeAirDate = c.LatestEpisodeAirDate,
+                PlayedCount = c.PlayedCount,
+                WatchedCount = c.WatchedCount,
+                StoppedCount = c.StoppedCount,
+                OverrideDescription = c.OverrideDescription,
+                MissingEpisodeCount = c.MissingEpisodeCount,
+                MissingEpisodeCountGroups = c.MissingEpisodeCountGroups,
+                Stat_AirDate_Min = c.Stat_AirDate_Min,
+                Stat_AirDate_Max = c.Stat_AirDate_Max,
+                Stat_EndDate = c.Stat_EndDate,
+                Stat_SeriesCreatedDate = c.Stat_SeriesCreatedDate,
+                Stat_UserVotePermanent = c.Stat_UserVotePermanent,
+                Stat_UserVoteTemporary = c.Stat_UserVoteTemporary,
+                Stat_UserVoteOverall = c.Stat_UserVoteOverall,
+                Stat_IsComplete = c.Stat_IsComplete,
+                Stat_HasFinishedAiring = c.Stat_HasFinishedAiring,
+                Stat_IsCurrentlyAiring = c.Stat_IsCurrentlyAiring,
+                Stat_HasTvDBLink = c.Stat_HasTvDBLink,
+                Stat_HasMALLink = c.Stat_HasMALLink,
+                Stat_HasMovieDBLink = c.Stat_HasMovieDBLink,
+                Stat_HasMovieDBOrTvDBLink = c.Stat_HasMovieDBOrTvDBLink,
+                Stat_SeriesCount = c.Stat_SeriesCount,
+                Stat_EpisodeCount = c.Stat_EpisodeCount,
+                Stat_AniDBRating = c.Stat_AniDBRating,
+                ServerPosterPath = c.ServerPosterPath,
+                SeriesForNameOverride = c.SeriesForNameOverride,
 
-            contract.Stat_AllCustomTags =
-                new HashSet<string>(c.Stat_AllCustomTags, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllTags = new HashSet<string>(c.Stat_AllTags, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllYears = new HashSet<int>(c.Stat_AllYears);
-            contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes,
-                StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllVideoQuality =
-                new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes,
-                StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_AudioLanguages =
-                new HashSet<string>(c.Stat_AudioLanguages, StringComparer.InvariantCultureIgnoreCase);
-            contract.Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages,
-                StringComparer.InvariantCultureIgnoreCase);
+                Stat_AllCustomTags =
+                new HashSet<string>(c.Stat_AllCustomTags, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllTags = new HashSet<string>(c.Stat_AllTags, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllYears = new HashSet<int>(c.Stat_AllYears),
+                Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes,
+                StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllVideoQuality =
+                new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes,
+                StringComparer.InvariantCultureIgnoreCase),
+                Stat_AudioLanguages =
+                new HashSet<string>(c.Stat_AudioLanguages, StringComparer.InvariantCultureIgnoreCase),
+                Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages,
+                StringComparer.InvariantCultureIgnoreCase)
+            };
             return contract;
         }
 

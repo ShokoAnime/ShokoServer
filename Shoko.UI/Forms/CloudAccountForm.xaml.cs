@@ -40,17 +40,8 @@ namespace Shoko.UI.Forms
             btnSave.Click += BtnSave_Click;
         }
 
-        private IFileSystem fs;
-
-        public bool IsConnected
-        {
-            get { return (WorkingAccount != null && WorkingAccount.IsConnected); }
-        }
-
-        public bool IsNotConnected
-        {
-            get { return (WorkingAccount == null || !WorkingAccount.IsConnected); }
-        }
+        public bool IsConnected => (WorkingAccount != null && WorkingAccount.IsConnected);
+        public bool IsNotConnected => (WorkingAccount == null || !WorkingAccount.IsConnected);
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
@@ -119,8 +110,7 @@ namespace Shoko.UI.Forms
                             foreach (Exception exSub in ex.LoaderExceptions)
                             {
                                 sb.AppendLine(exSub.Message);
-                                FileNotFoundException exFileNotFound = exSub as FileNotFoundException;
-                                if (exFileNotFound != null)
+                                if (exSub is FileNotFoundException exFileNotFound)
                                 {
                                     if (!string.IsNullOrEmpty(exFileNotFound.FusionLog))
                                     {

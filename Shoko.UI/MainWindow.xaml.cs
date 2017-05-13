@@ -710,7 +710,7 @@ namespace Shoko.UI
             ofd.ShowDialog();
             if (!string.IsNullOrEmpty(ofd.FileName))
             {
-                ShokoServer.RunMyAnime2WorkerAsync(ofd.FileName);
+                ShokoServer.RunMyAnime2Worker(ofd.FileName);
             }
         }
 
@@ -727,8 +727,7 @@ namespace Shoko.UI
                 return;
             }
 
-            ushort port = 0;
-            bool success = ushort.TryParse(txtServerPort.Text, out port);
+            bool success = ushort.TryParse(txtServerPort.Text, out ushort port);
             if (!success || port <= 0 || port > 65535)
             {
                 MessageBox.Show(Shoko.Commons.Properties.Resources.Server_EnterCertainValue,
@@ -1008,7 +1007,7 @@ namespace Shoko.UI
             {
                 this.Close();
             }
-            catch (Exception e)
+            catch
             {
             }
             TippuTrayNotify.Visible = false;

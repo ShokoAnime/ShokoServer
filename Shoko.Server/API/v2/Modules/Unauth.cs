@@ -22,45 +22,60 @@ namespace Shoko.Server.API.v2.Modules
         {
             List<ComponentVersion> list = new List<ComponentVersion>();
 
-            ComponentVersion version = new ComponentVersion();
-
-            version.version = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString();
-            version.name = "server";
+            ComponentVersion version = new ComponentVersion
+            {
+                version = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString(),
+                name = "server"
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "auth_module";
-            version.version = Auth.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "auth_module",
+                version = Auth.version.ToString()
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "common_module";
-            version.version = Common.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "common_module",
+                version = Common.version.ToString()
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "core_module";
-            version.version = Core.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "core_module",
+                version = Core.version.ToString()
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "database_module";
-            version.version = Database.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "database_module",
+                version = Database.version.ToString()
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "dev_module";
-            version.version = Dev.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "dev_module",
+                version = Dev.version.ToString()
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "unauth_module";
-            version.version = Unauth.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "unauth_module",
+                version = Unauth.version.ToString()
+            };
             list.Add(version);
 
-            version = new ComponentVersion();
-            version.name = "webui_module";
-            version.version = Webui.version.ToString();
+            version = new ComponentVersion
+            {
+                name = "webui_module",
+                version = Webui.version.ToString()
+            };
             list.Add(version);
 
             if (File.Exists("webui//index.ver"))
@@ -69,9 +84,11 @@ namespace Shoko.Server.API.v2.Modules
                 string[] versions = webui_version.Split('>');
                 if (versions.Length == 2)
                 {
-                    version = new ComponentVersion();
-                    version.name = "webui/" + versions[0];
-                    version.version = versions[1];
+                    version = new ComponentVersion
+                    {
+                        name = "webui/" + versions[0],
+                        version = versions[1]
+                    };
                     list.Add(version);
                 }
             }

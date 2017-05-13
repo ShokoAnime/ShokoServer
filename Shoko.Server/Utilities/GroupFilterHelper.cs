@@ -90,21 +90,21 @@ namespace Shoko.Server
 
         public static List<string> GetAllSortTypes()
         {
-            List<string> cons = new List<string>();
-
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.AniDBRating));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAddedDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAirDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.EpisodeWatchedDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.GroupName));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.MissingEpisodeCount));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.SeriesAddedDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.SeriesCount));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.SortName));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.UnwatchedEpisodeCount));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.UserRating));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.Year));
-
+            List<string> cons = new List<string>
+            {
+                GetTextForEnum_Sorting(GroupFilterSorting.AniDBRating),
+                GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAddedDate),
+                GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAirDate),
+                GetTextForEnum_Sorting(GroupFilterSorting.EpisodeWatchedDate),
+                GetTextForEnum_Sorting(GroupFilterSorting.GroupName),
+                GetTextForEnum_Sorting(GroupFilterSorting.MissingEpisodeCount),
+                GetTextForEnum_Sorting(GroupFilterSorting.SeriesAddedDate),
+                GetTextForEnum_Sorting(GroupFilterSorting.SeriesCount),
+                GetTextForEnum_Sorting(GroupFilterSorting.SortName),
+                GetTextForEnum_Sorting(GroupFilterSorting.UnwatchedEpisodeCount),
+                GetTextForEnum_Sorting(GroupFilterSorting.UserRating),
+                GetTextForEnum_Sorting(GroupFilterSorting.Year)
+            };
             cons.Sort();
 
             return cons;
@@ -112,21 +112,22 @@ namespace Shoko.Server
 
         public static List<string> GetQuickSortTypes()
         {
-            List<string> cons = new List<string>();
+            List<string> cons = new List<string>
+            {
 
-            //cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.AniDBRating)); removed for performance reasons
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAddedDate));
-            //cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAirDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.EpisodeWatchedDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.GroupName));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.MissingEpisodeCount));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.SeriesAddedDate));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.SeriesCount));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.SortName));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.UnwatchedEpisodeCount));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.UserRating));
-            cons.Add(GetTextForEnum_Sorting(GroupFilterSorting.Year));
-
+                //GetTextForEnum_Sorting(GroupFilterSorting.AniDBRating); removed for performance reasons
+                GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAddedDate),
+                //GetTextForEnum_Sorting(GroupFilterSorting.EpisodeAirDate);
+                GetTextForEnum_Sorting(GroupFilterSorting.EpisodeWatchedDate),
+                GetTextForEnum_Sorting(GroupFilterSorting.GroupName),
+                GetTextForEnum_Sorting(GroupFilterSorting.MissingEpisodeCount),
+                GetTextForEnum_Sorting(GroupFilterSorting.SeriesAddedDate),
+                GetTextForEnum_Sorting(GroupFilterSorting.SeriesCount),
+                GetTextForEnum_Sorting(GroupFilterSorting.SortName),
+                GetTextForEnum_Sorting(GroupFilterSorting.UnwatchedEpisodeCount),
+                GetTextForEnum_Sorting(GroupFilterSorting.UserRating),
+                GetTextForEnum_Sorting(GroupFilterSorting.Year)
+            };
             cons.Sort();
 
             return cons;
@@ -150,7 +151,7 @@ namespace Shoko.Server
 
                 return new DateTime(year, month, day);
             }
-            catch (Exception ex)
+            catch
             {
                 return DateTime.Today;
             }

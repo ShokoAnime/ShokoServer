@@ -84,7 +84,7 @@ namespace Shoko.Server.Repositories.Cached
         public void PostProcess()
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
                 t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
             {
@@ -102,8 +102,8 @@ namespace Shoko.Server.Repositories.Cached
             {
                 cnt++;
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Shoko.Commons.Properties.Resources.Database_Cache, t,
-                    Shoko.Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
+                    Commons.Properties.Resources.Database_Cache, t,
+                    Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
                     gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
@@ -116,9 +116,9 @@ namespace Shoko.Server.Repositories.Cached
             }
 
             // Clean up. This will populate empty conditions and remove duplicate filters
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
                 t,
-                " " + Shoko.Commons.Properties.Resources.GroupFilter_Cleanup);
+                " " + Commons.Properties.Resources.GroupFilter_Cleanup);
             IReadOnlyList<SVR_GroupFilter> all = GetAll();
             HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
             List<SVR_GroupFilter> notin = all.Except(set)?.ToList();
@@ -166,8 +166,8 @@ namespace Shoko.Server.Repositories.Cached
 
                 // TODO Replace with a "Validating Default Filters"
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Shoko.Commons.Properties.Resources.Database_Cache, t,
-                    " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
+                    Commons.Properties.Resources.Database_Cache, t,
+                    " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
 
                 SVR_GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
@@ -176,37 +176,42 @@ namespace Shoko.Server.Repositories.Cached
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Shoko.Commons.Properties.Resources.Database_Cache, t,
-                        " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
+                        Commons.Properties.Resources.Database_Cache, t,
+                        " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
                     cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                     Save(cwatching);
                 }
                 else if (cwatching == null)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Shoko.Commons.Properties.Resources.Database_Cache, t,
-                        " " + Shoko.Commons.Properties.Resources.Filter_CreateContinueWatching);
-                    SVR_GroupFilter gf = new SVR_GroupFilter();
-                    gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
-                    gf.Locked = 1;
-                    gf.SortingCriteria = "4;2"; // by last watched episode desc
-                    gf.ApplyToSeries = 0;
-                    gf.BaseCondition = 1; // all
-                    gf.FilterType = (int) GroupFilterType.ContinueWatching;
-                    gf.InvisibleInClients = 0;
-                    gf.Conditions = new List<GroupFilterCondition>();
-
-                    GroupFilterCondition gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int) GroupFilterConditionType.HasWatchedEpisodes;
-                    gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-                    gfc.ConditionParameter = "";
-                    gfc.GroupFilterID = gf.GroupFilterID;
+                        Commons.Properties.Resources.Database_Cache, t,
+                        " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
+                    SVR_GroupFilter gf = new SVR_GroupFilter
+                    {
+                        GroupFilterName = Constants.GroupFilterName.ContinueWatching,
+                        Locked = 1,
+                        SortingCriteria = "4;2", // by last watched episode desc
+                        ApplyToSeries = 0,
+                        BaseCondition = 1, // all
+                        FilterType = (int)GroupFilterType.ContinueWatching,
+                        InvisibleInClients = 0,
+                        Conditions = new List<GroupFilterCondition>()
+                    };
+                    GroupFilterCondition gfc = new GroupFilterCondition
+                    {
+                        ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes,
+                        ConditionOperator = (int)GroupFilterOperator.Include,
+                        ConditionParameter = "",
+                        GroupFilterID = gf.GroupFilterID
+                    };
                     gf.Conditions.Add(gfc);
-                    gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int) GroupFilterConditionType.HasUnwatchedEpisodes;
-                    gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-                    gfc.ConditionParameter = "";
-                    gfc.GroupFilterID = gf.GroupFilterID;
+                    gfc = new GroupFilterCondition
+                    {
+                        ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
+                        ConditionOperator = (int)GroupFilterOperator.Include,
+                        ConditionParameter = "",
+                        GroupFilterID = gf.GroupFilterID
+                    };
                     gf.Conditions.Add(gfc);
                     gf.CalculateGroupsAndSeries();
                     Save(gf); //Get ID
@@ -216,11 +221,11 @@ namespace Shoko.Server.Repositories.Cached
                 if (allfilter == null)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Shoko.Commons.Properties.Resources.Database_Cache, t,
-                        " " + Shoko.Commons.Properties.Resources.Filter_CreateAll);
+                        Commons.Properties.Resources.Database_Cache, t,
+                        " " + Commons.Properties.Resources.Filter_CreateAll);
                     SVR_GroupFilter gf = new SVR_GroupFilter
                     {
-                        GroupFilterName = Shoko.Commons.Properties.Resources.Filter_All,
+                        GroupFilterName = Commons.Properties.Resources.Filter_All,
                         Locked = 1,
                         InvisibleInClients = 0,
                         FilterType = (int) GroupFilterType.All,
@@ -237,7 +242,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     tagsdirec = new SVR_GroupFilter
                     {
-                        GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Tags,
+                        GroupFilterName = Commons.Properties.Resources.Filter_Tags,
                         InvisibleInClients = 0,
                         FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Tag),
                         BaseCondition = 1,
@@ -253,7 +258,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     yearsdirec = new SVR_GroupFilter
                     {
-                        GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Years,
+                        GroupFilterName = Commons.Properties.Resources.Filter_Years,
                         InvisibleInClients = 0,
                         FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Year),
                         BaseCondition = 1,
@@ -306,9 +311,9 @@ namespace Shoko.Server.Repositories.Cached
                         cnt++;
                         if (frominit)
                             ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Shoko.Commons.Properties.Resources.Database_Cache, t,
-                                Shoko.Commons.Properties.Resources.Filter_CreatingTag + " " +
-                                Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                                Commons.Properties.Resources.Database_Cache, t,
+                                Commons.Properties.Resources.Filter_CreatingTag + " " +
+                                Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                         SVR_GroupFilter yf = new SVR_GroupFilter
                         {
                             ParentGroupFilterID = tagsdirec.GroupFilterID,
@@ -319,11 +324,13 @@ namespace Shoko.Server.Repositories.Cached
                             SortingCriteria = "5;1",
                             FilterType = (int) GroupFilterType.Tag
                         };
-                        GroupFilterCondition gfc = new GroupFilterCondition();
-                        gfc.ConditionType = (int) GroupFilterConditionType.Tag;
-                        gfc.ConditionOperator = (int) GroupFilterOperator.In;
-                        gfc.ConditionParameter = s;
-                        gfc.GroupFilterID = yf.GroupFilterID;
+                        GroupFilterCondition gfc = new GroupFilterCondition
+                        {
+                            ConditionType = (int)GroupFilterConditionType.Tag,
+                            ConditionOperator = (int)GroupFilterOperator.In,
+                            ConditionParameter = s,
+                            GroupFilterID = yf.GroupFilterID
+                        };
                         yf.Conditions.Add(gfc);
                         yf.CalculateGroupsAndSeries();
                         Save(yf);
@@ -368,9 +375,9 @@ namespace Shoko.Server.Repositories.Cached
                         cnt++;
                         if (frominit)
                             ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Shoko.Commons.Properties.Resources.Database_Cache, t,
-                                Shoko.Commons.Properties.Resources.Filter_CreatingYear + " " +
-                                Shoko.Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                                Commons.Properties.Resources.Database_Cache, t,
+                                Commons.Properties.Resources.Filter_CreatingYear + " " +
+                                Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                         SVR_GroupFilter yf = new SVR_GroupFilter
                         {
                             ParentGroupFilterID = yearsdirec.GroupFilterID,
@@ -382,11 +389,13 @@ namespace Shoko.Server.Repositories.Cached
                             FilterType = (int) GroupFilterType.Year,
                             ApplyToSeries = 1
                         };
-                        GroupFilterCondition gfc = new GroupFilterCondition();
-                        gfc.ConditionType = (int) GroupFilterConditionType.Year;
-                        gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-                        gfc.ConditionParameter = s;
-                        gfc.GroupFilterID = yf.GroupFilterID;
+                        GroupFilterCondition gfc = new GroupFilterCondition
+                        {
+                            ConditionType = (int)GroupFilterConditionType.Year,
+                            ConditionOperator = (int)GroupFilterOperator.Include,
+                            ConditionParameter = s,
+                            GroupFilterID = yf.GroupFilterID
+                        };
                         yf.Conditions.Add(gfc);
                         yf.CalculateGroupsAndSeries();
                         Save(yf);

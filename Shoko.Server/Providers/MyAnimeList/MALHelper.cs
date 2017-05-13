@@ -68,32 +68,29 @@ namespace Shoko.Server.Providers.MyAnimeList
                 {
                     try
                     {
-                        animeEntry entry = new animeEntry();
-                        // default values
-                        entry.end_date = string.Empty;
-                        entry.english = string.Empty;
-                        entry.episodes = 0;
-                        entry.id = 0;
-                        entry.image = string.Empty;
-                        entry.score = 0;
-                        entry.start_date = string.Empty;
-                        entry.status = string.Empty;
-                        entry.synonyms = string.Empty;
-                        entry.synopsis = string.Empty;
-                        entry.title = string.Empty;
-                        entry.type = string.Empty;
-
+                        animeEntry entry = new animeEntry
+                        {
+                            // default values
+                            end_date = string.Empty,
+                            english = string.Empty,
+                            episodes = 0,
+                            id = 0,
+                            image = string.Empty,
+                            score = 0,
+                            start_date = string.Empty,
+                            status = string.Empty,
+                            synonyms = string.Empty,
+                            synopsis = string.Empty,
+                            title = string.Empty,
+                            type = string.Empty
+                        };
                         entry.end_date = AniDBHTTPHelper.TryGetProperty(node, "end_date");
                         entry.english = AniDBHTTPHelper.TryGetProperty(node, "english");
                         entry.image = AniDBHTTPHelper.TryGetProperty(node, "image");
 
-                        int eps = 0;
-                        int id = 0;
-                        decimal score = 0;
-
-                        int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "episodes"), out eps);
-                        int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "id"), out id);
-                        decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "score"), out score);
+                        int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "episodes"), out int eps);
+                        int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "id"), out int id);
+                        decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "score"), out decimal score);
 
                         entry.episodes = eps;
                         entry.id = id;
@@ -268,12 +265,14 @@ namespace Shoko.Server.Providers.MyAnimeList
                 return;
             }
 
-            CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL();
-            xref.AnimeID = animeID;
-            xref.MALID = malID;
-            xref.MALTitle = malTitle;
-            xref.StartEpisodeType = epType;
-            xref.StartEpisodeNumber = epNumber;
+            CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
+            {
+                AnimeID = animeID,
+                MALID = malID,
+                MALTitle = malTitle,
+                StartEpisodeType = epType,
+                StartEpisodeNumber = epNumber
+            };
             if (fromWebCache)
                 xref.CrossRefSource = (int) CrossRefSource.WebCache;
             else
@@ -436,7 +435,7 @@ namespace Shoko.Server.Providers.MyAnimeList
 
                 int score = 0;
                 if (ser.GetAnime().UserVote != null)
-                    score = (int) (ser.GetAnime().UserVote.VoteValue / 100);
+                    score = ser.GetAnime().UserVote.VoteValue / 100;
 
                 // e.g.
                 // AniDB - Code Geass R2

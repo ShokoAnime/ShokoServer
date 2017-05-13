@@ -15,13 +15,15 @@ namespace Shoko.Server.PlexAndKodi.Plex
         public MediaContainer NewMediaContainer(MediaContainerTypes type, string title, bool allowsync = true,
             bool nocache = true, BreadCrumbs info = null)
         {
-            MediaContainer m = new MediaContainer();
-            m.AllowSync = allowsync ? "1" : "0";
-            m.NoCache = nocache ? "1" : "0";
-            m.MediaTagVersion = MediaTagVersion;
-            m.Identifier = "com.plexapp.plugins.myanime";
-            m.MediaTagPrefix = "/system/bundle/media/flags/";
-            m.LibrarySectionTitle = "Anime";
+            MediaContainer m = new MediaContainer
+            {
+                AllowSync = allowsync ? "1" : "0",
+                NoCache = nocache ? "1" : "0",
+                MediaTagVersion = MediaTagVersion,
+                Identifier = "com.plexapp.plugins.myanime",
+                MediaTagPrefix = "/system/bundle/media/flags/",
+                LibrarySectionTitle = "Anime"
+            };
             if (type != MediaContainerTypes.None)
                 info?.FillInfo(this, m, false, false);
             m.Thumb = null;

@@ -53,8 +53,7 @@ namespace Shoko.Server.Models
             set
             {
                 _contract = value;
-                int outsize;
-                ContractBlob = CompressionHelper.SerializeObject(value, out outsize);
+                ContractBlob = CompressionHelper.SerializeObject(value, out int outsize);
                 ContractSize = outsize;
                 ContractVersion = CONTRACT_VERSION;
             }
@@ -1402,9 +1401,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         rawSeiyuu.SeiyuuID);
                     if (acc == null)
                     {
-                        acc = new AniDB_Character_Seiyuu();
-                        acc.CharID = chr.CharID;
-                        acc.SeiyuuID = rawSeiyuu.SeiyuuID;
+                        acc = new AniDB_Character_Seiyuu
+                        {
+                            CharID = chr.CharID,
+                            SeiyuuID = rawSeiyuu.SeiyuuID
+                        };
                         seiyuuXrefToSave.Add(acc);
                     }
 
@@ -1522,13 +1523,14 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 {
                     if (review.Trim().Length > 0)
                     {
-                        int rev = 0;
-                        Int32.TryParse(review.Trim(), out rev);
+                        Int32.TryParse(review.Trim(), out int rev);
                         if (rev != 0)
                         {
-                            AniDB_Anime_Review csr = new AniDB_Anime_Review();
-                            csr.AnimeID = this.AnimeID;
-                            csr.ReviewID = rev;
+                            AniDB_Anime_Review csr = new AniDB_Anime_Review
+                            {
+                                AnimeID = this.AnimeID,
+                                ReviewID = rev
+                            };
                             RepoFactory.AniDB_Anime_Review.Save(csr);
                         }
                     }
@@ -1668,9 +1670,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 var contract = new CL_AniDB_AnimeDetailed();
                 var animeTitles = titlesByAnime[anime.AnimeID];
-                DefaultAnimeImages defImages;
 
-                defImagesByAnime.TryGetValue(anime.AnimeID, out defImages);
+                defImagesByAnime.TryGetValue(anime.AnimeID, out DefaultAnimeImages defImages);
 
                 var characterContracts = (charsByAnime[anime.AnimeID] ?? Enumerable.Empty<AnimeCharacterAndSeiyuu>())
                     .Select(ac => ac.ToClient())
@@ -1700,7 +1701,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 contract.Tags = tagsByAnime[anime.AnimeID]
                     .Select(t =>
                     {
-                        AniDB_Anime_Tag animeTag = null;
                         CL_AnimeTag ctag = new CL_AnimeTag
                         {
                             GlobalSpoiler = t.GlobalSpoiler,
@@ -1708,7 +1708,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             TagDescription = t.TagDescription,
                             TagID = t.TagID,
                             TagName = t.TagName,
-                            Weight = dictAnimeTags.TryGetValue(t.TagID, out animeTag) ? animeTag.Weight : 0
+                            Weight = dictAnimeTags.TryGetValue(t.TagID, out AniDB_Anime_Tag animeTag) ? animeTag.Weight : 0
                         };
 
                         return ctag;
@@ -1719,19 +1719,17 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 contract.CustomTags = custTagsByAnime[anime.AnimeID];
 
                 // Vote
-                AniDB_Vote vote;
 
-                if (voteByAnime.TryGetValue(anime.AnimeID, out vote))
+                if (voteByAnime.TryGetValue(anime.AnimeID, out AniDB_Vote vote))
                 {
                     contract.UserVote = vote;
                 }
 
-                LanguageStat langStat;
 
                 // Subtitle languages
                 contract.Stat_AudioLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
-                if (audioLangByAnime.TryGetValue(anime.AnimeID, out langStat))
+                if (audioLangByAnime.TryGetValue(anime.AnimeID, out LanguageStat langStat))
                 {
                     contract.Stat_AudioLanguages.UnionWith(langStat.LanguageNames);
                 }
@@ -1745,18 +1743,16 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 }
 
                 // Anime video quality
-                HashSet<string> vidQual;
 
-                contract.Stat_AllVideoQuality = vidQualByAnime.TryGetValue(anime.AnimeID, out vidQual)
+                contract.Stat_AllVideoQuality = vidQualByAnime.TryGetValue(anime.AnimeID, out HashSet<string> vidQual)
                     ? vidQual
                     : new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
                 // Episode video quality
-                AnimeVideoQualityStat vidQualStat;
 
                 contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
-                if (epVidQualByAnime.TryGetValue(anime.AnimeID, out vidQualStat) &&
+                if (epVidQualByAnime.TryGetValue(anime.AnimeID, out AnimeVideoQualityStat vidQualStat) &&
                     vidQualStat.VideoQualityEpisodeCount.Count > 0)
                 {
                     contract.Stat_AllVideoQuality_Episodes.UnionWith(vidQualStat.VideoQualityEpisodeCount
@@ -1771,24 +1767,28 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public void UpdateContractDetailed(ISessionWrapper session)
         {
             List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
-            CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed();
-            cl.AniDBAnime = GenerateContract(session, animeTitles);
+            CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed
+            {
+                AniDBAnime = GenerateContract(session, animeTitles),
 
 
-            cl.AnimeTitles = new List<CL_AnimeTitle>();
-            cl.Tags = new List<CL_AnimeTag>();
-            cl.CustomTags = new List<CustomTag>();
+                AnimeTitles = new List<CL_AnimeTitle>(),
+                Tags = new List<CL_AnimeTag>(),
+                CustomTags = new List<CustomTag>()
+            };
 
             // get all the anime titles
             if (animeTitles != null)
             {
                 foreach (AniDB_Anime_Title title in animeTitles)
                 {
-                    CL_AnimeTitle ctitle = new CL_AnimeTitle();
-                    ctitle.AnimeID = title.AnimeID;
-                    ctitle.Language = title.Language;
-                    ctitle.Title = title.Title;
-                    ctitle.TitleType = title.TitleType;
+                    CL_AnimeTitle ctitle = new CL_AnimeTitle
+                    {
+                        AnimeID = title.AnimeID,
+                        Language = title.Language,
+                        Title = title.Title,
+                        TitleType = title.TitleType
+                    };
                     cl.AnimeTitles.Add(ctitle);
                 }
             }
@@ -1800,16 +1800,16 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             foreach (AniDB_Tag tag in GetAniDBTags())
             {
-                CL_AnimeTag ctag = new CL_AnimeTag();
-
-                ctag.GlobalSpoiler = tag.GlobalSpoiler;
-                ctag.LocalSpoiler = tag.LocalSpoiler;
-                //ctag.Spoiler = tag.Spoiler;
-                //ctag.TagCount = tag.TagCount;
-                ctag.TagDescription = tag.TagDescription;
-                ctag.TagID = tag.TagID;
-                ctag.TagName = tag.TagName;
-
+                CL_AnimeTag ctag = new CL_AnimeTag
+                {
+                    GlobalSpoiler = tag.GlobalSpoiler,
+                    LocalSpoiler = tag.LocalSpoiler,
+                    //ctag.Spoiler = tag.Spoiler;
+                    //ctag.TagCount = tag.TagCount;
+                    TagDescription = tag.TagDescription,
+                    TagID = tag.TagID,
+                    TagName = tag.TagName
+                };
                 if (dictAnimeTags.ContainsKey(tag.TagID))
                     ctag.Weight = dictAnimeTags[tag.TagID].Weight;
                 else
@@ -1898,11 +1898,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public Azure_AnimeFull ToAzure(ISessionWrapper session)
         {
-            Azure_AnimeFull contract = new Azure_AnimeFull();
-            contract.Detail = new Azure_AnimeDetail();
-            contract.Characters = new List<Azure_AnimeCharacter>();
-            contract.Comments = new List<Azure_AnimeComment>();
-
+            Azure_AnimeFull contract = new Azure_AnimeFull
+            {
+                Detail = new Azure_AnimeDetail(),
+                Characters = new List<Azure_AnimeCharacter>(),
+                Comments = new List<Azure_AnimeComment>()
+            };
             contract.Detail.AllTags = this.TagsString;
             contract.Detail.AllCategories = this.TagsString;
             contract.Detail.AnimeID = this.AnimeID;
@@ -1952,18 +1953,18 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             foreach (AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(session, AnimeID))
             {
-                Azure_AnimeComment comment = new Azure_AnimeComment();
+                Azure_AnimeComment comment = new Azure_AnimeComment
+                {
+                    UserID = rec.UserID,
+                    UserName = "",
 
-                comment.UserID = rec.UserID;
-                comment.UserName = "";
+                    // Comment details
+                    CommentText = rec.RecommendationText,
+                    IsSpoiler = false,
+                    CommentDateLong = 0,
 
-                // Comment details
-                comment.CommentText = rec.RecommendationText;
-                comment.IsSpoiler = false;
-                comment.CommentDateLong = 0;
-
-                comment.ImageURL = String.Empty;
-
+                    ImageURL = String.Empty
+                };
                 AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
                 switch (recType)
                 {

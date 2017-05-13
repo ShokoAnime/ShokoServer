@@ -1,14 +1,11 @@
-﻿using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using Shoko.Server.PlexAndKodi;
-using System;
-using Shoko.Server.API.v2.Models.common;
+﻿using System;
 using System.Collections.Generic;
 using Nancy;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
-using Shoko.Server.API.v2.Modules;
-using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
+using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API
@@ -114,8 +111,8 @@ namespace Shoko.Server.API
             if (string.IsNullOrEmpty(url)) return null;
             string link = url.ToLower();
             string[] split = link.Split(new char[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
-            int type, id;
-            if (int.TryParse(split[split.Length - 1], out id)) // no ratio
+            int type;
+            if (int.TryParse(split[split.Length - 1], out int id)) // no ratio
             {
                 if (int.TryParse(split[split.Length - 2], out type))
                 {
@@ -134,11 +131,12 @@ namespace Shoko.Server.API
 
         public static Filter FilterFromGroupFilter(NancyContext ctx, SVR_GroupFilter gg, int uid)
         {
-            Filter ob = new Filter();
-            ob.name = gg.GroupFilterName;
-            ob.id = gg.GroupFilterID;
-            ob.url = APIHelper.ConstructFilterIdUrl(ctx, gg.GroupFilterID);
-
+            Filter ob = new Filter
+            {
+                name = gg.GroupFilterName,
+                id = gg.GroupFilterID,
+                url = APIHelper.ConstructFilterIdUrl(ctx, gg.GroupFilterID)
+            };
             if (gg.GroupsIds.ContainsKey(uid))
             {
                 HashSet<int> groups = gg.GroupsIds[uid];
@@ -169,13 +167,14 @@ namespace Shoko.Server.API
 
         public static Filter FilterFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup grp, int uid)
         {
-            Filter ob = new Filter();
-            ob.name = grp.GroupName;
-            ob.id = grp.AnimeGroupID;
-            ob.url = APIHelper.ConstructFilterIdUrl(ctx, grp.AnimeGroupID);
-            ob.size = -1;
-            ob.viewed = -1;
-
+            Filter ob = new Filter
+            {
+                name = grp.GroupName,
+                id = grp.AnimeGroupID,
+                url = APIHelper.ConstructFilterIdUrl(ctx, grp.AnimeGroupID),
+                size = -1,
+                viewed = -1
+            };
             foreach (SVR_AnimeSeries ser in grp.GetSeries().Randomize())
             {
                 SVR_AniDB_Anime anim = ser.GetAnime();

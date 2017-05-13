@@ -17,7 +17,7 @@
 
         public struct GroupFilterName
         {
-            public static readonly string ContinueWatching = Shoko.Commons.Properties.Resources.Filter_Continue;
+            public static readonly string ContinueWatching = Commons.Properties.Resources.Filter_Continue;
         }
 
         public struct DatabaseType
@@ -195,12 +195,12 @@
 
         public struct EpisodeTypeStrings
         {
-            public static readonly string Normal = Shoko.Commons.Properties.Resources.EpisodeType_Episodes;
-            public static readonly string Credits = Shoko.Commons.Properties.Resources.EpisodeType_Credits;
-            public static readonly string Specials = Shoko.Commons.Properties.Resources.EpisodeType_Specials;
-            public static readonly string Trailer = Shoko.Commons.Properties.Resources.EpisodeType_Trailer;
-            public static readonly string Parody = Shoko.Commons.Properties.Resources.EpisodeType_Parody;
-            public static readonly string Other = Shoko.Commons.Properties.Resources.EpisodeType_Other;
+            public static readonly string Normal = Commons.Properties.Resources.EpisodeType_Episodes;
+            public static readonly string Credits = Commons.Properties.Resources.EpisodeType_Credits;
+            public static readonly string Specials = Commons.Properties.Resources.EpisodeType_Specials;
+            public static readonly string Trailer = Commons.Properties.Resources.EpisodeType_Trailer;
+            public static readonly string Parody = Commons.Properties.Resources.EpisodeType_Parody;
+            public static readonly string Other = Commons.Properties.Resources.EpisodeType_Other;
         }
 
         public struct TvDBURLs

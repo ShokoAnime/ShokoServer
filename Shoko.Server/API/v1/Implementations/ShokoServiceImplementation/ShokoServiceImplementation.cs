@@ -63,9 +63,10 @@ namespace Shoko.Server
 
         public CL_Response<CL_BookmarkedAnime> SaveBookmarkedAnime(CL_BookmarkedAnime contract)
         {
-            CL_Response<CL_BookmarkedAnime> contractRet = new CL_Response<CL_BookmarkedAnime>();
-            contractRet.ErrorMessage = "";
-
+            CL_Response<CL_BookmarkedAnime> contractRet = new CL_Response<CL_BookmarkedAnime>
+            {
+                ErrorMessage = ""
+            };
             try
             {
                 BookmarkedAnime ba = null;
@@ -249,13 +250,15 @@ namespace Shoko.Server
                     RepoFactory.AnimeSeries.GetChangeTracker(),
                     RepoFactory.AnimeSeries_User.GetChangeTracker(userID)
                 }, date);
-                c.Filters = new CL_Changes<CL_GroupFilter>();
-                c.Filters.ChangedItems = changes[0]
+                c.Filters = new CL_Changes<CL_GroupFilter>
+                {
+                    ChangedItems = changes[0]
                     .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToClient())
                     .Where(a => a != null)
-                    .ToList();
-                c.Filters.RemovedItems = changes[0].RemovedItems.ToList();
-                c.Filters.LastChange = changes[0].LastChange;
+                    .ToList(),
+                    RemovedItems = changes[0].RemovedItems.ToList(),
+                    LastChange = changes[0].LastChange
+                };
 
                 //Add Group Filter that one of his child changed.
                 bool end;
@@ -414,22 +417,21 @@ namespace Shoko.Server
             try
             {
                 Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
-                float progressTrakt;
 
                 switch (status)
                 {
-                    case (int) Providers.TraktTV.ScrobblePlayingStatus.Start:
+                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
                         statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
                         break;
-                    case (int) Providers.TraktTV.ScrobblePlayingStatus.Pause:
+                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Pause:
                         statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Pause;
                         break;
-                    case (int) Providers.TraktTV.ScrobblePlayingStatus.Stop:
+                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Stop:
                         statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Stop;
                         break;
                 }
 
-                bool isValidProgress = float.TryParse(progress.ToString(), out progressTrakt);
+                bool isValidProgress = float.TryParse(progress.ToString(), out float progressTrakt);
 
                 if (isValidProgress)
                 {
@@ -498,9 +500,10 @@ namespace Shoko.Server
 
         public CL_Response SaveServerSettings(CL_ServerSettings contractIn)
         {
-            CL_Response contract = new CL_Response();
-            contract.ErrorMessage = "";
-
+            CL_Response contract = new CL_Response
+            {
+                ErrorMessage = ""
+            };
             try
             {
                 // validate the settings
@@ -508,8 +511,7 @@ namespace Shoko.Server
                 if (contractIn.AniDB_ClientPort != ServerSettings.AniDB_ClientPort)
                 {
                     anidbSettingsChanged = true;
-                    int cport = 0;
-                    int.TryParse(contractIn.AniDB_ClientPort, out cport);
+                    int.TryParse(contractIn.AniDB_ClientPort, out int cport);
                     if (cport <= 0)
                     {
                         contract.ErrorMessage = "AniDB Client Port must be numeric and greater than 0" +
@@ -520,8 +522,7 @@ namespace Shoko.Server
                 if (contractIn.AniDB_ServerPort != ServerSettings.AniDB_ServerPort)
                 {
                     anidbSettingsChanged = true;
-                    int sport = 0;
-                    int.TryParse(contractIn.AniDB_ServerPort, out sport);
+                    int.TryParse(contractIn.AniDB_ServerPort, out int sport);
                     if (sport <= 0)
                     {
                         contract.ErrorMessage = "AniDB Server Port must be numeric and greater than 0" +
@@ -735,10 +736,11 @@ namespace Shoko.Server
 
         public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
         {
-            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>();
-            response.ErrorMessage = "";
-            response.Result = null;
-
+            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
+            {
+                ErrorMessage = "",
+                Result = null
+            };
             try
             {
                 SVR_ImportFolder ns = null;
@@ -2935,9 +2937,11 @@ namespace Shoko.Server
                             if (ser.LatestLocalEpisodeNumber > 0 && recommendationType == 2) continue;
                         }
 
-                        CL_Recommendation rec = new CL_Recommendation();
-                        rec.BasedOnAnimeID = anime.AnimeID;
-                        rec.RecommendedAnimeID = link.SimilarAnimeID;
+                        CL_Recommendation rec = new CL_Recommendation
+                        {
+                            BasedOnAnimeID = anime.AnimeID,
+                            RecommendedAnimeID = link.SimilarAnimeID
+                        };
 
                         // if we don't have the anime locally. lets assume the anime has a high rating
                         decimal animeRating = 850;
@@ -3002,7 +3006,7 @@ namespace Shoko.Server
 
         private double CalculateRecommendationScore(int userVoteValue, double approvalPercentage, decimal animeRating)
         {
-            double score = (double) userVoteValue;
+            double score = userVoteValue;
 
             score = score + approvalPercentage;
 

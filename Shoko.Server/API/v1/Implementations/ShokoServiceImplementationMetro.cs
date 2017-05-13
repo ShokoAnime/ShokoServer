@@ -280,12 +280,14 @@ namespace Shoko.Server
                         {
                             SVR_AniDB_Anime anidb_anime = ser.GetAnime();
 
-                            Metro_Anime_Summary summ = new Metro_Anime_Summary();
-                            summ.AnimeID = ser.AniDB_ID;
-                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
-                            summ.AnimeSeriesID = ser.AnimeSeriesID;
-                            summ.BeginYear = anidb_anime.BeginYear;
-                            summ.EndYear = anidb_anime.EndYear;
+                            Metro_Anime_Summary summ = new Metro_Anime_Summary
+                            {
+                                AnimeID = ser.AniDB_ID,
+                                AnimeName = ser.GetSeriesName(sessionWrapper),
+                                AnimeSeriesID = ser.AnimeSeriesID,
+                                BeginYear = anidb_anime.BeginYear,
+                                EndYear = anidb_anime.EndYear
+                            };
                             //summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
                             if (serUser != null)
                                 summ.UnwatchedEpisodeCount = serUser.UnwatchedEpisodeCount;
@@ -358,12 +360,14 @@ namespace Shoko.Server
                         {
                             SVR_AniDB_Anime anidb_anime = series.GetAnime();
 
-                            Metro_Anime_Summary summ = new Metro_Anime_Summary();
-                            summ.AnimeID = series.AniDB_ID;
-                            summ.AnimeName = series.GetSeriesName(sessionWrapper);
-                            summ.AnimeSeriesID = series.AnimeSeriesID;
-                            summ.BeginYear = anidb_anime.BeginYear;
-                            summ.EndYear = anidb_anime.EndYear;
+                            Metro_Anime_Summary summ = new Metro_Anime_Summary
+                            {
+                                AnimeID = series.AniDB_ID,
+                                AnimeName = series.GetSeriesName(sessionWrapper),
+                                AnimeSeriesID = series.AnimeSeriesID,
+                                BeginYear = anidb_anime.BeginYear,
+                                EndYear = anidb_anime.EndYear
+                            };
                             //summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
 
                             if (serUser != null)
@@ -450,12 +454,14 @@ namespace Shoko.Server
                             {
                                 SVR_AniDB_Anime anidb_anime = ser.GetAnime();
 
-                                Metro_Anime_Summary summ = new Metro_Anime_Summary();
-                                summ.AnimeID = ser.AniDB_ID;
-                                summ.AnimeName = ser.GetSeriesName(sessionWrapper);
-                                summ.AnimeSeriesID = ser.AnimeSeriesID;
-                                summ.BeginYear = anidb_anime.BeginYear;
-                                summ.EndYear = anidb_anime.EndYear;
+                                Metro_Anime_Summary summ = new Metro_Anime_Summary
+                                {
+                                    AnimeID = ser.AniDB_ID,
+                                    AnimeName = ser.GetSeriesName(sessionWrapper),
+                                    AnimeSeriesID = ser.AnimeSeriesID,
+                                    BeginYear = anidb_anime.BeginYear,
+                                    EndYear = anidb_anime.EndYear
+                                };
                                 //summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
 
                                 if (serUser != null)
@@ -513,10 +519,11 @@ namespace Shoko.Server
 
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
-                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
-
-                        summ.AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds();
-                        summ.AnimeID = anidb_anime.AnimeID;
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary
+                        {
+                            AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds(),
+                            AnimeID = anidb_anime.AnimeID
+                        };
                         if (ser != null)
                         {
                             summ.AnimeName = ser.GetSeriesName(sessionWrapper);
@@ -569,10 +576,11 @@ namespace Shoko.Server
 
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
-                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
-
-                        summ.AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds();
-                        summ.AnimeID = anidb_anime.AnimeID;
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary
+                        {
+                            AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds(),
+                            AnimeID = anidb_anime.AnimeID
+                        };
                         if (ser != null)
                         {
                             summ.AnimeName = ser.GetSeriesName(sessionWrapper);
@@ -618,9 +626,10 @@ namespace Shoko.Server
 
                     SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
-                    Metro_Anime_Detail ret = new Metro_Anime_Detail();
-                    ret.AnimeID = anime.AnimeID;
-
+                    Metro_Anime_Detail ret = new Metro_Anime_Detail
+                    {
+                        AnimeID = anime.AnimeID
+                    };
                     if (ser != null)
                         ret.AnimeName = ser.GetSeriesName(sessionWrapper);
                     else
@@ -748,10 +757,11 @@ namespace Shoko.Server
                                     int fileCount = epFresh.GetVideoLocals(session).Count;
                                     if (fileCount > 0)
                                     {
-                                        Metro_Anime_Episode contract = new Metro_Anime_Episode();
-                                        contract.AnimeEpisodeID = epFresh.AnimeEpisodeID;
-                                        contract.LocalFileCount = fileCount;
-
+                                        Metro_Anime_Episode contract = new Metro_Anime_Episode
+                                        {
+                                            AnimeEpisodeID = epFresh.AnimeEpisodeID,
+                                            LocalFileCount = fileCount
+                                        };
                                         if (userEpRecord == null)
                                             contract.IsWatched = false;
                                         else
@@ -803,15 +813,16 @@ namespace Shoko.Server
 
                     SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
-                    Metro_Anime_Summary summ = new Metro_Anime_Summary();
-                    summ.AnimeID = anime.AnimeID;
-                    summ.AnimeName = anime.MainTitle;
-                    summ.AnimeSeriesID = 0;
+                    Metro_Anime_Summary summ = new Metro_Anime_Summary
+                    {
+                        AnimeID = anime.AnimeID,
+                        AnimeName = anime.MainTitle,
+                        AnimeSeriesID = 0,
 
-                    summ.BeginYear = anime.BeginYear;
-                    summ.EndYear = anime.EndYear;
-                    summ.PosterName = anime.GetDefaultPosterPathNoBlanks(sessionWrapper);
-
+                        BeginYear = anime.BeginYear,
+                        EndYear = anime.EndYear,
+                        PosterName = anime.GetDefaultPosterPathNoBlanks(sessionWrapper)
+                    };
                     ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                     summ.ImageType = (int) imgDet.ImageType;
                     summ.ImageID = imgDet.ImageID;
@@ -1170,18 +1181,18 @@ namespace Shoko.Server
                     foreach (AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(sessionWrapper,
                         animeID))
                     {
-                        Metro_Comment shout = new Metro_Comment();
+                        Metro_Comment shout = new Metro_Comment
+                        {
+                            UserID = rec.UserID,
+                            UserName = "",
 
-                        shout.UserID = rec.UserID;
-                        shout.UserName = "";
+                            // shout details
+                            CommentText = rec.RecommendationText,
+                            IsSpoiler = false,
+                            CommentDate = null,
 
-                        // shout details
-                        shout.CommentText = rec.RecommendationText;
-                        shout.IsSpoiler = false;
-                        shout.CommentDate = null;
-
-                        shout.ImageURL = string.Empty;
-
+                            ImageURL = string.Empty
+                        };
                         AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
                         switch (recType)
                         {
@@ -1249,17 +1260,18 @@ namespace Shoko.Server
                         // check if this anime has a series
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
 
-                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
-                        summ.AnimeID = animeLink.AnimeID;
-                        summ.AnimeName = animeLink.MainTitle;
-                        summ.AnimeSeriesID = 0;
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary
+                        {
+                            AnimeID = animeLink.AnimeID,
+                            AnimeName = animeLink.MainTitle,
+                            AnimeSeriesID = 0,
 
-                        summ.BeginYear = animeLink.BeginYear;
-                        summ.EndYear = animeLink.EndYear;
-                        //summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
+                            BeginYear = animeLink.BeginYear,
+                            EndYear = animeLink.EndYear,
+                            //summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
 
-                        summ.RelationshipType = link.RelationType;
-
+                            RelationshipType = link.RelationType
+                        };
                         ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
@@ -1293,17 +1305,18 @@ namespace Shoko.Server
                         // check if this anime has a series
                         SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
 
-                        Metro_Anime_Summary summ = new Metro_Anime_Summary();
-                        summ.AnimeID = animeLink.AnimeID;
-                        summ.AnimeName = animeLink.MainTitle;
-                        summ.AnimeSeriesID = 0;
+                        Metro_Anime_Summary summ = new Metro_Anime_Summary
+                        {
+                            AnimeID = animeLink.AnimeID,
+                            AnimeName = animeLink.MainTitle,
+                            AnimeSeriesID = 0,
 
-                        summ.BeginYear = animeLink.BeginYear;
-                        summ.EndYear = animeLink.EndYear;
-                        //summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
+                            BeginYear = animeLink.BeginYear,
+                            EndYear = animeLink.EndYear,
+                            //summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
 
-                        summ.RelationshipType = "Recommendation";
-
+                            RelationshipType = "Recommendation"
+                        };
                         ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
@@ -1350,10 +1363,11 @@ namespace Shoko.Server
             bool watchedStatus, int userID)
         {
             CL_Response<CL_AnimeEpisode_User> response =
-                new CL_Response<CL_AnimeEpisode_User>();
-            response.ErrorMessage = "";
-            response.Result = null;
-
+                new CL_Response<CL_AnimeEpisode_User>
+                {
+                    ErrorMessage = "",
+                    Result = null
+                };
             try
             {
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);

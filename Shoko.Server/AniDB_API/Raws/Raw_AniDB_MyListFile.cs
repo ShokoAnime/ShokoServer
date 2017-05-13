@@ -137,13 +137,11 @@ namespace AniDBAPI
             }
 
             string tempstate = AniDBHTTPHelper.TryGetProperty(node, "state");
-            int istate = 0;
-            int.TryParse(tempstate, out istate);
+            int.TryParse(tempstate, out int istate);
             this.State = istate;
 
             string fstate = AniDBHTTPHelper.TryGetProperty(node, "filestate");
-            int ifilestate = 0;
-            int.TryParse(fstate, out ifilestate);
+            int.TryParse(fstate, out int ifilestate);
             this.FileState = ifilestate;
 
             this.Source = AniDBHTTPHelper.TryGetProperty(node, "storage");

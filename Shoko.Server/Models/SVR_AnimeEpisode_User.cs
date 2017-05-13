@@ -40,8 +40,7 @@ namespace Shoko.Server.Models
             set
             {
                 _contract = value;
-                int outsize;
-                ContractBlob = CompressionHelper.SerializeObject(value, out outsize);
+                ContractBlob = CompressionHelper.SerializeObject(value, out int outsize);
                 ContractSize = outsize;
                 ContractVersion = CONTRACT_VERSION;
             }

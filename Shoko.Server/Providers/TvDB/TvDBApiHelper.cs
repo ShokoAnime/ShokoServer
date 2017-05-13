@@ -334,7 +334,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 var response = await client.Series.GetImagesAsync(seriesID, query);
                 return response.Data;
-            } catch (Exception ex)
+            } catch
             {
                 return new Image[] { };
             }
@@ -470,8 +470,10 @@ namespace Shoko.Server.Providers.TvDB
 
                     if (img == null)
                     {
-                        img = new TvDB_ImageWideBanner();
-                        img.Enabled = 1;
+                        img = new TvDB_ImageWideBanner
+                        {
+                            Enabled = 1
+                        };
                     }
 
                     img.Populate(seriesID, image);

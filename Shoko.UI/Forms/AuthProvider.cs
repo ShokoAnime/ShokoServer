@@ -13,7 +13,7 @@ namespace Shoko.UI.Forms
 
         private Window _owner;
 
-        public async Task<AuthResult> Login(AuthRequest request)
+        public async Task<AuthResult> LoginAsync(AuthRequest request)
         {
             AuthResult r = new AuthResult();
             await Application.Current.Dispatcher.InvokeAsync(() =>

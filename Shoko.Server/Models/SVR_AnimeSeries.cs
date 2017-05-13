@@ -51,8 +51,7 @@ namespace Shoko.Server.Models
             set
             {
                 _contract = value;
-                int outsize;
-                ContractBlob = CompressionHelper.SerializeObject(value, out outsize);
+                ContractBlob = CompressionHelper.SerializeObject(value, out int outsize);
                 ContractSize = outsize;
                 ContractVersion = CONTRACT_VERSION;
             }
@@ -388,13 +387,15 @@ namespace Shoko.Server.Models
             SVR_AnimeSeries_User rr = GetUserRecord(userid);
             if (rr != null)
                 return rr;
-            rr = new SVR_AnimeSeries_User(userid, this.AnimeSeriesID);
-            rr.WatchedCount = 0;
-            rr.UnwatchedEpisodeCount = 0;
-            rr.PlayedCount = 0;
-            rr.StoppedCount = 0;
-            rr.WatchedEpisodeCount = 0;
-            rr.WatchedDate = null;
+            rr = new SVR_AnimeSeries_User(userid, this.AnimeSeriesID)
+            {
+                WatchedCount = 0,
+                UnwatchedEpisodeCount = 0,
+                PlayedCount = 0,
+                StoppedCount = 0,
+                WatchedEpisodeCount = 0,
+                WatchedDate = null
+            };
             RepoFactory.AnimeSeries_User.Save(rr);
             return rr;
         }
@@ -664,11 +665,10 @@ namespace Shoko.Server.Models
                         contract.AniDBAnime = animeRec.Contract.DeepClone();
 
                         CL_AniDB_Anime aniDbAnime = contract.AniDBAnime.AniDBAnime;
-                        DefaultAnimeImages defImages;
 
-                        if (!defImagesByAnime.Value.TryGetValue(animeRec.AnimeID, out defImages))
+                        if (!defImagesByAnime.Value.TryGetValue(animeRec.AnimeID, out DefaultAnimeImages defImages))
                         {
-                            defImages = new DefaultAnimeImages {AnimeID = animeRec.AnimeID};
+                            defImages = new DefaultAnimeImages { AnimeID = animeRec.AnimeID };
                         }
 
                         aniDbAnime.DefaultImagePoster = defImages.GetPosterContractNoBlanks();
@@ -695,9 +695,8 @@ namespace Shoko.Server.Models
                         .ToList();
 
                     // MovieDB contracts
-                    Tuple<CrossRef_AniDB_Other, MovieDB_Movie> movieDbInfo;
 
-                    if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out movieDbInfo))
+                    if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out Tuple<CrossRef_AniDB_Other, MovieDB_Movie> movieDbInfo))
                     {
                         contract.CrossRefAniDBMovieDB = movieDbInfo.Item1;
                         contract.MovieDB_Movie = movieDbInfo.Item2;
@@ -785,9 +784,11 @@ namespace Shoko.Server.Models
                     ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
                     if (im != null)
                     {
-                        contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage();
-                        contract.AniDBAnime.AniDBAnime.DefaultImagePoster.AnimeID = im.ImageID;
-                        contract.AniDBAnime.AniDBAnime.DefaultImagePoster.ImageType = (int) im.ImageType;
+                        contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
+                        {
+                            AnimeID = im.ImageID,
+                            ImageType = (int)im.ImageType
+                        };
                     }
                 }
                 contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
@@ -796,9 +797,11 @@ namespace Shoko.Server.Models
                     ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
                     if (im != null)
                     {
-                        contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage();
-                        contract.AniDBAnime.AniDBAnime.DefaultImageFanart.AnimeID = im.ImageID;
-                        contract.AniDBAnime.AniDBAnime.DefaultImageFanart.ImageType = (int) im.ImageType;
+                        contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
+                        {
+                            AnimeID = im.ImageID,
+                            ImageType = (int)im.ImageType
+                        };
                     }
                 }
                 contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
@@ -964,14 +967,14 @@ namespace Shoko.Server.Models
                     AniDB_Episode aniEp = ep.AniDB_Episode;
                     string ename = aniEp.EnglishName.ToLower();
                     System.Text.RegularExpressions.Match m = partmatch.Match(ename);
-                    StatEpisodes.StatEpisode s = new StatEpisodes.StatEpisode();
-                    s.Available = available;
+                    StatEpisodes.StatEpisode s = new StatEpisodes.StatEpisode
+                    {
+                        Available = available
+                    };
                     if (m.Success)
                     {
-                        int part_number = 0;
-                        int part_count = 0;
-                        int.TryParse(m.Groups[1].Value, out part_number);
-                        int.TryParse(m.Groups[2].Value, out part_count);
+                        int.TryParse(m.Groups[1].Value, out int part_number);
+                        int.TryParse(m.Groups[2].Value, out int part_count);
                         string rname = partmatch.Replace(ename, string.Empty);
                         rname = remsymbols.Replace(rname, string.Empty);
                         rname = remmultispace.Replace(rname, " ");
@@ -1025,11 +1028,13 @@ namespace Shoko.Server.Models
                 else
                 {
                     StatEpisodes eps = new StatEpisodes();
-                    StatEpisodes.StatEpisode es = new StatEpisodes.StatEpisode();
-                    es.Match = string.Empty;
-                    es.EpisodeType = StatEpisodes.StatEpisode.EpType.Complete;
-                    es.PartCount = 0;
-                    es.Available = available;
+                    StatEpisodes.StatEpisode es = new StatEpisodes.StatEpisode
+                    {
+                        Match = string.Empty,
+                        EpisodeType = StatEpisodes.StatEpisode.EpType.Complete,
+                        PartCount = 0,
+                        Available = available
+                    };
                     eps.Add(es);
                     this.Add(eps);
                 }

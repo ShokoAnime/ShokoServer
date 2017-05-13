@@ -53,9 +53,8 @@ namespace Shoko.Server
 
         private DateTime GetDateTime(string filename)
         {
-            DateTime date;
             filename = filename.Substring(0, filename.Length - 4);
-            if (!DateTime.TryParse(filename, out date))
+            if (!DateTime.TryParse(filename, out DateTime date))
             {
                 date = DateTime.Now;
             }
@@ -107,9 +106,8 @@ namespace Shoko.Server
                 {
                     //delete
                     DateTime now = DateTime.Now;
-                    int days = 0;
                     List<string> delete = new List<string>();
-                    if (int.TryParse(ServerSettings.RotateLogs_Delete_Days, out days))
+                    if (int.TryParse(ServerSettings.RotateLogs_Delete_Days, out int days))
                     {
                         double dec = (-1 * days);
                         now = now.AddDays(dec);

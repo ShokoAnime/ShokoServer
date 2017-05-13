@@ -210,7 +210,7 @@ namespace Shoko.Server.Commands
                         {
                             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                            string msg = string.Format(Shoko.Commons.Properties.Resources.Command_DeleteError, fileName,
+                            string msg = string.Format(Commons.Properties.Resources.Command_DeleteError, fileName,
                                 ex.Message);
                             logger.Warn(msg);
                             return;
@@ -404,7 +404,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_DownloadImage_{0}_{1}", EntityID, (int) EntityType);
+            this.CommandID = string.Format("CommandRequest_DownloadImage_{0}_{1}", EntityID, EntityType);
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -436,13 +436,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

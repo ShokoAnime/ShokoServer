@@ -542,9 +542,11 @@ namespace Shoko.Server.Databases
             List<string> updatedTableColumns = GetTableColumns(db, tableName);
             colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
             String columnsSeperated = string.Join(",", updatedTableColumns);
-            List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
-            cmds.Add(createcommand);
+            List<string> cmds = new List<string>
+            {
+                "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;",
+                createcommand
+            };
             cmds.AddRange(indexcommands);
             cmds.Add("INSERT INTO " + tableName + " (" + columnsSeperated + ") SELECT " + columnsSeperated + " FROM " +
                      tableName + "_old; ");
@@ -559,10 +561,11 @@ namespace Shoko.Server.Databases
         {
             List<string> updatedTableColumns = GetTableColumns(db, tableName);
             String columnsSeperated = string.Join(",", updatedTableColumns);
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
-            cmds.Add(createcommand);
+            List<string> cmds = new List<string>
+            {
+                "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;",
+                createcommand
+            };
             cmds.AddRange(indexcommands);
             cmds.Add("INSERT INTO " + tableName + " (" + columnsSeperated + ") SELECT " + columnsSeperated + " FROM " +
                      tableName + "_old; ");
@@ -653,7 +656,7 @@ namespace Shoko.Server.Databases
                                    "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0);
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_CreateSchema;
+                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
 
@@ -665,7 +668,7 @@ namespace Shoko.Server.Databases
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
-                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_ApplySchema;
+                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_ApplySchema;
                 ExecuteWithException(myConn, patchCommands);
             });
         }

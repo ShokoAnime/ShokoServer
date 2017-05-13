@@ -48,7 +48,7 @@ namespace Shoko.Server.LZ4
                         Error = HandleDeserializationError
                     });
             }
-            catch (Exception e)
+            catch
             {
                 return null;
             }

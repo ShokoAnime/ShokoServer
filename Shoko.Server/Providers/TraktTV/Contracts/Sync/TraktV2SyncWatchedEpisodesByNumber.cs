@@ -18,8 +18,10 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         {
             shows = new List<TraktV2ShowWatchedPostByNumber>();
             shows.Add(new TraktV2ShowWatchedPostByNumber());
-            shows[0].ids = new TraktV2IdsWatchedByNumber();
-            shows[0].ids.slug = slug;
+            shows[0].ids = new TraktV2IdsWatchedByNumber
+            {
+                slug = slug
+            };
             shows[0].seasons = new List<TaktV2SeasonWatchedPostByNumber>();
             shows[0].seasons.Add(new TaktV2SeasonWatchedPostByNumber());
             shows[0].seasons[0].number = season;
@@ -45,11 +47,15 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
             }
             if (thisShow == null)
             {
-                thisShow = new TraktV2ShowWatchedPostByNumber();
-                thisShow.ids = new TraktV2IdsWatchedByNumber();
-                thisShow.ids.slug = slug;
+                thisShow = new TraktV2ShowWatchedPostByNumber
+                {
+                    ids = new TraktV2IdsWatchedByNumber
+                    {
+                        slug = slug
+                    },
 
-                thisShow.seasons = new List<TaktV2SeasonWatchedPostByNumber>();
+                    seasons = new List<TaktV2SeasonWatchedPostByNumber>()
+                };
                 //thisShow.seasons.Add(new TaktV2SeasonWatchedPostByNumber());
                 //thisShow.seasons[0].number = season;
 
@@ -69,9 +75,11 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
             }
             if (thisSeason == null)
             {
-                thisSeason = new TaktV2SeasonWatchedPostByNumber();
-                thisSeason.number = season;
-                thisSeason.episodes = new List<TraktV2EpisodeWatchedPostByNumber>();
+                thisSeason = new TaktV2SeasonWatchedPostByNumber
+                {
+                    number = season,
+                    episodes = new List<TraktV2EpisodeWatchedPostByNumber>()
+                };
                 thisShow.seasons.Add(thisSeason);
             }
 
@@ -86,9 +94,11 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
             }
             if (thisEp == null)
             {
-                thisEp = new TraktV2EpisodeWatchedPostByNumber();
-                thisEp.number = episodeNumber;
-                thisEp.watched_at = watchedDate.ToUniversalTime().ToString("s") + "Z";
+                thisEp = new TraktV2EpisodeWatchedPostByNumber
+                {
+                    number = episodeNumber,
+                    watched_at = watchedDate.ToUniversalTime().ToString("s") + "Z"
+                };
                 thisSeason.episodes.Add(thisEp);
             }
         }

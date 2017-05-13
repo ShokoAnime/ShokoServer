@@ -62,7 +62,7 @@ namespace AniDBAPI
                 ProcessAnimeDetails(docAnime, animeID);
                 ProcessEpisodes(docAnime, animeID);
             }
-            catch (Exception ex)
+            catch
             {
                 //BaseConfig.MyAnimeLog.Write("Error in AniDBHTTPHelper.GetAnime: {0}", ex);
                 return;
@@ -146,7 +146,7 @@ namespace AniDBAPI
 
                 return docAnime;
             }
-            catch (Exception ex)
+            catch
             {
                 //BaseConfig.MyAnimeLog.Write("Error in AniDBHTTPHelper.GetAnimeXMLFromAPI: {0}", ex);
                 return null;
@@ -156,15 +156,17 @@ namespace AniDBAPI
         public static Raw_AniDB_Anime ProcessAnimeDetails(XmlDocument docAnime, int animeID)
         {
             // most of the genral anime data will be over written by the UDP command
-            Raw_AniDB_Anime anime = new Raw_AniDB_Anime();
-            anime.AnimeID = animeID;
+            Raw_AniDB_Anime anime = new Raw_AniDB_Anime
+            {
+                AnimeID = animeID
+            };
 
             // check if there is any data
             try
             {
                 string id = docAnime["anime"].Attributes["id"].Value;
             }
-            catch (Exception ex)
+            catch
             {
                 //BaseConfig.MyAnimeLog.Write("Invalid xml document: {0}", animeID.ToString());
                 return null;
@@ -175,8 +177,7 @@ namespace AniDBAPI
 
 
             string episodecount = TryGetProperty(docAnime, "anime", "episodecount");
-            int epCount = 0;
-            int.TryParse(episodecount, out epCount);
+            int.TryParse(episodecount, out int epCount);
             anime.EpisodeCount = epCount;
             anime.EpisodeCountNormal = epCount;
 
@@ -195,8 +196,7 @@ namespace AniDBAPI
             //string enddate = TryGetProperty(docAnime, "anime", "enddate");
 
             string restricted = docAnime["anime"].Attributes["restricted"].Value;
-            bool res = false;
-            bool.TryParse(restricted, out res);
+            bool.TryParse(restricted, out bool res);
             anime.Restricted = res ? 1 : 0;
 
             anime.URL = TryGetProperty(docAnime, "anime", "url");
@@ -229,7 +229,7 @@ namespace AniDBAPI
                             anime.RelatedAnimeIdsRAW += id.ToString();
                             anime.RelatedAnimeTypesRAW += relType.ToString();
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                         }
@@ -259,7 +259,7 @@ namespace AniDBAPI
                                 anime.MainTitle = titleValue;
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                         }
@@ -293,36 +293,30 @@ namespace AniDBAPI
                         {
                             if (node.Name.Trim().ToLower() == "permanent")
                             {
-                                int iCount = 0;
-                                int.TryParse(TryGetAttribute(node, "count"), out iCount);
+                                int.TryParse(TryGetAttribute(node, "count"), out int iCount);
                                 anime.VoteCount = iCount;
 
-                                decimal iRating = 0;
-                                decimal.TryParse(node.InnerText.Trim(), style, culture, out iRating);
+                                decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating);
                                 anime.Rating = (int) (iRating * 100);
                             }
                             if (node.Name.Trim().ToLower() == "temporary")
                             {
-                                int iCount = 0;
-                                int.TryParse(TryGetAttribute(node, "count"), out iCount);
+                                int.TryParse(TryGetAttribute(node, "count"), out int iCount);
                                 anime.TempVoteCount = iCount;
 
-                                decimal iRating = 0;
-                                decimal.TryParse(node.InnerText.Trim(), style, culture, out iRating);
+                                decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating);
                                 anime.TempRating = (int) (iRating * 100);
                             }
                             if (node.Name.Trim().ToLower() == "review")
                             {
-                                int iCount = 0;
-                                int.TryParse(TryGetAttribute(node, "count"), out iCount);
+                                int.TryParse(TryGetAttribute(node, "count"), out int iCount);
                                 anime.ReviewCount = iCount;
 
-                                decimal iRating = 0;
-                                decimal.TryParse(node.InnerText.Trim(), style, culture, out iRating);
+                                decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating);
                                 anime.AvgReviewRating = (int) (iRating * 100);
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                         }
@@ -368,7 +362,7 @@ namespace AniDBAPI
                                 tag.ProcessFromHTTPResult(node, animeID);
                                 tags.Add(tag);
                             }
-                            catch (Exception ex)
+                            catch
                             {
                                 //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                             }
@@ -404,7 +398,7 @@ namespace AniDBAPI
                                 chr.ProcessFromHTTPResult(node, animeID);
                                 chars.Add(chr);
                             }
-                            catch (Exception ex)
+                            catch
                             {
                                 //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                             }
@@ -440,7 +434,7 @@ namespace AniDBAPI
                                 animeTitle.ProcessFromHTTPResult(node, animeID);
                                 titles.Add(animeTitle);
                             }
-                            catch (Exception ex)
+                            catch 
                             {
                                 //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                             }
@@ -477,7 +471,7 @@ namespace AniDBAPI
                                 rel.ProcessFromHTTPResult(node, animeID);
                                 rels.Add(rel);
                             }
-                            catch (Exception ex)
+                            catch
                             {
                                 //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                             }
@@ -513,7 +507,7 @@ namespace AniDBAPI
                                 sim.ProcessFromHTTPResult(node, animeID);
                                 rels.Add(sim);
                             }
-                            catch (Exception ex)
+                            catch
                             {
                                 //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                             }
@@ -549,7 +543,7 @@ namespace AniDBAPI
                                 rec.ProcessFromHTTPResult(node, animeID);
                                 recs.Add(rec);
                             }
-                            catch (Exception ex)
+                            catch
                             {
                                 //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
                             }
@@ -584,7 +578,7 @@ namespace AniDBAPI
                             ep.ProcessEpisodeSource(node, animeID);
                             eps.Add(ep);
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             //BaseConfig.MyAnimeLog.Write("Error in ProcessEpisodes: {0}", ex);
                         }

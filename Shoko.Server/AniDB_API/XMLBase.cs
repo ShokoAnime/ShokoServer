@@ -12,9 +12,10 @@ namespace AniDBAPI
             ns.Add("", "");
 
             XmlSerializer serializer = new XmlSerializer(this.GetType());
-            XmlWriterSettings settings = new XmlWriterSettings();
-            settings.OmitXmlDeclaration = true; // Remove the <?xml version="1.0" encoding="utf-8"?>
-
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                OmitXmlDeclaration = true // Remove the <?xml version="1.0" encoding="utf-8"?>
+            };
             StringBuilder sb = new StringBuilder();
             XmlWriter writer = XmlWriter.Create(sb, settings);
             serializer.Serialize(writer, this, ns);

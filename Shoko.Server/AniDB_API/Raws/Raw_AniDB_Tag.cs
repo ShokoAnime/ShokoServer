@@ -40,19 +40,16 @@ namespace AniDBAPI
 
             this.TagID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
 
-            int tapp = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out tapp);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out int tapp);
             this.Weight = tapp;
 
             this.TagName = AniDBHTTPHelper.TryGetProperty(node, "name");
             this.TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description");
 
-            bool lsp = false;
-            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out lsp);
+            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out bool lsp);
             this.Spoiler = lsp ? 1 : 0;
 
-            bool gsp = false;
-            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "globalspoiler"), out gsp);
+            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "globalspoiler"), out bool gsp);
             this.Spoiler = gsp ? 1 : 0;
         }
     }

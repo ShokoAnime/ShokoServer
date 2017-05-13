@@ -123,7 +123,7 @@ namespace Shoko.Server.Databases
                 }
             }
         }
-
+#pragma warning disable CS0612 // Type or member is obsolete
         public static void MigrateTraktLinks_V1_to_V2()
         {
             try
@@ -133,12 +133,13 @@ namespace Shoko.Server.Databases
                     IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
                     foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
                     {
-                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
-                        xrefNew.AnimeID = xrefTrakt.AnimeID;
-                        xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
-                        xrefNew.TraktID = xrefTrakt.TraktID;
-                        xrefNew.TraktSeasonNumber = xrefTrakt.TraktSeasonNumber;
-
+                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2
+                        {
+                            AnimeID = xrefTrakt.AnimeID,
+                            CrossRefSource = xrefTrakt.CrossRefSource,
+                            TraktID = xrefTrakt.TraktID,
+                            TraktSeasonNumber = xrefTrakt.TraktSeasonNumber
+                        };
                         Trakt_Show show = xrefTrakt.GetByTraktShow(session);
                         if (show != null)
                             xrefNew.TraktTitle = show.Title;
@@ -178,16 +179,17 @@ namespace Shoko.Server.Databases
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
 
-                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
-                        xrefNew.AnimeID = xrefTrakt.AnimeID;
-                        xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
-                        xrefNew.TraktID = xrefTrakt.TraktID;
-                        xrefNew.TraktSeasonNumber = 0;
-                        xrefNew.TraktStartEpisodeNumber = 1;
-                        xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Special;
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-                        xrefNew.TraktTitle = show.Title;
-
+                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2
+                        {
+                            AnimeID = xrefTrakt.AnimeID,
+                            CrossRefSource = xrefTrakt.CrossRefSource,
+                            TraktID = xrefTrakt.TraktID,
+                            TraktSeasonNumber = 0,
+                            TraktStartEpisodeNumber = 1,
+                            AniDBStartEpisodeType = (int)enEpisodeType.Special,
+                            AniDBStartEpisodeNumber = 1,
+                            TraktTitle = show.Title
+                        };
                         RepoFactory.CrossRef_AniDB_TraktV2.Save(xrefNew);
                     }
                 }
@@ -208,12 +210,13 @@ namespace Shoko.Server.Databases
                     IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
                     foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
-                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
-                        xrefNew.AnimeID = xrefTvDB.AnimeID;
-                        xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
-                        xrefNew.TvDBID = xrefTvDB.TvDBID;
-                        xrefNew.TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber;
-
+                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2
+                        {
+                            AnimeID = xrefTvDB.AnimeID,
+                            CrossRefSource = xrefTvDB.CrossRefSource,
+                            TvDBID = xrefTvDB.TvDBID,
+                            TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber
+                        };
                         TvDB_Series ser = xrefTvDB.GetTvDBSeries(sessionWrapper);
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
@@ -250,15 +253,16 @@ namespace Shoko.Server.Databases
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
 
-                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
-                        xrefNew.AnimeID = xrefTvDB.AnimeID;
-                        xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
-                        xrefNew.TvDBID = xrefTvDB.TvDBID;
-                        xrefNew.TvDBSeasonNumber = 0;
-                        xrefNew.TvDBStartEpisodeNumber = 1;
-                        xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Special;
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-
+                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2
+                        {
+                            AnimeID = xrefTvDB.AnimeID,
+                            CrossRefSource = xrefTvDB.CrossRefSource,
+                            TvDBID = xrefTvDB.TvDBID,
+                            TvDBSeasonNumber = 0,
+                            TvDBStartEpisodeNumber = 1,
+                            AniDBStartEpisodeType = (int)enEpisodeType.Special,
+                            AniDBStartEpisodeNumber = 1
+                        };
                         TvDB_Series ser = xrefTvDB.GetTvDBSeries(sessionWrapper);
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
@@ -272,11 +276,9 @@ namespace Shoko.Server.Databases
                 logger.Error(ex, "Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString());
             }
         }
-
         public static void FixDuplicateTraktLinks()
         {
             // delete all Trakt link duplicates
-
             List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
             List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
 
@@ -347,7 +349,7 @@ namespace Shoko.Server.Databases
                 RepoFactory.CrossRef_AniDB_TvDB.Delete(xref.CrossRef_AniDB_TvDBID);
             }
         }
-
+#pragma warning restore CS0612 // Type or member is obsolete
         public static void PopulateTagWeight()
         {
             try
