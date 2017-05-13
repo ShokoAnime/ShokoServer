@@ -9,7 +9,7 @@ namespace Shoko.UI.Forms
         public string Name => "WPF";
         private Window _owner;
 
-        public async Task<AuthResult> LoginAsync(AuthRequest request)
+        public async Task<AuthResult> Login(AuthRequest request)
         {
             AuthResult r = new AuthResult();
             await Application.Current.Dispatcher.InvokeAsync(() =>
