@@ -51,8 +51,7 @@ namespace Shoko.Server.Models
             set
             {
                 _contract = value;
-                int outsize;
-                ContractBlob = CompressionHelper.SerializeObject(value, out outsize);
+                ContractBlob = CompressionHelper.SerializeObject(value, out int outsize);
                 ContractSize = outsize;
                 ContractVersion = CONTRACT_VERSION;
             }
@@ -131,7 +130,7 @@ namespace Shoko.Server.Models
         {
             if (Contract == null)
                 return new CL_AnimeGroup_User();
-            CL_AnimeGroup_User contract = (CL_AnimeGroup_User) Contract.DeepCopy();
+            CL_AnimeGroup_User contract = Contract.DeepCopy();
             SVR_AnimeGroup_User rr = GetUserRecord(userid);
             if (rr != null)
             {
@@ -167,13 +166,15 @@ namespace Shoko.Server.Models
             SVR_AnimeGroup_User rr = GetUserRecord(userid);
             if (rr != null)
                 return rr;
-            rr = new SVR_AnimeGroup_User(userid, this.AnimeGroupID);
-            rr.WatchedCount = 0;
-            rr.UnwatchedEpisodeCount = 0;
-            rr.PlayedCount = 0;
-            rr.StoppedCount = 0;
-            rr.WatchedEpisodeCount = 0;
-            rr.WatchedDate = null;
+            rr = new SVR_AnimeGroup_User(userid, this.AnimeGroupID)
+            {
+                WatchedCount = 0,
+                UnwatchedEpisodeCount = 0,
+                PlayedCount = 0,
+                StoppedCount = 0,
+                WatchedEpisodeCount = 0,
+                WatchedDate = null
+            };
             RepoFactory.AnimeGroup_User.Save(rr);
             return rr;
         }
@@ -406,14 +407,14 @@ namespace Shoko.Server.Models
 
                     foreach (SVR_AniDB_Anime anime in Anime)
                     {
-                        totalRating += (decimal) anime.GetAniDBTotalRating();
+                        totalRating += anime.GetAniDBTotalRating();
                         totalVotes += anime.GetAniDBTotalVotes();
                     }
 
                     if (totalVotes == 0)
                         return 0;
                     else
-                        return totalRating / (decimal) totalVotes;
+                        return totalRating / totalVotes;
                 }
                 catch (Exception ex)
                 {
@@ -541,19 +542,18 @@ namespace Shoko.Server.Models
 
                 foreach (SVR_AnimeSeries series in groupSeries)
                 {
-                    AniDB_Vote vote;
 
-                    if (votesByAnime.TryGetValue(series.AniDB_ID, out vote))
+                    if (votesByAnime.TryGetValue(series.AniDB_ID, out AniDB_Vote vote))
                     {
                         allVoteCount++;
                         allVoteTotal += vote.VoteValue;
 
-                        if (vote.VoteType == (int) AniDBVoteType.Anime)
+                        if (vote.VoteType == (int)AniDBVoteType.Anime)
                         {
                             permVoteCount++;
                             permVoteTotal += vote.VoteValue;
                         }
-                        else if (vote.VoteType == (int) AniDBVoteType.AnimeTemp)
+                        else if (vote.VoteType == (int)AniDBVoteType.AnimeTemp)
                         {
                             tempVoteCount++;
                             tempVoteTotal += vote.VoteValue;
@@ -575,9 +575,8 @@ namespace Shoko.Server.Models
         public GroupVotes GetVotes(ISessionWrapper session)
         {
             var votesByGroup = BatchGetVotes(session, new[] {this});
-            GroupVotes votes;
 
-            votesByGroup.TryGetValue(AnimeGroupID, out votes);
+            votesByGroup.TryGetValue(AnimeGroupID, out GroupVotes votes);
 
             return votes ?? GroupVotes.Null;
         }
@@ -1142,9 +1141,8 @@ namespace Shoko.Server.Models
                                     continue;
                                 }
 
-                                SVR_VideoLocal video;
 
-                                if (dictVids.TryGetValue(xref.Hash, out video))
+                                if (dictVids.TryGetValue(xref.Hash, out SVR_VideoLocal video))
                                 {
                                     epVids.Add(video);
                                 }
@@ -1164,9 +1162,8 @@ namespace Shoko.Server.Models
 
                                 if (!qualityAddedSoFar.Contains(anifile.File_Source))
                                 {
-                                    int srcCount;
 
-                                    vidQualEpCounts.TryGetValue(anifile.File_Source, out srcCount);
+                                    vidQualEpCounts.TryGetValue(anifile.File_Source, out int srcCount);
                                     vidQualEpCounts[anifile.File_Source] =
                                         srcCount +
                                         1; // If the file source wasn't originally in the dictionary, then it will be set to 1
@@ -1184,10 +1181,9 @@ namespace Shoko.Server.Models
                                 .Where(vqec => anime.EpisodeCountNormal == vqec.Value)
                                 .Select(vqec => vqec.Key));
 
-                        LanguageStat langStats;
 
                         // Audio languages
-                        if (audioLangStatsByAnime.Value.TryGetValue(anime.AnimeID, out langStats))
+                        if (audioLangStatsByAnime.Value.TryGetValue(anime.AnimeID, out LanguageStat langStats))
                         {
                             audioLanguages.UnionWith(langStats.LanguageNames);
                         }
@@ -1320,9 +1316,8 @@ namespace Shoko.Server.Models
                     contract.Stat_SubtitleLanguages = subtitleLanguages;
                     contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;
 
-                    GroupVotes votes;
 
-                    votesByGroup.TryGetValue(animeGroup.AnimeGroupID, out votes);
+                    votesByGroup.TryGetValue(animeGroup.AnimeGroupID, out GroupVotes votes);
                     contract.Stat_UserVoteOverall = votes?.AllVotes;
                     contract.Stat_UserVotePermanent = votes?.PermanentVotes;
                     contract.Stat_UserVoteTemporary = votes?.TemporaryVotes;

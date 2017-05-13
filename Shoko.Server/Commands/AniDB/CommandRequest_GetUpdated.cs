@@ -79,17 +79,19 @@ namespace Shoko.Server.Commands
                     // if this is the first time, lets ask for last 3 days
                     DateTime localTime = DateTime.Now.AddDays(-3);
                     DateTime utcTime = localTime.ToUniversalTime();
-                    webUpdateTime = long.Parse(Shoko.Commons.Utils.AniDB.AniDBDate(utcTime));
-                    webUpdateTimeNew = long.Parse(Shoko.Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
+                    webUpdateTime = long.Parse(Commons.Utils.AniDB.AniDBDate(utcTime));
+                    webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
-                    sched = new ScheduledUpdate();
-                    sched.UpdateType = (int) ScheduledUpdateType.AniDBUpdates;
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.AniDBUpdates
+                    };
                 }
                 else
                 {
                     logger.Trace("Last anidb info update was : {0}", sched.UpdateDetails);
                     webUpdateTime = long.Parse(sched.UpdateDetails);
-                    webUpdateTimeNew = long.Parse(Shoko.Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
+                    webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
                     DateTime timeNow = DateTime.Now.ToUniversalTime();
                     logger.Info(string.Format("{0} since last UPDATED command",
@@ -189,13 +191,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

@@ -193,9 +193,11 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetImagepath()
         {
-            ImagePath imagepath = new ImagePath();
-            imagepath.path = ServerSettings.ImagesPath;
-            imagepath.isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath;
+            ImagePath imagepath = new ImagePath
+            {
+                path = ServerSettings.ImagesPath,
+                isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath
+            };
             return imagepath;
         }
 
@@ -311,10 +313,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetAniDB()
         {
-            Creditentials cred = new Creditentials();
-            cred.login = ServerSettings.AniDB_Username;
-            cred.password = ServerSettings.AniDB_Password;
-            cred.port = int.Parse(ServerSettings.AniDB_ClientPort);
+            Creditentials cred = new Creditentials
+            {
+                login = ServerSettings.AniDB_Username,
+                password = ServerSettings.AniDB_Password,
+                port = int.Parse(ServerSettings.AniDB_ClientPort)
+            };
             return cred;
         }
 
@@ -380,9 +384,11 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetMAL()
         {
-            Creditentials cred = new Creditentials();
-            cred.login = ServerSettings.MAL_Username;
-            cred.password = ServerSettings.MAL_Password;
+            Creditentials cred = new Creditentials
+            {
+                login = ServerSettings.MAL_Username,
+                password = ServerSettings.MAL_Password
+            };
             return cred;
         }
 
@@ -478,9 +484,11 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetTrakt()
         {
-            Creditentials cred = new Creditentials();
-            cred.token = ServerSettings.Trakt_AuthToken;
-            cred.refresh_token = ServerSettings.Trakt_RefreshToken;
+            Creditentials cred = new Creditentials
+            {
+                token = ServerSettings.Trakt_AuthToken,
+                refresh_token = ServerSettings.Trakt_RefreshToken
+            };
             return cred;
         }
 
@@ -655,17 +663,21 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetOSBaseFolder()
         {
-            OSFolder dir = new OSFolder();
-            dir.full_path = Environment.CurrentDirectory;
+            OSFolder dir = new OSFolder
+            {
+                full_path = Environment.CurrentDirectory
+            };
             System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
             dir.dir = dir_info.Name;
             dir.subdir = new List<OSFolder>();
 
             foreach (DirectoryInfo info in dir_info.GetDirectories())
             {
-                OSFolder subdir = new OSFolder();
-                subdir.full_path = info.FullName;
-                subdir.dir = info.Name;
+                OSFolder subdir = new OSFolder
+                {
+                    full_path = info.FullName,
+                    dir = info.Name
+                };
                 dir.subdir.Add(subdir);
             }
             return dir;
@@ -687,9 +699,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 foreach (DirectoryInfo info in dir_info.GetDirectories())
                 {
-                    OSFolder subdir = new OSFolder();
-                    subdir.full_path = info.FullName;
-                    subdir.dir = info.Name;
+                    OSFolder subdir = new OSFolder
+                    {
+                        full_path = info.FullName,
+                        dir = info.Name
+                    };
                     dir.subdir.Add(subdir);
                 }
                 return dir;
@@ -707,15 +721,19 @@ namespace Shoko.Server.API.v2.Modules
         private object GetOSDrives()
         {
             string[] drives = System.IO.Directory.GetLogicalDrives();
-            OSFolder dir = new OSFolder();
-            dir.dir = "/";
-            dir.full_path = "/";
-            dir.subdir = new List<OSFolder>();
+            OSFolder dir = new OSFolder
+            {
+                dir = "/",
+                full_path = "/",
+                subdir = new List<OSFolder>()
+            };
             foreach (string str in drives)
             {
-                OSFolder driver = new OSFolder();
-                driver.dir = str;
-                driver.full_path = str;
+                OSFolder driver = new OSFolder
+                {
+                    dir = str,
+                    full_path = str
+                };
                 dir.subdir.Add(driver);
             }
 
@@ -801,10 +819,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetRotateLogs()
         {
-            Logs rotator = new Logs();
-            rotator.rotate = ServerSettings.RotateLogs;
-            rotator.zip = ServerSettings.RotateLogs_Zip;
-            rotator.delete = ServerSettings.RotateLogs_Delete;
+            Logs rotator = new Logs
+            {
+                rotate = ServerSettings.RotateLogs,
+                zip = ServerSettings.RotateLogs_Zip,
+                delete = ServerSettings.RotateLogs_Delete
+            };
             int day = 0;
             if (!String.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
             {

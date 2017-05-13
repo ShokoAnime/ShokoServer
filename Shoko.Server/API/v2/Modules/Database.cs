@@ -73,8 +73,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetDB()
         {
-            Models.core.Database db = new Models.core.Database();
-            db.type = ServerSettings.DatabaseType;
+            Models.core.Database db = new Models.core.Database
+            {
+                type = ServerSettings.DatabaseType
+            };
             if (!String.IsNullOrEmpty(db.type) && db.type != "")
             {
                 switch (db.type.ToLower())
@@ -142,7 +144,7 @@ namespace Shoko.Server.API.v2.Modules
                 ShokoServer.workerSetupDB.RunWorkerAsync();
                 return HttpStatusCode.OK;
             }
-            catch (Exception ex)
+            catch
             {
                 return HttpStatusCode.InternalServerError;
             }

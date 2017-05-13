@@ -194,8 +194,10 @@ namespace Shoko.Server.Commands
             if (vlocalplace == null)
             {
                 logger.Trace("VideoLocal, creating temporary record");
-                vlocal = new SVR_VideoLocal();
-                vlocal.DateTimeUpdated = DateTime.Now;
+                vlocal = new SVR_VideoLocal
+                {
+                    DateTimeUpdated = DateTime.Now
+                };
                 vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
                 vlocal.FileName = Path.GetFileName(filePath);
                 vlocal.FileSize = filesize;
@@ -205,10 +207,12 @@ namespace Shoko.Server.Commands
                 vlocal.SHA1 = source_file.SHA1.ToUpperInvariant() ?? string.Empty;
                 vlocal.IsIgnored = 0;
                 vlocal.IsVariation = 0;
-                vlocalplace = new SVR_VideoLocal_Place();
-                vlocalplace.FilePath = filePath;
-                vlocalplace.ImportFolderID = nshareID;
-                vlocalplace.ImportFolderType = folder.ImportFolderType;
+                vlocalplace = new SVR_VideoLocal_Place
+                {
+                    FilePath = filePath,
+                    ImportFolderID = nshareID,
+                    ImportFolderType = folder.ImportFolderType
+                };
             }
 
             // check if we need to get a hash this file
@@ -332,13 +336,15 @@ namespace Shoko.Server.Commands
 
                         if (dupFiles.Count == 0)
                         {
-                            DuplicateFile dup = new DuplicateFile();
-                            dup.DateTimeUpdated = DateTime.Now;
-                            dup.FilePathFile1 = vlocalplace.FilePath;
-                            dup.FilePathFile2 = prep.FilePath;
-                            dup.ImportFolderIDFile1 = vlocalplace.ImportFolderID;
-                            dup.ImportFolderIDFile2 = prep.ImportFolderID;
-                            dup.Hash = vlocal.Hash;
+                            DuplicateFile dup = new DuplicateFile
+                            {
+                                DateTimeUpdated = DateTime.Now,
+                                FilePathFile1 = vlocalplace.FilePath,
+                                FilePathFile2 = prep.FilePath,
+                                ImportFolderIDFile1 = vlocalplace.ImportFolderID,
+                                ImportFolderIDFile2 = prep.ImportFolderID,
+                                Hash = vlocal.Hash
+                            };
                             RepoFactory.DuplicateFile.Save(dup);
                         }
                         //Notify duplicate, don't delete
@@ -639,13 +645,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

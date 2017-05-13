@@ -86,7 +86,7 @@ namespace AniDBAPI
                         }
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
                     //BaseConfig.MyAnimeLog.Write("Error trying to get reviews from anime: {0}", ex);
                 }

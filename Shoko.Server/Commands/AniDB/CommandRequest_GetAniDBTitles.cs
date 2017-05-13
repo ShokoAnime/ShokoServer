@@ -79,8 +79,7 @@ namespace Shoko.Server.Commands
 
                     string[] fields = line.Split('|');
 
-                    int animeID = 0;
-                    int.TryParse(fields[0], out animeID);
+                    int.TryParse(fields[0], out int animeID);
                     if (animeID == 0) continue;
 
                     string titleType = fields[1].Trim().ToLower();
@@ -95,10 +94,12 @@ namespace Shoko.Server.Commands
                     }
                     else
                     {
-                        thisTitle = new Azure_AnimeIDTitle();
-                        thisTitle.AnimeIDTitleId = 0;
-                        thisTitle.MainTitle = titleValue;
-                        thisTitle.AnimeID = animeID;
+                        thisTitle = new Azure_AnimeIDTitle
+                        {
+                            AnimeIDTitleId = 0,
+                            MainTitle = titleValue,
+                            AnimeID = animeID
+                        };
                         titles[animeID] = thisTitle;
                     }
 
@@ -159,13 +160,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

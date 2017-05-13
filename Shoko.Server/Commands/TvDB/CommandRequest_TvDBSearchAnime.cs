@@ -220,17 +220,17 @@ namespace Shoko.Server.Commands
                     1,
                     animeID, (int) enEpisodeType.Episode, anistart);
                 if (xref != null) return;
-                xref = new CrossRef_AniDB_TvDBV2();
+                xref = new CrossRef_AniDB_TvDBV2
+                {
+                    AnimeID = animeID,
+                    AniDBStartEpisodeType = (int)enEpisodeType.Episode,
+                    AniDBStartEpisodeNumber = anistart,
 
-                xref.AnimeID = animeID;
-                xref.AniDBStartEpisodeType = (int) enEpisodeType.Episode;
-                xref.AniDBStartEpisodeNumber = anistart;
-
-                xref.TvDBID = tvdbID;
-                xref.TvDBSeasonNumber = tvdbSeason;
-                xref.TvDBStartEpisodeNumber = 1;
-                xref.TvDBTitle = title;
-
+                    TvDBID = tvdbID,
+                    TvDBSeasonNumber = tvdbSeason,
+                    TvDBStartEpisodeNumber = 1,
+                    TvDBTitle = title
+                };
                 RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
             }
         }
@@ -268,13 +268,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

@@ -35,8 +35,6 @@ namespace Shoko.Server
         private Socket soUdp = null;
         private string curSessionID = string.Empty;
 
-        private bool networkAvailable = true;
-
         private string userName = string.Empty;
         private string password = string.Empty;
         private string serverName = string.Empty;
@@ -134,6 +132,11 @@ namespace Shoko.Server
         }
 
         private string extendPauseReason = "";
+        private bool networkAvailable;
+        public bool IsNetworkAvailable
+        {
+            get => networkAvailable;
+        }
 
         public string ExtendPauseReason
         {
@@ -153,7 +156,7 @@ namespace Shoko.Server
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
-            ServerInfo.Instance.ExtendedPauseString = string.Format(Shoko.Commons.Properties.Resources.AniDB_Paused,
+            ServerInfo.Instance.ExtendedPauseString = string.Format(Commons.Properties.Resources.AniDB_Paused,
                 secsToPause,
                 pauseReason);
             ServerInfo.Instance.HasExtendedPause = true;
@@ -183,7 +186,7 @@ namespace Shoko.Server
             if (!BindToRemotePort()) networkAvailable = false;
 
             logoutTimer = new System.Timers.Timer();
-            logoutTimer.Elapsed += new System.Timers.ElapsedEventHandler(logoutTimer_Elapsed);
+            logoutTimer.Elapsed += new System.Timers.ElapsedEventHandler(LogoutTimer_Elapsed);
             logoutTimer.Interval = 5000; // Set the Interval to 5 seconds.
             logoutTimer.Enabled = true;
             logoutTimer.AutoReset = true;
@@ -209,7 +212,7 @@ namespace Shoko.Server
             soUdp = null;
         }
 
-        void logoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        void LogoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             TimeSpan tsAniDBUDPTemp = DateTime.Now - ShokoService.LastAniDBUDPMessage;
             if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
@@ -228,7 +231,7 @@ namespace Shoko.Server
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                            string.Format(Shoko.Commons.Properties.Resources.AniDB_ResponseWaitSeconds,
+                            string.Format(Commons.Properties.Resources.AniDB_ResponseWaitSeconds,
                                 ts.TotalSeconds);
                     }
                 }
@@ -256,7 +259,7 @@ namespace Shoko.Server
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                string msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_LastMessage,
+                string msg = string.Format(Commons.Properties.Resources.AniDB_LastMessage,
                     tsAniDBUDP.TotalSeconds);
 
                 if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
@@ -275,9 +278,9 @@ namespace Shoko.Server
 
             if (isWaiting)
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                    Shoko.Commons.Properties.Resources.AniDB_ResponseWait;
+                    Commons.Properties.Resources.AniDB_ResponseWait;
             else
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Shoko.Commons.Properties.Resources.Command_Idle;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Commons.Properties.Resources.Command_Idle;
 
             if (isWaiting)
                 WaitingOnResponseTime = DateTime.Now;
@@ -994,8 +997,10 @@ namespace Shoko.Server
 
                     if (thisVote == null)
                     {
-                        thisVote = new AniDB_Vote();
-                        thisVote.EntityID = cmdVote.EntityID;
+                        thisVote = new AniDB_Vote
+                        {
+                            EntityID = cmdVote.EntityID
+                        };
                     }
                     thisVote.VoteType = (int) cmdVote.VoteType;
                     thisVote.VoteValue = cmdVote.VoteValue;

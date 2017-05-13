@@ -92,7 +92,7 @@ namespace Shoko.Server.Repositories.Cached
                         Save(a, false);
                     });
             }
-            catch (Exception e)
+            catch
             {
             }
 

@@ -236,9 +236,10 @@ namespace Shoko.Server.Providers.TraktTV
                     return false;
                 }
 
-                TraktV2RefreshToken token = new TraktV2RefreshToken();
-                token.refresh_token = ServerSettings.Trakt_RefreshToken;
-
+                TraktV2RefreshToken token = new TraktV2RefreshToken
+                {
+                    refresh_token = ServerSettings.Trakt_RefreshToken
+                };
                 string json = JSONHelper.Serialize<TraktV2RefreshToken>(token);
                 Dictionary<string, string> headers = new Dictionary<string, string>();
 
@@ -252,11 +253,8 @@ namespace Shoko.Server.Providers.TraktTV
                     ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
                     ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
 
-                    long createdAt = 0;
-                    long validity = 0;
-
-                    long.TryParse(loginResponse.CreatedAt, out createdAt);
-                    long.TryParse(loginResponse.ExpiresIn, out validity);
+                    long.TryParse(loginResponse.CreatedAt, out long createdAt);
+                    long.TryParse(loginResponse.ExpiresIn, out long validity);
                     long expireDate = createdAt + validity;
 
                     ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
@@ -287,9 +285,10 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                TraktAuthPIN obj = new TraktAuthPIN();
-                obj.PINCode = pin;
-
+                TraktAuthPIN obj = new TraktAuthPIN
+                {
+                    PINCode = pin
+                };
                 string json = JSONHelper.Serialize<TraktAuthPIN>(obj);
                 Dictionary<string, string> headers = new Dictionary<string, string>();
 
@@ -303,11 +302,8 @@ namespace Shoko.Server.Providers.TraktTV
                     ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
                     ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
 
-                    long createdAt = 0;
-                    long validity = 0;
-
-                    long.TryParse(loginResponse.CreatedAt, out createdAt);
-                    long.TryParse(loginResponse.ExpiresIn, out validity);
+                    long.TryParse(loginResponse.CreatedAt, out long createdAt);
+                    long.TryParse(loginResponse.ExpiresIn, out long validity);
                     long expireDate = createdAt + validity;
 
                     ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
@@ -1085,8 +1081,7 @@ namespace Shoko.Server.Providers.TraktTV
                 }
 
                 //1.get traktid and slugid from episode id
-                int aep = 0;
-                int.TryParse(AnimeEpisodeID, out aep);
+                int.TryParse(AnimeEpisodeID, out int aep);
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
                 string slugID = "";
                 int season = 0;
@@ -1281,8 +1276,10 @@ namespace Shoko.Server.Providers.TraktTV
                             RepoFactory.Trakt_ImageFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
                         if (fanart == null)
                         {
-                            fanart = new Trakt_ImageFanart();
-                            fanart.Enabled = 0;
+                            fanart = new Trakt_ImageFanart
+                            {
+                                Enabled = 0
+                            };
                         }
 
                         fanart.ImageURL = tvshow.images.fanart.full;
@@ -1330,8 +1327,10 @@ namespace Shoko.Server.Providers.TraktTV
                                 RepoFactory.Trakt_ImagePoster.GetByShowIDAndSeason(show.Trakt_ShowID, season.Season);
                             if (poster == null)
                             {
-                                poster = new Trakt_ImagePoster();
-                                poster.Enabled = 0;
+                                poster = new Trakt_ImagePoster
+                                {
+                                    Enabled = 0
+                                };
                             }
 
                             poster.ImageURL = sea.images.poster.full;

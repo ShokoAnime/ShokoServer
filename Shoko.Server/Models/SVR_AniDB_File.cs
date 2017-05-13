@@ -328,13 +328,17 @@ namespace Shoko.Server.Models
                         Language lan = RepoFactory.Language.GetByLanguageName(rlan);
                         if (lan == null)
                         {
-                            lan = new Language();
-                            lan.LanguageName = rlan;
+                            lan = new Language
+                            {
+                                LanguageName = rlan
+                            };
                             RepoFactory.Language.Save(lan);
                         }
-                        CrossRef_Languages_AniDB_File cross = new CrossRef_Languages_AniDB_File();
-                        cross.LanguageID = lan.LanguageID;
-                        cross.FileID = FileID;
+                        CrossRef_Languages_AniDB_File cross = new CrossRef_Languages_AniDB_File
+                        {
+                            LanguageID = lan.LanguageID,
+                            FileID = FileID
+                        };
                         RepoFactory.CrossRef_Languages_AniDB_File.Save(cross);
                     }
                 }
@@ -362,13 +366,17 @@ namespace Shoko.Server.Models
                         Language lan = RepoFactory.Language.GetByLanguageName(rlan);
                         if (lan == null)
                         {
-                            lan = new Language();
-                            lan.LanguageName = rlan;
+                            lan = new Language
+                            {
+                                LanguageName = rlan
+                            };
                             RepoFactory.Language.Save(lan);
                         }
-                        CrossRef_Subtitles_AniDB_File cross = new CrossRef_Subtitles_AniDB_File();
-                        cross.LanguageID = lan.LanguageID;
-                        cross.FileID = FileID;
+                        CrossRef_Subtitles_AniDB_File cross = new CrossRef_Subtitles_AniDB_File
+                        {
+                            LanguageID = lan.LanguageID,
+                            FileID = FileID
+                        };
                         RepoFactory.CrossRef_Subtitles_AniDB_File.Save(cross);
                     }
                 }
@@ -401,21 +409,21 @@ namespace Shoko.Server.Models
                     string epps = epp[x].Trim();
                     if (epis.Length > 0)
                     {
-                        int epid = 0;
-                        int.TryParse(epis, out epid);
-                        int eppp = 100;
-                        int.TryParse(epps, out eppp);
+                        int.TryParse(epis, out int epid);
+                        int.TryParse(epps, out int eppp);
                         if (epid != 0)
                         {
-                            CrossRef_File_Episode cross = new CrossRef_File_Episode();
-                            cross.Hash = Hash;
-                            cross.CrossRefSource = (int) CrossRefSource.AniDB;
-                            cross.AnimeID = this.AnimeID;
-                            cross.EpisodeID = epid;
-                            cross.Percentage = eppp;
-                            cross.EpisodeOrder = x + 1;
-                            cross.FileName = localFileName;
-                            cross.FileSize = FileSize;
+                            CrossRef_File_Episode cross = new CrossRef_File_Episode
+                            {
+                                Hash = Hash,
+                                CrossRefSource = (int)CrossRefSource.AniDB,
+                                AnimeID = this.AnimeID,
+                                EpisodeID = epid,
+                                Percentage = eppp,
+                                EpisodeOrder = x + 1,
+                                FileName = localFileName,
+                                FileSize = FileSize
+                            };
                             RepoFactory.CrossRef_File_Episode.Save(cross);
                         }
                     }

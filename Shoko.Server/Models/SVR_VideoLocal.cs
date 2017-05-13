@@ -63,8 +63,7 @@ namespace Shoko.Server.Models
             set
             {
                 _media = value;
-                int outsize;
-                MediaBlob = CompressionHelper.SerializeObject(value, out outsize);
+                MediaBlob = CompressionHelper.SerializeObject(value, out int outsize);
                 MediaSize = outsize;
                 MediaVersion = MEDIA_VERSION;
             }
@@ -242,10 +241,12 @@ namespace Shoko.Server.Models
             VideoLocal_User vuser = GetUserRecord(userID);
             if (vuser == null)
             {
-                vuser = new VideoLocal_User();
-                vuser.JMMUserID = userID;
-                vuser.VideoLocalID = VideoLocalID;
-                vuser.ResumePosition = resumeposition;
+                vuser = new VideoLocal_User
+                {
+                    JMMUserID = userID,
+                    VideoLocalID = VideoLocalID,
+                    ResumePosition = resumeposition
+                };
             }
             else
             {
@@ -465,20 +466,22 @@ namespace Shoko.Server.Models
 
         public CL_VideoLocal ToClient(int userID)
         {
-            CL_VideoLocal cl = new CL_VideoLocal();
-            cl.CRC32 = this.CRC32;
-            cl.DateTimeUpdated = this.DateTimeUpdated;
-            cl.FileName = this.FileName;
-            cl.FileSize = this.FileSize;
-            cl.Hash = this.Hash;
-            cl.HashSource = this.HashSource;
-            cl.IsIgnored = this.IsIgnored;
-            cl.IsVariation = this.IsVariation;
-            cl.Duration = this.Duration;
-            cl.MD5 = this.MD5;
-            cl.SHA1 = this.SHA1;
-            cl.VideoLocalID = this.VideoLocalID;
-            cl.Places = Places.Select(a => a.ToClient()).ToList();
+            CL_VideoLocal cl = new CL_VideoLocal
+            {
+                CRC32 = this.CRC32,
+                DateTimeUpdated = this.DateTimeUpdated,
+                FileName = this.FileName,
+                FileSize = this.FileSize,
+                Hash = this.Hash,
+                HashSource = this.HashSource,
+                IsIgnored = this.IsIgnored,
+                IsVariation = this.IsVariation,
+                Duration = this.Duration,
+                MD5 = this.MD5,
+                SHA1 = this.SHA1,
+                VideoLocalID = this.VideoLocalID,
+                Places = Places.Select(a => a.ToClient()).ToList()
+            };
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
@@ -679,20 +682,21 @@ namespace Shoko.Server.Models
 
         public CL_VideoLocal_ManualLink ToContractManualLink(int userID)
         {
-            CL_VideoLocal_ManualLink cl = new CL_VideoLocal_ManualLink();
-            cl.CRC32 = this.CRC32;
-            cl.DateTimeUpdated = this.DateTimeUpdated;
-            cl.FileName = this.FileName;
-            cl.FileSize = this.FileSize;
-            cl.Hash = this.Hash;
-            cl.HashSource = this.HashSource;
-            cl.IsIgnored = this.IsIgnored;
-            cl.IsVariation = this.IsVariation;
-            cl.MD5 = this.MD5;
-            cl.SHA1 = this.SHA1;
-            cl.VideoLocalID = this.VideoLocalID;
-            cl.Places = Places.Select(a => a.ToClient()).ToList();
-
+            CL_VideoLocal_ManualLink cl = new CL_VideoLocal_ManualLink
+            {
+                CRC32 = this.CRC32,
+                DateTimeUpdated = this.DateTimeUpdated,
+                FileName = this.FileName,
+                FileSize = this.FileSize,
+                Hash = this.Hash,
+                HashSource = this.HashSource,
+                IsIgnored = this.IsIgnored,
+                IsVariation = this.IsVariation,
+                MD5 = this.MD5,
+                SHA1 = this.SHA1,
+                VideoLocalID = this.VideoLocalID,
+                Places = Places.Select(a => a.ToClient()).ToList()
+            };
             VideoLocal_User userRecord = this.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {

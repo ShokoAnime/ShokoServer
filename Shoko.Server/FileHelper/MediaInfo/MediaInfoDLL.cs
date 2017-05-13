@@ -206,6 +206,11 @@ namespace MediaInfoLib
             MustUseAnsi = Environment.OSVersion.ToString().IndexOf("Windows") == -1;
         }
 
+        ~MediaInfo()
+        {
+
+        }
+
         public void Dispose()
         {
             if (Handle != IntPtr.Zero)
@@ -263,7 +268,7 @@ namespace MediaInfoLib
         public Int64 Open_Buffer_Continue_GoTo_Get()
         {
             if (Handle == (IntPtr) 0) return 0;
-            return (Int64) MediaInfo_Open_Buffer_Continue_GoTo_Get(Handle);
+            return MediaInfo_Open_Buffer_Continue_GoTo_Get(Handle);
         }
 
         public int Open_Buffer_Finalize()
@@ -382,7 +387,7 @@ namespace MediaInfoLib
     }
 
 
-    public class MediaInfoList
+    public class MediaInfoList : IDisposable
     {
         //Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
         [DllImport("MediaInfo.dll")]
@@ -515,6 +520,11 @@ namespace MediaInfoLib
         public int Count_Get(int FilePos, StreamKind StreamKind)
         {
             return Count_Get(FilePos, StreamKind, -1);
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
 }

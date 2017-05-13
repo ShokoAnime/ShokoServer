@@ -8,6 +8,7 @@ using Shoko.Server.Obsolete;
 
 namespace Shoko.Server.Repositories.Direct
 {
+#pragma warning disable CS0612 // Type or member is obsolete
     public class CrossRef_AniDB_TraktRepository : BaseDirectRepository<CrossRef_AniDB_Trakt, int>
     {
         private CrossRef_AniDB_TraktRepository()
@@ -62,4 +63,5 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
     }
+#pragma warning restore CS0612 // Type or member is obsolete
 }

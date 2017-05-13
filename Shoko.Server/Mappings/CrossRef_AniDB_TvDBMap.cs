@@ -4,7 +4,9 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
+#pragma warning disable CS0612 // Type or member is obsolete
     public class CrossRef_AniDB_TvDBMap : ClassMap<CrossRef_AniDB_TvDB>
+#pragma warning restore CS0612 // Type or member is obsolete
     {
         public CrossRef_AniDB_TvDBMap()
         {

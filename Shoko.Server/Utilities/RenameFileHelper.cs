@@ -77,8 +77,7 @@ namespace Shoko.Server
                     test = test.Substring(1, test.Length - 1);
                 }
 
-                int animeID = 0;
-                int.TryParse(test, out animeID);
+                int.TryParse(test, out int animeID);
 
                 if (notCondition)
                     return animeID != episodes[0].AnimeID;
@@ -318,8 +317,7 @@ namespace Shoko.Server
 
                 if (aniFile == null) return false;
 
-                int version = 0;
-                int.TryParse(test, out version);
+                int.TryParse(test, out int version);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -385,11 +383,9 @@ namespace Shoko.Server
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
                     ref lessThan, ref lessThanEqual);
 
-                int testBitDepth = 0;
-                int.TryParse(test, out testBitDepth);
+                int.TryParse(test, out int testBitDepth);
 
-                int vidBitDepth = 0;
-                int.TryParse(vid.VideoBitDepth, out vidBitDepth);
+                int.TryParse(vid.VideoBitDepth, out int vidBitDepth);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -457,8 +453,7 @@ namespace Shoko.Server
 
                 if (vid == null) return false;
 
-                int testWidth = 0;
-                int.TryParse(test, out testWidth);
+                int.TryParse(test, out int testWidth);
 
                 int width = 0;
 
@@ -534,8 +529,7 @@ namespace Shoko.Server
 
                 if (vid == null) return false;
 
-                int testHeight = 0;
-                int.TryParse(test, out testHeight);
+                int.TryParse(test, out int testHeight);
 
                 int height = 0;
                 if (aniFile != null)
@@ -801,8 +795,7 @@ namespace Shoko.Server
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
                     ref lessThan, ref lessThanEqual);
 
-                int testYear = 0;
-                int.TryParse(test, out testYear);
+                int.TryParse(test, out int testYear);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -868,8 +861,7 @@ namespace Shoko.Server
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
                     ref lessThan, ref lessThanEqual);
 
-                int testEpNumber = 0;
-                int.TryParse(test, out testEpNumber);
+                int.TryParse(test, out int testEpNumber);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -1042,8 +1034,7 @@ namespace Shoko.Server
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
                     ref lessThan, ref lessThanEqual);
 
-                int epCount = 0;
-                int.TryParse(test, out epCount);
+                int.TryParse(test, out int epCount);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -1607,8 +1598,7 @@ namespace Shoko.Server
                     {
                         if (!string.IsNullOrEmpty(vid.VideoBitDepth))
                         {
-                            int bitDepth = 0;
-                            int.TryParse(vid.VideoBitDepth, out bitDepth);
+                            int.TryParse(vid.VideoBitDepth, out int bitDepth);
                             if (bitDepth > 0) bitDepthExists = true;
                         }
                     }
@@ -1823,21 +1813,15 @@ namespace Shoko.Server
             string actionType = action.Substring(0, posStart);
             string parameter = action.Substring(posStart + 1, action.Length - posStart - 1);
 
-            try
-            {
-                // action is to add the the new file name
-                if (actionType.Trim()
-                    .Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
-                    PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime);
 
-                if (actionType.Trim()
-                    .Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
-                    PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            // action is to add the the new file name
+            if (actionType.Trim()
+                .Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
+                PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime);
+
+            if (actionType.Trim()
+                .Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
+                PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime);
         }
 
         private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, SVR_VideoLocal vid,

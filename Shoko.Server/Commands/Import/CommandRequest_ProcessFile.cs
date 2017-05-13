@@ -133,8 +133,7 @@ namespace Shoko.Server.Commands
                             string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
                             foreach (string epid in epIDs)
                             {
-                                int id = 0;
-                                if (int.TryParse(epid, out id))
+                                if (int.TryParse(epid, out int id))
                                 {
                                     CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
                                     cmdEp.Save();
@@ -173,16 +172,17 @@ namespace Shoko.Server.Commands
                             {
                                 foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
                                 {
-                                    CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
-                                    xrefEnt.Hash = vidLocal.ED2KHash;
-                                    xrefEnt.FileName = vidLocal.FileName;
-                                    xrefEnt.FileSize = vidLocal.FileSize;
-                                    xrefEnt.CrossRefSource = (int) CrossRefSource.WebCache;
-                                    xrefEnt.AnimeID = xref.AnimeID;
-                                    xrefEnt.EpisodeID = xref.EpisodeID;
-                                    xrefEnt.Percentage = xref.Percentage;
-                                    xrefEnt.EpisodeOrder = xref.EpisodeOrder;
-
+                                    CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
+                                    {
+                                        Hash = vidLocal.ED2KHash,
+                                        FileName = vidLocal.FileName,
+                                        FileSize = vidLocal.FileSize,
+                                        CrossRefSource = (int)CrossRefSource.WebCache,
+                                        AnimeID = xref.AnimeID,
+                                        EpisodeID = xref.EpisodeID,
+                                        Percentage = xref.Percentage,
+                                        EpisodeOrder = xref.EpisodeOrder
+                                    };
                                     bool duplicate = false;
 
                                     foreach (CrossRef_File_Episode xrefcheck in crossRefs)
@@ -379,13 +379,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

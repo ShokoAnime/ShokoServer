@@ -29,16 +29,16 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
 
         public CL_TraktTVShowResponse ToContract()
         {
-            CL_TraktTVShowResponse contract = new CL_TraktTVShowResponse();
-
-            contract.title = show.Title;
-            contract.year = show.Year.ToString();
-            contract.url = ShowURL;
-            contract.first_aired = string.Empty;
-            contract.country = string.Empty;
-            contract.overview = show.Overview;
-            contract.tvdb_id = show.ids.tvdb.ToString();
-
+            CL_TraktTVShowResponse contract = new CL_TraktTVShowResponse
+            {
+                title = show.Title,
+                year = show.Year.ToString(),
+                url = ShowURL,
+                first_aired = string.Empty,
+                country = string.Empty,
+                overview = show.Overview,
+                tvdb_id = show.ids.tvdb.ToString()
+            };
             return contract;
         }
     }

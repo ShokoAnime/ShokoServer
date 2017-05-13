@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Shoko.Server.Databases
 {
+    [Serializable]
     public class DatabaseCommandException : Exception
     {
         public DatabaseCommand DatabaseCommand { get; set; }

@@ -57,12 +57,13 @@ namespace Shoko.Server.Commands.Azure
 
                 if (!process) return;
 
-                Azure_AnimeIDTitle thisTitle = new Azure_AnimeIDTitle();
-                thisTitle.AnimeIDTitleId = 0;
-                thisTitle.MainTitle = MainTitle;
-                thisTitle.AnimeID = AnimeID;
-                thisTitle.Titles = Titles;
-
+                Azure_AnimeIDTitle thisTitle = new Azure_AnimeIDTitle
+                {
+                    AnimeIDTitleId = 0,
+                    MainTitle = MainTitle,
+                    AnimeID = AnimeID,
+                    Titles = Titles
+                };
                 AzureWebAPI.Send_AnimeTitle(thisTitle);
             }
             catch (Exception ex)
@@ -105,13 +106,14 @@ namespace Shoko.Server.Commands.Azure
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

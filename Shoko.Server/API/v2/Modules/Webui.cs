@@ -355,8 +355,10 @@ namespace Shoko.Server.API.v2.Modules
                 DirectoryInfo dir_info = new DirectoryInfo("webui\\tweak");
                 foreach (FileInfo info in dir_info.GetFiles("*.css"))
                 {
-                    v2.Models.core.OSFile file = new v2.Models.core.OSFile();
-                    file.name = info.Name;
+                    v2.Models.core.OSFile file = new v2.Models.core.OSFile
+                    {
+                        name = info.Name
+                    };
                     files.Add(file);
                 }
             }

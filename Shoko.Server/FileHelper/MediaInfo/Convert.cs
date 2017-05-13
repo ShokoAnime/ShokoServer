@@ -38,8 +38,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             string[] nams = list.Split('/');
             for (int x = 0; x < nams.Length; x++)
             {
-                int k;
-                if (int.TryParse(nams[x].Trim(), out k))
+                if (int.TryParse(nams[x].Trim(), out int k))
                 {
                     if (k > max)
                         max = k;
@@ -70,8 +69,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             level = level.Replace(".", string.Empty).ToLower();
             if (level.StartsWith("l"))
             {
-                int lll;
-                int.TryParse(level.Substring(1), out lll);
+                int.TryParse(level.Substring(1), out int lll);
                 if (lll != 0)
                     level = lll.ToString(CultureInfo.InvariantCulture);
                 else if (level.StartsWith("lm"))
@@ -140,12 +138,14 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static Stream TranslateVideoStream(MediaInfoLib.MediaInfo m, int num)
         {
-            Stream s = new Stream();
-            s.Id = m.Get(StreamKind.Video, num, "UniqueID");
-            s.Codec = TranslateCodec(m.Get(StreamKind.Video, num, "Codec"));
-            s.CodecID = m.Get(StreamKind.Video, num, "CodecID");
-            s.StreamType = "1";
-            s.Width = m.Get(StreamKind.Video, num, "Width");
+            Stream s = new Stream
+            {
+                Id = m.Get(StreamKind.Video, num, "UniqueID"),
+                Codec = TranslateCodec(m.Get(StreamKind.Video, num, "Codec")),
+                CodecID = m.Get(StreamKind.Video, num, "CodecID"),
+                StreamType = "1",
+                Width = m.Get(StreamKind.Video, num, "Width")
+            };
             string title = m.Get(StreamKind.Video, num, "Title");
             if (!string.IsNullOrEmpty(title))
                 s.Title = title;
@@ -186,8 +186,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
             if (!string.IsNullOrEmpty(rot))
             {
-                float val;
-                if (float.TryParse(rot, out val))
+                if (float.TryParse(rot, out float val))
                 {
                     if (val == 90F)
                         s.Orientation = "9";
@@ -239,8 +238,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             string id = m.Get(StreamKind.Video, num, "ID");
             if (!string.IsNullOrEmpty(id))
             {
-                int idx;
-                if (int.TryParse(id, out idx))
+                if (int.TryParse(id, out int idx))
                 {
                     s.Index = idx.ToString(CultureInfo.InvariantCulture);
                 }
@@ -281,12 +279,11 @@ namespace Shoko.Server.FileHelper.MediaInfo
                 s.PA = System.Convert.ToSingle(sp2);
             if ((s.PA != 1.0) && !string.IsNullOrEmpty(s.Width))
             {
-                int www = 0;
-                if (int.TryParse(s.Width, out www))
+                if (int.TryParse(s.Width, out int www))
                 {
                     float width = www;
                     width *= s.PA;
-                    s.PixelAspectRatio = ((int) Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" +
+                    s.PixelAspectRatio = ((int)Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" +
                                          s.Width;
                 }
             }
@@ -296,10 +293,12 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static Stream TranslateAudioStream(MediaInfoLib.MediaInfo m, int num)
         {
-            Stream s = new Stream();
-            s.Id = m.Get(StreamKind.Audio, num, "UniqueID");
-            s.CodecID = m.Get(StreamKind.Audio, num, "CodecID");
-            s.Codec = TranslateCodec(m.Get(StreamKind.Audio, num, "Codec"));
+            Stream s = new Stream
+            {
+                Id = m.Get(StreamKind.Audio, num, "UniqueID"),
+                CodecID = m.Get(StreamKind.Audio, num, "CodecID"),
+                Codec = TranslateCodec(m.Get(StreamKind.Audio, num, "Codec"))
+            };
             string title = m.Get(StreamKind.Audio, num, "Title");
             if (!string.IsNullOrEmpty(title))
                 s.Title = title;
@@ -347,8 +346,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             string id = m.Get(StreamKind.Audio, num, "ID");
             if (!string.IsNullOrEmpty(id))
             {
-                int idx;
-                if (int.TryParse(id, out idx))
+                if (int.TryParse(id, out int idx))
                 {
                     s.Index = idx.ToString(CultureInfo.InvariantCulture);
                 }
@@ -390,13 +388,13 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static Stream TranslateTextStream(MediaInfoLib.MediaInfo m, int num)
         {
-            Stream s = new Stream();
+            Stream s = new Stream
+            {
+                Id = m.Get(StreamKind.Text, num, "UniqueID"),
+                CodecID = m.Get(StreamKind.Text, num, "CodecID"),
 
-
-            s.Id = m.Get(StreamKind.Text, num, "UniqueID");
-            s.CodecID = m.Get(StreamKind.Text, num, "CodecID");
-
-            s.StreamType = "3";
+                StreamType = "3"
+            };
             string title = m.Get(StreamKind.Text, num, "Title");
             if (!string.IsNullOrEmpty(title))
                 s.Title = title;
@@ -410,8 +408,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             string id = m.Get(StreamKind.Text, num, "ID");
             if (!string.IsNullOrEmpty(id))
             {
-                int idx;
-                if (int.TryParse(id, out idx))
+                if (int.TryParse(id, out int idx))
                 {
                     s.Index = idx.ToString(CultureInfo.InvariantCulture);
                 }
@@ -438,18 +435,16 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static int GetInt(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
         {
-            int val;
             string dta = mi.Get(kind, number, par);
-            if (int.TryParse(dta, out val))
+            if (int.TryParse(dta, out int val))
                 return val;
             return 0;
         }
 
         private static float GetFloat(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
         {
-            float val;
             string dta = mi.Get(kind, number, par);
-            if (float.TryParse(dta, out val))
+            if (float.TryParse(dta, out float val))
                 return val;
             return 0.0F;
         }
@@ -539,12 +534,10 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     m.VideoCodec = s.Codec;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
-                                        double sdur = 0;
-                                        double mdur = 0;
                                         double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
-                                            out sdur);
+                                            out double sdur);
                                         double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
-                                            out mdur);
+                                            out double mdur);
                                         if (sdur > mdur)
                                             m.Duration = p.Duration = ((int) sdur).ToString();
                                     }
@@ -577,12 +570,10 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     m.AudioChannels = s.Channels;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
-                                        double sdur = 0;
-                                        double mdur = 0;
                                         double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
-                                            out sdur);
+                                            out double sdur);
                                         double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
-                                            out mdur);
+                                            out double mdur);
                                         if (sdur > mdur)
                                             m.Duration = p.Duration = ((int) sdur).ToString();
                                     }
@@ -594,10 +585,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                 }
                                 if (!string.IsNullOrEmpty(s.Bitrate))
                                 {
-                                    double birate = 0;
                                     double.TryParse(s.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture,
-                                        out birate);
-                                    totalsoundrate += (int) brate;
+                                        out double birate);
+                                    totalsoundrate += brate;
                                 }
                                 if (m.Container != "mkv")
                                 {
@@ -610,8 +600,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         if ((VideoStream != null) && string.IsNullOrEmpty(VideoStream.Bitrate) &&
                             !string.IsNullOrEmpty(m.Bitrate))
                         {
-                            double mrate = 0;
-                            double.TryParse(m.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture, out mrate);
+                            double.TryParse(m.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture, out double mrate);
                             VideoStream.Bitrate =
                                 (((int) mrate) - totalsoundrate).ToString(CultureInfo.InvariantCulture);
                         }
@@ -721,9 +710,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
                             buffer = new byte[siz];
                             fs.Read(buffer, 0, siz);
-                            int opos;
-                            int oposmax;
-                            if (FindInBuffer("trak", 0, siz, buffer, out opos, out oposmax))
+                            if (FindInBuffer("trak", 0, siz, buffer, out int opos, out int oposmax))
                             {
                                 if (FindInBuffer("mdia", opos, oposmax, buffer, out opos, out oposmax))
                                 {
@@ -782,7 +769,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
         private static string GetResolution(float width, float height)
 
         {
-            float h = (float) Math.Round((float) width / 1.777777777777777F);
+            float h = (float) Math.Round(width / 1.777777777777777F);
             if (height > h)
                 h = height;
             if (h > 720)

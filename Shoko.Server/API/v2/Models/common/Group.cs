@@ -32,15 +32,15 @@ namespace Shoko.Server.API.v2.Models.common
         public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
             bool all, int filterid)
         {
-            Group g = new Group();
+            Group g = new Group
+            {
+                name = ag.GroupName,
+                id = ag.AnimeGroupID,
 
-            g.name = ag.GroupName;
-            g.id = ag.AnimeGroupID;
-
-            //g.videoqualities = ag.VideoQualities; <-- deadly trap
-            g.added = ag.DateTimeCreated;
-            g.edited = ag.DateTimeUpdated;
-
+                //g.videoqualities = ag.VideoQualities; <-- deadly trap
+                added = ag.DateTimeCreated,
+                edited = ag.DateTimeUpdated
+            };
             Video vag = ag.GetPlexContract(uid);
 
             if (vag != null)
@@ -144,8 +144,10 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         foreach (Shoko.Models.PlexAndKodi.Tag otg in vag.Genres)
                         {
-                            Tag new_tag = new Tag();
-                            new_tag.tag = otg.Value;
+                            Tag new_tag = new Tag
+                            {
+                                tag = otg.Value
+                            };
                             g.tags.Add(new_tag);
                         }
                     }

@@ -12,19 +12,17 @@ namespace Shoko.Server
 {
     public sealed class UnhandledExceptionManager
     {
-        private static bool _blnLogToFileOK;
-        private static bool _blnLogToEmailOK;
-        private static bool _blnLogToScreenshotOK;
+        private static bool _blnLogToFileOK = false;
+        private static bool _blnLogToScreenshotOK = false;
         private static bool _blnLogToEventLogOK;
-        private static bool _blnLogToDatabaseOK;
 
         private static System.Drawing.Imaging.ImageFormat _ScreenshotImageFormat =
             System.Drawing.Imaging.ImageFormat.Png;
 
-        private static string _strScreenshotFullPath;
+        private static string _strScreenshotFullPath = "";
 
-        private static string _strLogFullPath;
-        private static System.Reflection.Assembly _objParentAssembly = null;
+        private static string _strLogFullPath = "";
+        private static Assembly _objParentAssembly = null;
         private static string _strException;
 
         private static string _strExceptionType;
@@ -118,7 +116,7 @@ namespace Shoko.Server
             {
                 return System.IO.File.GetLastWriteTime(objAssembly.Location);
             }
-            catch (Exception ex)
+            catch
             {
                 return DateTime.MaxValue;
             }
@@ -145,8 +143,8 @@ namespace Shoko.Server
                 //dtBuild = ((DateTime)"01/01/2000").AddDays(objVersion.Build).AddSeconds(objVersion.Revision * 2);
                 dtBuild =
                     Convert.ToDateTime("01/01/2000")
-                        .AddDays((double) objVersion.Build)
-                        .AddSeconds((double) (objVersion.Revision * 2));
+                        .AddDays(objVersion.Build)
+                        .AddSeconds(objVersion.Revision * 2);
                 if (TimeZone.IsDaylightSavingTime(DateTime.Now,
                     TimeZone.CurrentTimeZone.GetDaylightChanges(DateTime.Now.Year)))
                 {
@@ -304,7 +302,7 @@ namespace Shoko.Server
                 //-- textfile logging takes < 50ms
                 ExceptionToFile();
             }
-            catch (Exception ex)
+            catch
             {
                 //-- generic catch because any exceptions inside the UEH
                 //-- will cause the code to terminate immediately
@@ -430,13 +428,13 @@ namespace Shoko.Server
 
         private static void ExceptionToUI()
         {
-            const string _strWhatHappened =
+            /*const string _strWhatHappened =
                 "There was an unexpected error in (app). This may be due to a programming bug.";
             string _strHowUserAffected = null;
             const string _strWhatUserCanDo =
                 "Restart (app), and try repeating your last action. Try alternative methods of performing the same action.";
 
-            _strHowUserAffected = "The action you requested was not performed.";
+            _strHowUserAffected = "The action you requested was not performed.";*/
 
 
             //ApplicationController.ShowError(_strHowUserAffected, FormatExceptionForUser(false));
@@ -471,7 +469,7 @@ namespace Shoko.Server
                     Environment.NewLine + _strException, EventLogEntryType.Error);
                 _blnLogToEventLogOK = true;
             }
-            catch (Exception ex)
+            catch
             {
                 _blnLogToEventLogOK = false;
             }
@@ -521,7 +519,7 @@ namespace Shoko.Server
                 //return System.Security.Principal.WindowsIdentity.GetCurrent().Name();
                 return WindowsIdentity.GetCurrent().Name;
             }
-            catch (Exception ex)
+            catch
             {
                 return "";
             }
@@ -536,7 +534,7 @@ namespace Shoko.Server
             {
                 return System.Environment.UserDomainName + "\\" + System.Environment.UserName;
             }
-            catch (Exception ex)
+            catch
             {
                 return "";
             }
@@ -797,10 +795,10 @@ namespace Shoko.Server
         {
             try
             {
-                string strIP = System.Net.Dns.GetHostByName(System.Net.Dns.GetHostName()).AddressList[0].ToString();
+                string strIP = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName()).AddressList[0].ToString();
                 return strIP;
             }
-            catch (Exception ex)
+            catch
             {
                 return "127.0.0.1";
             }
@@ -820,7 +818,7 @@ namespace Shoko.Server
         {
             try
             {
-                string strTemp = Convert.ToString(ConfigurationSettings.AppSettings.Get(_strClassName + "/" + strKey));
+                string strTemp = Convert.ToString(ConfigurationManager.AppSettings.Get(_strClassName + "/" + strKey));
                 if (strTemp == null)
                 {
                     if (strDefault == null)
@@ -862,30 +860,16 @@ namespace Shoko.Server
             string strTemp = null;
             try
             {
-                strTemp = ConfigurationSettings.AppSettings.Get(_strClassName + "/" + strKey);
+                strTemp = ConfigurationManager.AppSettings.Get(_strClassName + "/" + strKey);
             }
-            catch (Exception ex)
+            catch
             {
-                if (blnDefault == null)
-                {
-                    return false;
-                }
-                else
-                {
-                    return blnDefault;
-                }
+                return blnDefault;
             }
 
             if (strTemp == null)
             {
-                if (blnDefault == null)
-                {
-                    return false;
-                }
-                else
-                {
-                    return blnDefault;
-                }
+                return blnDefault;
             }
             else
             {

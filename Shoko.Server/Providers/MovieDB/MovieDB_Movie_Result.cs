@@ -70,11 +70,13 @@ namespace Shoko.Server.Providers.MovieDB
 
         public CL_MovieDBMovieSearch_Response ToContract()
         {
-            CL_MovieDBMovieSearch_Response cl = new CL_MovieDBMovieSearch_Response();
-            cl.MovieID = this.MovieID;
-            cl.MovieName = this.MovieName;
-            cl.OriginalName = this.OriginalName;
-            cl.Overview = this.Overview;
+            CL_MovieDBMovieSearch_Response cl = new CL_MovieDBMovieSearch_Response
+            {
+                MovieID = this.MovieID,
+                MovieName = this.MovieName,
+                OriginalName = this.OriginalName,
+                Overview = this.Overview
+            };
             return cl;
         }
     }

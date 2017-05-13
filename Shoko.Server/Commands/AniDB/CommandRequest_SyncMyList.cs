@@ -55,9 +55,11 @@ namespace Shoko.Server.Commands
                     RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
                 if (sched == null)
                 {
-                    sched = new ScheduledUpdate();
-                    sched.UpdateType = (int) ScheduledUpdateType.AniDBMyListSync;
-                    sched.UpdateDetails = "";
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.AniDBMyListSync,
+                        UpdateDetails = ""
+                    };
                 }
                 else
                 {
@@ -123,7 +125,7 @@ namespace Shoko.Server.Commands
                         if (myitem.IsWatched) watchedItems++;
 
                         //calculate percentage
-                        pct = (double) totalItems / (double) cmd.MyListItems.Count * (double) 100;
+                        pct = totalItems / (double)cmd.MyListItems.Count * 100;
                         string spct = pct.ToString("#0.0");
 
                         string hash = string.Empty;
@@ -254,13 +256,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

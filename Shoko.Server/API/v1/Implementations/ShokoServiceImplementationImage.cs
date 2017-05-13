@@ -83,15 +83,15 @@ namespace Shoko.Server
             do
             {
                 nheight = calcwidth / newratio;
-                if (nheight > (float) im.Height + 0.5F)
+                if (nheight > im.Height + 0.5F)
                 {
-                    calcwidth = calcwidth * ((float) im.Height / nheight);
+                    calcwidth = calcwidth * (im.Height / nheight);
                 }
                 else
                 {
                     calcheight = nheight;
                 }
-            } while (nheight > (float) im.Height + 0.5F);
+            } while (nheight > im.Height + 0.5F);
 
             int newwidth = (int) Math.Round(calcwidth);
             int newheight = (int) Math.Round(calcheight);

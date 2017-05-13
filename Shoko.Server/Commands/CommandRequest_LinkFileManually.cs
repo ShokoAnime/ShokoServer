@@ -20,7 +20,7 @@ namespace Shoko.Server.Commands
     [Serializable]
     public class CommandRequest_LinkFileManually : CommandRequestImplementation, ICommandRequest
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private new static Logger logger = LogManager.GetCurrentClassLogger();
 
         public int VideoLocalID { get; set; }
         public int EpisodeID { get; set; }
@@ -170,13 +170,14 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

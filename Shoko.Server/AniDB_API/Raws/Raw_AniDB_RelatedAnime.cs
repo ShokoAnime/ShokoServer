@@ -28,8 +28,7 @@ namespace AniDBAPI
 
             this.AnimeID = anid;
 
-            int id = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out id);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out int id);
             this.RelatedAnimeID = id;
 
             this.RelationType = AniDBHTTPHelper.TryGetAttribute(node, "type");

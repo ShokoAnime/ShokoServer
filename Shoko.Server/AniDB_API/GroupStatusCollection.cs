@@ -79,9 +79,7 @@ namespace AniDBAPI
             {
                 //BaseConfig.MyAnimeLog.Write("s: {0}", sDetails[i]);
 
-                Raw_AniDB_GroupStatus grp = new Raw_AniDB_GroupStatus();
-                grp.AnimeID = animeID;
-
+                Raw_AniDB_GroupStatus grp = new Raw_AniDB_GroupStatus { AnimeID = animeID };
                 try
                 {
                     // {int group id}|{str group name}|{int completion state}|{int last episode number}|{int rating}|{int votes}|{str episode range}\n
@@ -97,7 +95,7 @@ namespace AniDBAPI
                 }
                 catch (Exception ex)
                 {
-                    NLog.LogManager.GetCurrentClassLogger().ErrorException(ex.ToString(), ex);
+                    NLog.LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
 
                 //BaseConfig.MyAnimeLog.Write("grp: {0}", grp);

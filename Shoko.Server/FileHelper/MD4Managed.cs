@@ -151,24 +151,24 @@ namespace Shoko.Server.FileHelper
 
         private uint F(uint x, uint y, uint z)
         {
-            return (uint) ((x & y) | (~x & z));
+            return (x & y) | (~x & z);
         }
 
         private uint G(uint x, uint y, uint z)
         {
-            return (uint) ((x & y) | (x & z) | (y & z));
+            return (x & y) | (x & z) | (y & z);
         }
 
         private uint H(uint x, uint y, uint z)
         {
-            return (uint) (x ^ y ^ z);
+            return x ^ y ^ z;
         }
 
         /* ROTATE_LEFT rotates x left n bits. */
 
         private uint ROL(uint x, byte n)
         {
-            return (uint) ((x << n) | (x >> (32 - n)));
+            return (x << n) | (x >> (32 - n));
         }
 
         /* FF, GG and HH are transformations for rounds 1, 2 and 3 */

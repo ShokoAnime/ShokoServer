@@ -57,9 +57,11 @@ namespace Shoko.Server.Commands.AniDB
                     RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
                 if (sched == null)
                 {
-                    sched = new ScheduledUpdate();
-                    sched.UpdateType = (int) ScheduledUpdateType.AniDBMylistStats;
-                    sched.UpdateDetails = "";
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.AniDBMylistStats,
+                        UpdateDetails = ""
+                    };
                 }
                 else
                 {
@@ -117,13 +119,14 @@ namespace Shoko.Server.Commands.AniDB
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

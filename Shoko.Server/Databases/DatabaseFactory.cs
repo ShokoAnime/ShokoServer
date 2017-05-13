@@ -78,19 +78,19 @@ namespace Shoko.Server.Databases
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 DatabaseFactory.CloseSessionFactory();
-                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Initializing;
+                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Initializing;
                 ISessionFactory temp = DatabaseFactory.SessionFactory;
                 Instance.Init();
                 int version = Instance.GetDatabaseVersion();
                 if (version > Instance.RequiredVersion)
                 {
                     ServerState.Instance.CurrentSetupStatus =
-                        Shoko.Commons.Properties.Resources.Database_NotSupportedVersion;
+                        Commons.Properties.Resources.Database_NotSupportedVersion;
                     return false;
                 }
                 if (version != 0 && version < Instance.RequiredVersion)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Backup;
+                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Backup;
                     Instance.BackupDatabase(Instance.GetDatabaseBackupName(version));
                 }
                 try
@@ -110,7 +110,7 @@ namespace Shoko.Server.Databases
                             "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         ServerState.Instance.CurrentSetupStatus =
-                            Shoko.Commons.Properties.Resources.Server_DatabaseFail;
+                            Commons.Properties.Resources.Server_DatabaseFail;
                     }
                     else
                     {
@@ -118,7 +118,7 @@ namespace Shoko.Server.Databases
                         {
                             logger.Error(ex, "Database TimeOut: " + ex.ToString());
                             ServerState.Instance.CurrentSetupStatus =
-                                Shoko.Commons.Properties.Resources.Server_DatabaseTimeOut;
+                                Commons.Properties.Resources.Server_DatabaseTimeOut;
                         }
                     }
                     return false;
@@ -129,7 +129,7 @@ namespace Shoko.Server.Databases
             catch (Exception ex)
             {
                 logger.Error(ex, "Could not init database: " + ex.ToString());
-                ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Server_DatabaseFail;
+                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_DatabaseFail;
                 return false;
             }
         }

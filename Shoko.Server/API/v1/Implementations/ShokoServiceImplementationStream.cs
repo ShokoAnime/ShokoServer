@@ -107,7 +107,7 @@ namespace Shoko.Server
 
             if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
             {
-                outstream.CrossPosition = (long) ((double) totalsize * WatchedThreshold);
+                outstream.CrossPosition = (long)(totalsize * WatchedThreshold);
                 outstream.CrossPositionCrossed +=
                     (a) =>
                     {

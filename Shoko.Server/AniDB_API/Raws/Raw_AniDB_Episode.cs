@@ -87,8 +87,7 @@ namespace AniDBAPI
             EpisodeID = int.Parse(sDetails[0].Trim());
             AnimeID = int.Parse(sDetails[1].Trim());
 
-            int lMinutes = 0;
-            int.TryParse(sDetails[2].Trim(), out lMinutes);
+            int.TryParse(sDetails[2].Trim(), out int lMinutes);
             int secs = lMinutes * 60;
             LengthSeconds = secs;
 
@@ -129,20 +128,16 @@ namespace AniDBAPI
             IsDoubleEpisode = GetIsDoubleEpisode(epno);
 
             string length = AniDBHTTPHelper.TryGetProperty(node, "length");
-            int lMinutes = 0;
-            int.TryParse(length, out lMinutes);
+            int.TryParse(length, out int lMinutes);
             int secs = lMinutes * 60;
             LengthSeconds = secs;
-
-            decimal rating = 0;
-            int votes = 0;
 
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
             //string airdate = TryGetProperty(node, "airdate");
-            decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "rating"), style, culture, out rating);
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "rating", "votes"), out votes);
+            decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "rating"), style, culture, out decimal rating);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "rating", "votes"), out int votes);
             Rating = rating;
             Votes = votes;
             EnglishName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "en");
@@ -199,8 +194,7 @@ namespace AniDBAPI
             EpisodeID = int.Parse(sDetails[2].Trim());
             AnimeID = int.Parse(sDetails[1].Trim());
 
-            int lMinutes = 0;
-            int.TryParse(sDetails[15].Trim(), out lMinutes);
+            int.TryParse(sDetails[15].Trim(), out int lMinutes);
             int secs = lMinutes * 60;
             LengthSeconds = secs;
 
@@ -237,7 +231,6 @@ namespace AniDBAPI
         private int GetEpisodeNumber(string fld)
         {
             //BaseConfig.MyAnimeLog.Write("GetEpisodeNumber: {0}", fld);
-            int epno = 0;
 
             int epType = GetEpisodeType(fld);
 
@@ -246,7 +239,7 @@ namespace AniDBAPI
             if (epType > 1)
                 fldTemp = fld.Trim().Substring(1, fld.Trim().Length - 1);
 
-            if (int.TryParse(fldTemp, out epno))
+            if (int.TryParse(fldTemp, out int epno))
             {
                 return epno;
             }
@@ -263,7 +256,6 @@ namespace AniDBAPI
         private int GetIsDoubleEpisode(string fld)
         {
             //BaseConfig.MyAnimeLog.Write("GetIsDoubleEpisode: {0}", fld);
-            int epno = 0;
 
             int epType = GetEpisodeType(fld);
 
@@ -272,7 +264,7 @@ namespace AniDBAPI
             if (epType > 1)
                 fldTemp = fld.Trim().Substring(1, fld.Trim().Length - 1);
 
-            if (int.TryParse(fldTemp, out epno))
+            if (int.TryParse(fldTemp, out int epno))
                 return 0;
             else
                 return 1;
@@ -283,11 +275,10 @@ namespace AniDBAPI
             //BaseConfig.MyAnimeLog.Write("GetEpisodeType: {0}", fld);
 
             string epType = "";
-            int epno = 0;
-            if (int.TryParse(fld.Trim().Substring(0, 1), out epno))
-                // if the first char is a numeric than it is a normal episode
+            if (int.TryParse(fld.Trim().Substring(0, 1), out int epno))
+            // if the first char is a numeric than it is a normal episode
             {
-                return (int) enEpisodeType.Episode;
+                return (int)enEpisodeType.Episode;
             }
             else
             {
@@ -300,19 +291,19 @@ namespace AniDBAPI
                 switch (epType)
                 {
                     case "":
-                        return (int) enEpisodeType.Episode;
+                        return (int)enEpisodeType.Episode;
                     case "C":
-                        return (int) enEpisodeType.Credits;
+                        return (int)enEpisodeType.Credits;
                     case "S":
-                        return (int) enEpisodeType.Special;
+                        return (int)enEpisodeType.Special;
                     case "O":
-                        return (int) enEpisodeType.Other;
+                        return (int)enEpisodeType.Other;
                     case "T":
-                        return (int) enEpisodeType.Trailer;
+                        return (int)enEpisodeType.Trailer;
                     case "P":
-                        return (int) enEpisodeType.Parody;
+                        return (int)enEpisodeType.Parody;
                     default:
-                        return (int) enEpisodeType.Episode;
+                        return (int)enEpisodeType.Episode;
                 }
             }
         }

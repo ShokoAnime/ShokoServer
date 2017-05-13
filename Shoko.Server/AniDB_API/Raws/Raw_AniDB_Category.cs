@@ -35,16 +35,14 @@ namespace AniDBAPI
             this.CategoryID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
             this.ParentID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "parentid"));
 
-            bool hentai = false;
-            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "hentai"), out hentai);
+            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "hentai"), out bool hentai);
             this.IsHentai = hentai ? 1 : 0;
 
 
             this.CategoryName = AniDBHTTPHelper.TryGetProperty(node, "name");
             this.CategoryDescription = AniDBHTTPHelper.TryGetProperty(node, "description");
 
-            int weight = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out weight);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out int weight);
             this.Weighting = weight;
         }
     }

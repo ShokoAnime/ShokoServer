@@ -46,8 +46,7 @@ namespace Shoko.Server.Models
             set
             {
                 _plexcontract = value;
-                int outsize;
-                PlexContractBlob = CompressionHelper.SerializeObject(value, out outsize, true);
+                PlexContractBlob = CompressionHelper.SerializeObject(value, out int outsize, true);
                 PlexContractSize = outsize;
                 PlexContractVersion = PLEXCONTRACT_VERSION;
             }
@@ -183,10 +182,12 @@ namespace Shoko.Server.Models
 
                 if (epUserRecord == null)
                 {
-                    epUserRecord = new SVR_AnimeEpisode_User();
-                    epUserRecord.PlayedCount = 0;
-                    epUserRecord.StoppedCount = 0;
-                    epUserRecord.WatchedCount = 0;
+                    epUserRecord = new SVR_AnimeEpisode_User
+                    {
+                        PlayedCount = 0,
+                        StoppedCount = 0,
+                        WatchedCount = 0
+                    };
                 }
                 epUserRecord.AnimeEpisodeID = this.AnimeEpisodeID;
                 epUserRecord.AnimeSeriesID = this.AnimeSeriesID;
@@ -236,15 +237,16 @@ namespace Shoko.Server.Models
                 SVR_AnimeEpisode_User rr = GetUserRecord(userid);
                 if (rr != null)
                     return rr.Contract;
-                rr = new SVR_AnimeEpisode_User();
-                rr.PlayedCount = 0;
-                rr.StoppedCount = 0;
-                rr.WatchedCount = 0;
-                rr.AnimeEpisodeID = this.AnimeEpisodeID;
-                rr.AnimeSeriesID = this.AnimeSeriesID;
-                rr.JMMUserID = userid;
-                rr.WatchedDate = null;
-
+                rr = new SVR_AnimeEpisode_User
+                {
+                    PlayedCount = 0,
+                    StoppedCount = 0,
+                    WatchedCount = 0,
+                    AnimeEpisodeID = this.AnimeEpisodeID,
+                    AnimeSeriesID = this.AnimeSeriesID,
+                    JMMUserID = userid,
+                    WatchedDate = null
+                };
                 if (session != null)
                 {
                     RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);

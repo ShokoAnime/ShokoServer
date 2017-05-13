@@ -57,7 +57,7 @@ namespace Shoko.Server.Databases
             {
                 AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
             }
-            catch (Exception e) //First Time
+            catch //First Time
             {
                 AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
             }
@@ -66,12 +66,14 @@ namespace Shoko.Server.Databases
 
         protected void AddVersion(string version, string revision, string command)
         {
-            Versions v = new Versions();
-            v.VersionType = Constants.DatabaseTypeKey;
-            v.VersionValue = version;
-            v.VersionRevision = revision;
-            v.VersionCommand = command;
-            v.VersionProgram = ServerState.Instance.ApplicationVersion;
+            Versions v = new Versions
+            {
+                VersionType = Constants.DatabaseTypeKey,
+                VersionValue = version,
+                VersionRevision = revision,
+                VersionCommand = command,
+                VersionProgram = ServerState.Instance.ApplicationVersion
+            };
             RepoFactory.Versions.Save(v);
             Dictionary<string, Versions> dv = new Dictionary<string, Versions>();
             if (AllVersions.ContainsKey(v.VersionValue))
@@ -188,20 +190,20 @@ namespace Shoko.Server.Databases
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Users;
+            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Users;
             CreateInitialUsers();
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_Filters;
+            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Filters;
             CreateInitialGroupFilters();
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_LockFilters;
+            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_LockFilters;
             CreateOrVerifyLockedFilters();
 
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_RenameScripts;
+            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_RenameScripts;
             CreateInitialRenameScript();
 
-            ServerState.Instance.CurrentSetupStatus = Shoko.Commons.Properties.Resources.Database_CustomTags;
+            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CustomTags;
             CreateInitialCustomTags();
         }
 
@@ -219,117 +221,149 @@ namespace Shoko.Server.Databases
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             // Favorites
-            SVR_GroupFilter gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Favorites;
-            gf.ApplyToSeries = 0;
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            GroupFilterCondition gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.Favourite;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-            gfc.ConditionParameter = "";
+            SVR_GroupFilter gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_Favorites,
+                ApplyToSeries = 0,
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            GroupFilterCondition gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.Favourite,
+                ConditionOperator = (int)GroupFilterOperator.Include,
+                ConditionParameter = ""
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Missing Episodes
-            gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_MissingEpisodes;
-            gf.ApplyToSeries = 0;
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.MissingEpisodesCollecting;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-            gfc.ConditionParameter = "";
+            gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_MissingEpisodes,
+                ApplyToSeries = 0,
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting,
+                ConditionOperator = (int)GroupFilterOperator.Include,
+                ConditionParameter = ""
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
 
             // Newly Added Series
-            gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Added;
-            gf.ApplyToSeries = 0;
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.SeriesCreatedDate;
-            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
-            gfc.ConditionParameter = "10";
+            gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_Added,
+                ApplyToSeries = 0,
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.SeriesCreatedDate,
+                ConditionOperator = (int)GroupFilterOperator.LastXDays,
+                ConditionParameter = "10"
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Newly Airing Series
-            gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Airing;
-            gf.ApplyToSeries = 0;
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.AirDate;
-            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
-            gfc.ConditionParameter = "30";
+            gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_Airing,
+                ApplyToSeries = 0,
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.AirDate,
+                ConditionOperator = (int)GroupFilterOperator.LastXDays,
+                ConditionParameter = "30"
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Votes Needed
-            gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_Votes;
-            gf.ApplyToSeries = 1;
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.CompletedSeries;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-            gfc.ConditionParameter = "";
+            gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_Votes,
+                ApplyToSeries = 1,
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.CompletedSeries,
+                ConditionOperator = (int)GroupFilterOperator.Include,
+                ConditionParameter = ""
+            };
             gf.Conditions.Add(gfc);
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.HasUnwatchedEpisodes;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
-            gfc.ConditionParameter = "";
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
+                ConditionOperator = (int)GroupFilterOperator.Exclude,
+                ConditionParameter = ""
+            };
             gf.Conditions.Add(gfc);
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.UserVotedAny;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
-            gfc.ConditionParameter = "";
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.UserVotedAny,
+                ConditionOperator = (int)GroupFilterOperator.Exclude,
+                ConditionParameter = ""
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // Recently Watched
-            gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_RecentlyWatched;
-            gf.ApplyToSeries = 0;
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.EpisodeWatchedDate;
-            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
-            gfc.ConditionParameter = "10";
+            gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_RecentlyWatched,
+                ApplyToSeries = 0,
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.EpisodeWatchedDate,
+                ConditionOperator = (int)GroupFilterOperator.LastXDays,
+                ConditionParameter = "10"
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
             // TvDB/MovieDB Link Missing
-            gf = new SVR_GroupFilter();
-            gf.GroupFilterName = Shoko.Commons.Properties.Resources.Filter_LinkMissing;
-            gf.ApplyToSeries = 1; // This makes far more sense as applied to series
-            gf.BaseCondition = 1;
-            gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
-            gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
-            gfc.ConditionParameter = "";
+            gf = new SVR_GroupFilter
+            {
+                GroupFilterName = Commons.Properties.Resources.Filter_LinkMissing,
+                ApplyToSeries = 1, // This makes far more sense as applied to series
+                BaseCondition = 1,
+                Locked = 0,
+                FilterType = (int)GroupFilterType.UserDefined
+            };
+            gfc = new GroupFilterCondition
+            {
+                ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo,
+                ConditionOperator = (int)GroupFilterOperator.Exclude,
+                ConditionParameter = ""
+            };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
@@ -341,24 +375,28 @@ namespace Shoko.Server.Databases
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            SVR_JMMUser defaultUser = new SVR_JMMUser();
-            defaultUser.CanEditServerSettings = 1;
-            defaultUser.HideCategories = "";
-            defaultUser.IsAdmin = 1;
-            defaultUser.IsAniDBUser = 1;
-            defaultUser.IsTraktUser = 1;
-            defaultUser.Password = "";
-            defaultUser.Username = Shoko.Commons.Properties.Resources.Users_Default;
+            SVR_JMMUser defaultUser = new SVR_JMMUser
+            {
+                CanEditServerSettings = 1,
+                HideCategories = "",
+                IsAdmin = 1,
+                IsAniDBUser = 1,
+                IsTraktUser = 1,
+                Password = "",
+                Username = Commons.Properties.Resources.Users_Default
+            };
             RepoFactory.JMMUser.Save(defaultUser, true);
 
-            SVR_JMMUser familyUser = new SVR_JMMUser();
-            familyUser.CanEditServerSettings = 1;
-            familyUser.HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted";
-            familyUser.IsAdmin = 1;
-            familyUser.IsAniDBUser = 1;
-            familyUser.IsTraktUser = 1;
-            familyUser.Password = "";
-            familyUser.Username = Shoko.Commons.Properties.Resources.Users_FamilyFriendly;
+            SVR_JMMUser familyUser = new SVR_JMMUser
+            {
+                CanEditServerSettings = 1,
+                HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted",
+                IsAdmin = 1,
+                IsAniDBUser = 1,
+                IsTraktUser = 1,
+                Password = "",
+                Username = Commons.Properties.Resources.Users_FamilyFriendly
+            };
             RepoFactory.JMMUser.Save(familyUser, true);
         }
 
@@ -370,7 +408,7 @@ namespace Shoko.Server.Databases
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            initialScript.ScriptName = Shoko.Commons.Properties.Resources.Rename_Default;
+            initialScript.ScriptName = Commons.Properties.Resources.Rename_Default;
             initialScript.IsEnabledOnImport = 0;
             initialScript.Script =
                 "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" +
@@ -428,33 +466,43 @@ namespace Shoko.Server.Databases
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 // Dropped
-                CustomTag tag = new CustomTag();
-                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_Dropped;
-                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_DroppedInfo;
+                CustomTag tag = new CustomTag
+                {
+                    TagName = Commons.Properties.Resources.CustomTag_Dropped,
+                    TagDescription = Commons.Properties.Resources.CustomTag_DroppedInfo
+                };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Pinned
-                tag = new CustomTag();
-                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_Pinned;
-                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_PinnedInfo;
+                tag = new CustomTag
+                {
+                    TagName = Commons.Properties.Resources.CustomTag_Pinned,
+                    TagDescription = Commons.Properties.Resources.CustomTag_PinnedInfo
+                };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Ongoing
-                tag = new CustomTag();
-                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_Ongoing;
-                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_OngoingInfo;
+                tag = new CustomTag
+                {
+                    TagName = Commons.Properties.Resources.CustomTag_Ongoing,
+                    TagDescription = Commons.Properties.Resources.CustomTag_OngoingInfo
+                };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Waiting for Series Completion
-                tag = new CustomTag();
-                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_SeriesComplete;
-                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_SeriesCompleteInfo;
+                tag = new CustomTag
+                {
+                    TagName = Commons.Properties.Resources.CustomTag_SeriesComplete,
+                    TagDescription = Commons.Properties.Resources.CustomTag_SeriesCompleteInfo
+                };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Waiting for Bluray Completion
-                tag = new CustomTag();
-                tag.TagName = Shoko.Commons.Properties.Resources.CustomTag_BlurayComplete;
-                tag.TagDescription = Shoko.Commons.Properties.Resources.CustomTag_BlurayCompleteInfo;
+                tag = new CustomTag
+                {
+                    TagName = Commons.Properties.Resources.CustomTag_BlurayComplete,
+                    TagDescription = Commons.Properties.Resources.CustomTag_BlurayCompleteInfo
+                };
                 RepoFactory.CustomTag.Save(tag);
             }
             catch (Exception ex)

@@ -14,12 +14,16 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         public void Init(float progressVal, int? traktId, string slugId, int season, int episodeNumber)
         {
             progress = progressVal;
-            episode = new TraktV2Episode();
-            episode.ids = new TraktV2EpisodeIds();
-            episode.ids.trakt = traktId.ToString();
-            episode.ids.slug = slugId;
-            episode.season = season;
-            episode.number = episodeNumber;
+            episode = new TraktV2Episode
+            {
+                ids = new TraktV2EpisodeIds
+                {
+                    trakt = traktId.ToString(),
+                    slug = slugId
+                },
+                season = season,
+                number = episodeNumber
+            };
         }
     }
 }

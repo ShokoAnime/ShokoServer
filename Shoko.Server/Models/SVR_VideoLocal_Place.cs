@@ -237,8 +237,7 @@ namespace Shoko.Server.Models
 
             if (!string.IsNullOrEmpty(m.Duration))
             {
-                double duration;
-                bool isValidDuration = double.TryParse(m.Duration, out duration);
+                bool isValidDuration = double.TryParse(m.Duration, out double duration);
                 if (isValidDuration)
                     info.Duration =
                         (long) double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);

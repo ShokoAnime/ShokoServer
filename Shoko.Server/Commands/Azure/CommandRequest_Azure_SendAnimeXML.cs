@@ -75,13 +75,14 @@ namespace Shoko.Server.Commands.Azure
                     re.Close();
                 }
 
-                Azure_AnimeXML xml = new Azure_AnimeXML();
-                xml.AnimeID = AnimeID;
-                xml.AnimeName = anime.MainTitle;
-                xml.DateDownloaded = 0;
-                xml.Username = ServerSettings.AniDB_Username;
-                xml.XMLContent = rawXML;
-
+                Azure_AnimeXML xml = new Azure_AnimeXML
+                {
+                    AnimeID = AnimeID,
+                    AnimeName = anime.MainTitle,
+                    DateDownloaded = 0,
+                    Username = ServerSettings.AniDB_Username,
+                    XMLContent = rawXML
+                };
                 AzureWebAPI.Send_AnimeXML(xml);
             }
             catch (Exception ex)
@@ -122,13 +123,14 @@ namespace Shoko.Server.Commands.Azure
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest();
-            cq.CommandID = this.CommandID;
-            cq.CommandType = this.CommandType;
-            cq.Priority = this.Priority;
-            cq.CommandDetails = this.ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
-
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = this.CommandID,
+                CommandType = this.CommandType,
+                Priority = this.Priority,
+                CommandDetails = this.ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
             return cq;
         }
     }

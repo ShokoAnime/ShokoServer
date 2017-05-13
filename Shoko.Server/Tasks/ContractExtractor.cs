@@ -179,9 +179,8 @@ namespace Shoko.Server.Tasks
                 }
                 else
                 {
-                    Action<ISessionWrapper, ZipArchive> contractDumpAction;
 
-                    if (ContractExtractors.TryGetValue(entityType, out contractDumpAction))
+                    if (ContractExtractors.TryGetValue(entityType, out Action<ISessionWrapper, ZipArchive> contractDumpAction))
                     {
                         contractDumpAction(session, zip);
                     }

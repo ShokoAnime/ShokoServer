@@ -163,8 +163,10 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     foreach (Shoko.Models.PlexAndKodi.Tag otg in nv.Genres)
                     {
-                        Tag new_tag = new Tag();
-                        new_tag.tag = otg.Value;
+                        Tag new_tag = new Tag
+                        {
+                            tag = otg.Value
+                        };
                         sr.tags.Add(new_tag);
                     }
                 }
@@ -304,9 +306,8 @@ namespace Shoko.Server.API.v2.Models.common
         {
             Serie a = obj as Serie;
             if (a == null) return 1;
-            int s, s1;
             // try year first, as it is more likely to have relevannt data
-            if (int.TryParse(a.year, out s1) && int.TryParse(year, out s))
+            if (int.TryParse(a.year, out int s1) && int.TryParse(year, out int s))
             {
                 if (s < s1) return -1;
                 if (s > s1) return 1;
@@ -315,10 +316,9 @@ namespace Shoko.Server.API.v2.Models.common
             if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")) &&
                 !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
             {
-                DateTime d, d1;
                 if (DateTime.TryParseExact(a.air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                        out d1) &&
-                    DateTime.TryParseExact(air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out d))
+                        out DateTime d1) &&
+                    DateTime.TryParseExact(air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime d))
                 {
                     if (d < d1) return -1;
                     if (d > d1) return 1;

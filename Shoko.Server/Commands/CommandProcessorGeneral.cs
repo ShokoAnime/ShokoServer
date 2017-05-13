@@ -126,11 +126,11 @@ namespace Shoko.Server.Commands
 
             workerCommands.WorkerReportsProgress = true;
             workerCommands.WorkerSupportsCancellation = true;
-            workerCommands.DoWork += new DoWorkEventHandler(workerCommands_DoWork);
-            workerCommands.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerCommands_RunWorkerCompleted);
+            workerCommands.DoWork += new DoWorkEventHandler(WorkerCommands_DoWork);
+            workerCommands.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkerCommands_RunWorkerCompleted);
         }
 
-        void workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        void WorkerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
@@ -181,7 +181,7 @@ namespace Shoko.Server.Commands
                 this.workerCommands.RunWorkerAsync();
         }
 
-        void workerCommands_DoWork(object sender, DoWorkEventArgs e)
+        void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
         {
             while (true)
             {

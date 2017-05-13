@@ -110,9 +110,8 @@ namespace Shoko.Server.PlexAndKodi
             for (int x = 0; x < aspects.Length; x += 2)
             {
                 string key = aspects[x].Trim().ToUpper();
-                double val = 0.66667D;
 
-                double.TryParse(aspects[x + 1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out val);
+                double.TryParse(aspects[x + 1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double val);
                 relations.Add(key, val);
             }
 
@@ -173,8 +172,7 @@ namespace Shoko.Server.PlexAndKodi
         public static SVR_JMMUser GetJMMUser(string userid)
         {
             IReadOnlyList<SVR_JMMUser> allusers = RepoFactory.JMMUser.GetAll();
-            int id = 0;
-            int.TryParse(userid, out id);
+            int.TryParse(userid, out int id);
             return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
                    allusers.FirstOrDefault(a => a.IsAdmin == 1) ??
                    allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
@@ -222,17 +220,19 @@ namespace Shoko.Server.PlexAndKodi
 
         public static Video VideoFromVideoLocal(IProvider prov, SVR_VideoLocal v, int userid)
         {
-            Video l = new Video();
-            l.AnimeType = AnimeTypes.AnimeFile.ToString();
-            l.Id = v.VideoLocalID.ToString();
-            l.Type = "episode";
-            l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
-            l.Title = Path.GetFileNameWithoutExtension(v.FileName);
-            l.AddedAt = v.DateTimeCreated.ToUnixTime();
-            l.UpdatedAt = v.DateTimeUpdated.ToUnixTime();
-            l.OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate();
-            l.Year = v.DateTimeCreated.Year.ToString();
-            l.Medias = new List<Media>();
+            Video l = new Video
+            {
+                AnimeType = AnimeTypes.AnimeFile.ToString(),
+                Id = v.VideoLocalID.ToString(),
+                Type = "episode",
+                Summary = "Episode Overview Not Available", //TODO Intenationalization
+                Title = Path.GetFileNameWithoutExtension(v.FileName),
+                AddedAt = v.DateTimeCreated.ToUnixTime(),
+                UpdatedAt = v.DateTimeUpdated.ToUnixTime(),
+                OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate(),
+                Year = v.DateTimeCreated.Year.ToString(),
+                Medias = new List<Media>()
+            };
             VideoLocal_User vlr = v.GetUserRecord(userid);
             if (vlr != null)
             {
@@ -265,7 +265,7 @@ namespace Shoko.Server.PlexAndKodi
         public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_TvDBV2> cross,
             KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
         {
-            Video v = (Video) e.Key.PlexContract?.Clone<Video>(prov);
+            Video v = e.Key.PlexContract?.Clone<Video>(prov);
             if (v?.Thumb != null)
                 v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
@@ -283,7 +283,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                 }
                 RepoFactory.AnimeEpisode.Save(e.Key);
-                v = (Video) e.Key.PlexContract?.Clone<Video>(prov);
+                v = e.Key.PlexContract?.Clone<Video>(prov);
             }
             if (v != null)
             {
@@ -440,17 +440,17 @@ namespace Shoko.Server.PlexAndKodi
             CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
                 animeID, (int) enEpisodeType.Episode, anistart);
             if (xref != null) return;
-            xref = new CrossRef_AniDB_TvDBV2();
+            xref = new CrossRef_AniDB_TvDBV2
+            {
+                AnimeID = animeID,
+                AniDBStartEpisodeType = (int)enEpisodeType.Episode,
+                AniDBStartEpisodeNumber = anistart,
 
-            xref.AnimeID = animeID;
-            xref.AniDBStartEpisodeType = (int) enEpisodeType.Episode;
-            xref.AniDBStartEpisodeNumber = anistart;
-
-            xref.TvDBID = tvdbID;
-            xref.TvDBSeasonNumber = tvdbSeason;
-            xref.TvDBStartEpisodeNumber = 1;
-            xref.TvDBTitle = title;
-
+                TvDBID = tvdbID,
+                TvDBSeasonNumber = tvdbSeason,
+                TvDBStartEpisodeNumber = 1,
+                TvDBTitle = title
+            };
             RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
         }
 
@@ -745,10 +745,12 @@ namespace Shoko.Server.PlexAndKodi
                     List<AnimeTitle> newTitles = new List<AnimeTitle>();
                     foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
                     {
-                        AnimeTitle newTitle = new AnimeTitle();
-                        newTitle.Title = title.Title;
-                        newTitle.Language = title.Language;
-                        newTitle.Type = title.TitleType;
+                        AnimeTitle newTitle = new AnimeTitle
+                        {
+                            Title = title.Title,
+                            Language = title.Language,
+                            Type = title.TitleType
+                        };
                         newTitles.Add(newTitle);
                     }
                     v.Titles = newTitles;
@@ -764,8 +766,10 @@ namespace Shoko.Server.PlexAndKodi
                             AniDB_Seiyuu seiyuu = c?.Seiyuu;
                             if (!string.IsNullOrEmpty(ch))
                             {
-                                RoleTag t = new RoleTag();
-                                t.Value = seiyuu?.SeiyuuName;
+                                RoleTag t = new RoleTag
+                                {
+                                    Value = seiyuu?.SeiyuuName
+                                };
                                 if (seiyuu != null)
                                     t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
                                 t.Role = ch;
@@ -841,7 +845,7 @@ namespace Shoko.Server.PlexAndKodi
                         return v2;
                     }
                 }
-                catch (Exception e)
+                catch
                 {
                     //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
                 }
@@ -852,13 +856,15 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Video FromGroup(CL_AnimeGroup_User grp, CL_AnimeSeries_User ser, int userid, int subgrpcnt)
         {
-            Directory p = new Directory();
-            p.Id = grp.AnimeGroupID.ToString();
-            p.AnimeType = AnimeTypes.AnimeGroup.ToString();
-            p.Title = grp.GroupName;
-            p.Summary = grp.Description;
-            p.Type = "show";
-            p.AirDate = grp.Stat_AirDate_Min ?? DateTime.MinValue;
+            Directory p = new Directory
+            {
+                Id = grp.AnimeGroupID.ToString(),
+                AnimeType = AnimeTypes.AnimeGroup.ToString(),
+                Title = grp.GroupName,
+                Summary = grp.Description,
+                Type = "show",
+                AirDate = grp.Stat_AirDate_Min ?? DateTime.MinValue
+            };
             if (grp.Stat_AllYears.Count > 0)
             {
                 p.Year = grp.Stat_AllYears?.Min().ToString();
@@ -999,8 +1005,10 @@ namespace Shoko.Server.PlexAndKodi
                         AniDB_Seiyuu seiyuu = c?.Seiyuu;
                         if (!string.IsNullOrEmpty(ch))
                         {
-                            RoleTag t = new RoleTag();
-                            t.Value = seiyuu?.SeiyuuName;
+                            RoleTag t = new RoleTag
+                            {
+                                Value = seiyuu?.SeiyuuName
+                            };
                             if (seiyuu != null)
                                 t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
                             t.Role = ch;

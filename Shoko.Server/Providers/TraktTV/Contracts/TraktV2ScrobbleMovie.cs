@@ -14,11 +14,14 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         public void Init(float progressVal, string traktSlug, string traktId)
         {
             progress = progressVal;
-            movie = new TraktV2Movie();
-            movie.ids = new TraktV2Ids();
-            movie.ids.slug = traktSlug;
-            int traktID = 0;
-            int.TryParse(traktId, out traktID);
+            movie = new TraktV2Movie
+            {
+                ids = new TraktV2Ids
+                {
+                    slug = traktSlug
+                }
+            };
+            int.TryParse(traktId, out int traktID);
             movie.ids.trakt = traktID;
         }
     }

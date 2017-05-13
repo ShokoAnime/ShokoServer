@@ -407,10 +407,9 @@ namespace Shoko.Server
 
         public static bool FuzzyMatches(this string text, string query)
         {
-            int dist;
-            int k = Math.Max(Math.Min((int) (text.Length / 6D), (int) (query.Length / 6D)), 1);
+            int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || text.Length <= 4) k = 0;
-            return BitapFuzzySearch(text, query, k, out dist) > -1;
+            return BitapFuzzySearch(text, query, k, out int dist) > -1;
         }
 
         /// <summary>
@@ -801,7 +800,7 @@ namespace Shoko.Server
                 else
                     return null;
             }
-            catch (Exception ex)
+            catch
             {
                 //BaseConfig.MyAnimeLog.Write(ex.ToString());
                 return null;
@@ -1096,7 +1095,7 @@ namespace Shoko.Server
                     operatingSystem += " " + os.ServicePack;
                 }
                 //Append the OS architecture.  i.e. "Windows XP Service Pack 3 32-bit"
-                operatingSystem += " " + getOSArchitecture().ToString() + "-bit";
+                operatingSystem += " " + GetOSArchitecture().ToString() + "-bit";
             }
             //Return the information we've gathered.
             return operatingSystem;
@@ -1130,7 +1129,7 @@ namespace Shoko.Server
             return sBuilder.ToString();
         }
 
-        public static int getOSArchitecture()
+        public static int GetOSArchitecture()
         {
             if (Is64BitOperatingSystem)
                 return 64;
@@ -1152,9 +1151,8 @@ namespace Shoko.Server
                     return true;
                 // Ok, so we are a 32-bit process, but is the OS 64-bit?
                 // If we are running under Wow64 than the OS is 64-bit.
-                bool isWow64;
                 return ModuleContainsFunction("kernel32.dll", "IsWow64Process") &&
-                       IsWow64Process(GetCurrentProcess(), out isWow64) &&
+                       IsWow64Process(GetCurrentProcess(), out bool isWow64) &&
                        isWow64;
             }
         }
@@ -1184,19 +1182,21 @@ namespace Shoko.Server
 
         public static List<string> GetPossibleSubtitleFiles(string fileName)
         {
-            List<string> subtileFiles = new List<string>();
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".srt"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".ass"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".ssa"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".idx"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".sub"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".rar"));
+            List<string> subtileFiles = new List<string>
+            {
+                Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".srt"),
+                Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".ass"),
+                Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".ssa"),
+                Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".idx"),
+                Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".sub"),
+                Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".rar")
+            };
             return subtileFiles;
         }
 
@@ -1207,8 +1207,8 @@ namespace Shoko.Server
         /// <returns></returns>
         public static string GetStandardisedVideoResolution(string res)
         {
-            double width = (double) GetVideoWidth(res);
-            double height = (double) GetVideoHeight(res);
+            double width = GetVideoWidth(res);
+            double height = GetVideoHeight(res);
 
             if (width <= 0 || height <= 0) return res;
 
@@ -1244,11 +1244,11 @@ namespace Shoko.Server
         private static bool VideoResolutionWithFivePercent(double width, double height, int testWidth, int testHeight)
         {
             // get %5 differentials
-            double widthLower = width * (double) 0.95;
-            double widthUpper = width * (double) 1.05;
+            double widthLower = width * 0.95;
+            double widthUpper = width * 1.05;
 
-            double heightLower = height * (double) 0.95;
-            double heightUpper = height * (double) 1.05;
+            double heightLower = height * 0.95;
+            double heightUpper = height * 1.05;
 
             if (testWidth >= widthLower && testWidth <= widthUpper && testHeight >= heightLower &&
                 testHeight <= heightUpper)
@@ -1453,24 +1453,28 @@ namespace Shoko.Server
                 // Incidentally, /c tells cmd that we want it to execute the command that follows,
                 // and then exit.
                 ProcessStartInfo procStartInfo =
-                    new ProcessStartInfo("cmd", "/c " + command);
+                    new ProcessStartInfo("cmd", "/c " + command)
+                    {
 
-                // The following commands are needed to redirect the standard output.
-                // This means that it will be redirected to the Process.StandardOutput StreamReader.
-                procStartInfo.RedirectStandardOutput = true;
-                procStartInfo.UseShellExecute = false;
-                // Do not create the black window.
-                procStartInfo.CreateNoWindow = true;
+                        // The following commands are needed to redirect the standard output.
+                        // This means that it will be redirected to the Process.StandardOutput StreamReader.
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        // Do not create the black window.
+                        CreateNoWindow = true
+                    };
                 // Now we create a process, assign its ProcessStartInfo and start it
-                Process proc = new Process();
-                proc.StartInfo = procStartInfo;
+                Process proc = new Process
+                {
+                    StartInfo = procStartInfo
+                };
                 proc.Start();
                 // Get the output into a string
                 string result = proc.StandardOutput.ReadToEnd();
                 // Display the command output.
                 Console.WriteLine(result);
             }
-            catch (Exception objException)
+            catch
             {
                 // Log the exception
             }

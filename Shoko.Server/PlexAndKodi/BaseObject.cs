@@ -105,8 +105,7 @@ namespace Shoko.Server.PlexAndKodi
             string nsize = prov.RequestHeader("X-Plex-Container-Size");
             if (nsize != null)
             {
-                int max;
-                if (int.TryParse(nsize, out max))
+                if (int.TryParse(nsize, out int max))
                 {
                     if (max < Size)
                         Size = max;
@@ -114,8 +113,7 @@ namespace Shoko.Server.PlexAndKodi
             }
             string nstart = prov.RequestHeader("X-Plex-Container-Start");
             {
-                int start;
-                if (int.TryParse(nstart, out start))
+                if (int.TryParse(nstart, out int start))
                     Start = start;
             }
             return true;

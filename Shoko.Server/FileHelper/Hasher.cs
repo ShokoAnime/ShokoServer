@@ -37,7 +37,7 @@ namespace Shoko.Server.FileHelper
 
         private static readonly Destructor Finalise = new Destructor(); //static Destructor hack
 
-        internal sealed class Destructor
+        internal sealed class Destructor : IDisposable
         {
             public IntPtr ModuleHandle;
 
@@ -48,6 +48,10 @@ namespace Shoko.Server.FileHelper
                     FreeLibrary(ModuleHandle);
                     ModuleHandle = IntPtr.Zero;
                 }
+            }
+
+            public void Dispose()
+            {
             }
         }
 
@@ -162,9 +166,9 @@ namespace Shoko.Server.FileHelper
             fs = fi.OpenRead();
             int lChunkSize = 9728000;
 
-            long nBytes = (long) fs.Length;
+            long nBytes = fs.Length;
 
-            long nBytesRemaining = (long) fs.Length;
+            long nBytesRemaining = fs.Length;
             int nBytesToRead = 0;
 
             long nBlocks = nBytes / lChunkSize;
@@ -179,8 +183,7 @@ namespace Shoko.Server.FileHelper
             else
                 nBytesToRead = (int) nBytesRemaining;
 
-            if (onHashProgress != null)
-                onHashProgress(strPath, 0);
+            onHashProgress?.Invoke(strPath, 0);
 
             MD4 md4 = MD4.Create();
             MD5 md5 = MD5.Create();
@@ -211,9 +214,8 @@ namespace Shoko.Server.FileHelper
                 if (getSHA1) sha1.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
                 if (getCRC32) crc32.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
 
-                int percentComplete = (int) ((float) iChunkCount / (float) nBlocks * 100);
-                if (onHashProgress != null)
-                    onHashProgress(strPath, percentComplete);
+                int percentComplete = (int)(iChunkCount / (float)nBlocks * 100);
+                onHashProgress?.Invoke(strPath, percentComplete);
 
                 iOffSet += lChunkSize;
                 nBytesRemaining = nBytes - iOffSet;
@@ -227,8 +229,7 @@ namespace Shoko.Server.FileHelper
 
             fs.Close();
 
-            if (onHashProgress != null)
-                onHashProgress(strPath, 100);
+            onHashProgress?.Invoke(strPath, 100);
 
             if (getED2k)
             {

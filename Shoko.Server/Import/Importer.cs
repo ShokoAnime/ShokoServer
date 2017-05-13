@@ -1149,9 +1149,11 @@ namespace Shoko.Server
                 g.CalculateGroupsAndSeries();
             if (sched == null)
             {
-                sched = new ScheduledUpdate();
-                sched.UpdateDetails = "";
-                sched.UpdateType = (int) ScheduledUpdateType.DayFiltersUpdate;
+                sched = new ScheduledUpdate
+                {
+                    UpdateDetails = "",
+                    UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate
+                };
             }
 
             sched.LastUpdate = DateTime.Now;
@@ -1196,8 +1198,10 @@ namespace Shoko.Server
 
             if (sched == null)
             {
-                sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.TvDBInfo;
+                sched = new ScheduledUpdate
+                {
+                    UpdateType = (int)ScheduledUpdateType.TvDBInfo
+                };
             }
 
             sched.LastUpdate = DateTime.Now;
@@ -1252,9 +1256,11 @@ namespace Shoko.Server
 
             if (sched == null)
             {
-                sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.AzureUserInfo;
-                sched.UpdateDetails = "";
+                sched = new ScheduledUpdate
+                {
+                    UpdateType = (int)ScheduledUpdateType.AzureUserInfo,
+                    UpdateDetails = ""
+                };
             }
             sched.LastUpdate = DateTime.Now;
             RepoFactory.ScheduledUpdate.Save(sched);
@@ -1308,9 +1314,11 @@ namespace Shoko.Server
 
             if (sched == null)
             {
-                sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.MALUpdate;
-                sched.UpdateDetails = "";
+                sched = new ScheduledUpdate
+                {
+                    UpdateType = (int)ScheduledUpdateType.MALUpdate,
+                    UpdateDetails = ""
+                };
             }
             sched.LastUpdate = DateTime.Now;
             RepoFactory.ScheduledUpdate.Save(sched);
@@ -1434,9 +1442,11 @@ namespace Shoko.Server
                 TraktTVHelper.RefreshAuthToken();
                 if (sched == null)
                 {
-                    sched = new ScheduledUpdate();
-                    sched.UpdateType = (int) ScheduledUpdateType.TraktToken;
-                    sched.UpdateDetails = "";
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.TraktToken,
+                        UpdateDetails = ""
+                    };
                 }
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
@@ -1482,9 +1492,11 @@ namespace Shoko.Server
 
             if (sched == null)
             {
-                sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.AniDBFileUpdates;
-                sched.UpdateDetails = "";
+                sched = new ScheduledUpdate
+                {
+                    UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
+                    UpdateDetails = ""
+                };
             }
             sched.LastUpdate = DateTime.Now;
             RepoFactory.ScheduledUpdate.Save(sched);
@@ -1541,9 +1553,11 @@ namespace Shoko.Server
 
             if (sched == null)
             {
-                sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.AniDBTitles;
-                sched.UpdateDetails = "";
+                sched = new ScheduledUpdate
+                {
+                    UpdateType = (int)ScheduledUpdateType.AniDBTitles,
+                    UpdateDetails = ""
+                };
             }
             sched.LastUpdate = DateTime.Now;
             RepoFactory.ScheduledUpdate.Save(sched);

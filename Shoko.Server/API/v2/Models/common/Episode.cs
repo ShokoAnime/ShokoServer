@@ -68,8 +68,7 @@ namespace Shoko.Server.API.v2.Models.common
                     ep.votes = cae.AniDB_Votes;
                     ep.rating = aep.PlexContract?.Rating;
                     ep.userrating = aep.PlexContract?.UserRating;
-                    double rating;
-                    if (double.TryParse(ep.rating, out rating))
+                    if (double.TryParse(ep.rating, out double rating))
                     {
                         // 0.1 should be the absolute lowest rating
                         if (rating > 10) ep.rating = (rating / 100).ToString().Replace(',', '.');

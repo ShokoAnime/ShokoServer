@@ -67,7 +67,7 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_AnimeGroup_User> grps =
                 Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
                 typeof(AnimeGroup_User).Name, " DbRegen");
             if (max <= 0) return;
             foreach (SVR_AnimeGroup_User g in grps)
@@ -77,11 +77,11 @@ namespace Shoko.Server.Repositories.Cached
                 if (cnt % 10 == 0)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Shoko.Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
+                        Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup_User).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Shoko.Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
                 typeof(AnimeGroup_User).Name,
                 " DbRegen - " + max + "/" + max);
         }
@@ -135,9 +135,8 @@ namespace Shoko.Server.Repositories.Cached
             {
                 session.Insert(groupUser);
 
-                ChangeTracker<int> changeTracker;
 
-                if (!Changes.TryGetValue(groupUser.JMMUserID, out changeTracker))
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                 {
                     changeTracker = new ChangeTracker<int>();
                     Changes[groupUser.JMMUserID] = changeTracker;
@@ -168,9 +167,8 @@ namespace Shoko.Server.Repositories.Cached
             {
                 session.Update(groupUser);
 
-                ChangeTracker<int> changeTracker;
 
-                if (!Changes.TryGetValue(groupUser.JMMUserID, out changeTracker))
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                 {
                     changeTracker = new ChangeTracker<int>();
                     Changes[groupUser.JMMUserID] = changeTracker;
@@ -205,9 +203,8 @@ namespace Shoko.Server.Repositories.Cached
             foreach (var grp in usrGrpMap)
             {
                 int jmmUserId = grp.Key;
-                ChangeTracker<int> changeTracker;
 
-                if (!Changes.TryGetValue(jmmUserId, out changeTracker))
+                if (!Changes.TryGetValue(jmmUserId, out ChangeTracker<int> changeTracker))
                 {
                     changeTracker = new ChangeTracker<int>();
                     Changes[jmmUserId] = changeTracker;

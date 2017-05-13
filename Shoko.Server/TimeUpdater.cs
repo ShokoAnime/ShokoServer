@@ -44,8 +44,10 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    DateJoinU dju = new DateJoinU();
-                    dju.Parameters = u;
+                    DateJoinU dju = new DateJoinU
+                    {
+                        Parameters = u
+                    };
                     updates.Add(t, dju);
                 }
                 updates[t].TimeStamp = DateTime.Now.AddSeconds(timeout);

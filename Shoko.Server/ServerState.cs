@@ -233,7 +233,7 @@ namespace Shoko.Server
 
         public readonly string autostartKey = "JMMServer";
 
-        public RegistryKey autostartRegistryKey
+        public RegistryKey AutostartRegistryKey
         {
             get { return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true); }
         }
@@ -260,12 +260,12 @@ namespace Shoko.Server
             {
                 try
                 {
-                    IsAutostartEnabled = autostartRegistryKey.GetValue(autostartKey) != null;
+                    IsAutostartEnabled = AutostartRegistryKey.GetValue(autostartKey) != null;
                     IsAutostartDisabled = !isAutostartEnabled;
                 }
                 catch (Exception ex)
                 {
-                    logger.DebugException("Unable to get autostart registry value", ex);
+                    logger.Debug(ex, "Unable to get autostart registry value");
                 }
             }
             else if (autostartMethod == AutostartMethod.TaskScheduler)

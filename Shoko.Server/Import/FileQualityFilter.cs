@@ -495,10 +495,8 @@ namespace Shoko.Server
         {
             string[] res = aniFile.File_VideoResolution.Split('x');
             if (res.Length != 2) return null;
-            int oldWidth = 0;
-            int oldHeight = 0;
-            if (!int.TryParse(res[0], out oldWidth)) return null;
-            if (!int.TryParse(res[1], out oldHeight)) return null;
+            if (!int.TryParse(res[0], out int oldWidth)) return null;
+            if (!int.TryParse(res[1], out int oldHeight)) return null;
             if (oldWidth == 0 || oldHeight == 0) return null;
             return new Tuple<int, int>(oldWidth, oldHeight);
         }

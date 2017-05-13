@@ -110,8 +110,7 @@ namespace AniDBAPI
 
             foreach (string fid in fids)
             {
-                long lfid = 0;
-                long.TryParse(fid, out lfid);
+                long.TryParse(fid, out long lfid);
                 if (lfid > 0) fileIDs.Add(lfid);
             }
         }

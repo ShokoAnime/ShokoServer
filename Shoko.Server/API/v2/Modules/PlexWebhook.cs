@@ -106,7 +106,7 @@ namespace Shoko.Server.API.v2.Modules
 
 
         #region plexapi
-
+        #pragma warning disable 0649
         internal class PlexEvent
         {
             public string Event;
@@ -165,7 +165,7 @@ namespace Shoko.Server.API.v2.Modules
                 public int UpdatedAt;
             }
         }
-
+         #pragma warning restore 0649
         #endregion
     }
 

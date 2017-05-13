@@ -80,7 +80,7 @@ namespace Shoko.Server
         }
 
         public static event EventHandler<ReasonedEventArgs> ServerShutdown;
-        public static event EventHandler<ReasonedEventArgs> ServerError;
+        //public static event EventHandler<ReasonedEventArgs> ServerError;
 
         /// <summary>
         /// Load setting from custom file - ex. read setting from backup
@@ -222,7 +222,7 @@ namespace Shoko.Server
                                         appSettings["FileQualityFilterPreferences"], new StringEnumConverter());
                                     FileQualityFilter.Settings = prefs;
                                 }
-                                catch (Exception ex)
+                                catch
                                 {
                                     appSettings["FileQualityFilterPreferences"] = JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
                                 }
@@ -246,7 +246,7 @@ namespace Shoko.Server
                                     appSettings["FileQualityFilterPreferences"], new StringEnumConverter());
                                 FileQualityFilter.Settings = prefs;
                             }
-                            catch (Exception ex)
+                            catch
                             {
                                 appSettings["FileQualityFilterPreferences"] = JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
                             }
@@ -365,7 +365,7 @@ namespace Shoko.Server
                         }
                         catch (Exception e)
                         {
-                            MessageBox.Show(Shoko.Commons.Properties.Resources.Migration_SettingsError + " ",
+                            MessageBox.Show(Commons.Properties.Resources.Migration_SettingsError + " ",
                                 e.ToString());
                             logger.Error(e);
                             migrationActive = false;
@@ -385,7 +385,7 @@ namespace Shoko.Server
                                 new ReasonedEventArgs
                                 {
                                     Reason =
-                                        $"{Shoko.Commons.Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application."
+                                        $"{Commons.Properties.Resources.Migration_LoadError} failed to migrate successfully and shutting down application."
                                 });
                             return;
                         }
@@ -451,8 +451,8 @@ namespace Shoko.Server
             {
                 migrationError = true;
                 migrationActive = false;
-                MessageBox.Show($"{Shoko.Commons.Properties.Resources.Migration_LoadError} {e.Message}",
-                    Shoko.Commons.Properties.Resources.Migration_LoadError);
+                MessageBox.Show($"{Commons.Properties.Resources.Migration_LoadError} {e.Message}",
+                    Commons.Properties.Resources.Migration_LoadError);
                 logger.Error(e);
                 ServerShutdown?.Invoke(null, new ReasonedEventArgs {Exception = e});
             }
@@ -616,8 +616,8 @@ namespace Shoko.Server
         {
             // Configure a BackgroundWorker to perform your long running operation.
             BackgroundWorker bg = new BackgroundWorker();
-            bg.DoWork += new DoWorkEventHandler(bg_migrationStart);
-            bg.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bg_migrationFinished);
+            bg.DoWork += new DoWorkEventHandler(Bg_migrationStart);
+            bg.RunWorkerCompleted += new RunWorkerCompletedEventHandler(Bg_migrationFinished);
 
             // Start the worker.
             bg.RunWorkerAsync();
@@ -625,7 +625,7 @@ namespace Shoko.Server
             MigrationStarted?.Invoke(bg, null);
         }
 
-        private static void bg_migrationStart(object sender, DoWorkEventArgs e)
+        private static void Bg_migrationStart(object sender, DoWorkEventArgs e)
         {
             while (migrationActive && !migrationError)
             {
@@ -633,7 +633,7 @@ namespace Shoko.Server
             ;
         }
 
-        private static void bg_migrationFinished(object sender, RunWorkerCompletedEventArgs e)
+        private static void Bg_migrationFinished(object sender, RunWorkerCompletedEventArgs e)
         {
             // Retrieve the result pass from bg_DoWork() if any.
             // Note, you may need to cast it to the desired data type.
@@ -651,11 +651,13 @@ namespace Shoko.Server
             {
                 if (File.Exists(exePath))
                 {
-                    ProcessStartInfo Info = new ProcessStartInfo();
-                    Info.Arguments = "/C ping 127.0.0.1 -n 3 && \"" + exePath + "\"";
-                    Info.WindowStyle = ProcessWindowStyle.Hidden;
-                    Info.CreateNoWindow = true;
-                    Info.FileName = @"C:\windows\system32\cmd.exe";
+                    ProcessStartInfo Info = new ProcessStartInfo
+                    {
+                        Arguments = "/C ping 127.0.0.1 -n 3 && \"" + exePath + "\"",
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        CreateNoWindow = true,
+                        FileName = @"C:\windows\system32\cmd.exe"
+                    };
                     Process.Start(Info);
                     Environment.Exit(0);
                 }
@@ -1017,8 +1019,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool download = false;
-                bool.TryParse(Get("AniDB_DownloadRelatedAnime"), out download);
+                bool.TryParse(Get("AniDB_DownloadRelatedAnime"), out bool download);
                 return download;
             }
             set { Set("AniDB_DownloadRelatedAnime", value.ToString()); }
@@ -1028,8 +1029,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool download = false;
-                bool.TryParse(Get("AniDB_DownloadSimilarAnime"), out download);
+                bool.TryParse(Get("AniDB_DownloadSimilarAnime"), out bool download);
                 return download;
             }
             set { Set("AniDB_DownloadSimilarAnime", value.ToString()); }
@@ -1039,8 +1039,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool download = false;
-                bool.TryParse(Get("AniDB_DownloadReviews"), out download);
+                bool.TryParse(Get("AniDB_DownloadReviews"), out bool download);
                 return download;
             }
             set { Set("AniDB_DownloadReviews", value.ToString()); }
@@ -1050,8 +1049,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool download = false;
-                bool.TryParse(Get("AniDB_DownloadReleaseGroups"), out download);
+                bool.TryParse(Get("AniDB_DownloadReleaseGroups"), out bool download);
                 return download;
             }
             set { Set("AniDB_DownloadReleaseGroups", value.ToString()); }
@@ -1061,8 +1059,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AniDB_MyList_AddFiles"), out val);
+                bool.TryParse(Get("AniDB_MyList_AddFiles"), out bool val);
                 return val;
             }
             set { Set("AniDB_MyList_AddFiles", value.ToString()); }
@@ -1072,8 +1069,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                int.TryParse(Get("AniDB_MyList_StorageState"), out val);
+                int.TryParse(Get("AniDB_MyList_StorageState"), out int val);
 
                 return (AniDBFileStatus) val;
             }
@@ -1084,8 +1080,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                int.TryParse(Get("AniDB_MyList_DeleteType"), out val);
+                int.TryParse(Get("AniDB_MyList_DeleteType"), out int val);
 
                 return (AniDBFileDeleteType) val;
             }
@@ -1096,8 +1091,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AniDB_MyList_ReadUnwatched"), out val);
+                bool.TryParse(Get("AniDB_MyList_ReadUnwatched"), out bool val);
                 return val;
             }
             set { Set("AniDB_MyList_ReadUnwatched", value.ToString()); }
@@ -1107,8 +1101,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AniDB_MyList_ReadWatched"), out val);
+                bool.TryParse(Get("AniDB_MyList_ReadWatched"), out bool val);
                 return val;
             }
             set { Set("AniDB_MyList_ReadWatched", value.ToString()); }
@@ -1118,8 +1111,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AniDB_MyList_SetWatched"), out val);
+                bool.TryParse(Get("AniDB_MyList_SetWatched"), out bool val);
                 return val;
             }
             set { Set("AniDB_MyList_SetWatched", value.ToString()); }
@@ -1129,8 +1121,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AniDB_MyList_SetUnwatched"), out val);
+                bool.TryParse(Get("AniDB_MyList_SetUnwatched"), out bool val);
                 return val;
             }
             set { Set("AniDB_MyList_SetUnwatched", value.ToString()); }
@@ -1140,9 +1131,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("AniDB_MyList_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("AniDB_MyList_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
@@ -1153,9 +1143,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("AniDB_Calendar_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("AniDB_Calendar_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
@@ -1166,9 +1155,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("AniDB_Anime_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("AniDB_Anime_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
@@ -1179,9 +1167,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("AniDB_MyListStats_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("AniDB_MyListStats_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
@@ -1192,9 +1179,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("AniDB_File_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("AniDB_File_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
@@ -1205,8 +1191,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                if (!bool.TryParse(Get("AniDB_DownloadCharacters"), out val))
+                if (!bool.TryParse(Get("AniDB_DownloadCharacters"), out bool val))
                     val = true; // default
                 return val;
             }
@@ -1217,8 +1202,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                if (!bool.TryParse(Get("AniDB_DownloadCreators"), out val))
+                if (!bool.TryParse(Get("AniDB_DownloadCreators"), out bool val))
                     val = true; // default
                 return val;
             }
@@ -1239,8 +1223,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("WebCache_Anonymous"), out val);
+                bool.TryParse(Get("WebCache_Anonymous"), out bool val);
                 return val;
             }
             set { Set("WebCache_Anonymous", value.ToString()); }
@@ -1250,8 +1233,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = false;
-                bool.TryParse(Get("WebCache_XRefFileEpisode_Get"), out usecache);
+                bool.TryParse(Get("WebCache_XRefFileEpisode_Get"), out bool usecache);
                 return usecache;
             }
             set { Set("WebCache_XRefFileEpisode_Get", value.ToString()); }
@@ -1261,8 +1243,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = false;
-                bool.TryParse(Get("WebCache_XRefFileEpisode_Send"), out usecache);
+                bool.TryParse(Get("WebCache_XRefFileEpisode_Send"), out bool usecache);
                 return usecache;
             }
             set { Set("WebCache_XRefFileEpisode_Send", value.ToString()); }
@@ -1272,8 +1253,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = true;
-                if (bool.TryParse(Get("WebCache_TvDB_Get"), out usecache))
+                if (bool.TryParse(Get("WebCache_TvDB_Get"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1285,8 +1265,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = true;
-                if (bool.TryParse(Get("WebCache_TvDB_Send"), out usecache))
+                if (bool.TryParse(Get("WebCache_TvDB_Send"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1298,8 +1277,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = true;
-                if (bool.TryParse(Get("WebCache_Trakt_Get"), out usecache))
+                if (bool.TryParse(Get("WebCache_Trakt_Get"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1311,8 +1289,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = true;
-                if (bool.TryParse(Get("WebCache_Trakt_Send"), out usecache))
+                if (bool.TryParse(Get("WebCache_Trakt_Send"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1324,8 +1301,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = true;
-                if (bool.TryParse(Get("WebCache_MAL_Get"), out usecache))
+                if (bool.TryParse(Get("WebCache_MAL_Get"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1337,8 +1313,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = true;
-                if (bool.TryParse(Get("WebCache_MAL_Send"), out usecache))
+                if (bool.TryParse(Get("WebCache_MAL_Send"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1350,8 +1325,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool usecache = false;
-                if (bool.TryParse(Get("WebCache_UserInfo"), out usecache))
+                if (bool.TryParse(Get("WebCache_UserInfo"), out bool usecache))
                     return usecache;
                 else
                     return true; // default
@@ -1367,8 +1341,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                bool.TryParse(Get("TvDB_AutoLink"), out val);
+                bool.TryParse(Get("TvDB_AutoLink"), out bool val);
                 return val;
             }
             set { Set("TvDB_AutoLink", value.ToString()); }
@@ -1378,8 +1351,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("TvDB_AutoFanart"), out val);
+                bool.TryParse(Get("TvDB_AutoFanart"), out bool val);
                 return val;
             }
             set { Set("TvDB_AutoFanart", value.ToString()); }
@@ -1389,8 +1361,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                int.TryParse(Get("TvDB_AutoFanartAmount"), out val);
+                int.TryParse(Get("TvDB_AutoFanartAmount"), out int val);
                 return val;
             }
             set { Set("TvDB_AutoFanartAmount", value.ToString()); }
@@ -1400,8 +1371,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("TvDB_AutoWideBanners"), out val);
+                bool.TryParse(Get("TvDB_AutoWideBanners"), out bool val);
                 return val;
             }
             set { Set("TvDB_AutoWideBanners", value.ToString()); }
@@ -1411,8 +1381,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                if (!int.TryParse(Get("TvDB_AutoWideBannersAmount"), out val))
+                if (!int.TryParse(Get("TvDB_AutoWideBannersAmount"), out int val))
                     val = 10; // default
                 return val;
             }
@@ -1423,8 +1392,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("TvDB_AutoPosters"), out val);
+                bool.TryParse(Get("TvDB_AutoPosters"), out bool val);
                 return val;
             }
             set { Set("TvDB_AutoPosters", value.ToString()); }
@@ -1434,8 +1402,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                if (!int.TryParse(Get("TvDB_AutoPostersAmount"), out val))
+                if (!int.TryParse(Get("TvDB_AutoPostersAmount"), out int val))
                     val = 10; // default
                 return val;
             }
@@ -1446,9 +1413,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("TvDB_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("TvDB_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
@@ -1476,8 +1442,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("MovieDB_AutoFanart"), out val);
+                bool.TryParse(Get("MovieDB_AutoFanart"), out bool val);
                 return val;
             }
             set { Set("MovieDB_AutoFanart", value.ToString()); }
@@ -1487,8 +1452,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                int.TryParse(Get("MovieDB_AutoFanartAmount"), out val);
+                int.TryParse(Get("MovieDB_AutoFanartAmount"), out int val);
                 return val;
             }
             set { Set("MovieDB_AutoFanartAmount", value.ToString()); }
@@ -1498,8 +1462,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("MovieDB_AutoPosters"), out val);
+                bool.TryParse(Get("MovieDB_AutoPosters"), out bool val);
                 return val;
             }
             set { Set("MovieDB_AutoPosters", value.ToString()); }
@@ -1509,8 +1472,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                if (!int.TryParse(Get("MovieDB_AutoPostersAmount"), out val))
+                if (!int.TryParse(Get("MovieDB_AutoPostersAmount"), out int val))
                     val = 10; // default
                 return val;
             }
@@ -1565,8 +1527,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("RunImportOnStart"), out val);
+                bool.TryParse(Get("RunImportOnStart"), out bool val);
                 return val;
             }
             set { Set("RunImportOnStart", value.ToString()); }
@@ -1576,8 +1537,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("ScanDropFoldersOnStart"), out val);
+                bool.TryParse(Get("ScanDropFoldersOnStart"), out bool val);
                 return val;
             }
             set { Set("ScanDropFoldersOnStart", value.ToString()); }
@@ -1587,8 +1547,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool bval = false;
-                bool.TryParse(Get("Hash_CRC32"), out bval);
+                bool.TryParse(Get("Hash_CRC32"), out bool bval);
                 return bval;
             }
             set { Set("Hash_CRC32", value.ToString()); }
@@ -1598,8 +1557,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool bval = false;
-                bool.TryParse(Get("Hash_MD5"), out bval);
+                bool.TryParse(Get("Hash_MD5"), out bool bval);
                 return bval;
             }
             set { Set("Hash_MD5", value.ToString()); }
@@ -1609,8 +1567,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool bval = false;
-                bool.TryParse(Get("ExperimentalUPnP"), out bval);
+                bool.TryParse(Get("ExperimentalUPnP"), out bool bval);
                 return bval;
             }
             set { Set("ExperimentalUPnP", value.ToString()); }
@@ -1620,8 +1577,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool bval = false;
-                bool.TryParse(Get("Hash_SHA1"), out bval);
+                bool.TryParse(Get("Hash_SHA1"), out bool bval);
                 return bval;
             }
             set { Set("Hash_SHA1", value.ToString()); }
@@ -1631,8 +1587,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool bval = false;
-                bool.TryParse(Get("Import_UseExistingFileWatchedStatus"), out bval);
+                bool.TryParse(Get("Import_UseExistingFileWatchedStatus"), out bool bval);
                 return bval;
             }
             set { Set("Import_UseExistingFileWatchedStatus", value.ToString()); }
@@ -1644,8 +1599,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AutoGroupSeries"), out val);
+                bool.TryParse(Get("AutoGroupSeries"), out bool val);
                 return val;
             }
             set { Set("AutoGroupSeries", value.ToString()); }
@@ -1660,7 +1614,7 @@ namespace Shoko.Server
                 {
                     val = Get("AutoGroupSeriesRelationExclusions");
                 }
-                catch (Exception e)
+                catch
                 {
                 }
                 return val ?? "same setting|character";
@@ -1672,8 +1626,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("AutoGroupSeriesUseScoreAlgorithm"), out val);
+                bool.TryParse(Get("AutoGroupSeriesUseScoreAlgorithm"), out bool val);
                 return val;
             }
             set { Set("AutoGroupSeriesUseScoreAlgorithm", value.ToString()); }
@@ -1683,8 +1636,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("FileQualityFilterEnabled"), out val);
+                bool.TryParse(Get("FileQualityFilterEnabled"), out bool val);
                 return val;
             }
             set => Set("FileQualityFilterEnabled", value.ToString());
@@ -1699,7 +1651,7 @@ namespace Shoko.Server
                 {
                     val = Get("FileQualityFilterPreferences");
                 }
-                catch (Exception e)
+                catch
                 {
                 }
                 return val ?? JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
@@ -1713,7 +1665,7 @@ namespace Shoko.Server
                     FileQualityFilter.Settings = prefs;
                     Set("FileQualityFilterPreferences", value);
                 }
-                catch (Exception ex)
+                catch
                 {
                     logger.Error("Error Deserializing json into FileQualityPreferences. json was :" + value);
                 }
@@ -1731,8 +1683,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("LanguageUseSynonyms"), out val);
+                bool.TryParse(Get("LanguageUseSynonyms"), out bool val);
                 return val;
             }
             set { Set("LanguageUseSynonyms", value.ToString()); }
@@ -1742,21 +1693,19 @@ namespace Shoko.Server
         {
             get
             {
-                int val;
-                int.TryParse(Get("CloudWatcherTime"), out val);
+                int.TryParse(Get("CloudWatcherTime"), out int val);
                 if (val == 0)
                     val = 3;
                 return val;
             }
-            set { Set("CloudWatcherTime", ((int) value).ToString()); }
+            set { Set("CloudWatcherTime", value.ToString()); }
         }
 
         public static DataSourceType EpisodeTitleSource
         {
             get
             {
-                int val = 0;
-                int.TryParse(Get("EpisodeTitleSource"), out val);
+                int.TryParse(Get("EpisodeTitleSource"), out int val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
@@ -1769,8 +1718,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                int.TryParse(Get("SeriesDescriptionSource"), out val);
+                int.TryParse(Get("SeriesDescriptionSource"), out int val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
@@ -1783,8 +1731,7 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 0;
-                int.TryParse(Get("SeriesNameSource"), out val);
+                int.TryParse(Get("SeriesNameSource"), out int val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
@@ -1814,8 +1761,7 @@ namespace Shoko.Server
                 string basePath = Get("BaseImagesPathIsDefault");
                 if (!string.IsNullOrEmpty(basePath))
                 {
-                    bool val = true;
-                    bool.TryParse(basePath, out val);
+                    bool.TryParse(basePath, out bool val);
                     return val;
                 }
                 else return true;
@@ -1836,8 +1782,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = false;
-                bool.TryParse(Get("MinimizeOnStartup"), out val);
+                bool.TryParse(Get("MinimizeOnStartup"), out bool val);
                 return val;
             }
             set { Set("MinimizeOnStartup", value.ToString()); }
@@ -1849,8 +1794,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                if (!bool.TryParse(Get("Trakt_IsEnabled"), out val))
+                if (!bool.TryParse(Get("Trakt_IsEnabled"), out bool val))
                     val = true;
                 return val;
             }
@@ -1881,9 +1825,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("Trakt_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("Trakt_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
@@ -1894,9 +1837,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("Trakt_SyncFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("Trakt_SyncFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
@@ -1907,8 +1849,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                if (!bool.TryParse(Get("Trakt_DownloadFanart"), out val))
+                if (!bool.TryParse(Get("Trakt_DownloadFanart"), out bool val))
                     val = true; // default
                 return val;
             }
@@ -1919,8 +1860,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                if (!bool.TryParse(Get("Trakt_DownloadPosters"), out val))
+                if (!bool.TryParse(Get("Trakt_DownloadPosters"), out bool val))
                     val = true; // default
                 return val;
             }
@@ -1931,8 +1871,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out val))
+                if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out bool val))
                     val = true; // default
                 return val;
             }
@@ -1947,8 +1886,7 @@ namespace Shoko.Server
         {
             get
             {
-                bool val = true;
-                bool.TryParse(Get("MAL_AutoLink"), out val);
+                bool.TryParse(Get("MAL_AutoLink"), out bool val);
                 return val;
             }
             set { Set("MAL_AutoLink", value.ToString()); }
@@ -1970,9 +1908,8 @@ namespace Shoko.Server
         {
             get
             {
-                int val = 1;
-                if (int.TryParse(Get("MAL_UpdateFrequency"), out val))
-                    return (ScheduledUpdateFrequency) val;
+                if (int.TryParse(Get("MAL_UpdateFrequency"), out int val))
+                    return (ScheduledUpdateFrequency)val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
@@ -1986,8 +1923,7 @@ namespace Shoko.Server
                 string wtchNum = Get("MAL_NeverDecreaseWatchedNums");
                 if (!string.IsNullOrEmpty(wtchNum))
                 {
-                    bool val = true;
-                    bool.TryParse(wtchNum, out val);
+                    bool.TryParse(wtchNum, out bool val);
                     return val;
                 }
                 else return true;
@@ -2049,121 +1985,120 @@ namespace Shoko.Server
 
         public static CL_ServerSettings ToContract()
         {
-            CL_ServerSettings contract = new CL_ServerSettings();
+            CL_ServerSettings contract = new CL_ServerSettings
+            {
+                AniDB_Username = ServerSettings.AniDB_Username,
+                AniDB_Password = ServerSettings.AniDB_Password,
+                AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress,
+                AniDB_ServerPort = ServerSettings.AniDB_ServerPort,
+                AniDB_ClientPort = ServerSettings.AniDB_ClientPort,
+                AniDB_AVDumpClientPort = ServerSettings.AniDB_AVDumpClientPort,
+                AniDB_AVDumpKey = ServerSettings.AniDB_AVDumpKey,
 
-            contract.AniDB_Username = ServerSettings.AniDB_Username;
-            contract.AniDB_Password = ServerSettings.AniDB_Password;
-            contract.AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress;
-            contract.AniDB_ServerPort = ServerSettings.AniDB_ServerPort;
-            contract.AniDB_ClientPort = ServerSettings.AniDB_ClientPort;
-            contract.AniDB_AVDumpClientPort = ServerSettings.AniDB_AVDumpClientPort;
-            contract.AniDB_AVDumpKey = ServerSettings.AniDB_AVDumpKey;
+                AniDB_DownloadRelatedAnime = ServerSettings.AniDB_DownloadRelatedAnime,
+                AniDB_DownloadSimilarAnime = ServerSettings.AniDB_DownloadSimilarAnime,
+                AniDB_DownloadReviews = ServerSettings.AniDB_DownloadReviews,
+                AniDB_DownloadReleaseGroups = ServerSettings.AniDB_DownloadReleaseGroups,
 
-            contract.AniDB_DownloadRelatedAnime = ServerSettings.AniDB_DownloadRelatedAnime;
-            contract.AniDB_DownloadSimilarAnime = ServerSettings.AniDB_DownloadSimilarAnime;
-            contract.AniDB_DownloadReviews = ServerSettings.AniDB_DownloadReviews;
-            contract.AniDB_DownloadReleaseGroups = ServerSettings.AniDB_DownloadReleaseGroups;
+                AniDB_MyList_AddFiles = ServerSettings.AniDB_MyList_AddFiles,
+                AniDB_MyList_StorageState = (int)ServerSettings.AniDB_MyList_StorageState,
+                AniDB_MyList_DeleteType = (int)ServerSettings.AniDB_MyList_DeleteType,
+                AniDB_MyList_ReadWatched = ServerSettings.AniDB_MyList_ReadWatched,
+                AniDB_MyList_ReadUnwatched = ServerSettings.AniDB_MyList_ReadUnwatched,
+                AniDB_MyList_SetWatched = ServerSettings.AniDB_MyList_SetWatched,
+                AniDB_MyList_SetUnwatched = ServerSettings.AniDB_MyList_SetUnwatched,
 
-            contract.AniDB_MyList_AddFiles = ServerSettings.AniDB_MyList_AddFiles;
-            contract.AniDB_MyList_StorageState = (int) ServerSettings.AniDB_MyList_StorageState;
-            contract.AniDB_MyList_DeleteType = (int) ServerSettings.AniDB_MyList_DeleteType;
-            contract.AniDB_MyList_ReadWatched = ServerSettings.AniDB_MyList_ReadWatched;
-            contract.AniDB_MyList_ReadUnwatched = ServerSettings.AniDB_MyList_ReadUnwatched;
-            contract.AniDB_MyList_SetWatched = ServerSettings.AniDB_MyList_SetWatched;
-            contract.AniDB_MyList_SetUnwatched = ServerSettings.AniDB_MyList_SetUnwatched;
+                AniDB_MyList_UpdateFrequency = (int)ServerSettings.AniDB_MyList_UpdateFrequency,
+                AniDB_Calendar_UpdateFrequency = (int)ServerSettings.AniDB_Calendar_UpdateFrequency,
+                AniDB_Anime_UpdateFrequency = (int)ServerSettings.AniDB_Anime_UpdateFrequency,
+                AniDB_MyListStats_UpdateFrequency = (int)ServerSettings.AniDB_MyListStats_UpdateFrequency,
+                AniDB_File_UpdateFrequency = (int)ServerSettings.AniDB_File_UpdateFrequency,
 
-            contract.AniDB_MyList_UpdateFrequency = (int) ServerSettings.AniDB_MyList_UpdateFrequency;
-            contract.AniDB_Calendar_UpdateFrequency = (int) ServerSettings.AniDB_Calendar_UpdateFrequency;
-            contract.AniDB_Anime_UpdateFrequency = (int) ServerSettings.AniDB_Anime_UpdateFrequency;
-            contract.AniDB_MyListStats_UpdateFrequency = (int) ServerSettings.AniDB_MyListStats_UpdateFrequency;
-            contract.AniDB_File_UpdateFrequency = (int) ServerSettings.AniDB_File_UpdateFrequency;
+                AniDB_DownloadCharacters = ServerSettings.AniDB_DownloadCharacters,
+                AniDB_DownloadCreators = ServerSettings.AniDB_DownloadCreators,
 
-            contract.AniDB_DownloadCharacters = ServerSettings.AniDB_DownloadCharacters;
-            contract.AniDB_DownloadCreators = ServerSettings.AniDB_DownloadCreators;
+                // Web Cache
+                WebCache_Address = ServerSettings.WebCache_Address,
+                WebCache_Anonymous = ServerSettings.WebCache_Anonymous,
+                WebCache_XRefFileEpisode_Get = ServerSettings.WebCache_XRefFileEpisode_Get,
+                WebCache_XRefFileEpisode_Send = ServerSettings.WebCache_XRefFileEpisode_Send,
+                WebCache_TvDB_Get = ServerSettings.WebCache_TvDB_Get,
+                WebCache_TvDB_Send = ServerSettings.WebCache_TvDB_Send,
+                WebCache_Trakt_Get = ServerSettings.WebCache_Trakt_Get,
+                WebCache_Trakt_Send = ServerSettings.WebCache_Trakt_Send,
+                WebCache_MAL_Get = ServerSettings.WebCache_MAL_Get,
+                WebCache_MAL_Send = ServerSettings.WebCache_MAL_Send,
+                WebCache_UserInfo = ServerSettings.WebCache_UserInfo,
 
-            // Web Cache
-            contract.WebCache_Address = ServerSettings.WebCache_Address;
-            contract.WebCache_Anonymous = ServerSettings.WebCache_Anonymous;
-            contract.WebCache_XRefFileEpisode_Get = ServerSettings.WebCache_XRefFileEpisode_Get;
-            contract.WebCache_XRefFileEpisode_Send = ServerSettings.WebCache_XRefFileEpisode_Send;
-            contract.WebCache_TvDB_Get = ServerSettings.WebCache_TvDB_Get;
-            contract.WebCache_TvDB_Send = ServerSettings.WebCache_TvDB_Send;
-            contract.WebCache_Trakt_Get = ServerSettings.WebCache_Trakt_Get;
-            contract.WebCache_Trakt_Send = ServerSettings.WebCache_Trakt_Send;
-            contract.WebCache_MAL_Get = ServerSettings.WebCache_MAL_Get;
-            contract.WebCache_MAL_Send = ServerSettings.WebCache_MAL_Send;
-            contract.WebCache_UserInfo = ServerSettings.WebCache_UserInfo;
+                // TvDB
+                TvDB_AutoLink = ServerSettings.TvDB_AutoLink,
+                TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart,
+                TvDB_AutoFanartAmount = ServerSettings.TvDB_AutoFanartAmount,
+                TvDB_AutoPosters = ServerSettings.TvDB_AutoPosters,
+                TvDB_AutoPostersAmount = ServerSettings.TvDB_AutoPostersAmount,
+                TvDB_AutoWideBanners = ServerSettings.TvDB_AutoWideBanners,
+                TvDB_AutoWideBannersAmount = ServerSettings.TvDB_AutoWideBannersAmount,
+                TvDB_UpdateFrequency = (int)ServerSettings.TvDB_UpdateFrequency,
+                TvDB_Language = ServerSettings.TvDB_Language,
 
-            // TvDB
-            contract.TvDB_AutoLink = ServerSettings.TvDB_AutoLink;
-            contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;
-            contract.TvDB_AutoFanartAmount = ServerSettings.TvDB_AutoFanartAmount;
-            contract.TvDB_AutoPosters = ServerSettings.TvDB_AutoPosters;
-            contract.TvDB_AutoPostersAmount = ServerSettings.TvDB_AutoPostersAmount;
-            contract.TvDB_AutoWideBanners = ServerSettings.TvDB_AutoWideBanners;
-            contract.TvDB_AutoWideBannersAmount = ServerSettings.TvDB_AutoWideBannersAmount;
-            contract.TvDB_UpdateFrequency = (int) ServerSettings.TvDB_UpdateFrequency;
-            contract.TvDB_Language = ServerSettings.TvDB_Language;
+                // MovieDB
+                MovieDB_AutoFanart = ServerSettings.MovieDB_AutoFanart,
+                MovieDB_AutoFanartAmount = ServerSettings.MovieDB_AutoFanartAmount,
+                MovieDB_AutoPosters = ServerSettings.MovieDB_AutoPosters,
+                MovieDB_AutoPostersAmount = ServerSettings.MovieDB_AutoPostersAmount,
 
-            // MovieDB
-            contract.MovieDB_AutoFanart = ServerSettings.MovieDB_AutoFanart;
-            contract.MovieDB_AutoFanartAmount = ServerSettings.MovieDB_AutoFanartAmount;
-            contract.MovieDB_AutoPosters = ServerSettings.MovieDB_AutoPosters;
-            contract.MovieDB_AutoPostersAmount = ServerSettings.MovieDB_AutoPostersAmount;
+                // Import settings
+                VideoExtensions = ServerSettings.VideoExtensions,
+                AutoGroupSeries = ServerSettings.AutoGroupSeries,
+                AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm,
+                AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions,
+                FileQualityFilterEnabled = ServerSettings.FileQualityFilterEnabled,
+                FileQualityFilterPreferences = ServerSettings.FileQualityFilterPreferences,
+                Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus,
+                RunImportOnStart = ServerSettings.RunImportOnStart,
+                ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart,
+                Hash_CRC32 = ServerSettings.Hash_CRC32,
+                Hash_MD5 = ServerSettings.Hash_MD5,
+                Hash_SHA1 = ServerSettings.Hash_SHA1,
 
-            // Import settings
-            contract.VideoExtensions = ServerSettings.VideoExtensions;
-            contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
-            contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
-            contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
-            contract.FileQualityFilterEnabled = ServerSettings.FileQualityFilterEnabled;
-            contract.FileQualityFilterPreferences = ServerSettings.FileQualityFilterPreferences;
-            contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
-            contract.RunImportOnStart = ServerSettings.RunImportOnStart;
-            contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
-            contract.Hash_CRC32 = ServerSettings.Hash_CRC32;
-            contract.Hash_MD5 = ServerSettings.Hash_MD5;
-            contract.Hash_SHA1 = ServerSettings.Hash_SHA1;
+                // Language
+                LanguagePreference = ServerSettings.LanguagePreference,
+                LanguageUseSynonyms = ServerSettings.LanguageUseSynonyms,
+                EpisodeTitleSource = (int)ServerSettings.EpisodeTitleSource,
+                SeriesDescriptionSource = (int)ServerSettings.SeriesDescriptionSource,
+                SeriesNameSource = (int)ServerSettings.SeriesNameSource,
 
-            // Language
-            contract.LanguagePreference = ServerSettings.LanguagePreference;
-            contract.LanguageUseSynonyms = ServerSettings.LanguageUseSynonyms;
-            contract.EpisodeTitleSource = (int) ServerSettings.EpisodeTitleSource;
-            contract.SeriesDescriptionSource = (int) ServerSettings.SeriesDescriptionSource;
-            contract.SeriesNameSource = (int) ServerSettings.SeriesNameSource;
+                // trakt
+                Trakt_IsEnabled = ServerSettings.Trakt_IsEnabled,
+                Trakt_AuthToken = ServerSettings.Trakt_AuthToken,
+                Trakt_RefreshToken = ServerSettings.Trakt_RefreshToken,
+                Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate,
+                Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency,
+                Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency,
+                Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes,
+                Trakt_DownloadFanart = ServerSettings.Trakt_DownloadFanart,
+                Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters,
 
-            // trakt
-            contract.Trakt_IsEnabled = ServerSettings.Trakt_IsEnabled;
-            contract.Trakt_AuthToken = ServerSettings.Trakt_AuthToken;
-            contract.Trakt_RefreshToken = ServerSettings.Trakt_RefreshToken;
-            contract.Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate;
-            contract.Trakt_UpdateFrequency = (int) ServerSettings.Trakt_UpdateFrequency;
-            contract.Trakt_SyncFrequency = (int) ServerSettings.Trakt_SyncFrequency;
-            contract.Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes;
-            contract.Trakt_DownloadFanart = ServerSettings.Trakt_DownloadFanart;
-            contract.Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters;
+                // MAL
+                MAL_AutoLink = ServerSettings.MAL_AutoLink,
+                MAL_Username = ServerSettings.MAL_Username,
+                MAL_Password = ServerSettings.MAL_Password,
+                MAL_UpdateFrequency = (int)ServerSettings.MAL_UpdateFrequency,
+                MAL_NeverDecreaseWatchedNums = ServerSettings.MAL_NeverDecreaseWatchedNums,
 
-            // MAL
-            contract.MAL_AutoLink = ServerSettings.MAL_AutoLink;
-            contract.MAL_Username = ServerSettings.MAL_Username;
-            contract.MAL_Password = ServerSettings.MAL_Password;
-            contract.MAL_UpdateFrequency = (int) ServerSettings.MAL_UpdateFrequency;
-            contract.MAL_NeverDecreaseWatchedNums = ServerSettings.MAL_NeverDecreaseWatchedNums;
+                // LogRotator
+                RotateLogs = ServerSettings.RotateLogs,
+                RotateLogs_Delete = ServerSettings.RotateLogs_Delete,
+                RotateLogs_Delete_Days = ServerSettings.RotateLogs_Delete_Days,
+                RotateLogs_Zip = ServerSettings.RotateLogs_Zip,
 
-            // LogRotator
-            contract.RotateLogs = ServerSettings.RotateLogs;
-            contract.RotateLogs_Delete = ServerSettings.RotateLogs_Delete;
-            contract.RotateLogs_Delete_Days = ServerSettings.RotateLogs_Delete_Days;
-            contract.RotateLogs_Zip = ServerSettings.RotateLogs_Zip;
+                //WebUI
+                WebUI_Settings = ServerSettings.WebUI_Settings,
 
-            //WebUI
-            contract.WebUI_Settings = ServerSettings.WebUI_Settings;
-
-            //Plex
-            contract.Plex_Sections = String.Join(",", ServerSettings.Plex_Libraries);
-            contract.Plex_ServerHost = ServerSettings.Plex_Server;
-
-
+                //Plex
+                Plex_Sections = String.Join(",", ServerSettings.Plex_Libraries),
+                Plex_ServerHost = ServerSettings.Plex_Server
+            };
             return contract;
         }
 
@@ -2338,9 +2273,10 @@ namespace Shoko.Server
             NameValueCollection nameValueColl = new NameValueCollection();
 
 
-            System.Configuration.ExeConfigurationFileMap map = new ExeConfigurationFileMap();
-            map.ExeConfigFilename = file;
-
+            System.Configuration.ExeConfigurationFileMap map = new ExeConfigurationFileMap
+            {
+                ExeConfigFilename = file
+            };
             Configuration config = ConfigurationManager.OpenMappedExeConfiguration(map, ConfigurationUserLevel.None);
             string xml = config.GetSection(section).SectionInformation.GetRawXml();
             xDoc.LoadXml(xml);

@@ -100,8 +100,10 @@ namespace Shoko.Server.Extensions
 
         public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
         {
-            Azure_Media_Request r = new Azure_Media_Request();
-            r.ED2K = v.ED2KHash;
+            Azure_Media_Request r = new Azure_Media_Request
+            {
+                ED2K = v.ED2KHash
+            };
             //Cleanup any File subtitles from media information.
             Media m = v.Media.DeepClone();
             if (m.Parts != null && m.Parts.Count > 0)
@@ -120,8 +122,7 @@ namespace Shoko.Server.Extensions
             }
             //Cleanup the VideoLocal id
             m.Id = null;
-            int outsize;
-            byte[] data = CompressionHelper.SerializeObject(m, out outsize);
+            byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
             r.ED2K = v.ED2KHash;
             r.MediaInfo = new byte[data.Length + 4];
             r.MediaInfo[0] = (byte)(outsize >> 24);
@@ -141,8 +142,7 @@ namespace Shoko.Server.Extensions
         public static Azure_Media_Request ToMediaRequest(this Media m, string ed2k)
         {
             Azure_Media_Request r = new Azure_Media_Request();
-            int outsize;
-            byte[] data = CompressionHelper.SerializeObject(m, out outsize);
+            byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
             r.ED2K = ed2k;
             r.MediaInfo = new byte[data.Length + 4];
             r.MediaInfo[0] = (byte)(outsize >> 24);
@@ -160,18 +160,20 @@ namespace Shoko.Server.Extensions
 
         public static Azure_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
         {
-            Azure_CrossRef_AniDB_Trakt_Request r = new Azure_CrossRef_AniDB_Trakt_Request();
-            r.AnimeID = xref.AnimeID;
-            r.AnimeName = animeName;
-            r.AniDBStartEpisodeType = xref.AniDBStartEpisodeType;
-            r.AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber;
-            r.TraktID = xref.TraktID;
-            r.TraktSeasonNumber = xref.TraktSeasonNumber;
-            r.TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber;
-            r.TraktTitle = xref.TraktTitle;
-            r.CrossRefSource = xref.CrossRefSource;
+            Azure_CrossRef_AniDB_Trakt_Request r = new Azure_CrossRef_AniDB_Trakt_Request
+            {
+                AnimeID = xref.AnimeID,
+                AnimeName = animeName,
+                AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
+                AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
+                TraktID = xref.TraktID,
+                TraktSeasonNumber = xref.TraktSeasonNumber,
+                TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber,
+                TraktTitle = xref.TraktTitle,
+                CrossRefSource = xref.CrossRefSource,
 
-            r.Username = ServerSettings.AniDB_Username;
+                Username = ServerSettings.AniDB_Username
+            };
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
 
@@ -181,17 +183,19 @@ namespace Shoko.Server.Extensions
 
         public static Azure_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
         {
-            Azure_CrossRef_AniDB_TvDB_Request r = new Azure_CrossRef_AniDB_TvDB_Request();
-            r.AnimeID = xref.AnimeID;
-            r.AnimeName = animeName;
-            r.AniDBStartEpisodeType = xref.AniDBStartEpisodeType;
-            r.AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber;
-            r.TvDBID = xref.TvDBID;
-            r.TvDBSeasonNumber = xref.TvDBSeasonNumber;
-            r.TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber;
-            r.TvDBTitle = xref.TvDBTitle;
-            r.CrossRefSource = xref.CrossRefSource;
-            r.Username = ServerSettings.AniDB_Username;
+            Azure_CrossRef_AniDB_TvDB_Request r = new Azure_CrossRef_AniDB_TvDB_Request
+            {
+                AnimeID = xref.AnimeID,
+                AnimeName = animeName,
+                AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
+                AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
+                TvDBID = xref.TvDBID,
+                TvDBSeasonNumber = xref.TvDBSeasonNumber,
+                TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber,
+                TvDBTitle = xref.TvDBTitle,
+                CrossRefSource = xref.CrossRefSource,
+                Username = ServerSettings.AniDB_Username
+            };
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
             r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
@@ -200,14 +204,16 @@ namespace Shoko.Server.Extensions
 
         public static Azure_CrossRef_File_Episode_Request ToRequest(this CrossRef_File_Episode xref)
         {
-            Azure_CrossRef_File_Episode_Request r = new Azure_CrossRef_File_Episode_Request();
-            r.Hash = xref.Hash;
-            r.AnimeID = xref.AnimeID;
-            r.EpisodeID = xref.EpisodeID;
-            r.Percentage = xref.Percentage;
-            r.EpisodeOrder = xref.EpisodeOrder;
+            Azure_CrossRef_File_Episode_Request r = new Azure_CrossRef_File_Episode_Request
+            {
+                Hash = xref.Hash,
+                AnimeID = xref.AnimeID,
+                EpisodeID = xref.EpisodeID,
+                Percentage = xref.Percentage,
+                EpisodeOrder = xref.EpisodeOrder,
 
-            r.Username = ServerSettings.AniDB_Username;
+                Username = ServerSettings.AniDB_Username
+            };
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
             return r;
@@ -294,12 +300,10 @@ namespace Shoko.Server.Extensions
             episode.SeasonNumber = Int32.Parse(TryGetEpisodeProperty(doc, "SeasonNumber"));
             episode.EpisodeNumber = Int32.Parse(TryGetEpisodeProperty(doc, "EpisodeNumber"));
 
-            int flag = 0;
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "EpImgFlag"), out flag))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "EpImgFlag"), out int flag))
                 episode.EpImgFlag = flag;
 
-            int abnum = 0;
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "absolute_number"), out abnum))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "absolute_number"), out int abnum))
                 episode.AbsoluteNumber = abnum;
 
             episode.EpisodeName = TryGetEpisodeProperty(doc, "EpisodeName");
@@ -307,20 +311,17 @@ namespace Shoko.Server.Extensions
             episode.Filename = TryGetEpisodeProperty(doc, "filename");
             //this.FirstAired = TryGetProperty(doc, "FirstAired");
 
-            int aas = 0;
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsafter_season"), out aas))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsafter_season"), out int aas))
                 episode.AirsAfterSeason = aas;
             else
                 episode.AirsAfterSeason = null;
 
-            int abe = 0;
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_episode"), out abe))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_episode"), out int abe))
                 episode.AirsBeforeEpisode = abe;
             else
                 episode.AirsBeforeEpisode = null;
 
-            int abs = 0;
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_season"), out abs))
+            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_season"), out int abs))
                 episode.AirsBeforeSeason = abs;
             else
                 episode.AirsBeforeSeason = null;
@@ -376,12 +377,10 @@ namespace Shoko.Server.Extensions
             episode.SeasonNumber = Int32.Parse(TryGetProperty(node, "SeasonNumber"));
             episode.EpisodeNumber = Int32.Parse(TryGetProperty(node, "EpisodeNumber"));
 
-            int flag = 0;
-            if (Int32.TryParse(TryGetProperty(node, "EpImgFlag"), out flag))
+            if (Int32.TryParse(TryGetProperty(node, "EpImgFlag"), out int flag))
                 episode.EpImgFlag = flag;
 
-            int abnum = 0;
-            if (Int32.TryParse(TryGetProperty(node, "absolute_number"), out abnum))
+            if (Int32.TryParse(TryGetProperty(node, "absolute_number"), out int abnum))
                 episode.AbsoluteNumber = abnum;
 
             episode.EpisodeName = TryGetProperty(node, "EpisodeName");
@@ -389,20 +388,17 @@ namespace Shoko.Server.Extensions
             episode.Filename = TryGetProperty(node, "filename");
             //this.FirstAired = TryGetProperty(node, "FirstAired");
 
-            int aas = 0;
-            if (Int32.TryParse(TryGetProperty(node, "airsafter_season"), out aas))
+            if (Int32.TryParse(TryGetProperty(node, "airsafter_season"), out int aas))
                 episode.AirsAfterSeason = aas;
             else
                 episode.AirsAfterSeason = null;
 
-            int abe = 0;
-            if (Int32.TryParse(TryGetProperty(node, "airsbefore_episode"), out abe))
+            if (Int32.TryParse(TryGetProperty(node, "airsbefore_episode"), out int abe))
                 episode.AirsBeforeEpisode = abe;
             else
                 episode.AirsBeforeEpisode = null;
 
-            int abs = 0;
-            if (Int32.TryParse(TryGetProperty(node, "airsbefore_season"), out abs))
+            if (Int32.TryParse(TryGetProperty(node, "airsbefore_season"), out int abs))
                 episode.AirsBeforeSeason = abs;
             else
                 episode.AirsBeforeSeason = null;
@@ -415,7 +411,7 @@ namespace Shoko.Server.Extensions
                 string prop = node[propertyName].InnerText.Trim();
                 return prop;
             }
-            catch (Exception ex)
+            catch
             {
                 //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
@@ -538,7 +534,7 @@ namespace Shoko.Server.Extensions
                 {
                     poster.SeasonNumber = Int32.Parse(image.SubKey);
                 }
-                catch (FormatException ex)
+                catch (FormatException)
                 {
                     poster.SeasonNumber = null;
                 }
@@ -721,19 +717,19 @@ namespace Shoko.Server.Extensions
         public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session,
             AniDB_Anime_Character charRel)
         {
-            Metro_AniDB_Character contract = new Metro_AniDB_Character();
+            Metro_AniDB_Character contract = new Metro_AniDB_Character
+            {
+                AniDB_CharacterID = character.AniDB_CharacterID,
+                CharID = character.CharID,
+                CharName = character.CharName,
+                CharKanjiName = character.CharKanjiName,
+                CharDescription = character.CharDescription,
 
-            contract.AniDB_CharacterID = character.AniDB_CharacterID;
-            contract.CharID = character.CharID;
-            contract.CharName = character.CharName;
-            contract.CharKanjiName = character.CharKanjiName;
-            contract.CharDescription = character.CharDescription;
+                CharType = charRel.CharType,
 
-            contract.CharType = charRel.CharType;
-
-            contract.ImageType = (int) JMMImageType.AniDB_Character;
-            contract.ImageID = character.AniDB_CharacterID;
-
+                ImageType = (int)JMMImageType.AniDB_Character,
+                ImageID = character.AniDB_CharacterID
+            };
             AniDB_Seiyuu seiyuu = character.GetSeiyuu(session);
             if (seiyuu != null)
             {
@@ -749,15 +745,15 @@ namespace Shoko.Server.Extensions
         public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character,
             AniDB_Anime_Character charRel)
         {
-            Azure_AnimeCharacter contract = new Azure_AnimeCharacter();
-
-            contract.CharID = character.CharID;
-            contract.CharName = character.CharName;
-            contract.CharKanjiName = character.CharKanjiName;
-            contract.CharDescription = character.CharDescription;
-            contract.CharType = charRel.CharType;
-            contract.CharImageURL = String.Format(Constants.URLS.AniDB_Images, character.PicName);
-
+            Azure_AnimeCharacter contract = new Azure_AnimeCharacter
+            {
+                CharID = character.CharID,
+                CharName = character.CharName,
+                CharKanjiName = character.CharKanjiName,
+                CharDescription = character.CharDescription,
+                CharType = charRel.CharType,
+                CharImageURL = String.Format(Constants.URLS.AniDB_Images, character.PicName)
+            };
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {

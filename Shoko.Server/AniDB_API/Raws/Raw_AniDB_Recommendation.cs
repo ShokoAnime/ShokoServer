@@ -36,8 +36,7 @@ namespace AniDBAPI
             this.RecommendationTypeText = AniDBHTTPHelper.TryGetAttribute(node, "type");
             this.RecommendationText = node.InnerText.Trim();
 
-            int uid = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "uid"), out uid);
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "uid"), out int uid);
             this.UserID = uid;
         }
     }

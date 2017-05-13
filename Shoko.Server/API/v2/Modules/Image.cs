@@ -71,9 +71,8 @@ namespace Shoko.Server.API.v2.Modules
             Nancy.Response response = new Nancy.Response();
             string contentType = "";
             ratio = ratio.Replace(',', '.');
-            float newratio = 0F;
             float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio);
+                System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out float newratio);
 
             string path = ReturnImagePath(id, type, false);
 
@@ -130,9 +129,8 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             ratio = ratio.Replace(',', '.');
-            float newratio = 0F;
             float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint,
-                System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out newratio);
+                System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out float newratio);
 
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
@@ -473,15 +471,15 @@ namespace Shoko.Server.API.v2.Modules
             do
             {
                 nheight = calcwidth / newratio;
-                if (nheight > (float) im.Height + 0.5F)
+                if (nheight > im.Height + 0.5F)
                 {
-                    calcwidth = calcwidth * ((float) im.Height / nheight);
+                    calcwidth = calcwidth * (im.Height / nheight);
                 }
                 else
                 {
                     calcheight = nheight;
                 }
-            } while (nheight > (float) im.Height + 0.5F);
+            } while (nheight > im.Height + 0.5F);
 
             int newwidth = (int) Math.Round(calcwidth);
             int newheight = (int) Math.Round(calcheight);
