@@ -43,7 +43,7 @@ namespace Shoko.CLI
 
             while (running)
             {
-                //noop
+                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(60));
             }
         }
     }
