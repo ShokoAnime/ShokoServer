@@ -12,6 +12,7 @@ using NLog;
 using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
@@ -194,6 +195,11 @@ namespace Shoko.Server
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
+                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                            {
+                                queueState = QueueStateEnum.HashingFile,
+                                extraParams = new[] {v.FileName}
+                            };
                             Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, ShokoServer.OnHashProgress,
                                 true,
                                 true,

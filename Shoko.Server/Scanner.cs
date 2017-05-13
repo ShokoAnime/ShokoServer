@@ -9,8 +9,10 @@ using System.Windows;
 using System.Windows.Threading;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
+using Shoko.Commons.Queue;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
@@ -189,6 +191,11 @@ namespace Shoko.Server
                                 sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
                             else
                             {
+                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                                {
+                                    queueState = QueueStateEnum.HashingFile,
+                                    extraParams = new[] { sf.FullName }
+                                };
                                 Hashes hashes =
                                     FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                                 if (string.IsNullOrEmpty(hashes.ED2K))
