@@ -1109,7 +1109,7 @@ namespace Shoko.Server
                     {
                         return "Unable to delete file, filesystem not found.";
                     }
-                    FileSystemResult<IObject> fr = fileSystem.Resolve(df.GetFullServerPath1());
+                    FileSystemResult<IObject> fr = fileSystem.Resolve(fullserverpath);
                     if (fr == null || !fr.IsOk)
                     {
                         RepoFactory.DuplicateFile.Delete(df);
