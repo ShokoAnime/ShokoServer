@@ -12,6 +12,7 @@ using NLog;
 using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
@@ -136,6 +137,8 @@ namespace Shoko.Server
 
         public static void SyncHashes()
         {
+            bool paused = ShokoService.CmdProcessorHasher.Paused;
+            ShokoService.CmdProcessorHasher.Paused = true;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 List<SVR_VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
@@ -149,6 +152,11 @@ namespace Shoko.Server
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (SVR_VideoLocal v in missfiles.ToList())
                 {
+                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.CheckingFile,
+                        extraParams = new[] {v.FileName}
+                    };
                     SVR_AniDB_File file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                     if (file != null)
                     {
@@ -161,12 +169,9 @@ namespace Shoko.Server
                             RepoFactory.VideoLocal.Save(v, false);
                             missfiles.Remove(v);
                             withfiles.Add(v);
+                            continue;
                         }
                     }
-                }
-                //Try obtain missing hashes
-                foreach (SVR_VideoLocal v in missfiles.ToList())
-                {
                     List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
@@ -194,6 +199,11 @@ namespace Shoko.Server
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
+                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                            {
+                                queueState = QueueStateEnum.HashingFile,
+                                extraParams = new[] {v.FileName}
+                            };
                             Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, ShokoServer.OnHashProgress,
                                 true,
                                 true,
@@ -216,6 +226,7 @@ namespace Shoko.Server
                 AzureWebAPI.Send_FileHash(withfiles);
                 logger.Info("Sync Hashes Complete");
             }
+            ShokoService.CmdProcessorHasher.Paused = paused;
         }
 
 
