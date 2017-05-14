@@ -1,4 +1,5 @@
 ﻿using System;
+using Shoko.Commons.Queue;
 
 namespace Shoko.Server.Commands
 {

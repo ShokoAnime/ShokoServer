@@ -4,6 +4,7 @@ using AniDBAPI;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;

@@ -12,6 +12,7 @@ using NLog;
 using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;

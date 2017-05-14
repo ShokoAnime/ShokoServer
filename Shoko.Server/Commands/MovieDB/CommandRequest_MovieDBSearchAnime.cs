@@ -5,6 +5,7 @@ using System.Threading;
 using System.Xml;
 using Shoko.Server.Repositories.Direct;
 using NHibernate;
+using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
+using Shoko.Commons.Queue;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;

@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Server.Repositories;

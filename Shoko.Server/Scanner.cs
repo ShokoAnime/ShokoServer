@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
+using Shoko.Commons.Queue;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;

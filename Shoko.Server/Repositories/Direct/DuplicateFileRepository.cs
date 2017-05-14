@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Shoko.Models.Server;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
@@ -30,6 +31,18 @@ namespace Shoko.Server.Repositories.Direct
                     .Add(Restrictions.Eq("ImportFolderIDFile2", folderID2))
                     .List<DuplicateFile>();
                 return new List<DuplicateFile>(dfiles);
+            }
+        }
+
+        public List<DuplicateFile> GetByFilePathAndImportFolder(string filePath, int folderID)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var dfiles = session
+                    .CreateSQLQuery(
+                        $"SELECT * FROM DuplicateFile WHERE (FilePathFile1 = {filePath} OR FilePathFile2 = {filePath}) AND (ImportFolderIDFile1 = {folderID} OR ImportFolderIDFile2 = {folderID})")
+                    .List<DuplicateFile>();
+                return dfiles.ToList();
             }
         }
 
