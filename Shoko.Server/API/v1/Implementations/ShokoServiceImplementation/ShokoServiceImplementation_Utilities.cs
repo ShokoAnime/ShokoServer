@@ -1088,48 +1088,24 @@ namespace Shoko.Server
 
                 if (fileNumber == 1 || fileNumber == 2)
                 {
-                    string fullserverpath = null;
-                    SVR_ImportFolder folder = null;
+                    SVR_VideoLocal_Place place = null;
                     switch (fileNumber)
                     {
                         case 1:
-                            fullserverpath = df.GetFullServerPath1();
-                            folder = df.GetImportFolder1();
+                            place =
+                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
+                                    df.ImportFolderIDFile1);
                             break;
                         case 2:
-                            fullserverpath = df.GetFullServerPath2();
-                            folder = df.GetImportFolder2();
+                            place =
+                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
+                                    df.ImportFolderIDFile2);
                             break;
                     }
-                    if (folder == null) return "Unable to get Import Folder";
-                    if (fullserverpath == null) return "Unable to get Full Server Path";
+                    if (place == null) return "Unable to get VideoLocal_Place";
 
-                    IFileSystem fileSystem = folder.FileSystem;
-                    if (fileSystem == null)
-                    {
-                        return "Unable to delete file, filesystem not found.";
-                    }
-                    FileSystemResult<IObject> fr = fileSystem.Resolve(fullserverpath);
-                    if (fr == null || !fr.IsOk)
-                    {
-                        RepoFactory.DuplicateFile.Delete(df);
-                        return "";
-                    }
-                    IFile file = fr.Result as IFile;
-                    if (file == null)
-                    {
-                        logger.Error($"Seems '{fullserverpath}' is a directory.");
-                        return $"Seems '{fullserverpath}' is a directory.";
-                    }
-                    FileSystemResult fs = file.Delete(false);
-                    if (fs == null || !fs.IsOk)
-                    {
-                        logger.Error($"Unable to delete file '{fullserverpath}'");
-                        return $"Unable to delete file '{fullserverpath}'";
-                    }
+                    place.RemoveAndDeleteFile();
                 }
-
-                RepoFactory.DuplicateFile.Delete(df);
                 return "";
             }
             catch (Exception ex)

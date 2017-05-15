@@ -39,10 +39,12 @@ namespace Shoko.Server.Repositories.Direct
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var dfiles = session
-                    .CreateSQLQuery(
-                        $"SELECT * FROM DuplicateFile WHERE (FilePathFile1 = :filePath OR FilePathFile2 = :filePath) AND (ImportFolderIDFile1 = :folderID OR ImportFolderIDFile2 = :folderID)")
-                    .SetString("filePath", filePath)
-                    .SetInt32("folderID", folderID)
+                    .CreateCriteria(typeof(DuplicateFile))
+                    .Add(Restrictions.Or(
+                        Restrictions.And(Restrictions.Eq("FilePathFile1", filePath),
+                            Restrictions.Eq("ImportFolderIDFile1", folderID)),
+                        Restrictions.And(Restrictions.Eq("FilePathFile2", filePath),
+                            Restrictions.Eq("ImportFolderIDFile2", folderID))))
                     .List<DuplicateFile>();
                 return dfiles.ToList();
             }
