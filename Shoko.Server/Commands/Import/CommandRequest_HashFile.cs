@@ -197,17 +197,18 @@ namespace Shoko.Server.Commands
                 logger.Trace("VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal
                 {
-                    DateTimeUpdated = DateTime.Now
+                    DateTimeUpdated = DateTime.Now,
+                    DateTimeCreated = DateTimeUpdated,
+                    FileName = Path.GetFileName(filePath),
+                    FileSize = filesize,
+                    Hash = string.Empty,
+                    CRC32 = string.Empty,
+                    MD5 = source_file?.MD5?.ToUpperInvariant() ?? string.Empty,
+                    SHA1 = source_file?.SHA1?.ToUpperInvariant() ?? string.Empty,
+                    IsIgnored = 0,
+                    IsVariation = 0
                 };
-                vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
-                vlocal.FileName = Path.GetFileName(filePath);
-                vlocal.FileSize = filesize;
-                vlocal.Hash = string.Empty;
-                vlocal.CRC32 = string.Empty;
-                vlocal.MD5 = source_file?.MD5?.ToUpperInvariant() ?? string.Empty;
-                vlocal.SHA1 = source_file?.SHA1?.ToUpperInvariant() ?? string.Empty;
-                vlocal.IsIgnored = 0;
-                vlocal.IsVariation = 0;
+
                 vlocalplace = new SVR_VideoLocal_Place
                 {
                     FilePath = filePath,
@@ -301,18 +302,18 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
-                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
-                    changed = tlocal.MergeInfoFrom(vlocal);
-                    vlocal = tlocal;
                     SVR_VideoLocal_Place prep = tlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
                              vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
                     // clean up, if there is a 'duplicate file' that is invalid, remove it.
                     if (prep != null && prep.FullServerPath == null)
                     {
-                        if (tlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(tlocal);
                         RepoFactory.VideoLocalPlace.Delete(prep);
                     }
+
+                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
+                    changed = tlocal.MergeInfoFrom(vlocal);
+                    vlocal = tlocal;
 
                     prep = tlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
@@ -353,7 +354,6 @@ namespace Shoko.Server.Commands
                         duplicate = true;
                     }
                 }
-
 
                 if (!duplicate || changed)
                     RepoFactory.VideoLocal.Save(vlocal, true);
