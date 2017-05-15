@@ -834,7 +834,7 @@ namespace Shoko.Server
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                // get a full list of files
+                // remove missing files in valid import folders
                 Dictionary<SVR_ImportFolder, List<SVR_VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
                     .Where(a => a.ImportFolder != null)
                     .GroupBy(a => a.ImportFolder)
@@ -842,6 +842,7 @@ namespace Shoko.Server
                 foreach (SVR_ImportFolder folder in filesAll.Keys)
                 {
                     IFileSystem fs = folder.FileSystem;
+                    if (fs == null) continue;
 
                     foreach (SVR_VideoLocal_Place vl in filesAll[folder])
                     {
@@ -849,12 +850,13 @@ namespace Shoko.Server
                         if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
                         if (obj != null && obj.IsOk) continue;
                         // delete video local record
+                        logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
                         vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     }
                 }
 
                 List<SVR_VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
-                // remove duplicate and/or empty videolocals
+                // remove empty videolocals
                 using (var transaction = session.BeginTransaction())
                 {
                     foreach (SVR_VideoLocal remove in videoLocalsAll.Where(a => a.IsEmpty()).ToList())
@@ -863,7 +865,7 @@ namespace Shoko.Server
                     }
                     transaction.Commit();
                 }
-
+                // Remove duplicate videolocals
                 Dictionary<string, List<SVR_VideoLocal>> locals = videoLocalsAll
                     .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                     .GroupBy(a => a.Hash)
@@ -903,6 +905,7 @@ namespace Shoko.Server
                     transaction.Commit();
                 }
 
+                // Remove files in invalid import folders
                 foreach (SVR_VideoLocal v in videoLocalsAll)
                 {
                     List<SVR_VideoLocal_Place> places = v.Places;
@@ -950,33 +953,30 @@ namespace Shoko.Server
                         new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                     cmdDel.Save();
                 }
-            }
 
-            foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-            {
-                if (ep.AnimeEpisodeID == 0)
+                // update everything we modified
+                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
                 {
-                    ep.PlexContract = null;
-                    RepoFactory.AnimeEpisode.Save(ep);
+                    if (ep.AnimeEpisodeID == 0)
+                    {
+                        ep.PlexContract = null;
+                        RepoFactory.AnimeEpisode.Save(ep);
+                    }
+                    try
+                    {
+                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
+                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                    }
                 }
-                try
+                foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {
-                    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-                catch (Exception ex)
-                {
-                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                    ser.QueueUpdateStats();
                 }
             }
-
-            foreach (SVR_AnimeSeries ser in seriesToUpdate)
-            {
-                ser.QueueUpdateStats();
-            }
-
-
-            //UpdateAllStats();
         }
 
         public static string DeleteCloudAccount(int cloudaccountID)
