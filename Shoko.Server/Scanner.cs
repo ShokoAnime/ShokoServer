@@ -173,6 +173,8 @@ namespace Shoko.Server
         {
             if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
             {
+                bool paused = ShokoService.CmdProcessorHasher.Paused;
+                ShokoService.CmdProcessorHasher.Paused = true;
                 Scan s = RunScan;
                 s.Status = (int) ScanStatus.Running;
                 RepoFactory.Scan.Save(s);
@@ -235,6 +237,7 @@ namespace Shoko.Server
                 RepoFactory.Scan.Save(s);
                 Refresh();
                 RunScan = null;
+                ShokoService.CmdProcessorHasher.Paused = paused;
             }
         }
     }
