@@ -7,6 +7,7 @@ using AniDBAPI;
 using Shoko.Models;
 using Shoko.Server.Repositories.Direct;
 using NHibernate;
+using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;

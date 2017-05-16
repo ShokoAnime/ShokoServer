@@ -130,16 +130,21 @@ namespace Shoko.Server.Models
             List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
             List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
             SVR_VideoLocal v = VideoLocal;
+            List<DuplicateFile> dupFiles =
+                RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 if (v.Places.Count <= 1)
                 {
                     episodesToUpdate.AddRange(v.GetAnimeEpisodes());
                     seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                        dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                     CommandRequest_DeleteFileFromMyList cmdDel =
@@ -148,11 +153,10 @@ namespace Shoko.Server.Models
                 }
                 else
                 {
-                    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                        dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                 }
@@ -189,16 +193,19 @@ namespace Shoko.Server.Models
             logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
             SVR_VideoLocal v = VideoLocal;
 
-            List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
-            eps?.ForEach(a => episodesToUpdate.Add(a));
-            eps?.Select(a => a.GetAnimeSeries()).ToList().ForEach(a => seriesToUpdate.Add(a));
+            List<DuplicateFile> dupFiles =
+                RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             if (v?.Places?.Count <= 1)
             {
+                List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
+                eps?.ForEach(episodesToUpdate.Add);
+                eps?.Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                    dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
                 }
                 CommandRequest_DeleteFileFromMyList cmdDel =
@@ -210,6 +217,7 @@ namespace Shoko.Server.Models
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                    dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
                 }
             }
@@ -218,10 +226,8 @@ namespace Shoko.Server.Models
         public IFile GetFile()
         {
             IFileSystem fs = ImportFolder.FileSystem;
-            if (fs == null)
-                return null;
-            FileSystemResult<IObject> fobj = fs.Resolve(FullServerPath);
-            if (!fobj.IsOk || fobj.Result is IDirectory)
+            FileSystemResult<IObject> fobj = fs?.Resolve(FullServerPath);
+            if (fobj == null || !fobj?.IsOk != true || fobj.Result is IDirectory)
                 return null;
             return fobj.Result as IFile;
         }
@@ -477,6 +483,7 @@ namespace Shoko.Server.Models
                     // this means it isn't a file, but something else, so don't retry
                     return true;
                 }
+
                 // find the default destination
                 SVR_ImportFolder destFolder = null;
                 foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
@@ -487,10 +494,6 @@ namespace Shoko.Server.Models
                     IFileSystem fs = fldr.FileSystem;
                     FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
                     if (fsresult == null || !fsresult.IsOk) continue;
-
-                    string tempNewPath = Path.Combine(fldr.ImportFolderLocation, FilePath);
-                    fsresult = fs.Resolve(tempNewPath);
-                    if (fsresult.IsOk) continue;
 
                     destFolder = fldr;
                     break;
@@ -505,6 +508,11 @@ namespace Shoko.Server.Models
                 // keep the original drop folder for later (take a copy, not a reference)
                 SVR_ImportFolder dropFolder = this.ImportFolder;
 
+                // find where the other files are stored for this series
+                // if there are no other files except for this one, it means we need to create a new location
+                bool foundLocation = false;
+                string newFullPath = "";
+
                 // we can only move the file if it has an anime associated with it
                 List<CrossRef_File_Episode> xrefs = this.VideoLocal.EpisodeCrossRefs;
                 if (xrefs.Count == 0) return true;
@@ -513,11 +521,6 @@ namespace Shoko.Server.Models
                 // find the series associated with this episode
                 SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                 if (series == null) return true;
-
-                // find where the other files are stored for this series
-                // if there are no other files except for this one, it means we need to create a new location
-                bool foundLocation = false;
-                string newFullPath = "";
 
                 // sort the episodes by air date, so that we will move the file to the location of the latest episode
                 List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes()
@@ -651,10 +654,9 @@ namespace Shoko.Server.Models
                         {
                             logger.Warn("Unable to DELETE file: {0} error {1}", this.FullServerPath,
                                 fr?.Error ?? String.Empty);
+                            return false;
                         }
-                        this.ImportFolderID = tup.Item1.ImportFolderID;
-                        this.FilePath = tup.Item2;
-                        RepoFactory.VideoLocalPlace.Save(this);
+                        RemoveRecord();
 
                         // check for any empty folders in drop folder
                         // only for the drop folder
@@ -666,6 +668,7 @@ namespace Shoko.Server.Models
                                 RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                             }
                         }
+                        return true;
                     }
                     catch
                     {
@@ -684,7 +687,6 @@ namespace Shoko.Server.Models
                     }
                     string originalFileName = this.FullServerPath;
 
-
                     this.ImportFolderID = tup.Item1.ImportFolderID;
                     this.FilePath = tup.Item2;
                     RepoFactory.VideoLocalPlace.Save(this);
@@ -695,28 +697,26 @@ namespace Shoko.Server.Models
                         foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
                         {
                             FileSystemResult<IObject> src = f.Resolve(subtitleFile);
-                            if (src.IsOk && src.Result is IFile)
+                            if (!src.IsOk || !(src.Result is IFile)) continue;
+                            string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
+                                ((IFile) src.Result).Name);
+                            dst = f.Resolve(newSubPath);
+                            if (dst.IsOk && dst.Result is IFile)
                             {
-                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
-                                    ((IFile) src.Result).Name);
-                                dst = f.Resolve(newSubPath);
-                                if (dst.IsOk && dst.Result is IFile)
+                                FileSystemResult fr2 = src.Result.Delete(false);
+                                if (!fr2.IsOk)
                                 {
-                                    FileSystemResult fr2 = src.Result.Delete(false);
-                                    if (!fr2.IsOk)
-                                    {
-                                        logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
-                                            fr2?.Error ?? String.Empty);
-                                    }
+                                    logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
+                                        fr2?.Error ?? String.Empty);
                                 }
-                                else
+                            }
+                            else
+                            {
+                                FileSystemResult fr2 = ((IFile) src.Result).Move(destination);
+                                if (!fr2.IsOk)
                                 {
-                                    FileSystemResult fr2 = ((IFile) src.Result).Move(destination);
-                                    if (!fr2.IsOk)
-                                    {
-                                        logger.Error("Unable to MOVE file: {0} to {1} error {2)", subtitleFile,
-                                            newSubPath, fr2?.Error ?? String.Empty);
-                                    }
+                                    logger.Error("Unable to MOVE file: {0} to {1} error {2)", subtitleFile,
+                                        newSubPath, fr2?.Error ?? String.Empty);
                                 }
                             }
                         }

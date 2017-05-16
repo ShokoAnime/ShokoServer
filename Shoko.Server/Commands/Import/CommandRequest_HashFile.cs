@@ -13,6 +13,7 @@ using Shoko.Models.Azure;
 using Shoko.Server.Repositories.Direct;
 using Pri.LongPath;
 using NutzCode.CloudFileSystem;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -196,17 +197,18 @@ namespace Shoko.Server.Commands
                 logger.Trace("VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal
                 {
-                    DateTimeUpdated = DateTime.Now
+                    DateTimeUpdated = DateTime.Now,
+                    DateTimeCreated = DateTimeUpdated,
+                    FileName = Path.GetFileName(filePath),
+                    FileSize = filesize,
+                    Hash = string.Empty,
+                    CRC32 = string.Empty,
+                    MD5 = source_file?.MD5?.ToUpperInvariant() ?? string.Empty,
+                    SHA1 = source_file?.SHA1?.ToUpperInvariant() ?? string.Empty,
+                    IsIgnored = 0,
+                    IsVariation = 0
                 };
-                vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
-                vlocal.FileName = Path.GetFileName(filePath);
-                vlocal.FileSize = filesize;
-                vlocal.Hash = string.Empty;
-                vlocal.CRC32 = string.Empty;
-                vlocal.MD5 = source_file.MD5.ToUpperInvariant() ?? string.Empty;
-                vlocal.SHA1 = source_file.SHA1.ToUpperInvariant() ?? string.Empty;
-                vlocal.IsIgnored = 0;
-                vlocal.IsVariation = 0;
+
                 vlocalplace = new SVR_VideoLocal_Place
                 {
                     FilePath = filePath,
@@ -257,9 +259,10 @@ namespace Shoko.Server.Commands
                 }
                 if (string.IsNullOrEmpty(vlocal.Hash))
                     FillVideoHashes(vlocal);
+
+                //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
                 if (string.IsNullOrEmpty(vlocal.Hash) && folder.CloudID.HasValue)
                 {
-                    //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
                     logger.Trace("No Hash found for cloud " + vlocal.FileName +
                                  " putting in videolocal table with empty ED2K");
                     RepoFactory.VideoLocal.Save(vlocal, false);
@@ -269,6 +272,7 @@ namespace Shoko.Server.Commands
                         RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
                     return vlocalplace;
                 }
+
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
@@ -280,7 +284,7 @@ namespace Shoko.Server.Commands
                     hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                         true, true, true);
                     TimeSpan ts = DateTime.Now - start;
-                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
+                    logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
                         Utils.FormatByteSize(vlocal.FileSize));
                     vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
                     vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
@@ -298,19 +302,18 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
-                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
-                    changed = tlocal.MergeInfoFrom(vlocal);
-                    vlocal = tlocal;
                     SVR_VideoLocal_Place prep = tlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
                              vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
                     // clean up, if there is a 'duplicate file' that is invalid, remove it.
                     if (prep != null && prep.FullServerPath == null)
                     {
-                        if (tlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(tlocal);
                         RepoFactory.VideoLocalPlace.Delete(prep);
-                        prep = null;
                     }
+
+                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
+                    changed = tlocal.MergeInfoFrom(vlocal);
+                    vlocal = tlocal;
 
                     prep = tlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
@@ -352,7 +355,6 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-
                 if (!duplicate || changed)
                     RepoFactory.VideoLocal.Save(vlocal, true);
 
@@ -369,7 +371,7 @@ namespace Shoko.Server.Commands
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
-                FileNameHash fnhash = null;
+                FileNameHash fnhash;
                 List<FileNameHash> fnhashes2 =
                     RepoFactory.FileNameHash.GetByFileNameAndSize(vlocal.FileName, vlocal.FileSize);
                 if (fnhashes2 != null && fnhashes2.Count > 1)
@@ -600,9 +602,12 @@ namespace Shoko.Server.Commands
 
         private void FillVideoHashes(SVR_VideoLocal v)
         {
-            FillHashesAgainstVideoLocalRepo(v);
-            FillHashesAgainstAniDBRepo(v);
-            FillHashesAgainstWebCache(v);
+            if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
+                FillHashesAgainstVideoLocalRepo(v);
+            if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
+                FillHashesAgainstAniDBRepo(v);
+            if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
+                FillHashesAgainstWebCache(v);
         }
 
 

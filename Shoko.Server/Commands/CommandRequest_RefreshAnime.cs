@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Threading;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;

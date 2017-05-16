@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;

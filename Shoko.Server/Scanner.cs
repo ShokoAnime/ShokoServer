@@ -9,9 +9,12 @@ using System.Windows;
 using System.Windows.Threading;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
+using Shoko.Commons.Queue;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Repositories;
@@ -169,6 +172,8 @@ namespace Shoko.Server
         {
             if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
             {
+                bool paused = ShokoService.CmdProcessorHasher.Paused;
+                ShokoService.CmdProcessorHasher.Paused = true;
                 Scan s = RunScan;
                 s.Status = (int) ScanStatus.Running;
                 RepoFactory.Scan.Save(s);
@@ -188,6 +193,11 @@ namespace Shoko.Server
                                 sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
                             else
                             {
+                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                                {
+                                    queueState = QueueStateEnum.HashingFile,
+                                    extraParams = new[] { sf.FullName }
+                                };
                                 Hashes hashes =
                                     FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                                 if (string.IsNullOrEmpty(hashes.ED2K))
@@ -226,6 +236,7 @@ namespace Shoko.Server
                 RepoFactory.Scan.Save(s);
                 Refresh();
                 RunScan = null;
+                ShokoService.CmdProcessorHasher.Paused = paused;
             }
         }
     }

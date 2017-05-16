@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Xml;
+using Shoko.Commons.Queue;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models;
 using Shoko.Models.Enums;

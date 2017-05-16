@@ -12,6 +12,8 @@ using NLog;
 using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Queue;
+using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
@@ -136,6 +138,8 @@ namespace Shoko.Server
 
         public static void SyncHashes()
         {
+            bool paused = ShokoService.CmdProcessorHasher.Paused;
+            ShokoService.CmdProcessorHasher.Paused = true;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 List<SVR_VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
@@ -149,6 +153,11 @@ namespace Shoko.Server
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (SVR_VideoLocal v in missfiles.ToList())
                 {
+                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                    {
+                        queueState = QueueStateEnum.CheckingFile,
+                        extraParams = new[] {v.FileName}
+                    };
                     SVR_AniDB_File file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                     if (file != null)
                     {
@@ -161,12 +170,9 @@ namespace Shoko.Server
                             RepoFactory.VideoLocal.Save(v, false);
                             missfiles.Remove(v);
                             withfiles.Add(v);
+                            continue;
                         }
                     }
-                }
-                //Try obtain missing hashes
-                foreach (SVR_VideoLocal v in missfiles.ToList())
-                {
                     List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
@@ -194,6 +200,11 @@ namespace Shoko.Server
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
+                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                            {
+                                queueState = QueueStateEnum.HashingFile,
+                                extraParams = new[] {v.FileName}
+                            };
                             Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, ShokoServer.OnHashProgress,
                                 true,
                                 true,
@@ -216,6 +227,7 @@ namespace Shoko.Server
                 AzureWebAPI.Send_FileHash(withfiles);
                 logger.Info("Sync Hashes Complete");
             }
+            ShokoService.CmdProcessorHasher.Paused = paused;
         }
 
 
@@ -822,7 +834,7 @@ namespace Shoko.Server
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                // get a full list of files
+                // remove missing files in valid import folders
                 Dictionary<SVR_ImportFolder, List<SVR_VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll()
                     .Where(a => a.ImportFolder != null)
                     .GroupBy(a => a.ImportFolder)
@@ -830,6 +842,7 @@ namespace Shoko.Server
                 foreach (SVR_ImportFolder folder in filesAll.Keys)
                 {
                     IFileSystem fs = folder.FileSystem;
+                    if (fs == null) continue;
 
                     foreach (SVR_VideoLocal_Place vl in filesAll[folder])
                     {
@@ -837,12 +850,13 @@ namespace Shoko.Server
                         if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
                         if (obj != null && obj.IsOk) continue;
                         // delete video local record
+                        logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
                         vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     }
                 }
 
                 List<SVR_VideoLocal> videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
-                // remove duplicate and/or empty videolocals
+                // remove empty videolocals
                 using (var transaction = session.BeginTransaction())
                 {
                     foreach (SVR_VideoLocal remove in videoLocalsAll.Where(a => a.IsEmpty()).ToList())
@@ -851,7 +865,7 @@ namespace Shoko.Server
                     }
                     transaction.Commit();
                 }
-
+                // Remove duplicate videolocals
                 Dictionary<string, List<SVR_VideoLocal>> locals = videoLocalsAll
                     .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                     .GroupBy(a => a.Hash)
@@ -891,6 +905,7 @@ namespace Shoko.Server
                     transaction.Commit();
                 }
 
+                // Remove files in invalid import folders
                 foreach (SVR_VideoLocal v in videoLocalsAll)
                 {
                     List<SVR_VideoLocal_Place> places = v.Places;
@@ -938,33 +953,30 @@ namespace Shoko.Server
                         new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                     cmdDel.Save();
                 }
-            }
 
-            foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-            {
-                if (ep.AnimeEpisodeID == 0)
+                // update everything we modified
+                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
                 {
-                    ep.PlexContract = null;
-                    RepoFactory.AnimeEpisode.Save(ep);
+                    if (ep.AnimeEpisodeID == 0)
+                    {
+                        ep.PlexContract = null;
+                        RepoFactory.AnimeEpisode.Save(ep);
+                    }
+                    try
+                    {
+                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
+                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                    }
                 }
-                try
+                foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {
-                    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-                catch (Exception ex)
-                {
-                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                    ser.QueueUpdateStats();
                 }
             }
-
-            foreach (SVR_AnimeSeries ser in seriesToUpdate)
-            {
-                ser.QueueUpdateStats();
-            }
-
-
-            //UpdateAllStats();
         }
 
         public static string DeleteCloudAccount(int cloudaccountID)

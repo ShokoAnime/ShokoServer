@@ -13,6 +13,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using NLog;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 
 namespace Shoko.Server.Commands

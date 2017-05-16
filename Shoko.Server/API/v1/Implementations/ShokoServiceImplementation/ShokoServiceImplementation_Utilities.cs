@@ -1088,15 +1088,24 @@ namespace Shoko.Server
 
                 if (fileNumber == 1 || fileNumber == 2)
                 {
-                    string fileName = "";
-                    if (fileNumber == 1) fileName = df.GetFullServerPath1();
-                    if (fileNumber == 2) fileName = df.GetFullServerPath2();
-                    IFile file = SVR_VideoLocal.ResolveFile(fileName);
-                    file?.Delete(false);
+                    SVR_VideoLocal_Place place = null;
+                    switch (fileNumber)
+                    {
+                        case 1:
+                            place =
+                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
+                                    df.ImportFolderIDFile1);
+                            break;
+                        case 2:
+                            place =
+                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
+                                    df.ImportFolderIDFile2);
+                            break;
+                    }
+                    if (place == null) return "Unable to get VideoLocal_Place";
+
+                    place.RemoveAndDeleteFile();
                 }
-
-                RepoFactory.DuplicateFile.Delete(duplicateFileID);
-
                 return "";
             }
             catch (Exception ex)

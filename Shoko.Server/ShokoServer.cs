@@ -1640,7 +1640,7 @@ namespace Shoko.Server
 
         public void CheckForUpdates()
         {
-            System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
+            System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
             if (a != null)
             {
                 ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);

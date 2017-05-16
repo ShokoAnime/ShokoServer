@@ -1,4 +1,5 @@
-﻿using Shoko.Models.Server;
+﻿using Shoko.Commons.Queue;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
 {

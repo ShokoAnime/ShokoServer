@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using Shoko.Server.Repositories.Direct;
 using NLog;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
