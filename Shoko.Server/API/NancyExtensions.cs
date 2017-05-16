@@ -12,11 +12,13 @@ namespace Shoko.Server.API
 {
     public static class NancyExtensions
     {
+        // TODO: this one is not used
         public static Response FromByteArray(this IResponseFormatter formatter, byte[] body, string contentType = null)
         {
             return new ByteArrayResponse(body, contentType);
         }
 
+        // TODO: this one is not used
         public static List<AnimeTitle> ToAPIContract(this List<AniDB_Anime_Title> titles)
         {
             List<AnimeTitle> result = new List<AnimeTitle>();
