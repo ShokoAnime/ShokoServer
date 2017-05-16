@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -20,15 +17,9 @@ namespace Shoko.Server.Commands
     {
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority6; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
-        {
-            get { return new QueueStateStruct() {queueState = QueueStateEnum.SyncMyList, extraParams = new string[0]}; }
-        }
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncMyList, extraParams = new string[0]};
 
         public CommandRequest_SyncMyList()
         {
@@ -36,9 +27,9 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_SyncMyList(bool forced)
         {
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.AniDB_SyncMyList;
-            this.Priority = (int) DefaultPriority;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.AniDB_SyncMyList;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -50,8 +41,6 @@ namespace Shoko.Server.Commands
             try
             {
                 // we will always assume that an anime was downloaded via http first
-
-
                 ScheduledUpdate sched =
                     RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
                 if (sched == null)
@@ -77,177 +66,170 @@ namespace Shoko.Server.Commands
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
                 cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
-                if (ev == enHelperActivityType.GotMyListHTTP && cmd.MyListItems.Count > 1)
+                if (ev != enHelperActivityType.GotMyListHTTP || cmd.MyListItems.Count <= 1) return;
+
+
+                int totalItems = 0;
+                int watchedItems = 0;
+                int modifiedItems = 0;
+                double pct = 0;
+
+                // 2. find files locally for the user, which are not recorded on anidb
+                //    and then add them to anidb
+                Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = new Dictionary<int, Raw_AniDB_MyListFile>();
+                foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
+                    onlineFiles[myitem.FileID] = myitem;
+
+                Dictionary<string, SVR_AniDB_File> dictAniFiles = new Dictionary<string, SVR_AniDB_File>();
+                IReadOnlyList<SVR_AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
+                foreach (SVR_AniDB_File anifile in allAniFiles)
+                    dictAniFiles[anifile.Hash] = anifile;
+
+                int missingFiles = 0;
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
+                    .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
                 {
-                    int totalItems = 0;
-                    int watchedItems = 0;
-                    int modifiedItems = 0;
-                    double pct = 0;
+                    if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
 
-                    // 2. find files locally for the user, which are not recorded on anidb
-                    //    and then add them to anidb
-                    Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = new Dictionary<int, Raw_AniDB_MyListFile>();
-                    foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
-                        onlineFiles[myitem.FileID] = myitem;
+                    int fileID = dictAniFiles[vid.Hash].FileID;
 
-                    Dictionary<string, SVR_AniDB_File> dictAniFiles = new Dictionary<string, SVR_AniDB_File>();
-                    IReadOnlyList<SVR_AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
-                    foreach (SVR_AniDB_File anifile in allAniFiles)
-                        dictAniFiles[anifile.Hash] = anifile;
+                    if (onlineFiles.ContainsKey(fileID)) continue;
 
-                    int missingFiles = 0;
-                    foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
-                        .Where(a => !string.IsNullOrEmpty(a.Hash)))
+                    // means we have found a file in our local collection, which is not recorded online
+                    CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
+                    cmdAddFile.Save();
+                    missingFiles++;
+                }
+                logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
+
+                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+
+
+                // 1 . sync mylist items
+                foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
+                {
+                    // ignore files mark as deleted by the user
+                    if (myitem.State == (int) AniDBFileStatus.Deleted) continue;
+
+                    totalItems++;
+                    if (myitem.IsWatched) watchedItems++;
+
+                    //calculate percentage
+                    pct = totalItems / (double)cmd.MyListItems.Count * 100;
+                    string spct = pct.ToString("#0.0");
+
+                    string hash = string.Empty;
+
+                    SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                    if (anifile != null)
                     {
-                        if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
-
-                        int fileID = dictAniFiles[vid.Hash].FileID;
-
-                        if (!onlineFiles.ContainsKey(fileID))
+                        hash = anifile.Hash;
+                    }
+                    else
+                    {
+                        // look for manually linked files
+                        List<CrossRef_File_Episode> xrefs =
+                            RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                        foreach (CrossRef_File_Episode xref in xrefs)
                         {
-                            // means we have found a file in our local collection, which is not recorded online
-                            CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
-                            cmdAddFile.Save();
-                            missingFiles++;
+                            if (xref.CrossRefSource == (int) CrossRefSource.AniDB) continue;
+                            hash = xref.Hash;
+                            break;
                         }
                     }
-                    logger.Info(string.Format("MYLIST Missing Files: {0} Added to queue for inclusion", missingFiles));
-
-                    List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
 
-                    // 1 . sync mylist items
-                    foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
+                    if (string.IsNullOrEmpty(hash)) continue;
+
+                    // find the video associated with this record
+                    SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
+                    if (vl == null) continue;
+
+                    foreach (SVR_JMMUser juser in aniDBUsers)
                     {
-                        // ignore files mark as deleted by the user
-                        if (myitem.State == (int) AniDBFileStatus.Deleted) continue;
+                        bool localStatus = false;
 
-                        totalItems++;
-                        if (myitem.IsWatched) watchedItems++;
+                        // doesn't matter which anidb user we use
+                        int jmmUserID = juser.JMMUserID;
+                        VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
+                        if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
 
-                        //calculate percentage
-                        pct = totalItems / (double)cmd.MyListItems.Count * 100;
-                        string spct = pct.ToString("#0.0");
+                        string action = "";
+                        if (localStatus == myitem.IsWatched) continue;
 
-                        string hash = string.Empty;
-
-                        SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
-                        if (anifile != null)
-                            hash = anifile.Hash;
+                        if (localStatus)
+                        {
+                            // local = watched, anidb = unwatched
+                            if (ServerSettings.AniDB_MyList_ReadUnwatched)
+                            {
+                                modifiedItems++;
+                                vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate,
+                                    false, false, jmmUserID, false,
+                                    true);
+                                action = "Used AniDB Status";
+                            }
+                        }
                         else
                         {
-                            // look for manually linked files
-                            List<CrossRef_File_Episode> xrefs =
-                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
-                            foreach (CrossRef_File_Episode xref in xrefs)
+                            // means local is un-watched, and anidb is watched
+                            if (ServerSettings.AniDB_MyList_ReadWatched)
                             {
-                                if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
-                                {
-                                    hash = xref.Hash;
-                                    break;
-                                }
+                                modifiedItems++;
+                                vl.ToggleWatchedStatus(true, false, myitem.WatchedDate, false, false,
+                                    jmmUserID, false, true);
+                                action = "Updated Local record to Watched";
                             }
                         }
 
-
-                        if (!string.IsNullOrEmpty(hash))
-                        {
-                            // find the video associated with this record
-                            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
-                            if (vl == null) continue;
-
-                            foreach (SVR_JMMUser juser in aniDBUsers)
-                            {
-                                bool localStatus = false;
-                                int? jmmUserID = null;
-
-                                // doesn't matter which anidb user we use
-                                jmmUserID = juser.JMMUserID;
-                                VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
-                                if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
-
-                                string action = "";
-                                if (localStatus != myitem.IsWatched)
-                                {
-                                    if (localStatus == true)
-                                    {
-                                        // local = watched, anidb = unwatched
-                                        if (ServerSettings.AniDB_MyList_ReadUnwatched)
-                                        {
-                                            modifiedItems++;
-                                            if (jmmUserID.HasValue)
-                                                vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate,
-                                                    false, false, jmmUserID.Value, false,
-                                                    true);
-                                            action = "Used AniDB Status";
-                                        }
-                                    }
-                                    else
-                                    {
-                                        // means local is un-watched, and anidb is watched
-                                        if (ServerSettings.AniDB_MyList_ReadWatched)
-                                        {
-                                            modifiedItems++;
-                                            if (jmmUserID.HasValue)
-                                                vl.ToggleWatchedStatus(true, false, myitem.WatchedDate, false, false,
-                                                    jmmUserID.Value, false, true);
-                                            action = "Updated Local record to Watched";
-                                        }
-                                    }
-
-                                    string msg =
-                                        $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
-                                    logger.Info(msg);
-                                }
-                            }
-
-
-                            //string msg = string.Format("MYLIST:: File {0} - Local Status = {1}, AniDB Status = {2} --- {3}",
-                            //	vl.FullServerPath, localStatus, myitem.IsWatched, action);
-                            //logger.Info(msg);
-                        }
+                        string msg =
+                            $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
+                        logger.Info(msg);
                     }
 
 
-                    // now update all stats
-                    Importer.UpdateAllStats();
-
-                    logger.Info("Process MyList: {0} Items, {1} Watched, {2} Modified", totalItems, watchedItems,
-                        modifiedItems);
-
-                    sched.LastUpdate = DateTime.Now;
-                    RepoFactory.ScheduledUpdate.Save(sched);
+                    //string msg = string.Format("MYLIST:: File {0} - Local Status = {1}, AniDB Status = {2} --- {3}",
+                    //    vl.FullServerPath, localStatus, myitem.IsWatched, action);
+                    //logger.Info(msg);
                 }
+
+
+                // now update all stats
+                Importer.UpdateAllStats();
+
+                logger.Info("Process MyList: {0} Items, {1} Watched, {2} Modified", totalItems, watchedItems,
+                    modifiedItems);
+
+                sched.LastUpdate = DateTime.Now;
+                RepoFactory.ScheduledUpdate.Save(sched);
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_SyncMyList: {0} ", ex.ToString());
-                return;
+                logger.Error(ex, "Error processing CommandRequest_SyncMyList: {0} ", ex.Message);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_SyncMyList");
+            CommandID = "CommandRequest_SyncMyList";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_SyncMyList", "ForceRefresh"));
+                ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_SyncMyList", "ForceRefresh"));
             }
 
             return true;
@@ -259,10 +241,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
