@@ -36,8 +36,8 @@ namespace Shoko.Server.API.v2.Modules
             Get["/config/imagepath/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagepath);
             Get["/config/export", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig);
             Post["/config/import", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig);
-            Post["/config/set", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting(x.setting, x.value));
-            Post["/config/get", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting(x.setting));
+            Post["/config/set", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting);
+            Post["/config/get", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting);
 
             #endregion
 
@@ -253,23 +253,34 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="setting">parameter you want to read</param>
         /// <returns></returns>
-        private object GetSetting(string setting)
+        private object GetSetting()
         {
-            if (setting != null)
+            try
             {
-                var config = ServerSettings.Get(setting);
-                if (config != null)
+                Settings setting = this.Bind();
+                if (setting != null)
                 {
-                    return config;
+                    var config = ServerSettings.Get(setting.setting);
+                    if (config != null)
+                    {
+                        Settings return_setting = new Settings();
+                        return_setting.setting = setting.setting;
+                        return_setting.value = config;
+                        return return_setting;
+                    }
+                    else
+                    {
+                        return APIStatus.notFound404("Parameter not found.");
+                    }
                 }
                 else
                 {
-                    return APIStatus.notFound404("Parameter not found.");
+                    return APIStatus.badRequest("Setting was null.");
                 }
             }
-            else
+            catch
             {
-                return APIStatus.badRequest("Setting was null.");
+                return APIStatus.internalError();
             }
         }
 
@@ -279,24 +290,32 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="setting">parameter you want to write</param>
         /// <param name="value">value of the parameter</param>
         /// <returns></returns>
-        private object SetSetting(string setting, string value)
+        private object SetSetting()
         {
-            if (setting != null & value != null)
+            try
             {
-                if (ServerSettings.Set(setting, value) == true)
+                Settings setting = this.Bind();
+                if (setting.setting != null & setting.value != null)
                 {
-                    return APIStatus.statusOK();
+                    if (ServerSettings.Set(setting.setting, setting.value) == true)
+                    {
+                        return APIStatus.statusOK();
+                    }
+                    else
+                    {
+                        return APIStatus.badRequest("Setting not saved.");
+                    }
                 }
                 else
                 {
-                    return APIStatus.badRequest("Setting not saved.");
+                    return APIStatus.badRequest("Setting/Value was null.");
                 }
             }
-            else
+            catch
             {
-                return APIStatus.badRequest("Setting/Value was null.");
+                return APIStatus.internalError();
             }
-        }
+}
 
         #endregion
 
