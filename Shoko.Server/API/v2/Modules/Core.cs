@@ -36,6 +36,8 @@ namespace Shoko.Server.API.v2.Modules
             Get["/config/imagepath/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagepath);
             Get["/config/export", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig);
             Post["/config/import", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig);
+            Post["/config/set", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting(x.setting, x.value));
+            Post["/config/get", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting(x.setting));
 
             #endregion
 
@@ -217,10 +219,15 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
+        /// <summary>
+        /// Import config file that was sent to in API body - this act as import from backup
+        /// </summary>
+        /// <returns>APIStatus</returns>
         private object ImportConfig()
         {
             CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
+
             if (raw_settings.Length != new CL_ServerSettings().ToJSON().Length)
             {
                 string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
@@ -241,14 +248,54 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
+        /// <summary>
+        /// Return given setting
+        /// </summary>
+        /// <param name="setting">parameter you want to read</param>
+        /// <returns></returns>
         private object GetSetting(string setting)
         {
-            return ServerSettings.Get(setting);
+            if (setting != null)
+            {
+                var config = ServerSettings.Get(setting);
+                if (config != null)
+                {
+                    return config;
+                }
+                else
+                {
+                    return APIStatus.notFound404("Parameter not found.");
+                }
+            }
+            else
+            {
+                return APIStatus.badRequest("Setting was null.");
+            }
         }
 
+        /// <summary>
+        /// Set given setting
+        /// </summary>
+        /// <param name="setting">parameter you want to write</param>
+        /// <param name="value">value of the parameter</param>
+        /// <returns></returns>
         private object SetSetting(string setting, string value)
         {
-            return ServerSettings.Set(setting, value);
+            if (setting != null & value != null)
+            {
+                if (ServerSettings.Set(setting, value) == true)
+                {
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.badRequest("Setting not saved.");
+                }
+            }
+            else
+            {
+                return APIStatus.badRequest("Setting/Value was null.");
+            }
         }
 
         #endregion
