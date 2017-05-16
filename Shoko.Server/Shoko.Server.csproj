@@ -438,6 +438,7 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Import\FileQualityFilter.cs" />
     <Compile Include="Import\Importer.cs" />
+    <Compile Include="Models\SVR_Scan.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="ShokoServer.cs" />

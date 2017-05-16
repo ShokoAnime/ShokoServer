@@ -26,13 +26,14 @@ namespace Shoko.UI.Forms
             btnResume.Click += BtnResumeClick;
             comboProvider.SelectionChanged += ComboProvider_SelectionChanged;
             btnReAddAll.Click += BtnReAddAll_Click;
+            btnDeletedAll.Click += BtnDeleteAll_Click;
         }
 
 
         private void ComboProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (comboProvider.SelectedItem != null)
-                Scanner.Instance.ActiveScan = (Scan) comboProvider.SelectedItem;
+                Scanner.Instance.ActiveScan = comboProvider.SelectedItem as SVR_Scan;
         }
 
         private void BtnResumeClick(object sender, RoutedEventArgs e)
@@ -69,7 +70,7 @@ namespace Shoko.UI.Forms
             {
                 this.IsEnabled = false;
                 Cursor = Cursors.Wait;
-                Scan s = frm.SelectedScan;
+                SVR_Scan s = (SVR_Scan) frm.SelectedScan;
                 HashSet<int> imp = new HashSet<int>(s.GetImportFolderList());
                 List<SVR_VideoLocal> vl = imp.SelectMany(a => RepoFactory.VideoLocal.GetByImportFolder(a))
                     .Distinct()
@@ -111,7 +112,7 @@ namespace Shoko.UI.Forms
 
         private void BtnReAddAll_Click(object sender, RoutedEventArgs e)
         {
-            Scan scan = Scanner.Instance.ActiveScan;
+            SVR_Scan scan = Scanner.Instance.ActiveScan;
             if ((scan != null) && (Scanner.Instance.ActiveErrorFiles.Count > 0))
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
@@ -136,9 +137,9 @@ namespace Shoko.UI.Forms
 
         private void Add_Click(object sender, RoutedEventArgs e)
         {
-            ScanFile item = (ScanFile) (sender as Button).DataContext;
-            Scan scan = Scanner.Instance.ActiveScan;
-            if (scan != null && scan.ScanID == item.ScanID)
+            ScanFile item = (ScanFile) (sender as Button)?.DataContext;
+            SVR_Scan scan = Scanner.Instance.ActiveScan;
+            if (scan != null && item != null && scan.ScanID == item.ScanID)
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
@@ -155,6 +156,28 @@ namespace Shoko.UI.Forms
                 item.Status = (int) ScanFileStatus.Waiting;
                 RepoFactory.ScanFile.Save(item);
                 Scanner.Instance.ActiveErrorFiles.Remove(item);
+                Scanner.Instance.Refresh();
+            }
+        }
+
+        private void BtnDeleteAll_Click(object sender, RoutedEventArgs e)
+        {
+            SVR_Scan scan = Scanner.Instance.ActiveScan;
+            if ((scan != null) && (Scanner.Instance.ActiveErrorFiles.Count > 0))
+            {
+                if (scan.GetScanStatus() == ScanStatus.Running)
+                {
+                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddMessage,
+                        Shoko.Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+                if (scan.GetScanStatus() == ScanStatus.Finish)
+                {
+                    scan.Status = (int) ScanStatus.Standby;
+                    RepoFactory.Scan.Save(scan);
+                }
+                Scanner.Instance.DeleteAllErroredFiles();
                 Scanner.Instance.Refresh();
             }
         }

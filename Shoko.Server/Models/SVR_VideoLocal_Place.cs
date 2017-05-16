@@ -4,26 +4,23 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Nancy.Extensions;
+using NHibernate;
+using NLog;
+using NutzCode.CloudFileSystem;
+using Pri.LongPath;
 using Shoko.Models.Azure;
-using Shoko.Models;
-using Shoko.Models.Client;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Nancy.Extensions;
 using Shoko.Server.Commands;
-using NHibernate;
 using Shoko.Server.Databases;
-using NLog;
 using Shoko.Server.Extensions;
-using NutzCode.CloudFileSystem;
 using Shoko.Server.FileHelper.MediaInfo;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Pri.LongPath;
-using Media = Shoko.Models.PlexAndKodi.Media;
 
 namespace Shoko.Server.Models
 {
@@ -36,10 +33,6 @@ namespace Shoko.Server.Models
 
     public class SVR_VideoLocal_Place : VideoLocal_Place
     {
-        public SVR_VideoLocal_Place()
-        {
-        }
-
         internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
         public string FullServerPath
@@ -66,7 +59,7 @@ namespace Shoko.Server.Models
             if (filesys == null)
                 return true;
             // actually rename the file
-            string fullFileName = this.FullServerPath;
+            string fullFileName = FullServerPath;
 
             // check if the file exists
 
@@ -113,7 +106,7 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
                     return false;
                 }
-                this.FilePath = tup.Item2;
+                FilePath = tup.Item2;
                 RepoFactory.VideoLocalPlace.Save(this);
             }
             catch (Exception ex)
@@ -126,7 +119,7 @@ namespace Shoko.Server.Models
 
         public void RemoveRecord()
         {
-            logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
+            logger.Info("Removing VideoLocal_Place recoord for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
             List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
             SVR_VideoLocal v = VideoLocal;
@@ -190,7 +183,7 @@ namespace Shoko.Server.Models
         public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeEpisode> episodesToUpdate,
             ICollection<SVR_AnimeSeries> seriesToUpdate)
         {
-            logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", FullServerPath);
+            logger.Info("Removing VideoLocal_Place recoord for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
 
             List<DuplicateFile> dupFiles =
@@ -254,7 +247,7 @@ namespace Shoko.Server.Models
                 info.Duration = 0;
 
             info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
-            List<Shoko.Models.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+            List<Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
             if (vparts.Count > 0)
             {
                 if (!string.IsNullOrEmpty(vparts[0].Bitrate))
@@ -264,7 +257,7 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(vparts[0].FrameRate))
                     info.VideoFrameRate = vparts[0].FrameRate;
             }
-            List<Shoko.Models.PlexAndKodi.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+            List<Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
             if (aparts.Count > 0)
             {
                 if (!string.IsNullOrEmpty(aparts[0].Bitrate))
@@ -276,9 +269,9 @@ namespace Shoko.Server.Models
         {
             try
             {
-                logger.Trace($"Getting media info for: {FullServerPath}");
+                logger.Trace($"Getting media info for: {FullServerPath ?? VideoLocal_Place_ID.ToString()}");
                 Media m = null;
-                List<Shoko.Models.Azure.Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
+                List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
                 if (webmedias != null && webmedias.Count > 0)
                 {
                     m = webmedias[0].ToMedia();
@@ -303,7 +296,7 @@ namespace Shoko.Server.Models
                     FillVideoInfoFromMedia(info, m);
 
                     m.Id = VideoLocalID.ToString();
-                    List<Shoko.Models.PlexAndKodi.Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
+                    List<Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
                     if (subs.Count > 0)
                     {
                         m.Parts[0].Streams.AddRange(subs);
@@ -316,7 +309,7 @@ namespace Shoko.Server.Models
                         bool vid = false;
                         bool aud = false;
                         bool txt = false;
-                        foreach (Shoko.Models.PlexAndKodi.Stream ss in p.Streams.ToArray())
+                        foreach (Stream ss in p.Streams.ToArray())
                         {
                             if ((ss.StreamType == "1") && !vid)
                             {
@@ -337,11 +330,11 @@ namespace Shoko.Server.Models
                     info.Media = m;
                     return true;
                 }
-                logger.Error($"File {FullServerPath} does not exist, unable to read media information from it");
+                logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} does not exist, unable to read media information from it");
             }
             catch (Exception e)
             {
-                logger.Error($"Unable to read the media information of file {FullServerPath} ERROR: {e}");
+                logger.Error($"Unable to read the media information of file {FullServerPath ?? VideoLocal_Place_ID.ToString()} ERROR: {e}");
             }
             return false;
         }
@@ -388,8 +381,55 @@ namespace Shoko.Server.Models
                 }
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
 
-                return;
+        public void RemoveAndDeleteFileWithOpenTransaction(ISession session, HashSet<SVR_AnimeEpisode> episodesToUpdate, HashSet<SVR_AnimeSeries> seriesToUpdate)
+        {
+            try
+            {
+                SVR_VideoLocal vid = VideoLocal;
+                logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
+
+                IFileSystem fileSystem = ImportFolder?.FileSystem;
+                if (fileSystem == null)
+                {
+                    logger.Error("Unable to delete file, filesystem not found. Removing record.");
+                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    return;
+                }
+                if (FullServerPath == null)
+                {
+                    logger.Error("Unable to delete file, fullserverpath is null. Removing record.");
+                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    return;
+                }
+                FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
+                if (fr == null || !fr.IsOk)
+                {
+                    logger.Error($"Unable to find file. Removing Record: {FullServerPath}");
+                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    return;
+                }
+                IFile file = fr.Result as IFile;
+                if (file == null)
+                {
+                    logger.Error($"Seems '{FullServerPath}' is a directory.");
+                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    return;
+                }
+                FileSystemResult fs = file.Delete(false);
+                if (fs == null || !fs.IsOk)
+                {
+                    logger.Error($"Unable to delete file '{FullServerPath}'");
+                    return;
+                }
+                RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                // For deletion of files from Trakt, we will rely on the Daily sync
             }
             catch (Exception ex)
             {
@@ -453,33 +493,40 @@ namespace Shoko.Server.Models
         {
             try
             {
-                logger.Trace("Attempting to MOVE file: {0}", this.FullServerPath);
+                logger.Trace("Attempting to MOVE file: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
+
+                if (FullServerPath == null)
+                {
+                    logger.Error("Could not find or access the file to move: {0}",
+                        VideoLocal_Place_ID);
+                    return true;
+                }
 
                 // check if this file is in the drop folder
                 // otherwise we don't need to move it
                 if (ImportFolder.IsDropSource == 0)
                 {
-                    logger.Trace("Not moving file as it is NOT in the drop folder: {0}", this.FullServerPath);
+                    logger.Trace("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
                     return true;
                 }
-                IFileSystem f = this.ImportFolder.FileSystem;
+                IFileSystem f = ImportFolder.FileSystem;
                 if (f == null)
                 {
-                    logger.Trace("Unable to MOVE, filesystem not working: {0}", this.FullServerPath);
+                    logger.Trace("Unable to MOVE, filesystem not working: {0}", FullServerPath);
                     return true;
                 }
 
                 FileSystemResult<IObject> fsrresult = f.Resolve(FullServerPath);
                 if (!fsrresult.IsOk)
                 {
-                    logger.Error("Could not find or access the file to move: {0}", this.FullServerPath);
+                    logger.Error("Could not find or access the file to move: {0}", FullServerPath);
                     // this can happen due to file locks, so retry
                     return false;
                 }
                 IFile source_file = fsrresult.Result as IFile;
                 if (source_file == null)
                 {
-                    logger.Error("Could not move the file (it isn't a file): {0}", this.FullServerPath);
+                    logger.Error("Could not move the file (it isn't a file): {0}", FullServerPath);
                     // this means it isn't a file, but something else, so don't retry
                     return true;
                 }
@@ -501,12 +548,12 @@ namespace Shoko.Server.Models
 
                 if (destFolder == null)
                 {
-                    logger.Error("Could not find a valid destination: {0}", this.FullServerPath);
+                    logger.Error("Could not find a valid destination: {0}", FullServerPath);
                     return true;
                 }
 
                 // keep the original drop folder for later (take a copy, not a reference)
-                SVR_ImportFolder dropFolder = this.ImportFolder;
+                SVR_ImportFolder dropFolder = ImportFolder;
 
                 // find where the other files are stored for this series
                 // if there are no other files except for this one, it means we need to create a new location
@@ -514,7 +561,7 @@ namespace Shoko.Server.Models
                 string newFullPath = "";
 
                 // we can only move the file if it has an anime associated with it
-                List<CrossRef_File_Episode> xrefs = this.VideoLocal.EpisodeCrossRefs;
+                List<CrossRef_File_Episode> xrefs = VideoLocal.EpisodeCrossRefs;
                 if (xrefs.Count == 0) return true;
                 CrossRef_File_Episode xref = xrefs[0];
 
@@ -553,7 +600,7 @@ namespace Shoko.Server.Models
                         .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
                                                       b.ImportFolder.IsDropSource == 0)).ToList())
                     {
-                        if (vid.VideoLocalID == this.VideoLocalID) continue;
+                        if (vid.VideoLocalID == VideoLocalID) continue;
 
                         SVR_VideoLocal_Place place =
                             vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
@@ -620,7 +667,7 @@ namespace Shoko.Server.Models
                 }
 
                 // We've already resolved FullServerPath, so it doesn't need to be checked
-                string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
+                string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(FullServerPath));
                 Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
                 if (tup == null)
                 {
@@ -635,14 +682,14 @@ namespace Shoko.Server.Models
                     return true;
                 }
 
-                logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
+                logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
 
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
                 if (dst.IsOk)
                 {
                     logger.Trace(
                         "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
-                        this.FullServerPath, newFullServerPath);
+                        FullServerPath, newFullServerPath);
 
                     // if the file already exists, we can just delete the source file instead
                     // this is safer than deleting and moving
@@ -652,28 +699,26 @@ namespace Shoko.Server.Models
                         fr = source_file.Delete(false);
                         if (!fr.IsOk)
                         {
-                            logger.Warn("Unable to DELETE file: {0} error {1}", this.FullServerPath,
-                                fr?.Error ?? String.Empty);
+                            logger.Warn("Unable to DELETE file: {0} error {1}", FullServerPath,
+                                fr?.Error ?? string.Empty);
                             return false;
                         }
                         RemoveRecord();
 
                         // check for any empty folders in drop folder
                         // only for the drop folder
-                        if (dropFolder.IsDropSource == 1)
+                        if (dropFolder.IsDropSource != 1) return true;
+                        FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
+                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
                         {
-                            FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                            if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            {
-                                RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
-                            }
+                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                         }
                         return true;
                     }
                     catch
                     {
-                        logger.Error("Unable to DELETE file: {0} error {1}", this.FullServerPath,
-                            fr?.Error ?? String.Empty);
+                        logger.Error("Unable to DELETE file: {0} error {1}", FullServerPath,
+                            fr?.Error ?? string.Empty);
                     }
                 }
                 else
@@ -681,14 +726,14 @@ namespace Shoko.Server.Models
                     FileSystemResult fr = source_file.Move(destination);
                     if (!fr.IsOk)
                     {
-                        logger.Error("Unable to MOVE file: {0} to {1} error {2}", this.FullServerPath,
+                        logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
                             newFullServerPath, fr?.Error ?? "No Error String");
                         return false;
                     }
-                    string originalFileName = this.FullServerPath;
+                    string originalFileName = FullServerPath;
 
-                    this.ImportFolderID = tup.Item1.ImportFolderID;
-                    this.FilePath = tup.Item2;
+                    ImportFolderID = tup.Item1.ImportFolderID;
+                    FilePath = tup.Item2;
                     RepoFactory.VideoLocalPlace.Save(this);
 
                     try
@@ -738,7 +783,7 @@ namespace Shoko.Server.Models
             }
             catch (Exception ex)
             {
-                string msg = $"Could not MOVE file: {this.FullServerPath} -- {ex.ToString()}";
+                string msg = $"Could not MOVE file: {FullServerPath ?? VideoLocal_Place_ID.ToString()} -- {ex}";
                 logger.Error(ex, msg);
             }
             return true;
