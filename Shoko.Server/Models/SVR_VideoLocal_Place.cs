@@ -220,7 +220,7 @@ namespace Shoko.Server.Models
         {
             IFileSystem fs = ImportFolder.FileSystem;
             FileSystemResult<IObject> fobj = fs?.Resolve(FullServerPath);
-            if (fobj == null || !fobj?.IsOk != true || fobj.Result is IDirectory)
+            if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory)
                 return null;
             return fobj.Result as IFile;
         }
@@ -269,21 +269,21 @@ namespace Shoko.Server.Models
         {
             try
             {
-                logger.Trace($"Getting media info for: {FullServerPath ?? VideoLocal_Place_ID.ToString()}");
+                logger.Trace("Getting media info for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
                 Media m = null;
                 List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
-                if (webmedias != null && webmedias.Count > 0)
+                if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
                 {
-                    m = webmedias[0].ToMedia();
+                    m = webmedias.FirstOrDefault(a => a != null).ToMedia();
                 }
-                if (m == null)
+                if (m == null && FullServerPath != null)
                 {
-                    string name = (ImportFolder.CloudID == null)
+                    string name = (ImportFolder?.CloudID == null)
                         ? FullServerPath.Replace("/", "\\")
                         : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
                             VideoLocalID.ToString(), "file", false));
                     m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
-                    if (string.IsNullOrEmpty(m.Duration))
+                    if (string.IsNullOrEmpty(m?.Duration))
                         m = null;
                     if (m != null)
                         AzureWebAPI.Send_Media(VideoLocal.ED2KHash, m);

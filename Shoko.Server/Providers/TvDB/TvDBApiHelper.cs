@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web;
 using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
 using Shoko.Models.TvDB;
@@ -72,8 +73,12 @@ namespace Shoko.Server.Providers.TvDB
 
                 tvSeries.PopulateFromSeriesInfo(series);
                 RepoFactory.TvDB_Series.Save(tvSeries);
-                
+
                 return tvSeries;
+            }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
             {
@@ -104,11 +109,16 @@ namespace Shoko.Server.Providers.TvDB
                 var response = await client.Search.SearchSeriesByNameAsync(criteria);
                 TvDbSharper.Clients.Search.Json.SeriesSearchResult[] series = response.Data;
 
-                foreach (TvDbSharper.Clients.Search.Json.SeriesSearchResult item in series) {
+                foreach (TvDbSharper.Clients.Search.Json.SeriesSearchResult item in series)
+                {
                     TVDB_Series_Search_Response searchResult = new TVDB_Series_Search_Response();
                     searchResult.Populate(item);
                     results.Add(searchResult);
                 }
+            }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
             {
@@ -282,6 +292,10 @@ namespace Shoko.Server.Providers.TvDB
                     languages.Add(lan);
                 }
             }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+            }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
@@ -314,11 +328,19 @@ namespace Shoko.Server.Providers.TvDB
 
         static async Task<ImagesSummary> GetSeriesImagesCountsAsync(int seriesID)
         {
-            await _checkAuthorizationAsync();
+            try
+            {
+                await _checkAuthorizationAsync();
 
-            TvDBRateLimiter.Instance.EnsureRate();
-            var response = await client.Series.GetImagesSummaryAsync(seriesID);
-            return response.Data;
+                TvDBRateLimiter.Instance.EnsureRate();
+                var response = await client.Series.GetImagesSummaryAsync(seriesID);
+                return response.Data;
+            }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+            }
+            return null;
         }
 
         static async Task<Image[]> GetSeriesImagesAsync(int seriesID, KeyType type)
@@ -382,6 +404,10 @@ namespace Shoko.Server.Providers.TvDB
                         RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
                 }
             }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+            }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TVDBApiHelper.GetSeriesBannersOnlineAsync: " + ex.ToString());
@@ -436,6 +462,10 @@ namespace Shoko.Server.Providers.TvDB
                         RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImagePosterID);
                 }
             }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+            }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: " + ex.ToString());
@@ -489,6 +519,10 @@ namespace Shoko.Server.Providers.TvDB
                     if (!validIDs.Contains(img.Id))
                         RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageWideBannerID);
                 }
+            }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
             {
@@ -653,6 +687,10 @@ namespace Shoko.Server.Providers.TvDB
 
                 apiEpisodes = firstResponse.Data.Concat(results.SelectMany(x => x.Data)).ToList();
             }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+            }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync: " + ex.ToString());
@@ -675,6 +713,10 @@ namespace Shoko.Server.Providers.TvDB
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Episodes.GetAsync(episodeID);
                 return response.Data;
+            }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
             {
@@ -736,6 +778,10 @@ namespace Shoko.Server.Providers.TvDB
                                 }
                             }
                         }
+                    }
+                    catch (TvDbSharper.Errors.TvDbServerException exception)
+                    {
+                        logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
                     }
                     catch (Exception ex)
                     {
@@ -867,11 +913,15 @@ namespace Shoko.Server.Providers.TvDB
 
                 return seriesList;
             }
+            catch (TvDbSharper.Errors.TvDbServerException exception)
+            {
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+            }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in GetUpdatedSeriesList: " + ex.ToString());
-                return seriesList;
             }
+            return seriesList;
         }
 
         public static string IncrementalTvDBUpdate(ref List<int> tvDBIDs, ref bool tvDBOnline)
