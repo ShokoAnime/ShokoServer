@@ -84,7 +84,6 @@
     <Compile Include="Enums\CrossrefSource.cs" />
     <Compile Include="Enums\CrossRefType.cs" />
     <Compile Include="Enums\DataSourceType.cs" />
-    <Compile Include="Enums\DownloadSearchType.cs" />
     <Compile Include="Enums\enEpisodeSourceType.cs" />
     <Compile Include="Enums\enEpisodeType.cs" />
     <Compile Include="Enums\EpisodeDisplayStyle.cs" />
@@ -101,10 +100,6 @@
     <Compile Include="Enums\SeriesSearchType.cs" />
     <Compile Include="Enums\SeriesWidgets.cs" />
     <Compile Include="Enums\SortDirection.cs" />
-    <Compile Include="Enums\TorrentDownloadStatus.cs" />
-    <Compile Include="Enums\TorrentFilePriority.cs" />
-    <Compile Include="Enums\TorrentOriginator.cs" />
-    <Compile Include="Enums\TorrentSourceType.cs" />
     <Compile Include="Enums\TraktActivityAction.cs" />
     <Compile Include="Enums\TraktActivityType.cs" />
     <Compile Include="Enums\WatchedStatus.cs" />
