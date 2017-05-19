@@ -71,7 +71,7 @@ namespace Shoko.Server.API.v2.Models.common
                     if (double.TryParse(ep.rating, out double rating))
                     {
                         // 0.1 should be the absolute lowest rating
-                        if (rating > 10) ep.rating = (rating / 100).ToString().Replace(',', '.');
+                        if (rating > 10) ep.rating = (rating / 100).ToString(CultureInfo.InvariantCulture);
                     }
 
                     ep.view = cae.IsWatched() ? 1 : 0;
