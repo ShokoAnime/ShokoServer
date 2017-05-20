@@ -110,6 +110,31 @@ namespace Shoko.Server
             return videosToDelete.Select(a => a.ToClient(userID)).ToList();
         }
 
+        public List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID)
+        {
+            List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
+            List<SVR_AnimeEpisode> eps =
+                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                    .Where(b => b != null)
+                    .ToList();
+
+            List<SVR_VideoLocal> videosToDelete = new List<SVR_VideoLocal>();
+
+            foreach (SVR_AnimeEpisode ep in eps)
+            {
+                List<SVR_VideoLocal> videoLocals = ep.GetVideoLocals();
+                videoLocals.Sort(FileQualityFilter.CompareTo);
+                List<SVR_VideoLocal> keep = videoLocals
+                    .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                    .ToList();
+                foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
+
+                videosToDelete.AddRange(videoLocals);
+            }
+            return videosToDelete.Select(a => a.ToClientDetailed(userID)).ToList();
+        }
+
         public FileFfdshowPreset GetFFDPreset(int videoLocalID)
         {
             try
