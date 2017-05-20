@@ -3716,9 +3716,6 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Wenn Sie die letzte Episode in einer Reihe zu sehen, wird eine Aufforderung angezeigt, um Sie um eine Bewertung bitten</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB Befehle in der Warteschlange</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>Dateien, die darauf warten gehashed zu werden</value>
   </data>
@@ -5345,5 +5342,14 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Plex-Einstellungen</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Allgemeine Vorgänge in Warteschlange:</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Lokale</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Fernbedienung</value>
   </data>
 </root>

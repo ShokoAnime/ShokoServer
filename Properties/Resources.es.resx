@@ -3713,9 +3713,6 @@ Desconocido de la marca - deja el archivo en la lista, pero cambia el estado a d
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Cuando usted mira el último episodio de una serie, un mensaje aparecerá para pedirte una calificación</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB comandos en cola</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>Archivos esperando a ser molida</value>
   </data>
@@ -5345,5 +5342,14 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Configuración de Plex</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Operaciones generales en cola:</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Remoto</value>
   </data>
 </root>

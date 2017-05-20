@@ -3716,9 +3716,6 @@ Mark Unknown - lascia il file nel tuo elenco, ma cambia lo stato sconosciuto.</v
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Ogni volta che si guarda l'ultimo episodio di una serie, verrà visualizzato un messaggio per chiedere per un voto</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB comandi in coda</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>File in attesa di essere eseguito l'hashing</value>
   </data>
@@ -5345,5 +5342,14 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Impostazioni di Plex</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Operazioni generali nella coda:</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Locale</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Remoto</value>
   </data>
 </root>

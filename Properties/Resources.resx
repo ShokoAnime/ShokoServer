@@ -3737,13 +3737,13 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>Whenever you watch the final episode in a series, a prompt will appear to ask you for a rating</value>
   </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB Commands in Queue</value>
+    <value>General Operations in Queue:</value>
   </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
-    <value>Files Waiting to be Hashed</value>
+    <value>Files Waiting to be Hashed:</value>
   </data>
   <data name="Tooltip_QueueImages" xml:space="preserve">
-    <value>Images Awaiting Download</value>
+    <value>Images Awaiting Download:</value>
   </data>
   <data name="Tooltip_RecreateAllGroups" xml:space="preserve">
     <value>This will delete all your current groups and then re-organize all your series into new groups based on your import settings</value>

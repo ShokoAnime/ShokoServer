@@ -3716,9 +3716,6 @@ Marque inconnue -, laisse le fichier sur votre liste, mais remplace l'état inco
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Chaque fois que vous regardez le dernier épisode d'une série, une invite s'affiche pour vous demander une note</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB commandes en file d'attente</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>Files d'attente qui sera haché</value>
   </data>
@@ -5345,5 +5342,14 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Paramètres de plex</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Opérations générales dans la file d’attente :</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Distant</value>
   </data>
 </root>

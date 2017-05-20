@@ -3716,9 +3716,6 @@ Mark Unknown - laat het bestand op uw lijst, maar wijzigt de status unkown.</val
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Wanneer u kijken naar de laatste aflevering in een serie, verschijnt een prompt om u te vragen voor een rating</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB opdrachten in de wachtrij</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>Bestanden te wachten om te worden Hashed</value>
   </data>
@@ -5345,5 +5342,14 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Plex instellingen</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Algemene operaties in wachtrij:</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Lokale</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Externe</value>
   </data>
 </root>

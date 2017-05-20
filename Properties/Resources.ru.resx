@@ -3716,9 +3716,6 @@
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Всякий раз, когда вы просмотрите последний эпизод в серии, появится запрос на указание рейтинга</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB команды в очереди</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>Файлы ожидающие хэширования</value>
   </data>
@@ -5345,5 +5342,14 @@
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
     <value>Plex параметры</value>
+  </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Общие операции в очереди:</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Местные</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Удаленный</value>
   </data>
 </root>

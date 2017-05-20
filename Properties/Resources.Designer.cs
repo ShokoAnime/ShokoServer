@@ -13435,7 +13435,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AniDB Commands in Queue.
+        ///   Looks up a localized string similar to General Operations in Queue:.
         /// </summary>
         public static string Tooltip_QueueGeneral {
             get {
@@ -13444,7 +13444,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Files Waiting to be Hashed.
+        ///   Looks up a localized string similar to Files Waiting to be Hashed:.
         /// </summary>
         public static string Tooltip_QueueHasher {
             get {
@@ -13453,7 +13453,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Images Awaiting Download.
+        ///   Looks up a localized string similar to Images Awaiting Download:.
         /// </summary>
         public static string Tooltip_QueueImages {
             get {
