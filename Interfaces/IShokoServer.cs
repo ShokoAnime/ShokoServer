@@ -331,6 +331,9 @@ namespace Shoko.Models.Interfaces
         [Rest("File/DeleteMultipleFilesWithPreferences/{userID}", Verbs.Get)]
         bool DeleteMultipleFilesWithPreferences(int userID);
 
+        [Rest("File/GetMultipleFilesForDeletionByPreferences/{userID}", Verbs.Get)]
+        List<CL_GroupVideoQuality> GetMultipleFilesForDeletionByPreferences(int userID);
+
         [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
         void ReevaluateDuplicateFiles();
 
@@ -340,7 +343,7 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Unlinked/Rescan", Verbs.Post)]
         void RescanUnlinkedFiles();
 
-        [Rest("File/Hashes/Rescan", Verbs.Post)]
+        [Rest("File/Hashes/Sync", Verbs.Post)]
         void SyncHashes();
 
         [Rest("File/Detailed/{animeID}/{relGroupName}/{resolution}/{videoSource}/{videoBitDepth}/{userID}", Verbs.Get)]
