@@ -329,7 +329,7 @@ namespace Shoko.Models.Interfaces
         List<CL_VideoLocal> PreviewDeleteMultipleFilesWithPreferences(int userID);
 
         [Rest("File/DeleteMultipleFilesWithPreferences/{userID}", Verbs.Get)]
-        void DeleteMultipleFilesWithPreferences(int userID);
+        bool DeleteMultipleFilesWithPreferences(int userID);
 
         [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
         void ReevaluateDuplicateFiles();
