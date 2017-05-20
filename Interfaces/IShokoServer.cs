@@ -332,7 +332,7 @@ namespace Shoko.Models.Interfaces
         bool DeleteMultipleFilesWithPreferences(int userID);
 
         [Rest("File/GetMultipleFilesForDeletionByPreferences/{userID}", Verbs.Get)]
-        List<CL_GroupVideoQuality> GetMultipleFilesForDeletionByPreferences(int userID);
+        List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID);
 
         [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
         void ReevaluateDuplicateFiles();
