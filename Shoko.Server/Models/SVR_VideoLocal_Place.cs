@@ -339,7 +339,7 @@ namespace Shoko.Server.Models
             return false;
         }
 
-        public void RemoveAndDeleteFile()
+        public bool RemoveAndDeleteFile()
         {
             try
             {
@@ -351,40 +351,42 @@ namespace Shoko.Server.Models
                 {
                     logger.Error("Unable to delete file, filesystem not found. Removing record.");
                     RemoveRecord();
-                    return;
+                    return true;
                 }
                 if (FullServerPath == null)
                 {
                     logger.Error("Unable to delete file, fullserverpath is null. Removing record.");
                     RemoveRecord();
-                    return;
+                    return true;
                 }
                 FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
                 if (fr == null || !fr.IsOk)
                 {
                     logger.Error($"Unable to find file. Removing Record: {FullServerPath}");
                     RemoveRecord();
-                    return;
+                    return true;
                 }
                 IFile file = fr.Result as IFile;
                 if (file == null)
                 {
                     logger.Error($"Seems '{FullServerPath}' is a directory.");
                     RemoveRecord();
-                    return;
+                    return true;
                 }
                 FileSystemResult fs = file.Delete(false);
                 if (fs == null || !fs.IsOk)
                 {
                     logger.Error($"Unable to delete file '{FullServerPath}'");
-                    return;
+                    return false;
                 }
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
+                return true;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
+                return false;
             }
         }
 
