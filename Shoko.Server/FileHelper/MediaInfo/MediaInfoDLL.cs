@@ -178,7 +178,7 @@ namespace MediaInfoLib
         //MediaInfo class
         public MediaInfo()
         {
-            if (moduleHandle == IntPtr.Zero)
+            if ((moduleHandle == IntPtr.Zero) && !Shoko.Server.Utils.IsRunningOnMono()) 
             {
                 string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 if (!string.IsNullOrEmpty(fullexepath))
