@@ -181,6 +181,9 @@
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
       <HintPath>..\packages\NLog.4.4.3\lib\net45\NLog.dll</HintPath>
     </Reference>
+    <Reference Include="Pri.LongPath, Version=2.0.45.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Pri.LongPath.2.0.45\lib\net45\Pri.LongPath.dll</HintPath>
+    </Reference>
     <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
       <HintPath>..\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
     </Reference>
@@ -838,7 +841,9 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="testing.config">
       <SubType>Designer</SubType>
     </None>
@@ -904,10 +909,6 @@
     <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Models\Shoko.Models.csproj">
       <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
       <Name>Shoko.Models</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LongPath\Pri.LongPath.net40\Pri.LongPath.net40.csproj">
-      <Project>{0d02a959-5b75-4492-ba65-2005eb5a12cc}</Project>
-      <Name>Pri.LongPath.net40</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -4,6 +4,3 @@
 [submodule "CloudFileSystem"]
 	path = CloudFileSystem
 	url = https://github.com/maxpiva/CloudFileSystem
-[submodule "LongPath"]
-	path = LongPath
-	url = https://github.com/japanesemediamanager/LongPath
