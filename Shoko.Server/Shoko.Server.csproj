@@ -386,6 +386,7 @@
     <Compile Include="API\v2\Models\common\Serie.cs" />
     <Compile Include="API\v2\Models\common\Tag.cs" />
     <Compile Include="API\v2\Models\core\OSFile.cs" />
+    <Compile Include="API\v2\Models\core\Settings.cs" />
     <Compile Include="API\v2\Models\core\WebUI-Settings.cs" />
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />
@@ -435,6 +436,7 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Import\FileQualityFilter.cs" />
     <Compile Include="Import\Importer.cs" />
+    <Compile Include="Models\SVR_Scan.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="ShokoServer.cs" />

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nancy.Rest.Module;
@@ -161,11 +163,16 @@ namespace Shoko.Server.API
                 {
                     context.Response.Contents = stream =>
                     {
-                        var filename = Path.Combine(_rootPathProvider.GetRootPath(), Path.Combine("webui", "index.html"));
-                        using (var file = File.OpenRead(filename))
+                        try
                         {
-                            file.CopyTo(stream);
+                            var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                            using (var file = File.OpenRead(filename))
+                            {
+                                file.CopyTo(stream);
+                            }
                         }
+                        catch
+                        { }
                     };
                 }
                 else if (statusCode == HttpStatusCode.NotFound)
@@ -175,7 +182,7 @@ namespace Shoko.Server.API
             }
             catch
             {
-                context.Response = @"<html><body>Internal Error: #$%^&*(</body></html>";
+                // return the error as normal
             }
         }
     }

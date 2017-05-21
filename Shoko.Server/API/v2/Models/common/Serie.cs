@@ -66,7 +66,7 @@ namespace Shoko.Server.API.v2.Models.common
             sr.air = nv.AirDate.ToString("dd-MM-yyyy");
 
             GenerateSizes(sr, ael, uid);
-            
+
             sr.rating = nv.Rating;
             sr.userrating = nv.UserRating;
             sr.titles = nv.Titles;

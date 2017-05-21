@@ -1044,24 +1044,29 @@ namespace Shoko.Server.Providers.Azure
 
         public static List<Azure_Media> Get_Media(string ed2k)
         {
-            string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,
-                SVR_VideoLocal.MEDIA_VERSION);
-            string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,
-                SVR_VideoLocal.MEDIA_VERSION);
+            if (string.IsNullOrEmpty(ed2k)) return null;
+            try
+            {
+                string uri = $@"http://{azureHostBaseAddress}/api/Media/{ed2k}/{SVR_VideoLocal.MEDIA_VERSION}";
+                string msg = $"Getting Media Info From Cache for ED2K: {ed2k} Version : {SVR_VideoLocal.MEDIA_VERSION}";
 
-            DateTime start = DateTime.Now;
-            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+                DateTime start = DateTime.Now;
+                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            string json = GetDataJson(uri);
+                string json = GetDataJson(uri);
 
-            TimeSpan ts = DateTime.Now - start;
-            msg = string.Format("Getting Media Info From Cache for ED2K: {0} - {1}", ed2k, ts.TotalMilliseconds);
-            ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+                TimeSpan ts = DateTime.Now - start;
+                msg = string.Format("Getting Media Info From Cache for ED2K: {0} - {1}", ed2k, ts.TotalMilliseconds);
+                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<Azure_Media> medias = JsonConvert.DeserializeObject<List<Azure_Media>>(json) ??
-                                       new List<Azure_Media>();
+                List<Azure_Media> medias = JsonConvert.DeserializeObject<List<Azure_Media>>(json) ??
+                                           new List<Azure_Media>();
 
-            return medias;
+                return medias;
+            }catch
+            {
+                return null;
+            }
         }
 
         #endregion

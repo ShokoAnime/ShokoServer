@@ -92,7 +92,7 @@ namespace Shoko.Server.Extensions
 
         public static Media ToMedia(this Azure_Media m)
         {
-            int size = m.MediaInfo[0] << 24 | m.MediaInfo[1] << 16 | m.MediaInfo[2] << 8 | m.MediaInfo[3];
+            int size = (m.MediaInfo[0] << 24) | (m.MediaInfo[1] << 16) | (m.MediaInfo[2] << 8) | m.MediaInfo[3];
             byte[] data = new byte[m.MediaInfo.Length - 4];
             Array.Copy(m.MediaInfo, 4, data, 0, data.Length);
             return CompressionHelper.DeserializeObject<Media>(data, size);

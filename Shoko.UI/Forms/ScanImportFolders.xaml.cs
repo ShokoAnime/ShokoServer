@@ -15,7 +15,7 @@ namespace Shoko.UI.Forms
     /// </summary>
     public partial class ScanImportFolders : Window
     {
-        public Scan SelectedScan { get; private set; }
+        public SVR_Scan SelectedScan { get; private set; }
 
         public class CheckedImportFolder : SVR_ImportFolder
         {
@@ -58,10 +58,12 @@ namespace Shoko.UI.Forms
             }
             if (ids.Count == 0)
                 return;
-            Scan s = new Scan();
-            s.Status = (int) ScanStatus.Standby;
-            s.CreationTIme = DateTime.Now;
-            s.ImportFolders = string.Join(",", ids.Select(a => a.ToString()));
+            SVR_Scan s = new SVR_Scan
+            {
+                Status = (int) ScanStatus.Standby,
+                CreationTIme = DateTime.Now,
+                ImportFolders = string.Join(",", ids.Select(a => a.ToString()))
+            };
             RepoFactory.Scan.Save(s);
             SelectedScan = s;
             this.DialogResult = true;

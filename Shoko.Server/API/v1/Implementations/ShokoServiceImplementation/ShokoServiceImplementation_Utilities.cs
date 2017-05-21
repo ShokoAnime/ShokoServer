@@ -46,32 +46,42 @@ namespace Shoko.Server
             return SVR_AniDB_Anime.GetAllReleaseGroups().ToList();
         }
 
-        public void DeleteMultipleFilesWithPreferences(int userID)
+        public bool DeleteMultipleFilesWithPreferences(int userID)
         {
-            List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
-            List<SVR_AnimeEpisode> eps =
-                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                    .Where(b => b != null)
-                    .ToList();
-
-            List<SVR_VideoLocal> videosToDelete = new List<SVR_VideoLocal>();
-
-            foreach (SVR_AnimeEpisode ep in eps)
+            try
             {
-                List<SVR_VideoLocal> videoLocals = ep.GetVideoLocals();
-                videoLocals.Sort(FileQualityFilter.CompareTo);
-                List<SVR_VideoLocal> keep = videoLocals
-                    .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
-                    .ToList();
-                foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
-                videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
+                List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
+                List<SVR_AnimeEpisode> eps =
+                    epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                        .Where(b => b != null)
+                        .ToList();
 
-                videosToDelete.AddRange(videoLocals);
+                List<SVR_VideoLocal> videosToDelete = new List<SVR_VideoLocal>();
+
+                foreach (SVR_AnimeEpisode ep in eps)
+                {
+                    List<SVR_VideoLocal> videoLocals = ep.GetVideoLocals();
+                    videoLocals.Sort(FileQualityFilter.CompareTo);
+                    List<SVR_VideoLocal> keep = videoLocals
+                        .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                        .ToList();
+                    foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                    videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
+
+                    videosToDelete.AddRange(videoLocals);
+                }
+
+                bool result = true;
+                foreach (SVR_VideoLocal toDelete in videosToDelete)
+                {
+                    result &= toDelete.Places.All(a => a.RemoveAndDeleteFile());
+                }
+                return result;
             }
-
-            foreach (SVR_VideoLocal toDelete in videosToDelete)
+            catch (Exception ex)
             {
-                toDelete.Places.ForEach(a => a.RemoveAndDeleteFile());
+                logger.Error(ex, "Error Deleting Files");
+                return false;
             }
         }
 
@@ -98,6 +108,31 @@ namespace Shoko.Server
                 videosToDelete.AddRange(videoLocals);
             }
             return videosToDelete.Select(a => a.ToClient(userID)).ToList();
+        }
+
+        public List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID)
+        {
+            List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
+            List<SVR_AnimeEpisode> eps =
+                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                    .Where(b => b != null)
+                    .ToList();
+
+            List<SVR_VideoLocal> videosToDelete = new List<SVR_VideoLocal>();
+
+            foreach (SVR_AnimeEpisode ep in eps)
+            {
+                List<SVR_VideoLocal> videoLocals = ep.GetVideoLocals();
+                videoLocals.Sort(FileQualityFilter.CompareTo);
+                List<SVR_VideoLocal> keep = videoLocals
+                    .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                    .ToList();
+                foreach (SVR_VideoLocal vl2 in keep) videoLocals.Remove(vl2);
+                videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
+
+                videosToDelete.AddRange(videoLocals);
+            }
+            return videosToDelete.Select(a => a.ToClientDetailed(userID)).ToList();
         }
 
         public FileFfdshowPreset GetFFDPreset(int videoLocalID)

@@ -374,7 +374,7 @@ namespace Shoko.Server.PlexAndKodi
                         .ToString(CultureInfo.InvariantCulture);
                     AniDB_Vote vote =
                         RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
-                    if (vote != null) l.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
+                    if (vote != null) l.UserRating = (vote.VoteValue / 100D).ToString(CultureInfo.InvariantCulture);
 
                     if (aep.GetAirDateAsDate().HasValue)
                     {
@@ -730,7 +730,7 @@ namespace Shoko.Server.PlexAndKodi
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min ?? DateTime.MinValue;
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
-                v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1).ToLowerInvariantString();
+                v.Rating = Math.Round((grp.AniDBRating / 100), 1).ToString(CultureInfo.InvariantCulture);
                 List<Tag> newTags = new List<Tag>();
                 foreach (AniDB_Tag tag in grp.Tags)
                 {
@@ -946,11 +946,11 @@ namespace Shoko.Server.PlexAndKodi
                 p.LeafCount = anime.EpisodeCount.ToString();
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = Math.Round((anime.Rating / 100D), 1).ToLowerInvariantString();
+                p.Rating = Math.Round((anime.Rating / 100D), 1).ToString(CultureInfo.InvariantCulture);
                 AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime);
                 if (vote == null)
                     vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
-                if (vote != null) p.UserRating = (vote.VoteValue / 100D).ToLowerInvariantString();
+                if (vote != null) p.UserRating = (vote.VoteValue / 100D).ToString(CultureInfo.InvariantCulture);
 
                 List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
