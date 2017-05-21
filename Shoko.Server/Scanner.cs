@@ -55,7 +55,7 @@ namespace Shoko.Server
         public void Init()
         {
             RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a));
-            Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
+            SVR_Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
                 ActiveScan = runscan;
