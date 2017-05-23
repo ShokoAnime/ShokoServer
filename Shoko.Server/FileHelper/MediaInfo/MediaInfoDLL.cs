@@ -15,7 +15,6 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using Pri.LongPath;
@@ -253,7 +252,7 @@ namespace MediaInfoLib
             }
         }
 
-        public int Open(Stream stream)
+        public int Open(System.IO.Stream stream)
         {
             if (stream.Length < 1024)
             {
@@ -285,7 +284,7 @@ namespace MediaInfoLib
                     if (seekPos != -1)
                     {
                         Logger.Trace("Read file offset {0}-{1} ({2} bytes)", seekStart, stream.Position, stream.Position - seekStart);
-                        seekPos = stream.Seek(seekPos, SeekOrigin.Begin);
+                        seekPos = stream.Seek(seekPos, System.IO.SeekOrigin.Begin);
                         seekStart = seekPos;
                         MediaInfo_Open_Buffer_Init(_handle, stream.Length, seekPos);
                     }
