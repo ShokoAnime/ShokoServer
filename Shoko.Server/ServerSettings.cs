@@ -8,8 +8,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Windows;
-using System.Windows.Forms;
 using AniDBAPI;
 using Shoko.Models;
 using Microsoft.Win32;

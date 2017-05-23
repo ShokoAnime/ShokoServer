@@ -12,7 +12,6 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Windows.Forms;
 using Shoko.Models.Server;
 using NLog;
 using Path = Pri.LongPath.Path;
