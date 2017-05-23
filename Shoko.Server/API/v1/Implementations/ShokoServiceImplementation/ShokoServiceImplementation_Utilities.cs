@@ -132,7 +132,9 @@ namespace Shoko.Server
 
                 videosToDelete.AddRange(videoLocals);
             }
-            return videosToDelete.Select(a => a.ToClientDetailed(userID)).ToList();
+            return videosToDelete.Select(a => a.ToClientDetailed(userID))
+                .OrderByNatural(a => a.VideoLocal_FileName)
+                .ToList();
         }
 
         public FileFfdshowPreset GetFFDPreset(int videoLocalID)

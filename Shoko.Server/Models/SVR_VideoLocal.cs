@@ -47,12 +47,12 @@ namespace Shoko.Server.Models
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
 
-        public const int MEDIA_VERSION = 2;
+        public const int MEDIA_VERSION = 3;
 
 
         internal Media _media = null;
 
-        internal virtual Media Media
+        public virtual Media Media
         {
             get
             {
