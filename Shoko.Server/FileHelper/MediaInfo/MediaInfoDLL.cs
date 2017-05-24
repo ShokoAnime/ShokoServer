@@ -97,6 +97,8 @@ namespace MediaInfoLib
         public bool MustUseAnsi { get; set; }
         public Encoding Encoding { get; set; }
         private static System.IntPtr moduleHandle = IntPtr.Zero;
+        private static System.IntPtr curlHandle = IntPtr.Zero;
+
 
         public MediaInfo()
         {
@@ -115,7 +117,7 @@ namespace MediaInfoLib
                     Logger.Info(string.Format("Using MediaInfo at: {0}", fullexepath));
 
                     moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
-                    //curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
+                    curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
                 }
             }
 
@@ -141,6 +143,11 @@ namespace MediaInfoLib
             {
                 FreeLibrary(moduleHandle);
                 moduleHandle = IntPtr.Zero;
+            }
+            if (curlHandle != IntPtr.Zero)
+            {
+                FreeLibrary(curlHandle);
+                curlHandle = IntPtr.Zero;
             }
         }
 
