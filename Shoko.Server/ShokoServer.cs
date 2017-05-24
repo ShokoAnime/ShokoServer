@@ -1565,7 +1565,7 @@ namespace Shoko.Server
                 {
                     if (exception is System.Net.HttpListenerException)
                     {
-                        logger.Error($"An network serve operation took too long and timed out. The URL was: {0}");
+                        logger.Error($"An network serve operation took too long and timed out.");
                     }
                     else
                     {
