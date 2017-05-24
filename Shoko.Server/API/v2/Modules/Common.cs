@@ -39,125 +39,125 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 1. import folders
 
-            Get["/folder/list", true] = async (x,ct) => await Task.Factory.StartNew(GetFolders);
-            Get["/folder/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFolders);
-            Post["/folder/add", true] = async (x,ct) => await Task.Factory.StartNew(AddFolder);
-            Post["/folder/edit", true] = async (x,ct) => await Task.Factory.StartNew(EditFolder);
-            Post["/folder/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteFolder);
-            Get["/folder/import", true] = async (x,ct) => await Task.Factory.StartNew(RunImport);
-            Get["/folder/scan", true] = async (x, ct) => await Task.Factory.StartNew(ScanDropFolders);
+            Get["/folder/list", true] = async (x,ct) => await Task.Factory.StartNew(GetFolders, ct);
+            Get["/folder/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFolders, ct);
+            Post["/folder/add", true] = async (x,ct) => await Task.Factory.StartNew(AddFolder, ct);
+            Post["/folder/edit", true] = async (x,ct) => await Task.Factory.StartNew(EditFolder, ct);
+            Post["/folder/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteFolder, ct);
+            Get["/folder/import", true] = async (x,ct) => await Task.Factory.StartNew(RunImport, ct);
+            Get["/folder/scan", true] = async (x, ct) => await Task.Factory.StartNew(ScanDropFolders, ct);
 
             #endregion
 
             #region 2. upnp
 
-            Post["/upnp/list", true] = async (x, ct) => await Task.Factory.StartNew(ListUPNP);
-            Post["/upnp/add", true] = async (x, ct) => await Task.Factory.StartNew(AddUPNP);
-            Post["/upnp/delete", true] = async (x, ct) => await Task.Factory.StartNew(DeleteUPNP);
+            Post["/upnp/list", true] = async (x, ct) => await Task.Factory.StartNew(ListUPNP, ct);
+            Post["/upnp/add", true] = async (x, ct) => await Task.Factory.StartNew(AddUPNP, ct);
+            Post["/upnp/delete", true] = async (x, ct) => await Task.Factory.StartNew(DeleteUPNP, ct);
 
             #endregion
 
             #region 3. Actions
 
-            Get["/remove_missing_files", true] = async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles);
-            Get["/stats_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateStats);
-            Get["/mediainfo_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo);
-            Get["/hash/sync", true] = async (x,ct) => await Task.Factory.StartNew(HashSync);
-            Get["/rescan", true] = async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal);
-            Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal);
+            Get["/remove_missing_files", true] = async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles, ct);
+            Get["/stats_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateStats, ct);
+            Get["/mediainfo_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo, ct);
+            Get["/hash/sync", true] = async (x,ct) => await Task.Factory.StartNew(HashSync, ct);
+            Get["/rescan", true] = async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal, ct);
+            Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct);
 
             #endregion
 
             #region 4. Misc
 
-            Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID);
-            Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5));
-            Get["/dashboard", true] = async (x,ct) => await Task.Factory.StartNew(GetDashboard);
-            Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch);
+            Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID, ct);
+            Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct);
+            Get["/dashboard", true] = async (x,ct) => await Task.Factory.StartNew(GetDashboard, ct);
+            Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch, ct);
 
             #endregion
 
             #region 5. Queue
 
-            Get["/queue/get", true] = async (x,ct) => await Task.Factory.StartNew(GetQueue);
-            Get["/queue/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseQueue);
-            Get["/queue/start", true] = async (x,ct) => await Task.Factory.StartNew(StartQueue);
-            Get["/queue/hash/get", true] = async (x,ct) => await Task.Factory.StartNew(GetHasherQueue);
-            Get["/queue/hash/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseHasherQueue);
-            Get["/queue/hash/start", true] = async (x,ct) => await Task.Factory.StartNew(StartHasherQueue);
-            Get["/queue/hash/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearHasherQueue);
-            Get["/queue/general/get", true] = async (x,ct) => await Task.Factory.StartNew(GetGeneralQueue);
-            Get["/queue/general/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseGeneralQueue);
-            Get["/queue/general/start", true] = async (x,ct) => await Task.Factory.StartNew(StartGeneralQueue);
-            Get["/queue/general/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearGeneralQueue);
-            Get["/queue/images/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagesQueue);
-            Get["/queue/images/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseImagesQueue);
-            Get["/queue/images/start", true] = async (x,ct) => await Task.Factory.StartNew(StartImagesQueue);
-            Get["/queue/images/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearImagesQueue);
+            Get["/queue/get", true] = async (x,ct) => await Task.Factory.StartNew(GetQueue, ct);
+            Get["/queue/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseQueue, ct);
+            Get["/queue/start", true] = async (x,ct) => await Task.Factory.StartNew(StartQueue, ct);
+            Get["/queue/hash/get", true] = async (x,ct) => await Task.Factory.StartNew(GetHasherQueue, ct);
+            Get["/queue/hash/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseHasherQueue, ct);
+            Get["/queue/hash/start", true] = async (x,ct) => await Task.Factory.StartNew(StartHasherQueue, ct);
+            Get["/queue/hash/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearHasherQueue, ct);
+            Get["/queue/general/get", true] = async (x,ct) => await Task.Factory.StartNew(GetGeneralQueue, ct);
+            Get["/queue/general/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseGeneralQueue, ct);
+            Get["/queue/general/start", true] = async (x,ct) => await Task.Factory.StartNew(StartGeneralQueue, ct);
+            Get["/queue/general/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearGeneralQueue, ct);
+            Get["/queue/images/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagesQueue, ct);
+            Get["/queue/images/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseImagesQueue, ct);
+            Get["/queue/images/start", true] = async (x,ct) => await Task.Factory.StartNew(StartImagesQueue, ct);
+            Get["/queue/images/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearImagesQueue, ct);
 
             #endregion
 
             #region 6. Files
 
-            Get["/file", true] = async (x,ct) => await Task.Factory.StartNew(GetFile);
-            Get["/file/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFiles);
-            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(() => GetRecentFiles(0,0));
-            Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort);
-            Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles);
-            Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset);
+            Get["/file", true] = async (x,ct) => await Task.Factory.StartNew(GetFile, ct);
+            Get["/file/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFiles, ct);
+            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(() => GetRecentFiles(0,0), ct);
+            Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
+            Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct);
+            Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct);
 
             #endregion
 
             #region 7. Episodes
 
-            Get["/ep", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisode);
-            Get["/ep/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes);
-            Get["/ep/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched);
-            Get["/ep/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched);
-            Get["/ep/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode);
-            Get["/ep/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort);
-            Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble);
-            Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName);
+            Get["/ep", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisode, ct);
+            Get["/ep/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes, ct);
+            Get["/ep/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched, ct);
+            Get["/ep/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched, ct);
+            Get["/ep/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode, ct);
+            Get["/ep/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
+            Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct);
+            Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct);
 
             #endregion
 
             #region 8. Series
 
-            Get["/serie", true] = async (x,ct) => await Task.Factory.StartNew(GetSerie);
-            Get["/serie/count", true] = async (x,ct) => await Task.Factory.StartNew(CountSerie);
-            Get["/serie/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent);
-            Get["/serie/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchForSerie);
-            Get["/serie/tag", true] = async (x,ct) => await Task.Factory.StartNew(SearchForTag);
-            Get["/serie/byfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId);
-            Get["/serie/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched);
-            Get["/serie/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched);
-            Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie);
-            Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode);
-            Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith);
+            Get["/serie", true] = async (x,ct) => await Task.Factory.StartNew(GetSerie, ct);
+            Get["/serie/count", true] = async (x,ct) => await Task.Factory.StartNew(CountSerie, ct);
+            Get["/serie/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent, ct);
+            Get["/serie/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchForSerie, ct);
+            Get["/serie/tag", true] = async (x,ct) => await Task.Factory.StartNew(SearchForTag, ct);
+            Get["/serie/byfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId, ct);
+            Get["/serie/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched, ct);
+            Get["/serie/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched, ct);
+            Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct);
+            Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
+            Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
 
             #endregion
 
             #region 9. Cloud accounts
 
-            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts);
-            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount);
-            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount);
-            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount);
-            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport);
+            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts, ct);
+            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount, ct);
+            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount, ct);
+            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount, ct);
+            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport, ct);
 
             #endregion
 
             #region 10. Filters
 
-            Get["/filter", true] = async (x,ct) => await Task.Factory.StartNew(GetFilters);
+            Get["/filter", true] = async (x,ct) => await Task.Factory.StartNew(GetFilters, ct);
 
             #endregion
 
             #region 11. Groups
 
-            Get["/group", true] = async (x,ct) => await Task.Factory.StartNew(GetGroups);
-            Get["/group/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched);
-            Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched);
+            Get["/group", true] = async (x,ct) => await Task.Factory.StartNew(GetGroups, ct);
+            Get["/group/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched, ct);
+            Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct);
 
             #endregion
         }
@@ -989,13 +989,13 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/file/unsort
         /// </summary>
         /// <returns>List<RawFile></returns>
-        private object GetUnsort()
+        private List<RawFile> GetUnsort()
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            List<object> lst = new List<object>();
+            List<RawFile> lst = new List<RawFile>();
 
             List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 

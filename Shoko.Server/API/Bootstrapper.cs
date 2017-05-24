@@ -152,44 +152,34 @@ namespace Shoko.Server.API
         public bool HandlesStatusCode(HttpStatusCode statusCode, NancyContext context)
         {
             // If == is true, then 'Handle' will be triggered
-            return statusCode == HttpStatusCode.NotFound;
+            return statusCode == HttpStatusCode.NotFound && (context?.ResolvedRoute?.Description?.Path?.StartsWith("/webui/") ?? false);
         }
 
         public void Handle(HttpStatusCode statusCode, NancyContext context)
         {
-            try
+            context.Response.Contents = stream =>
             {
-                if (context.ResolvedRoute.Description.Path.StartsWith("/webui/"))
+                try
                 {
-                    context.Response.Contents = stream =>
+                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                    using (var file = File.OpenRead(filename))
                     {
-                        try
-                        {
-                            var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
-                            using (var file = File.OpenRead(filename))
-                            {
-                                file.CopyTo(stream);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            try
-                            {
-                                StreamWriter writer = new StreamWriter(stream, Encoding.Unicode, 128, true);
-                                writer.Write(@"<html><body>File not Found (404)</body></html>");
-                                writer.Flush();
-                                writer.Close();
-                            }
-                            catch
-                            {}
-                        }
-                    };
+                        file.CopyTo(stream);
+                    }
                 }
-            }
-            catch
-            {
-                // return the error as normal
-            }
+                catch (Exception e)
+                {
+                    try
+                    {
+                        StreamWriter writer = new StreamWriter(stream, Encoding.Unicode, 128, true);
+                        writer.Write(@"<html><body>File not Found (404)</body></html>");
+                        writer.Flush();
+                        writer.Close();
+                    }
+                    catch
+                    {}
+                }
+            };
         }
     }
 }

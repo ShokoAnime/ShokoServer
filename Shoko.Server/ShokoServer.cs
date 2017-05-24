@@ -1546,7 +1546,7 @@ namespace Shoko.Server
                     Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
             }
 
-            if (Nancy.MimeTypes.GetMimeType("file.mkv") != "application/octet-stream")
+            if (Nancy.MimeTypes.GetMimeType("file.mkv") == "application/octet-stream")
             {
                 Nancy.MimeTypes.AddType("mkv", "video/x-matroska");
                 Nancy.MimeTypes.AddType("mka", "audio/x-matroska");
@@ -1565,7 +1565,7 @@ namespace Shoko.Server
                 {
                     if (exception is System.Net.HttpListenerException)
                     {
-                        logger.Error("An network serve operation took too long and timed out.");
+                        logger.Error($"An network serve operation took too long and timed out. The URL was: {0}");
                     }
                     else
                     {

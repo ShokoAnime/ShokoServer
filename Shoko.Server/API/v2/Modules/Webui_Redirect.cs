@@ -1,4 +1,5 @@
-﻿using Nancy;
+﻿using System.Threading.Tasks;
+using Nancy;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -6,7 +7,7 @@ namespace Shoko.Server.API.v2.Modules
     {
         public Webui_Redirect()
         {
-            Get["/"] = _ => { return Response.AsRedirect("/webui/index.html"); };
+            Get["/", true] = async (x,ct) => await Task.Factory.StartNew(() => Response.AsRedirect("/webui/index.html"), ct);
         }
     }
 }

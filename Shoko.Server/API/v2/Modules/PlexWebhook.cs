@@ -21,7 +21,7 @@ namespace Shoko.Server.API.v2.Modules
     {
         public PlexWebhook() : base("/plex")
         {
-            Post["/", true] = async (x,ct) => await Task.Factory.StartNew(WebhookPost);
+            Post["/", true] = async (x,ct) => await Task.Factory.StartNew(WebhookPost, ct);
         }
 
         object WebhookPost()

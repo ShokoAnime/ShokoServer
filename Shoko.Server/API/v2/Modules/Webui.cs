@@ -17,14 +17,14 @@ namespace Shoko.Server.API.v2.Modules
         {
             this.RequiresAuthentication();
 
-            Get["/install", true] = async (x,ct) => await Task.Factory.StartNew(InstallWebUI);
-            Get["/update/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIStableUpdate);
-            Get["/latest/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestStableVersion);
-            Get["/update/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIUnstableUpdate);
-            Get["/latest/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestUnstableVersion);
-            Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIConfig);
-            Post["/config", true] = async (x,ct) => await Task.Factory.StartNew(SetWebUIConfig);
-            Get["/theme", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIThemes);
+            Get["/install", true] = async (x,ct) => await Task.Factory.StartNew(InstallWebUI, ct);
+            Get["/update/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIStableUpdate, ct);
+            Get["/latest/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestStableVersion, ct);
+            Get["/update/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIUnstableUpdate, ct);
+            Get["/latest/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestUnstableVersion, ct);
+            Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIConfig, ct);
+            Post["/config", true] = async (x,ct) => await Task.Factory.StartNew(SetWebUIConfig, ct);
+            Get["/theme", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIThemes, ct);
         }
 
         /// <summary>

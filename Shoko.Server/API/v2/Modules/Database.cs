@@ -17,10 +17,10 @@ namespace Shoko.Server.API.v2.Modules
                 this.RequiresAuthentication();
             }
 
-            Post["/set", true] = async (x,ct) => await Task.Factory.StartNew(SetupDB);
-            Get["/get", true] = async (x,ct) => await Task.Factory.StartNew(GetDB);
-            Get["/start", true] = async (x,ct) => await Task.Factory.StartNew(RunDB);
-            Get["/check", true] = async (x,ct) => await Task.Factory.StartNew(CheckDB);
+            Post["/set", true] = async (x,ct) => await Task.Factory.StartNew(SetupDB, ct);
+            Get["/get", true] = async (x,ct) => await Task.Factory.StartNew(GetDB, ct);
+            Get["/start", true] = async (x,ct) => await Task.Factory.StartNew(RunDB, ct);
+            Get["/check", true] = async (x,ct) => await Task.Factory.StartNew(CheckDB, ct);
         }
 
         #region Setup
