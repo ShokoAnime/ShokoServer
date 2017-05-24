@@ -2,7 +2,10 @@ FROM mono:5.0.0
 
 # Maintainer Cayde Dixon <me@cazzar.net>
 
-RUN apt-get update && apt-get install -y --force-yes libmediainfo0
+RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
+RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y --force-yes libmediainfo0 sqlite.interop
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
