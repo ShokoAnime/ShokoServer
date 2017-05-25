@@ -107,17 +107,13 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<TvDB_Episode> GetTvDBEpisodes(ISessionWrapper session)
         {
-            List<TvDB_Episode> tvDBEpisodes = new List<TvDB_Episode>();
-
             List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
-            if (xrefs.Count == 0) return tvDBEpisodes;
-
-
-            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-            {
-                tvDBEpisodes.AddRange(RepoFactory.TvDB_Episode.GetBySeriesID(session, xref.TvDBID));
-            }
-            return tvDBEpisodes.OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
+            if (xrefs.Count == 0) return new List<TvDB_Episode>();
+            return xrefs
+                .SelectMany(a => RepoFactory.TvDB_Episode.GetBySeriesID(session, a.TvDBID))
+                .OrderBy(a => a.SeasonNumber)
+                .ThenBy(a => a.EpisodeNumber)
+                .ToList();
         }
 
         private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;

@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v2.Modules
 
         public Unauth()
         {
-            Get["/api/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion);
+            Get["/api/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion, ct);
         }
 
         /// <summary>

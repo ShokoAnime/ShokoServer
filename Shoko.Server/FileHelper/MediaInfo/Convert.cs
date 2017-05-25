@@ -398,6 +398,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
             string title = m.Get(StreamKind.Text, num, "Title");
             if (!string.IsNullOrEmpty(title))
                 s.Title = title;
+            else if (!string.IsNullOrEmpty(title = m.Get(StreamKind.Text, num, "Subtitle")))
+                s.Title = title;
 
             string lang = m.Get(StreamKind.Text, num, "Language/String3");
             if (!string.IsNullOrEmpty(lang))
@@ -480,6 +482,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         int video_count = minstance.GetInt(StreamKind.General, 0, "VideoCount");
                         int audio_count = minstance.GetInt(StreamKind.General, 0, "AudioCount");
                         int text_count = minstance.GetInt(StreamKind.General, 0, "TextCount");
+                        if (int.TryParse(minstance.Get(StreamKind.General, 0, "MenuCount"), out int chaptercount))
+                            m.Chaptered = chaptercount > 0;
                         m.Duration = p.Duration = minstance.Get(StreamKind.General, 0, "Duration");
                         m.Container = p.Container = TranslateContainer(minstance.Get(StreamKind.General, 0, "Format"));
                         string codid = minstance.Get(StreamKind.General, 0, "CodecID");
@@ -531,7 +535,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                         else if ((m.VideoFrameRate == "30p") || (m.VideoFrameRate == "30i"))
                                             m.VideoFrameRate = "NTSC";
                                     }
-                                    m.VideoCodec = s.Codec;
+                                    m.VideoCodec = s.CodecID;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
                                         double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
@@ -566,7 +570,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     s.Codec = "adpcm_swf";
                                 if (x == 0)
                                 {
-                                    m.AudioCodec = s.Codec;
+                                    m.AudioCodec = s.CodecID;
                                     m.AudioChannels = s.Channels;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {

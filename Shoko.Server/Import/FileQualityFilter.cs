@@ -76,42 +76,44 @@ namespace Shoko.Server
         public static bool CheckFileKeep(SVR_VideoLocal file)
         {
             bool result = true;
-            List<FileQualityFilterType> requiredTypes = new List<FileQualityFilterType>();
-            requiredTypes.Add(FileQualityFilterType.SOURCE);
 
             AniDB_File aniFile = file.GetAniDBFile();
-            if (aniFile == null) return false;
-            foreach (var type in requiredTypes)
+            foreach (var type in Settings._requiredtypes)
             {
                 if (!result) break;
                 switch (type)
                 {
                     case FileQualityFilterType.AUDIOCODEC:
-                        result &= CheckAudioCodec(aniFile);
+                        result &= CheckAudioCodec(file);
                         break;
                     case FileQualityFilterType.AUDIOSTREAMCOUNT:
-                        result &= CheckAudioStreamCount(aniFile);
+                        result &= CheckAudioStreamCount(file);
                         break;
                     case FileQualityFilterType.CHAPTER:
-                        result &= CheckChaptered(aniFile);
+                        if (aniFile == null) return false;
+                        result &= CheckChaptered(file);
                         break;
                     case FileQualityFilterType.RESOLUTION:
-                        result &= CheckResolution(aniFile);
+                        result &= CheckResolution(file);
                         break;
                     case FileQualityFilterType.SOURCE:
+                        if (aniFile == null) return false;
                         result &= CheckSource(aniFile);
                         break;
                     case FileQualityFilterType.SUBGROUP:
+                        if (aniFile == null) return false;
                         result &= CheckSubGroup(aniFile);
                         break;
                     case FileQualityFilterType.SUBSTREAMCOUNT:
                         result &= CheckSubStreamCount(file);
                         break;
                     case FileQualityFilterType.VERSION:
+                        if (aniFile == null) return false;
                         result &= CheckDeprecated(aniFile);
                         break;
                     case FileQualityFilterType.VIDEOCODEC:
-                        result &= CheckVideoCodec(aniFile);
+                        if (aniFile == null) return false;
+                        result &= CheckVideoCodec(file);
                         break;
                 }
             }
@@ -119,10 +121,13 @@ namespace Shoko.Server
             return result;
         }
 
-        private static bool CheckAudioCodec(AniDB_File aniFile)
+        private static bool CheckAudioCodec(SVR_VideoLocal aniFile)
         {
-            string[] codecs = aniFile.File_AudioCodec.ToLowerInvariant()
-                .Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries);
+            string[] codecs = aniFile.Media.Parts.SelectMany(a => a.Streams)
+                .Where(a => a.StreamType == "2")
+                .Select(a => a.Codec)
+                .OrderBy(a => a)
+                .ToArray();
             if (codecs.Length == 0) return false;
 
             FileQualityFilterOperationType operationType = Settings.RequiredAudioCodecOperator;
@@ -136,11 +141,9 @@ namespace Shoko.Server
             return true;
         }
 
-        private static bool CheckAudioStreamCount(AniDB_File aniFile)
+        private static bool CheckAudioStreamCount(SVR_VideoLocal aniFile)
         {
-            int streamCount = aniFile.File_AudioCodec.ToLowerInvariant()
-                .Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
-                .Length;
+            int streamCount = aniFile.Media.Parts.SelectMany(a => a.Streams).Count(a => a.StreamType == "2");
             FileQualityFilterOperationType operationType = Settings.RequiredAudioStreamCountOperator;
             switch (operationType)
             {
@@ -154,9 +157,9 @@ namespace Shoko.Server
             return true;
         }
 
-        private static bool CheckChaptered(AniDB_File aniFile)
+        private static bool CheckChaptered(SVR_VideoLocal aniFile)
         {
-            return aniFile.IsChaptered == 1;
+            return aniFile.GetAniDBFile()?.IsChaptered == 1 || aniFile.Media.Chaptered;
         }
 
         private static bool CheckDeprecated(AniDB_File aniFile)
@@ -164,7 +167,7 @@ namespace Shoko.Server
             return aniFile.IsDeprecated == 0;
         }
 
-        private static bool CheckResolution(AniDB_File aniFile)
+        private static bool CheckResolution(SVR_VideoLocal aniFile)
         {
             Tuple<int, int> resTuple = GetResolutionInternal(aniFile);
             string res = GetResolution(resTuple);
@@ -238,7 +241,7 @@ namespace Shoko.Server
 
         private static bool CheckSubStreamCount(SVR_VideoLocal file)
         {
-            int streamCount = file.Media.Parts.Where(a => a.Streams.Any(b => b.StreamType == "3")).ToList().Count;
+            int streamCount = file.Media.Parts.SelectMany(a => a.Streams).Count(b => b.StreamType == "3");
             FileQualityFilterOperationType operationType = Settings.RequiredSubStreamCountOperator;
             switch (operationType)
             {
@@ -252,10 +255,13 @@ namespace Shoko.Server
             return true;
         }
 
-        private static bool CheckVideoCodec(AniDB_File aniFile)
+        private static bool CheckVideoCodec(SVR_VideoLocal aniFile)
         {
-            string[] codecs = aniFile.File_VideoCodec.ToLowerInvariant()
-                .Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries);
+            string[] codecs = aniFile.Media.Parts.SelectMany(a => a.Streams)
+                .Where(a => a.StreamType == "1")
+                .Select(a => a.Codec)
+                .OrderBy(a => a)
+                .ToArray();
             if (codecs.Length == 0) return false;
             FileQualityFilterOperationType operationType = Settings.RequiredVideoCodecOperator;
             switch (operationType)
@@ -276,8 +282,6 @@ namespace Shoko.Server
         {
             var oldEp = oldFile?.GetAniDBFile();
             var newEp = newFile?.GetAniDBFile();
-            if (newEp == null) return 1;
-            if (oldEp == null) return -1;
             int result = 0;
 
             foreach (FileQualityFilterType type in Settings._types)
@@ -285,26 +289,30 @@ namespace Shoko.Server
                 switch (type)
                 {
                     case FileQualityFilterType.AUDIOCODEC:
-                        result = CompareAudioCodecTo(newEp, oldEp);
+                        result = CompareAudioCodecTo(newFile, oldFile);
                         break;
 
                     case FileQualityFilterType.AUDIOSTREAMCOUNT:
-                        result = CompareAudioStreamCountTo(newEp, oldEp);
+                        result = CompareAudioStreamCountTo(newFile, oldFile);
                         break;
 
                     case FileQualityFilterType.CHAPTER:
-                        result = CompareChapterTo(newEp, oldEp);
+                        result = CompareChapterTo(newFile, newEp, oldFile, oldEp);
                         break;
 
                     case FileQualityFilterType.RESOLUTION:
-                        result = CompareResolutionTo(newEp, oldEp);
+                        result = CompareResolutionTo(newFile, oldFile);
                         break;
 
                     case FileQualityFilterType.SOURCE:
+                        if (newEp == null) return 1;
+                        if (oldEp == null) return -1;
                         result = CompareSourceTo(newEp, oldEp);
                         break;
 
                     case FileQualityFilterType.SUBGROUP:
+                        if (newEp == null) return 1;
+                        if (oldEp == null) return -1;
                         result = CompareSubGroupTo(newEp, oldEp);
                         break;
 
@@ -313,11 +321,13 @@ namespace Shoko.Server
                         break;
 
                     case FileQualityFilterType.VERSION:
+                        if (newEp == null) return 1;
+                        if (oldEp == null) return -1;
                         result = CompareVersionTo(newFile, oldFile);
                         break;
 
                     case FileQualityFilterType.VIDEOCODEC:
-                        result = CompareVideoCodecTo(newFile, newEp, oldFile, oldEp);
+                        result = CompareVideoCodecTo(newFile, oldFile);
                         break;
                 }
                 if (result != 0) return result;
@@ -326,10 +336,18 @@ namespace Shoko.Server
             return 0;
         }
 
-        private static int CompareAudioCodecTo(AniDB_File newFile, AniDB_File oldFile)
+        private static int CompareAudioCodecTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            string[] newCodecs = newFile.File_AudioCodec.ToLowerInvariant().Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries);
-            string[] oldCodecs = oldFile.File_AudioCodec.ToLowerInvariant().Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries);
+            string[] newCodecs = newFile.Media.Parts.SelectMany(a => a.Streams)
+                .Where(a => a.StreamType == "2")
+                .Select(a => a.Codec)
+                .OrderBy(a => a)
+                .ToArray();
+            string[] oldCodecs = oldFile.Media.Parts.SelectMany(a => a.Streams)
+                .Where(a => a.StreamType == "2")
+                .Select(a => a.Codec)
+                .OrderBy(a => a)
+                .ToArray();
             // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
             if (newCodecs.Length != oldCodecs.Length) return 0;
 
@@ -346,21 +364,24 @@ namespace Shoko.Server
             return 0;
         }
 
-        private static int CompareAudioStreamCountTo(AniDB_File newFile, AniDB_File oldFile)
+        private static int CompareAudioStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            int newStreamCount = newFile.File_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries).Length;
-            int oldStreamCount = oldFile.File_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries).Length;
+            int newStreamCount = newFile.Media?.Parts?.SelectMany(a => a.Streams).Count(a => a.StreamType == "2") ?? 0;
+            int oldStreamCount = oldFile.Media?.Parts?.SelectMany(a => a.Streams).Count(a => a.StreamType == "2") ?? 0;
             return oldStreamCount.CompareTo(newStreamCount);
         }
 
-        private static int CompareChapterTo(AniDB_File newFile, AniDB_File oldFile)
+        private static int CompareChapterTo(SVR_VideoLocal newFile, AniDB_File newAniFile, SVR_VideoLocal oldFile, AniDB_File oldAniFile)
         {
-            if (newFile.IsChaptered == 1 && oldFile.IsChaptered != 1) return -1;
-            if (newFile.IsChaptered != 1 && oldFile.IsChaptered == 1) return 1;
-            return oldFile.IsChaptered.CompareTo(newFile.IsChaptered);
+            if ((newAniFile?.IsChaptered == 1 || newFile.Media.Chaptered) &&
+                !(oldAniFile?.IsChaptered == 1 || oldFile.Media.Chaptered)) return -1;
+            if (!(newAniFile?.IsChaptered == 1 || newFile.Media.Chaptered) &&
+                (oldAniFile?.IsChaptered == 1 || oldFile.Media.Chaptered)) return 1;
+            return (oldAniFile?.IsChaptered == 1 || oldFile.Media.Chaptered).CompareTo(
+                newAniFile?.IsChaptered == 1 || newFile.Media.Chaptered);
         }
 
-        private static int CompareResolutionTo(AniDB_File newFile, AniDB_File oldFile)
+        private static int CompareResolutionTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
             string oldRes = GetResolution(oldFile);
             string newRes = GetResolution(newFile);
@@ -408,10 +429,18 @@ namespace Shoko.Server
             return oldani.FileVersion.CompareTo(newani.FileVersion);
         }
 
-        private static int CompareVideoCodecTo(SVR_VideoLocal newLocal, AniDB_File newFile, SVR_VideoLocal oldLocal, AniDB_File oldFile)
+        private static int CompareVideoCodecTo(SVR_VideoLocal newLocal, SVR_VideoLocal oldLocal)
         {
-            string[] newCodecs = newFile.File_VideoCodec.ToLowerInvariant().Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries);
-            string[] oldCodecs = oldFile.File_VideoCodec.ToLowerInvariant().Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries);
+            string[] newCodecs = newLocal.Media.Parts.SelectMany(a => a.Streams)
+                .Where(a => a.StreamType == "1")
+                .Select(a => a.Codec)
+                .OrderBy(a => a)
+                .ToArray();
+            string[] oldCodecs = oldLocal.Media.Parts.SelectMany(a => a.Streams)
+                .Where(a => a.StreamType == "1")
+                .Select(a => a.Codec)
+                .OrderBy(a => a)
+                .ToArray();
             // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
             if (newCodecs.Length != oldCodecs.Length) return 0;
 
@@ -442,7 +471,7 @@ namespace Shoko.Server
 
         #region Information from Models (Operations that aren't simple)
 
-        private static string GetResolution(AniDB_File aniFile)
+        private static string GetResolution(SVR_VideoLocal aniFile)
         {
             return GetResolution(GetResolutionInternal(aniFile));
         }
@@ -491,10 +520,10 @@ namespace Shoko.Server
             }
         }
 
-        private static Tuple<int, int> GetResolutionInternal(AniDB_File aniFile)
+        private static Tuple<int, int> GetResolutionInternal(SVR_VideoLocal aniFile)
         {
-            string[] res = aniFile.File_VideoResolution.Split('x');
-            if (res.Length != 2) return null;
+            string[] res = aniFile.Media?.VideoResolution?.Split('x');
+            if (res?.Length != 2) return null;
             if (!int.TryParse(res[0], out int oldWidth)) return null;
             if (!int.TryParse(res[1], out int oldHeight)) return null;
             if (oldWidth == 0 || oldHeight == 0) return null;

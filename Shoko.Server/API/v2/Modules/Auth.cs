@@ -41,7 +41,7 @@ namespace Shoko.Server.API.v2.Modules
                     return new Response { StatusCode = HttpStatusCode.BadRequest };
                  }
                  return new Response { StatusCode = HttpStatusCode.ExpectationFailed };
-             });
+             }, ct);
 
             //remove apikey from database
             //pass it as ?apikey=xyz
@@ -56,7 +56,7 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     return HttpStatusCode.InternalServerError;
                 }
-            });
+            }, ct);
         }
     }
 }

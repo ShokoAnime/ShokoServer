@@ -24,11 +24,11 @@ namespace Shoko.Server.API.v2.Modules
 
         public Image() : base("/api")
         {
-            Get["/image/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetImage((int) x.type, (int) x.id));
-            Get["/image/thumb/{type}/{id}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, x.ratio));
-            Get["/image/thumb/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, "0"));
-            Get["/image/support/{name}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name));
-            Get["/image/support/{name}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name, x.ratio));
+            Get["/image/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetImage((int) x.type, (int) x.id), ct);
+            Get["/image/thumb/{type}/{id}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, x.ratio), ct);
+            Get["/image/thumb/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, "0"), ct);
+            Get["/image/support/{name}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name), ct);
+            Get["/image/support/{name}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name, x.ratio), ct);
         }
 
         /// <summary>
