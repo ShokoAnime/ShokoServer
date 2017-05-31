@@ -101,7 +101,7 @@ namespace Shoko.Commons
         public string TranslateFile(int folderid, string path)
         {
             LoadCheck();
-            if (string.IsNullOrEmpty(path))
+            if (path == null)
                 return string.Empty;
             if (_mappings == null) return string.Empty;
             if (!_mappings.ContainsKey(folderid) || string.IsNullOrEmpty(_mappings[folderid]))
@@ -122,7 +122,7 @@ namespace Shoko.Commons
         public string TranslateDirectory(int folderid, string path)
         {
             LoadCheck();
-            if (string.IsNullOrEmpty(path))
+            if (path == null)
                 return string.Empty;
             if (_mappings == null) return string.Empty;
             if (!_mappings.ContainsKey(folderid) || string.IsNullOrEmpty(_mappings[folderid]))
