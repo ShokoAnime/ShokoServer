@@ -35,13 +35,13 @@ namespace Shoko.Server.Commands
                     return new QueueStateStruct()
                     {
                         queueState = QueueStateEnum.GetFileInfo,
-                        extraParams = new string[] {vlocal.FileName}
+                        extraParams = new[] {vlocal.FileName}
                     };
                 else
                     return new QueueStateStruct()
                     {
                         queueState = QueueStateEnum.GetFileInfo,
-                        extraParams = new string[] {VideoLocalID.ToString()}
+                        extraParams = new[] {VideoLocalID.ToString()}
                     };
             }
         }
@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                if (vlocal == null) vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null) return;
                 lock (vlocal)
                 {
@@ -136,7 +136,7 @@ namespace Shoko.Server.Commands
                         }
                         SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(false, true, true);
-//					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
+//                  StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
                     }
                 }
             }
@@ -174,6 +174,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
                 this.ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
+                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             }
 
             return true;

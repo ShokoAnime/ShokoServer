@@ -70,7 +70,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                if (vlocal == null) vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null) return;
 
                 //now that we have all the has info, we can get the AniDB Info
@@ -371,6 +371,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
                 this.ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
+                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             }
 
             return true;
