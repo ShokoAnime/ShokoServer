@@ -8,6 +8,7 @@ using Nancy.Extensions;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
+using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Pri.LongPath;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
@@ -543,6 +544,13 @@ namespace Shoko.Server.Models
                     IFileSystem fs = fldr.FileSystem;
                     FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
                     if (fsresult == null || !fsresult.IsOk) continue;
+
+                    // Continue if on a separate drive and there's no space
+                    if (!fldr.CloudID.HasValue && !ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                    {
+                        var fsresultquota = fs.Quota();
+                        if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < source_file.Size) continue;
+                    }
 
                     destFolder = fldr;
                     break;
