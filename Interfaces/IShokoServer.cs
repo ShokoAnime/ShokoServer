@@ -358,7 +358,7 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Search/{searchType}/{searchCriteria}/{userID}", Verbs.Get)]
         List<CL_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID);
 
-        [Rest("File/Rename/Preview/{videoLocalID}/{renameRules}", Verbs.Get)]
+        [Rest("File/Rename/Preview/{videoLocalID}", Verbs.Post)]
         CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID, string renameRules);
 
         [Rest("File/Rename/{videoLocalID}", Verbs.Post)]
@@ -417,7 +417,7 @@ namespace Shoko.Models.Interfaces
 
         #region CloudAccounts
 
-        [Rest("CloudAccount/Directory/{cloudaccountid}",Verbs.Get)]
+        [Rest("CloudAccount/Directory/{cloudaccountid}",Verbs.Post)]
         List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path);
 
         [Rest("CloudAccount", Verbs.Get)]
