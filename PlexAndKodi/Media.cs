@@ -65,5 +65,9 @@ namespace Shoko.Models.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 14)]
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
+
+        [DataMember(EmitDefaultValue = false, Order = 15)]
+        [XmlAttribute("chaptered")]
+        public bool Chaptered { get; set; }
     }
 }
