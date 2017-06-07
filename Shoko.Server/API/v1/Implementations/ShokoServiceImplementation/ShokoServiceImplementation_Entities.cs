@@ -3011,8 +3011,8 @@ namespace Shoko.Server
                     return response;
                 }
             }
-            else
-                gf = SVR_GroupFilter.FromClient(contract);
+
+            gf = SVR_GroupFilter.FromClient(contract);
 
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);

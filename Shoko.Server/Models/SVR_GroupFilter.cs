@@ -100,7 +100,10 @@ namespace Shoko.Server.Models
             set
             {
                 if (value != null)
+                {
                     _conditions = value;
+                    GroupConditions = JsonConvert.SerializeObject(GroupConditions);
+                }
             }
         }
 
