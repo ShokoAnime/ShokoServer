@@ -131,7 +131,7 @@ namespace Shoko.Server.Commands
                         {
                             using (var session = DatabaseFactory.SessionFactory.OpenSession())
                             {
-                                anime.UpdateContractDetailed(session.Wrap());
+                                RepoFactory.AniDB_Anime.Save(anime);
                             }
                         }
                         SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
