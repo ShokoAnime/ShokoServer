@@ -90,7 +90,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                if (_conditions.Count == 0 && GroupConditionsVersion == GROUPCONDITIONS_VERSION)
+                if (_conditions.Count == 0 && !string.IsNullOrEmpty(GroupConditions))
                 {
                     _conditions =
                         Newtonsoft.Json.JsonConvert.DeserializeObject<List<GroupFilterCondition>>(GroupConditions);
