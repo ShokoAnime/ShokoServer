@@ -102,7 +102,7 @@ namespace Shoko.Server.Models
                 if (value != null)
                 {
                     _conditions = value;
-                    GroupConditions = JsonConvert.SerializeObject(GroupConditions);
+                    GroupConditions = JsonConvert.SerializeObject(_conditions);
                 }
             }
         }
