@@ -45,6 +45,7 @@ namespace Shoko.Server.Extensions
             {
                 AniDB_AnimeID = anime.AniDB_AnimeID,
                 AnimeID = anime.AnimeID,
+                Description = anime.Description,
                 EpisodeCount = anime.EpisodeCount,
                 AirDate = anime.AirDate,
                 EndDate = anime.EndDate,

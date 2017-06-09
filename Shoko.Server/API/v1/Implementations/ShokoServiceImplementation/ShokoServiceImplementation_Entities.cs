@@ -3011,7 +3011,9 @@ namespace Shoko.Server
                     return response;
                 }
             }
+
             gf = SVR_GroupFilter.FromClient(contract);
+
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
             response.Result = gf.ToClient();
