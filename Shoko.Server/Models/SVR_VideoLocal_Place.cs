@@ -107,6 +107,30 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
                     return false;
                 }
+
+                // Before we change all references, remap Duplicate Files
+                List<DuplicateFile> dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                if (dups != null && dups.Count > 0)
+                {
+                    foreach (var dup in dups)
+                    {
+                        bool dupchanged = false;
+                        if (dup.FilePathFile1.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                            dup.ImportFolderIDFile1 == ImportFolderID)
+                        {
+                            dup.FilePathFile1 = tup.Item2;
+                            dupchanged = true;
+                        }
+                        else if (dup.FilePathFile2.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                 dup.ImportFolderIDFile2 == ImportFolderID)
+                        {
+                            dup.FilePathFile2 = tup.Item2;
+                            dupchanged = true;
+                        }
+                        if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
+                    }
+                }
+
                 FilePath = tup.Item2;
                 RepoFactory.VideoLocalPlace.Save(this);
             }
