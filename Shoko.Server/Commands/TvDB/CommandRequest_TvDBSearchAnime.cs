@@ -128,6 +128,7 @@ namespace Shoko.Server.Commands
 
                     if (results.Count == 0)
                     {
+                        bool foundResult = false;
                         foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
                             if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
@@ -136,9 +137,11 @@ namespace Shoko.Server.Commands
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
                             results = TvDBApiHelper.SearchSeries(title.Title);
+                            if (results.Count > 0) foundResult = true;
                             logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
                             if (ProcessSearchResults(results, title.Title)) return;
                         }
+                        if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
                     }
                 }
             }
