@@ -2004,6 +2004,32 @@ namespace Shoko.Server
 
         #endregion
 
+        public static int Linux_UID
+        {
+            get
+            {
+                if (!Int32.TryParse(Get(nameof(Linux_UID)), out int val)) return -1;
+                return val;
+            }
+            set { Set(nameof(Linux_UID), value.ToString()); }
+        }
+
+        public static int Linux_GID
+        {
+            get
+            {
+                if (!Int32.TryParse(Get(nameof(Linux_GID)), out int val)) return -1;
+                return val;
+            }
+            set { Set(nameof(Linux_GID), value.ToString()); }
+        }
+
+        public static int Linux_Permission
+        {
+            get { return Convert.ToInt32(Get(nameof(Linux_Permission)), 8); }
+            set { Set(nameof(Linux_Permission), Convert.ToString(value, 8)); }
+        }
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings

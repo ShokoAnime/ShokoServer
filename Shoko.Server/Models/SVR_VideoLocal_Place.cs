@@ -464,15 +464,24 @@ namespace Shoko.Server.Models
                 }
             }
             succeeded = MoveFileIfRequired();
-            if (succeeded) return;
-            Thread.Sleep((int)DELAY_IN_USE.FIRST);
-            succeeded = MoveFileIfRequired();
-            if (succeeded) return;
-            Thread.Sleep((int) DELAY_IN_USE.SECOND);
-            succeeded = MoveFileIfRequired();
-            if (succeeded) return;
-            Thread.Sleep((int) DELAY_IN_USE.THIRD);
-            MoveFileIfRequired();
+            if (!succeeded)
+            {
+                Thread.Sleep((int)DELAY_IN_USE.FIRST);
+                succeeded = MoveFileIfRequired();
+                if (!succeeded)
+                {
+                    Thread.Sleep((int)DELAY_IN_USE.SECOND);
+                    succeeded = MoveFileIfRequired();
+                    if (!succeeded)
+                    {
+                        Thread.Sleep((int)DELAY_IN_USE.THIRD);
+                        MoveFileIfRequired();
+                        if (!succeeded) return; //Same as above, but linux permissiosn.
+                    }
+                }
+            }
+
+            Utilities.LinuxFS.SetLinuxPermissions(this.FullServerPath, ServerSettings.Linux_UID, ServerSettings.Linux_GID, ServerSettings.Linux_Permission);
         }
 
         // returns false if we should retry
