@@ -107,13 +107,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<TvDB_Episode> GetTvDBEpisodes(ISessionWrapper session)
         {
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
-            if (xrefs.Count == 0) return new List<TvDB_Episode>();
-            return xrefs
+            return GetCrossRefTvDBV2(session)?
                 .SelectMany(a => RepoFactory.TvDB_Episode.GetBySeriesID(session, a.TvDBID))
+                .Where(a => a != null)
                 .OrderBy(a => a.SeasonNumber)
                 .ThenBy(a => a.EpisodeNumber)
-                .ToList();
+                .ToList() ?? new List<TvDB_Episode>();
         }
 
         private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
@@ -139,10 +138,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         // create a dictionary of absolute episode numbers for tvdb episodes
                         // sort by season and episode number
                         // ignore season 0, which is used for specials
-                        List<TvDB_Episode> eps = tvdbEpisodes;
 
                         int i = 1;
-                        foreach (TvDB_Episode ep in eps)
+                        foreach (TvDB_Episode ep in tvdbEpisodes)
                         {
                             dictTvDBEpisodes[i] = ep;
                             i++;
@@ -173,23 +171,17 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 try
                 {
-                    List<TvDB_Episode> tvdbEpisodes = GetTvDBEpisodes(session);
-                    if (tvdbEpisodes != null)
+                    dictTvDBSeasons = new Dictionary<int, int>();
+                    // create a dictionary of season numbers and the first episode for that season
+                    int i = 1;
+                    int lastSeason = -999;
+                    foreach (TvDB_Episode ep in GetTvDBEpisodes(session))
                     {
-                        dictTvDBSeasons = new Dictionary<int, int>();
-                        // create a dictionary of season numbers and the first episode for that season
+                        if (ep.SeasonNumber != lastSeason)
+                            dictTvDBSeasons[ep.SeasonNumber] = i;
 
-                        List<TvDB_Episode> eps = tvdbEpisodes;
-                        int i = 1;
-                        int lastSeason = -999;
-                        foreach (TvDB_Episode ep in eps)
-                        {
-                            if (ep.SeasonNumber != lastSeason)
-                                dictTvDBSeasons[ep.SeasonNumber] = i;
-
-                            lastSeason = ep.SeasonNumber;
-                            i++;
-                        }
+                        lastSeason = ep.SeasonNumber;
+                        i++;
                     }
                 }
                 catch (Exception ex)
@@ -216,29 +208,23 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 try
                 {
-                    List<TvDB_Episode> tvdbEpisodes = GetTvDBEpisodes(session);
-                    if (tvdbEpisodes != null)
+                    dictTvDBSeasonsSpecials = new Dictionary<int, int>();
+                    // create a dictionary of season numbers and the first episode for that season
+                    int i = 1;
+                    int lastSeason = -999;
+                    foreach (TvDB_Episode ep in GetTvDBEpisodes(session))
                     {
-                        dictTvDBSeasonsSpecials = new Dictionary<int, int>();
-                        // create a dictionary of season numbers and the first episode for that season
+                        if (ep.SeasonNumber > 0) continue;
 
-                        List<TvDB_Episode> eps = tvdbEpisodes;
-                        int i = 1;
-                        int lastSeason = -999;
-                        foreach (TvDB_Episode ep in eps)
-                        {
-                            if (ep.SeasonNumber > 0) continue;
+                        int thisSeason = 0;
+                        if (ep.AirsBeforeSeason.HasValue) thisSeason = ep.AirsBeforeSeason.Value;
+                        if (ep.AirsAfterSeason.HasValue) thisSeason = ep.AirsAfterSeason.Value;
 
-                            int thisSeason = 0;
-                            if (ep.AirsBeforeSeason.HasValue) thisSeason = ep.AirsBeforeSeason.Value;
-                            if (ep.AirsAfterSeason.HasValue) thisSeason = ep.AirsAfterSeason.Value;
+                        if (thisSeason != lastSeason)
+                            dictTvDBSeasonsSpecials[thisSeason] = i;
 
-                            if (thisSeason != lastSeason)
-                                dictTvDBSeasonsSpecials[thisSeason] = i;
-
-                            lastSeason = thisSeason;
-                            i++;
-                        }
+                        lastSeason = thisSeason;
+                        i++;
                     }
                 }
                 catch (Exception ex)
@@ -311,17 +297,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<TvDB_Series> GetTvDBSeries(ISessionWrapper session)
         {
-            List<TvDB_Series> ret = new List<TvDB_Series>();
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
-            if (xrefs.Count == 0) return ret;
-
-            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-            {
-                TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(session, xref.TvDBID);
-                if (ser != null) ret.Add(ser);
-            }
-
-            return ret;
+            return GetCrossRefTvDBV2(session)?.Select(xref => RepoFactory.TvDB_Series.GetByTvDBID(session, xref.TvDBID))
+                .Where(xref => xref != null).ToList() ?? new List<TvDB_Series>();
         }
 
         public List<TvDB_ImageFanart> GetTvDBImageFanarts()
@@ -334,18 +311,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<TvDB_ImageFanart> GetTvDBImageFanarts(ISessionWrapper session)
         {
-            List<TvDB_ImageFanart> ret = new List<TvDB_ImageFanart>();
-
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
-            if (xrefs.Count == 0) return ret;
-
-            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-            {
-                ret.AddRange(RepoFactory.TvDB_ImageFanart.GetBySeriesID(session, xref.TvDBID));
-            }
-
-
-            return ret;
+            return GetCrossRefTvDBV2(session)?
+                .SelectMany(xref => RepoFactory.TvDB_ImageFanart.GetBySeriesID(session, xref.TvDBID))
+                .Where(xref => xref != null).ToList() ?? new List<TvDB_ImageFanart>();
         }
 
         public List<TvDB_ImagePoster> GetTvDBImagePosters()
@@ -358,17 +326,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<TvDB_ImagePoster> GetTvDBImagePosters(ISessionWrapper session)
         {
-            List<TvDB_ImagePoster> ret = new List<TvDB_ImagePoster>();
-
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
-            if (xrefs.Count == 0) return ret;
-
-            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-            {
-                ret.AddRange(RepoFactory.TvDB_ImagePoster.GetBySeriesID(session, xref.TvDBID));
-            }
-
-            return ret;
+            return GetCrossRefTvDBV2(session)
+                ?.SelectMany(xref => RepoFactory.TvDB_ImagePoster.GetBySeriesID(session, xref.TvDBID))
+                .Where(xref => xref != null).ToList() ?? new List<TvDB_ImagePoster>();
         }
 
         public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners()
@@ -381,16 +341,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners(ISessionWrapper session)
         {
-            List<TvDB_ImageWideBanner> ret = new List<TvDB_ImageWideBanner>();
-
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
-            if (xrefs.Count == 0) return ret;
-
-            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-            {
-                ret.AddRange(RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref.TvDBID));
-            }
-            return ret;
+            return GetCrossRefTvDBV2(session)
+                ?.SelectMany(xref => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref.TvDBID))
+                .Where(xref => xref != null).ToList() ?? new List<TvDB_ImageWideBanner>();
         }
 
         public CrossRef_AniDB_Other GetCrossRefMovieDB()
@@ -1084,10 +1037,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
 
         [XmlIgnore]
-        public List<AniDB_Episode> AniDBEpisodes
-        {
-            get { return RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID); }
-        }
+        public List<AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
 
         public List<AniDB_Episode> GetAniDBEpisodes()
         {
