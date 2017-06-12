@@ -280,8 +280,8 @@
     <Reference Include="TMDbLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\TMDbLib.1.0.0\lib\net46\TMDbLib.dll</HintPath>
     </Reference>
-    <Reference Include="TvDbSharper, Version=0.6.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\TvDbSharper.0.6.2\lib\netstandard1.1\TvDbSharper.dll</HintPath>
+    <Reference Include="TvDbSharper, Version=0.6.3.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\TvDbSharper.0.6.3\lib\netstandard1.1\TvDbSharper.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />

@@ -108,7 +108,6 @@ namespace Shoko.Server.Providers.TvDB
         {
             List<TVDB_Series_Search_Response> results = new List<TVDB_Series_Search_Response>();
 
-            criteria = HttpUtility.UrlEncode(criteria);
             try
             {
                 await _checkAuthorizationAsync();
