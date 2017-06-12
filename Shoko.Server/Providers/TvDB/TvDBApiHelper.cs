@@ -21,6 +21,7 @@ using TvDbSharper.Clients.Series.Json;
 using Shoko.Commons.Extensions;
 using TvDbSharper.Clients.Updates.Json;
 using TvDbSharper.Clients.Episodes.Json;
+using HttpUtility = Nancy.Helpers.HttpUtility;
 
 namespace Shoko.Server.Providers.TvDB
 {
@@ -107,6 +108,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             List<TVDB_Series_Search_Response> results = new List<TVDB_Series_Search_Response>();
 
+            criteria = HttpUtility.UrlEncode(criteria);
             try
             {
                 await _checkAuthorizationAsync();
@@ -134,8 +136,8 @@ namespace Shoko.Server.Providers.TvDB
                     if (client.Authentication.Token != null)
                         return await SearchSeriesAsync(criteria);
                     // suppress 404 and move on
-                } else if (exception.StatusCode == HttpStatusCode.NotFound) return null;
-                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
+                } else if (exception.StatusCode == HttpStatusCode.NotFound) return results;
+                logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message + "\n        when searching for " + criteria);
             }
             catch (Exception ex)
             {
@@ -152,7 +154,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 if (!additiveLink)
                     // remove all current links
-                    RemoveAllAniDBTvDBLinks(session.Wrap(), animeID);
+                    RemoveAllAniDBTvDBLinks(session.Wrap(), animeID, -1, false);
 
                 // check if we have this information locally
                 // if not download it now
@@ -200,8 +202,6 @@ namespace Shoko.Server.Providers.TvDB
 
                 RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
 
-                SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
-
                 logger.Trace("Changed tvdb association: {0}", animeID);
 
                 if (!excludeFromWebCache)
@@ -231,7 +231,7 @@ namespace Shoko.Server.Providers.TvDB
             return "";
         }
 
-        public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType = -1)
+        public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType = -1, bool updateStats = true)
         {
             // check for Trakt associations
             List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
@@ -274,7 +274,7 @@ namespace Shoko.Server.Providers.TvDB
                 }
             }
 
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            if (updateStats) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
         }
 
         public static List<TvDB_Language> GetLanguages()
@@ -908,6 +908,10 @@ namespace Shoko.Server.Providers.TvDB
                     if (!existingEpIds.Contains(oldEp.Id))
                         RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
                 }
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvSeries.SeriesID).FirstOrDefault();
+                if (xref == null) return;
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(xref.AnimeID);
             }
             catch (Exception ex)
             {
