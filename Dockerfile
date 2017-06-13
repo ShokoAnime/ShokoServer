@@ -17,5 +17,6 @@ RUN rm -rf /usr/src/app/source
 WORKDIR /usr/src/app/build
 
 VOLUME /root/.shoko/
+VOLUME /usr/src/app/build/webui
 EXPOSE 8111
 ENTRYPOINT mono Shoko.CLI.exe
