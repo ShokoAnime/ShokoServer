@@ -216,7 +216,7 @@ namespace Shoko.Server.Databases
                             TvDBID = xrefTvDB.TvDBID,
                             TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber
                         };
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(sessionWrapper);
+                        TvDB_Series ser = xrefTvDB.GetTvDBSeries();
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
 
@@ -262,7 +262,7 @@ namespace Shoko.Server.Databases
                             AniDBStartEpisodeType = (int)enEpisodeType.Special,
                             AniDBStartEpisodeNumber = 1
                         };
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(sessionWrapper);
+                        TvDB_Series ser = xrefTvDB.GetTvDBSeries();
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
 

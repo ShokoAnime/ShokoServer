@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Linq;
-using Shoko.Models.Server;
-using NHibernate;
-using NHibernate.Criterion;
+using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
-using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Repositories.Direct
+namespace Shoko.Server.Repositories.Cached
 {
-    public class TvDB_SeriesRepository : BaseDirectRepository<TvDB_Series, int>
+    public class TvDB_SeriesRepository : BaseCachedRepository<TvDB_Series, int>
     {
+        private PocoIndex<int, TvDB_Series, int> TvDBIDs;
+
+        public override void PopulateIndexes()
+        {
+            TvDBIDs = new PocoIndex<int, TvDB_Series, int>(Cache, a => a.SeriesID);
+        }
+
         private TvDB_SeriesRepository()
         {
         }
@@ -23,18 +27,7 @@ namespace Shoko.Server.Repositories.Direct
 
         public TvDB_Series GetByTvDBID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetByTvDBID(session.Wrap(), id);
-            }
-        }
-
-        public TvDB_Series GetByTvDBID(ISessionWrapper session, int id)
-        {
-            return session
-                .CreateCriteria(typeof(TvDB_Series))
-                .Add(Restrictions.Eq("SeriesID", id))
-                .UniqueResult<TvDB_Series>();
+            return TvDBIDs.GetOne(id);
         }
 
         public ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session,
@@ -65,6 +58,15 @@ namespace Shoko.Server.Repositories.Direct
                         (TvDB_Series) r[1]));
 
             return tvDbSeriesByAnime;
+        }
+
+        public override void RegenerateDb()
+        {
+        }
+
+        protected override int SelectKey(TvDB_Series entity)
+        {
+            return entity.TvDB_SeriesID;
         }
     }
 }

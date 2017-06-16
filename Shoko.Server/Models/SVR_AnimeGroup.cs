@@ -1034,7 +1034,7 @@ namespace Shoko.Server.Models
                 () => RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, allAnimeIds.Value),
                 isThreadSafe: false);
             var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDBV2>>(
-                () => RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(session, allAnimeIds.Value), isThreadSafe: false);
+                () => RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var allVidQualByGroup = new Lazy<ILookup<int, string>>(
                 () => RepoFactory.Adhoc.GetAllVideoQualityByGroup(session, allGroupIds.Value), isThreadSafe: false);
             var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(

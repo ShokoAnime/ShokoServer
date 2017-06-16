@@ -22,15 +22,7 @@ namespace Shoko.Server.Models
 
         public TvDB_Series GetTvDBSeries()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetTvDBSeries(session.Wrap());
-            }
-        }
-
-        public TvDB_Series GetTvDBSeries(ISessionWrapper session)
-        {
-            return RepoFactory.TvDB_Series.GetByTvDBID(session, TvDBID);
+            return RepoFactory.TvDB_Series.GetByTvDBID(TvDBID);
         }
     }
 }

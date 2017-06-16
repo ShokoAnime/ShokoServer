@@ -1,18 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
-using NHibernate.Criterion;
+using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
-using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Repositories.Direct
+namespace Shoko.Server.Repositories.Cached
 {
-    public class TvDB_ImageFanartRepository : BaseDirectRepository<TvDB_ImageFanart, int>
+    public class TvDB_ImageFanartRepository : BaseCachedRepository<TvDB_ImageFanart, int>
     {
+        private PocoIndex<int, TvDB_ImageFanart, int> SeriesIDs;
+        private PocoIndex<int, TvDB_ImageFanart, int> TvDBIDs;
+
+        public override void PopulateIndexes()
+        {
+            SeriesIDs = new PocoIndex<int, TvDB_ImageFanart, int>(Cache, a => a.SeriesID);
+            TvDBIDs = new PocoIndex<int, TvDB_ImageFanart, int>(Cache, a => a.Id);
+        }
+
         private TvDB_ImageFanartRepository()
         {
         }
@@ -24,32 +31,12 @@ namespace Shoko.Server.Repositories.Direct
 
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                TvDB_ImageFanart cr = session
-                    .CreateCriteria(typeof(TvDB_ImageFanart))
-                    .Add(Restrictions.Eq("Id", id))
-                    .UniqueResult<TvDB_ImageFanart>();
-                return cr;
-            }
+            return TvDBIDs.GetOne(id);
         }
 
         public List<TvDB_ImageFanart> GetBySeriesID(int seriesID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetBySeriesID(session.Wrap(), seriesID);
-            }
-        }
-
-        public List<TvDB_ImageFanart> GetBySeriesID(ISessionWrapper session, int seriesID)
-        {
-            var objs = session
-                .CreateCriteria(typeof(TvDB_ImageFanart))
-                .Add(Restrictions.Eq("SeriesID", seriesID))
-                .List<TvDB_ImageFanart>();
-
-            return new List<TvDB_ImageFanart>(objs);
+            return SeriesIDs.GetMultiple(seriesID);
         }
 
         public ILookup<int, TvDB_ImageFanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
@@ -77,6 +64,15 @@ namespace Shoko.Server.Repositories.Direct
                 .ToLookup(r => (int) r[0], r => (TvDB_ImageFanart) r[1]);
 
             return fanartByAnime;
+        }
+
+        public override void RegenerateDb()
+        {
+        }
+
+        protected override int SelectKey(TvDB_ImageFanart entity)
+        {
+            return entity.TvDB_ImageFanartID;
         }
     }
 }

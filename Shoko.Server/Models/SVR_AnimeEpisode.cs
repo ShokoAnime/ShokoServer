@@ -121,39 +121,39 @@ namespace Shoko.Server.Models
                 {
                     AniDB_Episode aep = AniDB_Episode;
                     List<CrossRef_AniDB_TvDBV2> xref_tvdb =
-                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
-                            aep.EpisodeType, aep.EpisodeNumber);
+                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
+                            aep.EpisodeNumber);
                     if (xref_tvdb.Count <= 0) return null;
                     CrossRef_AniDB_TvDBV2 xref_tvdb2 = xref_tvdb[0];
                     int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
                                    (xref_tvdb2.AniDBStartEpisodeNumber - 1);
                     int season = xref_tvdb2.TvDBSeasonNumber;
                     TvDB_Episode tvep =
-                        RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(session, xref_tvdb2.TvDBID, season,
+                        RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref_tvdb2.TvDBID, season,
                             epnumber);
                     if (tvep != null) return tvep;
 
-                    int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(session, xref_tvdb2.TvDBID);
+                    int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
                     int previousSeasonsCount = 0;
                     // we checked once, so increment the season
                     season++;
-                    previousSeasonsCount += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(session, xref_tvdb2.TvDBID,
-                        season);
+                    previousSeasonsCount +=
+                        RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
                     do
                     {
                         if (season == 0) break; // Specials will often be wrong
                         if (season > lastSeason) break;
                         if (epnumber - previousSeasonsCount <= 0) break;
                         // This should be 1 or 0, hopefully 1
-                        tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(session, xref_tvdb2.TvDBID,
-                            season, epnumber - previousSeasonsCount);
+                        tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref_tvdb2.TvDBID, season,
+                            epnumber - previousSeasonsCount);
 
                         if (tvep != null)
                         {
                             break;
                         }
-                        previousSeasonsCount += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(session, xref_tvdb2.TvDBID,
-                            season);
+                        previousSeasonsCount +=
+                            RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
                         season++;
                     } while (true);
                     return tvep;

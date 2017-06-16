@@ -1,18 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
-using NHibernate.Criterion;
+using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
-using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Repositories.Direct
+namespace Shoko.Server.Repositories.Cached
 {
-    public class TvDB_ImageWideBannerRepository : BaseDirectRepository<TvDB_ImageWideBanner, int>
+    public class TvDB_ImageWideBannerRepository : BaseCachedRepository<TvDB_ImageWideBanner, int>
     {
+        private PocoIndex<int, TvDB_ImageWideBanner, int> SeriesIDs;
+        private PocoIndex<int, TvDB_ImageWideBanner, int> TvDBIDs;
+
+        public override void PopulateIndexes()
+        {
+            SeriesIDs = new PocoIndex<int, TvDB_ImageWideBanner, int>(Cache, a => a.SeriesID);
+            TvDBIDs = new PocoIndex<int, TvDB_ImageWideBanner, int>(Cache, a => a.Id);
+        }
+
+        public override void RegenerateDb()
+        {
+        }
+
+        protected override int SelectKey(TvDB_ImageWideBanner entity)
+        {
+            return entity.TvDB_ImageWideBannerID;
+        }
+
         private TvDB_ImageWideBannerRepository()
         {
         }
@@ -24,32 +40,12 @@ namespace Shoko.Server.Repositories.Direct
 
         public TvDB_ImageWideBanner GetByTvDBID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                TvDB_ImageWideBanner cr = session
-                    .CreateCriteria(typeof(TvDB_ImageWideBanner))
-                    .Add(Restrictions.Eq("Id", id))
-                    .UniqueResult<TvDB_ImageWideBanner>();
-                return cr;
-            }
+            return TvDBIDs.GetOne(id);
         }
 
         public List<TvDB_ImageWideBanner> GetBySeriesID(int seriesID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetBySeriesID(session, seriesID);
-            }
-        }
-
-        public List<TvDB_ImageWideBanner> GetBySeriesID(ISession session, int seriesID)
-        {
-            var objs = session
-                .CreateCriteria(typeof(TvDB_ImageWideBanner))
-                .Add(Restrictions.Eq("SeriesID", seriesID))
-                .List<TvDB_ImageWideBanner>();
-
-            return new List<TvDB_ImageWideBanner>(objs);
+            return SeriesIDs.GetMultiple(seriesID);
         }
 
         public ILookup<int, TvDB_ImageWideBanner> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)

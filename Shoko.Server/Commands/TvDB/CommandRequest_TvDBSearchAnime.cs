@@ -226,9 +226,9 @@ namespace Shoko.Server.Commands
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason,
-                    1,
-                    animeID, (int) enEpisodeType.Episode, anistart);
+                CrossRef_AniDB_TvDBV2 xref =
+                    RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvdbID, tvdbSeason, 1, animeID,
+                        (int) enEpisodeType.Episode, anistart);
                 if (xref != null) return;
                 xref = new CrossRef_AniDB_TvDBV2
                 {

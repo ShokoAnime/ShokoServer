@@ -101,15 +101,7 @@ namespace Shoko.Server.Extensions
 
         public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDBV2 cross)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return cross.GetTvDBSeries(session.Wrap());
-            }
-        }
-
-        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDBV2 cross, ISessionWrapper session)
-        {
-            return RepoFactory.TvDB_Series.GetByTvDBID(session, cross.TvDBID);
+            return RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
         }
 
         public static AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)

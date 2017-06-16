@@ -38,17 +38,22 @@ namespace Shoko.Server.Repositories
         public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; } = AniDB_Anime_TitleRepository.Create();
         public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; } = AniDB_Anime_TagRepository.Create();
 
+        public static TvDB_SeriesRepository TvDB_Series { get; } = TvDB_SeriesRepository.Create();
+        public static TvDB_EpisodeRepository TvDB_Episode { get; } = TvDB_EpisodeRepository.Create();
+
+        public static CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; } =
+            CrossRef_AniDB_TvDBV2Repository.Create();
+        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } =
+            CrossRef_AniDB_TvDB_EpisodeRepository.Create();
+        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } =
+            TvDB_ImageWideBannerRepository.Create();
+        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = TvDB_ImagePosterRepository.Create();
+        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = TvDB_ImageFanartRepository.Create();
+
         //Direct Ones
 
         public static VersionsRepository Versions { get; } = VersionsRepository.Create();
-        public static TvDB_SeriesRepository TvDB_Series { get; } = TvDB_SeriesRepository.Create();
 
-        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } =
-            TvDB_ImageWideBannerRepository.Create();
-
-        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = TvDB_ImagePosterRepository.Create();
-        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = TvDB_ImageFanartRepository.Create();
-        public static TvDB_EpisodeRepository TvDB_Episode { get; } = TvDB_EpisodeRepository.Create();
         public static Trakt_ShowRepository Trakt_Show { get; } = Trakt_ShowRepository.Create();
         public static Trakt_SeasonRepository Trakt_Season { get; } = Trakt_SeasonRepository.Create();
         public static Trakt_ImagePosterRepository Trakt_ImagePoster { get; } = Trakt_ImagePosterRepository.Create();
@@ -72,12 +77,6 @@ namespace Shoko.Server.Repositories
 
         public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; } =
             CrossRef_Languages_AniDB_FileRepository.Create();
-
-        public static CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; } =
-            CrossRef_AniDB_TvDBV2Repository.Create();
-
-        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } =
-            CrossRef_AniDB_TvDB_EpisodeRepository.Create();
 
         public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; } =
             CrossRef_AniDB_TraktV2Repository.Create();
@@ -167,6 +166,13 @@ namespace Shoko.Server.Repositories
             AnimeSeries_User.Populate();
             AnimeGroup.Populate();
             AnimeGroup_User.Populate();
+            TvDB_Episode.Populate();
+            TvDB_Series.Populate();
+            CrossRef_AniDB_TvDBV2.Populate();
+            CrossRef_AniDB_TvDB_Episode.Populate();
+            TvDB_ImageFanart.Populate();
+            TvDB_ImagePoster.Populate();
+            TvDB_ImageWideBanner.Populate();
 
             // Update Contracts if necessary
             try
@@ -192,6 +198,13 @@ namespace Shoko.Server.Repositories
                 AnimeSeries_User.RegenerateDb();
                 AnimeGroup.RegenerateDb();
                 AnimeGroup_User.RegenerateDb();
+                TvDB_Episode.RegenerateDb();
+                TvDB_Series.RegenerateDb();
+                CrossRef_AniDB_TvDBV2.RegenerateDb();
+                CrossRef_AniDB_TvDB_Episode.RegenerateDb();
+                TvDB_ImageFanart.RegenerateDb();
+                TvDB_ImagePoster.RegenerateDb();
+                TvDB_ImageWideBanner.RegenerateDb();
 
                 GroupFilter.RegenerateDb();
                 GroupFilter.PostProcess();

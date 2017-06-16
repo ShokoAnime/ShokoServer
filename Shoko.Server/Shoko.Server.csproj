@@ -441,6 +441,13 @@
     <Compile Include="Models\SVR_Scan.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Cached\TvDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Cached\TvDB_ImageFanartRepository.cs" />
+    <Compile Include="Repositories\Cached\TvDB_ImagePosterRepository.cs" />
+    <Compile Include="Repositories\Cached\TvDB_ImageWideBannerRepository.cs" />
+    <Compile Include="Repositories\Cached\TvDB_SeriesRepository.cs" />
     <Compile Include="ShokoServer.cs" />
     <Compile Include="Models\SVR_CloudAccount.cs" />
     <Compile Include="Models\SVR_VideoLocal_Place.cs" />
@@ -655,8 +662,6 @@
     <Compile Include="Repositories\Direct\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_AniDB_TraktV2Repository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_TvDBV2Repository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_CustomTagRepository.cs" />
     <Compile Include="Repositories\Cached\CustomTagRepository.cs" />
     <Compile Include="Repositories\Direct\FileFfdshowPresetRepository.cs" />
@@ -801,11 +806,6 @@
     <Compile Include="Repositories\Direct\Trakt_ImagePosterRepository.cs" />
     <Compile Include="Repositories\Direct\Trakt_SeasonRepository.cs" />
     <Compile Include="Repositories\Direct\Trakt_ShowRepository.cs" />
-    <Compile Include="Repositories\Direct\TvDB_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Direct\TvDB_ImageFanartRepository.cs" />
-    <Compile Include="Repositories\Direct\TvDB_ImagePosterRepository.cs" />
-    <Compile Include="Repositories\Direct\TvDB_ImageWideBannerRepository.cs" />
-    <Compile Include="Repositories\Direct\TvDB_SeriesRepository.cs" />
     <Compile Include="Repositories\Direct\VersionsRepository.cs" />
     <Compile Include="Repositories\Cached\VideoLocalRepository.cs" />
     <Compile Include="Repositories\Cached\VideoLocal_UserRepository.cs" />
