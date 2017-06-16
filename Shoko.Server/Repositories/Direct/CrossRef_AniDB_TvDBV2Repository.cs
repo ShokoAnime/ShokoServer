@@ -42,6 +42,26 @@ namespace Shoko.Server.Repositories.Direct
             return new List<CrossRef_AniDB_TvDBV2>(xrefs);
         }
 
+        public List<CrossRef_AniDB_TvDBV2> GetByTvDBID(int id)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                return GetByTvDBID(session.Wrap(), id);
+            }
+        }
+
+        public List<CrossRef_AniDB_TvDBV2> GetByTvDBID(ISessionWrapper session, int id)
+        {
+            var xrefs = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
+                .Add(Restrictions.Eq("TvDBID", id))
+                .AddOrder(Order.Asc("AniDBStartEpisodeType"))
+                .AddOrder(Order.Asc("AniDBStartEpisodeNumber"))
+                .List<CrossRef_AniDB_TvDBV2>();
+
+            return new List<CrossRef_AniDB_TvDBV2>(xrefs);
+        }
+
         public ILookup<int, CrossRef_AniDB_TvDBV2> GetByAnimeIDs(ISessionWrapper session,
             IReadOnlyCollection<int> animeIds)
         {

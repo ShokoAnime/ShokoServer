@@ -131,12 +131,18 @@ namespace Shoko.Server.Commands
                         bool foundResult = false;
                         foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                            if (!title.TitleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                                continue;
+                            if (!title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
+                                    StringComparison.InvariantCultureIgnoreCase) &&
+                                !title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
+                                    StringComparison.InvariantCultureIgnoreCase))
                                 continue;
 
-                            if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+                            if (searchCriteria.Equals(title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
 
-                            results = TvDBApiHelper.SearchSeries(title.Title);
+                            searchCriteria = title.Title;
+                            results = TvDBApiHelper.SearchSeries(searchCriteria);
                             if (results.Count > 0) foundResult = true;
                             logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
                             if (ProcessSearchResults(results, title.Title)) return;
