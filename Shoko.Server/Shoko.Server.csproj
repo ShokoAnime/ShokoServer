@@ -293,6 +293,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition> -->
+    <Compile Include="..\SharedAssemblyInfo.cs">
+      <Link>Properties\SharedAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="AniDBHelper.cs" />
     <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
     <Compile Include="AniDB_API\AniDBLib.cs" />

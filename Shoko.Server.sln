@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Server", "Shoko.Server\Shoko.Server.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -36,6 +36,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.UI", "Shoko.UI\Shoko.
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C} = {4AB1249D-D635-48A3-8F82-FAB34B69AE4C}
 		{D24D15AA-3E71-45A5-B2AF-7490681DEF68} = {D24D15AA-3E71-45A5-B2AF-7490681DEF68}
 		{964A62E6-2DAE-4723-926D-D3E9597B5213} = {964A62E6-2DAE-4723-926D-D3E9597B5213}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{64D264D0-B20E-4889-B535-EFDC52F921C0}"
+	ProjectSection(SolutionItems) = preProject
+		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
 	EndProjectSection
 EndProject
 Global
