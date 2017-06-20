@@ -5354,4 +5354,7 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Utilities_FolderRemote" xml:space="preserve">
     <value>Zdalne</value>
   </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Serwer proxy</value>
+  </data>
 </root>

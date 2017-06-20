@@ -5352,4 +5352,7 @@
   <data name="Utilities_FolderRemote" xml:space="preserve">
     <value>Remoto</value>
   </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
 </root>

@@ -5352,4 +5352,7 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="Utilities_FolderRemote" xml:space="preserve">
     <value>Externe</value>
   </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
 </root>

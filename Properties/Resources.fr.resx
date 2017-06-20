@@ -5352,4 +5352,7 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Utilities_FolderRemote" xml:space="preserve">
     <value>Distant</value>
   </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
 </root>

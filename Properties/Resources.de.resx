@@ -5352,4 +5352,7 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Utilities_FolderRemote" xml:space="preserve">
     <value>Fernbedienung</value>
   </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
 </root>
