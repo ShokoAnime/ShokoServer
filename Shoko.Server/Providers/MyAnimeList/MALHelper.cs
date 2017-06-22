@@ -404,6 +404,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                 // Populate MAL animelist hashtable if isNeverDecreaseWatched set
                 Hashtable animeListHashtable = new Hashtable();
                 myanimelist malAnimeList = GetMALAnimeList();
+
                 if (ServerSettings.MAL_NeverDecreaseWatchedNums)
                     //if set, check watched number before update: take some time, as user anime list must be loaded
                 {
@@ -480,7 +481,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                             // any episodes here belong to the MAL series
                             // find the latest watched episod enumber
                             SVR_AnimeEpisode_User usrRecord = ep.GetUserRecord(user.JMMUserID);
-                            if (usrRecord != null && usrRecord.WatchedDate.HasValue && epNum > lastWatchedEpNumber)
+                            if (usrRecord?.WatchedDate != null && epNum > lastWatchedEpNumber)
                             {
                                 lastWatchedEpNumber = epNum;
                             }
@@ -509,10 +510,12 @@ namespace Shoko.Server.Providers.MyAnimeList
 
                     // determine status
                     int status = 1; //watching
+                    int lastWatchedEpNumberMAL = 0;
                     if (animeListHashtable.ContainsKey(malID))
                     {
                         myanimelistAnime animeInList = (myanimelistAnime) animeListHashtable[malID];
                         status = animeInList.my_status;
+                        lastWatchedEpNumberMAL = animeInList.my_watched_episodes;
                     }
 
                     // over-ride is user has watched an episode
@@ -537,6 +540,11 @@ namespace Shoko.Server.Providers.MyAnimeList
                     string confirmationMessage = "";
                     if (animeListHashtable.ContainsKey(malID))
                     {
+                        if ((ServerSettings.MAL_NeverDecreaseWatchedNums && lastWatchedEpNumberMAL > 0) && lastWatchedEpNumber <= lastWatchedEpNumberMAL)
+                        {
+                            continue;
+                        }
+
                         ModifyAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
                         confirmationMessage = string.Format(
                             "MAL successfully updated (MAL MODIFY), mal id: {0}, ep: {1}, score: {2}", malID,
