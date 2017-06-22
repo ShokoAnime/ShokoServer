@@ -8,6 +8,7 @@ using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Pri.LongPath;
+using Shoko.Server.Renamer;
 
 namespace Shoko.Server
 {
@@ -2426,6 +2427,8 @@ namespace Shoko.Server
 
             return false;
         }
+
+        public static IRenamer GetRenamer() => new LegacyRenamer(RepoFactory.RenameScript.GetDefaultScript());
 
         public static string GetNewFileName(SVR_VideoLocal vid)
         {

@@ -267,6 +267,9 @@
     </Reference>
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.ValueTuple, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xaml" />
@@ -444,6 +447,8 @@
     <Compile Include="Models\SVR_Scan.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
+    <Compile Include="Renamer\IRenamer.cs" />
+    <Compile Include="Renamer\LegacyRenamer.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\TvDB_EpisodeRepository.cs" />

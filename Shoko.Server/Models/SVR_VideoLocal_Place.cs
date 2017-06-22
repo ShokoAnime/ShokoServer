@@ -51,9 +51,9 @@ namespace Shoko.Server.Models
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         // returns false if we should try again after the timer
-        private bool RenameFile(string renameScript)
+        private bool RenameFile()
         {
-            string renamed = RenameFileHelper.GetNewFileName(VideoLocal, renameScript);
+            string renamed = RenameFileHelper.GetRenamer().GetFileName(this);
             if (string.IsNullOrEmpty(renamed)) return true;
 
             IFileSystem filesys = ImportFolder?.FileSystem;
@@ -504,9 +504,7 @@ namespace Shoko.Server.Models
         {
             try
             {
-                RenameScript defaultScript = RepoFactory.RenameScript.GetDefaultScript();
-
-                return defaultScript == null || RenameFile(defaultScript.Script);
+                return RenameFile();
             }
             catch (Exception ex)
             {
@@ -559,28 +557,9 @@ namespace Shoko.Server.Models
                 }
 
                 // find the default destination
-                SVR_ImportFolder destFolder = null;
-                foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
-                    .Where(a => a != null && a.CloudID == ImportFolder.CloudID).ToList())
-                {
-                    if (!fldr.FolderIsDropDestination) continue;
-                    if (fldr.FolderIsDropSource) continue;
-                    IFileSystem fs = fldr.FileSystem;
-                    FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
-                    if (fsresult == null || !fsresult.IsOk) continue;
+                (var destImpl, string newFullPath) = RenameFileHelper.GetRenamer().GetDestinationFolder(this);
 
-                    // Continue if on a separate drive and there's no space
-                    if (!fldr.CloudID.HasValue && !ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
-                    {
-                        var fsresultquota = fs.Quota();
-                        if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < source_file.Size) continue;
-                    }
-
-                    destFolder = fldr;
-                    break;
-                }
-
-                if (destFolder == null)
+                if (!(destImpl is SVR_ImportFolder destFolder) || destFolder == null)
                 {
                     logger.Error("Could not find a valid destination: {0}", FullServerPath);
                     return true;
@@ -589,125 +568,39 @@ namespace Shoko.Server.Models
                 // keep the original drop folder for later (take a copy, not a reference)
                 SVR_ImportFolder dropFolder = ImportFolder;
 
-                // find where the other files are stored for this series
-                // if there are no other files except for this one, it means we need to create a new location
-                bool foundLocation = false;
-                string newFullPath = "";
-
-                // we can only move the file if it has an anime associated with it
-                List<CrossRef_File_Episode> xrefs = VideoLocal.EpisodeCrossRefs;
-                if (xrefs.Count == 0) return true;
-                CrossRef_File_Episode xref = xrefs[0];
-
-                // find the series associated with this episode
-                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                if (series == null) return true;
-
-                // sort the episodes by air date, so that we will move the file to the location of the latest episode
-                List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes()
-                    .OrderByDescending(a => a.AniDB_Episode.AirDate)
-                    .ToList();
-
-                IDirectory destination = null;
-
-                foreach (SVR_AnimeEpisode ep in allEps)
-                {
-                    // check if this episode belongs to more than one anime
-                    // if it does we will ignore it
-                    List<CrossRef_File_Episode> fileEpXrefs =
-                        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
-                    int? animeID = null;
-                    bool crossOver = false;
-                    foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
-                    {
-                        if (!animeID.HasValue)
-                            animeID = fileEpXref.AnimeID;
-                        else
-                        {
-                            if (animeID.Value != fileEpXref.AnimeID)
-                                crossOver = true;
-                        }
-                    }
-                    if (crossOver) continue;
-
-                    foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
-                        .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
-                                                      b.ImportFolder.IsDropSource == 0)).ToList())
-                    {
-                        if (vid.VideoLocalID == VideoLocalID) continue;
-
-                        SVR_VideoLocal_Place place =
-                            vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
-                        string thisFileName = place?.FullServerPath;
-                        if (thisFileName == null) continue;
-                        string folderName = Path.GetDirectoryName(thisFileName);
-
-                        FileSystemResult<IObject> dir = f.Resolve(folderName);
-                        if (!dir.IsOk) continue;
-                        // ensure we aren't moving to the current directory
-                        if (folderName.Equals(Path.GetDirectoryName(FullServerPath),
-                            StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            continue;
-                        }
-                        destination = dir.Result as IDirectory;
-                        // Not a directory
-                        if (destination == null) continue;
-                        newFullPath = folderName;
-                        foundLocation = true;
-                        break;
-                    }
-                    if (foundLocation) break;
-                }
-
-                if (!foundLocation)
-                {
-                    // we need to create a new folder
-                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetSeriesName());
-
-                    newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
-                    FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
-                    if (!dirn.IsOk)
-                    {
-                        dirn = f.Resolve(destFolder.ImportFolderLocation);
-                        if (dirn.IsOk)
-                        {
-                            IDirectory d = (IDirectory) dirn.Result;
-                            FileSystemResult<IDirectory> d2 = Task
-                                .Run(async () => await d.CreateDirectoryAsync(newFolderName, null))
-                                .Result;
-                            destination = d2.Result;
-                        }
-                        else
-                        {
-                            logger.Error("Import folder couldn't be resolved: {0}", destFolder.ImportFolderLocation);
-                            newFullPath = null;
-                        }
-                    }
-                    else if (dirn.Result is IFile)
-                    {
-                        logger.Error("Destination folder is a file: {0}", newFolderName);
-                        newFullPath = null;
-                    }
-                    else
-                    {
-                        destination = (IDirectory) dirn.Result;
-                    }
-                }
-
                 if (string.IsNullOrEmpty(newFullPath))
                 {
                     return true;
                 }
 
                 // We've already resolved FullServerPath, so it doesn't need to be checked
-                string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(FullServerPath));
-                Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
-                if (tup == null)
+                string relativeFilePath = Path.Combine(newFullPath, Path.GetFileName(FullServerPath));
+                string newFullServerPath = Path.Combine(destFolder.ImportFolderLocation, relativeFilePath);
+
+                //validate the directory tree.
+                IDirectory destination = destFolder.BaseDirectory;
                 {
-                    logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
-                    return true;
+                    var dir = Path.GetDirectoryName(relativeFilePath);
+                    
+                    foreach (var part in dir.Split(Path.DirectorySeparatorChar))
+                    {
+                        var wD = destination.Directories.FirstOrDefault(d => d.Name == part);
+                        if (wD == null)
+                        {
+                            var result = destination.CreateDirectory(part, null);
+                            if (!result.IsOk)
+                            {
+                                logger.Error($"Unable to create directory {part} in {destination.FullName}: {result.Error}");
+                                return true;
+                            }
+                            destination = result.Result;
+                            continue;
+                        }
+
+                        destination = wD;
+                    }
                 }
+
 
                 // Last ditch effort to ensure we aren't moving a file unto itself
                 if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
@@ -766,8 +659,8 @@ namespace Shoko.Server.Models
                     }
                     string originalFileName = FullServerPath;
 
-                    ImportFolderID = tup.Item1.ImportFolderID;
-                    FilePath = tup.Item2;
+                    ImportFolderID = destFolder.ImportFolderID;
+                    FilePath = relativeFilePath;
                     RepoFactory.VideoLocalPlace.Save(this);
 
                     try
