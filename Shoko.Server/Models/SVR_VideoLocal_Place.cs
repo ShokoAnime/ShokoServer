@@ -53,7 +53,7 @@ namespace Shoko.Server.Models
         // returns false if we should try again after the timer
         private bool RenameFile()
         {
-            string renamed = RenameFileHelper.GetRenamer().GetFileName(this);
+            string renamed = RenameFileHelper.GetRenamer()?.GetFileName(this);
             if (string.IsNullOrEmpty(renamed)) return true;
 
             IFileSystem filesys = ImportFolder?.FileSystem;
