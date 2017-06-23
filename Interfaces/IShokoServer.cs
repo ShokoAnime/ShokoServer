@@ -358,11 +358,11 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Search/{searchType}/{searchCriteria}/{userID}", Verbs.Get)]
         List<CL_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID);
 
-        [Rest("File/Rename/Preview/{videoLocalID}", Verbs.Post)]
-        CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID, string renameRules);
+        [Rest("File/Rename/Preview/{videoLocalID}", Verbs.Get)]
+        CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID);
 
-        [Rest("File/Rename/{videoLocalID}", Verbs.Post)]
-        CL_VideoLocal_Renamed RenameFile(int videoLocalID, string renameRules);
+        [Rest("File/Rename/{videoLocalID}/{scriptName}", Verbs.Get)]
+        CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName);
 
         [Rest("File/Rename/RandomPreview/{maxResults}/{userID}", Verbs.Get)]
         List<CL_VideoLocal> RandomFileRenamePreview(int maxResults, int userID);
