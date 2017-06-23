@@ -30,6 +30,11 @@ namespace Shoko.Server.Repositories
             }
         }
 
+        public RenameScript GetDefaultOrFirst()
+        {
+            return GetAll().FirstOrDefault(a => a.IsEnabledOnImport == 1) ?? GetAll().FirstOrDefault();
+        }
+
         public RenameScript GetByName(string scriptName)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

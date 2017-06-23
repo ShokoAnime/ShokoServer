@@ -20,6 +20,13 @@ namespace Shoko.Server
             return new LegacyRenamer(script);
         }
 
+        public static IRenamer GetRenamerWithFallback()
+        {
+            var script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            if (script == null) return null;
+            return new LegacyRenamer(script);
+        }
+
         public static IRenamer GetRenamer(string scriptName)
         {
             var script = RepoFactory.RenameScript.GetByName(scriptName);
