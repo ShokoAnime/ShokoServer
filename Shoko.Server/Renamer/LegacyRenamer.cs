@@ -2140,7 +2140,9 @@ namespace Shoko.Server.Renamer
 
         public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
         {
-            var sourceFile = video.ImportFolder.FileSystem.Resolve(video.FullServerPath).Result as IFile;
+            var sourceFile = video.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result as IFile;
+
+            if (sourceFile == null) return (null, "File is null");
 
             ImportFolder destFolder = null;
             foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
@@ -2164,20 +2166,16 @@ namespace Shoko.Server.Renamer
             }
 
             List<CrossRef_File_Episode> xrefs = video.VideoLocal.EpisodeCrossRefs;
-            if (xrefs.Count == 0) return (destFolder, null);
+            if (xrefs.Count == 0 || destFolder == null) return (null, "No xrefs");
             CrossRef_File_Episode xref = xrefs[0];
 
             // find the series associated with this episode
             SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
 
-
-
             // sort the episodes by air date, so that we will move the file to the location of the latest episode
             List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes()
                 .OrderByDescending(a => a.AniDB_Episode.AirDate)
                 .ToList();
-
-            IDirectory destination = null;
 
             foreach (SVR_AnimeEpisode ep in allEps)
             {
@@ -2211,23 +2209,24 @@ namespace Shoko.Server.Renamer
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
 
-                    FileSystemResult<IObject> dir = video.ImportFolder.FileSystem.Resolve(folderName);
-                    if (!dir.IsOk) continue;
+                    FileSystemResult<IObject> dir = place?.ImportFolder?.FileSystem?.Resolve(folderName);
+                    if (dir == null || !dir.IsOk) continue;
                     // ensure we aren't moving to the current directory
                     if (folderName.Equals(Path.GetDirectoryName(video.FullServerPath),
                         StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
                     }
-                    destination = dir.Result as IDirectory;
+                    var destination = dir.Result as IDirectory;
                     // Not a directory
                     if (destination == null) continue;
+                    destFolder = place.ImportFolder;
 
                     return (destFolder, folderName);
                 }
             }
 
-            return (destFolder, series.GetSeriesName());
+            return (destFolder, Utils.RemoveInvalidFolderNameCharacters(series.GetSeriesName()));
         }
         public object FullServerPath { get; set; }
     }

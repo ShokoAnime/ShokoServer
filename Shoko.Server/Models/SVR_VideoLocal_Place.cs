@@ -557,10 +557,12 @@ namespace Shoko.Server.Models
                 }
 
                 // find the default destination
-                (var destImpl, string newFullPath) = RenameFileHelper.GetRenamer().GetDestinationFolder(this);
+                (var destImpl, string newFullPath) = RenameFileHelper.GetRenamerWithFallback()?.GetDestinationFolder(this) ?? (null, null);
 
-                if (!(destImpl is SVR_ImportFolder destFolder) || destFolder == null)
+                if (!(destImpl is SVR_ImportFolder destFolder))
                 {
+                    // In this case, an error string was returned, but we'll suppress it and give an error elsewhere
+                    if (newFullPath != null) return true;
                     logger.Error("Could not find a valid destination: {0}", FullServerPath);
                     return true;
                 }
@@ -577,27 +579,38 @@ namespace Shoko.Server.Models
                 string relativeFilePath = Path.Combine(newFullPath, Path.GetFileName(FullServerPath));
                 string newFullServerPath = Path.Combine(destFolder.ImportFolderLocation, relativeFilePath);
 
-                //validate the directory tree.
-                IDirectory destination = destFolder.BaseDirectory;
-                {
-                    var dir = Path.GetDirectoryName(relativeFilePath);
-                    
-                    foreach (var part in dir.Split(Path.DirectorySeparatorChar))
-                    {
-                        var wD = destination.Directories.FirstOrDefault(d => d.Name == part);
-                        if (wD == null)
-                        {
-                            var result = destination.CreateDirectory(part, null);
-                            if (!result.IsOk)
-                            {
-                                logger.Error($"Unable to create directory {part} in {destination.FullName}: {result.Error}");
-                                return true;
-                            }
-                            destination = result.Result;
-                            continue;
-                        }
+                IDirectory destination;
 
-                        destination = wD;
+                fsrresult = destFolder.FileSystem.Resolve(Path.Combine(destFolder.ImportFolderLocation, newFullPath));
+                if (fsrresult != null && fsrresult.IsOk)
+                {
+                    destination = fsrresult.Result as IDirectory;
+                }
+                else
+                {
+                    //validate the directory tree.
+                    destination = destFolder.BaseDirectory;
+                    {
+                        var dir = Path.GetDirectoryName(relativeFilePath);
+
+                        foreach (var part in dir.Split(Path.DirectorySeparatorChar))
+                        {
+                            var wD = destination.Directories.FirstOrDefault(d => d.Name == part);
+                            if (wD == null)
+                            {
+                                var result = destination.CreateDirectory(part, null);
+                                if (!result.IsOk)
+                                {
+                                    logger.Error(
+                                        $"Unable to create directory {part} in {destination.FullName}: {result.Error}");
+                                    return true;
+                                }
+                                destination = result.Result;
+                                continue;
+                            }
+
+                            destination = wD;
+                        }
                     }
                 }
 
