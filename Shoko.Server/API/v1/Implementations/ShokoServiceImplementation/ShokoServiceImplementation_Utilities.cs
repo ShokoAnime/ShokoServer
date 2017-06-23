@@ -36,6 +36,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
 using Pri.LongPath;
+using Shoko.Server.Renamer;
 
 namespace Shoko.Server
 {
@@ -276,7 +277,7 @@ namespace Shoko.Server
             }
         }
 
-        public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID, string renameRules)
+        public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID)
         {
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
@@ -294,11 +295,16 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    if (videoLocalID == 726)
-                        Debug.Write("test");
-
                     ret.VideoLocal = null;
-                    ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+                    ret.NewFileName = RenameFileHelper.GetRenamer(RenameFileHelper.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
+
+                    if (string.IsNullOrEmpty(ret.NewFileName))
+                    {
+                        ret.VideoLocal = null;
+                        ret.Success = false;
+                        ret.NewFileName = "The file renamer returned a null value.";
+                        return ret;
+                    }
                     if (string.IsNullOrEmpty(ret.NewFileName)) ret.Success = false;
                 }
             }
@@ -312,30 +318,38 @@ namespace Shoko.Server
             return ret;
         }
 
-        public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string renameRules)
+        public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
         {
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
                 VideoLocalID = videoLocalID,
                 Success = true
             };
+            if (scriptName.Equals(RenameFileHelper.TempFileName))
+            {
+                ret.VideoLocal = null;
+                ret.NewFileName = "Do not attempt to use a temp file to rename.";
+                ret.Success = false;
+                return ret;
+            }
             try
             {
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
-                    ret.NewFileName = string.Format("ERROR: Could not find file record");
+                    ret.NewFileName = "ERROR: Could not find file record";
                     ret.Success = false;
                     return ret;
                 }
 
-                ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+                ret.NewFileName = RenameFileHelper.GetRenamer(scriptName)?.GetFileName(vid.GetBestVideoLocalPlace());
 
                 if (string.IsNullOrEmpty(ret.NewFileName))
                 {
                     ret.VideoLocal = null;
                     ret.Success = false;
+                    ret.NewFileName = "The file renamer returned a null value.";
                     return ret;
                 }
 
@@ -427,7 +441,8 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.RenameScript.GetAll().ToList();
+                return RepoFactory.RenameScript.GetAll().Where(a => !a.ScriptName.Equals(RenameFileHelper.TempFileName))
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -456,6 +471,10 @@ namespace Shoko.Server
                                                 contract.RenameScriptID.ToString();
                         return response;
                     }
+                }
+                else if (contract.ScriptName.Equals(RenameFileHelper.TempFileName))
+                {
+                    script = RepoFactory.RenameScript.GetByName(RenameFileHelper.TempFileName) ?? new RenameScript();
                 }
                 else
                 {

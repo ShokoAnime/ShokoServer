@@ -449,6 +449,7 @@
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="Renamer\IRenamer.cs" />
     <Compile Include="Renamer\LegacyRenamer.cs" />
+    <Compile Include="Renamer\RenameFileHelper.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\TvDB_EpisodeRepository.cs" />
@@ -837,7 +838,6 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utilities\LogReader.cs" />
-    <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
