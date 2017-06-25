@@ -24,9 +24,9 @@ namespace Shoko.Server.Renamer
             this.script = script;
         }
 
-        public string GetFileName(SVR_VideoLocal_Place video)
+        public string GetFileName(SVR_VideoLocal_Place place)
         {
-            return script == null ? null : GetNewFileName(video.VideoLocal, script.Script);
+            return script == null ? null : GetNewFileName(place, script.Script);
         }
 
         private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
@@ -1464,8 +1464,9 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        public static string GetNewFileName(SVR_VideoLocal vid, string script)
+        public static string GetNewFileName(SVR_VideoLocal_Place place, string script)
         {
+            SVR_VideoLocal vid = place.VideoLocal;
             string[] lines = script.Split(Environment.NewLine.ToCharArray());
 
             string newFileName = string.Empty;
@@ -1549,7 +1550,7 @@ namespace Shoko.Server.Renamer
                 return string.Empty; // fail if we get a blank extension, something went wrong.
 
             // finally add back the extension
-            return $"{newFileName.Replace("`", "'")}{ext}";
+            return Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}");
         }
 
         private static void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
@@ -1725,9 +1726,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupShortName.ToLower()))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName,
-                        aniFile.Anime_GroupNameShort);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName,
+                    aniFile?.Anime_GroupNameShort ?? "Unknown");
             }
 
             #endregion
@@ -1736,8 +1736,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupLongName.ToLower()))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.GroupLongName, aniFile.Anime_GroupName);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupLongName,
+                    aniFile?.Anime_GroupName ?? "Unknown");
             }
 
             #endregion
@@ -1798,9 +1798,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.FileVersion))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.FileVersion,
-                        aniFile.FileVersion.ToString());
+                newFileName = newFileName.Replace(Constants.FileRenameTag.FileVersion,
+                        aniFile?.FileVersion.ToString() ?? "1");
             }
 
             #endregion
@@ -1809,8 +1808,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.DubLanguage))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.DubLanguage, aniFile.LanguagesRAW);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.DubLanguage, aniFile?.LanguagesRAW ?? "");
             }
 
             #endregion
@@ -1819,8 +1817,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.SubLanguage))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.SubLanguage, aniFile.SubtitlesRAW);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.SubLanguage, aniFile?.SubtitlesRAW ?? "");
             }
 
             #endregion
@@ -1829,8 +1826,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, aniFile.File_VideoCodec);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec,
+                    aniFile?.File_VideoCodec ?? vid.VideoCodec);
             }
 
             #endregion
@@ -1839,8 +1836,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec, aniFile.File_AudioCodec);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec,
+                    aniFile?.File_AudioCodec ?? vid.AudioCodec);
             }
 
             #endregion
@@ -1858,8 +1855,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Source))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.Source, aniFile.File_Source);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.Source, aniFile?.File_Source ?? "Unknown");
             }
 
             #endregion
@@ -1924,7 +1920,8 @@ namespace Shoko.Server.Renamer
                     if (vid != null) res = vid.VideoResolution;
                 }
                 res = res.Trim();
-                if (res.Length > 0) res = res.Split('x')[0];
+                string[] reses = res.Split('x');
+                if (reses.Length > 1) res = reses[1];
 
                 newFileName = newFileName.Replace(Constants.FileRenameTag.VideoHeight, res);
             }
@@ -1963,8 +1960,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.GroupID))
             {
-                if (aniFile != null)
-                    newFileName = newFileName.Replace(Constants.FileRenameTag.GroupID, aniFile.GroupID.ToString());
+                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupID, aniFile?.GroupID.ToString() ?? "Unknown");
             }
 
             #endregion
@@ -1973,7 +1969,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.OriginalFileName))
             {
-                // remove the extension first 
+                // remove the extension first
                 if (aniFile != null)
                 {
                     string ext = Path.GetExtension(aniFile.FileName);
@@ -1989,7 +1985,10 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Censored))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.Censored, "cen");
+                string censored = "cen";
+                if (aniFile?.IsCensored == 0)
+                    censored = "unc";
+                newFileName = newFileName.Replace(Constants.FileRenameTag.Censored, censored);
             }
 
             #endregion
@@ -1998,7 +1997,10 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Deprecated))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.Deprecated, "depr");
+                string depr = "New";
+                if (aniFile?.IsDeprecated == 1)
+                    depr = "DEPR";
+                newFileName = newFileName.Replace(Constants.FileRenameTag.Deprecated, depr);
             }
 
             #endregion
@@ -2226,7 +2228,7 @@ namespace Shoko.Server.Renamer
                 }
             }
 
-            return (destFolder, Utils.RemoveInvalidFolderNameCharacters(series.GetSeriesName()));
+            return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
         }
         public object FullServerPath { get; set; }
     }
