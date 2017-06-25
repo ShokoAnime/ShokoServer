@@ -942,10 +942,27 @@ namespace Shoko.Server
             ret = ret.Replace(@"\", "");
             ret = ret.Replace(@"/", "");
             ret = ret.Replace(@":", "");
-            ret = ret.Replace(((Char) 34).ToString(), ""); // double quote
+            ret = ret.Replace("\"", ""); // double quote
             ret = ret.Replace(@">", "");
             ret = ret.Replace(@"<", "");
             ret = ret.Replace(@"?", "");
+            while (ret.EndsWith("."))
+                ret = ret.Substring(0, ret.Length - 1);
+            return ret.Trim();
+        }
+
+        public static string ReplaceInvalidFolderNameCharacters(string folderName)
+        {
+            string ret = folderName.Replace(@"*", @"★");
+            ret = ret.Replace(@"|", @"¦");
+            ret = ret.Replace(@"\", @"\");
+            ret = ret.Replace(@"/", @"⁄");
+            ret = ret.Replace(@":", @"։");
+            ret = ret.Replace("\"", "״"); // double quote
+            ret = ret.Replace(@">", @"›");
+            ret = ret.Replace(@"<", @"‹");
+            ret = ret.Replace(@"?", @"﹖");
+            ret = ret.Replace(@"...", @"…");
             while (ret.EndsWith("."))
                 ret = ret.Substring(0, ret.Length - 1);
             return ret.Trim();
