@@ -1711,14 +1711,22 @@ namespace Shoko.Server.Renamer
             #region Episode name (english)
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
-                newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, episodes[0].EnglishName);
+            {
+                string epname = episodes[0].EnglishName;
+                if (epname.Length > 33) epname = epname.Substring(0, 32) + "…";
+                newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
+            }
 
             #endregion
 
             #region Episode name (romaji)
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
-                newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, episodes[0].RomajiName);
+            {
+                string epname = episodes[0].RomajiName;
+                if (epname.Length > 33) epname = epname.Substring(0, 32) + "…";
+                newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
+            }
 
             #endregion
 
