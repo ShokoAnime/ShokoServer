@@ -811,7 +811,7 @@ namespace Shoko.Server.Providers.TvDB
             return null;
         }
 
-        public static async Task QueueEpisodeImageDownload(BasicEpisode item, List<int> existingEpIds, bool downloadImages, bool forceRefresh)
+        public static async Task QueueEpisodeImageDownloadAsync(BasicEpisode item, List<int> existingEpIds, bool downloadImages, bool forceRefresh)
         {
             try
             {
@@ -853,7 +853,7 @@ namespace Shoko.Server.Providers.TvDB
                     await _checkAuthorizationAsync();
                     if (client.Authentication.Token != null)
                     {
-                        await QueueEpisodeImageDownload(item, existingEpIds, downloadImages, forceRefresh);
+                        await QueueEpisodeImageDownloadAsync(item, existingEpIds, downloadImages, forceRefresh);
                         return;
                     }
                     // suppress 404 and move on
@@ -867,7 +867,12 @@ namespace Shoko.Server.Providers.TvDB
             }
         }
 
-        public static async void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
+        public static void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
+        {
+            Task.Run(() => UpdateAllInfoAndImagesAsync(seriesID, forceRefresh, downloadImages));
+        }
+
+        public static async Task UpdateAllInfoAndImagesAsync(int seriesID, bool forceRefresh, bool downloadImages)
         {
             try
             {
@@ -888,7 +893,7 @@ namespace Shoko.Server.Providers.TvDB
                 List<int> existingEpIds = new List<int>();
                 foreach (BasicEpisode item in episodeItems)
                 {
-                    await QueueEpisodeImageDownload(item, existingEpIds, downloadImages, forceRefresh);
+                    await QueueEpisodeImageDownloadAsync(item, existingEpIds, downloadImages, forceRefresh);
                 }
 
                 // get all the existing tvdb episodes, to see if any have been deleted
