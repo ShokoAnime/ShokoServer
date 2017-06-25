@@ -167,7 +167,7 @@ namespace Shoko.Server.API
                         file.CopyTo(stream);
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     try
                     {
