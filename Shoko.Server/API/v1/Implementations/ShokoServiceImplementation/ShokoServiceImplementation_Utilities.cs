@@ -356,59 +356,70 @@ namespace Shoko.Server
                 string name = vid.FileName;
                 if (vid.Places.Count > 0)
                 {
-                    foreach (SVR_VideoLocal_Place place in vid.Places)
+                    SVR_VideoLocal_Place place = null;
+                    FileSystemResult<IObject> fileSystemResult = null;
+                    foreach (SVR_VideoLocal_Place vidplace in vid.Places)
                     {
+                        IFileSystem filesystem = vidplace.ImportFolder.FileSystem;
                         // check if the file exists
-                        string fullFileName = place.FullServerPath;
-                        IFileSystem fs = place.ImportFolder.FileSystem;
-                        FileSystemResult<IObject> obj = fs.Resolve(fullFileName);
-                        if (!obj.IsOk || obj.Result is IDirectory)
+                        string tempFileName = vidplace.FullServerPath;
+                        FileSystemResult<IObject> obj = filesystem.Resolve(tempFileName);
+                        if (obj == null || !obj.IsOk || obj.Result is IDirectory) continue;
+
+                        place = vidplace;
+                        fileSystemResult = obj;
+                        break;
+                    }
+
+                    if (place == null)
+                    {
+                        ret.NewFileName = "Error could not find the original file";
+                        ret.Success = false;
+                        return ret;
+                    }
+
+                    string fullFileName = place.FullServerPath;
+
+                    // actually rename the file
+                    string path = Path.GetDirectoryName(fullFileName);
+                    string newFullName = Path.Combine(path, ret.NewFileName);
+
+                    try
+                    {
+                        logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
+
+                        if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                         {
-                            ret.NewFileName = "Error could not find the original file";
-                            ret.Success = false;
-                            return ret;
+                            logger.Info(
+                                $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
+                            ret.NewFileName = newFullName;
+                            name = Path.GetFileName(fullFileName);
                         }
-
-                        // actually rename the file
-                        string path = Path.GetDirectoryName(fullFileName);
-                        string newFullName = Path.Combine(path, ret.NewFileName);
-
-                        try
+                        else
                         {
-                            logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
-
-                            if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                logger.Info(
-                                    $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
-                                ret.NewFileName = newFullName;
-                                name = Path.GetFileName(fullFileName);
-                            }
-                            else
-                            {
-                                string dir = Path.GetDirectoryName(newFullName);
-
-                                ((IFile) obj.Result).Rename(ret.NewFileName);
-                                logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
-                                ret.NewFileName = newFullName;
-                                var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                                place.FilePath = tup.Item2;
-                                name = Path.GetFileName(tup.Item2);
-                                RepoFactory.VideoLocalPlace.Save(place);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
-                            logger.Error(ex, ex.ToString());
-                            ret.Success = false;
-                            ret.NewFileName = ex.Message;
+                            ((IFile) fileSystemResult.Result).Rename(ret.NewFileName);
+                            logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
+                            ret.NewFileName = newFullName;
+                            var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+                            place.FilePath = tup.Item2;
+                            name = Path.GetFileName(tup.Item2);
+                            RepoFactory.VideoLocalPlace.Save(place);
                         }
                     }
-                    vid.FileName = name;
-                    ret.VideoLocal.FileName = name;
-                    RepoFactory.VideoLocal.Save(vid, true);
+                    catch (Exception ex)
+                    {
+                        logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
+                        logger.Error(ex, ex.ToString());
+                        ret.Success = false;
+                        ret.NewFileName = ex.Message;
+                    }
                 }
+                vid.FileName = name;
+                if (ret.VideoLocal == null)
+                    ret.VideoLocal = new CL_VideoLocal() {FileName = name, VideoLocalID = videoLocalID};
+                else
+                    ret.VideoLocal.FileName = name;
+                RepoFactory.VideoLocal.Save(vid, true);
             }
             catch (Exception ex)
             {
