@@ -542,7 +542,7 @@ namespace Shoko.Server.Models
                 }
 
                 FileSystemResult<IObject> fsrresult = f.Resolve(FullServerPath);
-                if (!fsrresult.IsOk)
+                if (fsrresult == null || !fsrresult.IsOk)
                 {
                     logger.Error("Could not find or access the file to move: {0}", FullServerPath);
                     // this can happen due to file locks, so retry
@@ -625,7 +625,7 @@ namespace Shoko.Server.Models
                 logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
 
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
-                if (dst.IsOk)
+                if (dst != null && dst.IsOk)
                 {
                     logger.Trace(
                         "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
@@ -637,7 +637,7 @@ namespace Shoko.Server.Models
                     try
                     {
                         fr = source_file.Delete(false);
-                        if (!fr.IsOk)
+                        if (fr == null || !fr.IsOk)
                         {
                             logger.Warn("Unable to DELETE file: {0} error {1}", FullServerPath,
                                 fr?.Error ?? string.Empty);
@@ -664,7 +664,7 @@ namespace Shoko.Server.Models
                 else
                 {
                     FileSystemResult fr = source_file.Move(destination);
-                    if (!fr.IsOk)
+                    if (fr == null || !fr.IsOk)
                     {
                         logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
                             newFullServerPath, fr?.Error ?? "No Error String");
@@ -682,26 +682,26 @@ namespace Shoko.Server.Models
                         foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
                         {
                             FileSystemResult<IObject> src = f.Resolve(subtitleFile);
-                            if (!src.IsOk || !(src.Result is IFile)) continue;
+                            if (src == null || !src.IsOk || !(src.Result is IFile)) continue;
                             string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
                                 ((IFile) src.Result).Name);
                             dst = f.Resolve(newSubPath);
-                            if (dst.IsOk && dst.Result is IFile)
+                            if (dst != null && dst.IsOk && dst.Result is IFile)
                             {
                                 FileSystemResult fr2 = src.Result.Delete(false);
-                                if (!fr2.IsOk)
+                                if (fr2 == null || !fr2.IsOk)
                                 {
                                     logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
-                                        fr2?.Error ?? String.Empty);
+                                        fr2?.Error ?? string.Empty);
                                 }
                             }
                             else
                             {
                                 FileSystemResult fr2 = ((IFile) src.Result).Move(destination);
-                                if (!fr2.IsOk)
+                                if (fr2 == null || !fr2.IsOk)
                                 {
                                     logger.Error("Unable to MOVE file: {0} to {1} error {2)", subtitleFile,
-                                        newSubPath, fr2?.Error ?? String.Empty);
+                                        newSubPath, fr2?.Error ?? string.Empty);
                                 }
                             }
                         }

@@ -145,7 +145,7 @@ namespace Shoko.Server.Models
             {
                 FileSystemResult<IObject> fr = FileSystem.Resolve(ImportFolderLocation);
 
-                if (fr.IsOk && fr.Result is IDirectory)
+                if (fr != null && fr.IsOk && fr.Result is IDirectory)
                     return (IDirectory) fr.Result;
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
             }

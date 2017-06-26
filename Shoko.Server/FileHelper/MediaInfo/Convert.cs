@@ -693,16 +693,16 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         m.OptimizedForStreaming = "0";
                         byte[] buffer = new byte[8];
                         FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
-                        if (!fsr.IsOk)
+                        if (fsr == null || !fsr.IsOk)
                             return null;
                         System.IO.Stream fs = fsr.Result;
                         fs.Read(buffer, 0, 4);
-                        int siz = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+                        int siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
                         fs.Seek(siz, SeekOrigin.Begin);
                         fs.Read(buffer, 0, 8);
                         if ((buffer[4] == 'f') && (buffer[5] == 'r') && (buffer[6] == 'e') && (buffer[7] == 'e'))
                         {
-                            siz = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3] - 8;
+                            siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3] - 8);
                             fs.Seek(siz, SeekOrigin.Current);
                             fs.Read(buffer, 0, 8);
                         }
@@ -710,26 +710,16 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         {
                             p.OptimizedForStreaming = "1";
                             m.OptimizedForStreaming = "1";
-                            siz = (buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]) - 8;
+                            siz = ((buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3]) - 8;
 
                             buffer = new byte[siz];
                             fs.Read(buffer, 0, siz);
-                            if (FindInBuffer("trak", 0, siz, buffer, out int opos, out int oposmax))
-                            {
-                                if (FindInBuffer("mdia", opos, oposmax, buffer, out opos, out oposmax))
-                                {
-                                    if (FindInBuffer("minf", opos, oposmax, buffer, out opos, out oposmax))
-                                    {
-                                        if (FindInBuffer("stbl", opos, oposmax, buffer, out opos, out oposmax))
-                                        {
-                                            if (FindInBuffer("co64", opos, oposmax, buffer, out opos, out oposmax))
-                                            {
-                                                p.Has64bitOffsets = "1";
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            if (!FindInBuffer("trak", 0, siz, buffer, out int opos, out int oposmax)) return m;
+                            if (!FindInBuffer("mdia", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                            if (!FindInBuffer("minf", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                            if (!FindInBuffer("stbl", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                            if (!FindInBuffer("co64", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                            p.Has64bitOffsets = "1";
                         }
                     }
                     return m;
@@ -760,11 +750,11 @@ namespace Shoko.Server.FileHelper.MediaInfo
                 {
                     pos = start + 8;
                     posmax =
-                        (buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3]) +
+                        ((buffer[start] << 24) | (buffer[start + 1] << 16) | (buffer[start + 2] << 8) | buffer[start + 3]) +
                         start;
                     return true;
                 }
-                start += buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3];
+                start += (buffer[start] << 24) | (buffer[start + 1] << 16) | (buffer[start + 2] << 8) | buffer[start + 3];
             } while (start < max);
 
             return false;
