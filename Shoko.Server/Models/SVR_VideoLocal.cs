@@ -188,13 +188,13 @@ namespace Shoko.Server.Models
         public static IFile ResolveFile(string fullname)
         {
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-            IFileSystem fs = tup?.Item1.FileSystem;
+            IFileSystem fs = tup?.Item1?.FileSystem;
             if (fs == null)
                 return null;
             try
             {
                 FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
-                if (!fobj.IsOk || fobj.Result is IDirectory)
+                if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory)
                 {
                     logger.Warn("File not found: " + fullname);
                     return null;

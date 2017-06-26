@@ -1543,9 +1543,11 @@ namespace Shoko.Server.Renamer
 
             if (string.IsNullOrEmpty(newFileName)) return string.Empty;
 
+            string pathToVid = vid?.GetBestVideoLocalPlace()?.FilePath ??
+                               vid?.FileName;
+            if (string.IsNullOrEmpty(pathToVid)) return string.Empty;
             string ext =
-                Path.GetExtension(vid.GetBestVideoLocalPlace()?.FilePath ??
-                                  vid.FileName); //Prefer VideoLocal_Place as this is more accurate.
+                Path.GetExtension(pathToVid); //Prefer VideoLocal_Place as this is more accurate.
             if (string.IsNullOrEmpty(ext))
                 return string.Empty; // fail if we get a blank extension, something went wrong.
 
