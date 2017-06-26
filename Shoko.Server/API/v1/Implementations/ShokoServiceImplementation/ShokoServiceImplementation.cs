@@ -387,7 +387,7 @@ namespace Shoko.Server
                     FileSystemResult fr = dir.Populate();
                     if (!fr?.IsOk ?? true)
                         return result;
-                    return dir.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
+                    return dir?.Directories?.Select(a => a.FullName).OrderByNatural(a => a).ToList();
                 }
             }
             catch (Exception ex)
