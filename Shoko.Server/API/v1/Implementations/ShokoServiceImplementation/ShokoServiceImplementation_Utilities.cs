@@ -343,7 +343,7 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                ret.NewFileName = RenameFileHelper.GetRenamer(scriptName)?.GetFileName(vid.GetBestVideoLocalPlace());
+                ret.NewFileName = RenameFileHelper.GetRenamer(scriptName)?.GetFileName(vid);
 
                 if (string.IsNullOrEmpty(ret.NewFileName))
                 {

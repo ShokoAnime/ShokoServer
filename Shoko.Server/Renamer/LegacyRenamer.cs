@@ -24,6 +24,11 @@ namespace Shoko.Server.Renamer
             this.script = script;
         }
 
+        public string GetFileName(SVR_VideoLocal vid)
+        {
+            return script == null ? null : GetNewFileName(vid?.GetBestVideoLocalPlace(), script.Script);
+        }
+
         public string GetFileName(SVR_VideoLocal_Place place)
         {
             return script == null ? null : GetNewFileName(place, script.Script);
@@ -77,9 +82,9 @@ namespace Shoko.Server.Renamer
         /// Test if the file belongs to the specified anime
         /// </summary>
         /// <param name="test"></param>
-        /// <param name="vid"></param>
+        /// <param name="episodes"></param>
         /// <returns></returns>
-        private static bool EvaluateTestA(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+        private static bool EvaluateTestA(string test,
             List<AniDB_Episode> episodes)
         {
             try
@@ -108,10 +113,9 @@ namespace Shoko.Server.Renamer
         /// Test if the file belongs to the specified group
         /// </summary>
         /// <param name="test"></param>
-        /// <param name="vid"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private static bool EvaluateTestG(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestG(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -146,7 +150,7 @@ namespace Shoko.Server.Renamer
         /// No test parameter is required
         /// </summary>
         /// <param name="test"></param>
-        /// <param name="vid"></param>
+        /// <param name="aniFile"></param>
         /// <returns></returns>
         private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
@@ -179,7 +183,7 @@ namespace Shoko.Server.Renamer
         /// No test parameter is required
         /// </summary>
         /// <param name="test"></param>
-        /// <param name="vid"></param>
+        /// <param name="aniFile"></param>
         /// <returns></returns>
         private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
@@ -211,9 +215,9 @@ namespace Shoko.Server.Renamer
         /// Test if this file has the specified Dub (audio) language
         /// </summary>
         /// <param name="test"></param>
-        /// <param name="vid"></param>
+        /// <param name="aniFile"></param>
         /// <returns></returns>
-        private static bool EvaluateTestD(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestD(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -243,9 +247,9 @@ namespace Shoko.Server.Renamer
         /// Test is this files has the specified Sub (subtitle) language
         /// </summary>
         /// <param name="test"></param>
-        /// <param name="vid"></param>
+        /// <param name="aniFile"></param>
         /// <returns></returns>
-        private static bool EvaluateTestS(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestS(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -261,7 +265,7 @@ namespace Shoko.Server.Renamer
                 if (
                     test.Trim()
                         .Equals(Constants.FileRenameReserved.None, StringComparison.InvariantCultureIgnoreCase) &&
-                    vid.GetAniDBFile().Subtitles.Count == 0)
+                    aniFile.Subtitles.Count == 0)
                 {
                     if (notCondition)
                         return false;
@@ -281,7 +285,13 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestF(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        /// <summary>
+        /// Test is this files is a specific version
+        /// </summary>
+        /// <param name="test"></param>
+        /// <param name="aniFile"></param>
+        /// <returns></returns>
+        private static bool EvaluateTestF(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -343,6 +353,12 @@ namespace Shoko.Server.Renamer
             }
         }
 
+        /// <summary>
+        /// Test is this file is a specific bit depth
+        /// </summary>
+        /// <param name="test"></param>
+        /// <param name="vid"></param>
+        /// <returns></returns>
         private static bool EvaluateTestZ(string test, SVR_VideoLocal vid)
         {
             try
@@ -533,7 +549,7 @@ namespace Shoko.Server.Renamer
         }
 
 
-        private static bool EvaluateTestR(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -575,7 +591,7 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestC(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestC(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -618,7 +634,7 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestJ(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestJ(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -661,7 +677,7 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestT(string test, SVR_VideoLocal vid, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestT(string test, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -701,7 +717,7 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestY(string test, SVR_VideoLocal vid, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestY(string test, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -757,7 +773,7 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestE(string test, SVR_VideoLocal vid, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestE(string test, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -813,7 +829,7 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestH(string test, SVR_VideoLocal vid, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestH(string test, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -911,7 +927,7 @@ namespace Shoko.Server.Renamer
             test = test.Substring(1, test.Length - 1);
         }
 
-        private static bool EvaluateTestX(string test, SVR_VideoLocal vid, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestX(string test, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -1466,7 +1482,7 @@ namespace Shoko.Server.Renamer
 
         public static string GetNewFileName(SVR_VideoLocal_Place place, string script)
         {
-            SVR_VideoLocal vid = place.VideoLocal;
+            SVR_VideoLocal vid = place?.VideoLocal;
             string[] lines = script.Split(Environment.NewLine.ToCharArray());
 
             string newFileName = string.Empty;
@@ -1543,7 +1559,7 @@ namespace Shoko.Server.Renamer
 
             if (string.IsNullOrEmpty(newFileName)) return string.Empty;
 
-            string pathToVid = vid?.GetBestVideoLocalPlace()?.FilePath ??
+            string pathToVid = place?.FilePath ??
                                vid?.FileName;
             if (string.IsNullOrEmpty(pathToVid)) return string.Empty;
             string ext =
@@ -1573,11 +1589,10 @@ namespace Shoko.Server.Renamer
 
             if (actionType.Trim()
                 .Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
-                PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime);
+                PerformActionOnFileNameREPLACE(ref newFileName, parameter);
         }
 
-        private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, SVR_VideoLocal vid,
-            SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+        private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action)
         {
             try
             {
@@ -2108,33 +2123,33 @@ namespace Shoko.Server.Renamer
             switch (testChar)
             {
                 case 'A':
-                    return EvaluateTestA(testCondition, vid, aniFile, episodes);
+                    return EvaluateTestA(testCondition, episodes);
                 case 'G':
-                    return EvaluateTestG(testCondition, vid, aniFile);
+                    return EvaluateTestG(testCondition, aniFile);
                 case 'D':
-                    return EvaluateTestD(testCondition, vid, aniFile);
+                    return EvaluateTestD(testCondition, aniFile);
                 case 'S':
-                    return EvaluateTestS(testCondition, vid, aniFile);
+                    return EvaluateTestS(testCondition, aniFile);
                 case 'F':
-                    return EvaluateTestF(testCondition, vid, aniFile);
+                    return EvaluateTestF(testCondition, aniFile);
                 case 'R':
-                    return EvaluateTestR(testCondition, vid, aniFile);
+                    return EvaluateTestR(testCondition, aniFile);
                 case 'Z':
                     return EvaluateTestZ(testCondition, vid);
                 case 'T':
-                    return EvaluateTestT(testCondition, vid, anime);
+                    return EvaluateTestT(testCondition, anime);
                 case 'Y':
-                    return EvaluateTestY(testCondition, vid, anime);
+                    return EvaluateTestY(testCondition, anime);
                 case 'E':
-                    return EvaluateTestE(testCondition, vid, episodes);
+                    return EvaluateTestE(testCondition, episodes);
                 case 'H':
-                    return EvaluateTestH(testCondition, vid, episodes);
+                    return EvaluateTestH(testCondition, episodes);
                 case 'X':
-                    return EvaluateTestX(testCondition, vid, anime);
+                    return EvaluateTestX(testCondition, anime);
                 case 'C':
-                    return EvaluateTestC(testCondition, vid, aniFile);
+                    return EvaluateTestC(testCondition, aniFile);
                 case 'J':
-                    return EvaluateTestJ(testCondition, vid, aniFile);
+                    return EvaluateTestJ(testCondition, aniFile);
                 case 'I':
                     return EvaluateTestI(testCondition, vid, aniFile, episodes, anime);
                 case 'W':
@@ -2183,6 +2198,7 @@ namespace Shoko.Server.Renamer
 
             // find the series associated with this episode
             SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            if (series == null) return (null, "Series not Found");
 
             // sort the episodes by air date, so that we will move the file to the location of the latest episode
             List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes()
