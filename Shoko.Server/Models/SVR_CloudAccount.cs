@@ -99,7 +99,7 @@ namespace Shoko.Server.Models
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
             //Bitmap = _plugin.CreateIconImage();
             FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(), auth, ConnectionString);
-            if (!res.IsOk)
+            if (res == null || !res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
             string userauth = res.Result.GetUserAuthorization();
             if (ConnectionString != userauth)

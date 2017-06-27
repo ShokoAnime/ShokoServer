@@ -434,11 +434,12 @@ namespace Shoko.Server.PlexAndKodi
             return l;
         }
 
-        private static void AddCrossRef_AniDB_TvDBV2(ISession session, int animeID, int anistart, int tvdbID,
+        private static void AddCrossRef_AniDB_TvDBV2(int animeID, int anistart, int tvdbID,
             int tvdbSeason, string title)
         {
-            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
-                animeID, (int) enEpisodeType.Episode, anistart);
+            CrossRef_AniDB_TvDBV2 xref =
+                RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvdbID, tvdbSeason, 1, animeID,
+                    (int) enEpisodeType.Episode, anistart);
             if (xref != null) return;
             xref = new CrossRef_AniDB_TvDBV2
             {
@@ -924,7 +925,7 @@ namespace Shoko.Server.PlexAndKodi
                 p.AnimeType = AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
-                p.Title = aser.GetSeriesName(sessionWrapper);
+                p.Title = aser.GetSeriesName();
                 p.Summary = SummaryFromAnimeContract(ser);
                 p.Type = "show";
                 p.AirDate = DateTime.MinValue;

@@ -37,6 +37,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.UI", "Shoko.UI\Shoko.
 		{964A62E6-2DAE-4723-926D-D3E9597B5213} = {964A62E6-2DAE-4723-926D-D3E9597B5213}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{64D264D0-B20E-4889-B535-EFDC52F921C0}"
+	ProjectSection(SolutionItems) = preProject
+		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
+	EndProjectSection
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.CLI", "Shoko.CLI\Shoko.CLI.csproj", "{3A8E0177-9701-4A59-A6CD-16C6908839EA}"
 EndProject
 Global

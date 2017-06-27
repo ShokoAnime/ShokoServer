@@ -30,16 +30,16 @@ namespace Shoko.Server
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        extern static bool IsWow64Process(IntPtr hProcess, [MarshalAs(UnmanagedType.Bool)] out bool isWow64);
+        static extern bool IsWow64Process(IntPtr hProcess, [MarshalAs(UnmanagedType.Bool)] out bool isWow64);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        extern static IntPtr GetCurrentProcess();
+        static extern IntPtr GetCurrentProcess();
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-        extern static IntPtr GetModuleHandle(string moduleName);
+        static extern IntPtr GetModuleHandle(string moduleName);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
-        extern static IntPtr GetProcAddress(IntPtr hModule, string methodName);
+        static extern IntPtr GetProcAddress(IntPtr hModule, string methodName);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -77,7 +77,7 @@ namespace Shoko.Server
                 //Cleanup previous
                 try
                 {
-                    BatchFileStream.WriteLine($"{"icacls"} \"{fullPath}\" {"/grant *S-1-1-0:(OI)(CI)F /T"}");
+                    BatchFileStream.WriteLine($"icacls \"{fullPath}\" /grant *S-1-1-0:(OI)(CI)F /T");
                 }
                 finally
                 {
@@ -171,18 +171,16 @@ namespace Shoko.Server
             int dest = 0;
             for (int i = 0; i <= sb.Length - 1; i++)
             {
-                if (blacklist ^ allowed.Contains(sb[i]))
-                {
-                    sb[dest] = sb[i];
-                    dest++;
-                }
+                if (!(blacklist ^ allowed.Contains(sb[i]))) continue;
+                sb[dest] = sb[i];
+                dest++;
             }
 
             sb.Length = dest;
             return sb.ToString();
         }
 
-        public static String CompactWhitespaces(this string s)
+        public static string CompactWhitespaces(this string s)
         {
             StringBuilder sb = new StringBuilder(s);
 
@@ -202,7 +200,7 @@ namespace Shoko.Server
 
             while (start < sb.Length)
             {
-                if (Char.IsWhiteSpace(sb[start]))
+                if (char.IsWhiteSpace(sb[start]))
                     start++;
                 else
                     break;
@@ -314,12 +312,10 @@ namespace Shoko.Server
                     oldRd1 = tmp;
                 }
 
-                if (0 == (R[k] & (1 << m)))
-                {
-                    dist = R[k];
-                    result = (i - m) + 1;
-                    break;
-                }
+                if (0 != (R[k] & (1 << m))) continue;
+                dist = R[k];
+                result = (i - m) + 1;
+                break;
             }
 
             return result;
@@ -801,10 +797,7 @@ namespace Shoko.Server
                 webReq.Timeout = 20000; // 20 seconds
                 response = (HttpWebResponse) webReq.GetResponse();
 
-                if (response != null) // Get the stream associated with the response.
-                    return response.GetResponseStream();
-                else
-                    return null;
+                return response.GetResponseStream();
             }
             catch
             {
@@ -824,7 +817,7 @@ namespace Shoko.Server
 
         public static string ReparseDescription(string description)
         {
-            if (description == null || description.Length == 0) return "";
+            if (string.IsNullOrEmpty(description)) return "";
 
             string val = description;
             val = val.Replace("<br />", Environment.NewLine)
@@ -851,76 +844,52 @@ namespace Shoko.Server
             string vup = val.ToUpper();
             while (vup.Contains("[URL") || vup.Contains("[/URL]"))
             {
-                int a = vup.IndexOf("[URL");
+                int a = vup.IndexOf("[URL", StringComparison.Ordinal);
                 if (a >= 0)
                 {
-                    int b = vup.IndexOf("]", a + 1);
+                    int b = vup.IndexOf("]", a + 1, StringComparison.Ordinal);
                     if (b >= 0)
                     {
                         val = val.Substring(0, a) + val.Substring(b + 1);
                         vup = val.ToUpper();
                     }
                 }
-                a = vup.IndexOf("[/URL]");
-                if (a >= 0)
-                {
-                    val = val.Substring(0, a) + val.Substring(a + 6);
-                    vup = val.ToUpper();
-                }
+                a = vup.IndexOf("[/URL]", StringComparison.Ordinal);
+                if (a < 0) continue;
+                val = val.Substring(0, a) + val.Substring(a + 6);
+                vup = val.ToUpper();
             }
             while (vup.Contains("HTTP:"))
             {
-                int a = vup.IndexOf("HTTP:");
-                if (a >= 0)
+                int a = vup.IndexOf("HTTP:", StringComparison.Ordinal);
+                if (a < 0) continue;
+                int b = vup.IndexOf(" ", a + 1, StringComparison.Ordinal);
+                if (b < 0) break;
+                if (vup[b + 1] == '[')
                 {
-                    int b = vup.IndexOf(" ", a + 1);
-                    if (b >= 0)
-                    {
-                        if (vup[b + 1] == '[')
-                        {
-                            int c = vup.IndexOf("]", b + 1);
-                            val = val.Substring(0, a) + " " + val.Substring(b + 2, c - b - 2) + val.Substring(c + 1);
-                        }
-                        else
-                        {
-                            val = val.Substring(0, a) + val.Substring(b);
-                        }
-                        vup = val.ToUpper();
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    int c = vup.IndexOf("]", b + 1, StringComparison.Ordinal);
+                    val = val.Substring(0, a) + " " + val.Substring(b + 2, c - b - 2) + val.Substring(c + 1);
                 }
+                else
+                {
+                    val = val.Substring(0, a) + val.Substring(b);
+                }
+                vup = val.ToUpper();
             }
             int d = -1;
             do
             {
                 if (d + 1 >= vup.Length)
                     break;
-                d = vup.IndexOf("[", d + 1);
-                if (d != -1)
-                {
-                    int b = vup.IndexOf("]", d + 1);
-                    if (b != -1)
-                    {
-                        string cont = vup.Substring(d, b - d);
-                        bool dome = false;
-                        foreach (string s in escapes)
-                        {
-                            if (cont.Contains(s))
-                            {
-                                dome = true;
-                                break;
-                            }
-                        }
-                        if (dome)
-                        {
-                            val = val.Substring(0, d) + val.Substring(b + 1);
-                            vup = val.ToUpper();
-                        }
-                    }
-                }
+                d = vup.IndexOf("[", d + 1, StringComparison.Ordinal);
+                if (d == -1) continue;
+                int b = vup.IndexOf("]", d + 1, StringComparison.Ordinal);
+                if (b == -1) continue;
+                string cont = vup.Substring(d, b - d);
+                bool dome = escapes.Any(s => cont.Contains(s));
+                if (!dome) continue;
+                val = val.Substring(0, d) + val.Substring(b + 1);
+                vup = val.ToUpper();
             } while (d != -1);
             d = -1;
             do
@@ -928,37 +897,21 @@ namespace Shoko.Server
                 if (d + 1 >= vup.Length)
                     break;
 
-                d = vup.IndexOf("(", d + 1);
-                if (d != -1)
-                {
-                    int b = vup.IndexOf(")", d + 1);
-                    if (b != -1)
-                    {
-                        string cont = vup.Substring(d, b - d);
-                        bool dome = false;
-                        foreach (string s in escapes)
-                        {
-                            if (cont.Contains(s))
-                            {
-                                dome = true;
-                                break;
-                            }
-                        }
-                        if (dome)
-                        {
-                            val = val.Substring(0, d) + val.Substring(b + 1);
-                            vup = val.ToUpper();
-                        }
-                    }
-                }
+                d = vup.IndexOf("(", d + 1, StringComparison.Ordinal);
+                if (d == -1) continue;
+                int b = vup.IndexOf(")", d + 1, StringComparison.Ordinal);
+                if (b == -1) continue;
+                string cont = vup.Substring(d, b - d);
+                bool dome = escapes.Any(s => cont.Contains(s));
+                if (!dome) continue;
+                val = val.Substring(0, d) + val.Substring(b + 1);
+                vup = val.ToUpper();
             } while (d != -1);
-            d = vup.IndexOf("SOURCE:");
+
+            d = vup.IndexOf("SOURCE:", StringComparison.Ordinal);
             if (d == -1)
-                d = vup.IndexOf("SOURCE :");
-            if (d > 0)
-            {
-                val = val.Substring(0, d);
-            }
+                d = vup.IndexOf("SOURCE :", StringComparison.Ordinal);
+            if (d > 0) val = val.Substring(0, d);
             return val.Trim();
         }
 
@@ -967,10 +920,9 @@ namespace Shoko.Server
             TimeSpan t = TimeSpan.FromSeconds(secs);
 
             if (t.Hours > 0)
-                return String.Format("{0}:{1}:{2}", t.Hours, t.Minutes.ToString().PadLeft(2, '0'),
-                    t.Seconds.ToString().PadLeft(2, '0'));
+                return $"{t.Hours}:{t.Minutes.ToString().PadLeft(2, '0')}:{t.Seconds.ToString().PadLeft(2, '0')}";
             else
-                return String.Format("{0}:{1}", t.Minutes, t.Seconds.ToString().PadLeft(2, '0'));
+                return $"{t.Minutes}:{t.Seconds.ToString().PadLeft(2, '0')}";
         }
 
         public static string FormatAniDBRating(double rat)
@@ -978,15 +930,15 @@ namespace Shoko.Server
             // the episode ratings from UDP are out of 1000, while the HTTP AP gives it out of 10
             rat /= 100;
 
-            return String.Format("{0:0.00}", rat);
+            return $"{rat:0.00}";
         }
 
         public static int? ProcessNullableInt(string sint)
         {
-            if (String.IsNullOrEmpty(sint))
+            if (string.IsNullOrEmpty(sint))
                 return null;
             else
-                return Int32.Parse(sint);
+                return int.Parse(sint);
         }
 
         public static string RemoveInvalidFolderNameCharacters(string folderName)
@@ -996,7 +948,7 @@ namespace Shoko.Server
             ret = ret.Replace(@"\", "");
             ret = ret.Replace(@"/", "");
             ret = ret.Replace(@":", "");
-            ret = ret.Replace(((Char) 34).ToString(), ""); // double quote
+            ret = ret.Replace("\"", ""); // double quote
             ret = ret.Replace(@">", "");
             ret = ret.Replace(@"<", "");
             ret = ret.Replace(@"?", "");
@@ -1005,13 +957,30 @@ namespace Shoko.Server
             return ret.Trim();
         }
 
+        public static string ReplaceInvalidFolderNameCharacters(string folderName)
+        {
+            string ret = folderName.Replace(@"*", @"★");
+            ret = ret.Replace(@"|", @"¦");
+            ret = ret.Replace(@"\", @"\");
+            ret = ret.Replace(@"/", @"⁄");
+            ret = ret.Replace(@":", @"։");
+            ret = ret.Replace("\"", "״"); // double quote
+            ret = ret.Replace(@">", @"›");
+            ret = ret.Replace(@"<", @"‹");
+            ret = ret.Replace(@"?", @"﹖");
+            ret = ret.Replace(@"...", @"…");
+            while (ret.EndsWith("."))
+                ret = ret.Substring(0, ret.Length - 1);
+            return ret.Trim();
+        }
+
         public static string GetSortName(string name)
         {
             string newName = name;
-            if (newName.ToLower().StartsWith("the "))
-                newName.Remove(0, 4);
-            if (newName.ToLower().StartsWith("a "))
-                newName.Remove(0, 2);
+            if (newName.ToLower().StartsWith("the ", StringComparison.InvariantCultureIgnoreCase))
+                newName = newName.Remove(0, 4);
+            if (newName.ToLower().StartsWith("a ", StringComparison.InvariantCultureIgnoreCase))
+                newName = newName.Remove(0, 2);
 
             return newName;
         }
@@ -1143,10 +1112,7 @@ namespace Shoko.Server
                 return 32;
         }
 
-        public static bool Is64BitProcess
-        {
-            get { return IntPtr.Size == 8; }
-        }
+        public static bool Is64BitProcess => IntPtr.Size == 8;
 
         public static bool Is64BitOperatingSystem
         {

@@ -113,7 +113,7 @@ namespace Shoko.Server
                     }
 
                     // TvDB
-                    List<CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2(sessionWrapper);
+                    List<CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2();
                     if (tvdbRef != null && tvdbRef.Count > 0)
                     {
                         contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
@@ -283,7 +283,7 @@ namespace Shoko.Server
                             Metro_Anime_Summary summ = new Metro_Anime_Summary
                             {
                                 AnimeID = ser.AniDB_ID,
-                                AnimeName = ser.GetSeriesName(sessionWrapper),
+                                AnimeName = ser.GetSeriesName(),
                                 AnimeSeriesID = ser.AnimeSeriesID,
                                 BeginYear = anidb_anime.BeginYear,
                                 EndYear = anidb_anime.EndYear
@@ -363,7 +363,7 @@ namespace Shoko.Server
                             Metro_Anime_Summary summ = new Metro_Anime_Summary
                             {
                                 AnimeID = series.AniDB_ID,
-                                AnimeName = series.GetSeriesName(sessionWrapper),
+                                AnimeName = series.GetSeriesName(),
                                 AnimeSeriesID = series.AnimeSeriesID,
                                 BeginYear = anidb_anime.BeginYear,
                                 EndYear = anidb_anime.EndYear
@@ -457,7 +457,7 @@ namespace Shoko.Server
                                 Metro_Anime_Summary summ = new Metro_Anime_Summary
                                 {
                                     AnimeID = ser.AniDB_ID,
-                                    AnimeName = ser.GetSeriesName(sessionWrapper),
+                                    AnimeName = ser.GetSeriesName(),
                                     AnimeSeriesID = ser.AnimeSeriesID,
                                     BeginYear = anidb_anime.BeginYear,
                                     EndYear = anidb_anime.EndYear
@@ -526,7 +526,7 @@ namespace Shoko.Server
                         };
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
+                            summ.AnimeName = ser.GetSeriesName();
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
                         else
@@ -583,7 +583,7 @@ namespace Shoko.Server
                         };
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
+                            summ.AnimeName = ser.GetSeriesName();
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
                         else
@@ -631,7 +631,7 @@ namespace Shoko.Server
                         AnimeID = anime.AnimeID
                     };
                     if (ser != null)
-                        ret.AnimeName = ser.GetSeriesName(sessionWrapper);
+                        ret.AnimeName = ser.GetSeriesName();
                     else
                         ret.AnimeName = anime.MainTitle;
 
@@ -829,7 +829,7 @@ namespace Shoko.Server
 
                     if (ser != null)
                     {
-                        summ.AnimeName = ser.GetSeriesName(sessionWrapper);
+                        summ.AnimeName = ser.GetSeriesName();
                         summ.AnimeSeriesID = ser.AnimeSeriesID;
                     }
 
@@ -1278,7 +1278,7 @@ namespace Shoko.Server
 
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
+                            summ.AnimeName = ser.GetSeriesName();
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
 
@@ -1323,7 +1323,7 @@ namespace Shoko.Server
 
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
+                            summ.AnimeName = ser.GetSeriesName();
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
 

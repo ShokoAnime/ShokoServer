@@ -387,7 +387,7 @@ namespace Shoko.Server
                     FileSystemResult fr = dir.Populate();
                     if (!fr?.IsOk ?? true)
                         return result;
-                    return dir.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
+                    return dir?.Directories?.Select(a => a.FullName).OrderByNatural(a => a).ToList();
                 }
             }
             catch (Exception ex)
@@ -1235,7 +1235,6 @@ namespace Shoko.Server
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null) return result;
 
@@ -1245,19 +1244,17 @@ namespace Shoko.Server
                     {
                         result.CrossRef_AniDB_TvDB.Add(xref);
 
-                        TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(sessionWrapper, xref.TvDBID);
+                        TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
                         if (ser != null)
                             result.TvDBSeries.Add(ser);
 
                         foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
                             result.TvDBEpisodes.Add(ep);
 
-                        foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(sessionWrapper,
-                            xref.TvDBID))
+                        foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
                             result.TvDBImageFanarts.Add(fanart);
 
-                        foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(sessionWrapper,
-                            xref.TvDBID))
+                        foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
                             result.TvDBImagePosters.Add(poster);
 
                         foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref

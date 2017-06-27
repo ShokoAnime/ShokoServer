@@ -290,7 +290,7 @@ namespace Shoko.Server.Tasks
             {
                 int mainAnimeId = groupAndSeries.Key;
                 SVR_AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
-                SVR_AnimeGroup animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, now);
+                SVR_AnimeGroup animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, now);
 
                 newGroupsToSeries.Add(
                     new Tuple<SVR_AnimeGroup, IReadOnlyCollection<SVR_AnimeSeries>>(animeGroup,
@@ -329,7 +329,7 @@ namespace Shoko.Server.Tasks
         /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
         /// <param name="now">The current date/time.</param>
         /// <returns>The created <see cref="SVR_AnimeGroup"/>.</returns>
-        private SVR_AnimeGroup CreateAnimeGroup(ISessionWrapper session, SVR_AnimeSeries mainSeries, int mainAnimeId,
+        private SVR_AnimeGroup CreateAnimeGroup(SVR_AnimeSeries mainSeries, int mainAnimeId,
             DateTime now)
         {
             SVR_AnimeGroup animeGroup = new SVR_AnimeGroup();
@@ -338,7 +338,7 @@ namespace Shoko.Server.Tasks
             if (mainSeries != null)
             {
                 animeGroup.Populate(mainSeries, now);
-                groupName = mainSeries.GetSeriesName(session);
+                groupName = mainSeries.GetSeriesName();
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
@@ -390,7 +390,7 @@ namespace Shoko.Server.Tasks
                     int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
                     SVR_AnimeSeries mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
 
-                    animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, DateTime.Now);
+                    animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
                     RepoFactory.AnimeGroup.Save(animeGroup, true, true);
                 }
             }

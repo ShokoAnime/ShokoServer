@@ -108,8 +108,7 @@ namespace Shoko.Server.Commands
 
                     // lets try to see locally if we have a tvDB link for this anime
                     // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs =
-                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(sessionWrapper, AnimeID);
+                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
                     if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)

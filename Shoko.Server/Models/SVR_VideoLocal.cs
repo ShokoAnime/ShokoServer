@@ -187,18 +187,15 @@ namespace Shoko.Server.Models
 
         public static IFile ResolveFile(string fullname)
         {
+            if (string.IsNullOrEmpty(fullname)) return null;
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-            IFileSystem fs = tup?.Item1.FileSystem;
+            IFileSystem fs = tup?.Item1?.FileSystem;
             if (fs == null)
                 return null;
             try
             {
-                FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
-                if (!fobj.IsOk || fobj.Result is IDirectory)
-                {
-                    logger.Warn("File not found: " + fullname);
-                    return null;
-                }
+                FileSystemResult<IObject> fobj = fs.Resolve(fullname);
+                if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory) return null;
                 return fobj.Result as IFile;
             }
             catch (Exception)
@@ -225,15 +222,7 @@ namespace Shoko.Server.Models
 
         public SVR_VideoLocal_Place GetBestVideoLocalPlace()
         {
-            foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
-            {
-                if (p?.FullServerPath != null && p?.ImportFolder != null)
-                {
-                    if (ResolveFile(p.FullServerPath) != null)
-                        return p;
-                }
-            }
-            return null;
+            return Places.Where(p => p?.FullServerPath != null && p?.ImportFolder != null).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p?.FullServerPath) != null);
         }
 
         public void SetResumePosition(long resumeposition, int userID)

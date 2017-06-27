@@ -72,14 +72,6 @@ namespace Shoko.Server.Models
 
         public string GetSeriesName()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetSeriesName(session.Wrap());
-            }
-        }
-
-        public string GetSeriesName(ISessionWrapper session)
-        {
             string seriesName = "";
             if (!string.IsNullOrEmpty(SeriesNameOverride))
                 seriesName = SeriesNameOverride;
@@ -89,7 +81,7 @@ namespace Shoko.Server.Models
                     seriesName = GetAnime().GetFormattedTitle();
                 else
                 {
-                    List<TvDB_Series> tvdbs = this.GetTvDBSeries(session);
+                    List<TvDB_Series> tvdbs = GetTvDBSeries();
 
                     if (tvdbs != null && tvdbs.Count > 0 && !string.IsNullOrEmpty(tvdbs[0].SeriesName) &&
                         !tvdbs[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
@@ -264,34 +256,18 @@ namespace Shoko.Server.Models
 
         public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetCrossRefTvDBV2(session.Wrap());
-            }
-        }
-
-        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2(ISessionWrapper session)
-        {
-            return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, this.AniDB_ID);
+            return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(this.AniDB_ID);
         }
 
         public List<TvDB_Series> GetTvDBSeries()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetTvDBSeries(session.Wrap());
-            }
-        }
-
-        public List<TvDB_Series> GetTvDBSeries(ISessionWrapper session)
-        {
             List<TvDB_Series> sers = new List<TvDB_Series>();
 
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
+            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2();
             if (xrefs == null || xrefs.Count == 0) return sers;
 
             foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-                sers.Add(xref.GetTvDBSeries(session));
+                sers.Add(xref.GetTvDBSeries());
 
             return sers;
         }
