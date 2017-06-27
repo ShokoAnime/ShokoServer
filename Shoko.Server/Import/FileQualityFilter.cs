@@ -77,7 +77,7 @@ namespace Shoko.Server
         {
             bool result = true;
 
-            AniDB_File aniFile = file.GetAniDBFile();
+            SVR_AniDB_File aniFile = file.GetAniDBFile();
             foreach (var type in Settings._requiredtypes)
             {
                 if (!result) break;
@@ -94,7 +94,7 @@ namespace Shoko.Server
                         result &= CheckChaptered(file);
                         break;
                     case FileQualityFilterType.RESOLUTION:
-                        result &= CheckResolution(file);
+                        result &= CheckResolution(file, aniFile);
                         break;
                     case FileQualityFilterType.SOURCE:
                         if (aniFile == null) return false;
@@ -167,9 +167,9 @@ namespace Shoko.Server
             return aniFile.IsDeprecated == 0;
         }
 
-        private static bool CheckResolution(SVR_VideoLocal aniFile)
+        private static bool CheckResolution(SVR_VideoLocal videoLocal, SVR_AniDB_File aniFile)
         {
-            Tuple<int, int> resTuple = GetResolutionInternal(aniFile);
+            Tuple<int, int> resTuple = GetResolutionInternal(videoLocal, aniFile);
             string res = GetResolution(resTuple);
             if (res == null) return false;
 
@@ -301,7 +301,7 @@ namespace Shoko.Server
                         break;
 
                     case FileQualityFilterType.RESOLUTION:
-                        result = CompareResolutionTo(newFile, oldFile);
+                        result = CompareResolutionTo(newFile, oldFile, newEp, oldEp);
                         break;
 
                     case FileQualityFilterType.SOURCE:
@@ -381,10 +381,10 @@ namespace Shoko.Server
                 newAniFile?.IsChaptered == 1 || newFile.Media.Chaptered);
         }
 
-        private static int CompareResolutionTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
+        private static int CompareResolutionTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile, SVR_AniDB_File newAniFile, SVR_AniDB_File oldAniFile)
         {
-            string oldRes = GetResolution(oldFile);
-            string newRes = GetResolution(newFile);
+            string oldRes = GetResolution(oldFile, oldAniFile);
+            string newRes = GetResolution(newFile, newAniFile);
 
             if (newRes == null || oldRes == null) return 0;
             if (!Settings._resolutions.Contains(newRes)) return 0;
@@ -397,6 +397,8 @@ namespace Shoko.Server
         private static int CompareSourceTo(AniDB_File newFile, AniDB_File oldFile)
         {
             if (string.IsNullOrEmpty(newFile.File_Source) || string.IsNullOrEmpty(oldFile.File_Source)) return 0;
+            if (newFile.File_Source.Equals("unknown", StringComparison.InvariantCultureIgnoreCase) ||
+                oldFile.File_Source.Equals("unknown", StringComparison.InvariantCultureIgnoreCase)) return 0;
             int newIndex = Array.IndexOf(Settings._sources, newFile.File_Source);
             int oldIndex = Array.IndexOf(Settings._sources, oldFile.File_Source);
             return newIndex.CompareTo(oldIndex);
@@ -471,17 +473,17 @@ namespace Shoko.Server
 
         #region Information from Models (Operations that aren't simple)
 
-        private static string GetResolution(SVR_VideoLocal aniFile)
+        private static string GetResolution(SVR_VideoLocal videoLocal, SVR_AniDB_File aniFile)
         {
-            return GetResolution(GetResolutionInternal(aniFile));
+            return GetResolution(GetResolutionInternal(videoLocal, aniFile));
         }
 
         private static string GetResolution(Tuple<int, int> res)
         {
             if (res == null) return null;
             // not precise, but we are rounding and calculating distance anyway
-            double sixteenNine = 1.777778;
-            double fourThirds = 1.333333;
+            const double sixteenNine = 1.777778;
+            const double fourThirds = 1.333333;
             double ratio = (double) res.Item1 / res.Item2;
 
             if ((ratio - sixteenNine) * (ratio - sixteenNine) < (ratio - fourThirds) * (ratio - fourThirds))
@@ -520,10 +522,17 @@ namespace Shoko.Server
             }
         }
 
-        private static Tuple<int, int> GetResolutionInternal(SVR_VideoLocal aniFile)
+        private static Tuple<int, int> GetResolutionInternal(SVR_VideoLocal videoLocal, SVR_AniDB_File aniFile)
         {
-            string[] res = aniFile.Media?.VideoResolution?.Split('x');
-            if (res?.Length != 2) return null;
+            string[] res = aniFile?.File_VideoResolution?.Split('x');
+            if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0")
+            {
+                var stream = videoLocal?.Media?.Parts?.SelectMany(a => a.Streams)
+                    ?.FirstOrDefault(a => a.StreamType == "1");
+                if (stream != null)
+                    res = new[] {stream.Width, stream.Height};
+            }
+            if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0") return null;
             if (!int.TryParse(res[0], out int oldWidth)) return null;
             if (!int.TryParse(res[1], out int oldHeight)) return null;
             if (oldWidth == 0 || oldHeight == 0) return null;
