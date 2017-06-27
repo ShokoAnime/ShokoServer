@@ -5355,4 +5355,7 @@
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Bloqueados DLL arquivos encontrados no diretório de servidor!</value>
+  </data>
 </root>

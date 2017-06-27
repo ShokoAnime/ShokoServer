@@ -5355,4 +5355,7 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Geblokkeerde DLL bestanden gevonden in de server directory!</value>
+  </data>
 </root>

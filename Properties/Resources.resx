@@ -5357,4 +5357,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Blocked DLL files found in server directory!</value>
+  </data>
 </root>

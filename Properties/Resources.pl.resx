@@ -5357,4 +5357,7 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Proxy" xml:space="preserve">
     <value>Serwer proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Zablokowanych plików DLL w katalogu serwera!</value>
+  </data>
 </root>

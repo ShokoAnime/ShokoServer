@@ -5355,4 +5355,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>File DLL bloccati trovati nella directory server!</value>
+  </data>
 </root>

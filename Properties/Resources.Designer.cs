@@ -4615,6 +4615,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Blocked DLL files found in server directory!.
+        /// </summary>
+        public static string ErrorBlockedDll {
+            get {
+                return ResourceManager.GetString("ErrorBlockedDll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Existing.
         /// </summary>
         public static string Existing {

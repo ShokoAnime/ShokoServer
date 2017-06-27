@@ -5355,4 +5355,7 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Bloqué des fichiers DLL dans le répertoire du serveur !</value>
+  </data>
 </root>

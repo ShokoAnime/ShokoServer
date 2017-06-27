@@ -5355,4 +5355,7 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Gesperrte DLL-Dateien im Server-Verzeichnis gefunden!</value>
+  </data>
 </root>

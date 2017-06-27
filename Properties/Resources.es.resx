@@ -5355,4 +5355,7 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="Proxy" xml:space="preserve">
     <value>Proxy</value>
   </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Bloqueado DLL archivos encontrados directorio del servidor!</value>
+  </data>
 </root>
