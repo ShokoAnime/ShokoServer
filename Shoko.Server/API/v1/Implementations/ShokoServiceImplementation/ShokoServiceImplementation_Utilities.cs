@@ -310,7 +310,7 @@ namespace Shoko.Server
                     {
                         ret.VideoLocal = null;
                         ret.Success = false;
-                        ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7, ret.NewFileName.Length);
+                        ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
                         return ret;
                     }
                 }
@@ -364,7 +364,7 @@ namespace Shoko.Server
                 {
                     ret.VideoLocal = null;
                     ret.Success = false;
-                    ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7, ret.NewFileName.Length);
+                    ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
                     return ret;
                 }
 
