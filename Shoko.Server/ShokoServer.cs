@@ -258,7 +258,6 @@ namespace Shoko.Server
             }
             string programlocation =
                         Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
-            programlocation = "C:/Users/Timofej/Desktop/shokoserver";
             string[] dllFiles = Directory.GetFiles(programlocation, "*.dll", SearchOption.AllDirectories);
             bool result = true;
 
