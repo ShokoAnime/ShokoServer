@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server.Repositories.Cached;
@@ -226,6 +227,8 @@ namespace Shoko.Server.Repositories
             AnimeSeries_User.GetAll().ForEach(a => a.CollectContractMemory());
             AnimeGroup.GetAll().ForEach(a => a.CollectContractMemory());
             AnimeGroup_User.GetAll().ForEach(a => a.CollectContractMemory());
+
+            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             GC.Collect();
         }
     }
