@@ -54,7 +54,17 @@ namespace Shoko.Server.Models
         private bool RenameFile()
         {
             string renamed = RenameFileHelper.GetRenamer()?.GetFileName(this);
-            if (string.IsNullOrEmpty(renamed)) return true;
+            if (string.IsNullOrEmpty(renamed))
+            {
+                logger.Error("Error: The renamer returned a null or empty name for: " + FilePath);
+                return true;
+            }
+
+            if (renamed.StartsWith("*Error: "))
+            {
+                logger.Error("Error: The renamer returned an error on file: " + FilePath + "\n            " + renamed);
+                return true;
+            }
 
             IFileSystem filesys = ImportFolder?.FileSystem;
             if (filesys == null)
