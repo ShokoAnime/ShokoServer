@@ -26,7 +26,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         internal static Filters GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, bool all,
-            int level, int allpic, int pic)
+            int level, bool allpic, int pic)
         {
             Filters f = new Filters
             {
