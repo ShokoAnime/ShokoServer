@@ -565,6 +565,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(61, 1, DatabaseFixes.MakeYearsApplyToSeries),
             new DatabaseCommand(62, 1, "ALTER TABLE JMMUser ADD PlexToken text character set utf8"),
             new DatabaseCommand(63, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT -1"),
+            new DatabaseCommand(64, 1, "ALTER TABLE `CrossRef_File_Episode` ADD INDEX 'IX_Xref_Epid` (`episodeid` ASC) ;"),
+            new DatabaseCommand(64, 2, "ALTER TABLE `CrossRef_Subtitles_AniDB_File` ADD INDEX 'IX_Xref_Sub_AniDBFile` (`fileid` ASC) ;"),
+            new DatabaseCommand(64, 3, "ALTER TABLE `CrossRef_Languages_AniDB_File` ADD INDEX 'IX_Xref_Epid` (`fileid` ASC) ;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
