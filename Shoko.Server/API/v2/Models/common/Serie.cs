@@ -36,7 +36,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level,
-            bool all, int allpic, int pic)
+            bool all, bool allpic, int pic)
         {
             Serie sr = new Serie();
 
@@ -52,7 +52,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
-            bool all, int allpic, int pic)
+            bool all, bool allpic, int pic)
         {
             Serie sr = new Serie();
 
@@ -81,7 +81,7 @@ namespace Shoko.Server.API.v2.Models.common
             Contract_ImageDetails art;
             if (nv.Fanarts != null && nv.Fanarts.Count > 0)
             {
-                if (allpic == 1 || pic > 1)
+                if (allpic || pic > 1)
                 {
                     int pic_index = 0;
                     foreach (Contract_ImageDetails cont_image in nv.Fanarts)
@@ -114,7 +114,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (nv.Banners != null && nv.Banners.Count > 0)
             {
-                if (allpic == 1 || pic > 1)
+                if (allpic || pic > 1)
                 {
                     int pic_index = 0;
                     foreach (Contract_ImageDetails cont_image in nv.Banners)

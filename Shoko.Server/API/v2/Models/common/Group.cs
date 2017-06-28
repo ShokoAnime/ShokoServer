@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
-            bool all, int filterid, int allpic, int pic)
+            bool all, int filterid, bool allpic, int pic)
         {
             Group g = new Group
             {

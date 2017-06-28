@@ -573,7 +573,7 @@ namespace Shoko.Server.API.v2.Modules
                 };
                 search_group.series = (List<Serie>) (Search(query, para.limit, para.limit_tag, (int) para.offset,
                     para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
-                    para.fuzzy != 0, para.allpic, para.pic));
+                    para.fuzzy != 0, para.allpic != 0, para.pic));
                 search_group.size = search_group.series.Count();
                 search_filter.groups.Add(search_group);
                 search_filter.size = search_filter.groups.Count();
@@ -615,7 +615,7 @@ namespace Shoko.Server.API.v2.Modules
                     series = new List<Serie>()
                 };
                 search_group.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
-                    para.notag != 0, para.level, para.all != 0, para.allpic, para.pic));
+                    para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic));
                 search_group.size = search_group.series.Count();
                 search_filter.groups.Add(search_group);
                 search_filter.size = search_filter.groups.Count();
@@ -906,7 +906,7 @@ namespace Shoko.Server.API.v2.Modules
                         serie =
                             Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1,
                                 para.notag == 1, 0,
-                                false, para.allpic, para.pic);
+                                false, para.allpic != 0, para.pic);
                     if (serie.eps == null) serie.eps = new List<Episode>();
                     Episode episode = Episode.GenerateFromAnimeEpisode(Context, ep, userID, 0);
                     List<SVR_VideoLocal> vls = ep.GetVideoLocals();
@@ -1463,11 +1463,11 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id == 0)
             {
                 return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
-                    para.all != 0, para.allpic, para.pic);
+                    para.all != 0, para.allpic != 0, para.pic);
             }
             else
             {
-                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic, para.pic);
+                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
             }
         }
 
@@ -1499,7 +1499,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id != 0)
             {
                 return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
-                    para.all != 0, para.limit, para.allpic, para.pic);
+                    para.all != 0, para.limit, para.allpic != 0, para.pic);
             }
             else
             {
@@ -1528,7 +1528,7 @@ namespace Shoko.Server.API.v2.Modules
             foreach (SVR_AnimeSeries aser in series)
             {
                 allseries.Add(Serie.GenerateFromAnimeSeries(Context, aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
-                    para.level, para.all != 0, para.allpic, para.pic));
+                    para.level, para.all != 0, para.allpic != 0, para.pic));
             }
 
             return allseries;
@@ -1617,7 +1617,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
-                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpic, para.pic);
+                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpic != 0, para.pic);
             }
             else
             {
@@ -1644,7 +1644,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
                     para.nocast != 0,
-                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpic, para.pic);
+                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpic != 0, para.pic);
             }
             else
             {
@@ -1665,7 +1665,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id != 0)
             {
                 return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
-                    para.all != 0, para.allpic, para.pic);
+                    para.all != 0, para.allpic != 0, para.pic);
             }
             else
             {
@@ -1686,7 +1686,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all"></param>
         /// <param name="limit"></param>
         /// <returns>List<Serie></returns>
-        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit, int allpic, int pic)
+        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit, bool allpic, int pic)
         {
             List<object> allseries = new List<object>();
             List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
@@ -1720,7 +1720,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level">deep level</param>
         /// <param name="all"></param>
         /// <returns></returns>
-        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all, int allpic, int pic)
+        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
             if (aep != null)
@@ -1740,7 +1740,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="limit">number of return items</param>
         /// <param name="offset">offset to start from</param>
         /// <returns>List<Serie></returns>
-        internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, int allpic, int pic)
+        internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic)
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
@@ -1775,7 +1775,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="series_id">serie id</param>
         /// <param name="nocast">disable cast</param>
         /// <returns></returns>
-        internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, int allpic, int pic)
+        internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
@@ -1965,7 +1965,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
         internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast,
-            bool notag, int level, bool all, bool fuzzy, int allpic, int pic)
+            bool notag, int level, bool all, bool fuzzy, bool allpic, int pic)
         {
             query = query.ToLowerInvariant();
 
@@ -2205,7 +2205,7 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         internal object StartsWith(string query, int limit, int uid, bool nocast,
-            bool notag, int level, bool all, int allpic, int pic)
+            bool notag, int level, bool all, bool allpic, int pic)
         {
             query = query.ToLowerInvariant();
 
@@ -2347,11 +2347,11 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic, para.pic);
+                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
             }
             else
             {
-                return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic, para.pic);
+                return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
                 ;
             }
         }
@@ -2366,7 +2366,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="notag">disable tag</param>
         /// <param name="level">deep level</param>
         /// <returns>List<Filter></returns>
-        internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, int allpic, int pic)
+        internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             Filters filters = new Filters
             {
@@ -2426,7 +2426,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level">deep level</param>
         /// <param name="all">include missing episodes</param>
         /// <returns>Filter or Filters</returns>
-        internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, int allpic, int pic)
+        internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
 
@@ -2459,12 +2459,12 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic, para.pic);
+                return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
             }
             else
             {
                 return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
-                    para.filter, para.allpic, para.pic);
+                    para.filter, para.allpic != 0, para.pic);
             }
         }
 
@@ -2517,7 +2517,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level"></param>
         /// <param name="all"></param>
         /// <returns>List<Group></returns>
-        internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, int allpic, int pic)
+        internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             List<Group> grps = new List<Group>();
             List<SVR_AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
@@ -2541,7 +2541,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all">add all known episodes</param>
         /// <param name="filterid"></param>
         /// <returns>Group or APIStatus</returns>
-        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, int allpic, int pic)
+        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpic, int pic)
         {
             SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
             if (ag != null)
