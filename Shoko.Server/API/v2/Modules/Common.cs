@@ -906,7 +906,7 @@ namespace Shoko.Server.API.v2.Modules
                         serie =
                             Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1,
                                 para.notag == 1, 0,
-                                false);
+                                false, para.allpic, para.pic);
                     if (serie.eps == null) serie.eps = new List<Episode>();
                     Episode episode = Episode.GenerateFromAnimeEpisode(Context, ep, userID, 0);
                     List<SVR_VideoLocal> vls = ep.GetVideoLocals();
@@ -1463,11 +1463,11 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id == 0)
             {
                 return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
-                    para.all != 0);
+                    para.all != 0, para.allpic, para.pic);
             }
             else
             {
-                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0);
+                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic, para.pic);
             }
         }
 
@@ -1499,7 +1499,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id != 0)
             {
                 return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
-                    para.all != 0, para.limit);
+                    para.all != 0, para.limit, para.allpic, para.pic);
             }
             else
             {
@@ -1528,7 +1528,7 @@ namespace Shoko.Server.API.v2.Modules
             foreach (SVR_AnimeSeries aser in series)
             {
                 allseries.Add(Serie.GenerateFromAnimeSeries(Context, aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
-                    para.level, para.all != 0));
+                    para.level, para.all != 0, para.allpic, para.pic));
             }
 
             return allseries;
@@ -1665,7 +1665,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id != 0)
             {
                 return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
-                    para.all != 0);
+                    para.all != 0, para.allpic, para.pic);
             }
             else
             {
@@ -1686,7 +1686,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all"></param>
         /// <param name="limit"></param>
         /// <returns>List<Serie></returns>
-        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit)
+        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit, int allpic, int pic)
         {
             List<object> allseries = new List<object>();
             List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
@@ -1699,7 +1699,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             foreach (SVR_VideoLocal vl in vlpall)
             {
-                Serie ser = Serie.GenerateFromVideoLocal(Context, vl, uid, nocast, notag, level, all);
+                Serie ser = Serie.GenerateFromVideoLocal(Context, vl, uid, nocast, notag, level, all, allpic, pic);
                 allseries.Add(ser);
                 if (allseries.Count >= limit)
                 {
@@ -1720,12 +1720,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level">deep level</param>
         /// <param name="all"></param>
         /// <returns></returns>
-        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all)
+        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all, int allpic, int pic)
         {
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
             if (aep != null)
             {
-                return Serie.GenerateFromAnimeSeries(Context, aep.GetAnimeSeries(), uid, nocast, notag, level, all);
+                return Serie.GenerateFromAnimeSeries(Context, aep.GetAnimeSeries(), uid, nocast, notag, level, all, allpic, pic);
             }
             else
             {
@@ -1740,7 +1740,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="limit">number of return items</param>
         /// <param name="offset">offset to start from</param>
         /// <returns>List<Serie></returns>
-        internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all)
+        internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, int allpic, int pic)
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
@@ -1751,7 +1751,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (offset <= 0)
                 {
-                    allseries.Add(Serie.GenerateFromAnimeSeries(Context, asi, user.JMMUserID, nocast, notag, level, all));
+                    allseries.Add(Serie.GenerateFromAnimeSeries(Context, asi, user.JMMUserID, nocast, notag, level, all, allpic, pic));
                     if (limit != 0)
                     {
                         if (allseries.Count >= limit)
@@ -1775,12 +1775,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="series_id">serie id</param>
         /// <param name="nocast">disable cast</param>
         /// <returns></returns>
-        internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all)
+        internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, int allpic, int pic)
         {
             Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
             Serie ser = Serie.GenerateFromAnimeSeries(Context, RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
-                nocast, notag, level, all);
+                nocast, notag, level, all, allpic, pic);
             return ser;
         }
 

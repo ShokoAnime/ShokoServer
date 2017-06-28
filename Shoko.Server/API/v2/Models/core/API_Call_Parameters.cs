@@ -90,5 +90,15 @@
         /// filename string for task like searching by it
         /// </summary>
         public string filename = "";
+
+        /// <summary>
+        /// show all know pictures related to object
+        /// </summary>
+        public int allpic = 0;
+
+        /// <summary>
+        /// show only given number of pictures related to object
+        /// </summary>
+        public int pic = 1;
     }
 }
