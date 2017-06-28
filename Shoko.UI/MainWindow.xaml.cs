@@ -158,6 +158,7 @@ namespace Shoko.UI
             {
                 logger.Info("Already been set up... Initializing DB...");
                 ShokoServer.RunWorkSetupDB();
+                cboLanguages.IsEnabled = true;
             }
 
             SubscribeEvents();
