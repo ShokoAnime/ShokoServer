@@ -53,7 +53,9 @@ namespace Shoko.Server.Models
         // returns false if we should try again after the timer
         private bool RenameFile()
         {
-            string renamed = RenameFileHelper.GetRenamer()?.GetFileName(this);
+            var renamer = RenameFileHelper.GetRenamer();
+            if (renamer == null) return true;
+            string renamed = renamer.GetFileName(this);
             if (string.IsNullOrEmpty(renamed))
             {
                 logger.Error("Error: The renamer returned a null or empty name for: " + FilePath);
