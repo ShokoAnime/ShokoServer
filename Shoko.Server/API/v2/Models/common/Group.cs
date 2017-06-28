@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
-            bool all, int filterid)
+            bool all, int filterid, int allpic, int pic)
         {
             Group g = new Group
             {
@@ -172,7 +172,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (!series.Contains(ada.AnimeSeriesID)) continue;
                     }
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all));
+                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic, pic));
                 }
                 // This should be faster
                 g.series.Sort();
