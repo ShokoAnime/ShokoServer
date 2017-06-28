@@ -96,7 +96,7 @@
 
                 <!-- Language Selector -->
                 <ComboBox Name="cboLanguages" Margin="2,2,2,2" HorizontalAlignment="Right"
-                          ItemTemplate="{StaticResource userLanguageTemplate}" />
+                          ItemTemplate="{StaticResource userLanguageTemplate}" IsEnabled="False" />
 
 
             </StackPanel>
