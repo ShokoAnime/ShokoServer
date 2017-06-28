@@ -622,6 +622,7 @@ namespace Shoko.UI
             btnSaveDatabaseSettings.IsEnabled = true;
             cboDatabaseType.IsEnabled = true;
             btnRefreshMSSQLServerList.IsEnabled = true;
+            cboLanguages.IsEnabled = true;
         }
 
         void btnRefreshMSSQLServerList_Click(object sender, RoutedEventArgs e)
