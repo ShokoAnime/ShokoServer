@@ -78,6 +78,12 @@ namespace Shoko.Server
             bool result = true;
 
             SVR_AniDB_File aniFile = file.GetAniDBFile();
+            // Don't delete files with missing info. If it's not getting updated, then do it manually
+            if (aniFile != null)
+            {
+                if (aniFile.File_Source.Equals("unknown")) return true;
+                if (aniFile.File_VideoResolution.Equals("0x0")) return true;
+            }
             foreach (var type in Settings._requiredtypes)
             {
                 if (!result) break;
