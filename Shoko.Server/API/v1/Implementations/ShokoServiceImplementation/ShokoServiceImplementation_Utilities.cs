@@ -1173,27 +1173,27 @@ namespace Shoko.Server
                 DuplicateFile df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
                 if (df == null) return "Database entry does not exist";
 
-                if (fileNumber == 1 || fileNumber == 2)
+                if (fileNumber != 1 && fileNumber != 2) return "";
+                SVR_VideoLocal_Place place;
+                switch (fileNumber)
                 {
-                    SVR_VideoLocal_Place place = null;
-                    switch (fileNumber)
-                    {
-                        case 1:
-                            place =
-                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
-                                    df.ImportFolderIDFile1);
-                            break;
-                        case 2:
-                            place =
-                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
-                                    df.ImportFolderIDFile2);
-                            break;
-                    }
-                    if (place == null) return "Unable to get VideoLocal_Place";
-
-                    place.RemoveAndDeleteFile();
+                    case 1:
+                        place =
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
+                                df.ImportFolderIDFile1);
+                        break;
+                    case 2:
+                        place =
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
+                                df.ImportFolderIDFile2);
+                        break;
+                    default:
+                        place = null;
+                        break;
                 }
-                return "";
+                if (place == null) return "Unable to get VideoLocal_Place";
+
+                return place.RemoveAndDeleteFileWithMessage();
             }
             catch (Exception ex)
             {
