@@ -174,7 +174,7 @@ namespace Shoko.Server.Models
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                        dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                        dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                     CommandRequest_DeleteFileFromMyList cmdDel =
@@ -190,25 +190,26 @@ namespace Shoko.Server.Models
                         transaction.Commit();
                     }
                 }
+                episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
+                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+                {
+                    if (ep.AnimeEpisodeID == 0)
+                    {
+                        ep.PlexContract = null;
+                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
+                    }
+                    try
+                    {
+                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
+                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                    }
+                }
             }
-            episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-            foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-            {
-                if (ep.AnimeEpisodeID == 0)
-                {
-                    ep.PlexContract = null;
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-                try
-                {
-                    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-                catch (Exception ex)
-                {
-                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                }
-            }
+
             seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
             {
@@ -380,7 +381,6 @@ namespace Shoko.Server.Models
         {
             try
             {
-                SVR_VideoLocal vid = VideoLocal;
                 logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
 
                 IFileSystem fileSystem = ImportFolder?.FileSystem;
@@ -427,11 +427,60 @@ namespace Shoko.Server.Models
             }
         }
 
+        public string RemoveAndDeleteFileWithMessage()
+        {
+            try
+            {
+                logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
+
+                IFileSystem fileSystem = ImportFolder?.FileSystem;
+                if (fileSystem == null)
+                {
+                    logger.Error("Unable to delete file, filesystem not found. Removing record.");
+                    RemoveRecord();
+                    return "Unable to delete file, filesystem not found. Removing record.";
+                }
+                if (FullServerPath == null)
+                {
+                    logger.Error("Unable to delete file, fullserverpath is null. Removing record.");
+                    RemoveRecord();
+                    return "Unable to delete file, fullserverpath is null. Removing record.";
+                }
+                FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
+                if (fr == null || !fr.IsOk)
+                {
+                    logger.Error($"Unable to find file. Removing Record: {FullServerPath}");
+                    RemoveRecord();
+                    return $"Unable to find file. Removing Record: {FullServerPath}";
+                }
+                IFile file = fr.Result as IFile;
+                if (file == null)
+                {
+                    logger.Error($"Seems '{FullServerPath}' is a directory.");
+                    RemoveRecord();
+                    return $"Seems '{FullServerPath}' is a directory.";
+                }
+                FileSystemResult fs = file.Delete(false);
+                if (fs == null || !fs.IsOk)
+                {
+                    logger.Error($"Unable to delete file '{FullServerPath}'");
+                    return $"Unable to delete file '{FullServerPath}'";
+                }
+                RemoveRecord();
+                // For deletion of files from Trakt, we will rely on the Daily sync
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+        }
+
         public void RemoveAndDeleteFileWithOpenTransaction(ISession session, HashSet<SVR_AnimeEpisode> episodesToUpdate, HashSet<SVR_AnimeSeries> seriesToUpdate)
         {
             try
             {
-                SVR_VideoLocal vid = VideoLocal;
                 logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
 
                 IFileSystem fileSystem = ImportFolder?.FileSystem;
