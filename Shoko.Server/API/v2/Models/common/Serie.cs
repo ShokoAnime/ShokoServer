@@ -28,6 +28,9 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public int ismovie { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public long filesize { get; set; } 
+
         public Serie()
         {
             art = new ArtCollection();
@@ -35,8 +38,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level,
-            bool all, bool allpic, int pic)
+        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             Serie sr = new Serie();
 
@@ -51,8 +53,7 @@ namespace Shoko.Server.API.v2.Models.common
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
-            bool all, bool allpic, int pic)
+        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             Serie sr = new Serie();
 
@@ -77,6 +78,7 @@ namespace Shoko.Server.API.v2.Models.common
                 sr.ismovie = 1;
             }
 
+            #region Images
             Random rand = new Random();
             Contract_ImageDetails art;
             if (nv.Fanarts != null && nv.Fanarts.Count > 0)
@@ -149,6 +151,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 sr.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(ctx, nv.Thumb), index = 0});
             }
+            #endregion
 
             if (!nocast)
             {
@@ -229,6 +232,13 @@ namespace Shoko.Server.API.v2.Models.common
                         if (new_ep != null)
                         {
                             sr.eps.Add(new_ep);
+                        }
+                        if (level - 1 > 0)
+                        {
+                            foreach (RawFile file in new_ep.files)
+                            {
+                                sr.filesize += file.size;
+                            }
                         }
                     }
                     sr.eps = sr.eps.OrderBy(a => a.epnumber).ToList();

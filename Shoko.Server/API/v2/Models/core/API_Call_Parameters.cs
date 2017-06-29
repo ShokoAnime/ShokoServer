@@ -100,5 +100,10 @@
         /// show only given number of pictures related to object
         /// </summary>
         public int pic = 1;
+
+        /// <summary>
+        /// skip some of the information with supported calls
+        /// </summary>
+        public int skip = 0;
     }
 }

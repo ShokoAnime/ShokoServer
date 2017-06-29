@@ -2,17 +2,24 @@
 
 namespace Shoko.Server.API.v2.Models.common
 {
-    [System.Obsolete]
     public class ObjectList
     {
         public List<object> list { get; private set; }
+
         public string name { get; set; }
-        public int size { get; private set; }
+        public long size { get; set; }
         public string type { get; set; }
 
         public ObjectList()
         {
             list = new List<object>();
+        }
+
+        public ObjectList(string _name, ListType _type, long _size)
+        {
+            name = _name;
+            type = _type.ToString().ToLower();
+            size = _size;
         }
 
         public ObjectList(string _name, ListType _type)
