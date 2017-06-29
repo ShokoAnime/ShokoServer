@@ -129,6 +129,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/serie/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchForSerie, ct);
             Get["/serie/tag", true] = async (x,ct) => await Task.Factory.StartNew(SearchForTag, ct);
             Get["/serie/byfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId, ct);
+            Get["/serie/infobyfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesInfoByFolderId, ct);
             Get["/serie/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched, ct);
             Get["/serie/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched, ct);
             Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct);
@@ -1508,6 +1509,26 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
+        /// Handle /api/serie/infobyfolder
+        /// </summary>
+        /// <returns>List<ObjectList> or APIStatus</returns>
+        private object GetSeriesInfoByFolderId()
+        {
+            Request request = this.Request;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            if (para.id != 0)
+            {
+                return GetSeriesInfoByFolder(para.id, user.JMMUserID, para.limit);
+            }
+            else
+            {
+                return APIStatus.internalError("missing 'id'");
+            }
+        }
+
+        /// <summary>
         /// Handle /api/serie/recent
         /// </summary>
         /// <returns>List<Serie></returns>
@@ -1692,6 +1713,7 @@ namespace Shoko.Server.API.v2.Modules
             List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
                 .Select(a => a.VideoLocal)
                 .ToList();
+
             if (limit == 0)
             {
                 // hardcoded limit
@@ -1701,6 +1723,62 @@ namespace Shoko.Server.API.v2.Modules
             {
                 Serie ser = Serie.GenerateFromVideoLocal(Context, vl, uid, nocast, notag, level, all, allpic, pic);
                 allseries.Add(ser);
+                if (allseries.Count >= limit)
+                {
+                    break;
+                }
+            }
+
+            return allseries;
+        }
+
+        /// <summary>
+        /// Return SeriesInfo inside ObjectList that resine inside folder
+        /// </summary>
+        /// <param name="id">import folder id</param>
+        /// <param name="uid">user id</param>
+        /// <param name="limit"></param>
+        /// <returns>List<ObjectList></returns>
+        internal object GetSeriesInfoByFolder(int id, int uid, int limit)
+        {
+            Dictionary<string, long> tmp_list = new Dictionary<string, long>();
+            List<object> allseries = new List<object>();
+            List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+                .Select(a => a.VideoLocal)
+                .ToList();
+
+            if (limit == 0)
+            {
+                // hardcoded limit
+                limit = 100;
+            }
+
+            foreach (SVR_VideoLocal vl in vlpall)
+            {
+                Serie ser = Serie.GenerateFromVideoLocal(Context, vl, uid, true, true, 2, false, false, 0);
+
+                ObjectList objl = new ObjectList(ser.name, ObjectList.ListType.SERIE, ser.filesize);
+                if (ser.name != null)
+                {
+                    if (!tmp_list.ContainsKey(ser.name))
+                    {
+                        tmp_list.Add(ser.name, ser.filesize);
+                        allseries.Add(objl);
+                    }
+                    else
+                    {
+                        if (tmp_list[ser.name] != ser.filesize)
+                        {
+                            while (tmp_list.ContainsKey(objl.name))
+                            {
+                                objl.name = objl.name + "*";
+                            }
+                            tmp_list.Add(objl.name, ser.filesize);
+                            allseries.Add(objl);
+                        }
+                    }
+                }
+                
                 if (allseries.Count >= limit)
                 {
                     break;
