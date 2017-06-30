@@ -47,6 +47,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using UPnP;
 using Pri.LongPath;
+using Trinet.Core.IO.Ntfs;
 
 namespace Shoko.Server
 {
@@ -124,8 +125,14 @@ namespace Shoko.Server
 
         public bool StartUpServer()
         {
-
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            // Check if any of the DLL are blocked, common issue with daily builds
+            if (!CheckBlockedFiles())
+            {
+                Utils.ShowErrorMessage(Commons.Properties.Resources.ErrorBlockedDll);
+                Environment.Exit(1);
+            }
 
             // Migrate programdata folder from JMMServer to ShokoServer
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
@@ -240,6 +247,31 @@ namespace Shoko.Server
             logrotator.Start();
             StartLogRotatorTimer();
             return true;
+        }
+
+        private bool CheckBlockedFiles()
+        {
+            if (Utils.IsRunningOnMono()) return true;
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            {
+                // do stuff on windows only
+                return true;
+            }
+            string programlocation =
+                Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+            string[] dllFiles = Directory.GetFiles(programlocation, "*.dll", SearchOption.AllDirectories);
+            bool result = true;
+
+            foreach (string dllFile in dllFiles)
+            {
+                if (FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
+                {
+                    logger.Log(LogLevel.Error, "Found blocked DLL file: " + dllFile);
+                    result = false;
+                }
+            }
+
+            return result;
         }
 
         public bool MigrateProgramDataLocation()

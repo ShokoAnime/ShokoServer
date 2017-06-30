@@ -290,22 +290,29 @@ namespace Shoko.Server
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
-                    ret.NewFileName = string.Format("ERROR: Could not find file record");
+                    ret.NewFileName = "ERROR: Could not find file record";
                     ret.Success = false;
                 }
                 else
                 {
                     ret.VideoLocal = null;
-                    ret.NewFileName = RenameFileHelper.GetRenamer(RenameFileHelper.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
+                    ret.NewFileName = RenameFileHelper.GetRenamer(Shoko.Models.Constants.Renamer.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
 
                     if (string.IsNullOrEmpty(ret.NewFileName))
                     {
                         ret.VideoLocal = null;
                         ret.Success = false;
-                        ret.NewFileName = "The file renamer returned a null value.";
+                        ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
                         return ret;
                     }
-                    if (string.IsNullOrEmpty(ret.NewFileName)) ret.Success = false;
+
+                    if (ret.NewFileName.StartsWith("*Error: "))
+                    {
+                        ret.VideoLocal = null;
+                        ret.Success = false;
+                        ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
+                        return ret;
+                    }
                 }
             }
             catch (Exception ex)
@@ -323,12 +330,12 @@ namespace Shoko.Server
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
                 VideoLocalID = videoLocalID,
-                Success = true
+                Success = false
             };
-            if (scriptName.Equals(RenameFileHelper.TempFileName))
+            if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
             {
                 ret.VideoLocal = null;
-                ret.NewFileName = "Do not attempt to use a temp file to rename.";
+                ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
                 ret.Success = false;
                 return ret;
             }
@@ -349,36 +356,42 @@ namespace Shoko.Server
                 {
                     ret.VideoLocal = null;
                     ret.Success = false;
-                    ret.NewFileName = "The file renamer returned a null value.";
+                    ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
+                    return ret;
+                }
+
+                if (ret.NewFileName.StartsWith("*Error: "))
+                {
+                    ret.VideoLocal = null;
+                    ret.Success = false;
+                    ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
                     return ret;
                 }
 
                 string name = vid.FileName;
-                if (vid.Places.Count > 0)
+                if (vid.Places.Count <= 0)
                 {
-                    SVR_VideoLocal_Place place = null;
-                    FileSystemResult<IObject> fileSystemResult = null;
-                    foreach (SVR_VideoLocal_Place vidplace in vid.Places)
-                    {
-                        IFileSystem filesystem = vidplace.ImportFolder.FileSystem;
-                        // check if the file exists
-                        string tempFileName = vidplace.FullServerPath;
-                        FileSystemResult<IObject> obj = filesystem.Resolve(tempFileName);
-                        if (obj == null || !obj.IsOk || obj.Result is IDirectory) continue;
+                    ret.VideoLocal = null;
+                    ret.Success = false;
+                    ret.NewFileName = "ERROR: No Places were found for the VideoLocal. Run Remove Missing Files.";
+                    return ret;
+                }
 
-                        place = vidplace;
-                        fileSystemResult = obj;
-                        break;
-                    }
-
-                    if (place == null)
-                    {
-                        ret.NewFileName = "Error could not find the original file";
-                        ret.Success = false;
-                        return ret;
-                    }
-
+                int errorCount = 0;
+                string errorString = "";
+                foreach (SVR_VideoLocal_Place place in vid.Places)
+                {
+                    // check if the file exists
                     string fullFileName = place.FullServerPath;
+                    IFileSystem fs = place.ImportFolder.FileSystem;
+                    FileSystemResult<IObject> fileSystemResult = fs.Resolve(fullFileName);
+                    if (fileSystemResult == null || !fileSystemResult.IsOk || fileSystemResult.Result is IDirectory)
+                    {
+                        logger.Error($"Renaming file FAIL From ({fullFileName}): The file could not be accessed");
+                        errorCount++;
+                        errorString = "ERROR: Could not access the original file";
+                        continue;
+                    }
 
                     // actually rename the file
                     string path = Path.GetDirectoryName(fullFileName);
@@ -408,11 +421,18 @@ namespace Shoko.Server
                     }
                     catch (Exception ex)
                     {
-                        logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
+                        logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                         logger.Error(ex, ex.ToString());
-                        ret.Success = false;
-                        ret.NewFileName = ex.Message;
+                        errorCount++;
+                        errorString = ex.Message;
                     }
+                }
+                if (errorCount >= vid.Places.Count) // should never be greater but shit happens
+                {
+                    ret.VideoLocal = null;
+                    ret.Success = false;
+                    ret.NewFileName = errorString;
+                    return ret;
                 }
                 vid.FileName = name;
                 if (ret.VideoLocal == null)
@@ -452,7 +472,9 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.RenameScript.GetAll().Where(a => !a.ScriptName.Equals(RenameFileHelper.TempFileName))
+                return RepoFactory.RenameScript.GetAll().Where(a =>
+                        !a.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName,
+                            StringComparison.InvariantCultureIgnoreCase))
                     .ToList();
             }
             catch (Exception ex)
@@ -471,8 +493,13 @@ namespace Shoko.Server
             };
             try
             {
-                RenameScript script = null;
-                if (contract.RenameScriptID != 0)
+                RenameScript script;
+                if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+                {
+                    script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
+                             new RenameScript();
+                }
+                else if (contract.RenameScriptID != 0)
                 {
                     // update
                     script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID);
@@ -482,10 +509,6 @@ namespace Shoko.Server
                                                 contract.RenameScriptID.ToString();
                         return response;
                     }
-                }
-                else if (contract.ScriptName.Equals(RenameFileHelper.TempFileName))
-                {
-                    script = RepoFactory.RenameScript.GetByName(RenameFileHelper.TempFileName) ?? new RenameScript();
                 }
                 else
                 {
@@ -1153,27 +1176,27 @@ namespace Shoko.Server
                 DuplicateFile df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
                 if (df == null) return "Database entry does not exist";
 
-                if (fileNumber == 1 || fileNumber == 2)
+                if (fileNumber != 1 && fileNumber != 2) return "";
+                SVR_VideoLocal_Place place;
+                switch (fileNumber)
                 {
-                    SVR_VideoLocal_Place place = null;
-                    switch (fileNumber)
-                    {
-                        case 1:
-                            place =
-                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
-                                    df.ImportFolderIDFile1);
-                            break;
-                        case 2:
-                            place =
-                                RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
-                                    df.ImportFolderIDFile2);
-                            break;
-                    }
-                    if (place == null) return "Unable to get VideoLocal_Place";
-
-                    place.RemoveAndDeleteFile();
+                    case 1:
+                        place =
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
+                                df.ImportFolderIDFile1);
+                        break;
+                    case 2:
+                        place =
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
+                                df.ImportFolderIDFile2);
+                        break;
+                    default:
+                        place = null;
+                        break;
                 }
-                return "";
+                if (place == null) return "Unable to get VideoLocal_Place";
+
+                return place.RemoveAndDeleteFileWithMessage();
             }
             catch (Exception ex)
             {

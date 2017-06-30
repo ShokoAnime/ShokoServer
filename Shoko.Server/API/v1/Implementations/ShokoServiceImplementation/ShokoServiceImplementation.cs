@@ -1156,48 +1156,10 @@ namespace Shoko.Server
             try
             {
                 SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
-                if ((place == null) || (place.VideoLocal == null))
+                if (place?.VideoLocal == null)
                     return "Database entry does not exist";
-                SVR_VideoLocal vid = place.VideoLocal;
-                logger.Info("Deleting video local place record and file: {0}", (place.FullServerPath ?? place.VideoLocal_Place_ID.ToString()));
 
-                IFileSystem fileSystem = place.ImportFolder?.FileSystem;
-                if (fileSystem == null)
-                {
-                    logger.Error("Unable to delete file, filesystem not found. Removing record.");
-                    place.RemoveRecord();
-                    return "Unable to delete file, filesystem not found. Removing record.";
-                }
-                if (place.FullServerPath == null)
-                {
-                    logger.Error("Unable to delete file, FullServerPath is null. Removing record.");
-                    place.RemoveRecord();
-                    return "Unable to delete file, FullServerPath is null. Removing record.";
-                }
-                FileSystemResult<IObject> fr = fileSystem.Resolve(place.FullServerPath);
-                if (fr == null || !fr.IsOk)
-                {
-                    logger.Error($"Unable to find file. Removing Record: {place.FullServerPath}");
-                    place.RemoveRecord();
-                    return $"Unable to find file. Removing record.";
-                }
-                IFile file = fr.Result as IFile;
-                if (file == null)
-                {
-                    logger.Error($"Seems '{place.FullServerPath}' is a directory.");
-                    place.RemoveRecord();
-                    return $"Seems '{place.FullServerPath}' is a directory.";
-                }
-                FileSystemResult fs = file.Delete(false);
-                if (fs == null || !fs.IsOk)
-                {
-                    logger.Error($"Unable to delete file '{place.FullServerPath}'");
-                    return $"Unable to delete file '{place.FullServerPath}'";
-                }
-                place.RemoveRecord();
-                // For deletion of files from Trakt, we will rely on the Daily sync
-
-                return "";
+                return place.RemoveAndDeleteFileWithMessage();
             }
             catch (Exception ex)
             {

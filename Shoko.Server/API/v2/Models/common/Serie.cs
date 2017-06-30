@@ -28,6 +28,9 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public int ismovie { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public long filesize { get; set; } 
+
         public Serie()
         {
             art = new ArtCollection();
@@ -35,8 +38,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level,
-            bool all)
+        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             Serie sr = new Serie();
 
@@ -44,15 +46,14 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 foreach (SVR_AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all);
+                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all, allpic, pic);
                 }
             }
 
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level,
-            bool all)
+        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
         {
             Serie sr = new Serie();
 
@@ -77,33 +78,80 @@ namespace Shoko.Server.API.v2.Models.common
                 sr.ismovie = 1;
             }
 
+            #region Images
             Random rand = new Random();
             Contract_ImageDetails art;
             if (nv.Fanarts != null && nv.Fanarts.Count > 0)
             {
-                art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
-                sr.art.fanart.Add(new Art()
+                if (allpic || pic > 1)
                 {
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
-                    index = 0
-                });
+                    int pic_index = 0;
+                    foreach (Contract_ImageDetails cont_image in nv.Fanarts)
+                    {
+                        if (pic_index < pic)
+                        {
+                            sr.art.fanart.Add(new Art()
+                            {
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType, cont_image.ImageID),
+                                index = pic_index
+                            });
+                            pic_index++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
+                    sr.art.fanart.Add(new Art()
+                    {
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
+                        index = 0
+                    });
+                }
             }
 
-            if (nv.Banner != null && nv.Banners.Count > 0)
+            if (nv.Banners != null && nv.Banners.Count > 0)
             {
-                art = nv.Banners[rand.Next(nv.Banners.Count)];
-
-                sr.art.banner.Add(new Art()
+                if (allpic || pic > 1)
                 {
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
-                    index = 0
-                });
+                    int pic_index = 0;
+                    foreach (Contract_ImageDetails cont_image in nv.Banners)
+                    {
+                        if (pic_index < pic)
+                        {
+                            sr.art.banner.Add(new Art()
+                            {
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType, cont_image.ImageID),
+                                index = pic_index
+                            });
+                            pic_index++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    art = nv.Banners[rand.Next(nv.Banners.Count)];
+                    sr.art.banner.Add(new Art()
+                    {
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
+                        index = 0
+                    });
+                }
             }
 
             if (!string.IsNullOrEmpty(nv.Thumb))
             {
                 sr.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(ctx, nv.Thumb), index = 0});
             }
+            #endregion
 
             if (!nocast)
             {
@@ -184,6 +232,13 @@ namespace Shoko.Server.API.v2.Models.common
                         if (new_ep != null)
                         {
                             sr.eps.Add(new_ep);
+                        }
+                        if (level - 1 > 0)
+                        {
+                            foreach (RawFile file in new_ep.files)
+                            {
+                                sr.filesize += file.size;
+                            }
                         }
                     }
                     sr.eps = sr.eps.OrderBy(a => a.epnumber).ToList();

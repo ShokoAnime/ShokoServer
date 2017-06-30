@@ -68,8 +68,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            RegenerateDb(
-                Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList(),
+                Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList().ForEach(
                 a =>
                 {
                     //Fix possible paths in filename

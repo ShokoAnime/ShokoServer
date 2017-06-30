@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
+using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Models.PlexAndKodi;
@@ -732,6 +733,8 @@ namespace Shoko.Server.FileHelper.MediaInfo
             finally
             {
                 minstance?.Close();
+
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect();
             }
         }

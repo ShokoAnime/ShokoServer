@@ -26,12 +26,12 @@ namespace Shoko.Server.Renamer
 
         public string GetFileName(SVR_VideoLocal vid)
         {
-            return script == null ? null : GetNewFileName(vid?.GetBestVideoLocalPlace(), script.Script);
+            return script == null ? "*Error: No script available for renamer" : GetNewFileName(vid?.GetBestVideoLocalPlace(), script.Script);
         }
 
         public string GetFileName(SVR_VideoLocal_Place place)
         {
-            return script == null ? null : GetNewFileName(place, script.Script);
+            return script == null ? "*Error: No script available for renamer" : GetNewFileName(place, script.Script);
         }
 
         private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
@@ -1491,27 +1491,27 @@ namespace Shoko.Server.Renamer
             List<AniDB_Episode> episodes = new List<AniDB_Episode>();
             SVR_AniDB_Anime anime = null;
 
-            if (vid == null) return string.Empty;
+            if (vid == null) return "*Error: Unable to access file";
 
             // get all the data so we don't need to get multiple times
             SVR_AniDB_File aniFile = vid.GetAniDBFile();
             if (aniFile == null)
             {
                 List<SVR_AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
-                if (animeEps.Count == 0) return string.Empty;
+                if (animeEps.Count == 0) return "*Error: Unable to get episode for file";
 
                 episodes.Add(animeEps[0].AniDB_Episode);
 
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
-                if (anime == null) return string.Empty;
+                if (anime == null) return "*Error: Unable to get anime for file";
             }
             else
             {
                 episodes = aniFile.Episodes;
-                if (episodes.Count == 0) return string.Empty;
+                if (episodes.Count == 0) return "*Error: Unable to get episode for file";
 
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
-                if (anime == null) return string.Empty;
+                if (anime == null) return "*Error: Unable to get anime for file";
             }
 
             foreach (string line in lines)
@@ -1546,7 +1546,7 @@ namespace Shoko.Server.Renamer
                         if (action.ToUpper()
                             .Trim()
                             .Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
-                            return string.Empty;
+                            return "*Error: The script called FAIL";
 
                         PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
                     }
@@ -1557,15 +1557,15 @@ namespace Shoko.Server.Renamer
                 }
             }
 
-            if (string.IsNullOrEmpty(newFileName)) return string.Empty;
+            if (string.IsNullOrEmpty(newFileName)) return "*Error: the new filename is empty (script error)";
 
             string pathToVid = place?.FilePath ??
                                vid?.FileName;
-            if (string.IsNullOrEmpty(pathToVid)) return string.Empty;
+            if (string.IsNullOrEmpty(pathToVid)) return "*Error: Unable to get the file's old filename";
             string ext =
                 Path.GetExtension(pathToVid); //Prefer VideoLocal_Place as this is more accurate.
             if (string.IsNullOrEmpty(ext))
-                return string.Empty; // fail if we get a blank extension, something went wrong.
+                return "*Error: Unable to get the file's extension"; // fail if we get a blank extension, something went wrong.
 
             // finally add back the extension
             return Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}");

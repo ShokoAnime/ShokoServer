@@ -9,12 +9,10 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Repositories
 {
     // ReSharper disable once InconsistentNaming
-    public abstract class BaseCachedRepository<T, S> : IRepository<T, S> where T : class
+    public abstract class BaseCachedRepository<T, S> : ICachedRepository, IRepository<T, S> where T : class
     {
         internal PocoCache<S, T> Cache;
 
-        public abstract void PopulateIndexes();
-        public abstract void RegenerateDb();
         public Action<T> BeginDeleteCallback { get; set; }
         public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
         public Action<T> EndDeleteCallback { get; set; }
@@ -33,11 +31,11 @@ namespace Shoko.Server.Repositories
             PopulateIndexes();
         }
 
-        public void Populate(bool displayname = true)
+        public virtual void Populate(bool displayname = true)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                Populate(session.Wrap());
+                Populate(session.Wrap(), displayname);
             }
         }
 
@@ -47,38 +45,6 @@ namespace Shoko.Server.Repositories
         {
             Cache.Clear();
         }
-
-        internal virtual void RegenerateDb(List<T> collection, Action<T> genaction, bool displayme = true)
-        {
-            int cnt = 0;
-            int max = collection.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
-                typeof(T).Name, " DbRegen");
-            if (max <= 0) return;
-            foreach (T g in collection)
-            {
-                try
-                {
-                    genaction(g);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-                if (displayme)
-                {
-                    cnt++;
-                    if (cnt % 10 == 0)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Cache, typeof(T).Name,
-                            " DbRegen - " + cnt + "/" + max);
-                }
-            }
-            if (displayme)
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen - " + max + "/" + max);
-        }
-
 
         // ReSharper disable once InconsistentNaming
         public virtual T GetByID(S id)
@@ -269,6 +235,13 @@ namespace Shoko.Server.Repositories
                 SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                 Cache.Update(obj);
             }
+        }
+
+        public abstract void PopulateIndexes();
+        public abstract void RegenerateDb();
+
+        public void PostProcess()
+        {
         }
     }
 }

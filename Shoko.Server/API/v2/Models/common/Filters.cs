@@ -26,7 +26,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         internal static Filters GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, bool all,
-            int level)
+            int level, bool allpic, int pic)
         {
             Filters f = new Filters
             {
@@ -42,7 +42,7 @@ namespace Shoko.Server.API.v2.Models.common
             foreach (SVR_GroupFilter cgf in allGfs)
             {
                 // any level higher than 1 can drain cpu
-                filters.Add(Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all));
+                filters.Add(Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic));
             }
 
             f.filters = filters.OrderBy(a => a.name).ToList<Filter>();
