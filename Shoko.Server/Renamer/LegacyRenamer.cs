@@ -2258,6 +2258,5 @@ namespace Shoko.Server.Renamer
 
             return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
         }
-        public object FullServerPath { get; set; }
     }
 }
