@@ -70,22 +70,22 @@ namespace Shoko.Commons.Extensions
 
         public static bool GetIsTvDBLinkDisabled(this AniDB_Anime anime)
         {
-            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.FlagLinkTvDB) > 0;
+            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkTvDB) > 0;
         }
 
         public static bool GetIsTraktLinkDisabled(this AniDB_Anime anime)
         {
-            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.FlagLinkTrakt) > 0;
+            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkTrakt) > 0;
         }
 
         public static bool GetIsMALLinkDisabled(this AniDB_Anime anime)
         {
-            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.FlagLinkMAL) > 0;
+            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkMAL) > 0;
         }
 
         public static bool GetIsMovieDBLinkDisabled(this AniDB_Anime anime)
         {
-            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.FlagLinkMovieDB) > 0;
+            return (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkMovieDB) > 0;
         }
 
         public static int GetAirDateAsSeconds(this AniDB_Anime anime)
