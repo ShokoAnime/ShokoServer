@@ -265,10 +265,25 @@ namespace Shoko.Server
             {
                 if (FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
                 {
+                    try
+                    {
+                        FileSystem.DeleteAlternateDataStream(dllFile, "Zone.Identifier");
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+            }
+            foreach (string dllFile in dllFiles)
+            {
+                if (FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
+                {
                     logger.Log(LogLevel.Error, "Found blocked DLL file: " + dllFile);
                     result = false;
                 }
             }
+
 
             return result;
         }
@@ -424,7 +439,10 @@ namespace Shoko.Server
             {
                 ThreadStart ts = () =>
                 {
-                    Application.Current.Shutdown();
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Application.Current.Shutdown();
+                    });
                 };
                 new Thread(ts).Start();
             }
