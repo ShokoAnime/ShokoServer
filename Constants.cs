@@ -2,10 +2,18 @@
 {
     public class Constants
     {
-        public static readonly int FlagLinkTvDB = 1;
-        public static readonly int FlagLinkTrakt = 2;
-        public static readonly int FlagLinkMAL = 4;
-        public static readonly int FlagLinkMovieDB = 8;
+        public struct LinkFlags
+        {
+            public static readonly int FlagLinkTvDB = 1;
+            public static readonly int FlagLinkTrakt = 2;
+            public static readonly int FlagLinkMAL = 4;
+            public static readonly int FlagLinkMovieDB = 8;
+        }
+
+        public struct Renamer
+        {
+            public static readonly string TempFileName = "AAA_WORKINGFILE_TEMP_AAA";
+        }
 
         public struct AniDBLanguageType
         {
