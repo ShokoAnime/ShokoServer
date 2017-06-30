@@ -86,8 +86,8 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/ForSerie/{animeSeriesID}/{userID}", Verbs.Get)]
         CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID);
 
-        [Rest("Group/Recreate", Verbs.Post)]
-        void RecreateAllGroups(bool resume = false);
+        [Rest("Group/Recreate/{resume}", Verbs.Post)]
+        void RecreateAllGroups(bool resume);
 
         [Rest("Group/Summary/{animeID}", Verbs.Get)]
         List<CL_GroupFileSummary> GetGroupFileSummary(int animeID);
