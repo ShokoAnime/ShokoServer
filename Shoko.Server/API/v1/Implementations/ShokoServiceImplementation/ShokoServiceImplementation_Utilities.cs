@@ -296,7 +296,7 @@ namespace Shoko.Server
                 else
                 {
                     ret.VideoLocal = null;
-                    ret.NewFileName = RenameFileHelper.GetRenamer(RenameFileHelper.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
+                    ret.NewFileName = RenameFileHelper.GetRenamer(Shoko.Models.Constants.Renamer.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
 
                     if (string.IsNullOrEmpty(ret.NewFileName))
                     {
@@ -332,7 +332,7 @@ namespace Shoko.Server
                 VideoLocalID = videoLocalID,
                 Success = false
             };
-            if (scriptName.Equals(RenameFileHelper.TempFileName))
+            if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
             {
                 ret.VideoLocal = null;
                 ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
@@ -472,7 +472,9 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.RenameScript.GetAll().Where(a => !a.ScriptName.Equals(RenameFileHelper.TempFileName))
+                return RepoFactory.RenameScript.GetAll().Where(a =>
+                        !a.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName,
+                            StringComparison.InvariantCultureIgnoreCase))
                     .ToList();
             }
             catch (Exception ex)
@@ -491,8 +493,13 @@ namespace Shoko.Server
             };
             try
             {
-                RenameScript script = null;
-                if (contract.RenameScriptID != 0)
+                RenameScript script;
+                if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+                {
+                    script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
+                             new RenameScript();
+                }
+                else if (contract.RenameScriptID != 0)
                 {
                     // update
                     script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID);
@@ -502,10 +509,6 @@ namespace Shoko.Server
                                                 contract.RenameScriptID.ToString();
                         return response;
                     }
-                }
-                else if (contract.ScriptName.Equals(RenameFileHelper.TempFileName))
-                {
-                    script = RepoFactory.RenameScript.GetByName(RenameFileHelper.TempFileName) ?? new RenameScript();
                 }
                 else
                 {
