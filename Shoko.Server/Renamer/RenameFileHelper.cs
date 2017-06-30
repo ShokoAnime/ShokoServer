@@ -11,7 +11,7 @@ namespace Shoko.Server
     public class RenameFileHelper
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        public static readonly string TempFileName = "AAA_WORKINGFILE_TEMP_AAA";
+        
 
         public static IRenamer GetRenamer()
         {
