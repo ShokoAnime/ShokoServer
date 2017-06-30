@@ -2237,7 +2237,9 @@ namespace Shoko.Server.Renamer
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
 
-                    FileSystemResult<IObject> dir = place?.ImportFolder?.FileSystem?.Resolve(folderName);
+                    FileSystemResult<IObject> dir =
+                        place?.ImportFolder?.FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
+                            folderName));
                     if (dir == null || !dir.IsOk) continue;
                     // ensure we aren't moving to the current directory
                     if (folderName.Equals(Path.GetDirectoryName(video.FullServerPath),
