@@ -5340,9 +5340,6 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>AutoLink MAL serie</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Configuración de Plex</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Operaciones generales en cola:</value>
   </data>
@@ -5357,5 +5354,11 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Bloqueado DLL archivos encontrados directorio del servidor!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Configuración de Plex para ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Para ShokoMetada de la sincronización con Shoko, entrada el Plex Host que se puede llegar desde el explorador web y el identificador de biblioteca de Plex que son los números después de la parte siguiente; [clave = % 2Flibrary % 2Fsections % 2F] para la biblioteca presionado.</value>
   </data>
 </root>

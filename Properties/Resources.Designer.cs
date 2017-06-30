@@ -11698,6 +11698,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to To have ShokoMetada sync with Shoko, input the Plex Host which you can get from your web browser and the Plex Library ID which are the numbers after the following part; [key=%2Flibrary%2Fsections%2F] for the library you&apos;ve clicked..
+        /// </summary>
+        public static string ShokoMetadata_Info {
+            get {
+                return ResourceManager.GetString("ShokoMetadata_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Shoko Server.
         /// </summary>
         public static string ShokoServer {
@@ -12427,7 +12436,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Plex Settings.
+        ///   Looks up a localized string similar to Plex Settings For ShokoMetadata.
         /// </summary>
         public static string TAB_Settings_Plex {
             get {

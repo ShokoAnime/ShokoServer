@@ -5340,9 +5340,6 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>AutoLink MAL serie</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Plex instellingen</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Algemene operaties in wachtrij:</value>
   </data>
@@ -5357,5 +5354,11 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Geblokkeerde DLL bestanden gevonden in de server directory!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex instellingen voor ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Als u wilt ShokoMetada sync met Shoko, invoergegevens naar de Plex-Host die u van uw webbrowser krijgen kunt en de Plex bibliotheek-ID die de getallen na het volgende deel; [sleutel = % 2Flibrary % 2Fsections % 2F] voor de bibliotheek die u hebt geklikt.</value>
   </data>
 </root>

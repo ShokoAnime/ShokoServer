@@ -5340,9 +5340,6 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Autolink MAL Serie</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Plex-Einstellungen</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Allgemeine Vorgänge in Warteschlange:</value>
   </data>
@@ -5357,5 +5354,11 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Gesperrte DLL-Dateien im Server-Verzeichnis gefunden!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex-Einstellungen für ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Um ShokoMetada Sync mit Shoko, Eingang der Plex-Host, die Sie von Ihrem Web-Browser zu bekommen und die Plex Bibliothek-ID, die die Zahlen nach dem folgenden Teil sind; [Schlüssel = % 2Flibrary % 2Fsections % 2F] für die Bibliothek, die Sie angeklickt haben.</value>
   </data>
 </root>

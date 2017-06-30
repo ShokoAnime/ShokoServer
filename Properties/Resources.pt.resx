@@ -5340,9 +5340,6 @@
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>AutoLink MAL série</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Configurações de plex</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Operações gerais em fila:</value>
   </data>
@@ -5357,5 +5354,11 @@
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Bloqueados DLL arquivos encontrados no diretório de servidor!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Configurações de plex para ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Para ter ShokoMetada sincronia com Shoko, entrada de Plex Host que você pode obter de seu navegador da web e o ID da biblioteca Plex que são os números após a parte seguinte; [chave = % 2Flibrary % 2Fsections % 2F] para a biblioteca que você clicou.</value>
   </data>
 </root>

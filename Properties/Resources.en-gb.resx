@@ -5340,9 +5340,6 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Autolink MAL Series</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Plex Settings</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>General Operations in Queue:</value>
   </data>
@@ -5357,5 +5354,11 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Blocked DLL files found in server directory!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex Settings For ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>To have ShokoMetada sync with Shoko, input the Plex Host which you can get from your web browser and the Plex Library ID which are the numbers after the following part; [key=%2Flibrary%2Fsections%2F] for the library you've clicked.</value>
   </data>
 </root>

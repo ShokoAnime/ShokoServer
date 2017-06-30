@@ -5340,9 +5340,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>AutoLink MAL serie</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Impostazioni di Plex</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Operazioni generali nella coda:</value>
   </data>
@@ -5357,5 +5354,11 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>File DLL bloccati trovati nella directory server!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Impostazioni di Plex per ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Per ShokoMetada sincronizzazione con Shoko, ingresso all'Host di Plex è possibile ottenere dal tuo browser web e l'ID di Plex libreria che sono i numeri dopo la parte seguente; [chiave = % 2Flibrary % 2Fsections % 2F] per la libreria che hai cliccato.</value>
   </data>
 </root>

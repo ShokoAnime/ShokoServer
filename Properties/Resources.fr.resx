@@ -5340,9 +5340,6 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>AutoLink MAL série</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Paramètres de plex</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Opérations générales dans la file d’attente :</value>
   </data>
@@ -5357,5 +5354,11 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Bloqué des fichiers DLL dans le répertoire du serveur !</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Paramètres de plex pour ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Pour avoir ShokoMetada sync avec Shoko, entrée de l’hôte de Plex qui vous pouvez obtenir de votre navigateur web et l’ID de la bibliothèque de Plex qui sont les numéros après la partie suivante ; [clé = % 2Flibrary % 2Fsections % 2F] pour la bibliothèque que vous avez cliqué.</value>
   </data>
 </root>
