@@ -1751,8 +1751,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupShortName.ToLower()))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName,
-                    aniFile?.Anime_GroupNameShort ?? "Unknown");
+                string subgroup = aniFile?.Anime_GroupNameShort ?? "Unknown";
+                if (subgroup.Equals("raw", StringComparison.InvariantCultureIgnoreCase)) subgroup = "Unknown";
+                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName, subgroup);
             }
 
             #endregion
