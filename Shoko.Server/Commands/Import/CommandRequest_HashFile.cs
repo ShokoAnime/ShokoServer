@@ -302,40 +302,51 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
-                    SVR_VideoLocal_Place prep = tlocal.Places.FirstOrDefault(
+                    List<SVR_VideoLocal_Place> preps = tlocal.Places.Where(
                         a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
-                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
-                    // clean up, if there is a 'duplicate file' that is invalid, remove it.
-                    if (prep != null && prep.FullServerPath == null)
+                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID).ToList();
+                    foreach (var prep in preps)
                     {
-                        RepoFactory.VideoLocalPlace.Delete(prep);
+                        if (prep == null) continue;
+                        // clean up, if there is a 'duplicate file' that is invalid, remove it.
+                        if (prep.FullServerPath == null)
+                        {
+                            RepoFactory.VideoLocalPlace.Delete(prep);
+                        }
+                        else
+                        {
+                            FileSystemResult dupFileSystemResult =
+                                prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
+                            if (dupFileSystemResult == null || !dupFileSystemResult.IsOk)
+                                RepoFactory.VideoLocalPlace.Delete(prep);
+                        }
                     }
 
                     // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
                     changed = tlocal.MergeInfoFrom(vlocal);
                     vlocal = tlocal;
 
-                    prep = tlocal.Places.FirstOrDefault(
+                    var dupPlace = tlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
                              vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
 
-                    if (prep != null)
+                    if (dupPlace != null)
                     {
                         // delete the VideoLocal record
                         logger.Warn("Found Duplicate File");
                         logger.Warn("---------------------------------------------");
                         logger.Warn($"New File: {vlocalplace.FullServerPath}");
-                        logger.Warn($"Existing File: {prep.FullServerPath}");
+                        logger.Warn($"Existing File: {dupPlace.FullServerPath}");
                         logger.Warn("---------------------------------------------");
 
                         // check if we have a record of this in the database, if not create one
                         List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
                             vlocalplace.FilePath,
-                            prep.FilePath,
-                            vlocalplace.ImportFolderID, prep.ImportFolderID);
+                            dupPlace.FilePath,
+                            vlocalplace.ImportFolderID, dupPlace.ImportFolderID);
                         if (dupFiles.Count == 0)
-                            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(prep.FilePath,
-                                vlocalplace.FilePath, prep.ImportFolderID, vlocalplace.ImportFolderID);
+                            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
+                                vlocalplace.FilePath, dupPlace.ImportFolderID, vlocalplace.ImportFolderID);
 
                         if (dupFiles.Count == 0)
                         {
@@ -343,9 +354,9 @@ namespace Shoko.Server.Commands
                             {
                                 DateTimeUpdated = DateTime.Now,
                                 FilePathFile1 = vlocalplace.FilePath,
-                                FilePathFile2 = prep.FilePath,
+                                FilePathFile2 = dupPlace.FilePath,
                                 ImportFolderIDFile1 = vlocalplace.ImportFolderID,
-                                ImportFolderIDFile2 = prep.ImportFolderID,
+                                ImportFolderIDFile2 = dupPlace.ImportFolderID,
                                 Hash = vlocal.Hash
                             };
                             RepoFactory.DuplicateFile.Save(dup);
