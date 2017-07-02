@@ -303,7 +303,7 @@ namespace Shoko.Server.Commands
                 if (tlocal != null)
                 {
                     List<SVR_VideoLocal_Place> preps = tlocal.Places.Where(
-                        a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID &&
+                        a => a.ImportFolder.CloudID == folder.CloudID &&
                              vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID).ToList();
                     foreach (var prep in preps)
                     {
