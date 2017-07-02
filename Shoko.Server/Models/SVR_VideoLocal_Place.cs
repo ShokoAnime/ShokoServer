@@ -692,12 +692,10 @@ namespace Shoko.Server.Models
                     return true;
                 }
 
-                logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
-
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
                 if (dst != null && dst.IsOk)
                 {
-                    logger.Trace(
+                    logger.Info(
                         "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
                         FullServerPath, newFullServerPath);
 
@@ -733,6 +731,7 @@ namespace Shoko.Server.Models
                 }
                 else
                 {
+                    logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
                     FileSystemResult fr = source_file.Move(destination);
                     if (fr == null || !fr.IsOk)
                     {
