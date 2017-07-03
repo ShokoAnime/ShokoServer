@@ -190,26 +190,19 @@ namespace Shoko.Server.Models
                         transaction.Commit();
                     }
                 }
-                episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+            }
+            episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
+            foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+            {
+                try
                 {
-                    if (ep.AnimeEpisodeID == 0)
-                    {
-                        ep.PlexContract = null;
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    try
-                    {
-                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    }
+                    RepoFactory.AnimeEpisode.Save(ep);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
             }
-
             seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
             {
