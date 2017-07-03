@@ -1,6 +1,6 @@
 FROM mono:5.0.0
 
-# Maintainer Cayde Dixon <me@cazzar.net>
+#MAINTAINER Cayde Dixon <me@cazzar.net>
 
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
