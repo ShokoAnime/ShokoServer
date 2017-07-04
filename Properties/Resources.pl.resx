@@ -5342,9 +5342,6 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Funkcja AutoLink MAL serii</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Plex ustawienia</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Ogólne operacje w kolejce:</value>
   </data>
@@ -5359,5 +5356,11 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Zablokowanych plików DLL w katalogu serwera!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Ustawienia obiektu typu plex dla ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Aby ShokoMetada synchronizacji z Shoko, wejście Plex hosta, który można uzyskać z przeglądarki sieci web i identyfikator biblioteki Plex, które są numery po następujących części; [klucz = % 2Flibrary % 2Fsections % 2F] dla biblioteki został kliknięty.</value>
   </data>
 </root>

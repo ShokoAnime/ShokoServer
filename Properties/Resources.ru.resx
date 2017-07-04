@@ -5340,9 +5340,6 @@
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>Autolink MAL серии</value>
   </data>
-  <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Plex параметры</value>
-  </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
     <value>Общие операции в очереди:</value>
   </data>
@@ -5357,5 +5354,11 @@
   </data>
   <data name="ErrorBlockedDll" xml:space="preserve">
     <value>Заблокированные файлы DLL в каталог сервера!</value>
+  </data>
+  <data name="TAB_Settings_Plex" xml:space="preserve">
+    <value>Plex параметры для ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Чтобы синхронизировать ShokoMetada с Шоко, ввод Plex хост, который вы можете получить с вашего веб-браузера и идентификатор Plex библиотеки, которые являются цифры после следующей части; [ключ = % 2Flibrary % 2Fsections % 2F] для библиотеки, вы нажали.</value>
   </data>
 </root>
