@@ -414,10 +414,15 @@ namespace Shoko.Server.Models
             IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
             foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
-                CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
-                foreach (SVR_JMMUser user in users)
+                if (ser.Contract == null)
+                    ser.UpdateContract();
+                if (ser.Contract != null)
                 {
-                    CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user, user.JMMUserID);
+                    CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
+                    foreach (SVR_JMMUser user in users)
+                    {
+                        CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user, user.JMMUserID);
+                    }
                 }
             }
         }
