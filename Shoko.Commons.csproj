@@ -31,9 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="jint, Version=2.10.4.0, Culture=neutral, PublicKeyToken=2e92ba9c8d81157f, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\jint.2.10.4\lib\net45\jint.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -56,7 +53,6 @@
     <Compile Include="Collections\LazyLookup.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Culture.cs" />
-    <Compile Include="Downloads\CloudflareEvader.cs" />
     <Compile Include="Downloads\CsvParser.cs" />
     <Compile Include="Downloads\CsvStream.cs" />
     <Compile Include="Downloads\SubGroupSimple.cs" />
