@@ -574,7 +574,7 @@ namespace Shoko.Server.API.v2.Modules
                 };
                 search_group.series = (List<Serie>) (Search(query, para.limit, para.limit_tag, (int) para.offset,
                     para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
-                    para.fuzzy != 0, para.allpic != 0, para.pic));
+                    para.fuzzy != 0, para.allpics != 0, para.pic));
                 search_group.size = search_group.series.Count();
                 search_filter.groups.Add(search_group);
                 search_filter.size = search_filter.groups.Count();
@@ -616,7 +616,7 @@ namespace Shoko.Server.API.v2.Modules
                     series = new List<Serie>()
                 };
                 search_group.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
-                    para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic));
+                    para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic));
                 search_group.size = search_group.series.Count();
                 search_filter.groups.Add(search_group);
                 search_filter.size = search_filter.groups.Count();
@@ -907,7 +907,7 @@ namespace Shoko.Server.API.v2.Modules
                         serie =
                             Serie.GenerateFromAnimeSeries(Context, series, userID, para.nocast == 1,
                                 para.notag == 1, 0,
-                                false, para.allpic != 0, para.pic);
+                                false, para.allpics != 0, para.pic);
                     if (serie.eps == null) serie.eps = new List<Episode>();
                     Episode episode = Episode.GenerateFromAnimeEpisode(Context, ep, userID, 0);
                     List<SVR_VideoLocal> vls = ep.GetVideoLocals();
@@ -1464,11 +1464,11 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id == 0)
             {
                 return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
-                    para.all != 0, para.allpic != 0, para.pic);
+                    para.all != 0, para.allpics != 0, para.pic);
             }
             else
             {
-                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
+                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic);
             }
         }
 
@@ -1500,7 +1500,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id != 0)
             {
                 return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
-                    para.all != 0, para.limit, para.allpic != 0, para.pic);
+                    para.all != 0, para.limit, para.allpics != 0, para.pic);
             }
             else
             {
@@ -1549,7 +1549,7 @@ namespace Shoko.Server.API.v2.Modules
             foreach (SVR_AnimeSeries aser in series)
             {
                 allseries.Add(Serie.GenerateFromAnimeSeries(Context, aser, user.JMMUserID, para.nocast != 0, para.notag != 0,
-                    para.level, para.all != 0, para.allpic != 0, para.pic));
+                    para.level, para.all != 0, para.allpics != 0, para.pic));
             }
 
             return allseries;
@@ -1638,7 +1638,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.query != "")
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
-                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpic != 0, para.pic);
+                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic);
             }
             else
             {
@@ -1665,7 +1665,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
                     para.nocast != 0,
-                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpic != 0, para.pic);
+                    para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic);
             }
             else
             {
@@ -1686,7 +1686,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id != 0)
             {
                 return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
-                    para.all != 0, para.allpic != 0, para.pic);
+                    para.all != 0, para.allpics != 0, para.pic);
             }
             else
             {
@@ -2425,11 +2425,11 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
+                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic);
             }
             else
             {
-                return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
+                return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic);
                 ;
             }
         }
@@ -2537,12 +2537,12 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpic != 0, para.pic);
+                return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic);
             }
             else
             {
                 return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
-                    para.filter, para.allpic != 0, para.pic);
+                    para.filter, para.allpics != 0, para.pic);
             }
         }
 
@@ -2595,14 +2595,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level"></param>
         /// <param name="all"></param>
         /// <returns>List<Group></returns>
-        internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
+        internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic)
         {
             List<Group> grps = new List<Group>();
             List<SVR_AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
             foreach (SVR_AnimeGroup_User gr in allGrps)
             {
                 SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
-                Group grp = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, 0, allpic, pic);
+                Group grp = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, 0, allpics, pic);
                 grps.Add(grp);
             }
             return grps;
@@ -2619,12 +2619,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all">add all known episodes</param>
         /// <param name="filterid"></param>
         /// <returns>Group or APIStatus</returns>
-        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpic, int pic)
+        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics, int pic)
         {
             SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
             if (ag != null)
             {
-                Group gr = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, filterid, allpic, pic);
+                Group gr = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, filterid, allpics, pic);
                 return gr;
             }
             else
