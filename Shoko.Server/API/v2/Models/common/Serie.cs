@@ -38,7 +38,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
+        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic)
         {
             Serie sr = new Serie();
 
@@ -46,14 +46,14 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 foreach (SVR_AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all, allpic, pic);
+                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all, allpics, pic);
                 }
             }
 
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic)
+        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic)
         {
             Serie sr = new Serie();
 
@@ -83,9 +83,9 @@ namespace Shoko.Server.API.v2.Models.common
             Contract_ImageDetails art;
             if (nv.Fanarts != null && nv.Fanarts.Count > 0)
             {
-                if (allpic || pic > 1)
+                if (allpics || pic > 1)
                 {
-                    if (allpic) { pic = 999; }
+                    if (allpics) { pic = 999; }
                     int pic_index = 0;
                     foreach (Contract_ImageDetails cont_image in nv.Fanarts)
                     {
@@ -117,9 +117,9 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (nv.Banners != null && nv.Banners.Count > 0)
             {
-                if (allpic || pic > 1)
+                if (allpics || pic > 1)
                 {
-                    if (allpic) { pic = 999; }
+                    if (allpics) { pic = 999; }
                     int pic_index = 0;
                     foreach (Contract_ImageDetails cont_image in nv.Banners)
                     {
