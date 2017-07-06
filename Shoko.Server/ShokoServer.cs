@@ -59,7 +59,7 @@ namespace Shoko.Server
         private static DateTime lastTraktInfoUpdate = DateTime.Now;
         private static DateTime lastVersionCheck = DateTime.Now;
 
-        private static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
+        internal static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
 
         //private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
@@ -79,7 +79,6 @@ namespace Shoko.Server
         public static string PathAddressPlex = "api/Plex";
         public static string PathAddressKodi = "Kodi";
 
-
         private static Nancy.Hosting.Self.NancyHost hostNancy = null;
 
         private static BackgroundWorker workerImport = new BackgroundWorker();
@@ -96,7 +95,6 @@ namespace Shoko.Server
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
         internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
 
-
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
         private static System.Timers.Timer cloudWatchTimer = null;
@@ -111,13 +109,15 @@ namespace Shoko.Server
 
         private Mutex mutex;
 
+        internal static ManualResetEvent _pauseFileWatchDog = new ManualResetEvent(true);
+
         public string[] GetSupportedDatabases()
         {
             return new[]
             {
                 "SQLite",
                 "Microsoft SQL Server 2014",
-                "MySQL"
+                "MySQL/MariaDB"
             };
         }
 
@@ -443,6 +443,7 @@ namespace Shoko.Server
         void WorkerFileEvents_DoWork(object sender, DoWorkEventArgs e)
         {
             logger.Info("Started thread for processing file events");
+            _pauseFileWatchDog.WaitOne(Timeout.Infinite);
             foreach (FileSystemEventArgs evt in queueFileEvents)
             {
                 try
@@ -504,12 +505,18 @@ namespace Shoko.Server
                             }
                         }
                     }
-                    queueFileEvents.Remove(evt);
+                    if (queueFileEvents.Contains(evt))
+                    {
+                        queueFileEvents.Remove(evt);
+                    }
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex.ToString());
-                    queueFileEvents.Remove(evt);
+                    if (queueFileEvents.Contains(evt))
+                    {
+                        queueFileEvents.Remove(evt);
+                    }
                     Thread.Sleep(1000);
                 }
             }
@@ -727,6 +734,7 @@ namespace Shoko.Server
                 StartFileWorker();
 
                 StartWatchingFiles();
+                ShokoServer._pauseFileWatchDog.Set();
 
                 DownloadAllImages();
 

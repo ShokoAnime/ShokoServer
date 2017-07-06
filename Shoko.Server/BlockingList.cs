@@ -71,24 +71,31 @@ namespace Shoko.Server
         {
             lock (_syncRoot)
             {
-                while (_count == 0)
+                do
                 {
-                    try
+                    while (_count == 0)
                     {
-                        if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
-                            throw new System.Exception("Timeout on blockinglist GetNextItem");
+                        try
+                        {
+                            if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
+                                throw new System.Exception("Timeout on blockinglist GetNextItem");
+                        }
+                        catch
+                        {
+                            Monitor.PulseAll(_syncRoot);
+                            throw;
+                        }
                     }
-                    catch
-                    {
+
+                    if (_count == _size - 1)
+                        // could have blocking Enqueue thread(s).
                         Monitor.PulseAll(_syncRoot);
-                        throw;
+
+                    if (_list.Count < 0)
+                    {
+                        _count = 0;
                     }
-                }
-
-                if (_count == _size - 1)
-                    // could have blocking Enqueue thread(s).
-                    Monitor.PulseAll(_syncRoot);
-
+                } while (_count == 0);
                 return _list[0];
             }
         }

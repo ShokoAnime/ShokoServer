@@ -732,6 +732,35 @@ namespace Shoko.Server.Models
                             newFullServerPath, fr?.Error ?? "No Error String");
                         return false;
                     }
+                    else
+                    {
+                        // Pause FileWatchDog
+                        ShokoServer._pauseFileWatchDog.Reset();
+                        foreach (System.IO.FileSystemEventArgs evt in ShokoServer.queueFileEvents)
+                        {
+                            try
+                            {
+                                // this shouldn't happend but w/e
+                                if (evt != null)
+                                {
+                                    if (evt.ChangeType == System.IO.WatcherChangeTypes.Created)
+                                    {
+                                        // check if we know the fine by exact name
+                                        if (RepoFactory.VideoLocal.GetByName(Path.GetFileName(evt.Name)) != null)
+                                        {
+                                            logger.Info("This file is known: {0}", evt.Name);
+                                            // delete it from queue for hashing
+                                            ShokoServer.queueFileEvents.Remove(evt);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                        // Resume FileWatchDog
+                        ShokoServer._pauseFileWatchDog.Set();
+                    }
                     string originalFileName = FullServerPath;
 
                     ImportFolderID = destFolder.ImportFolderID;
