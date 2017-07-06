@@ -117,7 +117,7 @@ namespace Shoko.Server
             {
                 "SQLite",
                 "Microsoft SQL Server 2014",
-                "MySQL"
+                "MySQL/MariaDB"
             };
         }
 
