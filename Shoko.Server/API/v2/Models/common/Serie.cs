@@ -85,6 +85,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 if (allpic || pic > 1)
                 {
+                    if (allpic) { pic = 999; }
                     int pic_index = 0;
                     foreach (Contract_ImageDetails cont_image in nv.Fanarts)
                     {
@@ -118,6 +119,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 if (allpic || pic > 1)
                 {
+                    if (allpic) { pic = 999; }
                     int pic_index = 0;
                     foreach (Contract_ImageDetails cont_image in nv.Banners)
                     {
