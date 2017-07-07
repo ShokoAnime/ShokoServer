@@ -5361,4 +5361,7 @@
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Para ter ShokoMetada sincronia com Shoko, entrada de Plex Host que você pode obter de seu navegador da web e o ID da biblioteca Plex que são os números após a parte seguinte; [chave = % 2Flibrary % 2Fsections % 2F] para a biblioteca que você clicou.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Lançamento Web UI</value>
+  </data>
 </root>

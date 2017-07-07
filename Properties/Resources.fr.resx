@@ -5361,4 +5361,7 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Pour avoir ShokoMetada sync avec Shoko, entrée de l’hôte de Plex qui vous pouvez obtenir de votre navigateur web et l’ID de la bibliothèque de Plex qui sont les numéros après la partie suivante ; [clé = % 2Flibrary % 2Fsections % 2F] pour la bibliothèque que vous avez cliqué.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Lancer l’interface utilisateur Web</value>
+  </data>
 </root>

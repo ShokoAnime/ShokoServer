@@ -5361,4 +5361,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Per ShokoMetada sincronizzazione con Shoko, ingresso all'Host di Plex è possibile ottenere dal tuo browser web e l'ID di Plex libreria che sono i numeri dopo la parte seguente; [chiave = % 2Flibrary % 2Fsections % 2F] per la libreria che hai cliccato.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Avviare l'interfaccia utente Web</value>
+  </data>
 </root>
