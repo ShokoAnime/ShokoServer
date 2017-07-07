@@ -1751,8 +1751,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupShortName.ToLower()))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName,
-                    aniFile?.Anime_GroupNameShort ?? "Unknown");
+                string subgroup = aniFile?.Anime_GroupNameShort ?? "Unknown";
+                if (subgroup.Equals("raw", StringComparison.InvariantCultureIgnoreCase)) subgroup = "Unknown";
+                newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName, subgroup);
             }
 
             #endregion
@@ -2167,7 +2168,7 @@ namespace Shoko.Server.Renamer
 
         public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
         {
-            var sourceFile = video.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result as IFile;
+            var sourceFile = video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result as IFile;
 
             if (sourceFile == null) return (null, "File is null");
 
@@ -2242,7 +2243,9 @@ namespace Shoko.Server.Renamer
                             folderName));
                     if (dir == null || !dir.IsOk) continue;
                     // ensure we aren't moving to the current directory
-                    if (folderName.Equals(Path.GetDirectoryName(video.FullServerPath),
+                    if (Path.Combine(place.ImportFolder.ImportFolderLocation,
+                        folderName).Equals(Path.Combine(video.ImportFolder.ImportFolderLocation,
+                            Path.GetDirectoryName(video.FilePath)),
                         StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
@@ -2258,6 +2261,5 @@ namespace Shoko.Server.Renamer
 
             return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
         }
-        public object FullServerPath { get; set; }
     }
 }

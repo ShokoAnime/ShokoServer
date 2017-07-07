@@ -190,26 +190,19 @@ namespace Shoko.Server.Models
                         transaction.Commit();
                     }
                 }
-                episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+            }
+            episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
+            foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+            {
+                try
                 {
-                    if (ep.AnimeEpisodeID == 0)
-                    {
-                        ep.PlexContract = null;
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    try
-                    {
-                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    }
+                    RepoFactory.AnimeEpisode.Save(ep);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
             }
-
             seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
             {
@@ -683,12 +676,10 @@ namespace Shoko.Server.Models
                     return true;
                 }
 
-                logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
-
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
                 if (dst != null && dst.IsOk)
                 {
-                    logger.Trace(
+                    logger.Info(
                         "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
                         FullServerPath, newFullServerPath);
 
@@ -724,6 +715,7 @@ namespace Shoko.Server.Models
                 }
                 else
                 {
+                    logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
                     FileSystemResult fr = source_file.Move(destination);
                     if (fr == null || !fr.IsOk)
                     {

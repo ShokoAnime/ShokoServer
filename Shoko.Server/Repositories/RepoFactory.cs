@@ -163,7 +163,7 @@ namespace Shoko.Server.Repositories
             }
             catch (Exception e)
             {
-                LogManager.GetCurrentClassLogger().Error(e, "There was an error starting the Database Factory");
+                LogManager.GetCurrentClassLogger().Error($"There was an error starting the Database Factory: {e}");
             }
             CleanUpMemory();
         }
