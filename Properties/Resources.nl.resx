@@ -5361,4 +5361,7 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Als u wilt ShokoMetada sync met Shoko, invoergegevens naar de Plex-Host die u van uw webbrowser krijgen kunt en de Plex bibliotheek-ID die de getallen na het volgende deel; [sleutel = % 2Flibrary % 2Fsections % 2F] voor de bibliotheek die u hebt geklikt.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Web UI lanceren</value>
+  </data>
 </root>

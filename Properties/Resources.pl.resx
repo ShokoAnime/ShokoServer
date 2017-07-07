@@ -124,28 +124,28 @@
     <value>Strona główna</value>
   </data>
   <data name="About_MediaPortal" xml:space="preserve">
-    <value>MediaPortal Forum</value>
+    <value>Forum MediaPortal</value>
   </data>
   <data name="About_Project" xml:space="preserve">
-    <value>Strona projektu</value>
+    <value>O projekcie</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Przesyłanie lokalnych głosów do AniDB i MAL</value>
+    <value>Synchronizacja lokalnych głosów do AniDB i MAL</value>
   </data>
   <data name="Add" xml:space="preserve">
-    <value>Dodać</value>
+    <value>Dodaj</value>
   </data>
   <data name="AddSubGroup" xml:space="preserve">
     <value>Nowa podgrupa (subgroup)</value>
   </data>
   <data name="AdminMessageTitle" xml:space="preserve">
-    <value>Admin wiadomość</value>
+    <value>Wiadomości od Admina</value>
   </data>
   <data name="AirDate" xml:space="preserve">
-    <value>Data powietrza</value>
+    <value>Data pierwszej transmisji</value>
   </data>
   <data name="AllEpisodesWatched" xml:space="preserve">
-    <value>Wszystkie odcinki mają już oglądałem</value>
+    <value>Wszystkie odcinki zostały obejrzane</value>
   </data>
   <data name="AllFilters" xml:space="preserve">
     <value>Wszystkie filtry</value>
@@ -157,13 +157,13 @@
     <value>Pobierz dane o postaciach</value>
   </data>
   <data name="AniDBDownloadCharacters" xml:space="preserve">
-    <value>Pobierz obrazy znaków</value>
+    <value>Pobierz zdjęcia postaci</value>
   </data>
   <data name="AniDBDownloadCreators" xml:space="preserve">
-    <value>Pobierz za darmo twórca obrazów</value>
+    <value>Pobierz zdjęcia twórców</value>
   </data>
   <data name="AniDBDownloadOptions" xml:space="preserve">
-    <value>Opcje pobierania AniDB</value>
+    <value>Opcje pobierania z AniDB</value>
   </data>
   <data name="AniDBDownloadRelated" xml:space="preserve">
     <value>Pobierz informację o powiązanych seriach</value>
@@ -190,7 +190,7 @@
     <value>Usuń plik (AniDB)</value>
   </data>
   <data name="AniDBMyListDeleteAction" xml:space="preserve">
-    <value>Usunięcie działania</value>
+    <value>Usunięcie akcji</value>
   </data>
   <data name="AniDBMyListDeleteLocal" xml:space="preserve">
     <value>Usuń plik (lokalne DB)</value>
@@ -202,16 +202,16 @@
     <value>HDD</value>
   </data>
   <data name="AniDBMyListLocalActions" xml:space="preserve">
-    <value>Lokalne działania</value>
+    <value>Lokalne akcje</value>
   </data>
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
-    <value>Mark usunięte</value>
+    <value>Oznacz usunięte</value>
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Zewnętrzny znak (CD/DVD)</value>
+    <value>Oznacz Zewnętrzne nośniki (CD/DVD)</value>
   </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
-    <value>Nieznany znak</value>
+    <value>Oznacz nieznany</value>
   </data>
   <data name="AniDBMylistOptions" xml:space="preserve">
     <value>Opcje AniDB MyList</value>
@@ -223,7 +223,7 @@
     <value>Wczytaj informacje o obejrzanych</value>
   </data>
   <data name="AniDBMyListSetUnwatched" xml:space="preserve">
-    <value>Ustaw jakoe nieobejrzane</value>
+    <value>Ustaw jako nieobejrzane</value>
   </data>
   <data name="AniDBMyListSetWatched" xml:space="preserve">
     <value>Ustaw jako obejrzane</value>
@@ -232,7 +232,7 @@
     <value>Status</value>
   </data>
   <data name="AniDBMyListSyncAndImport" xml:space="preserve">
-    <value>MyList Sync i opcje importu</value>
+    <value>Synchronizacja MyList i opcje importu</value>
   </data>
   <data name="AniDBMyListUnknown" xml:space="preserve">
     <value>Nieznany</value>
@@ -244,28 +244,28 @@
     <value>Automatycznie zaktualizować kalendarz</value>
   </data>
   <data name="AniDBScheduleHTTP" xml:space="preserve">
-    <value>Automatycznie zaktualizować Anime i odcinek informacje</value>
+    <value>Automatycznie zaktualizować informacje o Anime i odcinekach</value>
   </data>
   <data name="AniDBScheduleMyList" xml:space="preserve">
     <value>Automatycznie synchronizuj informacje o MyList</value>
   </data>
   <data name="AniDBScheduleMyListStats" xml:space="preserve">
-    <value>Automatycznie Pobierz mojalista statystyki z AniDB</value>
+    <value>Automatycznie pobierz statystyki MyList  z AniDB</value>
   </data>
   <data name="AniDBScheduleOptions" xml:space="preserve">
     <value>Zaplanowane aktualizacje</value>
   </data>
   <data name="AniDBSignup" xml:space="preserve">
-    <value>Zapisz się do AniDB teraz</value>
+    <value>Zarejestruj się w AniDB</value>
   </data>
   <data name="AniDBVoteCount" xml:space="preserve">
     <value>Liczba głosów AniDB</value>
   </data>
   <data name="AniDB_Collecting" xml:space="preserve">
-    <value>Zbierania:</value>
+    <value>Zbieranie:</value>
   </data>
   <data name="AniDB_DataMissing" xml:space="preserve">
-    <value>Brakujących danych</value>
+    <value>Brak danych</value>
   </data>
   <data name="AniDB_Files" xml:space="preserve">
     <value>Plików:</value>
@@ -286,13 +286,13 @@
     <value>Trzeba zobaczyć</value>
   </data>
   <data name="AniDB_MyListAdd" xml:space="preserve">
-    <value>Dodawanie pliku mojalista: {0}</value>
+    <value>Dodawanie pliku do MyList: {0}</value>
   </data>
   <data name="AniDB_MyListDelete" xml:space="preserve">
     <value>Usuwanie pliku z MyList: {0} _ {1}</value>
   </data>
   <data name="AniDB_Recommended" xml:space="preserve">
-    <value>Zaleca się</value>
+    <value>Polecane</value>
   </data>
   <data name="AniDB_Votes" xml:space="preserve">
     <value>Głosy</value>
@@ -301,7 +301,7 @@
     <value>Anime</value>
   </data>
   <data name="AnimeBytesResetBody" xml:space="preserve">
-    <value>Zresetować pliku cookie, jeśli nie otrzymujesz żadnych wyników od AnimeBytes kiedy powinieneś być. To wymusi logowania do AnimeBytes ponownie.</value>
+    <value>Zresetować pliku cookie, jeśli nie otrzymujesz żadnych wyników od AnimeBytes, a powinieneś. To wymusi ponowne logowania do AnimeBytes.</value>
   </data>
   <data name="AnimeBytesResetTitle" xml:space="preserve">
     <value>Zresetować plik cookie</value>
@@ -5362,5 +5362,8 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   </data>
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Aby ShokoMetada synchronizacji z Shoko, wejście Plex hosta, który można uzyskać z przeglądarki sieci web i identyfikator biblioteki Plex, które są numery po następujących części; [klucz = % 2Flibrary % 2Fsections % 2F] dla biblioteki został kliknięty.</value>
+  </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Uruchamianie interfejsu użytkownika sieci Web</value>
   </data>
 </root>

@@ -5361,4 +5361,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>To have ShokoMetada sync with Shoko, input the Plex Host which you can get from your web browser and the Plex Library ID which are the numbers after the following part; [key=%2Flibrary%2Fsections%2F] for the library you've clicked.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Launch Web UI</value>
+  </data>
 </root>

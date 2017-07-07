@@ -5361,4 +5361,7 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Para ShokoMetada de la sincronización con Shoko, entrada el Plex Host que se puede llegar desde el explorador web y el identificador de biblioteca de Plex que son los números después de la parte siguiente; [clave = % 2Flibrary % 2Fsections % 2F] para la biblioteca presionado.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Lanzamiento Web interfaz de usuario</value>
+  </data>
 </root>
