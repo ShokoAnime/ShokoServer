@@ -386,22 +386,29 @@ namespace Shoko.Server.PlexAndKodi
 
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        TvDB_Episode tvep = ep?.TvDBEpisode;
+                        List<CrossRef_AniDB_TvDBV2> xref_tvdbv2 =
+                            RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
+                                aep.EpisodeNumber);
+                        if (xref_tvdbv2?.Count > 0)
+                        {
+                            TvDB_Episode tvep = ep?.TvDBEpisode;
 
-                        if (tvep != null)
-                        {
-                            l.Thumb = tvep.GenPoster(null);
-                            l.Summary = tvep.Overview;
-                            l.Season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:0#}";
-                        }
-                        else
-                        {
-                            string anime = "[Blank]";
-                            SVR_AnimeSeries ser = ep.GetAnimeSeries();
-                            if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
-                            LogManager.GetCurrentClassLogger()
-                                .Error($"Episode {aep.EpisodeNumber}: {aep.EnglishName} from {anime} is out of range"+
-                                       " for its TvDB Link. Please relink it.");
+                            if (tvep != null)
+                            {
+                                l.Thumb = tvep.GenPoster(null);
+                                l.Summary = tvep.Overview;
+                                l.Season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:0#}";
+                            }
+                            else
+                            {
+                                string anime = "[Blank]";
+                                SVR_AnimeSeries ser = ep.GetAnimeSeries();
+                                if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
+                                LogManager.GetCurrentClassLogger()
+                                    .Warn(
+                                        $"Episode {aep.EpisodeNumber}: {aep.EnglishName} from {anime} is out of range" +
+                                        " for its TvDB Link. Please check the TvDB links for it.");
+                            }
                         }
                     }
 
