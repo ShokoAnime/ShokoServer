@@ -5361,4 +5361,7 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Um ShokoMetada Sync mit Shoko, Eingang der Plex-Host, die Sie von Ihrem Web-Browser zu bekommen und die Plex Bibliothek-ID, die die Zahlen nach dem folgenden Teil sind; [Schlüssel = % 2Flibrary % 2Fsections % 2F] für die Bibliothek, die Sie angeklickt haben.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Web-UI zu starten</value>
+  </data>
 </root>

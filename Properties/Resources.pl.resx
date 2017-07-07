@@ -5363,4 +5363,7 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Aby ShokoMetada synchronizacji z Shoko, wejście Plex hosta, który można uzyskać z przeglądarki sieci web i identyfikator biblioteki Plex, które są numery po następujących części; [klucz = % 2Flibrary % 2Fsections % 2F] dla biblioteki został kliknięty.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Uruchamianie interfejsu użytkownika sieci Web</value>
+  </data>
 </root>

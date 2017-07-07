@@ -5361,4 +5361,7 @@
   <data name="ShokoMetadata_Info" xml:space="preserve">
     <value>Чтобы синхронизировать ShokoMetada с Шоко, ввод Plex хост, который вы можете получить с вашего веб-браузера и идентификатор Plex библиотеки, которые являются цифры после следующей части; [ключ = % 2Flibrary % 2Fsections % 2F] для библиотеки, вы нажали.</value>
   </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Запуск веб-интерфейс</value>
+  </data>
 </root>

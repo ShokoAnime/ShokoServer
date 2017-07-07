@@ -12742,6 +12742,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Launch Web UI.
+        /// </summary>
+        public static string Toolbar_WebUI {
+            get {
+                return ResourceManager.GetString("Toolbar_WebUI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Download information and images about the characters and seiyuu that appear in anime.
         /// </summary>
         public static string Tooltip_AniDBDownloadChar {
