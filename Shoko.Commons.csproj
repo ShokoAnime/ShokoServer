@@ -125,6 +125,7 @@
     <Compile Include="Utils\Formatting.cs" />
     <Compile Include="Languages\Languages.cs" />
     <Compile Include="Languages\NamingLanguage.cs" />
+    <Compile Include="Utils\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utils\Misc.cs" />
     <Compile Include="Utils\NaturalSortComparer.cs" />
   </ItemGroup>

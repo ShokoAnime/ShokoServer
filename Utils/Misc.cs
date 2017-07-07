@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace Shoko.Commons.Utils
 {
@@ -26,6 +32,157 @@ namespace Shoko.Commons.Utils
         {
             return DownloadWebPage(url, null, false);
         }
+        public static string ToName<T,U>(this Expression<Func<T, U>> expr)
+        {
+            var member = expr.Body as MemberExpression;
+            if (member == null)
+            {
+                var ue = expr.Body as UnaryExpression;
+                if (ue != null)
+                    member = ue.Operand as MemberExpression;
+            }
+            return member?.Member.Name;
+        }
+        public static Dictionary<string, bool> GetSortDescriptions(this CL_GroupFilter gf)
+        {
+            Dictionary<string, bool> lst = new Dictionary<string, bool>();
+            List<GroupFilterSortingCriteria> criterias = GroupFilterSortingCriteria.Create(gf.GroupFilterID, gf.SortingCriteria);
+            foreach (GroupFilterSortingCriteria f in criterias)
+            {
+                KeyValuePair<string, bool> k = GetSortDescription(f.SortType, f.SortDirection);
+                lst[k.Key] = k.Value;
+            }
+            return lst;
+        }
+
+        public static IQueryable<T> SortGroups<T>(this CL_GroupFilter gf, IQueryable<T> list) where T: CL_AnimeGroup_User
+        {
+            List<GroupFilterSortingCriteria> criterias = GroupFilterSortingCriteria.Create(gf.GroupFilterID, gf.SortingCriteria);
+            foreach (GroupFilterSortingCriteria f in criterias)
+            {
+                list = GeneratePredicate(list, f.SortType, f.SortDirection);
+            }
+            return list;
+        }
+
+        public static IQueryable<T> GeneratePredicate<T>(this IQueryable<T> lst, GroupFilterSorting sortType, GroupFilterSortDirection sortDirection) where T : CL_AnimeGroup_User
+        {
+            Expression<Func<T, dynamic>> selector;
+
+            switch (sortType)
+            {
+                case GroupFilterSorting.AniDBRating:
+                    selector = c =>c.Stat_AniDBRating;
+                    break;
+                case GroupFilterSorting.EpisodeAddedDate:
+                    selector = c => c.EpisodeAddedDate;
+                    break;
+                case GroupFilterSorting.EpisodeAirDate:
+                    selector = c => c.LatestEpisodeAirDate;
+                    break;
+                case GroupFilterSorting.EpisodeWatchedDate:
+                    selector = c => c.WatchedDate;
+                    break;
+                case GroupFilterSorting.GroupName:
+                    selector = c => c.GroupName;
+                    break;
+                case GroupFilterSorting.SortName:
+                    selector = c => c.SortName;
+                    break;
+                case GroupFilterSorting.MissingEpisodeCount:
+                    selector = c => c.MissingEpisodeCount;
+                    break;
+                case GroupFilterSorting.SeriesAddedDate:
+                    selector = c => c.Stat_SeriesCreatedDate;
+                    break;
+                case GroupFilterSorting.SeriesCount:
+                    selector = c => c.Stat_SeriesCount;
+                    break;
+                case GroupFilterSorting.UnwatchedEpisodeCount:
+                    selector = c => c.UnwatchedEpisodeCount;
+                    break;
+                case GroupFilterSorting.UserRating:
+                    selector = c => c.Stat_UserVoteOverall;
+                    break;
+                case GroupFilterSorting.Year:
+                    if (sortDirection == GroupFilterSortDirection.Asc)
+                        selector = c => c.Stat_AirDate_Min;   
+                    else
+                        selector = c => c.Stat_AirDate_Max;
+                    break;
+                default:
+                    selector = c => c.GroupName;
+                    break;
+            }
+            if (lst is IOrderedQueryable<T>)
+            {
+                IOrderedQueryable<T> n = (IOrderedQueryable<T>) lst;
+                if (sortDirection != GroupFilterSortDirection.Asc)
+                    return n.ThenByDescending(selector);
+                return n.ThenBy(selector);
+
+            }
+            if (sortDirection != GroupFilterSortDirection.Asc)
+                return lst.OrderByDescending(selector);
+            return lst.OrderBy(selector);
+
+        }
+
+        public static KeyValuePair<string, bool> GetSortDescription(this GroupFilterSorting sortType, GroupFilterSortDirection sortDirection)
+        {
+            string sortColumn = "";
+            bool srt = false;
+            switch (sortType)
+            {
+                case GroupFilterSorting.AniDBRating:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, decimal>>)(c => c.Stat_AniDBRating)).ToName();
+                    break;
+                case GroupFilterSorting.EpisodeAddedDate:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, DateTime?>>)(c => c.EpisodeAddedDate)).ToName();
+                    break;
+                case GroupFilterSorting.EpisodeAirDate:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, DateTime?>>)(c => c.LatestEpisodeAirDate)).ToName();
+                    break;
+                case GroupFilterSorting.EpisodeWatchedDate:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, DateTime?>>)(c => c.WatchedDate)).ToName();
+                    break;
+                case GroupFilterSorting.GroupName:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, string>>)(c => c.GroupName)).ToName();
+                    break;
+                case GroupFilterSorting.SortName:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, string>>)(c => c.SortName)).ToName();
+                    break;
+                case GroupFilterSorting.MissingEpisodeCount:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, int>>)(c => c.MissingEpisodeCount)).ToName();
+                    break;
+                case GroupFilterSorting.SeriesAddedDate:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, DateTime?>>)(c => c.Stat_SeriesCreatedDate)).ToName();
+                    break;
+                case GroupFilterSorting.SeriesCount:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, int>>)(c => c.Stat_SeriesCount)).ToName();
+                    break;
+                case GroupFilterSorting.UnwatchedEpisodeCount:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, int>>)(c => c.UnwatchedEpisodeCount)).ToName();
+                    break;
+                case GroupFilterSorting.UserRating:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, decimal?>>)(c => c.Stat_UserVoteOverall)).ToName();
+                    break;
+                case GroupFilterSorting.Year:
+                    sortColumn = sortDirection == GroupFilterSortDirection.Asc ? ((Expression<Func<CL_AnimeGroup_User, DateTime?>>)(c => c.Stat_AirDate_Min)).ToName() : ((Expression<Func<CL_AnimeGroup_User, DateTime?>>)(c => c.Stat_AirDate_Max)).ToName();
+                    break;
+                case GroupFilterSorting.GroupFilterName:
+                    sortColumn = ((Expression<Func<CL_GroupFilter, string>>)(c => c.GroupFilterName)).ToName();
+                    break;
+                default:
+                    sortColumn = ((Expression<Func<CL_AnimeGroup_User, string>>)(c => c.GroupName)).ToName();
+                    break;
+            }
+
+            if (sortDirection != GroupFilterSortDirection.Asc)
+                srt = true;
+            return new KeyValuePair<string, bool>(sortColumn,srt);
+        }
+
 
         public static string DownloadWebPage(string url, string cookieHeader, bool setUserAgent)
         {
