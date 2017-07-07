@@ -86,8 +86,8 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/ForSerie/{animeSeriesID}/{userID}", Verbs.Get)]
         CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID);
 
-        [Rest("Group/Recreate", Verbs.Post)]
-        void RecreateAllGroups(bool resume = false);
+        [Rest("Group/Recreate/{resume}", Verbs.Post)]
+        void RecreateAllGroups(bool resume);
 
         [Rest("Group/Summary/{animeID}", Verbs.Get)]
         List<CL_GroupFileSummary> GetGroupFileSummary(int animeID);
@@ -376,7 +376,7 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Variation/{videoLocalID}/{isVariation}", Verbs.Post)]
         string SetVariationStatusOnFile(int videoLocalID, bool isVariation);
 
-        [Rest("File/Rescan/ManuallyLinked", Verbs.Post)]
+        [Rest("File/Rescan/ManuallyLinked", Verbs.Get)]
         void RescanManuallyLinkedFiles();
 
         [Rest("File/Detailed/{episodeID}/{userID}", Verbs.Get)]
@@ -541,10 +541,10 @@ namespace Shoko.Models.Interfaces
 
         [Rest("AniDB/Status", Verbs.Post)]
         string TestAniDBConnection();
-    
+
         [Rest("AniDB/Character/{animeID}",Verbs.Get)]
         List<CL_AniDB_Character> GetCharactersForAnime(int animeID);
-     
+
         [Rest("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}", Verbs.Post)]
         int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
 
@@ -661,7 +661,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Trakt/Comment/{animeID}", Verbs.Get)]
         List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID);
 
-        [Rest("Trakt/Comment/{traktID}/{commentText}/{isSpoiler}", Verbs.Post)]
+        [Rest("Trakt/Comment/{traktID}/{isSpoiler}", Verbs.Post)]
         CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler);
 
         [Rest("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}", Verbs.Post)]
@@ -680,7 +680,7 @@ namespace Shoko.Models.Interfaces
         [Rest("MAL/Status", Verbs.Post)]
         string TestMALLogin();
 
-        [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{epType}/{epNumber}", Verbs.Post)]
+        [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Post)]
         string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
 
         [Rest("MAL/CrossRef/{animeID}/{epType}/{epNumber}", Verbs.Delete)]
@@ -797,7 +797,7 @@ namespace Shoko.Models.Interfaces
         [Rest("User",Verbs.Get)]
         List<JMMUser> GetAllUsers();
 
-        [Rest("User/{username}/{password?}", Verbs.Post)]
+        [Rest("User/{username}", Verbs.Post)]
         JMMUser AuthenticateUser(string username, string password);
 
         [Rest("User", Verbs.Post)]
@@ -806,7 +806,7 @@ namespace Shoko.Models.Interfaces
         [Rest("User", Verbs.Delete)]
         string DeleteUser(int userID);
 
-        [Rest("User/ChangePassword/{userID}/{newPassword?}", Verbs.Post)]
+        [Rest("User/ChangePassword/{userID}", Verbs.Post)]
         string ChangePassword(int userID, string newPassword);
 
         [Rest("User/Plex/Pin/{userID}", Verbs.Get)]
