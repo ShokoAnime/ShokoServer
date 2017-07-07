@@ -94,7 +94,7 @@
         /// <summary>
         /// show all know pictures related to object
         /// </summary>
-        public int allpic = 0;
+        public int allpics = 0;
 
         /// <summary>
         /// show only given number of pictures related to object

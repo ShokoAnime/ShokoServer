@@ -955,6 +955,20 @@ namespace Shoko.Server
                     cmdDel.Save();
                 }
 
+                // Clean up failed imports
+                using (var transaction = session.BeginTransaction())
+                {
+                    var list = RepoFactory.VideoLocal.GetAll().SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+                        .Where(a => RepoFactory.AniDB_Anime.GetByID(a.AnimeID) == null ||
+                                    a.GetEpisode() == null).ToArray();
+                    foreach (var xref in list)
+                    {
+                        // We don't need to update anything since they don't exist
+                        RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
+                    }
+                    transaction.Commit();
+                }
+
                 // update everything we modified
                 foreach (SVR_AnimeEpisode ep in episodesToUpdate)
                 {
