@@ -141,8 +141,8 @@ namespace Shoko.Server.Commands
 
                 int numAttempts = 0;
 
-                // Wait 3 minutes seconds before giving up on trying to access the file
-                while ((filesize = CanAccessFile(FileName)) == 0 && (numAttempts < 180))
+                // Wait 1 minute seconds before giving up on trying to access the file
+                while ((filesize = CanAccessFile(FileName)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
@@ -150,7 +150,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // if we failed to access the file, get ouuta here
-                if (numAttempts == 180)
+                if (numAttempts >= 60)
                 {
                     logger.Error("Could not access file: " + FileName);
                     return null;

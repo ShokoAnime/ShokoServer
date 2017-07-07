@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using FluentNHibernate.Utils;
+using Nancy.Extensions;
 using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
@@ -182,6 +183,27 @@ namespace Shoko.Server.Repositories.Cached
                     foreach (SVR_VideoLocal remove in toRemove)
                     {
                         DeleteWithOpenTransaction(session, remove);
+                    }
+                    transaction.Commit();
+                }
+
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Commons.Properties.Resources.Database_Cache, typeof(VideoLocal).Name, " Cleaning Fragmented Records");
+                using (var transaction = session.BeginTransaction())
+                {
+                    var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+                        .Where(a => RepoFactory.AniDB_Anime.GetByID(a.AnimeID) == null ||
+                                    a.GetEpisode() == null).ToArray();
+                    count = 0;
+                    max = list.Length;
+                    foreach (var xref in list)
+                    {
+                        // We don't need to update anything since they don't exist
+                        RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
+                        count++;
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Cache, typeof(VideoLocal).Name,
+                            " Cleaning Fragmented Records - " + count + "/" + max);
                     }
                     transaction.Commit();
                 }
