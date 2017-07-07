@@ -303,7 +303,7 @@ namespace Shoko.Server.Providers.MovieDB
                 SVR_AniDB_Anime anime = ser.GetAnime();
                 if (anime == null) continue;
 
-                if (anime.GetIsMovieDBLinkDisabled()) continue;
+                if (anime.IsMovieDBLinkDisabled()) continue;
 
                 // don't scan if it is associated on the TvDB
                 if (anime.GetCrossRefTvDBV2().Count > 0) continue;
