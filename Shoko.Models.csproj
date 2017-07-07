@@ -93,6 +93,7 @@
     <Compile Include="Enums\ImageDownloadEventType.cs" />
     <Compile Include="Enums\PlaylistItemType.cs" />
     <Compile Include="Enums\PlaylistPlayOrder.cs" />
+    <Compile Include="Enums\RandomObjectType.cs" />
     <Compile Include="Enums\RandomSeriesEpisodeLevel.cs" />
     <Compile Include="Enums\RecentAdditionsType.cs" />
     <Compile Include="Enums\RecommendationType.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="Enums\SeriesSearchType.cs" />
     <Compile Include="Enums\SeriesWidgets.cs" />
     <Compile Include="Enums\SortDirection.cs" />
+    <Compile Include="Enums\StatCountType.cs" />
     <Compile Include="Enums\TraktActivityAction.cs" />
     <Compile Include="Enums\TraktActivityType.cs" />
     <Compile Include="Enums\WatchedStatus.cs" />
