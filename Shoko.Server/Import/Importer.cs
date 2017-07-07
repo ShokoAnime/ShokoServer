@@ -924,6 +924,7 @@ namespace Shoko.Server
                             transaction.Commit();
                         }
                     }
+                    // Remove duplicate places
                     places = v.Places;
                     if (places?.Count == 1) continue;
                     if (places?.Count > 0)
