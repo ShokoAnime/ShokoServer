@@ -71,13 +71,13 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request grp, int userID);
 
-        [Rest("Group/DefaultSerie/{animeGroupID}/{animeSeriesID}", Verbs.Get)]
+        [Rest("Group/DefaultSerie/{animeGroupID}/{animeSeriesID}", Verbs.Post)]
         void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID);
 
         [Rest("Group/DefaultSerie/{animeGroupID}", Verbs.Delete)]
         void RemoveDefaultSeriesForGroup(int animeGroupID);
 
-        [Rest("Group/Rename", Verbs.Get)]
+        [Rest("Group/Rename", Verbs.Post)]
         string RenameAllGroups();
 
         [Rest("Group/{animeGroupID}/{deleteFiles}", Verbs.Delete)]
@@ -96,7 +96,7 @@ namespace Shoko.Models.Interfaces
 
         #region Series
 
-        [Rest("Serie/CreateFromAnime/{animeID}/{userID}", Verbs.Post)]
+        [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}", Verbs.Post)]
         CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID);
 
         [Rest("Serie/{userID}", Verbs.Get)]
@@ -105,7 +105,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Serie/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request request, int userID);
 
-        [Rest("Serie/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}", Verbs.Get)]
+        [Rest("Serie/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID);
 
         [Rest("Serie/ForGroup/{animeGroupID}/{userID}", Verbs.Get)]
@@ -114,7 +114,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Serie/{animeSeriesID}/{userID}", Verbs.Get)]
         CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID);
 
-        [Rest("Serie/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}", Verbs.Get)]
+        [Rest("Serie/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}", Verbs.Post)]
         string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType, int userID);
 
         [Rest("Serie/Seasons/{seriesID}", Verbs.Get)]
@@ -123,7 +123,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Serie/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}", Verbs.Delete)]
         string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup);
 
-        [Rest("Serie/TvDB/Refresh/{seriesID}", Verbs.Get)]
+        [Rest("Serie/TvDB/Refresh/{seriesID}", Verbs.Post)]
         string UpdateTvDBData(int seriesID);
 
         [Rest("Serie/MissingEpisodes/{maxRecords}/{userID}", Verbs.Get)]
@@ -151,7 +151,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Episode/LastWatched/{animeSeriesID}/{jmmuserID}", Verbs.Get)]
         CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID);
 
-        [Rest("Episode/Refresh/{episodeID}", Verbs.Get)]
+        [Rest("Episode/Refresh/{episodeID}", Verbs.Post)]
         string UpdateEpisodeData(int episodeID);
 
         [Rest("Episode/ContinueWatching/{userID}/{maxRecords}", Verbs.Get)]
@@ -169,7 +169,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Episode/ForSingleFile/{videoLocalID}/{userID}", Verbs.Get)]
         List<CL_AnimeEpisode_User> GetEpisodesForFile(int videoLocalID, int userID);
 
-        [Rest("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}", Verbs.Get)]
+        [Rest("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
 
         [Rest("Episode/ForMultipleFiles/{userID}/{onlyFinishedSeries}/{ignoreVariations}", Verbs.Get)]
@@ -237,10 +237,10 @@ namespace Shoko.Models.Interfaces
 
         #region WebCache
 
-        [Rest("WebCache/Trakt/UseLinks/{animeID}", Verbs.Get)]
+        [Rest("WebCache/Trakt/UseLinks/{animeID}", Verbs.Post)]
         string UseMyTraktLinksWebCache(int animeID);
 
-        [Rest("WebCache/TvDB/UseLinks/{animeID}", Verbs.Get)]
+        [Rest("WebCache/TvDB/UseLinks/{animeID}", Verbs.Post)]
         string UseMyTvDBLinksWebCache(int animeID);
 
         [Rest("WebCache/RandomLinkForApproval/{linkType}", Verbs.Get)]
@@ -261,7 +261,7 @@ namespace Shoko.Models.Interfaces
         [Rest("WebCache/CrossRef/MAL/{animeID}", Verbs.Get)]
         CL_CrossRef_AniDB_MAL_Response GetMALCrossRefWebCache(int animeID);
 
-        [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Get)]
+        [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Post)]
         string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
 
         [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Delete)]
@@ -270,7 +270,7 @@ namespace Shoko.Models.Interfaces
         [Rest("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}", Verbs.Get)]
         List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
 
-        [Rest("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}", Verbs.Get)]
+        [Rest("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}", Verbs.Post)]
         string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
 
         [Rest("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}", Verbs.Delete)]
@@ -283,28 +283,28 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Association/{videoLocalID}/{animeEpisodeID}", Verbs.Delete)]
         string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID);
 
-        [Rest("File/Status/{videoLocalID}/{isIgnored}", Verbs.Get)]
+        [Rest("File/Status/{videoLocalID}/{isIgnored}", Verbs.Post)]
         string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored);
 
-        [Rest("File/Association/{videoLocalID}/{animeEpisodeID}", Verbs.Get)]
+        [Rest("File/Association/{videoLocalID}/{animeEpisodeID}", Verbs.Post)]
         string AssociateSingleFile(int videoLocalID, int animeEpisodeID);
 
-        [Rest("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}", Verbs.Get)]
+        [Rest("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}", Verbs.Post)]
         string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startingEpisodeNumber, int endEpisodeNumber);
 
         [Rest("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}", Verbs.Post)]
         string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber, bool singleEpisode);
 
-        [Rest("File/Resume/{videoLocalID}/{resumeposition}/{userID}", Verbs.Get)]
+        [Rest("File/Resume/{videoLocalID}/{resumeposition}/{userID}", Verbs.Post)]
         string SetResumePosition(int videoLocalID, long resumeposition, int userID);
 
-        [Rest("File/Watch/{videoLocalID}/{watchedStatus}/{userID}", Verbs.Get)]
+        [Rest("File/Watch/{videoLocalID}/{watchedStatus}/{userID}", Verbs.Post)]
         string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
 
-        [Rest("File/Detailed/{videoLocalID}/{userID}", Verbs.Get)]
+        [Rest("File/Detailed/{videoLocalID}/{userID}", Verbs.Post)]
         CL_VideoDetailed GetVideoDetailed(int videoLocalID, int userID);
 
-        [Rest("File/Rehash/{videoLocalID}", Verbs.Get)]
+        [Rest("File/Rehash/{videoLocalID}", Verbs.Post)]
         void RehashFile(int videoLocalID);
 
         [Rest("File/Unrecognised/{userID}", Verbs.Get)]
@@ -334,25 +334,25 @@ namespace Shoko.Models.Interfaces
         [Rest("File/GetMultipleFilesForDeletionByPreferences/{userID}", Verbs.Get)]
         List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID);
 
-        [Rest("File/Duplicated/Reevaluate", Verbs.Get)]
+        [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
         void ReevaluateDuplicateFiles();
 
         [Rest("File/Physical/{videoplaceid}", Verbs.Delete)]
         string DeleteVideoLocalPlaceAndFile(int videoplaceid);
 
-        [Rest("File/Unlinked/Rescan", Verbs.Get)]
+        [Rest("File/Unlinked/Rescan", Verbs.Post)]
         void RescanUnlinkedFiles();
 
-        [Rest("File/Hashes/Sync", Verbs.Get)]
+        [Rest("File/Hashes/Sync", Verbs.Post)]
         void SyncHashes();
 
         [Rest("File/Detailed/{animeID}/{relGroupName}/{resolution}/{videoSource}/{videoBitDepth}/{userID}", Verbs.Get)]
         List<CL_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int videoBitDepth, int userID);
 
-        [Rest("File/Refresh/{videoLocalID}", Verbs.Get)]
+        [Rest("File/Refresh/{videoLocalID}", Verbs.Post)]
         string UpdateFileData(int videoLocalID);
 
-        [Rest("File/Rescan/{videoLocalID}", Verbs.Get)]
+        [Rest("File/Rescan/{videoLocalID}", Verbs.Post)]
         string RescanFile(int videoLocalID);
 
         [Rest("File/Search/{searchType}/{searchCriteria}/{userID}", Verbs.Get)]
@@ -373,7 +373,7 @@ namespace Shoko.Models.Interfaces
         [Rest("File/ForAnime/{animeID}/{userID}", Verbs.Get)]
         List<CL_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID);
 
-        [Rest("File/Variation/{videoLocalID}/{isVariation}", Verbs.Get)]
+        [Rest("File/Variation/{videoLocalID}/{isVariation}", Verbs.Post)]
         string SetVariationStatusOnFile(int videoLocalID, bool isVariation);
 
         [Rest("File/Rescan/ManuallyLinked", Verbs.Get)]
@@ -398,19 +398,19 @@ namespace Shoko.Models.Interfaces
         [Rest("Folder/{importFolderID}", Verbs.Delete)]
         string DeleteImportFolder(int importFolderID);
 
-        [Rest("Folder/Import", Verbs.Get)]
+        [Rest("Folder/Import", Verbs.Post)]
         void RunImport();
 
-        [Rest("Folder/RemoveMissing", Verbs.Get)]
+        [Rest("Folder/RemoveMissing", Verbs.Post)]
         void RemoveMissingFiles();
 
-        [Rest("Folder/Scan/{importFolderID}", Verbs.Get)]
+        [Rest("Folder/Scan/{importFolderID}", Verbs.Post)]
         void ScanFolder(int importFolderID);
 
-        [Rest("Folder/Scan", Verbs.Get)]
+        [Rest("Folder/Scan", Verbs.Post)]
         void ScanDropFolders();
 
-        [Rest("Folder/RefreshMediaInfo", Verbs.Get)]
+        [Rest("Folder/RefreshMediaInfo", Verbs.Post)]
         void RefreshAllMediaInfo();
 
         #endregion
@@ -455,16 +455,16 @@ namespace Shoko.Models.Interfaces
         [Rest("AniDB/Anime/Rating/{collectionState}/{watchedState}/{ratingVotedState}/{userID}", Verbs.Get)]
         List<CL_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState, int userID);
 
-        [Rest("AniDB/Anime/Update/{animeID}", Verbs.Get)]
+        [Rest("AniDB/Anime/Update/{animeID}", Verbs.Post)]
         string UpdateAnimeData(int animeID);
 
-        [Rest("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}", Verbs.Get)]
+        [Rest("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}", Verbs.Post)]
         void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
 
         [Rest("AniDB/Anime/Ignore/{userID}", Verbs.Get)]
         List<CL_IgnoreAnime> GetIgnoredAnime(int userID);
 
-        [Rest("AniDB/Anime/Ignore/{animeID}/{ignoreType}/{userID}", Verbs.Get)]
+        [Rest("AniDB/Anime/Ignore/{animeID}/{ignoreType}/{userID}", Verbs.Post)]
         void IgnoreAnime(int animeID, int ignoreType, int userID);
 
         [Rest("AniDB/Anime/Ignore/{ignoreAnimeID}", Verbs.Delete)]
@@ -481,7 +481,7 @@ namespace Shoko.Models.Interfaces
         [Rest("AniDB/Anime/Calendar/{userID}/{numberOfDays}", Verbs.Get)]
         List<CL_AniDB_Anime> GetMiniCalendar(int userID, int numberOfDays);
 
-        [Rest("AniDB/Anime/Calendar/Update", Verbs.Get)]
+        [Rest("AniDB/Anime/Calendar/Update", Verbs.Post)]
         string UpdateCalendarData();
 
         #endregion
@@ -501,10 +501,10 @@ namespace Shoko.Models.Interfaces
 
         #region AniDB MyList
 
-        [Rest("AniDB/MyList/Sync", Verbs.Get)]
+        [Rest("AniDB/MyList/Sync", Verbs.Post)]
         void SyncMyList();
 
-        [Rest("AniDB/MyList/{hash}", Verbs.Get)]
+        [Rest("AniDB/MyList/{hash}", Verbs.Post)]
         void ForceAddFileToMyList(string hash);
 
         [Rest("AniDB/MyList/Missing/{userID}", Verbs.Get)]
@@ -520,7 +520,7 @@ namespace Shoko.Models.Interfaces
 
         #region AniDB Votes
 
-        [Rest("AniDB/Vote/Sync", Verbs.Get)]
+        [Rest("AniDB/Vote/Sync", Verbs.Post)]
         void SyncVotes();
 
         [Rest("AniDB/Vote/{animeID}/{voteType}", Verbs.Post)]
@@ -539,13 +539,13 @@ namespace Shoko.Models.Interfaces
         [Rest("AniDB/CrossRef/{animeID}",Verbs.Get)]
         CL_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
 
-        [Rest("AniDB/Status", Verbs.Get)]
+        [Rest("AniDB/Status", Verbs.Post)]
         string TestAniDBConnection();
 
         [Rest("AniDB/Character/{animeID}",Verbs.Get)]
         List<CL_AniDB_Character> GetCharactersForAnime(int animeID);
 
-        [Rest("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}", Verbs.Get)]
+        [Rest("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}", Verbs.Post)]
         int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
 
         [Rest("AniDB/Character/FromSeiyuu/{seiyuuID}",Verbs.Get)]
@@ -594,7 +594,7 @@ namespace Shoko.Models.Interfaces
         [Rest("TvDB/Language", Verbs.Get)]
         List<TvDB_Language> GetTvDBLanguages();
 
-        [Rest("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}/{animeID}", Verbs.Get)]
+        [Rest("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}/{animeID}", Verbs.Post)]
         string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID);
 
         [Rest("TvDB/CrossRef/Episode/{animeID}", Verbs.Get)]
@@ -625,10 +625,10 @@ namespace Shoko.Models.Interfaces
         [Rest("Trakt/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{traktID}/{traktSeasonNumber}/{traktEpNumber}", Verbs.Delete)]
         string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber, int traktEpNumber);
 
-        [Rest("Trakt/LinkValidity/{slug}/{removeDBEntries}", Verbs.Get)]
+        [Rest("Trakt/LinkValidity/{slug}/{removeDBEntries}", Verbs.Post)]
         bool CheckTraktLinkValidity(string slug, bool removeDBEntries);
 
-        [Rest("Trakt/Pin/{pin}", Verbs.Get)]
+        [Rest("Trakt/Pin/{pin}", Verbs.Post)]
         string EnterTraktPIN(string pin);
 
         [Rest("Trakt/Fanart/{traktShowID?}", Verbs.Get)]
@@ -649,13 +649,13 @@ namespace Shoko.Models.Interfaces
         [Rest("Trakt/Seasons/{traktID}", Verbs.Get)]
         List<int> GetSeasonNumbersForTrakt(string traktID);
 
-        [Rest("Trakt/Refresh/{traktID}", Verbs.Get)]
+        [Rest("Trakt/Refresh/{traktID}", Verbs.Post)]
         string UpdateTraktData(string traktID);
 
         [Rest("Trakt/Friend/{friendUsername}", Verbs.Delete)]
         CL_Response<bool> TraktFriendRequestDeny(string friendUsername);
 
-        [Rest("Trakt/Friend/{friendUsername}", Verbs.Get)]
+        [Rest("Trakt/Friend/{friendUsername}", Verbs.Post)]
         CL_Response<bool> TraktFriendRequestApprove(string friendUsername);
 
         [Rest("Trakt/Comment/{animeID}", Verbs.Get)]
@@ -664,10 +664,10 @@ namespace Shoko.Models.Interfaces
         [Rest("Trakt/Comment/{traktID}/{isSpoiler}", Verbs.Post)]
         CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler);
 
-        [Rest("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}", Verbs.Get)]
+        [Rest("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}", Verbs.Post)]
         int TraktScrobble(int animeId, int type, int progress, int status);
 
-        [Rest("Trakt/Sync/{animeID}", Verbs.Get)]
+        [Rest("Trakt/Sync/{animeID}", Verbs.Post)]
         string SyncTraktSeries(int animeID);
 
         #endregion
@@ -677,7 +677,7 @@ namespace Shoko.Models.Interfaces
         [Rest("MAL/Search/{criteria}",Verbs.Get)]
         List<CL_MALAnime_Response> SearchMAL(string criteria);
 
-        [Rest("MAL/Status", Verbs.Get)]
+        [Rest("MAL/Status", Verbs.Post)]
         string TestMALLogin();
 
         [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Post)]
@@ -689,10 +689,10 @@ namespace Shoko.Models.Interfaces
         [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{oldEpType}/{oldEpNumber}/{newEpType}/{newEpNumber}", Verbs.Patch)]
         string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
 
-        [Rest("MAL/Sync/Up",Verbs.Get)]
+        [Rest("MAL/Sync/Up",Verbs.Post)]
         void SyncMALUpload();
 
-        [Rest("MAL/Sync/Down", Verbs.Get)]
+        [Rest("MAL/Sync/Down", Verbs.Post)]
         void SyncMALDownload();
 
         #endregion
@@ -708,7 +708,7 @@ namespace Shoko.Models.Interfaces
         [Rest("MovieDB/Fanart/{movieID?}", Verbs.Get)]
         List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
 
-        [Rest("MovieDB/Refresh/{movieID}", Verbs.Get)]
+        [Rest("MovieDB/Refresh/{movieID}", Verbs.Post)]
         string UpdateMovieDBData(int movieID);
 
         #endregion
@@ -718,7 +718,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Other/CrossRef/{animeID}/{crossRefType}", Verbs.Get)]
         CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType);
 
-        [Rest("Other/CrossRef/{animeID}/{id}/{crossRefType}", Verbs.Get)]
+        [Rest("Other/CrossRef/{animeID}/{id}/{crossRefType}", Verbs.Post)]
         string LinkAniDBOther(int animeID, int id, int crossRefType);
 
         [Rest("Other/CrossRef/{animeID}/{crossRefType}", Verbs.Delete)]
@@ -752,13 +752,13 @@ namespace Shoko.Models.Interfaces
 
         #region CommandQueue
 
-        [Rest("CommandQueue/Hasher/{paused}", Verbs.Get)]
+        [Rest("CommandQueue/Hasher/{paused}", Verbs.Post)]
         void SetCommandProcessorHasherPaused(bool paused);
 
-        [Rest("CommandQueue/General/{paused}", Verbs.Get)]
+        [Rest("CommandQueue/General/{paused}", Verbs.Post)]
         void SetCommandProcessorGeneralPaused(bool paused);
 
-        [Rest("CommandQueue/Images/{paused}", Verbs.Get)]
+        [Rest("CommandQueue/Images/{paused}", Verbs.Post)]
         void SetCommandProcessorImagesPaused(bool paused);
 
         [Rest("CommandQueue/Hasher", Verbs.Delete)]
@@ -822,10 +822,10 @@ namespace Shoko.Models.Interfaces
 
         #region Images
 
-        [Rest("Image/Enable/{enabled}/{imageID}/{imageType}",Verbs.Get)]
+        [Rest("Image/Enable/{enabled}/{imageID}/{imageType}",Verbs.Post)]
         string EnableDisableImage(bool enabled, int imageID, int imageType);
 
-        [Rest("Image/Default/{isDefault}/{animeID}/{imageID}/{imageType}/{imageSizeType}", Verbs.Get)]
+        [Rest("Image/Default/{isDefault}/{animeID}/{imageID}/{imageType}/{imageSizeType}", Verbs.Post)]
         string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType);
 
         #endregion
