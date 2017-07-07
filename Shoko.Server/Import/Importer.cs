@@ -960,7 +960,7 @@ namespace Shoko.Server
                 {
                     var list = RepoFactory.VideoLocal.GetAll().SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
                         .Where(a => RepoFactory.AniDB_Anime.GetByID(a.AnimeID) == null ||
-                                    RepoFactory.AniDB_Episode.GetByID(a.EpisodeID) == null).ToArray();
+                                    a.GetEpisode() == null).ToArray();
                     foreach (var xref in list)
                     {
                         // We don't need to update anything since they don't exist

@@ -193,7 +193,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
                         .Where(a => RepoFactory.AniDB_Anime.GetByID(a.AnimeID) == null ||
-                                    RepoFactory.AniDB_Episode.GetByID(a.EpisodeID) == null).ToArray();
+                                    a.GetEpisode() == null).ToArray();
                     count = 0;
                     max = list.Length;
                     foreach (var xref in list)
