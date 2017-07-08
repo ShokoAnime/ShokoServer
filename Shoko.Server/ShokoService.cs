@@ -24,7 +24,7 @@ namespace Shoko.Server
 
         public static void LogToSystem(string logType, string logMessage)
         {
-            logger.Info(string.Format("{0} - {1}", logType, logMessage));
+            logger.Trace($"{logType} - {logMessage}");
         }
 
         private static DateTime lastAniDBMessage = DateTime.Now;
