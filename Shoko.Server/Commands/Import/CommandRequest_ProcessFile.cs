@@ -103,6 +103,9 @@ namespace Shoko.Server.Commands
                     if (aniFile == null)
                         logger.Trace("AniDB_File record not found");
                 }
+                // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
+                List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                if (crossRefs == null || crossRefs.Count == 0) aniFile = null;
 
                 int animeID = 0;
 
@@ -152,7 +155,7 @@ namespace Shoko.Server.Commands
                 if (aniFile == null)
                 {
                     // check if we have any records from previous imports
-                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                    crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                     if (crossRefs == null || crossRefs.Count == 0)
                     {
                         // lets see if we can find the episode/anime info from the web cache
