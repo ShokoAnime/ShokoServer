@@ -22,14 +22,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
     {
         private static string TranslateCodec(string codec)
         {
-            codec = codec.ToLower();
-            foreach (string k in codecs.Keys)
-            {
-                if (codec == k.ToLower())
-                {
-                    return codecs[k];
-                }
-            }
+            codec = codec.ToLowerInvariant();
+            if (CodecIDs.ContainsKey(codec))
+                return CodecIDs[codec];
             return codec;
         }
 
@@ -50,11 +45,11 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string TranslateProfile(string codec, string profile)
         {
-            profile = profile.ToLower();
+            profile = profile.ToLowerInvariant();
 
             if (profile.Contains("advanced simple"))
                 return "asp";
-            if ((codec == "mpeg4") && (profile == "simple"))
+            if (codec == "mpeg4" && profile.Equals("simple"))
                 return "sp";
             if (profile.StartsWith("m"))
                 return "main";
@@ -67,7 +62,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string TranslateLevel(string level)
         {
-            level = level.Replace(".", string.Empty).ToLower();
+            level = level.Replace(".", string.Empty).ToLowerInvariant();
             if (level.StartsWith("l"))
             {
                 int.TryParse(level.Substring(1), out int lll);
@@ -101,10 +96,10 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         public static string PostTranslateCode3(string c)
         {
-            c = c.ToLower();
+            c = c.ToLowerInvariant();
             foreach (string k in code3_post.Keys)
             {
-                if (c.Contains(k.ToLower()))
+                if (c.Contains(k))
                 {
                     return code3_post[k];
                 }
@@ -114,9 +109,10 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         public static string PostTranslateLan(string c)
         {
+            c = c.ToLowerInvariant();
             foreach (string k in lan_post.Keys)
             {
-                if (c.ToLower().Contains(k.ToLower()))
+                if (c.Contains(k))
                 {
                     return lan_post[k];
                 }
@@ -126,12 +122,12 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string TranslateContainer(string container)
         {
-            container = container.ToLower();
-            foreach (string k in containers.Keys)
+            container = container.ToLowerInvariant();
+            foreach (string k in FileContainers.Keys)
             {
-                if (container.Contains(k.ToLower()))
+                if (container.Contains(k))
                 {
-                    return containers[k];
+                    return FileContainers[k];
                 }
             }
             return container;
@@ -536,7 +532,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                         else if ((m.VideoFrameRate == "30p") || (m.VideoFrameRate == "30i"))
                                             m.VideoFrameRate = "NTSC";
                                     }
-                                    m.VideoCodec = s.CodecID;
+                                    m.VideoCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
                                         double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
@@ -571,7 +567,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     s.Codec = "adpcm_swf";
                                 if (x == 0)
                                 {
-                                    m.AudioCodec = s.CodecID;
+                                    m.AudioCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
                                     m.AudioChannels = s.Channels;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
@@ -802,11 +798,11 @@ namespace Shoko.Server.FileHelper.MediaInfo
             if (!string.IsNullOrEmpty(s))
             {
                 s = s.ToUpper();
-                foreach (string k in formats.Keys)
+                foreach (string k in SubFormats.Keys)
                 {
                     if (s.Contains(k.ToUpper()))
                     {
-                        return formats[k];
+                        return SubFormats[k];
                     }
                 }
             }
@@ -816,38 +812,38 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return null;
         }
 
-        private static Dictionary<string, string> formats = new Dictionary<string, string>
+        private static Dictionary<string, string> SubFormats = new Dictionary<string, string>
         {
-            {"S_IMAGE/BMP", "bmp"},
-            {"S_TEXT/ASS", "ass"},
-            {"S_ASS", "ass"},
-            {"S_TEXT/SSA", "ssa"},
-            {"S_SSA", "ssa"},
-            {"S_TEXT/USF", "usf"},
-            {"S_TEXT/UTF8", "srt"},
-            {"S_USF", "usf"},
-            {"S_VOBSUB", "vobsub"},
-            {"S_HDMV/PGS", "pgs"},
+            {"s_image/bmp", "bmp"},
+            {"s_text/ass", "ass"},
+            {"s_ass", "ass"},
+            {"s_text/ssa", "ssa"},
+            {"s_ssa", "ssa"},
+            {"s_text/usf", "usf"},
+            {"s_text/utf8", "srt"},
+            {"s_usf", "usf"},
+            {"s_vobsub", "vobsub"},
+            {"s_hdmv/pgs", "pgs"},
             {"c608", "eia-608"},
             {"c708", "eia-708"},
             {"subp", "vobsub"},
         };
 
-        private static Dictionary<string, string> codecs = new Dictionary<string, string>
+        private static Dictionary<string, string> CodecIDs = new Dictionary<string, string>
         {
-            {"V_MPEG4/ISO/AVC", "h264"},
+            {"v_mpeg4/iso/avc", "h264"},
             {"v_mpeg4/iso/asp", "mpeg4"},
             {"avc", "h264"},
-            {"V_MPEG2", "mpeg2"},
-            {"DX50", "mpeg4"},
-            {"DIV3", "msmpeg4"},
+            {"v_mpeg2", "mpeg2"},
+            {"dx50", "mpeg4"},
+            {"div3", "msmpeg4"},
             {"divx", "mpeg4"},
-            {"MPA1L3", "mp3"},
-            {"MPA2L3", "mp3"},
-            {"A_FLAC", "flac"},
-            {"A_AAC/MPEG4/LC/SBR", "aac"},
-            {"A_AAC", "aac"},
-            {"A_AC3", "ac3"},
+            {"mpa1l3", "mp3"},
+            {"mpa2l3", "mp3"},
+            {"a_flac", "flac"},
+            {"a_aac/mpeg4/lc/sbr", "aac"},
+            {"a_aac", "aac"},
+            {"a_ac3", "ac3"},
             {"dts", "dca"},
             {"161", "wmav2"},
             {"162", "wmapro"},
@@ -874,7 +870,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {"aac lc-sbr-ps", "aac"}
         };
 
-        private static Dictionary<string, string> containers = new Dictionary<string, string>
+        private static Dictionary<string, string> FileContainers = new Dictionary<string, string>
         {
             {"matroska", "mkv"},
             {"windows media", "asf"},
@@ -897,7 +893,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static Dictionary<string, string> lan_post = new Dictionary<string, string>
         {
-            {"Dutch", "Nederlands"},
+            {"dutch", "Nederlands"},
         };
 
         public static string[,] languages =
@@ -1011,7 +1007,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"malay", "ms", "msa"},
             {@"maltese", "mt", "mlt"},
             {@"nauru", "na", "nau"},
-            {@"Norsk bokmål", "nb", "nob"},
+            {@"norsk bokmål", "nb", "nob"},
             {@"north ndebele", "nd", "nde"},
             {@"nepali", "ne", "nep"},
             {@"ndonga", "ng", "ndo"},
@@ -1082,7 +1078,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"walloon", "wa", "wln"},
             {@"welsh", "cy", "cym"},
             {@"wolof", "wo", "wol"},
-            {@"western Frisian", "fy", "fry"},
+            {@"western frisian", "fy", "fry"},
             {@"xhosa", "xh", "xho"},
             {@"yiddish", "yi", "yid"},
             {@"yoruba", "yo", "yor"},
