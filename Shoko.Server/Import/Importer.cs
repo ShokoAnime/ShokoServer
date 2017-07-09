@@ -959,7 +959,7 @@ namespace Shoko.Server
                 using (var transaction = session.BeginTransaction())
                 {
                     var list = RepoFactory.VideoLocal.GetAll().SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-                        .Where(a => RepoFactory.AniDB_Anime.GetByID(a.AnimeID) == null ||
+                        .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
                                     a.GetEpisode() == null).ToArray();
                     foreach (var xref in list)
                     {
