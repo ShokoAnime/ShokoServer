@@ -144,6 +144,9 @@ namespace Shoko.Models.Interfaces
         [Rest("Serie/ExistingForAnime/{animeID}", Verbs.Get)]
         bool GetSeriesExistingForAnime(int animeID);
 
+        [Rest("Serie/SearchFilename/{uid}", Verbs.Post)]
+        List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, string query);
+
         #endregion
 
         #region Episodes
@@ -472,6 +475,9 @@ namespace Shoko.Models.Interfaces
 
         [Rest("ReleaseGroups", Verbs.Get)]
         List<string> GetAllReleaseGroups();
+
+        [Rest("AniDB/Anime/SearchFilename/{uid}", Verbs.Post)]
+        List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, string query);
 
         #endregion
 
