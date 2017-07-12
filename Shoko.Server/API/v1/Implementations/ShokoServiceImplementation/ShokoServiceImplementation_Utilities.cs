@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -42,6 +43,161 @@ namespace Shoko.Server
 {
     public partial class ShokoServiceImplementation
     {
+        public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, string query)
+        {
+            query = query.ToLowerInvariant();
+
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            List<CL_AnimeSeries_User> series_list = new List<CL_AnimeSeries_User>();
+            if (user == null) return series_list;
+
+            List<SVR_AnimeSeries> series;
+            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                .FindInEnumerable(user.GetHideCategories()))
+                .AsParallel();
+            if (query.Length >= IntPtr.Size * 8)
+            {
+                series = allSeries
+                    .Where(a =>
+                        Join(",",
+                                a.Contract.AniDBAnime.AnimeTitles.Where(b =>
+                                        b.Language.Equals("x-jat",
+                                            StringComparison.InvariantCultureIgnoreCase) ||
+                                        b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase))
+                                    .Select(b => b.Title), true)
+                            .IndexOf(SanitizeFuzzy(query, true), 0,
+                                StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                    .ToList();
+            }
+            else
+            {
+                var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, int>();
+                allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein));
+
+                series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
+                    .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                    .ToList();
+            }
+
+            foreach (SVR_AnimeSeries ser in series)
+            {
+                series_list.Add(ser.GetUserContract(uid));
+            }
+
+            return series_list;
+        }
+
+        /// <summary>
+        /// Join a string like string.Join but
+        /// </summary>
+        /// <param name="seperator"></param>
+        /// <param name="values"></param>
+        /// <param name="replaceinvalid"></param>
+        /// <returns></returns>
+        internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
+        {
+            if (!replaceinvalid) return string.Join(seperator, values);
+
+            List<string> newItems = values.Select(s => SanitizeFuzzy(s, replaceinvalid)).ToList();
+
+            return string.Join(seperator, newItems);
+        }
+
+        private static readonly char[] InvalidPathChars =
+            $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
+
+        private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
+
+        internal static string SanitizeFuzzy(string value, bool replaceInvalid)
+        {
+            if (!replaceInvalid) return value;
+
+            value = value.FilterCharacters(InvalidPathChars, true);
+            value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
+
+            return value.CompactWhitespaces();
+        }
+
+        /// <summary>
+        /// function used in fuzzy search
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="query"></param>
+        /// <param name="distLevenshtein"></param>
+        /// <param name="limit"></param>
+        private static void CheckTitlesFuzzy(SVR_AnimeSeries a, string query,
+            ref ConcurrentDictionary<SVR_AnimeSeries, int> distLevenshtein)
+        {
+            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
+            int dist = int.MaxValue;
+            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
+            {
+                if (string.IsNullOrEmpty(title)) continue;
+                int k = Math.Max(Math.Max(title.Length, query.Length), 1);
+                if (query.Length <= 4 || title.Length <= 4) k = 0;
+                if (Utils.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
+                if (newDist < dist)
+                {
+                    dist = newDist;
+                }
+            }
+            // Keep the lowest distance
+            if (dist < int.MaxValue)
+                distLevenshtein.AddOrUpdate(a, dist,
+                    (key, oldValue) => Math.Min(oldValue, dist) == dist
+                        ? dist
+                        : oldValue);
+        }
+
+        public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, string query)
+        {
+            query = query.ToLowerInvariant();
+
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            List<CL_AniDB_Anime> series_list = new List<CL_AniDB_Anime>();
+            if (user == null) return series_list;
+
+            List<SVR_AnimeSeries> series;
+            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                .FindInEnumerable(user.GetHideCategories()))
+                .AsParallel();
+            if (query.Length >= IntPtr.Size * 8)
+            {
+                series = allSeries
+                    .Where(a =>
+                        Join(",",
+                                a.Contract.AniDBAnime.AnimeTitles.Where(b =>
+                                        b.Language.Equals("x-jat",
+                                            StringComparison.InvariantCultureIgnoreCase) ||
+                                        b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase))
+                                    .Select(b => b.Title), true)
+                            .IndexOf(SanitizeFuzzy(query, true), 0,
+                                StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                    .ToList();
+            }
+            else
+            {
+                var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, int>();
+                allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein));
+
+                series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
+                    .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
+                    .ToList();
+            }
+            foreach (SVR_AnimeSeries ser in series)
+            {
+                series_list.Add(ser.GetAnime().ToClient());
+            }
+
+            return series_list;
+        }
+
         public List<string> GetAllReleaseGroups()
         {
             return SVR_AniDB_Anime.GetAllReleaseGroups().ToList();
