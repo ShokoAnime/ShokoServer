@@ -181,6 +181,9 @@
     <Reference Include="Pri.LongPath, Version=2.0.45.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Pri.LongPath.2.0.45\lib\net45\Pri.LongPath.dll</HintPath>
     </Reference>
+    <Reference Include="SharpCompress, Version=0.17.1.0, Culture=neutral, PublicKeyToken=afb0a02973931d96, processorArchitecture=MSIL">
+      <HintPath>..\packages\SharpCompress.0.17.1\lib\net45\SharpCompress.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.configuration" />
@@ -509,6 +512,7 @@
     <Compile Include="Databases\MySQL.cs" />
     <Compile Include="UI\AuthProvider.cs" />
     <Compile Include="UI\ServerInfo.cs" />
+    <Compile Include="Utilities\AVDumpHelper.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationMetro.cs" />
