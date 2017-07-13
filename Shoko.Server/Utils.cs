@@ -1557,5 +1557,10 @@ namespace Shoko.Server
                     return false;
             }
         }
+
+        public static bool IsRunningOnMono()
+        {
+            return Type.GetType("Mono.Runtime") != null;
+        }
     }
 }

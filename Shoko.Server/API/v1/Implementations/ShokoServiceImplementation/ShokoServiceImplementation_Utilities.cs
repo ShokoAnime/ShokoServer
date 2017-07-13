@@ -40,6 +40,7 @@ using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
 using Pri.LongPath;
 using Shoko.Server.Renamer;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -1834,6 +1835,11 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 return vidQuals;
             }
+        }
+
+        public string AVDumpFile(int vidLocalID)
+        {
+            return AVDumpHelper.DumpFile(vidLocalID);
         }
     }
 }
