@@ -42,6 +42,7 @@ namespace Shoko.Server.Utilities
                         });
                     }
                 }
+                File.Delete(avdumpRarDestination);
             }
             catch
             {
@@ -52,20 +53,35 @@ namespace Shoko.Server.Utilities
 
         private static bool DownloadFile(string sourceURL, string fileName)
         {
-            if (File.Exists(fileName)) return true;
-            using (Stream stream = Utils.DownloadWebBinary(sourceURL))
+            try
             {
-                if (stream == null) return false;
-                string destinationFolder = Directory.GetParent(fileName).FullName;
-                if (!Directory.Exists(destinationFolder)) Directory.CreateDirectory(destinationFolder);
-
-                using (var fileStream = File.Create(fileName))
+                if (File.Exists(fileName)) return true;
+                using (Stream stream = Utils.DownloadWebBinary(sourceURL))
                 {
-                    stream.Seek(0, SeekOrigin.Begin);
-                    stream.CopyTo(fileStream);
+                    if (stream == null) return false;
+                    string destinationFolder = Directory.GetParent(fileName).FullName;
+                    if (!Directory.Exists(destinationFolder)) Directory.CreateDirectory(destinationFolder);
+
+                    using (var fileStream = File.Create(fileName))
+                    {
+                        CopyStream(stream, fileStream);
+                    }
                 }
+                return true;
             }
-            return true;
+            catch
+            {
+                return false;
+            }
+        }
+        public static void CopyStream(Stream input, Stream output)
+        {
+            byte[] buffer = new byte[8 * 1024];
+            int len;
+            while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                output.Write(buffer, 0, len);
+            }
         }
 
         public static string DumpFile(int vid)
