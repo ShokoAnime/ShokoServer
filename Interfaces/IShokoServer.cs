@@ -566,6 +566,9 @@ namespace Shoko.Models.Interfaces
         [Rest("AniDB/Recommendation/{animeID}", Verbs.Get)]
         List<AniDB_Recommendation> GetAniDBRecommendations(int animeID);
 
+        [Rest("AniDB/AVDumpFile{vidLocalID}", Verbs.Get)]
+        string AVDumpFile(int vidLocalID);
+
         #endregion
 
         #region TvDB Provider
