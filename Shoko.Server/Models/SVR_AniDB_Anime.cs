@@ -35,7 +35,7 @@ namespace Shoko.Server.Models
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }
 
-        public const int CONTRACT_VERSION = 6;
+        public const int CONTRACT_VERSION = 7;
 
         #endregion
 
@@ -1662,6 +1662,18 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 }
             }
 
+            if (AirDate != null)
+            {
+                int beginYear = AirDate.Value.Year;
+                int endYear = EndDate?.Year ?? DateTime.Today.Year;
+                for (int year = beginYear; year <= endYear; year++)
+                {
+                    foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
+                    {
+                        if (this.IsInSeason(season, year)) cl.Stat_AllSeasons.Add($"{season} {year}");
+                    }
+                }
+            }
 
             Dictionary<int, AniDB_Anime_Tag> dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
             foreach (AniDB_Anime_Tag animeTag in GetAnimeTags())
