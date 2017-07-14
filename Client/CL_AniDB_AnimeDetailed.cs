@@ -11,6 +11,7 @@ namespace Shoko.Models.Client
         public List<CustomTag> CustomTags { get; set; }
         public AniDB_Vote UserVote { get; set; }
 
+        public SortedSet<string> Stat_AllSeasons { get; set; } = new SortedSet<string>(new SeasonComparator());
         public HashSet<string> Stat_AllVideoQuality { get; set; }
         public HashSet<string> Stat_AllVideoQuality_Episodes { get; set; }
         public HashSet<string> Stat_AudioLanguages { get; set; }
