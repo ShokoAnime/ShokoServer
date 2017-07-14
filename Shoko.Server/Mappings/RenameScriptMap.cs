@@ -14,6 +14,8 @@ namespace Shoko.Server.Mappings
             Map(x => x.ScriptName);
             Map(x => x.Script);
             Map(x => x.IsEnabledOnImport).Not.Nullable();
+            Map(x => x.RenamerType).Not.Nullable().Default("Legacy");
+            Map(x => x.ExtraData).Nullable();
         }
     }
 }
