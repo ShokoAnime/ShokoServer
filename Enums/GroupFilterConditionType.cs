@@ -34,6 +34,7 @@ namespace Shoko.Models.Enums
         CustomTags = 31,
         LatestEpisodeAirDate = 32,
 
-        Year = 34
+        Year = 34,
+        Season = 35
     }
 }
