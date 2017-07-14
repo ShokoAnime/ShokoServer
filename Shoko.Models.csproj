@@ -79,6 +79,7 @@
     <Compile Include="Client\CL_Response.cs" />
     <Compile Include="Enums\AniDBFileDeleteType.cs" />
     <Compile Include="Enums\AnimeGroupSortMethod.cs" />
+    <Compile Include="Enums\AnimeSeason.cs" />
     <Compile Include="Enums\AutoFileSubsequentType.cs" />
     <Compile Include="Enums\AvailableEpisodeType.cs" />
     <Compile Include="Enums\CrossrefSource.cs" />
