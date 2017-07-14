@@ -58,6 +58,7 @@ namespace Shoko.Commons.Extensions
         public static bool IsInSeason(this AniDB_Anime anime, AnimeSeason season, int year)
         {
             if (anime.AirDate == null) return false;
+            // If it isn't a normal series, then it won't adhere to standard airing norms
             if (anime.AnimeType != (int) AnimeTypes.TV_Series) return false;
             DateTime seasonStartBegin;
             DateTime seasonStartEnd;
