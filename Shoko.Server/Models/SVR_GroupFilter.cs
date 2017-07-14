@@ -542,7 +542,8 @@ namespace Shoko.Server.Models
                         break;
                     case GroupFilterConditionType.Year:
                         HashSet<int> years = new HashSet<int>();
-                        string[] parameterStrings = gfc.ConditionParameter.Trim().Split(',');
+                        string[] parameterStrings = gfc.ConditionParameter.Trim()
+                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
                         foreach (string yearString in parameterStrings)
                         {
                             if (int.TryParse(yearString.Trim(), out int year))
@@ -556,7 +557,36 @@ namespace Shoko.Server.Models
                             contractGroup.Stat_AllYears.FindInEnumerable(years))
                             return false;
                         break;
+                    case GroupFilterConditionType.Season:
+                        string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
+                        HashSet<(AnimeSeason, int)> seasons = new HashSet<(AnimeSeason, int)>();
+                        foreach (string parameter in paramStrings)
+                        {
+                            string[] seasonPair = parameter.Split(' ');
+                            if (seasonPair.Length != 2) continue;
+                            if (!Enum.TryParse(seasonPair[0], out AnimeSeason season)) continue;
+                            if (!int.TryParse(seasonPair[1], out int seasonYear)) continue;
+                            seasons.Add((season, seasonYear));
+                        }
 
+                        switch (gfc.GetConditionOperatorEnum())
+                        {
+                            case GroupFilterOperator.Include:
+                            case GroupFilterOperator.In:
+                                foreach ((AnimeSeason, int) season in seasons)
+                                {
+                                    // TODO add the evaluted seasons to group contracts
+                                }
+                                return false;
+                            case GroupFilterOperator.Exclude:
+                            case GroupFilterOperator.NotIn:
+                                foreach ((AnimeSeason, int) season in seasons)
+                                {
+                                    // TODO add the evaluted seasons to group contracts
+                                }
+                                return true;
+                        }
+                        break;
                     case GroupFilterConditionType.HasWatchedEpisodes:
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
                             contractGroup.WatchedEpisodeCount > 0 == false)
@@ -936,7 +966,36 @@ namespace Shoko.Server.Models
                                 return true;
                         }
                         break;
+                    case GroupFilterConditionType.Season:
+                        string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
+                        HashSet<(AnimeSeason, int)> seasons = new HashSet<(AnimeSeason, int)>();
+                        foreach (string parameter in paramStrings)
+                        {
+                            string[] seasonPair = parameter.Split(' ');
+                            if (seasonPair.Length != 2) continue;
+                            if (!Enum.TryParse(seasonPair[0], out AnimeSeason season)) continue;
+                            if (!int.TryParse(seasonPair[1], out int seasonYear)) continue;
+                            seasons.Add((season, seasonYear));
+                        }
 
+                        switch (gfc.GetConditionOperatorEnum())
+                        {
+                            case GroupFilterOperator.Include:
+                            case GroupFilterOperator.In:
+                                foreach ((AnimeSeason, int) season in seasons)
+                                {
+                                    // TODO add the evaluted seasons to series contracts
+                                }
+                                return false;
+                            case GroupFilterOperator.Exclude:
+                            case GroupFilterOperator.NotIn:
+                                foreach ((AnimeSeason, int) season in seasons)
+                                {
+                                    // TODO add the evaluted seasons to series contracts
+                                }
+                                return true;
+                        }
+                        break;
                     case GroupFilterConditionType.HasWatchedEpisodes:
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
                             contractSerie.WatchedEpisodeCount > 0 == false)
