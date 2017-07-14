@@ -32,7 +32,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public const int CONTRACT_VERSION = 5;
+        public const int CONTRACT_VERSION = 6;
 
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -1100,6 +1100,7 @@ namespace Shoko.Server.Models
                     int epCount = 0;
 
                     HashSet<int> allYears = new HashSet<int>();
+                    SortedSet<string> allSeasons = new SortedSet<string>(new SeasonComparator());
 
                     foreach (SVR_AnimeSeries series in allSeriesForGroup)
                     {
@@ -1277,10 +1278,21 @@ namespace Shoko.Server.Models
                         int endyear = anime.EndYear;
                         if (endyear == 0) endyear = DateTime.Today.Year;
                         if (anime.BeginYear != 0)
-                            allYears.UnionWith(Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1));
+                        {
+                            var years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1);
+                            allYears.UnionWith(years);
+                            foreach (int year in years)
+                            {
+                                foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
+                                {
+                                    if (anime.IsInSeason(season, year)) allSeasons.Add($"{season} {year}");
+                                }
+                            }
+                        }
                     }
 
                     contract.Stat_AllYears = allYears;
+                    contract.Stat_AllSeasons = allSeasons;
                     contract.Stat_AllTags = animeGroup.Tags
                         .Select(a => a.TagName.Trim())
                         .ToHashSet(StringComparer.InvariantCultureIgnoreCase);

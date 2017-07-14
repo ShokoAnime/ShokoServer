@@ -35,7 +35,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public const int CONTRACT_VERSION = 6;
+        public const int CONTRACT_VERSION = 7;
 
 
         private CL_AnimeSeries_User _contract = null;

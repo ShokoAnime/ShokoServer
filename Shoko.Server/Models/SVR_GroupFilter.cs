@@ -559,32 +559,15 @@ namespace Shoko.Server.Models
                         break;
                     case GroupFilterConditionType.Season:
                         string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
-                        HashSet<(AnimeSeason, int)> seasons = new HashSet<(AnimeSeason, int)>();
-                        foreach (string parameter in paramStrings)
-                        {
-                            string[] seasonPair = parameter.Split(' ');
-                            if (seasonPair.Length != 2) continue;
-                            if (!Enum.TryParse(seasonPair[0], out AnimeSeason season)) continue;
-                            if (!int.TryParse(seasonPair[1], out int seasonYear)) continue;
-                            seasons.Add((season, seasonYear));
-                        }
 
                         switch (gfc.GetConditionOperatorEnum())
                         {
                             case GroupFilterOperator.Include:
                             case GroupFilterOperator.In:
-                                foreach ((AnimeSeason, int) season in seasons)
-                                {
-                                    // TODO add the evaluted seasons to group contracts
-                                }
-                                return false;
+                                return paramStrings.FindInEnumerable(contractGroup.Stat_AllSeasons);
                             case GroupFilterOperator.Exclude:
                             case GroupFilterOperator.NotIn:
-                                foreach ((AnimeSeason, int) season in seasons)
-                                {
-                                    // TODO add the evaluted seasons to group contracts
-                                }
-                                return true;
+                                return !paramStrings.FindInEnumerable(contractGroup.Stat_AllSeasons);
                         }
                         break;
                     case GroupFilterConditionType.HasWatchedEpisodes:
@@ -968,32 +951,15 @@ namespace Shoko.Server.Models
                         break;
                     case GroupFilterConditionType.Season:
                         string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
-                        HashSet<(AnimeSeason, int)> seasons = new HashSet<(AnimeSeason, int)>();
-                        foreach (string parameter in paramStrings)
-                        {
-                            string[] seasonPair = parameter.Split(' ');
-                            if (seasonPair.Length != 2) continue;
-                            if (!Enum.TryParse(seasonPair[0], out AnimeSeason season)) continue;
-                            if (!int.TryParse(seasonPair[1], out int seasonYear)) continue;
-                            seasons.Add((season, seasonYear));
-                        }
 
                         switch (gfc.GetConditionOperatorEnum())
                         {
                             case GroupFilterOperator.Include:
                             case GroupFilterOperator.In:
-                                foreach ((AnimeSeason, int) season in seasons)
-                                {
-                                    // TODO add the evaluted seasons to series contracts
-                                }
-                                return false;
+                                return paramStrings.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllSeasons);
                             case GroupFilterOperator.Exclude:
                             case GroupFilterOperator.NotIn:
-                                foreach ((AnimeSeason, int) season in seasons)
-                                {
-                                    // TODO add the evaluted seasons to series contracts
-                                }
-                                return true;
+                                return !paramStrings.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllSeasons);
                         }
                         break;
                     case GroupFilterConditionType.HasWatchedEpisodes:
