@@ -5364,4 +5364,13 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Lanzamiento Web interfaz de usuario</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Temporadas</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Creación de temporada</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Temporada</value>
+  </data>
 </root>

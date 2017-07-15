@@ -5364,4 +5364,13 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Web-UI zu starten</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Jahreszeiten</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Erstellen von Saison</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Saison</value>
+  </data>
 </root>

@@ -5364,4 +5364,13 @@
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Lançamento Web UI</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Estações do ano</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Criação de temporada</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Temporada</value>
+  </data>
 </root>

@@ -4795,6 +4795,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Creating Season.
+        /// </summary>
+        public static string Filter_CreatingSeason {
+            get {
+                return ResourceManager.GetString("Filter_CreatingSeason", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Creating Tag.
         /// </summary>
         public static string Filter_CreatingTag {
@@ -4908,6 +4917,15 @@ namespace Shoko.Commons.Properties {
         public static string Filter_RecentlyWatched {
             get {
                 return ResourceManager.GetString("Filter_RecentlyWatched", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Seasons.
+        /// </summary>
+        public static string Filter_Seasons {
+            get {
+                return ResourceManager.GetString("Filter_Seasons", resourceCulture);
             }
         }
         
@@ -5430,6 +5448,15 @@ namespace Shoko.Commons.Properties {
         public static string GroupFilterConditionType_ReleaseGroup {
             get {
                 return ResourceManager.GetString("GroupFilterConditionType_ReleaseGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Season.
+        /// </summary>
+        public static string GroupFilterConditionType_Season {
+            get {
+                return ResourceManager.GetString("GroupFilterConditionType_Season", resourceCulture);
             }
         }
         

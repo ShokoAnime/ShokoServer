@@ -5364,4 +5364,13 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Web UI lanceren</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Seizoenen</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Creëren van seizoen</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Seizoen</value>
+  </data>
 </root>

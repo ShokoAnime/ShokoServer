@@ -5366,4 +5366,13 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Uruchamianie interfejsu użytkownika sieci Web</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Pory roku</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Tworzenie sezon</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Sezon</value>
+  </data>
 </root>

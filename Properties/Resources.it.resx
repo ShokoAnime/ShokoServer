@@ -5364,4 +5364,13 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Avviare l'interfaccia utente Web</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Stagioni</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Creazione di stagione</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Stagione</value>
+  </data>
 </root>

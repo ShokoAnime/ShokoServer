@@ -5364,4 +5364,13 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Toolbar_WebUI" xml:space="preserve">
     <value>Lancer l’interface utilisateur Web</value>
   </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Saisons</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Création de saison</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Saison</value>
+  </data>
 </root>

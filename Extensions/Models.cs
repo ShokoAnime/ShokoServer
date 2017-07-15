@@ -87,6 +87,8 @@ namespace Shoko.Commons.Extensions
                 default:
                     return false;
             }
+            // Don't even count seasons that haven't happened yet
+            if (seasonStartBegin > DateTime.Today) return false;
 
             // If it starts in a season, then it is definitely going to be in it
             if (anime.AirDate.Value >= seasonStartBegin && anime.AirDate.Value <= seasonStartEnd) return true;
@@ -709,7 +711,6 @@ namespace Shoko.Commons.Extensions
             if (enumDesc == Resources.GroupFilterSorting_Year) return GroupFilterSorting.Year;
             if (enumDesc == Resources.GroupFilterSorting_GroupFilter) return GroupFilterSorting.GroupFilterName;
 
-
             return GroupFilterSorting.AniDBRating;
         }
 
@@ -802,6 +803,7 @@ namespace Shoko.Commons.Extensions
                 case GroupFilterConditionType.CustomTags: return Resources.GroupFilterConditionType_CustomTag;
                 case GroupFilterConditionType.LatestEpisodeAirDate: return Resources.GroupFilterConditionType_LatestEpisodeAirDate;
                 case GroupFilterConditionType.Year: return Resources.GroupFilterConditionType_Year;
+                case GroupFilterConditionType.Season: return Resources.GroupFilterConditionType_Season;
                 default: return Resources.GroupFilterConditionType_AirDate;
             }
         }
@@ -817,6 +819,7 @@ namespace Shoko.Commons.Extensions
             if (enumDesc == Resources.GroupFilterConditionType_AssignedTvDBOrMovieDBInfo) return GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
             if (enumDesc == Resources.GroupFilterConditionType_Tag) return GroupFilterConditionType.Tag;
             if (enumDesc == Resources.GroupFilterConditionType_Year) return GroupFilterConditionType.Year;
+            if (enumDesc == Resources.GroupFilterConditionType_Season) return GroupFilterConditionType.Season;
             if (enumDesc == Resources.GroupFilterConditionType_LatestEpisodeAirDate) return GroupFilterConditionType.LatestEpisodeAirDate;
             if (enumDesc == Resources.GroupFilterConditionType_CustomTag) return GroupFilterConditionType.CustomTags;
             if (enumDesc == Resources.GroupFilterConditionType_CompletedSeries) return GroupFilterConditionType.CompletedSeries;
@@ -863,6 +866,7 @@ namespace Shoko.Commons.Extensions
             cons.Add(GroupFilterConditionType.CustomTags.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.LatestEpisodeAirDate.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.Year.GetTextForEnum_ConditionType());
+            cons.Add(GroupFilterConditionType.Season.GetTextForEnum_ConditionType());
             //cons.Add(GetTextForEnum_ConditionType(GroupFilterConditionType.ReleaseGroup));
             //cons.Add(GetTextForEnum_ConditionType(GroupFilterConditionType.Studio));
             cons.Add(GroupFilterConditionType.UserVoted.GetTextForEnum_ConditionType());
@@ -912,21 +916,10 @@ namespace Shoko.Commons.Extensions
             switch (conditionType)
             {
                 case GroupFilterConditionType.AirDate:
-                    ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LastXDays.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.SeriesCreatedDate:
-                    ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LastXDays.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.EpisodeWatchedDate:
-                    ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LastXDays.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.EpisodeAddedDate:
+                case GroupFilterConditionType.LatestEpisodeAirDate:
                     ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
                     ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
                     ops.Add(GroupFilterOperator.LastXDays.GetTextForEnum_Operator());
@@ -936,73 +929,27 @@ namespace Shoko.Commons.Extensions
                     ops.Add(GroupFilterOperator.NotEquals.GetTextForEnum_Operator());
                     break;
                 case GroupFilterConditionType.AnimeType:
+                case GroupFilterConditionType.Tag:
+                case GroupFilterConditionType.CustomTags:
+                case GroupFilterConditionType.AudioLanguage:
+                case GroupFilterConditionType.SubtitleLanguage:
+                case GroupFilterConditionType.Year:
+                case GroupFilterConditionType.Season:
                     ops.Add(GroupFilterOperator.In.GetTextForEnum_Operator());
                     ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
                     break;
                 case GroupFilterConditionType.AssignedTvDBInfo:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.AssignedMALInfo:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.AssignedMovieDBInfo:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
-                case GroupFilterConditionType.Tag:
-                    ops.Add(GroupFilterOperator.In.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
-                    break;
-                case GroupFilterConditionType.CustomTags:
-                    ops.Add(GroupFilterOperator.In.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
-                    break;
-                case GroupFilterConditionType.AudioLanguage:
-                    ops.Add(GroupFilterOperator.In.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
-                    break;
-                case GroupFilterConditionType.SubtitleLanguage:
-                    ops.Add(GroupFilterOperator.In.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.CompletedSeries:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.FinishedAiring:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.Favourite:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.HasUnwatchedEpisodes:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.HasWatchedEpisodes:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.MissingEpisodes:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.MissingEpisodesCollecting:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.UserVoted:
-                    ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.UserVotedAny:
                     ops.Add(GroupFilterOperator.Include.GetTextForEnum_Operator());
                     ops.Add(GroupFilterOperator.Exclude.GetTextForEnum_Operator());
@@ -1014,25 +961,10 @@ namespace Shoko.Commons.Extensions
                     ops.Add(GroupFilterOperator.NotInAllEpisodes.GetTextForEnum_Operator());
                     break;
                 case GroupFilterConditionType.AniDBRating:
-                    ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.UserRating:
-                    ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    break;
                 case GroupFilterConditionType.EpisodeCount:
                     ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
                     ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    break;
-                case GroupFilterConditionType.LatestEpisodeAirDate:
-                    ops.Add(GroupFilterOperator.GreaterThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LessThan.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.LastXDays.GetTextForEnum_Operator());
-                    break;
-                case GroupFilterConditionType.Year:
-                    ops.Add(GroupFilterOperator.In.GetTextForEnum_Operator());
-                    ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
                     break;
             }
 
