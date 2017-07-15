@@ -17,7 +17,8 @@ namespace Shoko.Server
     public class RenameFileHelper
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static  IDictionary<string, Type> ScriptImplementations = new Dictionary<string, Type>();
+        private static IDictionary<string, Type> ScriptImplementations = new Dictionary<string, Type>();
+        public static IDictionary<string, string> ScriptDescriptions { get; } = new Dictionary<string, string>();
 
         public static IRenamer GetRenamer()
         {
@@ -77,7 +78,7 @@ namespace Shoko.Server
             foreach (var implementation in implementations)
             {
                 IEnumerable<RenamerAttribute> attributes = implementation.GetCustomAttributes<RenamerAttribute>();
-                foreach (string key in attributes.Select(a => a.RenamerId))
+                foreach ((string key, string desc) in attributes.Select(a => (a.RenamerId, a.Description)))
                 {
                     if (key == null) continue;
                     if (ScriptImplementations.ContainsKey(key))
@@ -86,6 +87,7 @@ namespace Shoko.Server
                         continue;
                     }
                     ScriptImplementations.Add(key, implementation);
+                    ScriptDescriptions.Add(key, desc);
                 }
             }
         }
