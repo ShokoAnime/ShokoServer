@@ -11,5 +11,6 @@ namespace Shoko.Models.Enums
         Directory = 8,
         Tag = 16,
         Year = 32,
+        Season = 64,
     }
 }
