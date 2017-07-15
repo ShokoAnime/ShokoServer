@@ -907,6 +907,9 @@ namespace Shoko.Server.Models
             if (oldyear != newyear)
                 h.Add(GroupFilterConditionType.Year);
 
+            if (oldcontract?.AniDBAnime?.Stat_AllSeasons == null || !oldcontract.AniDBAnime.Stat_AllSeasons.SetEquals(newcontract.AniDBAnime.Stat_AllSeasons))
+                h.Add(GroupFilterConditionType.Season);
+
             //TODO This three should be moved to AnimeSeries_User in the future...
             if (oldcontract == null ||
                 ((oldcontract.AniDBAnime.UserVote != null) &&
