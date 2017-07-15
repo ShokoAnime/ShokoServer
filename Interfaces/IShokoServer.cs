@@ -903,6 +903,9 @@ namespace Shoko.Models.Interfaces
         [Rest("RenameScript/{renameScriptID}", Verbs.Delete)]
         string DeleteRenameScript(int renameScriptID);
 
+        [Rest("RenameScript/Types", Verbs.Get)]
+        IDictionary<string, string> GetScriptTypes();
+
         #endregion
 
     }
