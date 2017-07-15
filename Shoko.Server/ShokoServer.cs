@@ -178,6 +178,7 @@ namespace Shoko.Server
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
             ServerSettings.DebugSettingsToLog();
+            RenameFileHelper.InitialiseRenamers();
 
             workerFileEvents.WorkerReportsProgress = false;
             workerFileEvents.WorkerSupportsCancellation = false;
