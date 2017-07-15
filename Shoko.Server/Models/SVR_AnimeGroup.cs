@@ -994,6 +994,9 @@ namespace Shoko.Server.Models
                 h.Add(GroupFilterConditionType.Year);
             if (oldcontract?.Stat_AllYears == null || !oldcontract.Stat_AllYears.SetEquals(newcontract.Stat_AllYears))
                 h.Add(GroupFilterConditionType.Year);
+            
+            if (oldcontract?.Stat_AllSeasons == null || !oldcontract.Stat_AllSeasons.SetEquals(newcontract.Stat_AllSeasons))
+                h.Add(GroupFilterConditionType.Season);
 
             //TODO This two should be moved to AnimeGroup_User in the future...
             if (oldcontract == null || oldcontract.Stat_UserVotePermanent != newcontract.Stat_UserVotePermanent)

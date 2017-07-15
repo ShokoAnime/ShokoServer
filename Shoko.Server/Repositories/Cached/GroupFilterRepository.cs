@@ -132,14 +132,14 @@ namespace Shoko.Server.Repositories.Cached
             }
             RepoFactory.GroupFilterCondition.Delete(toremove);
 
-            CleanUpEmptyTagAndYearFilters();
+            CleanUpEmptyDirectoryFilters();
 
             PostProcessFilters = null;
         }
 
 
         //TODO Cleanup function for Empty Tags and Empty Years
-        public void CleanUpEmptyTagAndYearFilters()
+        public void CleanUpEmptyDirectoryFilters()
         {
             List<SVR_GroupFilter> toremove = new List<SVR_GroupFilter>();
             foreach (SVR_GroupFilter gf in GetAll())
@@ -267,12 +267,28 @@ namespace Shoko.Server.Repositories.Cached
                     };
                     Save(yearsdirec);
                 }
+                SVR_GroupFilter seasonsdirec =
+                    lockedGFs.FirstOrDefault(
+                        a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
+                if (seasonsdirec == null)
+                {
+                    seasonsdirec = new SVR_GroupFilter
+                    {
+                        GroupFilterName = Commons.Properties.Resources.Filter_Seasons,
+                        InvisibleInClients = 0,
+                        FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Season),
+                        BaseCondition = 1,
+                        Locked = 1,
+                        SortingCriteria = "13;1"
+                    };
+                    Save(seasonsdirec);
+                }
             }
-            CreateOrVerifyTagsAndYearsFilters(true);
+            CreateOrVerifyDirectoryFilters(true);
         }
 
-        public void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null,
-            HashSet<int> airdate = null)
+        public void CreateOrVerifyDirectoryFilters(bool frominit = false, HashSet<string> tags = null,
+            HashSet<int> airdate = null, SortedSet<string> season = null)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -401,7 +417,66 @@ namespace Shoko.Server.Repositories.Cached
                         Save(yf);
                     }
                 }
-                CleanUpEmptyTagAndYearFilters();
+                SVR_GroupFilter seasonsdirectory = lockedGFs.FirstOrDefault(
+                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
+                if (seasonsdirectory != null)
+                {
+                    SortedSet<string> allseasons;
+                    if (season == null || season.Count == 0)
+                    {
+                        List<CL_AnimeSeries_User> grps =
+                            RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+
+                        allseasons = new SortedSet<string>(new SeasonComparator());
+                        foreach (CL_AnimeSeries_User ser in grps)
+                        {
+                            allseasons.UnionWith(ser.AniDBAnime.Stat_AllSeasons);
+                        }
+                    }
+                    else
+                    {
+                        allseasons = season;
+                    }
+                    HashSet<string> notin =
+                        new HashSet<string>(
+                            lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Season)
+                                .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
+                            StringComparer.InvariantCultureIgnoreCase);
+                    allseasons.ExceptWith(notin);
+                    int max = allseasons.Count;
+                    int cnt = 0;
+                    foreach (string s in allseasons)
+                    {
+                        cnt++;
+                        if (frominit)
+                            ServerState.Instance.CurrentSetupStatus = string.Format(
+                                Commons.Properties.Resources.Database_Cache, t,
+                                Commons.Properties.Resources.Filter_CreatingSeason + " " +
+                                Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                        SVR_GroupFilter yf = new SVR_GroupFilter
+                        {
+                            ParentGroupFilterID = seasonsdirectory.GroupFilterID,
+                            InvisibleInClients = 0,
+                            GroupFilterName = s,
+                            BaseCondition = 1,
+                            Locked = 1,
+                            SortingCriteria = "5;1",
+                            FilterType = (int) GroupFilterType.Season,
+                            ApplyToSeries = 1
+                        };
+                        GroupFilterCondition gfc = new GroupFilterCondition
+                        {
+                            ConditionType = (int)GroupFilterConditionType.Season,
+                            ConditionOperator = (int)GroupFilterOperator.In,
+                            ConditionParameter = s,
+                            GroupFilterID = yf.GroupFilterID
+                        };
+                        yf.Conditions.Add(gfc);
+                        yf.CalculateGroupsAndSeries();
+                        Save(yf);
+                    }
+                }
+                CleanUpEmptyDirectoryFilters();
             }
         }
 

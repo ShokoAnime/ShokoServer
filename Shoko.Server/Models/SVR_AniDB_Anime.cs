@@ -1563,6 +1563,20 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     })
                     .ToList();
 
+                // Seasons
+                if (anime.AirDate != null)
+                {
+                    int beginYear = anime.AirDate.Value.Year;
+                    int endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
+                    for (int year = beginYear; year <= endYear; year++)
+                    {
+                        foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
+                        {
+                            if (anime.IsInSeason(season, year)) contract.Stat_AllSeasons.Add($"{season} {year}");
+                        }
+                    }
+                }
+
                 // Anime tags
                 var dictAnimeTags = animeTagsByAnime[anime.AnimeID]
                     .ToDictionary(t => t.TagID);
