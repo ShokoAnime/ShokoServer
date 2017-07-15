@@ -1962,71 +1962,62 @@
   <data name="LearnMore_WebCache" xml:space="preserve">
     <value>Learn more about the web cache</value>
   </data>
-  <data name="Link_AniDBBanned" xml:space="preserve">
-    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
-  </data>
   <data name="Link_AniDBSettings" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#anidb</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#anidb</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
     <value>http://shokoanime.com/blog</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://shokoanime.com/changelog</value>
+    <value>http://docs.shokoanime.com/changelog.html</value>
   </data>
   <data name="Link_CommunityRecommendation" xml:space="preserve">
-    <value>http://shokoanime.com/faq/#what-are-community-recommendations</value>
+    <value>http://docs.shokoanime.com/faq.html#community-recommendations</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
     <value>http://shokoanime.com/downloads</value>
   </data>
-  <data name="Link_Downloads" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/downloads/</value>
-  </data>
-  <data name="Link_EnableStreaming" xml:space="preserve">
-    <value>http://shokoanime.com/streaming/</value>
-  </data>
   <data name="Link_FileRenaming" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/utilities/file-renaming/</value>
+    <value>http://docs.shokoanime.com/desktop/utilities.html#file-renaming</value>
   </data>
   <data name="Link_GroupFilters" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/collection/filters/#what-are-filters</value>
+    <value>http://docs.shokoanime.com/desktop/collection.html#filters</value>
   </data>
   <data name="Link_Help" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/</value>
+    <value>http://docs.shokoanime.com/index.html</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders</value>
+    <value>http://docs.shokoanime.com/server/import.html</value>
   </data>
   <data name="Link_Linking" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/collection/collection-overview/#linking</value>
+    <value>http://docs.shokoanime.com/faq.html#community-links</value>
   </data>
   <data name="Link_MAL" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#mal</value>
   </data>
   <data name="Link_MPV" xml:space="preserve">
     <value>https://github.com/rossy/mpv-install/blob/master/README.md</value>
   </data>
   <data name="Link_RelationSettings" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#essential</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#relations</value>
   </data>
   <data name="Link_Site" xml:space="preserve">
     <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_TMDb" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#tmdb</value>
   </data>
   <data name="Link_Trakt" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#trakt</value>
   </data>
   <data name="Link_TvDB" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#tvdb</value>
   </data>
   <data name="Link_VideoPlayer" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#video-player</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#video-player</value>
   </data>
   <data name="Link_WebCache" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#web-cache</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#web-cache</value>
   </data>
   <data name="Loading" xml:space="preserve">
     <value>Loading...</value>
@@ -3737,13 +3728,13 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>Whenever you watch the final episode in a series, a prompt will appear to ask you for a rating</value>
   </data>
   <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB Commands in Queue</value>
+    <value>General Operations in Queue:</value>
   </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
-    <value>Files Waiting to be Hashed</value>
+    <value>Files Waiting to be Hashed:</value>
   </data>
   <data name="Tooltip_QueueImages" xml:space="preserve">
-    <value>Images Awaiting Download</value>
+    <value>Images Awaiting Download:</value>
   </data>
   <data name="Tooltip_RecreateAllGroups" xml:space="preserve">
     <value>This will delete all your current groups and then re-organize all your series into new groups based on your import settings</value>
@@ -4919,10 +4910,10 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
+    <value>http://docs.shokoanime.com/faq.html#anidb-ban</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts</value>
+    <value>http://docs.shokoanime.com/server/cloud.html</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
     <value>http://shokoanime.com/contribute/</value>
@@ -4934,16 +4925,13 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check</value>
+    <value>http://docs.shokoanime.com/server/integrity.html</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://shokoanime.com/setup/mysql/</value>
-  </data>
-  <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://shokoanime.com/faq/#Shoko-shared-drive</value>
+    <value>http://docs.shokoanime.com/server/mysql.html</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://shokoanime.com/setup/sqlserver/</value>
+    <value>http://docs.shokoanime.com/server/sqlserver.html</value>
   </data>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
     <value>Shoko Server was unable to find an existing config file. If this is your first time running Shoko Server, you can ignore this message and click no. If JMM Server was previously installed, click Yes to manually select the config file.</value>
@@ -5346,12 +5334,45 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
     <value>Recent</value>
   </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Plex Settings</value>
+    <value>Plex Settings For ShokoMetadata</value>
   </data>
   <data name="Utilities_FolderLocal" xml:space="preserve">
     <value>Local</value>
   </data>
   <data name="Utilities_FolderRemote" xml:space="preserve">
     <value>Remote</value>
+  </data>
+  <data name="Link_AniDBBanned" xml:space="preserve">
+    <value>http://shokoanime.com/FAQ/#Banned-from-anidb</value>
+  </data>
+  <data name="Link_Downloads" xml:space="preserve">
+    <value>http://shokoanime.com/Shoko-desktop/downloads/</value>
+  </data>
+  <data name="Link_EnableStreaming" xml:space="preserve">
+    <value>http://shokoanime.com/streaming/</value>
+  </data>
+  <data name="Link_SharedDrive" xml:space="preserve">
+    <value>http://shokoanime.com/faq/#Shoko-shared-drive</value>
+  </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Blocked DLL files found in server directory!</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>To have ShokoMetada sync with Shoko, input the Plex Host which you can get from your web browser and the Plex Library ID which are the numbers after the following part; [key=%2Flibrary%2Fsections%2F] for the library you've clicked.</value>
+  </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Launch Web UI</value>
+  </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Seasons</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Creating Season</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Season</value>
   </data>
 </root>

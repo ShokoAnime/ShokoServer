@@ -1948,16 +1948,16 @@
     <value>http://shokoanime.com/FAQ/#Banned-from-anidb</value>
   </data>
   <data name="Link_AniDBSettings" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#anidb</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#anidb</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
     <value>http://shokoanime.com/blog</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://shokoanime.com/changelog</value>
+    <value>http://docs.shokoanime.com/changelog.html</value>
   </data>
   <data name="Link_CommunityRecommendation" xml:space="preserve">
-    <value>http://shokoanime.com/faq/#What-are-Community-Recommendations</value>
+    <value>http://docs.shokoanime.com/faq.html#community-recommendations</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
     <value>http://shokoanime.com/downloads</value>
@@ -1969,46 +1969,46 @@
     <value>http://shokoanime.com/streaming/</value>
   </data>
   <data name="Link_FileRenaming" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Utilities/file-renaming/</value>
+    <value>http://docs.shokoanime.com/desktop/utilities.html#file-renaming</value>
   </data>
   <data name="Link_GroupFilters" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/collection/filters/#what-are-filters</value>
+    <value>http://docs.shokoanime.com/desktop/collection.html#filters</value>
   </data>
   <data name="Link_Help" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/</value>
+    <value>http://docs.shokoanime.com/index.html</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#import-folders</value>
+    <value>http://docs.shokoanime.com/server/import.html</value>
   </data>
   <data name="Link_Linking" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/collection/collection-overview/#linking</value>
+    <value>http://docs.shokoanime.com/faq.html#community-links</value>
   </data>
   <data name="Link_MAL" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#Community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#mal</value>
   </data>
   <data name="Link_MPV" xml:space="preserve">
     <value>https://github.com/rossy/mpv-install/blob/master/README.md</value>
   </data>
   <data name="Link_RelationSettings" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#Essential</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#relations</value>
   </data>
   <data name="Link_Site" xml:space="preserve">
     <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_TMDb" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#Community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#tmdb</value>
   </data>
   <data name="Link_Trakt" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#Community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#trakt</value>
   </data>
   <data name="Link_TvDB" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#Community-sites</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#tvdb</value>
   </data>
   <data name="Link_VideoPlayer" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-desktop/settings/#video-player</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#video-player</value>
   </data>
   <data name="Link_WebCache" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-Desktop/Settings/#Web-cache</value>
+    <value>http://docs.shokoanime.com/desktop/settings.html#web-cache</value>
   </data>
   <data name="Loading" xml:space="preserve">
     <value>Chargement...</value>
@@ -3716,9 +3716,6 @@ Marque inconnue -, laisse le fichier sur votre liste, mais remplace l'état inco
   <data name="Tooltip_PromptRateSeries" xml:space="preserve">
     <value>Chaque fois que vous regardez le dernier épisode d'une série, une invite s'affiche pour vous demander une note</value>
   </data>
-  <data name="Tooltip_QueueGeneral" xml:space="preserve">
-    <value>AniDB commandes en file d'attente</value>
-  </data>
   <data name="Tooltip_QueueHasher" xml:space="preserve">
     <value>Files d'attente qui sera haché</value>
   </data>
@@ -4899,10 +4896,10 @@ Marque inconnue -, laisse le fichier sur votre liste, mais remplace l'état inco
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://shokoanime.com/faq/#banned-from-anidb</value>
+    <value>http://docs.shokoanime.com/faq.html#anidb-ban</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#cloud-accounts</value>
+    <value>http://docs.shokoanime.com/server/cloud.html</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
     <value>http://shokoanime.com/contribute/</value>
@@ -4914,16 +4911,16 @@ Marque inconnue -, laisse le fichier sur votre liste, mais remplace l'état inco
     <value>http://shokoanime.com/</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>http://shokoanime.com/Shoko-server/configuring-Shoko-server/#integrity-check</value>
+    <value>http://docs.shokoanime.com/server/integrity.html</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://shokoanime.com/setup/mysql/</value>
+    <value>http://docs.shokoanime.com/server/mysql.html</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
     <value>http://shokoanime.com/faq/#Shoko-shared-drive</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://shokoanime.com/setup/sqlserver/</value>
+    <value>http://docs.shokoanime.com/server/sqlserver.html</value>
   </data>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
     <value>Shoko serveur n’a pas pu trouver un fichier de configuration existant. Si c’est votre première fois Shoko Server en cours d’exécution, vous pouvez ignorer ce message et cliquez sur non. Si JMM Server est déjà installé, cliquez sur Oui pour sélectionner manuellement le fichier de configuration.</value>
@@ -5343,7 +5340,37 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="MAL_AutoLink" xml:space="preserve">
     <value>AutoLink MAL série</value>
   </data>
+  <data name="Tooltip_QueueGeneral" xml:space="preserve">
+    <value>Opérations générales dans la file d’attente :</value>
+  </data>
+  <data name="Utilities_FolderLocal" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="Utilities_FolderRemote" xml:space="preserve">
+    <value>Distant</value>
+  </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="ErrorBlockedDll" xml:space="preserve">
+    <value>Bloqué des fichiers DLL dans le répertoire du serveur !</value>
+  </data>
   <data name="TAB_Settings_Plex" xml:space="preserve">
-    <value>Paramètres de plex</value>
+    <value>Paramètres de plex pour ShokoMetadata</value>
+  </data>
+  <data name="ShokoMetadata_Info" xml:space="preserve">
+    <value>Pour avoir ShokoMetada sync avec Shoko, entrée de l’hôte de Plex qui vous pouvez obtenir de votre navigateur web et l’ID de la bibliothèque de Plex qui sont les numéros après la partie suivante ; [clé = % 2Flibrary % 2Fsections % 2F] pour la bibliothèque que vous avez cliqué.</value>
+  </data>
+  <data name="Toolbar_WebUI" xml:space="preserve">
+    <value>Lancer l’interface utilisateur Web</value>
+  </data>
+  <data name="Filter_Seasons" xml:space="preserve">
+    <value>Saisons</value>
+  </data>
+  <data name="Filter_CreatingSeason" xml:space="preserve">
+    <value>Création de saison</value>
+  </data>
+  <data name="GroupFilterConditionType_Season" xml:space="preserve">
+    <value>Saison</value>
   </data>
 </root>
