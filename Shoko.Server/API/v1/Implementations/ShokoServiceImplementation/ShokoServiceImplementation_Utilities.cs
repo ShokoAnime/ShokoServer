@@ -698,6 +698,11 @@ namespace Shoko.Server
             }
         }
 
+        public IDictionary<string, string> GetScriptTypes()
+        {
+            return RenameFileHelper.ScriptDescriptions;
+        }
+
         public List<AniDB_Recommendation> GetAniDBRecommendations(int animeID)
         {
             try
