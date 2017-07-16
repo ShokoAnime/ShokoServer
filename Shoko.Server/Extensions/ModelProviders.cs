@@ -632,7 +632,7 @@ namespace Shoko.Server.Extensions
             response.SeriesName = series.SeriesName;
             response.Overview = series.Overview;
             response.Banner = series.Banner;
-            response.Language = string.Empty;
+            response.Language = string.Intern("en");
         }
 
         public static void Populate(this AniDB_Anime_Character character, Raw_AniDB_Character rawChar)
