@@ -49,6 +49,11 @@ namespace Shoko.Server.Extensions
             return listhash.Overlaps(itemhash);
         }
 
+        public static bool FindInEnumerable(this IEnumerable<int> items, IEnumerable<int> list)
+        {
+            return list.ToHashSet().Overlaps(items.ToHashSet());
+        }
+
         public static bool FindIn(this string item, IEnumerable<string> list)
         {
             return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);

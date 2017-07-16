@@ -1049,6 +1049,12 @@ namespace Shoko.UI
             mnuShow.Click += new EventHandler(mnuShow_Click);
             ctxTrayMenu.Items.Add(mnuShow);
 
+            //Add Web UI item to the context menu.
+            System.Windows.Forms.ToolStripMenuItem mnuWebUI = new System.Windows.Forms.ToolStripMenuItem();
+            mnuWebUI.Text = Shoko.Commons.Properties.Resources.Toolbar_WebUI;
+            mnuWebUI.Click += new EventHandler(mnuWebUI_Click);
+            ctxTrayMenu.Items.Add(mnuWebUI);
+
             //Add the Menu Item to the context menu
             System.Windows.Forms.ToolStripMenuItem mnuExit = new System.Windows.Forms.ToolStripMenuItem();
             mnuExit.Text = Shoko.Commons.Properties.Resources.Toolbar_Shutdown;
@@ -1062,6 +1068,23 @@ namespace Shoko.UI
         void mnuShow_Click(object sender, EventArgs e)
         {
             this.Show();
+        }
+
+        void mnuWebUI_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string IP = GetLocalIPv4(NetworkInterfaceType.Ethernet);
+                if (string.IsNullOrEmpty(IP))
+                    IP = "127.0.0.1";
+
+                string url = $"http://{IP}:{ServerSettings.JMMServerPort}";
+                Process.Start(url);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
         }
 
         private void ShutDown()

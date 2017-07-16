@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.ServiceModel;
+using System.Text.RegularExpressions;
 using System.Threading;
 using AniDBAPI;
 using AniDBAPI.Commands;
@@ -37,11 +40,134 @@ using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
 using Pri.LongPath;
 using Shoko.Server.Renamer;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
     public partial class ShokoServiceImplementation
     {
+        public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, string input)
+        {
+            string query = input.ToLower(CultureInfo.InvariantCulture);
+            query = SanitizeFuzzy(query, true);
+
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            List<CL_AnimeSeries_User> series_list = new List<CL_AnimeSeries_User>();
+            if (user == null) return series_list;
+
+            var series = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
+                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
+                .ThenBy(a => a.Item1.GetSeriesName())
+                .Select(a => a.Item1).ToList();
+
+            foreach (SVR_AnimeSeries ser in series)
+            {
+                series_list.Add(ser.GetUserContract(uid));
+            }
+
+            return series_list;
+        }
+
+        /// <summary>
+        /// Join a string like string.Join but
+        /// </summary>
+        /// <param name="seperator"></param>
+        /// <param name="values"></param>
+        /// <param name="replaceinvalid"></param>
+        /// <returns></returns>
+        internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
+        {
+            if (!replaceinvalid) return string.Join(seperator, values);
+
+            List<string> newItems = values.Select(s => SanitizeFuzzy(s, replaceinvalid)).ToList();
+
+            return string.Join(seperator, newItems);
+        }
+
+        private static readonly char[] InvalidPathChars =
+            $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
+
+        private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
+
+        private static readonly string[] ReplacementStrings =
+            {"h264", "x264", "x265", "bluray", "blu-ray", "dvd", "1080p", "720p", "480p", "hevc", "webrip", "web", "h265", "ac3", "aac", "mp3", "[bd]", "(bd)"};
+
+        private static string ReplaceCaseInsensitive(string input, string search, string replacement)
+        {
+            return Regex.Replace(input, Regex.Escape(search), replacement.Replace("$", "$$"),
+                RegexOptions.IgnoreCase);
+        }
+
+        private static string RemoveSubgroups(string value)
+        {
+            int originalLength = value.Length;
+            var releaseGroups = SVR_AniDB_Anime.GetAllReleaseGroups();
+            foreach (string releaseGroup in releaseGroups)
+            {
+                value = ReplaceCaseInsensitive(value, releaseGroup, "");
+                if (originalLength > value.Length) break;
+            }
+            return value;
+        }
+
+        internal static string SanitizeFuzzy(string value, bool replaceInvalid)
+        {
+            if (!replaceInvalid) return value;
+
+            value = value.FilterCharacters(InvalidPathChars, true);
+            value = ReplacementStrings.Aggregate(value, (current, c) => ReplaceCaseInsensitive(current, c, ""));
+            value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
+            // Takes too long
+            //value = RemoveSubgroups(value);
+
+            return value.CompactWhitespaces();
+        }
+
+        private static int GetLowestLevenshteinDistance(SVR_AnimeSeries a, string query)
+        {
+            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return int.MaxValue;
+            int dist = int.MaxValue;
+            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Where(b =>
+                    b.Language.Equals("x-jat",
+                        StringComparison.InvariantCultureIgnoreCase) ||
+                    b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase))
+                .Select(b => b.Title).ToList())
+            {
+                if (string.IsNullOrEmpty(title)) continue;
+                int newDist = Utils.LevenshteinDistance(title, query);
+                if (newDist < dist && newDist < Math.Min(title.Length, query.Length))
+                {
+                    dist = newDist;
+                }
+            }
+
+            return dist;
+        }
+
+        public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, string input)
+        {
+            string query = input.ToLower(CultureInfo.InvariantCulture);
+            query = SanitizeFuzzy(query, true);
+
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            List<CL_AniDB_Anime> series_list = new List<CL_AniDB_Anime>();
+            if (user == null) return series_list;
+
+            var series = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
+                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
+                .ThenBy(a => a.Item1.GetSeriesName())
+                .Select(a => a.Item1).ToList();
+
+            foreach (SVR_AnimeSeries ser in series)
+            {
+                series_list.Add(ser.GetAnime().Contract.AniDBAnime);
+            }
+
+            return series_list;
+        }
+
         public List<string> GetAllReleaseGroups()
         {
             return SVR_AniDB_Anime.GetAllReleaseGroups().ToList();
@@ -541,6 +667,8 @@ namespace Shoko.Server
                 script.IsEnabledOnImport = contract.IsEnabledOnImport;
                 script.Script = contract.Script;
                 script.ScriptName = contract.ScriptName;
+                script.RenamerType = contract.RenamerType;
+                script.ExtraData = contract.ExtraData;
                 RepoFactory.RenameScript.Save(script);
 
                 response.Result = script;
@@ -570,6 +698,11 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 return ex.Message;
             }
+        }
+
+        public IDictionary<string, string> GetScriptTypes()
+        {
+            return RenameFileHelper.ScriptDescriptions;
         }
 
         public List<AniDB_Recommendation> GetAniDBRecommendations(int animeID)
@@ -1709,6 +1842,11 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 return vidQuals;
             }
+        }
+
+        public string AVDumpFile(int vidLocalID)
+        {
+            return AVDumpHelper.DumpFile(vidLocalID);
         }
     }
 }

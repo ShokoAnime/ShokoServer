@@ -974,7 +974,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     if (!anime.GetSearchOnTvDB()) continue; // Don't log if it isn't supposed to be there
                     logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
-                    if (anime.GetIsTvDBLinkDisabled())
+                    if (anime.IsTvDBLinkDisabled())
                     {
                         logger.Trace("Skipping scan tvDB link because it is disabled: " + anime.MainTitle);
                         continue;

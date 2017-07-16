@@ -146,7 +146,7 @@ namespace Shoko.Server.Models
         }
 
 
-        internal List<CrossRef_File_Episode> EpisodeCrossRefs
+        public List<CrossRef_File_Episode> EpisodeCrossRefs
         {
             get
             {

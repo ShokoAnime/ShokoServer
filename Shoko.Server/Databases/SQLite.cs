@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 54;
+        public int RequiredVersion { get; } = 55;
 
 
         public void BackupDatabase(string fullfilename)
@@ -469,6 +469,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(52, 1, DatabaseFixes.FixEmptyVideoInfos),
             new DatabaseCommand(53, 1, "ALTER TABLE JMMUser ADD PlexToken text NULL"),
             new DatabaseCommand(54, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT -1"),
+            new DatabaseCommand(55, 1, "ALTER TABLE RenameScript ADD RenamerType TEXT NOT NULL DEFAULT 'Legacy'"),
+            new DatabaseCommand(55, 2, "ALTER TABLE RenameScript ADD ExtraData TEXT"),
         };
 
 

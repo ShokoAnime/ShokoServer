@@ -14,6 +14,7 @@ using static Shoko.Models.Constants;
 
 namespace Shoko.Server.Renamer
 {
+    [Renamer("Legacy", Description = "Legacy")]
     class LegacyRenamer : IRenamer
     {
         private readonly RenameScript script;

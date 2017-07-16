@@ -22,14 +22,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
     {
         private static string TranslateCodec(string codec)
         {
-            codec = codec.ToLower();
-            foreach (string k in codecs.Keys)
-            {
-                if (codec == k.ToLower())
-                {
-                    return codecs[k];
-                }
-            }
+            codec = codec.ToLowerInvariant();
+            if (CodecIDs.ContainsKey(codec))
+                return CodecIDs[codec];
             return codec;
         }
 
@@ -50,11 +45,11 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string TranslateProfile(string codec, string profile)
         {
-            profile = profile.ToLower();
+            profile = profile.ToLowerInvariant();
 
             if (profile.Contains("advanced simple"))
                 return "asp";
-            if ((codec == "mpeg4") && (profile == "simple"))
+            if (codec == "mpeg4" && profile.Equals("simple"))
                 return "sp";
             if (profile.StartsWith("m"))
                 return "main";
@@ -67,7 +62,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string TranslateLevel(string level)
         {
-            level = level.Replace(".", string.Empty).ToLower();
+            level = level.Replace(".", string.Empty).ToLowerInvariant();
             if (level.StartsWith("l"))
             {
                 int.TryParse(level.Substring(1), out int lll);
@@ -101,10 +96,10 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         public static string PostTranslateCode3(string c)
         {
-            c = c.ToLower();
+            c = c.ToLowerInvariant();
             foreach (string k in code3_post.Keys)
             {
-                if (c.Contains(k.ToLower()))
+                if (c.Contains(k))
                 {
                     return code3_post[k];
                 }
@@ -114,9 +109,10 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         public static string PostTranslateLan(string c)
         {
+            c = c.ToLowerInvariant();
             foreach (string k in lan_post.Keys)
             {
-                if (c.ToLower().Contains(k.ToLower()))
+                if (c.Contains(k))
                 {
                     return lan_post[k];
                 }
@@ -126,12 +122,12 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static string TranslateContainer(string container)
         {
-            container = container.ToLower();
-            foreach (string k in containers.Keys)
+            container = container.ToLowerInvariant();
+            foreach (string k in FileContainers.Keys)
             {
-                if (container.Contains(k.ToLower()))
+                if (container.Contains(k))
                 {
-                    return containers[k];
+                    return FileContainers[k];
                 }
             }
             return container;
@@ -536,7 +532,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                         else if ((m.VideoFrameRate == "30p") || (m.VideoFrameRate == "30i"))
                                             m.VideoFrameRate = "NTSC";
                                     }
-                                    m.VideoCodec = s.CodecID;
+                                    m.VideoCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
                                         double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture,
@@ -571,7 +567,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     s.Codec = "adpcm_swf";
                                 if (x == 0)
                                 {
-                                    m.AudioCodec = s.CodecID;
+                                    m.AudioCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
                                     m.AudioChannels = s.Channels;
                                     if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                                     {
@@ -802,11 +798,11 @@ namespace Shoko.Server.FileHelper.MediaInfo
             if (!string.IsNullOrEmpty(s))
             {
                 s = s.ToUpper();
-                foreach (string k in formats.Keys)
+                foreach (string k in SubFormats.Keys)
                 {
                     if (s.Contains(k.ToUpper()))
                     {
-                        return formats[k];
+                        return SubFormats[k];
                     }
                 }
             }
@@ -816,88 +812,87 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return null;
         }
 
-        private static Dictionary<string, string> formats = new Dictionary<string, string>
+        private static Dictionary<string, string> SubFormats = new Dictionary<string, string>
         {
-            {"S_IMAGE/BMP", "bmp"},
-            {"S_TEXT/ASS", "ass"},
-            {"S_ASS", "ass"},
-            {"S_TEXT/SSA", "ssa"},
-            {"S_SSA", "ssa"},
-            {"S_TEXT/USF", "usf"},
-            {"S_TEXT/UTF8", "srt"},
-            {"S_USF", "usf"},
-            {"S_VOBSUB", "vobsub"},
-            {"S_HDMV/PGS", "pgs"},
             {"c608", "eia-608"},
             {"c708", "eia-708"},
+            {"s_ass", "ass"},
+            {"s_hdmv/pgs", "pgs"},
+            {"s_ssa", "ssa"},
+            {"s_text/ass", "ass"},
+            {"s_text/ssa", "ssa"},
+            {"s_text/usf", "usf"},
+            {"s_text/utf8", "srt"},
+            {"s_usf", "usf"},
+            {"s_vobsub", "vobsub"},
             {"subp", "vobsub"},
+            {"s_image/bmp", "bmp"},
         };
 
-        private static Dictionary<string, string> codecs = new Dictionary<string, string>
+        private static Dictionary<string, string> CodecIDs = new Dictionary<string, string>
         {
-            {"V_MPEG4/ISO/AVC", "h264"},
-            {"v_mpeg4/iso/asp", "mpeg4"},
-            {"avc", "h264"},
-            {"V_MPEG2", "mpeg2"},
-            {"DX50", "mpeg4"},
-            {"DIV3", "msmpeg4"},
-            {"divx", "mpeg4"},
-            {"MPA1L3", "mp3"},
-            {"MPA2L3", "mp3"},
-            {"A_FLAC", "flac"},
-            {"A_AAC/MPEG4/LC/SBR", "aac"},
-            {"A_AAC", "aac"},
-            {"A_AC3", "ac3"},
-            {"dts", "dca"},
             {"161", "wmav2"},
             {"162", "wmapro"},
-            {"mpa1l2", "mp2"},
-            {"mpa1l3", "mp2"},
-            {"mpeg-1v", "mpeg1video"},
-            {"mpeg-2v", "mpeg2video"},
-            {"xvid", "mpeg4"},
+            {"2", "adpcm_ms"},
+            {"55", "mp3"},
+            {"a_aac", "aac"},
+            {"a_aac/mpeg4/lc/sbr", "aac"},
+            {"a_ac3", "ac3"},
+            {"a_flac", "flac"},
             {"aac lc", "aac"},
-            {"sorenson h263", "flv"},
+            {"aac lc-sbr", "aac"},
+            {"aac lc-sbr-ps", "aac"},
+            {"avc", "h264"},
+            {"avc1", "h264"},
+            {"div3", "msmpeg4"},
+            {"divx", "mpeg4"},
+            {"dts", "dca"},
+            {"dts-hd", "dca"},
+            {"dx50", "mpeg4"},
+            {"flv1", "flv"},
             {"mp42", "msmpeg4v2"},
             {"mp43", "msmpeg4"},
-            {"aac lc-sbr", "aac"},
-            {"on2 vp6", "vp6f"},
-            {"mpeg-4v", "mpeg4"},
-            {"vc-1", "vc1"},
-            {"2", "adpcm_ms"},
-            {"dts-hd", "dca"},
-            {"55", "mp3"},
-            {"avc1", "h264"},
+            {"mpa1l2", "mp2"},
+            {"mpa1l3", "mp3"},
             {"mpa2.5l3", "mp3"},
+            {"mpa2l3", "mp3"},
+            {"mpeg-1v", "mpeg1video"},
+            {"mpeg-2v", "mpeg2video"},
+            {"mpeg-4v", "mpeg4"},
             {"mpg4", "msmpeg4v1"},
-            {"flv1", "flv"},
-            {"aac lc-sbr-ps", "aac"}
+            {"on2 vp6", "vp6f"},
+            {"sorenson h263", "flv"},
+            {"v_mpeg2", "mpeg2"},
+            {"v_mpeg4/iso/asp", "mpeg4"},
+            {"v_mpeg4/iso/avc", "h264"},
+            {"vc-1", "vc1"},
+            {"xvid", "mpeg4"}
         };
 
-        private static Dictionary<string, string> containers = new Dictionary<string, string>
+        private static Dictionary<string, string> FileContainers = new Dictionary<string, string>
         {
-            {"matroska", "mkv"},
-            {"windows media", "asf"},
-            {"mpeg-ps", "mpeg"},
-            {"mpeg-4", "mp4"},
-            {"flash video", "flv"},
+            {"cdxa/mpeg-ps", "mpeg"},
             {"divx", "avi"},
-            {"realmedia", "rm"},
+            {"flash video", "flv"},
             {"mpeg video", "mpeg"},
-            {"cdxa/mpeg-ps", "mpeg"}
+            {"mpeg-4", "mp4"},
+            {"mpeg-ps", "mpeg"},
+            {"realmedia", "rm"},
+            {"windows media", "asf"},
+            {"matroska", "mkv"},
         };
 
         private static Dictionary<string, string> code3_post = new Dictionary<string, string>
         {
-            {"fra", "fre"},
-            {"deu", "ger"},
             {"ces", "cz"},
+            {"deu", "ger"},
+            {"fra", "fre"},
             {"ron", "rum"}
         };
 
         private static Dictionary<string, string> lan_post = new Dictionary<string, string>
         {
-            {"Dutch", "Nederlands"},
+            {"dutch", "Nederlands"},
         };
 
         public static string[,] languages =
@@ -910,14 +905,14 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"amharic", "am", "amh"},
             {@"arabic", "ar", "ara"},
             {@"aragonese", "an", "arg"},
-            {@"assamese", "as", "asm"},
             {@"armenian", "hy", "hye"},
+            {@"assamese", "as", "asm"},
             {@"avaric", "av", "ava"},
             {@"avestan", "ae", "ave"},
             {@"aymara", "ay", "aym"},
             {@"azerbaijani", "az", "aze"},
-            {@"bashkir", "ba", "bak"},
             {@"bambara", "bm", "bam"},
+            {@"bashkir", "ba", "bak"},
             {@"basque", "eu", "eus"},
             {@"belarusian", "be", "bel"},
             {@"bengali", "bn", "ben"},
@@ -930,9 +925,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"catalan", "ca", "cat"},
             {@"chamorro", "ch", "cha"},
             {@"chechen", "ce", "che"},
-            {@"nyanja", "ny", "nya"},
             {@"chinese", "zh", "chi"},
             {@"chinese", "zh", "zho"},
+            {@"church slavic", "cu", "chu"},
             {@"chuvash", "cv", "chv"},
             {@"cornish", "kw", "cor"},
             {@"corsican", "co", "cos"},
@@ -941,6 +936,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"czech", "cs", "ces"},
             {@"danish", "da", "dan"},
             {@"dhivehi", "dv", "div"},
+            {@"dutch", "nl", "nld"},
             {@"dzongkha", "dz", "dzo"},
             {@"english", "en", "eng"},
             {@"esperanto", "eo", "epo"},
@@ -952,8 +948,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"french", "fr", "fra"},
             {@"fulah", "ff", "ful"},
             {@"galician", "gl", "glg"},
+            {@"ganda", "lg", "lug"},
+            {@"georgian", "ka", "kat"},
             {@"german", "de", "deu"},
-            {@"modern greek", "el", "ell"},
             {@"guarani", "gn", "grn"},
             {@"gujarati", "gu", "guj"},
             {@"haitian", "ht", "hat"},
@@ -963,115 +960,113 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"hindi", "hi", "hin"},
             {@"hiri motu", "ho", "hmo"},
             {@"hungarian", "hu", "hun"},
-            {@"interlingua", "ia", "ina"},
-            {@"indonesian", "id", "ind"},
-            {@"interlingue", "ie", "ile"},
-            {@"irish", "ga", "gle"},
-            {@"igbo", "ig", "ibo"},
-            {@"sichuan yi", "ii", "iii"},
-            {@"inupiaq", "ik", "ipk"},
-            {@"ido", "io", "ido"},
-            {@"icelandic", "is", "isl"},
             {@"icelandic", "is", "ice"},
-            {@"italian", "it", "ita"},
+            {@"icelandic", "is", "isl"},
+            {@"ido", "io", "ido"},
+            {@"igbo", "ig", "ibo"},
+            {@"indonesian", "id", "ind"},
+            {@"interlingua", "ia", "ina"},
+            {@"interlingue", "ie", "ile"},
             {@"inuktitut", "iu", "iku"},
+            {@"inupiaq", "ik", "ipk"},
+            {@"irish", "ga", "gle"},
+            {@"italian", "it", "ita"},
             {@"japanese", "ja", "jpn"},
             {@"javanese", "jv", "jav"},
-            {@"georgian", "ka", "kat"},
-            {@"kongo", "kg", "kon"},
-            {@"kikuyu", "ki", "kik"},
-            {@"kuanyama", "kj", "kua"},
-            {@"kazakh", "kk", "kaz"},
             {@"kalaallisut", "kl", "kal"},
-            {@"kentral khmer", "km", "khm"},
             {@"kannada", "kn", "kan"},
-            {@"korean", "ko", "kor"},
             {@"kanuri", "kr", "kau"},
             {@"kashmiri", "ks", "kas"},
-            {@"kurdish", "ku", "kur"},
-            {@"komi", "kv", "kom"},
+            {@"kazakh", "kk", "kaz"},
+            {@"kentral khmer", "km", "khm"},
+            {@"kikuyu", "ki", "kik"},
+            {@"kinyarwanda", "rw", "kin"},
             {@"kirghiz", "ky", "kir"},
+            {@"komi", "kv", "kom"},
+            {@"kongo", "kg", "kon"},
+            {@"korean", "ko", "kor"},
+            {@"kuanyama", "kj", "kua"},
+            {@"kurdish", "ku", "kur"},
+            {@"lao", "lo", "lao"},
             {@"latin", "la", "lat"},
-            {@"luxembourgish", "lb", "ltz"},
-            {@"ganda", "lg", "lug"},
+            {@"latvian", "lv", "lav"},
             {@"limburgan", "li", "lim"},
             {@"lingala", "ln", "lin"},
-            {@"lao", "lo", "lao"},
             {@"lithuanian", "lt", "lit"},
             {@"luba-katanga", "lu", "lub"},
-            {@"latvian", "lv", "lav"},
+            {@"luxembourgish", "lb", "ltz"},
+            {@"macedonian", "mk", "mkd"},
             {@"malagasy", "mg", "mlg"},
-            {@"marshallese", "mh", "mah"},
+            {@"malay", "ms", "msa"},
+            {@"malayalam", "ml", "mal"},
+            {@"maltese", "mt", "mlt"},
             {@"manx", "gv", "glv"},
             {@"maori", "mi", "mri"},
-            {@"macedonian", "mk", "mkd"},
-            {@"malayalam", "ml", "mal"},
-            {@"mongolian", "mn", "mon"},
             {@"marathi", "mr", "mar"},
-            {@"malay", "ms", "msa"},
-            {@"maltese", "mt", "mlt"},
+            {@"marshallese", "mh", "mah"},
+            {@"modern greek", "el", "ell"},
+            {@"mongolian", "mn", "mon"},
             {@"nauru", "na", "nau"},
-            {@"Norsk bokmål", "nb", "nob"},
-            {@"north ndebele", "nd", "nde"},
-            {@"nepali", "ne", "nep"},
+            {@"navajo", "nv", "nav"},
             {@"ndonga", "ng", "ndo"},
-            {@"dutch", "nl", "nld"},
+            {@"nepali", "ne", "nep"},
+            {@"norsk bokmål", "nb", "nob"},
+            {@"north ndebele", "nd", "nde"},
+            {@"northern sami", "se", "sme"},
             {@"norwegian nynorsk", "nn", "nno"},
             {@"norwegian", "no", "nor"},
-            {@"south ndebele", "nr", "nbl"},
-            {@"navajo", "nv", "nav"},
+            {@"nyanja", "ny", "nya"},
             {@"occitan", "oc", "oci"},
             {@"ojibwa", "oj", "oji"},
-            {@"church slavic", "cu", "chu"},
-            {@"oromo", "om", "orm"},
             {@"oriya", "or", "ori"},
+            {@"oromo", "om", "orm"},
             {@"ossetian", "os", "oss"},
-            {@"panjabi", "pa", "pan"},
             {@"pali", "pi", "pli"},
+            {@"panjabi", "pa", "pan"},
             {@"persian", "fa", "fas"},
             {@"polish", "pl", "pol"},
-            {@"pushto", "ps", "pus"},
             {@"portuguese", "pt", "por"},
+            {@"pushto", "ps", "pus"},
             {@"quechua", "qu", "que"},
+            {@"romanian", "ro", "ron"},
             {@"romansh", "rm", "roh"},
             {@"rundi", "rn", "run"},
-            {@"romanian", "ro", "ron"},
             {@"russian", "ru", "rus"},
-            {@"kinyarwanda", "rw", "kin"},
-            {@"sanskrit", "sa", "san"},
-            {@"sardu", "sc", "srd"},
-            {@"sardinian", "sd", "snd"},
-            {@"northern sami", "se", "sme"},
             {@"samoan", "sm", "smo"},
             {@"sango", "sg", "sag"},
-            {@"serbian", "sr", "srp"},
+            {@"sanskrit", "sa", "san"},
+            {@"sardinian", "sd", "snd"},
+            {@"sardu", "sc", "srd"},
             {@"scottish gaelic", "gd", "gla"},
+            {@"serbian", "sr", "srp"},
             {@"shona", "sn", "sna"},
+            {@"sichuan yi", "ii", "iii"},
             {@"sinhala", "si", "sin"},
             {@"slovak", "sk", "slk"},
             {@"slovenian", "sl", "slv"},
             {@"somali", "so", "som"},
+            {@"south ndebele", "nr", "nbl"},
             {@"southern sotho", "st", "sot"},
             {@"spanish", "es", "spa"},
             {@"sundanese", "su", "sun"},
             {@"swahili", "sw", "swa"},
             {@"swati", "ss", "ssw"},
             {@"swedish", "sv", "swe"},
-            {@"tamil", "ta", "tam"},
-            {@"telugu", "te", "tel"},
-            {@"tajik‎", "tg", "tgk"},
-            {@"thai", "th", "tha"},
-            {@"tigrinya", "ti", "tir"},
-            {@"tibetan", "bo", "bod"},
-            {@"turkmen", "tk", "tuk"},
             {@"tagalog", "tl", "tgl"},
-            {@"tswana", "tn", "tsn"},
-            {@"tonga", "to", "ton"},
-            {@"turkish", "tr", "tur"},
-            {@"tsonga", "ts", "tso"},
-            {@"tatar‎", "tt", "tat"},
-            {@"twi", "tw", "twi"},
             {@"tahitian", "ty", "tah"},
+            {@"tajik‎", "tg", "tgk"},
+            {@"tamil", "ta", "tam"},
+            {@"tatar‎", "tt", "tat"},
+            {@"telugu", "te", "tel"},
+            {@"thai", "th", "tha"},
+            {@"tibetan", "bo", "bod"},
+            {@"tigrinya", "ti", "tir"},
+            {@"tonga", "to", "ton"},
+            {@"tsonga", "ts", "tso"},
+            {@"tswana", "tn", "tsn"},
+            {@"turkish", "tr", "tur"},
+            {@"turkmen", "tk", "tuk"},
+            {@"twi", "tw", "twi"},
             {@"uighur‎", "ug", "uig"},
             {@"ukrainian", "uk", "ukr"},
             {@"urdu", "ur", "urd"},
@@ -1081,13 +1076,13 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {@"volapük", "vo", "vol"},
             {@"walloon", "wa", "wln"},
             {@"welsh", "cy", "cym"},
+            {@"western frisian", "fy", "fry"},
             {@"wolof", "wo", "wol"},
-            {@"western Frisian", "fy", "fry"},
             {@"xhosa", "xh", "xho"},
             {@"yiddish", "yi", "yid"},
             {@"yoruba", "yo", "yor"},
             {@"zhuang", "za", "zha"},
-            {@"zulu", "zu", "zul"}
+            {@"zulu", "zu", "zul"},
         };
     }
 }

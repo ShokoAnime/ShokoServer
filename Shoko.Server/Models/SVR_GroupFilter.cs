@@ -414,10 +414,15 @@ namespace Shoko.Server.Models
             IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
             foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
-                CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
-                foreach (SVR_JMMUser user in users)
+                if (ser.Contract == null)
+                    ser.UpdateContract();
+                if (ser.Contract != null)
                 {
-                    CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user, user.JMMUserID);
+                    CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
+                    foreach (SVR_JMMUser user in users)
+                    {
+                        CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user, user.JMMUserID);
+                    }
                 }
             }
         }
@@ -536,17 +541,35 @@ namespace Shoko.Server.Models
                              gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude) && tagsFound) return false;
                         break;
                     case GroupFilterConditionType.Year:
-                        int year = 0;
-                        int.TryParse(gfc.ConditionParameter.Trim(), out year);
-                        if (year == 0) return false;
-                        if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
-                            !contractGroup.Stat_AllYears.Contains(year))
+                        HashSet<int> years = new HashSet<int>();
+                        string[] parameterStrings = gfc.ConditionParameter.Trim()
+                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (string yearString in parameterStrings)
+                        {
+                            if (int.TryParse(yearString.Trim(), out int year))
+                                years.Add(year);
+                        }
+                        if (years.Count <= 0) return false;
+                        if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include || gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) &&
+                            !contractGroup.Stat_AllYears.FindInEnumerable(years))
                             return false;
-                        if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_AllYears.Contains(year))
+                        if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude || gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn) &&
+                            contractGroup.Stat_AllYears.FindInEnumerable(years))
                             return false;
                         break;
+                    case GroupFilterConditionType.Season:
+                        string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
 
+                        switch (gfc.GetConditionOperatorEnum())
+                        {
+                            case GroupFilterOperator.Include:
+                            case GroupFilterOperator.In:
+                                return paramStrings.FindInEnumerable(contractGroup.Stat_AllSeasons);
+                            case GroupFilterOperator.Exclude:
+                            case GroupFilterOperator.NotIn:
+                                return !paramStrings.FindInEnumerable(contractGroup.Stat_AllSeasons);
+                        }
+                        break;
                     case GroupFilterConditionType.HasWatchedEpisodes:
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
                             contractGroup.WatchedEpisodeCount > 0 == false)
@@ -904,17 +927,41 @@ namespace Shoko.Server.Models
                         int EndYear = contractSerie.AniDBAnime.AniDBAnime.EndYear;
                         if (BeginYear == 0) return false;
                         if (EndYear == 0) EndYear = int.MaxValue;
-                        int year = 0;
-                        int.TryParse(gfc.ConditionParameter.Trim(), out year);
-                        if (year == 0) return false;
-                        if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
-                            (year < BeginYear || year > EndYear))
-                            return false;
-                        if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
-                            (year >= BeginYear && year <= EndYear))
-                            return false;
+                        HashSet<int> years = new HashSet<int>();
+                        string[] parameterStrings = gfc.ConditionParameter.Trim().Split(',');
+                        foreach (string yearString in parameterStrings)
+                        {
+                            if (int.TryParse(yearString.Trim(), out int paramYear))
+                                years.Add(paramYear);
+                        }
+                        if (years.Count <= 0) return false;
+                        switch (gfc.GetConditionOperatorEnum())
+                        {
+                            case GroupFilterOperator.Include:
+                            case GroupFilterOperator.In:
+                                if (years.Any(year => year >= BeginYear && year <= EndYear))
+                                    return true;
+                                return false;
+                            case GroupFilterOperator.Exclude:
+                            case GroupFilterOperator.NotIn:
+                                if (years.Any(year => year >= BeginYear && year <= EndYear))
+                                    return false;
+                                return true;
+                        }
                         break;
+                    case GroupFilterConditionType.Season:
+                        string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
 
+                        switch (gfc.GetConditionOperatorEnum())
+                        {
+                            case GroupFilterOperator.Include:
+                            case GroupFilterOperator.In:
+                                return paramStrings.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllSeasons);
+                            case GroupFilterOperator.Exclude:
+                            case GroupFilterOperator.NotIn:
+                                return !paramStrings.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllSeasons);
+                        }
+                        break;
                     case GroupFilterConditionType.HasWatchedEpisodes:
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
                             contractSerie.WatchedEpisodeCount > 0 == false)

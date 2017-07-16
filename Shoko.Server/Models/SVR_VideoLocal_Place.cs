@@ -46,7 +46,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        internal SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -258,11 +258,11 @@ namespace Shoko.Server.Models
 
         public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
         {
-            info.VideoResolution = (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+            info.VideoResolution = !string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height)
                 ? m.Width + "x" + m.Height
                 : string.Empty;
-            info.VideoCodec = (!string.IsNullOrEmpty(m.VideoCodec)) ? m.VideoCodec : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == "1")?.CodecID;
-            info.AudioCodec = (!string.IsNullOrEmpty(m.AudioCodec)) ? m.AudioCodec : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == "2")?.CodecID;
+            info.VideoCodec = !string.IsNullOrEmpty(m.VideoCodec) ? m.VideoCodec : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == "1")?.CodecID ?? string.Empty;
+            info.AudioCodec = !string.IsNullOrEmpty(m.AudioCodec) ? m.AudioCodec : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == "2")?.CodecID ?? string.Empty;
 
 
             if (!string.IsNullOrEmpty(m.Duration))
@@ -278,7 +278,7 @@ namespace Shoko.Server.Models
                 info.Duration = 0;
 
             info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
-            List<Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+            List<Stream> vparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == "1").ToList();
             if (vparts.Count > 0)
             {
                 if (!string.IsNullOrEmpty(vparts[0].Bitrate))
@@ -288,7 +288,7 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(vparts[0].FrameRate))
                     info.VideoFrameRate = vparts[0].FrameRate;
             }
-            List<Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+            List<Stream> aparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == "2").ToList();
             if (aparts.Count > 0)
             {
                 if (!string.IsNullOrEmpty(aparts[0].Bitrate))
@@ -342,16 +342,13 @@ namespace Shoko.Server.Models
                         bool txt = false;
                         foreach (Stream ss in p.Streams.ToArray())
                         {
-                            if ((ss.StreamType == "1") && !vid)
-                            {
-                                vid = true;
-                            }
-                            if ((ss.StreamType == "2") && !aud)
+                            if (ss.StreamType == "1" && !vid) vid = true;
+                            if (ss.StreamType == "2" && !aud)
                             {
                                 aud = true;
                                 ss.Selected = "1";
                             }
-                            if ((ss.StreamType == "3") && !txt)
+                            if (ss.StreamType == "3" && !txt)
                             {
                                 txt = true;
                                 ss.Selected = "1";
@@ -732,35 +729,31 @@ namespace Shoko.Server.Models
                             newFullServerPath, fr?.Error ?? "No Error String");
                         return false;
                     }
-                    else
+/*
+                    // Pause FileWatchDog
+                    ShokoServer._pauseFileWatchDog.Reset();
+                    foreach (System.IO.FileSystemEventArgs evt in ShokoServer.queueFileEvents)
                     {
-                        // Pause FileWatchDog
-                        ShokoServer._pauseFileWatchDog.Reset();
-                        foreach (System.IO.FileSystemEventArgs evt in ShokoServer.queueFileEvents)
+                        try
                         {
-                            try
+                            // this shouldn't happend but w/e
+                            if (evt?.ChangeType == System.IO.WatcherChangeTypes.Created)
                             {
-                                // this shouldn't happend but w/e
-                                if (evt != null)
+                                // check if we know the fine by exact name
+                                if (RepoFactory.VideoLocal.GetByName(Path.GetFileName(evt.Name)) != null)
                                 {
-                                    if (evt.ChangeType == System.IO.WatcherChangeTypes.Created)
-                                    {
-                                        // check if we know the fine by exact name
-                                        if (RepoFactory.VideoLocal.GetByName(Path.GetFileName(evt.Name)) != null)
-                                        {
-                                            logger.Info("This file is known: {0}", evt.Name);
-                                            // delete it from queue for hashing
-                                            ShokoServer.queueFileEvents.Remove(evt);
-                                            break;
-                                        }
-                                    }
+                                    logger.Info("This file is known: {0}", evt.Name);
+                                    // delete it from queue for hashing
+                                    ShokoServer.queueFileEvents.Remove(evt);
+                                    break;
                                 }
                             }
-                            catch { }
                         }
-                        // Resume FileWatchDog
-                        ShokoServer._pauseFileWatchDog.Set();
+                        catch { }
                     }
+                    // Resume FileWatchDog
+                    ShokoServer._pauseFileWatchDog.Set();
+*/
                     string originalFileName = FullServerPath;
 
                     ImportFolderID = destFolder.ImportFolderID;
