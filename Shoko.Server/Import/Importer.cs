@@ -268,6 +268,11 @@ namespace Shoko.Server
                 logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
+                // Get Ignored Files and remove them from the scan listing
+                var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+                    .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
+                fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
+
                 // get a list of all files in the share
                 foreach (string fileName in fileList)
                 {
@@ -310,6 +315,11 @@ namespace Shoko.Server
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
+
+            // Get Ignored Files and remove them from the scan listing
+            var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+                .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
+            fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
             // get a list of all the shares we are looking at
             int filesFound = 0, videosFound = 0;
