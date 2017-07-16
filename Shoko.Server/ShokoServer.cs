@@ -416,25 +416,6 @@ namespace Shoko.Server
             return true;
         }
 
-        public void ApplicationShutdown()
-        {
-            try
-            {
-                ThreadStart ts = () =>
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        Application.Current.Shutdown();
-                    });
-                };
-                new Thread(ts).Start();
-            }
-            catch (Exception ex)
-            {
-                logger.Log(LogLevel.Error, $"Error occured during ApplicationShutdown: {ex.Message}");
-            }
-        }
-
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             // for later use
