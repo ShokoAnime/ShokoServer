@@ -568,7 +568,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(64, 1, "ALTER TABLE `CrossRef_File_Episode` ADD INDEX `IX_Xref_Epid` (`episodeid` ASC) ;"),
             new DatabaseCommand(64, 2, "ALTER TABLE `CrossRef_Subtitles_AniDB_File` ADD INDEX `IX_Xref_Sub_AniDBFile` (`fileid` ASC) ;"),
             new DatabaseCommand(64, 3, "ALTER TABLE `CrossRef_Languages_AniDB_File` ADD INDEX `IX_Xref_Epid` (`fileid` ASC) ;"),
-            new DatabaseCommand(65, 1, "ALTER TABLE RenameScript ADD RenamerType TEXT character set utf8 NOT NULL DEFAULT 'Legacy'"),
+            new DatabaseCommand(65, 1, "ALTER TABLE RenameScript ADD RenamerType varchar(255) character set utf8 NOT NULL DEFAULT 'Legacy'"),
             new DatabaseCommand(65, 2, "ALTER TABLE RenameScript ADD ExtraData TEXT character set utf8"),
         };
 
