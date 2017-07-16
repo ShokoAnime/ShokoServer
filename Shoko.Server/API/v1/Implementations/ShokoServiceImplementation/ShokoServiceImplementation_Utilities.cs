@@ -667,6 +667,8 @@ namespace Shoko.Server
                 script.IsEnabledOnImport = contract.IsEnabledOnImport;
                 script.Script = contract.Script;
                 script.ScriptName = contract.ScriptName;
+                script.RenamerType = contract.RenamerType;
+                script.ExtraData = contract.ExtraData;
                 RepoFactory.RenameScript.Save(script);
 
                 response.Result = script;
