@@ -46,7 +46,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        internal SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 

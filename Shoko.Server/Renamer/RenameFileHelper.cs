@@ -48,7 +48,14 @@ namespace Shoko.Server
             if (!ScriptImplementations.ContainsKey(script.RenamerType))
                 return null;
 
-            return (IRenamer) Activator.CreateInstance(ScriptImplementations[script.RenamerType], script);
+            try
+            {
+                return (IRenamer) Activator.CreateInstance(ScriptImplementations[script.RenamerType], script);
+            }
+            catch (MissingMethodException)
+            {
+                return (IRenamer)Activator.CreateInstance(ScriptImplementations[script.RenamerType]);
+            }
         }
 
         public static void InitialiseRenamers()
