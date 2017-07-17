@@ -3793,10 +3793,10 @@ namespace Shoko.Server
                 RepoFactory.ImportFolder.Save(ns);
 
                 response.Result = ns;
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ServerInfo.Instance.RefreshImportFolders();
-                });
+//                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+//                {
+                ServerInfo.Instance.RefreshImportFolders();
+//                });
                 ShokoServer.StopWatchingFiles();
                 ShokoServer.StartWatchingFiles();
 
