@@ -104,6 +104,7 @@ namespace AniDBAPI
 
         public void ProcessHTTPSource(XmlNode node)
         {
+            if (node == null) return;
             this.ListID = int.Parse(node.Attributes["id"].Value);
             this.AnimeID = int.Parse(node.Attributes["aid"].Value);
             this.EpisodeID = int.Parse(node.Attributes["eid"].Value);
@@ -137,19 +138,19 @@ namespace AniDBAPI
             }
 
             string tempstate = AniDBHTTPHelper.TryGetProperty(node, "state");
-            int.TryParse(tempstate, out int istate);
-            this.State = istate;
+            if(int.TryParse(tempstate, out int istate))
+                State = istate;
 
             string fstate = AniDBHTTPHelper.TryGetProperty(node, "filestate");
-            int.TryParse(fstate, out int ifilestate);
-            this.FileState = ifilestate;
+            if(int.TryParse(fstate, out int ifilestate))
+                FileState = ifilestate;
 
             this.Source = AniDBHTTPHelper.TryGetProperty(node, "storage");
         }
 
         public override string ToString()
         {
-            return string.Format("Raw_AniDB_MyListFile:: fileID: {0} | IsWatched: {1}", FileID, IsWatched);
+            return $"Raw_AniDB_MyListFile:: fileID: {FileID} | IsWatched: {IsWatched}";
         }
     }
 }

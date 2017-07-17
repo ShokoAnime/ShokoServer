@@ -17,6 +17,7 @@ using Shoko.Models.Interfaces;
 using NLog;
 using Shoko.Server.API.core;
 using NutzCode.CloudFileSystem;
+using Pri.LongPath;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.MAL;
@@ -1006,6 +1007,45 @@ namespace Shoko.Server
             return "";
         }
 
+        public void RehashFile(int videoLocalID)
+        {
+            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(videoLocalID);
+
+            if (vl != null)
+            {
+                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                if (pl == null)
+                {
+                    logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
+                    return;
+                }
+                CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                cr_hashfile.Save();
+            }
+        }
+
+        /// <summary>
+        /// Delets the VideoLocal record and the associated physical file
+        /// </summary>
+        /// <param name="videolocalplaceid"></param>
+        /// <returns></returns>
+        public string DeleteVideoLocalPlaceAndFile(int videolocalplaceid)
+        {
+            try
+            {
+                SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
+                if (place?.VideoLocal == null)
+                    return "Database entry does not exist";
+
+                return place.RemoveAndDeleteFileWithMessage();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+        }
+
         public string SetResumePosition(int videoLocalID, long resumeposition, int userID)
         {
             try
@@ -1840,6 +1880,33 @@ namespace Shoko.Server
             return null;
         }
 
+        public void RecreateAllGroups(bool resume = false)
+        {
+            try
+            {
+                new AnimeGroupCreator().RecreateAllGroups();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
+
+        public string RenameAllGroups()
+        {
+            try
+            {
+                SVR_AnimeGroup.RenameAllGroups();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return string.Empty;
+        }
+
         public string DeleteAnimeGroup(int animeGroupID, bool deleteFiles)
         {
             try
@@ -2353,6 +2420,22 @@ namespace Shoko.Server
             return "";
         }
 
+        public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
+        {
+            try
+            {
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                if (anime == null) return;
+
+                anime.DisableExternalLinksFlag = flags;
+                RepoFactory.AniDB_Anime.Save(anime);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
+
         public void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID)
         {
             try
@@ -2427,78 +2510,6 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-        }
-
-        public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
-        {
-            try
-            {
-                return TraktTVHelper.CheckTraktValidity(slug, removeDBEntries);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return false;
-        }
-
-        public List<CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs()
-        {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_TraktV2.GetAll().Cast<CrossRef_AniDB_TraktV2>().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return new List<CrossRef_AniDB_TraktV2>();
-        }
-
-        public List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
-        {
-            List<CL_Trakt_CommentUser> comments = new List<CL_Trakt_CommentUser>();
-
-            try
-            {
-                List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(animeID);
-                if (commentsTemp == null || commentsTemp.Count == 0) return comments;
-
-                foreach (TraktV2Comment sht in commentsTemp)
-                {
-                    CL_Trakt_CommentUser comment = new CL_Trakt_CommentUser();
-
-                    Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(sht.user.username);
-
-                    // user details
-                    comment.User = new CL_Trakt_User();
-                    if (traktFriend == null)
-                        comment.User.Trakt_FriendID = 0;
-                    else
-                        comment.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
-
-                    comment.User.Username = sht.user.username;
-                    comment.User.Full_name = sht.user.name;
-
-                    // comment details
-                    comment.Comment = new CL_Trakt_Comment
-                    {
-                        CommentType = (int)TraktActivityType.Show, // episode or show
-                        Text = sht.comment,
-                        Spoiler = sht.spoiler,
-                        Inserted = sht.CreatedAtDate,
-
-                        // urls
-                        Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id)
-                    };
-                    comments.Add(comment);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return comments;
         }
 
         public List<CL_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID)
@@ -3488,6 +3499,322 @@ namespace Shoko.Server
             }
         }
 
+        #endregion
+
+        #region Users
+
+        public List<JMMUser> GetAllUsers()
+        {
+            try
+            {
+                return RepoFactory.JMMUser.GetAll().Cast<JMMUser>().ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return new List<JMMUser>();
+            }
+        }
+
+        public JMMUser AuthenticateUser(string username, string password)
+        {
+            try
+            {
+                return RepoFactory.JMMUser.AuthenticateUser(username, password);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return null;
+            }
+        }
+
+        public string ChangePassword(int userID, string newPassword)
+        {
+            return ChangePassword(userID, newPassword, true);
+        }
+
+        public string ChangePassword(int userID, string newPassword, bool revokeapikey)
+        {
+            try
+            {
+                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
+                if (jmmUser == null) return "User not found";
+
+                jmmUser.Password = Digest.Hash(newPassword);
+                RepoFactory.JMMUser.Save(jmmUser, false);
+                if (revokeapikey)
+                {
+                    UserDatabase.RemoveApiKeysForUserID(userID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return "";
+        }
+
+        public string SaveUser(JMMUser user)
+        {
+            try
+            {
+                bool existingUser = false;
+                bool updateStats = false;
+                bool updateGf = false;
+                SVR_JMMUser jmmUser = null;
+                if (user.JMMUserID != 0)
+                {
+                    jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID);
+                    if (jmmUser == null) return "User not found";
+                    existingUser = true;
+                }
+                else
+                {
+                    jmmUser = new SVR_JMMUser();
+                    updateStats = true;
+                    updateGf = true;
+                }
+
+                if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
+                    updateStats = true;
+
+                string hcat = string.Join(",", user.HideCategories);
+                if (jmmUser.HideCategories != hcat)
+                    updateGf = true;
+                jmmUser.HideCategories = hcat;
+                jmmUser.IsAniDBUser = user.IsAniDBUser;
+                jmmUser.IsTraktUser = user.IsTraktUser;
+                jmmUser.IsAdmin = user.IsAdmin;
+                jmmUser.Username = user.Username;
+                jmmUser.CanEditServerSettings = user.CanEditServerSettings;
+                jmmUser.PlexUsers = string.Join(",", user.PlexUsers);
+                jmmUser.PlexToken = user.PlexToken;
+                if (string.IsNullOrEmpty(user.Password))
+                {
+                    jmmUser.Password = "";
+                }
+                else
+                {
+                    // Additional check for hashed password, if not hashed we hash it
+                    if (user.Password.Length < 64)
+                        jmmUser.Password = Digest.Hash(user.Password);
+                    else
+                        jmmUser.Password = user.Password;
+                }
+
+                // make sure that at least one user is an admin
+                if (jmmUser.IsAdmin == 0)
+                {
+                    bool adminExists = false;
+                    IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
+                    foreach (SVR_JMMUser userOld in users)
+                    {
+                        if (userOld.IsAdmin == 1)
+                        {
+                            if (existingUser)
+                            {
+                                if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
+                            }
+                            else
+                            {
+                                //one admin account is needed
+                                adminExists = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!adminExists) return "At least one user must be an administrator";
+                }
+
+                RepoFactory.JMMUser.Save(jmmUser, updateGf);
+
+                // update stats
+                if (updateStats)
+                {
+                    foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+                        ser.QueueUpdateStats();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return "";
+        }
+
+        public string DeleteUser(int userID)
+        {
+            try
+            {
+                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
+                if (jmmUser == null) return "User not found";
+
+                // make sure that at least one user is an admin
+                if (jmmUser.IsAdmin == 1)
+                {
+                    bool adminExists = false;
+                    IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
+                    foreach (SVR_JMMUser userOld in users)
+                    {
+                        if (userOld.IsAdmin == 1)
+                        {
+                            if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
+                        }
+                    }
+
+                    if (!adminExists) return "At least one user must be an administrator";
+                }
+
+                RepoFactory.JMMUser.Delete(userID);
+
+                // delete all user records
+                RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));
+                RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByUserID(userID));
+                RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByUserID(userID));
+                RepoFactory.VideoLocalUser.Delete(RepoFactory.VideoLocalUser.GetByUserID(userID));
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return "";
+        }
+
+        #endregion
+
+        #region Import Folders
+        public List<ImportFolder> GetImportFolders()
+        {
+            try
+            {
+                return RepoFactory.ImportFolder.GetAll().Cast<ImportFolder>().ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return new List<ImportFolder>();
+        }
+
+        public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
+        {
+            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
+            {
+                ErrorMessage = "",
+                Result = null
+            };
+            try
+            {
+                SVR_ImportFolder ns = null;
+                if (contract.ImportFolderID != 0)
+                {
+                    // update
+                    ns = RepoFactory.ImportFolder.GetByID(contract.ImportFolderID);
+                    if (ns == null)
+                    {
+                        response.ErrorMessage = "Could not find Import Folder ID: " +
+                                                contract.ImportFolderID.ToString();
+                        return response;
+                    }
+                }
+                else
+                {
+                    // create
+                    ns = new SVR_ImportFolder();
+                }
+
+                if (string.IsNullOrEmpty(contract.ImportFolderName))
+                {
+                    response.ErrorMessage = "Must specify an Import Folder name";
+                    return response;
+                }
+
+                if (string.IsNullOrEmpty(contract.ImportFolderLocation))
+                {
+                    response.ErrorMessage = "Must specify an Import Folder location";
+                    return response;
+                }
+
+                if (contract.CloudID == null && !Directory.Exists(contract.ImportFolderLocation))
+                {
+                    response.ErrorMessage = "Cannot find Import Folder location";
+                    return response;
+                }
+
+                if (contract.ImportFolderID == 0)
+                {
+                    SVR_ImportFolder nsTemp =
+                        RepoFactory.ImportFolder.GetByImportLocation(contract.ImportFolderLocation);
+                    if (nsTemp != null)
+                    {
+                        response.ErrorMessage = "An entry already exists for the specified Import Folder location";
+                        return response;
+                    }
+                }
+
+                if (contract.IsDropDestination == 1 && contract.IsDropSource == 1)
+                {
+                    response.ErrorMessage = "A folder cannot be a drop source and a drop destination at the same time";
+                    return response;
+                }
+
+                // check to make sure we don't have multiple drop folders
+                IReadOnlyList<SVR_ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
+
+                if (contract.IsDropDestination == 1)
+                {
+                    foreach (SVR_ImportFolder imf in allFolders)
+                    {
+                        if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
+                            (contract.ImportFolderID == 0 || (contract.ImportFolderID != imf.ImportFolderID)))
+                        {
+                            imf.IsDropDestination = 0;
+                            RepoFactory.ImportFolder.Save(imf);
+                        }
+                    }
+                }
+
+                ns.ImportFolderName = contract.ImportFolderName;
+                ns.ImportFolderLocation = contract.ImportFolderLocation;
+                ns.IsDropDestination = contract.IsDropDestination;
+                ns.IsDropSource = contract.IsDropSource;
+                ns.IsWatched = contract.IsWatched;
+                ns.ImportFolderType = contract.ImportFolderType;
+                ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID;
+
+                RepoFactory.ImportFolder.Save(ns);
+
+                response.Result = ns;
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ServerInfo.Instance.RefreshImportFolders();
+                });
+                ShokoServer.StopWatchingFiles();
+                ShokoServer.StartWatchingFiles();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                response.ErrorMessage = ex.Message;
+                return response;
+            }
+        }
+
+        public string DeleteImportFolder(int importFolderID)
+        {
+            ShokoServer.DeleteImportFolder(importFolderID);
+            return "";
+        }
         #endregion
     }
 }

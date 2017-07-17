@@ -67,7 +67,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -85,7 +85,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -113,7 +113,7 @@ namespace Shoko.Server.Extensions
                     if (p.Streams != null)
                     {
                         List<Stream> streams = p.Streams
-                            .Where(a => a.StreamType == "3" && !String.IsNullOrEmpty(a.File))
+                            .Where(a => a.StreamType == "3" && !string.IsNullOrEmpty(a.File))
                             .ToList();
                         if (streams.Count > 0)
                             streams.ForEach(a => p.Streams.Remove(a));
@@ -134,7 +134,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -154,7 +154,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -177,7 +177,7 @@ namespace Shoko.Server.Extensions
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
 
-            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -198,7 +198,7 @@ namespace Shoko.Server.Extensions
             };
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = String.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -294,16 +294,16 @@ namespace Shoko.Server.Extensions
             // used when getting information from episode info
             // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
 
-            episode.Id = Int32.Parse(TryGetEpisodeProperty(doc, "id"));
-            episode.SeriesID = Int32.Parse(TryGetEpisodeProperty(doc, "seriesid"));
-            episode.SeasonID = Int32.Parse(TryGetEpisodeProperty(doc, "seasonid"));
-            episode.SeasonNumber = Int32.Parse(TryGetEpisodeProperty(doc, "SeasonNumber"));
-            episode.EpisodeNumber = Int32.Parse(TryGetEpisodeProperty(doc, "EpisodeNumber"));
+            episode.Id = int.Parse(TryGetEpisodeProperty(doc, "id"));
+            episode.SeriesID = int.Parse(TryGetEpisodeProperty(doc, "seriesid"));
+            episode.SeasonID = int.Parse(TryGetEpisodeProperty(doc, "seasonid"));
+            episode.SeasonNumber = int.Parse(TryGetEpisodeProperty(doc, "SeasonNumber"));
+            episode.EpisodeNumber = int.Parse(TryGetEpisodeProperty(doc, "EpisodeNumber"));
 
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "EpImgFlag"), out int flag))
+            if (int.TryParse(TryGetEpisodeProperty(doc, "EpImgFlag"), out int flag))
                 episode.EpImgFlag = flag;
 
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "absolute_number"), out int abnum))
+            if (int.TryParse(TryGetEpisodeProperty(doc, "absolute_number"), out int abnum))
                 episode.AbsoluteNumber = abnum;
 
             episode.EpisodeName = TryGetEpisodeProperty(doc, "EpisodeName");
@@ -311,17 +311,17 @@ namespace Shoko.Server.Extensions
             episode.Filename = TryGetEpisodeProperty(doc, "filename");
             //this.FirstAired = TryGetProperty(doc, "FirstAired");
 
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsafter_season"), out int aas))
+            if (int.TryParse(TryGetEpisodeProperty(doc, "airsafter_season"), out int aas))
                 episode.AirsAfterSeason = aas;
             else
                 episode.AirsAfterSeason = null;
 
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_episode"), out int abe))
+            if (int.TryParse(TryGetEpisodeProperty(doc, "airsbefore_episode"), out int abe))
                 episode.AirsBeforeEpisode = abe;
             else
                 episode.AirsBeforeEpisode = null;
 
-            if (Int32.TryParse(TryGetEpisodeProperty(doc, "airsbefore_season"), out int abs))
+            if (int.TryParse(TryGetEpisodeProperty(doc, "airsbefore_season"), out int abs))
                 episode.AirsBeforeSeason = abs;
             else
                 episode.AirsBeforeSeason = null;
@@ -347,13 +347,13 @@ namespace Shoko.Server.Extensions
         public static void Populate(this TvDB_Episode episode, TvDbSharper.Clients.Episodes.Json.EpisodeRecord apiEpisode)
         {
             episode.Id = apiEpisode.Id;
-            episode.SeriesID = Int32.Parse(apiEpisode.SeriesId);
+            episode.SeriesID = int.Parse(apiEpisode.SeriesId);
             episode.SeasonID = 0;
             episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
             episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
 
             int flag = 0;
-            if (apiEpisode.Filename != String.Empty)
+            if (apiEpisode.Filename != string.Empty)
                 flag = 1;
 
             episode.EpImgFlag = flag;
@@ -371,16 +371,16 @@ namespace Shoko.Server.Extensions
             // used when getting information from full series info
             // http://thetvdb.com/api/B178B8940CAF4A2C/series/84187/all/en.xml
 
-            episode.Id = Int32.Parse(TryGetProperty(node, "id"));
-            episode.SeriesID = Int32.Parse(TryGetProperty(node, "seriesid"));
-            episode.SeasonID = Int32.Parse(TryGetProperty(node, "seasonid"));
-            episode.SeasonNumber = Int32.Parse(TryGetProperty(node, "SeasonNumber"));
-            episode.EpisodeNumber = Int32.Parse(TryGetProperty(node, "EpisodeNumber"));
+            episode.Id = int.Parse(TryGetProperty(node, "id"));
+            episode.SeriesID = int.Parse(TryGetProperty(node, "seriesid"));
+            episode.SeasonID = int.Parse(TryGetProperty(node, "seasonid"));
+            episode.SeasonNumber = int.Parse(TryGetProperty(node, "SeasonNumber"));
+            episode.EpisodeNumber = int.Parse(TryGetProperty(node, "EpisodeNumber"));
 
-            if (Int32.TryParse(TryGetProperty(node, "EpImgFlag"), out int flag))
+            if (int.TryParse(TryGetProperty(node, "EpImgFlag"), out int flag))
                 episode.EpImgFlag = flag;
 
-            if (Int32.TryParse(TryGetProperty(node, "absolute_number"), out int abnum))
+            if (int.TryParse(TryGetProperty(node, "absolute_number"), out int abnum))
                 episode.AbsoluteNumber = abnum;
 
             episode.EpisodeName = TryGetProperty(node, "EpisodeName");
@@ -388,17 +388,17 @@ namespace Shoko.Server.Extensions
             episode.Filename = TryGetProperty(node, "filename");
             //this.FirstAired = TryGetProperty(node, "FirstAired");
 
-            if (Int32.TryParse(TryGetProperty(node, "airsafter_season"), out int aas))
+            if (int.TryParse(TryGetProperty(node, "airsafter_season"), out int aas))
                 episode.AirsAfterSeason = aas;
             else
                 episode.AirsAfterSeason = null;
 
-            if (Int32.TryParse(TryGetProperty(node, "airsbefore_episode"), out int abe))
+            if (int.TryParse(TryGetProperty(node, "airsbefore_episode"), out int abe))
                 episode.AirsBeforeEpisode = abe;
             else
                 episode.AirsBeforeEpisode = null;
 
-            if (Int32.TryParse(TryGetProperty(node, "airsbefore_season"), out int abs))
+            if (int.TryParse(TryGetProperty(node, "airsbefore_season"), out int abs))
                 episode.AirsBeforeSeason = abs;
             else
                 episode.AirsBeforeSeason = null;
@@ -455,7 +455,7 @@ namespace Shoko.Server.Extensions
             try
             {
                 fanart.SeriesID = seriesID;
-                fanart.Id = Int32.Parse(node["id"].InnerText);
+                fanart.Id = int.Parse(node["id"].InnerText);
                 fanart.BannerPath = node["BannerPath"].InnerText;
                 fanart.BannerType = node["BannerType"].InnerText;
                 fanart.BannerType2 = node["BannerType2"].InnerText;
@@ -484,9 +484,9 @@ namespace Shoko.Server.Extensions
                 fanart.Id = image.Id ?? 0;
                 fanart.BannerPath = image.FileName;
                 fanart.BannerType2 = image.Resolution;
-                fanart.Colors = String.Empty;
+                fanart.Colors = string.Empty;
                 fanart.ThumbnailPath = image.Thumbnail;
-                fanart.VignettePath = String.Empty;
+                fanart.VignettePath = string.Empty;
                 return true;
             }
             catch (Exception ex)
@@ -532,7 +532,7 @@ namespace Shoko.Server.Extensions
                 poster.SeriesID = seriesID;
                 try
                 {
-                    poster.SeasonNumber = Int32.Parse(image.SubKey);
+                    poster.SeasonNumber = int.Parse(image.SubKey);
                 }
                 catch (FormatException)
                 {
@@ -555,14 +555,14 @@ namespace Shoko.Server.Extensions
         public static void PopulateFromSearch(this TvDB_Series series, XmlDocument doc)
         {
             series.SeriesID = 0;
-            series.Overview = String.Empty;
-            series.SeriesName = String.Empty;
-            series.Status = String.Empty;
-            series.Banner = String.Empty;
-            series.Fanart = String.Empty;
-            series.Lastupdated = String.Empty;
-            series.Poster = String.Empty;
-            series.SeriesID = Int32.Parse(TryGetSeriesProperty(doc, "seriesid"));
+            series.Overview = string.Empty;
+            series.SeriesName = string.Empty;
+            series.Status = string.Empty;
+            series.Banner = string.Empty;
+            series.Fanart = string.Empty;
+            series.Lastupdated = string.Empty;
+            series.Poster = string.Empty;
+            series.SeriesID = int.Parse(TryGetSeriesProperty(doc, "seriesid"));
             series.SeriesName = TryGetSeriesProperty(doc, "SeriesName");
             series.Overview = TryGetSeriesProperty(doc, "Overview");
             series.Banner = TryGetSeriesProperty(doc, "banner");
@@ -572,14 +572,14 @@ namespace Shoko.Server.Extensions
         public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
         {
             series.SeriesID = 0;
-            series.Overview = String.Empty;
-            series.SeriesName = String.Empty;
-            series.Status = String.Empty;
-            series.Banner = String.Empty;
-            series.Fanart = String.Empty;
-            series.Lastupdated = String.Empty;
-            series.Poster = String.Empty;
-            series.SeriesID = Int32.Parse(TryGetSeriesProperty(doc, "id"));
+            series.Overview = string.Empty;
+            series.SeriesName = string.Empty;
+            series.Status = string.Empty;
+            series.Banner = string.Empty;
+            series.Fanart = string.Empty;
+            series.Lastupdated = string.Empty;
+            series.Poster = string.Empty;
+            series.SeriesID = int.Parse(TryGetSeriesProperty(doc, "id"));
             series.SeriesName = TryGetSeriesProperty(doc, "SeriesName");
             series.Overview = TryGetSeriesProperty(doc, "Overview");
             series.Banner = TryGetSeriesProperty(doc, "banner");
@@ -593,13 +593,13 @@ namespace Shoko.Server.Extensions
         public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Clients.Series.Json.Series apiSeries)
         {
             series.SeriesID = 0;
-            series.Overview = String.Empty;
-            series.SeriesName = String.Empty;
-            series.Status = String.Empty;
-            series.Banner = String.Empty;
-            series.Fanart = String.Empty;
-            series.Lastupdated = String.Empty;
-            series.Poster = String.Empty;
+            series.Overview = string.Empty;
+            series.SeriesName = string.Empty;
+            series.Status = string.Empty;
+            series.Banner = string.Empty;
+            series.Fanart = string.Empty;
+            series.Lastupdated = string.Empty;
+            series.Poster = string.Empty;
 
             series.SeriesID = apiSeries.Id;
             series.SeriesName = apiSeries.SeriesName;
@@ -612,12 +612,12 @@ namespace Shoko.Server.Extensions
         [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
         public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
         {
-            response.Id = String.Empty;
+            response.Id = string.Empty;
             response.SeriesID = 0;
-            response.Overview = String.Empty;
-            response.SeriesName = String.Empty;
-            response.Banner = String.Empty;
-            if (series["seriesid"] != null) response.SeriesID = Int32.Parse(series["seriesid"].InnerText);
+            response.Overview = string.Empty;
+            response.SeriesName = string.Empty;
+            response.Banner = string.Empty;
+            if (series["seriesid"] != null) response.SeriesID = int.Parse(series["seriesid"].InnerText);
             if (series["SeriesName"] != null) response.SeriesName = series["SeriesName"].InnerText;
             if (series["id"] != null) response.Id = series["id"].InnerText;
             if (series["Overview"] != null) response.Overview = series["Overview"].InnerText;
@@ -627,11 +627,12 @@ namespace Shoko.Server.Extensions
 
         public static void Populate(this TVDB_Series_Search_Response response, TvDbSharper.Clients.Search.Json.SeriesSearchResult series)
         {
-            response.Id = String.Empty;
+            response.Id = string.Empty;
             response.SeriesID = series.Id;
             response.SeriesName = series.SeriesName;
             response.Overview = series.Overview;
             response.Banner = series.Banner;
+            response.Language = string.Intern("en");
         }
 
         public static void Populate(this AniDB_Anime_Character character, Raw_AniDB_Character rawChar)
@@ -752,14 +753,14 @@ namespace Shoko.Server.Extensions
                 CharKanjiName = character.CharKanjiName,
                 CharDescription = character.CharDescription,
                 CharType = charRel.CharType,
-                CharImageURL = String.Format(Constants.URLS.AniDB_Images, character.PicName)
+                CharImageURL = string.Format(Constants.URLS.AniDB_Images, character.PicName)
             };
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
                 contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
-                contract.SeiyuuImageURL = String.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
+                contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
             }
 
             return contract;
