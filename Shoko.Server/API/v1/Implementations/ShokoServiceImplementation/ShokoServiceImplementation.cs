@@ -47,6 +47,8 @@ namespace Shoko.Server
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        #region Bookmarks
+
         public List<CL_BookmarkedAnime> GetAllBookmarkedAnime()
         {
             List<CL_BookmarkedAnime> baList = new List<CL_BookmarkedAnime>();
@@ -145,97 +147,9 @@ namespace Shoko.Server
             }
         }
 
-        public string UpdateCalendarData()
-        {
-            try
-            {
-                Importer.CheckForCalendarUpdate(true);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return "";
-        }
+        #endregion
 
-        public string UpdateTvDBData(int seriesID)
-        {
-            try
-            {
-                TvDBApiHelper.UpdateAllInfoAndImages(seriesID, false, true);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return "";
-        }
-
-        public string UpdateTraktData(string traktD)
-        {
-            try
-            {
-                TraktTVHelper.UpdateAllInfoAndImages(traktD, true);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return "";
-        }
-
-        public string SyncTraktSeries(int animeID)
-        {
-            try
-            {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                if (ser == null) return "Could not find Anime Series";
-
-                CommandRequest_TraktSyncCollectionSeries cmd =
-                    new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID,
-                        ser.GetSeriesName());
-                cmd.Save();
-
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string UpdateMovieDBData(int movieD)
-        {
-            try
-            {
-                MovieDBHelper.UpdateMovieInfo(movieD, true);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return "";
-        }
-
-        public CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date)
-        {
-            CL_Changes<CL_GroupFilter> c = new CL_Changes<CL_GroupFilter>();
-            try
-            {
-                Changes<int> changes = RepoFactory.GroupFilter.GetChangeTracker().GetChanges(date);
-                c.ChangedItems = changes.ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToClient())
-                    .Where(a => a != null)
-                    .ToList();
-                c.RemovedItems = changes.RemovedItems.ToList();
-                c.LastChange = changes.LastChange;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return c;
-        }
+        #region Status and Changes
 
         public CL_MainChanges GetAllChanges(DateTime date, int userID)
         {
@@ -319,7 +233,76 @@ namespace Shoko.Server
             return c;
         }
 
+        public CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date)
+        {
+            CL_Changes<CL_GroupFilter> c = new CL_Changes<CL_GroupFilter>();
+            try
+            {
+                Changes<int> changes = RepoFactory.GroupFilter.GetChangeTracker().GetChanges(date);
+                c.ChangedItems = changes.ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToClient())
+                    .Where(a => a != null)
+                    .ToList();
+                c.RemovedItems = changes.RemovedItems.ToList();
+                c.LastChange = changes.LastChange;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return c;
+        }
 
+        public CL_ServerStatus GetServerStatus()
+        {
+            CL_ServerStatus contract = new CL_ServerStatus();
+
+            try
+            {
+                contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
+                contract.HashQueueState =
+                    ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
+                contract.HashQueueStateId = (int) ShokoService.CmdProcessorHasher.QueueState.queueState;
+                contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
+
+                contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
+                contract.GeneralQueueState =
+                    ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
+                contract.GeneralQueueStateId = (int) ShokoService.CmdProcessorGeneral.QueueState.queueState;
+                contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
+
+                contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
+                contract.ImagesQueueState =
+                    ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
+                contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
+                contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
+
+                contract.IsBanned = ShokoService.AnidbProcessor.IsBanned;
+                contract.BanReason = ShokoService.AnidbProcessor.BanTime.ToString();
+                contract.BanOrigin = ShokoService.AnidbProcessor.BanOrigin;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return contract;
+        }
+
+        public CL_AppVersions GetAppVersions()
+        {
+            try
+            {
+                //TODO WHEN WE HAVE A STABLE VERSION REPO, WE NEED TO CODE THE RETRIEVAL HERE.
+                return new CL_AppVersions();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+
+            return null;
+        }
+
+        #endregion
 
         public List<string> GetAllTagNames()
         {
@@ -412,92 +395,7 @@ namespace Shoko.Server
             return ls;
         }
 
-        public int TraktScrobble(int animeId, int type, int progress, int status)
-        {
-            try
-            {
-                Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
-
-                switch (status)
-                {
-                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
-                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
-                        break;
-                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Pause:
-                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Pause;
-                        break;
-                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Stop:
-                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Stop;
-                        break;
-                }
-
-                bool isValidProgress = float.TryParse(progress.ToString(), out float progressTrakt);
-
-                if (isValidProgress)
-                {
-                    switch (type)
-                    {
-                        // Movie
-                        case (int) Providers.TraktTV.ScrobblePlayingType.movie:
-                            return Providers.TraktTV.TraktTVHelper.Scrobble(
-                                Providers.TraktTV.ScrobblePlayingType.movie, animeId.ToString(),
-                                statusTraktV2, progressTrakt);
-                        // TV episode
-                        case (int) Providers.TraktTV.ScrobblePlayingType.episode:
-                            return Providers.TraktTV.TraktTVHelper.Scrobble(
-                                Providers.TraktTV.ScrobblePlayingType.episode,
-                                animeId.ToString(), statusTraktV2, progressTrakt);
-                        default:
-                            return 500;
-                    }
-                }
-                else
-                {
-                    return 500;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return 500;
-            }
-        }
-
-        public CL_ServerStatus GetServerStatus()
-        {
-            CL_ServerStatus contract = new CL_ServerStatus();
-
-            try
-            {
-                contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
-                contract.HashQueueState =
-                    ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.HashQueueStateId = (int) ShokoService.CmdProcessorHasher.QueueState.queueState;
-                contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
-
-                contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
-                contract.GeneralQueueState =
-                    ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.GeneralQueueStateId = (int) ShokoService.CmdProcessorGeneral.QueueState.queueState;
-                contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
-
-                contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
-                contract.ImagesQueueState =
-                    ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
-                contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
-
-                contract.IsBanned = ShokoService.AnidbProcessor.IsBanned;
-                contract.BanReason = ShokoService.AnidbProcessor.BanTime.ToString();
-                contract.BanOrigin = ShokoService.AnidbProcessor.BanOrigin;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return contract;
-        }
-
+        #region Settings
         public CL_Response SaveServerSettings(CL_ServerSettings contractIn)
         {
             CL_Response contract = new CL_Response
@@ -705,146 +603,9 @@ namespace Shoko.Server
             return contract;
         }
 
-        public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
-        {
-            try
-            {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                if (anime == null) return;
+        #endregion
 
-                anime.DisableExternalLinksFlag = flags;
-                RepoFactory.AniDB_Anime.Save(anime);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        public List<ImportFolder> GetImportFolders()
-        {
-            try
-            {
-                return RepoFactory.ImportFolder.GetAll().Cast<ImportFolder>().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return new List<ImportFolder>();
-        }
-
-        public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
-        {
-            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
-            {
-                ErrorMessage = "",
-                Result = null
-            };
-            try
-            {
-                SVR_ImportFolder ns = null;
-                if (contract.ImportFolderID != 0)
-                {
-                    // update
-                    ns = RepoFactory.ImportFolder.GetByID(contract.ImportFolderID);
-                    if (ns == null)
-                    {
-                        response.ErrorMessage = "Could not find Import Folder ID: " +
-                                                contract.ImportFolderID.ToString();
-                        return response;
-                    }
-                }
-                else
-                {
-                    // create
-                    ns = new SVR_ImportFolder();
-                }
-
-                if (string.IsNullOrEmpty(contract.ImportFolderName))
-                {
-                    response.ErrorMessage = "Must specify an Import Folder name";
-                    return response;
-                }
-
-                if (string.IsNullOrEmpty(contract.ImportFolderLocation))
-                {
-                    response.ErrorMessage = "Must specify an Import Folder location";
-                    return response;
-                }
-
-                if (contract.CloudID == null && !Directory.Exists(contract.ImportFolderLocation))
-                {
-                    response.ErrorMessage = "Cannot find Import Folder location";
-                    return response;
-                }
-
-                if (contract.ImportFolderID == 0)
-                {
-                    SVR_ImportFolder nsTemp =
-                        RepoFactory.ImportFolder.GetByImportLocation(contract.ImportFolderLocation);
-                    if (nsTemp != null)
-                    {
-                        response.ErrorMessage = "An entry already exists for the specified Import Folder location";
-                        return response;
-                    }
-                }
-
-                if (contract.IsDropDestination == 1 && contract.IsDropSource == 1)
-                {
-                    response.ErrorMessage = "A folder cannot be a drop source and a drop destination at the same time";
-                    return response;
-                }
-
-                // check to make sure we don't have multiple drop folders
-                IReadOnlyList<SVR_ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
-
-                if (contract.IsDropDestination == 1)
-                {
-                    foreach (SVR_ImportFolder imf in allFolders)
-                    {
-                        if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
-                            (contract.ImportFolderID == 0 || (contract.ImportFolderID != imf.ImportFolderID)))
-                        {
-                            imf.IsDropDestination = 0;
-                            RepoFactory.ImportFolder.Save(imf);
-                        }
-                    }
-                }
-
-                ns.ImportFolderName = contract.ImportFolderName;
-                ns.ImportFolderLocation = contract.ImportFolderLocation;
-                ns.IsDropDestination = contract.IsDropDestination;
-                ns.IsDropSource = contract.IsDropSource;
-                ns.IsWatched = contract.IsWatched;
-                ns.ImportFolderType = contract.ImportFolderType;
-                ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID;
-
-                RepoFactory.ImportFolder.Save(ns);
-
-                response.Result = ns;
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ServerInfo.Instance.RefreshImportFolders();
-                });
-                ShokoServer.StopWatchingFiles();
-                ShokoServer.StartWatchingFiles();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                response.ErrorMessage = ex.Message;
-                return response;
-            }
-        }
-
-        public string DeleteImportFolder(int importFolderID)
-        {
-            ShokoServer.DeleteImportFolder(importFolderID);
-            return "";
-        }
+        #region Actions
 
         public void RunImport()
         {
@@ -871,6 +632,11 @@ namespace Shoko.Server
             ShokoServer.RemoveMissingFiles();
         }
 
+        public void RefreshAllMediaInfo()
+        {
+            ShokoServer.RefreshAllMediaInfo();
+        }
+
         public void SyncMyList()
         {
             ShokoServer.SyncMyList();
@@ -882,18 +648,9 @@ namespace Shoko.Server
             cmdVotes.Save();
         }
 
-        public void SyncMALUpload()
-        {
-            CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
-            cmd.Save();
-        }
+        #endregion
 
-        public void SyncMALDownload()
-        {
-            CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-            cmd.Save();
-        }
-
+        #region Queue Actions
         public void SetCommandProcessorHasherPaused(bool paused)
         {
             ShokoService.CmdProcessorHasher.Paused = paused;
@@ -975,23 +732,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
         }
-
-        public void RehashFile(int videoLocalID)
-        {
-            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(videoLocalID);
-
-            if (vl != null)
-            {
-                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
-                if (pl == null)
-                {
-                    logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
-                    return;
-                }
-                CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-                cr_hashfile.Save();
-            }
-        }
+        #endregion
 
         public string TestAniDBConnection()
         {
@@ -1029,82 +770,6 @@ namespace Shoko.Server
             }
 
             return log;
-        }
-
-        public string EnterTraktPIN(string pin)
-        {
-            try
-            {
-                return TraktTVHelper.EnterTraktPIN(pin);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in EnterTraktPIN: " + ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string TestMALLogin()
-        {
-            try
-            {
-                if (MALHelper.VerifyCredentials())
-                    return "";
-
-                return "Login is not valid";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in TestMALLogin: " + ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public CL_Response<bool> TraktFriendRequestDeny(string friendUsername)
-        {
-            return new CL_Response<bool> {Result = false};
-            /*
-			try
-			{
-				return TraktTVHelper.FriendRequestDeny(friendUsername, ref returnMessage);
-			}
-			catch (Exception ex)
-			{
-				logger.Error( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
-				returnMessage = ex.Message;
-				return false;
-			}*/
-        }
-
-        public CL_Response<bool> TraktFriendRequestApprove(string friendUsername)
-        {
-            return new CL_Response<bool> {Result = false};
-            /*
-			try
-			{
-				return TraktTVHelper.FriendRequestApprove(friendUsername, ref returnMessage);
-			}
-			catch (Exception ex)
-			{
-				logger.Error( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
-				returnMessage = ex.Message;
-				return false;
-			}*/
-        }
-
-        public string RenameAllGroups()
-        {
-            try
-            {
-                SVR_AnimeGroup.RenameAllGroups();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-
-            return string.Empty;
         }
 
         public List<string> GetAllUniqueVideoQuality()
@@ -1146,152 +811,7 @@ namespace Shoko.Server
             }
         }
 
-        /// <summary>
-        /// Delets the VideoLocal record and the associated physical file
-        /// </summary>
-        /// <param name="videoLocalID"></param>
-        /// <returns></returns>
-        public string DeleteVideoLocalPlaceAndFile(int videolocalplaceid)
-        {
-            try
-            {
-                SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
-                if (place?.VideoLocal == null)
-                    return "Database entry does not exist";
-
-                return place.RemoveAndDeleteFileWithMessage();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public CL_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID)
-        {
-            CL_AniDB_AnimeCrossRefs result = new CL_AniDB_AnimeCrossRefs
-            {
-                CrossRef_AniDB_TvDB = new List<CrossRef_AniDB_TvDBV2>(),
-                TvDBSeries = new List<TvDB_Series>(),
-                TvDBEpisodes = new List<TvDB_Episode>(),
-                TvDBImageFanarts = new List<TvDB_ImageFanart>(),
-                TvDBImagePosters = new List<TvDB_ImagePoster>(),
-                TvDBImageWideBanners = new List<TvDB_ImageWideBanner>(),
-
-                CrossRef_AniDB_MovieDB = null,
-                MovieDBMovie = null,
-                MovieDBFanarts = new List<MovieDB_Fanart>(),
-                MovieDBPosters = new List<MovieDB_Poster>(),
-
-                CrossRef_AniDB_MAL = null,
-
-                CrossRef_AniDB_Trakt = new List<CrossRef_AniDB_TraktV2>(),
-                TraktShows = new List<CL_Trakt_Show>(),
-                TraktImageFanarts = new List<Trakt_ImageFanart>(),
-                TraktImagePosters = new List<Trakt_ImagePoster>(),
-                AnimeID = animeID
-            };
-
-            try
-            {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null) return result;
-
-
-                    // TvDB
-                    foreach (CrossRef_AniDB_TvDBV2 xref in anime.GetCrossRefTvDBV2())
-                    {
-                        result.CrossRef_AniDB_TvDB.Add(xref);
-
-                        TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
-                        if (ser != null)
-                            result.TvDBSeries.Add(ser);
-
-                        foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
-                            result.TvDBEpisodes.Add(ep);
-
-                        foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
-                            result.TvDBImageFanarts.Add(fanart);
-
-                        foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
-                            result.TvDBImagePosters.Add(poster);
-
-                        foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref
-                            .TvDBID))
-                            result.TvDBImageWideBanners.Add(banner);
-                    }
-
-                    // Trakt
-
-
-                    foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2())
-                    {
-                        result.CrossRef_AniDB_Trakt.Add(xref);
-
-                        Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
-                        if (show != null)
-                        {
-                            result.TraktShows.Add(show.ToClient());
-
-                            foreach (Trakt_ImageFanart fanart in RepoFactory.Trakt_ImageFanart.GetByShowID(session,
-                                show.Trakt_ShowID))
-                                result.TraktImageFanarts.Add(fanart);
-
-                            foreach (Trakt_ImagePoster poster in RepoFactory.Trakt_ImagePoster.GetByShowID(session,
-                                show.Trakt_ShowID)
-                            )
-                                result.TraktImagePosters.Add(poster);
-                        }
-                    }
-
-
-                    // MovieDB
-                    CrossRef_AniDB_Other xrefMovie = anime.GetCrossRefMovieDB();
-                    if (xrefMovie == null)
-                        result.CrossRef_AniDB_MovieDB = null;
-                    else
-                        result.CrossRef_AniDB_MovieDB = xrefMovie;
-
-
-                    result.MovieDBMovie = anime.GetMovieDBMovie();
-
-
-                    foreach (MovieDB_Fanart fanart in anime.GetMovieDBFanarts())
-                    {
-                        if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                            StringComparison.InvariantCultureIgnoreCase))
-                            result.MovieDBFanarts.Add(fanart);
-                    }
-
-                    foreach (MovieDB_Poster poster in anime.GetMovieDBPosters())
-                    {
-                        if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                            StringComparison.InvariantCultureIgnoreCase))
-                            result.MovieDBPosters.Add(poster);
-                    }
-
-                    // MAL
-                    List<CrossRef_AniDB_MAL> xrefMAL = anime.GetCrossRefMAL();
-                    if (xrefMAL == null)
-                        result.CrossRef_AniDB_MAL = null;
-                    else
-                    {
-                        result.CrossRef_AniDB_MAL = new List<Shoko.Models.Server.CrossRef_AniDB_MAL>();
-                        foreach (CrossRef_AniDB_MAL xrefTemp in xrefMAL)
-                            result.CrossRef_AniDB_MAL.Add(xrefTemp);
-                    }
-                }
-                return result;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return result;
-            }
-        }
+        #region Plex
 
         public string LinkToPlex(int userID)
         {
@@ -1311,6 +831,8 @@ namespace Shoko.Server
             PlexHelper.GetForUser(user).InvalidateToken();
             return true;
         }
+
+        #endregion
 
         public string EnableDisableImage(bool enabled, int imageID, int imageType)
         {
@@ -1450,1093 +972,7 @@ namespace Shoko.Server
             }
         }
 
-        #region Web Cache Admin
-
-        public bool IsWebCacheAdmin()
-        {
-            try
-            {
-                string res = AzureWebAPI.Admin_AuthUser();
-                return string.IsNullOrEmpty(res);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return false;
-            }
-        }
-
-        public Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
-        {
-            try
-            {
-                AzureLinkType lType = (AzureLinkType) linkType;
-                Azure_AnimeLink link = null;
-
-                switch (lType)
-                {
-                    case AzureLinkType.TvDB:
-                        link = AzureWebAPI.Admin_GetRandomTvDBLinkForApproval();
-                        break;
-                    case AzureLinkType.Trakt:
-                        link = AzureWebAPI.Admin_GetRandomTraktLinkForApproval();
-                        break;
-                }
-
-
-                if (link != null)
-                    return link;
-
-                return null;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public List<Azure_AdminMessage> GetAdminMessages()
-        {
-            try
-            {
-                return ServerInfo.Instance.AdminMessages?.ToList() ?? new List<Azure_AdminMessage>();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Azure_AdminMessage>();
-            }
-        }
-
-        #region Admin - TvDB
-
-        public string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
-        {
-            try
-            {
-                return AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
-        {
-            try
-            {
-                return AzureWebAPI.Admin_Revoke_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Sends the current user's TvDB links to the web cache, and then admin approves them
-        /// </summary>
-        /// <returns></returns>
-        public string UseMyTvDBLinksWebCache(int animeID)
-        {
-            try
-            {
-                // Get all the links for this user and anime
-                List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
-                if (xrefs == null) return "No Links found to use";
-
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                if (anime == null) return "Anime not found";
-
-                // make sure the user doesn't alreday have links
-                List<Azure_CrossRef_AniDB_TvDB> results =
-                    AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
-                bool foundLinks = false;
-                if (results != null)
-                {
-                    foreach (Azure_CrossRef_AniDB_TvDB xref in results)
-                    {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
-                            StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            foundLinks = true;
-                            break;
-                        }
-                    }
-                }
-                if (foundLinks) return "Links already exist, please approve them instead";
-
-                // send the links to the web cache
-                foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-                {
-                    AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
-                }
-
-                // now get the links back from the cache and approve them
-                results = AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
-                if (results != null)
-                {
-                    List<Azure_CrossRef_AniDB_TvDB> linksToApprove =
-                        new List<Azure_CrossRef_AniDB_TvDB>();
-                    foreach (Azure_CrossRef_AniDB_TvDB xref in results)
-                    {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
-                            StringComparison.InvariantCultureIgnoreCase))
-                            linksToApprove.Add(xref);
-                    }
-
-                    foreach (Azure_CrossRef_AniDB_TvDB xref in linksToApprove)
-                    {
-                        AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(
-                            xref.CrossRef_AniDB_TvDBV2ID);
-                    }
-                    return "Success";
-                }
-                else
-                    return "Failure to send links to web cache";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        #endregion
-
-        #region Admin - Trakt
-
-        public string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
-        {
-            try
-            {
-                return AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
-        {
-            try
-            {
-                return AzureWebAPI.Admin_Revoke_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Sends the current user's Trakt links to the web cache, and then admin approves them
-        /// </summary>
-        /// <returns></returns>
-        public string UseMyTraktLinksWebCache(int animeID)
-        {
-            try
-            {
-                // Get all the links for this user and anime
-                List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
-                if (xrefs == null) return "No Links found to use";
-
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                if (anime == null) return "Anime not found";
-
-                // make sure the user doesn't alreday have links
-                List<Azure_CrossRef_AniDB_Trakt> results =
-                    AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
-                bool foundLinks = false;
-                if (results != null)
-                {
-                    foreach (Azure_CrossRef_AniDB_Trakt xref in results)
-                    {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
-                            StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            foundLinks = true;
-                            break;
-                        }
-                    }
-                }
-                if (foundLinks) return "Links already exist, please approve them instead";
-
-                // send the links to the web cache
-                foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
-                {
-                    AzureWebAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);
-                }
-
-                // now get the links back from the cache and approve them
-                results = AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
-                if (results != null)
-                {
-                    List<Azure_CrossRef_AniDB_Trakt> linksToApprove =
-                        new List<Azure_CrossRef_AniDB_Trakt>();
-                    foreach (Azure_CrossRef_AniDB_Trakt xref in results)
-                    {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
-                            StringComparison.InvariantCultureIgnoreCase))
-                            linksToApprove.Add(xref);
-                    }
-
-                    foreach (Azure_CrossRef_AniDB_Trakt xref in linksToApprove)
-                    {
-                        AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(
-                            xref.CrossRef_AniDB_TraktV2ID);
-                    }
-                    return "Success";
-                }
-                else
-                    return "Failure to send links to web cache";
-
-                //return JMMServer.Providers.Azure.AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        #endregion
-
-        #endregion
-
-        #region TvDB
-
-        public List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
-        {
-            try
-            {
-                if (isAdmin)
-                    return AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
-                else
-                    return AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Azure_CrossRef_AniDB_TvDB>();
-            }
-        }
-
-
-        public List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
-        {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID).Cast<CrossRef_AniDB_TvDBV2>().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public List<CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID)
-        {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID).ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-
-        public List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria)
-        {
-            try
-            {
-                return TvDBApiHelper.SearchSeries(criteria);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<TVDB_Series_Search_Response>();
-            }
-        }
-
-
-        public List<int> GetSeasonNumbersForSeries(int seriesID)
-        {
-            List<int> seasonNumbers = new List<int>();
-            try
-            {
-                // refresh data from TvDB
-                TvDBApiHelper.UpdateAllInfoAndImages(seriesID, true, false);
-
-                seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
-
-                return seasonNumbers;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return seasonNumbers;
-            }
-        }
-
-        public string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber,
-            int tvEpNumber, int? crossRef_AniDB_TvDBV2ID)
-        {
-            try
-            {
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
-                    tvEpNumber, animeID, aniEpType,
-                    aniEpNumber);
-                if (xref != null && !crossRef_AniDB_TvDBV2ID.HasValue)
-                {
-                    string msg = string.Format("You have already linked Anime ID {0} to this TvDB show/season/ep",
-                        xref.AnimeID);
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
-                    if (anime != null)
-                    {
-                        msg = string.Format("You have already linked Anime {0} ({1}) to this TvDB show/season/ep",
-                            anime.MainTitle,
-                            xref.AnimeID);
-                    }
-                    return msg;
-                }
-
-                // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-
-                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID,
-                    (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber, false, !crossRef_AniDB_TvDBV2ID.HasValue);
-                cmdRequest.Save();
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
-        {
-            try
-            {
-                TvDBApiHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID, animeID);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        /// <summary>
-        /// Removes all tvdb links for one anime
-        /// </summary>
-        /// <param name="animeID"></param>
-        /// <returns></returns>
-        public string RemoveLinkAniDBTvDBForAnime(int animeID)
-        {
-            try
-            {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-                if (ser == null) return "Could not find Series for Anime!";
-
-                List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
-                if (xrefs == null) return "";
-
-                foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-                {
-                    // check if there are default images used associated
-                    List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                    foreach (AniDB_Anime_DefaultImage image in images)
-                    {
-                        if (image.ImageParentType == (int) JMMImageType.TvDB_Banner ||
-                            image.ImageParentType == (int) JMMImageType.TvDB_Cover ||
-                            image.ImageParentType == (int) JMMImageType.TvDB_FanArt)
-                        {
-                            if (image.ImageParentID == xref.TvDBID)
-                                RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                        }
-                    }
-
-                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AnimeID, (enEpisodeType) xref.AniDBStartEpisodeType,
-                        xref.AniDBStartEpisodeNumber,
-                        xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
-                }
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber,
-            int tvEpNumber)
-        {
-            try
-            {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-                if (ser == null) return "Could not find Series for Anime!";
-
-                // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                foreach (AniDB_Anime_DefaultImage image in images)
-                {
-                    if (image.ImageParentType == (int) JMMImageType.TvDB_Banner ||
-                        image.ImageParentType == (int) JMMImageType.TvDB_Cover ||
-                        image.ImageParentType == (int) JMMImageType.TvDB_FanArt)
-                    {
-                        if (image.ImageParentID == tvDBID)
-                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                    }
-                }
-
-                TvDBApiHelper.RemoveLinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID)
-        {
-            try
-            {
-                AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
-
-                if (ep == null) return "Could not find Episode";
-
-                CrossRef_AniDB_TvDB_Episode xref =
-                    RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBEpisodeID);
-                if (xref == null) return "Could not find Link!";
-
-
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(xref.CrossRef_AniDB_TvDB_EpisodeID);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
-        {
-            List<TvDB_ImagePoster> allImages = new List<TvDB_ImagePoster>();
-            try
-            {
-                if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_ImagePoster.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<TvDB_ImagePoster>();
-            }
-        }
-
-        public List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID)
-        {
-            try
-            {
-                if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_ImageWideBanner.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<TvDB_ImageWideBanner>();
-            }
-        }
-
-        public List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID)
-        {
-            try
-            {
-                if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_ImageFanart.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<TvDB_ImageFanart>();
-            }
-        }
-
-        public List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID)
-        {
-            try
-            {
-                if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_Episode.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<TvDB_Episode>();
-            }
-        }
-
-        #endregion
-
-        #region Trakt
-
-        public List<Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID)
-        {
-            List<Trakt_ImageFanart> allImages = new List<Trakt_ImageFanart>();
-            try
-            {
-                if (traktShowID.HasValue)
-                    return RepoFactory.Trakt_ImageFanart.GetByShowID(traktShowID.Value);
-                else
-                    return RepoFactory.Trakt_ImageFanart.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Trakt_ImageFanart>();
-            }
-        }
-
-        public List<Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID)
-        {
-            try
-            {
-                if (traktShowID.HasValue)
-                    return RepoFactory.Trakt_ImagePoster.GetByShowID(traktShowID.Value);
-                else
-                    return RepoFactory.Trakt_ImagePoster.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Trakt_ImagePoster>();
-            }
-        }
-
-        public List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
-        {
-            try
-            {
-                if (traktShowID.HasValue)
-                    return RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value).ToList();
-                else
-                    return RepoFactory.Trakt_Episode.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Trakt_Episode>();
-            }
-        }
-
-        public List<Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID)
-        {
-            try
-            {
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
-                if (show != null)
-                    return GetAllTraktEpisodes(show.Trakt_ShowID);
-
-                return new List<Trakt_Episode>();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Trakt_Episode>();
-            }
-        }
-
-        public List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
-        {
-            try
-            {
-                if (isAdmin)
-                    return AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
-                else
-                    return AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Azure_CrossRef_AniDB_Trakt>();
-            }
-        }
-
-        public string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber,
-            int traktEpNumber, int? crossRef_AniDB_TraktV2ID)
-        {
-            try
-            {
-                if (crossRef_AniDB_TraktV2ID.HasValue)
-                {
-                    CrossRef_AniDB_TraktV2 xrefTemp =
-                        RepoFactory.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
-                    // delete the existing one if we are updating
-                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
-                        xrefTemp.AniDBStartEpisodeNumber,
-                        xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
-                }
-
-                CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
-                    traktEpNumber, animeID,
-                    aniEpType,
-                    aniEpNumber);
-                if (xref != null)
-                {
-                    string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep",
-                        xref.AnimeID);
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
-                    if (anime != null)
-                    {
-                        msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep",
-                            anime.MainTitle,
-                            xref.AnimeID);
-                    }
-                    return msg;
-                }
-
-                return TraktTVHelper.LinkAniDBTrakt(animeID, (enEpisodeType) aniEpType, aniEpNumber, traktID,
-                    seasonNumber,
-                    traktEpNumber, false);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-
-        public List<CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID)
-        {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Cast<CrossRef_AniDB_TraktV2>().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public List<CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID)
-        {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_Trakt_Episode.GetByAnimeID(animeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public List<CL_TraktTVShowResponse> SearchTrakt(string criteria)
-        {
-            List<CL_TraktTVShowResponse> results = new List<CL_TraktTVShowResponse>();
-            try
-            {
-                List<TraktV2SearchShowResult> traktResults = TraktTVHelper.SearchShowV2(criteria);
-
-                foreach (TraktV2SearchShowResult res in traktResults)
-                    results.Add(res.ToContract());
-
-                return results;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return results;
-            }
-        }
-
-        public string RemoveLinkAniDBTraktForAnime(int animeID)
-        {
-            try
-            {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-                if (ser == null) return "Could not find Series for Anime!";
-
-                // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                foreach (AniDB_Anime_DefaultImage image in images)
-                {
-                    if (image.ImageParentType == (int) JMMImageType.Trakt_Fanart ||
-                        image.ImageParentType == (int) JMMImageType.Trakt_Poster)
-                    {
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                    }
-                }
-
-                foreach (CrossRef_AniDB_TraktV2 xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
-                {
-                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType) xref.AniDBStartEpisodeType,
-                        xref.AniDBStartEpisodeNumber,
-                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
-                }
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID,
-            int traktSeasonNumber,
-            int traktEpNumber)
-        {
-            try
-            {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-                if (ser == null) return "Could not find Series for Anime!";
-
-                // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                foreach (AniDB_Anime_DefaultImage image in images)
-                {
-                    if (image.ImageParentType == (int) JMMImageType.Trakt_Fanart ||
-                        image.ImageParentType == (int) JMMImageType.Trakt_Poster)
-                    {
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                    }
-                }
-
-                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType) aniEpType, aniEpNumber,
-                    traktID, traktSeasonNumber, traktEpNumber);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public List<int> GetSeasonNumbersForTrakt(string traktID)
-        {
-            List<int> seasonNumbers = new List<int>();
-            try
-            {
-                // refresh show info including season numbers from trakt
-                TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
-
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
-                if (show == null) return seasonNumbers;
-
-                foreach (Trakt_Season season in show.GetSeasons())
-                    seasonNumbers.Add(season.Season);
-
-                return seasonNumbers;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return seasonNumbers;
-            }
-        }
-
-        #endregion
-
-        #region MAL
-
-        public CL_CrossRef_AniDB_MAL_Response GetMALCrossRefWebCache(int animeID)
-        {
-            try
-            {
-                return AzureWebAPI.Get_CrossRefAniDBMAL(animeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public List<CL_MALAnime_Response> SearchMAL(string criteria)
-        {
-            List<CL_MALAnime_Response> results = new List<CL_MALAnime_Response>();
-            try
-            {
-                anime malResults = MALHelper.SearchAnimesByTitle(criteria);
-
-                foreach (animeEntry res in malResults.entry)
-                    results.Add(res.ToContract());
-
-                return results;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return results;
-            }
-        }
-
-
-        public string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber)
-        {
-            try
-            {
-                CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
-                if (xrefTemp != null)
-                {
-                    string animeName = "";
-                    try
-                    {
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTemp.AnimeID);
-                        if (anime != null) animeName = anime.MainTitle;
-                    }
-                    catch
-                    {
-                    }
-                    return string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1} ({2})",
-                        malID,
-                        xrefTemp.AnimeID, animeName);
-                }
-
-                xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
-                if (xrefTemp != null)
-                {
-                    // delete the link first because we are over-writing it
-                    RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
-                    //return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1}/{2}/{3} ({4})", animeID, xrefTemp.MALID, epType, epNumber, xrefTemp.MALTitle);
-                }
-
-                MALHelper.LinkAniDBMAL(animeID, malID, malTitle, epType, epNumber, false);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber,
-            int newEpType, int newEpNumber)
-        {
-            try
-            {
-                CrossRef_AniDB_MAL xrefTemp =
-                    RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, oldEpType, oldEpNumber);
-                if (xrefTemp == null)
-                    return string.Format("Could not find MAL link ({0}/{1}/{2})", animeID, oldEpType, oldEpNumber);
-
-                RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
-
-                return LinkAniDBMAL(animeID, malID, malTitle, newEpType, newEpNumber);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-
-        public string RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
-        {
-            try
-            {
-                MALHelper.RemoveLinkAniDBMAL(animeID, epType, epNumber);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        #endregion
-
-        #region Other Cross Refs
-
-        public CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType)
-        {
-            try
-            {
-                return AzureWebAPI.Get_CrossRefAniDBOther(animeID, (CrossRefType) crossRefType);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType)
-        {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, (CrossRefType) crossRefType);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public string LinkAniDBOther(int animeID, int movieID, int crossRefType)
-        {
-            try
-            {
-                CrossRefType xrefType = (CrossRefType) crossRefType;
-
-                switch (xrefType)
-                {
-                    case CrossRefType.MovieDB:
-                        MovieDBHelper.LinkAniDBMovieDB(animeID, movieID, false);
-                        break;
-                }
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string RemoveLinkAniDBOther(int animeID, int crossRefType)
-        {
-            try
-            {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-
-                if (anime == null) return "Could not find Anime!";
-
-                CrossRefType xrefType = (CrossRefType) crossRefType;
-                switch (xrefType)
-                {
-                    case CrossRefType.MovieDB:
-
-                        // check if there are default images used associated
-                        List<AniDB_Anime_DefaultImage> images =
-                            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                        foreach (AniDB_Anime_DefaultImage image in images)
-                        {
-                            if (image.ImageParentType == (int) JMMImageType.MovieDB_FanArt ||
-                                image.ImageParentType == (int) JMMImageType.MovieDB_Poster)
-                            {
-                                RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                            }
-                        }
-                        MovieDBHelper.RemoveLinkAniDBMovieDB(animeID);
-                        break;
-                }
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        #endregion
-
-        #region MovieDB
-
-        public List<CL_MovieDBMovieSearch_Response> SearchTheMovieDB(string criteria)
-        {
-            List<CL_MovieDBMovieSearch_Response> results = new List<CL_MovieDBMovieSearch_Response>();
-            try
-            {
-                List<MovieDB_Movie_Result> movieResults = MovieDBHelper.Search(criteria);
-
-                foreach (MovieDB_Movie_Result res in movieResults)
-                    results.Add(res.ToContract());
-
-                return results;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return results;
-            }
-        }
-
-        public List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID)
-        {
-            try
-            {
-                if (movieID.HasValue)
-                    return RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
-                else
-                    return RepoFactory.MovieDB_Poster.GetAllOriginal();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<MovieDB_Poster>();
-            }
-        }
-
-        public List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID)
-        {
-            try
-            {
-                if (movieID.HasValue)
-                    return RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
-                else
-                    return RepoFactory.MovieDB_Fanart.GetAllOriginal();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<MovieDB_Fanart>();
-            }
-        }
-
-        #endregion
+        #region Calendar (Dashboard)
 
         public List<CL_AniDB_Anime> GetMiniCalendar(int jmmuserID, int numberOfDays)
         {
@@ -2596,216 +1032,46 @@ namespace Shoko.Server
             return animeList;
         }
 
+        public string UpdateCalendarData()
+        {
+            try
+            {
+                Importer.CheckForCalendarUpdate(true);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return "";
+        }
+
         /*public List<Contract_AniDBAnime> GetMiniCalendar(int numberOfDays)
-		{
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			JMMUserRepository repUsers = new JMMUserRepository();
-
-			// get all the series
-			List<Contract_AniDBAnime> animeList = new List<Contract_AniDBAnime>();
-
-			try
-			{
-
-				List<AniDB_Anime> animes = repAnime.GetForDate(DateTime.Today.AddDays(0 - numberOfDays), DateTime.Today.AddDays(numberOfDays));
-				foreach (AniDB_Anime anime in animes)
-				{
-
-						animeList.Add(anime.ToContract());
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.Error( ex,ex.ToString());
-			}
-			return animeList;
-		}*/
-
-        public List<JMMUser> GetAllUsers()
         {
+            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+            JMMUserRepository repUsers = new JMMUserRepository();
+
+            // get all the series
+            List<Contract_AniDBAnime> animeList = new List<Contract_AniDBAnime>();
+
             try
             {
-                return RepoFactory.JMMUser.GetAll().Cast<JMMUser>().ToList();
+
+                List<AniDB_Anime> animes = repAnime.GetForDate(DateTime.Today.AddDays(0 - numberOfDays), DateTime.Today.AddDays(numberOfDays));
+                foreach (AniDB_Anime anime in animes)
+                {
+
+                        animeList.Add(anime.ToContract());
+                }
+
             }
             catch (Exception ex)
             {
-                logger.Error(ex, ex.ToString());
-                return new List<JMMUser>();
+                logger.Error( ex,ex.ToString());
             }
-        }
+            return animeList;
+        }*/
 
-        public JMMUser AuthenticateUser(string username, string password)
-        {
-            try
-            {
-                return RepoFactory.JMMUser.AuthenticateUser(username, password);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public string ChangePassword(int userID, string newPassword)
-        {
-            return ChangePassword(userID, newPassword, true);
-        }
-
-        public string ChangePassword(int userID, string newPassword, bool revokeapikey)
-        {
-            try
-            {
-                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
-                if (jmmUser == null) return "User not found";
-
-                jmmUser.Password = Digest.Hash(newPassword);
-                RepoFactory.JMMUser.Save(jmmUser, false);
-                if (revokeapikey)
-                {
-                    UserDatabase.RemoveApiKeysForUserID(userID);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-
-            return "";
-        }
-
-        public string SaveUser(JMMUser user)
-        {
-            try
-            {
-                bool existingUser = false;
-                bool updateStats = false;
-                bool updateGf = false;
-                SVR_JMMUser jmmUser = null;
-                if (user.JMMUserID != 0)
-                {
-                    jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID);
-                    if (jmmUser == null) return "User not found";
-                    existingUser = true;
-                }
-                else
-                {
-                    jmmUser = new SVR_JMMUser();
-                    updateStats = true;
-                    updateGf = true;
-                }
-
-                if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
-                    updateStats = true;
-
-                string hcat = string.Join(",", user.HideCategories);
-                if (jmmUser.HideCategories != hcat)
-                    updateGf = true;
-                jmmUser.HideCategories = hcat;
-                jmmUser.IsAniDBUser = user.IsAniDBUser;
-                jmmUser.IsTraktUser = user.IsTraktUser;
-                jmmUser.IsAdmin = user.IsAdmin;
-                jmmUser.Username = user.Username;
-                jmmUser.CanEditServerSettings = user.CanEditServerSettings;
-                jmmUser.PlexUsers = string.Join(",", user.PlexUsers);
-                jmmUser.PlexToken = user.PlexToken;
-                if (string.IsNullOrEmpty(user.Password))
-                {
-                    jmmUser.Password = "";
-                }
-                else
-                {
-                    // Additional check for hashed password, if not hashed we hash it
-                    if (user.Password.Length < 64)
-                        jmmUser.Password = Digest.Hash(user.Password);
-                    else
-                        jmmUser.Password = user.Password;
-                }
-
-                // make sure that at least one user is an admin
-                if (jmmUser.IsAdmin == 0)
-                {
-                    bool adminExists = false;
-                    IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
-                    foreach (SVR_JMMUser userOld in users)
-                    {
-                        if (userOld.IsAdmin == 1)
-                        {
-                            if (existingUser)
-                            {
-                                if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
-                            }
-                            else
-                            {
-                                //one admin account is needed
-                                adminExists = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!adminExists) return "At least one user must be an administrator";
-                }
-
-                RepoFactory.JMMUser.Save(jmmUser, updateGf);
-
-                // update stats
-                if (updateStats)
-                {
-                    foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
-                        ser.QueueUpdateStats();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-
-            return "";
-        }
-
-        public string DeleteUser(int userID)
-        {
-            try
-            {
-                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
-                if (jmmUser == null) return "User not found";
-
-                // make sure that at least one user is an admin
-                if (jmmUser.IsAdmin == 1)
-                {
-                    bool adminExists = false;
-                    IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
-                    foreach (SVR_JMMUser userOld in users)
-                    {
-                        if (userOld.IsAdmin == 1)
-                        {
-                            if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
-                        }
-                    }
-
-                    if (!adminExists) return "At least one user must be an administrator";
-                }
-
-                RepoFactory.JMMUser.Delete(userID);
-
-                // delete all user records
-                RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));
-                RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByUserID(userID));
-                RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByUserID(userID));
-                RepoFactory.VideoLocalUser.Delete(RepoFactory.VideoLocalUser.GetByUserID(userID));
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-
-            return "";
-        }
+        #endregion
 
         /// <summary>
         /// Returns a list of recommendations based on the users votes
@@ -3094,52 +1360,6 @@ namespace Shoko.Server
             return chars;
         }
 
-        public List<TvDB_Language> GetTvDBLanguages()
-        {
-            try
-            {
-                return TvDBApiHelper.GetLanguages();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-
-            return new List<TvDB_Language>();
-        }
-
-        public void RefreshAllMediaInfo()
-        {
-            ShokoServer.RefreshAllMediaInfo();
-        }
-
-        public void RecreateAllGroups(bool resume = false)
-        {
-            try
-            {
-                new AnimeGroupCreator().RecreateAllGroups();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        public CL_AppVersions GetAppVersions()
-        {
-            try
-            {
-                //TODO WHEN WE HAVE A STABLE VERSION REPO, WE NEED TO CODE THE RETRIEVAL HERE.
-                return new CL_AppVersions();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-
-            return null;
-        }
-
         public AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
         {
             try
@@ -3151,11 +1371,6 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
             return null;
-        }
-
-        public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
-        {
-            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
     }
 }
