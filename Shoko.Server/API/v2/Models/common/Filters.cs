@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -45,7 +47,11 @@ namespace Shoko.Server.API.v2.Models.common
                 filters.Add(Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic));
             }
 
-            f.filters = filters.OrderBy(a => a.name).ToList<Filter>();
+            if (gf.FilterType == ((int)GroupFilterType.Season | (int)GroupFilterType.Directory))
+                f.filters = filters.OrderBy(a => a.name, new SeasonComparator()).ToList();
+            else
+                f.filters = filters.OrderByNatural(a => a.name).ToList();
+
             f.size = f.filters.Count();
             f.url = APIHelper.ConstructFilterIdUrl(ctx, f.id);
 
