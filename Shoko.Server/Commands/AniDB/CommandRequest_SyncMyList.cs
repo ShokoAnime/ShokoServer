@@ -157,13 +157,14 @@ namespace Shoko.Server.Commands
                         string action = "";
                         if (localStatus == myitem.IsWatched) continue;
 
+                        DateTime? watchedDate = myitem.WatchedDate ?? DateTime.Now;
                         if (localStatus)
                         {
                             // local = watched, anidb = unwatched
                             if (ServerSettings.AniDB_MyList_ReadUnwatched)
                             {
                                 modifiedItems++;
-                                vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate,
+                                vl.ToggleWatchedStatus(myitem.IsWatched, false, watchedDate,
                                     false, false, jmmUserID, false,
                                     true);
                                 action = "Used AniDB Status";
@@ -175,7 +176,7 @@ namespace Shoko.Server.Commands
                             if (ServerSettings.AniDB_MyList_ReadWatched)
                             {
                                 modifiedItems++;
-                                vl.ToggleWatchedStatus(true, false, myitem.WatchedDate, false, false,
+                                vl.ToggleWatchedStatus(true, false, watchedDate, false, false,
                                     jmmUserID, false, true);
                                 action = "Updated Local record to Watched";
                             }
