@@ -66,7 +66,18 @@ namespace Shoko.Server.Commands
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
                 cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
-                if (ev != enHelperActivityType.GotMyListHTTP || cmd.MyListItems.Count <= 1) return;
+                if (ev != enHelperActivityType.GotMyListHTTP)
+                {
+                    logger.Warn("AniDB did not return a successful code: " + ev);
+                    return;
+                }
+                /* This seems like it would keep files from being added, so I am commenting for now
+                   - da3dsoul
+                if (cmd.MyListItems.Count <= 0)
+                {
+                    logger.Info("AniDB MyList is Empty. Not Syncing");
+                    return;
+                }*/
 
 
                 int totalItems = 0;
@@ -104,7 +115,7 @@ namespace Shoko.Server.Commands
 
                 List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
-
+                List<int> filesToRemove = new List<int>();
                 // 1 . sync mylist items
                 foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                 {
@@ -139,11 +150,19 @@ namespace Shoko.Server.Commands
                     }
 
 
-                    if (string.IsNullOrEmpty(hash)) continue;
+                    if (string.IsNullOrEmpty(hash))
+                    {
+                        filesToRemove.Add(myitem.FileID);
+                        continue;
+                    }
 
                     // find the video associated with this record
                     SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
-                    if (vl == null) continue;
+                    if (vl == null)
+                    {
+                        filesToRemove.Add(myitem.FileID);
+                        continue;
+                    }
 
                     foreach (SVR_JMMUser juser in aniDBUsers)
                     {
@@ -186,11 +205,17 @@ namespace Shoko.Server.Commands
                             $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
                         logger.Info(msg);
                     }
+                }
 
-
-                    //string msg = string.Format("MYLIST:: File {0} - Local Status = {1}, AniDB Status = {2} --- {3}",
-                    //    vl.FullServerPath, localStatus, myitem.IsWatched, action);
-                    //logger.Info(msg);
+                if (filesToRemove.Count > 0)
+                {
+                    foreach (int fileID in filesToRemove)
+                    {
+                        CommandRequest_DeleteFileFromMyList deleteCommand =
+                            new CommandRequest_DeleteFileFromMyList(fileID);
+                        deleteCommand.Save();
+                    }
+                    logger.Info($"MYLIST Missing Files: {filesToRemove.Count} Added to queue for deletion");
                 }
 
 
