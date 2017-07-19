@@ -1481,40 +1481,28 @@ namespace Shoko.Server
                     if (animeEp.EpisodeTypeEnum == Shoko.Models.Enums.enEpisodeType.Episode ||
                         animeEp.EpisodeTypeEnum == Shoko.Models.Enums.enEpisodeType.Special)
                     {
+                        string fileSource = Constants.NO_SOURCE_INFO;
+                        string fileGroupName = Constants.NO_GROUP_INFO;
                         // get the anibd file info
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile != null)
                         {
                             videoSource = SimplifyVideoSource(videoSource);
-                            string fileSource = SimplifyVideoSource(aniFile.File_Source);
-                            string vidResAniFile = Utils.GetStandardisedVideoResolution(aniFile.File_VideoResolution);
-
-                            // match based on group / video sorce / video res
-                            if (
-                                relGroupName.Equals(aniFile.Anime_GroupName,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                videoSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
-                                resolution.Equals(vidResAniFile, StringComparison.InvariantCultureIgnoreCase) &&
-                                thisBitDepth == videoBitDepth)
-                            {
-                                vids.Add(vid.ToClientDetailed(userID));
-                            }
+                            fileSource = SimplifyVideoSource(aniFile.File_Source);
+                            fileGroupName = aniFile.Anime_GroupName;
                         }
-                        else
-                        {
-                            string vidResInfo = Utils.GetStandardisedVideoResolution(vid.VideoResolution);
+                        // Sometimes, especially with older files, the info doesn't quite match for resution
+                        string vidResInfo = vid.VideoResolution;
 
-                            // match based on group / video sorce / video res
-                            if (
-                                relGroupName.Equals(Constants.NO_GROUP_INFO,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                videoSource.Equals(Constants.NO_SOURCE_INFO,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
-                                thisBitDepth == videoBitDepth)
-                            {
-                                vids.Add(vid.ToClientDetailed(userID));
-                            }
+                        // match based on group / video sorce / video res
+                        if (
+                            relGroupName.Equals(fileGroupName,
+                                StringComparison.InvariantCultureIgnoreCase) &&
+                            videoSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
+                            resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
+                            thisBitDepth == videoBitDepth)
+                        {
+                            vids.Add(vid.ToClientDetailed(userID));
                         }
                     }
                 }
