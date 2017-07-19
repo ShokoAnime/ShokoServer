@@ -480,6 +480,7 @@ namespace AniDBAPI
             else
             {
                 logger.Error("AniDB Sync_MyList - MyList xml is empty or invalid");
+                return null;
             }
 
             return mylistentries;

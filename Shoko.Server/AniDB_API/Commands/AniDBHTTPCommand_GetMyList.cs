@@ -103,17 +103,16 @@ namespace AniDBAPI.Commands
             if (xmlResult.Trim().Length > 0)
                 WriteAnimeMyListToFile(xmlResult);
 
-            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
+            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
 
             if (docAnime != null)
             {
                 myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
+                if (myListItems == null) return  enHelperActivityType.NoSuchAnime;
                 return enHelperActivityType.GotMyListHTTP;
             }
-            else
-            {
-                return enHelperActivityType.NoSuchAnime;
-            }
+
+            return enHelperActivityType.NoSuchAnime;
         }
 
         public AniDBHTTPCommand_GetMyList()

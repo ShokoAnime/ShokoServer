@@ -4,6 +4,8 @@ using System.Linq;
 using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using Iesi.Collections.Generic;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -79,10 +81,14 @@ namespace Shoko.Server.Commands
                 double pct = 0;
 
                 // Add missing files on AniDB
-                Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = cmd.MyListItems.ToDictionary(a => a.FileID);
+                Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = new Dictionary<int, Raw_AniDB_MyListFile>();
+                foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
+                    onlineFiles[myitem.FileID] = myitem;
 
+                Dictionary<string, SVR_AniDB_File> dictAniFiles = new Dictionary<string, SVR_AniDB_File>();
                 IReadOnlyList<SVR_AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
-                Dictionary<string, SVR_AniDB_File> dictAniFiles = allAniFiles.ToDictionary(a => a.Hash);
+                foreach (SVR_AniDB_File anifile in allAniFiles)
+                    dictAniFiles[anifile.Hash] = anifile;
 
                 int missingFiles = 0;
                 foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
@@ -103,6 +109,7 @@ namespace Shoko.Server.Commands
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
                 List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                LinkedHashSet<SVR_AnimeSeries> modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
 
                 // Remove Missing Files and update watched states (single loop)
                 List<int> filesToRemove = new List<int>();
@@ -200,7 +207,7 @@ namespace Shoko.Server.Commands
                                     false, true);
                             }
                         }
-
+                        vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null).ForEach(a => modifiedSeries.Add(a));
                         logger.Info($"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}");
                     }
                 }
@@ -217,8 +224,7 @@ namespace Shoko.Server.Commands
                     logger.Info($"MYLIST Missing Files: {filesToRemove.Count} Added to queue for deletion");
                 }
 
-                // now update all stats
-                Importer.UpdateAllStats();
+                modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
