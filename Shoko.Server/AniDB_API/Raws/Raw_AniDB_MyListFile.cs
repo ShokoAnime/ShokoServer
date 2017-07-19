@@ -111,7 +111,7 @@ namespace AniDBAPI
             }
             if (string.IsNullOrEmpty(node.Attributes?["id"]?.Value))
             {
-                logger.Warn("MyList item had a corrupted XML");
+                logger.Warn("MyList item has no ID" + "\n" + node);
                 return;
             }
             ListID = int.Parse(node.Attributes["id"].Value);
@@ -127,7 +127,7 @@ namespace AniDBAPI
                 try
                 {
                     // eg "2011-02-23T20:49:18+0000"
-                    int year = int.Parse(ViewDateHTTP.Trim().Substring(0, 4));
+                    /*int year = int.Parse(ViewDateHTTP.Trim().Substring(0, 4));
                     int month = int.Parse(ViewDateHTTP.Trim().Substring(5, 2));
                     int day = int.Parse(ViewDateHTTP.Trim().Substring(8, 2));
 
@@ -136,6 +136,11 @@ namespace AniDBAPI
                     int second = int.Parse(ViewDateHTTP.Trim().Substring(17, 2));
 
                     DateTime utcDate = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
+                    */
+                    if (!DateTime.TryParse(ViewDateHTTP, out DateTime utcDate))
+                    {
+                        logger.Error("Error processing View Date HTTP: " + ViewDateHTTP);
+                    }
                     utcDate = utcDate.AddSeconds(ViewDateUDP);
 
                     WatchedDate = utcDate.ToLocalTime();
@@ -162,6 +167,11 @@ namespace AniDBAPI
         public override string ToString()
         {
             return $"Raw_AniDB_MyListFile:: fileID: {FileID} | IsWatched: {IsWatched}";
+        }
+
+        public override int GetHashCode()
+        {
+            return FileID;
         }
     }
 }
