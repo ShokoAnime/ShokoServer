@@ -137,13 +137,13 @@ namespace Shoko.Server.Utilities
 
             //Create process
             Process pProcess = new Process();
-            pProcess.StartInfo.FileName = $"mono \"${avdumpDestination}\"";
+            pProcess.StartInfo.FileName = $"mono";
 
             //strCommandParameters are parameters to pass to program
             string fileName = (char)34 + file + (char)34;
 
             pProcess.StartInfo.Arguments =
-                $@" --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={ServerSettings.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+                $@"{avdumpDestination} --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={ServerSettings.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
