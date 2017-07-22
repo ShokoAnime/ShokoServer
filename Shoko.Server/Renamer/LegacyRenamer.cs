@@ -844,22 +844,22 @@ namespace Shoko.Server.Renamer
                 string epType = "";
                 switch (episodes[0].GetEpisodeTypeEnum())
                 {
-                    case enEpisodeType.Episode:
+                    case EpisodeType.Episode:
                         epType = "E";
                         break;
-                    case enEpisodeType.Credits:
+                    case EpisodeType.Credits:
                         epType = "C";
                         break;
-                    case enEpisodeType.Other:
+                    case EpisodeType.Other:
                         epType = "O";
                         break;
-                    case enEpisodeType.Parody:
+                    case EpisodeType.Parody:
                         epType = "P";
                         break;
-                    case enEpisodeType.Special:
+                    case EpisodeType.Special:
                         epType = "S";
                         break;
-                    case enEpisodeType.Trailer:
+                    case EpisodeType.Trailer:
                         epType = "T";
                         break;
                 }
@@ -1697,16 +1697,16 @@ namespace Shoko.Server.Renamer
                 int zeroPadding = 2;
                 string prefix = "";
 
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Credits) prefix = "C";
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Other) prefix = "O";
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Parody) prefix = "P";
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Special) prefix = "S";
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Trailer) prefix = "T";
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Credits) prefix = "C";
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Other) prefix = "O";
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Parody) prefix = "P";
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Special) prefix = "S";
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Trailer) prefix = "T";
 
                 int epCount = 1;
 
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Episode) epCount = anime.EpisodeCountNormal;
-                if (episodes[0].GetEpisodeTypeEnum() == enEpisodeType.Special) epCount = anime.EpisodeCountSpecial;
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Episode) epCount = anime.EpisodeCountNormal;
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Special) epCount = anime.EpisodeCountSpecial;
 
                 if (epCount > 10 && epCount < 100) zeroPadding = 2;
                 if (epCount > 99 && epCount < 1000) zeroPadding = 3;

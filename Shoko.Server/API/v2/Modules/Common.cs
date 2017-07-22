@@ -2649,8 +2649,8 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                     {
-                        if (ep?.EpisodeTypeEnum == enEpisodeType.Credits) continue;
-                        if (ep?.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+                        if (ep?.EpisodeTypeEnum == EpisodeType.Credits) continue;
+                        if (ep?.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
                         ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, false, userid, true);
                     }

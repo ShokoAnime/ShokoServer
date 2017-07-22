@@ -475,7 +475,7 @@ namespace Shoko.Server
                 ServerSettings.AniDB_MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
                 ServerSettings.AniDB_MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
                 ServerSettings.AniDB_MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
-                ServerSettings.AniDB_MyList_StorageState = (AniDBFileStatus) contractIn.AniDB_MyList_StorageState;
+                ServerSettings.AniDB_MyList_StorageState = (AniDBFile_State) contractIn.AniDB_MyList_StorageState;
                 ServerSettings.AniDB_MyList_DeleteType = (AniDBFileDeleteType) contractIn.AniDB_MyList_DeleteType;
 
                 ServerSettings.AniDB_MyList_UpdateFrequency =

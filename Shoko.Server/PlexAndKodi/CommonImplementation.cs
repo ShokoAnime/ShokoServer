@@ -521,22 +521,22 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     switch (ser.Contract.AniDBAnime.AniDBAnime.AnimeType)
                     {
-                        case (int) enAnimeType.Movie:
+                        case (int) AnimeType.Movie:
                             v.SourceTitle = "Anime Movies";
                             break;
-                        case (int) enAnimeType.OVA:
+                        case (int) AnimeType.OVA:
                             v.SourceTitle = "Anime Ovas";
                             break;
-                        case (int) enAnimeType.Other:
+                        case (int) AnimeType.Other:
                             v.SourceTitle = "Anime Others";
                             break;
-                        case (int) enAnimeType.TVSeries:
+                        case (int) AnimeType.TVSeries:
                             v.SourceTitle = "Anime Series";
                             break;
-                        case (int) enAnimeType.TVSpecial:
+                        case (int) AnimeType.TVSpecial:
                             v.SourceTitle = "Anime Specials";
                             break;
-                        case (int) enAnimeType.Web:
+                        case (int) AnimeType.Web:
                             v.SourceTitle = "Anime Web Clips";
                             break;
                     }
@@ -687,8 +687,8 @@ namespace Shoko.Server.PlexAndKodi
                 List<SVR_AnimeEpisode> eps = series.GetAnimeEpisodes();
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
-                    if (ep.EpisodeTypeEnum == enEpisodeType.Credits) continue;
-                    if (ep.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+                    if (ep.EpisodeTypeEnum == EpisodeType.Credits) continue;
+                    if (ep.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
                     ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
                 }
@@ -733,8 +733,8 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                     {
-                        if (ep.EpisodeTypeEnum == enEpisodeType.Credits) continue;
-                        if (ep.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+                        if (ep.EpisodeTypeEnum == EpisodeType.Credits) continue;
+                        if (ep.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
                         ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
                     }
@@ -969,14 +969,14 @@ namespace Shoko.Server.PlexAndKodi
             bool nocast)
         {
             BaseObject ret = null;
-            enEpisodeType? eptype = null;
+            EpisodeType? eptype = null;
             int serieID;
             if (SerieId.Contains("_"))
             {
                 string[] ndata = SerieId.Split('_');
                 if (!int.TryParse(ndata[0], out int ept))
                     return new MediaContainer() {ErrorString = "Invalid Serie Id"};
-                eptype = (enEpisodeType) ept;
+                eptype = (EpisodeType) ept;
                 if (!int.TryParse(ndata[1], out serieID))
                     return new MediaContainer() {ErrorString = "Invalid Serie Id"};
             }
@@ -1012,7 +1012,7 @@ namespace Shoko.Server.PlexAndKodi
                 }
                 else
                 {
-                    List<enEpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<EpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     if (types.Count > 1)
                     {
                         ret = new BaseObject(
@@ -1024,11 +1024,11 @@ namespace Shoko.Server.PlexAndKodi
                             (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
                         ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
                         List<PlexEpisodeType> eps = new List<PlexEpisodeType>();
-                        foreach (enEpisodeType ee in types)
+                        foreach (EpisodeType ee in types)
                         {
                             PlexEpisodeType k2 = new PlexEpisodeType();
                             PlexEpisodeType.EpisodeTypeTranslated(k2, ee,
-                                (Shoko.Models.Enums.AnimeTypes) cseries.AniDBAnime.AniDBAnime.AnimeType,
+                                (Shoko.Models.Enums.AnimeType) cseries.AniDBAnime.AniDBAnime.AnimeType,
                                 episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                             eps.Add(k2);
                         }
@@ -1048,8 +1048,8 @@ namespace Shoko.Server.PlexAndKodi
                             v.ViewedLeafCount = "0";
                             v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
                             v.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
-                            if ((ee.AnimeType == Shoko.Models.Enums.AnimeTypes.Movie) ||
-                                (ee.AnimeType == Shoko.Models.Enums.AnimeTypes.OVA))
+                            if ((ee.AnimeType == Shoko.Models.Enums.AnimeType.Movie) ||
+                                (ee.AnimeType == Shoko.Models.Enums.AnimeType.OVA))
                             {
                                 v = Helper.MayReplaceVideo(v, ser, cseries, userid, false, nv);
                             }

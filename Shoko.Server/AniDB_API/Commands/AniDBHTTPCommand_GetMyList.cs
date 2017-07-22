@@ -100,10 +100,10 @@ namespace AniDBAPI.Commands
             //XmlDocument docAnime = LoadAnimeMyListFromFile();
             //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
 
+            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
+
             if (xmlResult.Trim().Length > 0)
                 WriteAnimeMyListToFile(xmlResult);
-
-            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
 
             if (docAnime != null)
             {

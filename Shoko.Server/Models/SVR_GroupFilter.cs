@@ -984,7 +984,7 @@ namespace Shoko.Server.Models
                         bool tvDBInfoMissing = contractSerie.CrossRefAniDBTvDBV2 == null ||
                                                contractSerie.CrossRefAniDBTvDBV2.Count == 0;
                         bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType !=
-                                                      (int) enAnimeType.Movie &&
+                                                      (int) AnimeType.Movie &&
                                                       !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                         tvDBInfoMissing &= supposedToHaveTvDBLink;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && tvDBInfoMissing)
@@ -1003,7 +1003,7 @@ namespace Shoko.Server.Models
                     case GroupFilterConditionType.AssignedMovieDBInfo:
                         bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
                         bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
-                                                       (int) enAnimeType.Movie &&
+                                                       (int) AnimeType.Movie &&
                                                        !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                         movieMissing &= supposedToHaveMovieLink;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && movieMissing) return false;
