@@ -304,6 +304,36 @@ namespace Shoko.Server
 
         #endregion
 
+        public List<string> GetAllYears()
+        {
+            List<CL_AnimeSeries_User> grps =
+                    RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+            var allyears = new HashSet<string>(StringComparer.Ordinal);
+            foreach (CL_AnimeSeries_User ser in grps)
+            {
+                int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
+                int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
+                if (endyear == 0) endyear = DateTime.Today.Year;
+                if (startyear != 0)
+                    allyears.UnionWith(Enumerable.Range(startyear,
+                            endyear - startyear + 1)
+                        .Select(a => a.ToString()));
+            }
+            return allyears.OrderBy(a => a).ToList();
+        }
+
+        public List<string> GetAllSeasons()
+        {
+            List<CL_AnimeSeries_User> grps =
+                    RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+            var allseasons = new SortedSet<string>(new SeasonComparator());
+            foreach (CL_AnimeSeries_User ser in grps)
+            {
+                allseasons.UnionWith(ser.AniDBAnime.Stat_AllSeasons);
+            }
+            return allseasons.ToList();
+        }
+
         public List<string> GetAllTagNames()
         {
             List<string> allTagNames = new List<string>();
