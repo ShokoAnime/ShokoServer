@@ -278,7 +278,7 @@ namespace AniDBAPI
             if (int.TryParse(fld.Trim().Substring(0, 1), out int epno))
             // if the first char is a numeric than it is a normal episode
             {
-                return (int)enEpisodeType.Episode;
+                return (int)Shoko.Models.Enums.EpisodeType.Episode;
             }
             else
             {
@@ -291,26 +291,26 @@ namespace AniDBAPI
                 switch (epType)
                 {
                     case "":
-                        return (int)enEpisodeType.Episode;
+                        return (int)Shoko.Models.Enums.EpisodeType.Episode;
                     case "C":
-                        return (int)enEpisodeType.Credits;
+                        return (int)Shoko.Models.Enums.EpisodeType.Credits;
                     case "S":
-                        return (int)enEpisodeType.Special;
+                        return (int)Shoko.Models.Enums.EpisodeType.Special;
                     case "O":
-                        return (int)enEpisodeType.Other;
+                        return (int)Shoko.Models.Enums.EpisodeType.Other;
                     case "T":
-                        return (int)enEpisodeType.Trailer;
+                        return (int)Shoko.Models.Enums.EpisodeType.Trailer;
                     case "P":
-                        return (int)enEpisodeType.Parody;
+                        return (int)Shoko.Models.Enums.EpisodeType.Parody;
                     default:
-                        return (int)enEpisodeType.Episode;
+                        return (int)Shoko.Models.Enums.EpisodeType.Episode;
                 }
             }
         }
 
-        public Raw_AniDB_Episode(string sRecMessage, enEpisodeSourceType sourceType)
+        public Raw_AniDB_Episode(string sRecMessage, EpisodeSourceType sourceType)
         {
-            if (sourceType == enEpisodeSourceType.Episode)
+            if (sourceType == EpisodeSourceType.Episode)
                 ProcessEpisodeSource(sRecMessage);
             else
                 ProcessFileSource(sRecMessage);

@@ -1065,13 +1065,13 @@ namespace Shoko.Server
             set { Set("AniDB_MyList_AddFiles", value.ToString()); }
         }
 
-        public static AniDBFileStatus AniDB_MyList_StorageState
+        public static AniDBFile_State AniDB_MyList_StorageState
         {
             get
             {
                 int.TryParse(Get("AniDB_MyList_StorageState"), out int val);
 
-                return (AniDBFileStatus) val;
+                return (AniDBFile_State) val;
             }
             set { Set("AniDB_MyList_StorageState", ((int) value).ToString()); }
         }

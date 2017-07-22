@@ -52,31 +52,31 @@ namespace Shoko.Server.API.v2.Modules
 
             var anime = RepoFactory.AnimeSeries.GetByID(animeId);
 
-            enEpisodeType episodeType;
+            EpisodeType episodeType;
             switch (series
                 ) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
                 {
                     case -4:
-                        episodeType = enEpisodeType.Parody;
+                        episodeType = EpisodeType.Parody;
                         break;
                     case -3:
-                        episodeType = enEpisodeType.Trailer;
+                        episodeType = EpisodeType.Trailer;
                         break;
                     case -2:
-                        episodeType = enEpisodeType.Other;
+                        episodeType = EpisodeType.Other;
                         break;
                     case -1:
-                        episodeType = enEpisodeType.Credits;
+                        episodeType = EpisodeType.Credits;
                         break;
                     case 0:
-                        episodeType = enEpisodeType.Special;
+                        episodeType = EpisodeType.Special;
                         break;
                     default:
-                        episodeType = enEpisodeType.Episode;
+                        episodeType = EpisodeType.Episode;
                         break;
                 }
 
-            if (episodeType != enEpisodeType.Episode ||
+            if (episodeType != EpisodeType.Episode ||
                 metadata.Index == 0) //metadata.index = 0 when it's something else.
                 return; //right now no clean way to detect the episode. I could do by title.
 

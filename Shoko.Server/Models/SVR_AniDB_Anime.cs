@@ -567,7 +567,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (GetDefaultFanart() == null)
             {
                 // get a random fanart
-                if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+                if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
                 {
                     List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
                     if (fanarts.Count == 0) return "";
@@ -649,7 +649,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (banner == null)
             {
                 // get a random banner (only tvdb)
-                if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+                if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
                 {
                     // MovieDB doesn't have banners
                     return null;
@@ -1109,7 +1109,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 //
                 // we need to do this check because some times AniDB will replace an existing episode with a new episode
                 List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
-                    epraw.AnimeID, (enEpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
+                    epraw.AnimeID, (EpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
 
                 // delete any old records
                 foreach (AniDB_Episode epOld in existingEps)
@@ -1138,10 +1138,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 epsToSave.Add(epNew);
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-                if (epNew.GetEpisodeTypeEnum() == enEpisodeType.Episode)
+                if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
                     this.EpisodeCountNormal++;
 
-                if (epNew.GetEpisodeTypeEnum() == enEpisodeType.Special)
+                if (epNew.GetEpisodeTypeEnum() == EpisodeType.Special)
                     this.EpisodeCountSpecial++;
             }
             RepoFactory.AniDB_Episode.Save(epsToSave);
@@ -1415,7 +1415,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<TvDB_ImageFanart> tvDbFanart = null;
             List<TvDB_ImageWideBanner> tvDbBanners = null;
 
-            if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
             {
                 movDbFanart = GetMovieDBFanarts(session);
             }
@@ -1453,7 +1453,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 cl.DefaultImageWideBanner = defaultImages.WideBanner?.ToContract();
             }
 
-            if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
             {
                 cl.Fanarts = movDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
@@ -1914,7 +1914,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     cmd2.Save();
                 }
 
-                if (AnimeType == (int) enAnimeType.Movie)
+                if (AnimeType == (int) Shoko.Models.Enums.AnimeType.Movie)
                 {
                     CommandRequest_MovieDBSearchAnime cmd3 =
                         new CommandRequest_MovieDBSearchAnime(AnimeID, false);

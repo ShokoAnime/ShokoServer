@@ -116,7 +116,7 @@ namespace Shoko.Server.Commands
                 foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                 {
                     // ignore files mark as deleted by the user
-                    if (myitem.State == (int) AniDBFileStatus.Deleted) continue;
+                    if (myitem.State == (int) AniDBFile_State.Deleted) continue;
 
                     totalItems++;
                     if (myitem.IsWatched) watchedItems++;

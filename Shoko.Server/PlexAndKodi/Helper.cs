@@ -274,12 +274,12 @@ namespace Shoko.Server.PlexAndKodi
                         v.LastViewedAt = e.Value.WatchedDate.Value.ToUnixTime();
                 }
                 v.ParentIndex = "1";
-                if (e.Key.EpisodeTypeEnum != enEpisodeType.Episode)
+                if (e.Key.EpisodeTypeEnum != EpisodeType.Episode)
                 {
                     v.ParentIndex = null;
                 }
 
-                if (e.Key.EpisodeTypeEnum == enEpisodeType.Episode)
+                if (e.Key.EpisodeTypeEnum == EpisodeType.Episode)
                 {
                     string client = prov.GetPlexClient().Product;
                     if (client == "Plex for Windows" || client == "Plex Home Theater")
@@ -420,12 +420,12 @@ namespace Shoko.Server.PlexAndKodi
         {
             CrossRef_AniDB_TvDBV2 xref =
                 RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvdbID, tvdbSeason, 1, animeID,
-                    (int) enEpisodeType.Episode, anistart);
+                    (int) EpisodeType.Episode, anistart);
             if (xref != null) return;
             xref = new CrossRef_AniDB_TvDBV2
             {
                 AnimeID = animeID,
-                AniDBStartEpisodeType = (int)enEpisodeType.Episode,
+                AniDBStartEpisodeType = (int)EpisodeType.Episode,
                 AniDBStartEpisodeNumber = anistart,
 
                 TvDBID = tvdbID,
@@ -521,7 +521,7 @@ namespace Shoko.Server.PlexAndKodi
                 v.ContentRating = "R";
             switch (cserie.AniDBAnime.AniDBAnime.AnimeType)
             {
-                case (int) enAnimeType.Movie:
+                case (int) AnimeType.Movie:
                     v.Type = "movie";
                     if (v.Title.StartsWith("Complete Movie"))
                     {
@@ -537,7 +537,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                     v.Thumb = nv.Thumb;
                     break;
-                case (int) enAnimeType.OVA:
+                case (int) AnimeType.OVA:
                     if (v.Title == "OVA")
                     {
                         v.Title = nv.Title;
@@ -762,8 +762,8 @@ namespace Shoko.Server.PlexAndKodi
             int epcount = all
                 ? ser.GetAnimeEpisodesCountWithVideoLocal()
                 : ser.GetAnimeEpisodesNormalCountWithVideoLocal();
-            if ((epcount != 1) || (cserie.AniDBAnime.AniDBAnime.AnimeType != (int) enAnimeType.OVA &&
-                                   cserie.AniDBAnime.AniDBAnime.AnimeType != (int) enAnimeType.Movie)) return v1;
+            if ((epcount != 1) || (cserie.AniDBAnime.AniDBAnime.AnimeType != (int) AnimeType.OVA &&
+                                   cserie.AniDBAnime.AniDBAnime.AnimeType != (int) AnimeType.Movie)) return v1;
             try
             {
                 List<SVR_AnimeEpisode> episodes = ser.GetAnimeEpisodes();
@@ -822,8 +822,8 @@ namespace Shoko.Server.PlexAndKodi
             FillSerie(v, ser, episodes, anidb, cserie, userid);
             if (ser.GetAnimeNumberOfEpisodeTypes() > 1)
                 v.Type = "show";
-            else if ((cserie.AniDBAnime.AniDBAnime.AnimeType == (int) enAnimeType.Movie) ||
-                     (cserie.AniDBAnime.AniDBAnime.AnimeType == (int) enAnimeType.OVA))
+            else if ((cserie.AniDBAnime.AniDBAnime.AnimeType == (int) AnimeType.Movie) ||
+                     (cserie.AniDBAnime.AniDBAnime.AnimeType == (int) AnimeType.OVA))
             {
                 v = MayReplaceVideo(v, ser, cserie, userid);
             }
@@ -917,7 +917,7 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (eps != null)
                 {
-                    List<enEpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<EpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count.ToString() : eps.Keys.Count.ToString();
                 }
                 p.Roles = new List<RoleTag>();

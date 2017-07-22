@@ -39,9 +39,9 @@ namespace AniDBAPI.Commands
             set { voteType = value; }
         }
 
-        private enEpisodeType episodeType = enEpisodeType.Episode;
+        private EpisodeType episodeType = EpisodeType.Episode;
 
-        public enEpisodeType EpisodeType
+        public EpisodeType EpisodeType
         {
             get { return episodeType; }
             set { episodeType = value; }
@@ -143,7 +143,7 @@ namespace AniDBAPI.Commands
             else
                 this.voteValue = (int) votevalue;
             this.voteType = votetype;
-            this.episodeType = enEpisodeType.Episode;
+            this.episodeType = EpisodeType.Episode;
 
             commandID = entityID.ToString();
 
@@ -169,7 +169,7 @@ namespace AniDBAPI.Commands
             commandText += "&value=" + voteValue.ToString();
         }
 
-        public void InitEpisode(int entityid, int epno, decimal votevalue, enEpisodeType epType)
+        public void InitEpisode(int entityid, int epno, decimal votevalue, EpisodeType epType)
         {
             // allow the user to enter a vote value between 1 and 10
             // can be 9.5 etc
@@ -198,19 +198,19 @@ namespace AniDBAPI.Commands
             string epNumberFormatted = episodeNumber.ToString();
             switch (epType)
             {
-                case enEpisodeType.Credits:
+                case EpisodeType.Credits:
                     epNumberFormatted = "C" + epno.ToString();
                     break;
-                case enEpisodeType.Special:
+                case EpisodeType.Special:
                     epNumberFormatted = "S" + epno.ToString();
                     break;
-                case enEpisodeType.Other:
+                case EpisodeType.Other:
                     epNumberFormatted = "0" + epno.ToString();
                     break;
-                case enEpisodeType.Trailer:
+                case EpisodeType.Trailer:
                     epNumberFormatted = "T" + epno.ToString();
                     break;
-                case enEpisodeType.Parody:
+                case EpisodeType.Parody:
                     epNumberFormatted = "P" + epno.ToString();
                     break;
             }

@@ -155,7 +155,7 @@ namespace Shoko.Server.Providers.TvDB
             return results;
         }
 
-        public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+        public static string LinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -261,7 +261,7 @@ namespace Shoko.Server.Providers.TvDB
 
                 if (aniEpType == -1)
                 {
-                    foreach (enEpisodeType eptype in Enum.GetValues(typeof(enEpisodeType)))
+                    foreach (EpisodeType eptype in Enum.GetValues(typeof(EpisodeType)))
                     {
                         CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(
                             animeID,
@@ -943,7 +943,7 @@ namespace Shoko.Server.Providers.TvDB
         }
 
         // Removes all TVDB information from a series, bringing it back to a blank state.
-        public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+        public static void RemoveLinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber)
         {
             CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,

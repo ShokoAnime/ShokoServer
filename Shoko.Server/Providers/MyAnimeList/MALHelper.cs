@@ -471,9 +471,9 @@ namespace Shoko.Server.Providers.MyAnimeList
                             // find the total episode count
                             if (totalEpCount < 0)
                             {
-                                if (ep.EpisodeTypeEnum == enEpisodeType.Episode)
+                                if (ep.EpisodeTypeEnum == EpisodeType.Episode)
                                     totalEpCount = ser.GetAnime().EpisodeCountNormal;
-                                if (ep.EpisodeTypeEnum == enEpisodeType.Special)
+                                if (ep.EpisodeTypeEnum == EpisodeType.Special)
                                     totalEpCount = ser.GetAnime().EpisodeCountSpecial;
                                 totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
                             }

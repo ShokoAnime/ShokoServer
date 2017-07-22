@@ -13,7 +13,7 @@ namespace AniDBAPI
         public int EpisodeID { get; set; }
         public int AnimeID { get; set; }
         public int GroupID { get; set; }
-        public int State { get; set; }
+        public int State { get; set; } // See Server/Enums/AniDBFile_State
         public string FileDate { get; set; }
         public DateTime? WatchedDate { get; set; }
         public int ViewDateUDP { get; set; }
@@ -21,7 +21,7 @@ namespace AniDBAPI
         public string Storage { get; set; }
         public string Source { get; set; }
         public string Other { get; set; }
-        public int FileState { get; set; }
+        public int FileState { get; set; } // See Server/Enums/AniDBFile_FileState
 
         public bool IsWatched
         {
@@ -152,14 +152,17 @@ namespace AniDBAPI
             }
 
             string tempstate = AniDBHTTPHelper.TryGetProperty(node, "state");
-            if(int.TryParse(tempstate, out int istate))
+            bool state = int.TryParse(tempstate, out int istate);
+            if (state)
                 State = istate;
-            else
-                logger.Warn($"AniDB Sync_MyList - MyListItem with fid {FileID} has no 'State'");
 
             string fstate = AniDBHTTPHelper.TryGetProperty(node, "filestate");
-            if(int.TryParse(fstate, out int ifilestate))
+            bool filestate = int.TryParse(fstate, out int ifilestate);
+            if (filestate)
                 FileState = ifilestate;
+
+            if (!state && !filestate)
+                logger.Warn($"AniDB Sync_MyList - MyListItem with fid {FileID} has no 'State' or 'FileState'");
 
             Source = AniDBHTTPHelper.TryGetProperty(node, "storage");
         }
