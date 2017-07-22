@@ -167,9 +167,11 @@ namespace AniDBAPI
 
             //string enddate = TryGetProperty(docAnime, "anime", "enddate");
 
-            string restricted = docAnime["anime"].Attributes["restricted"].Value;
-            bool.TryParse(restricted, out bool res);
-            anime.Restricted = res ? 1 : 0;
+            string restricted = docAnime["anime"].Attributes["restricted"]?.Value;
+            if (bool.TryParse(restricted, out bool res))
+                anime.Restricted = res ? 1 : 0;
+            else
+                anime.Restricted = 0;
 
             anime.URL = TryGetProperty(docAnime, "anime", "url");
             anime.Picname = TryGetProperty(docAnime, "anime", "picture");
