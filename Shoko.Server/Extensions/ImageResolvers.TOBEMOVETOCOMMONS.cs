@@ -198,17 +198,17 @@ namespace Shoko.Server.Extensions
         {
             switch (anidbanime.GetAnimeTypeEnum())
             {
-                case enAnimeType.Movie:
+                case AnimeType.Movie:
                     return Resources.AnimeType_Movie;
-                case enAnimeType.Other:
+                case AnimeType.Other:
                     return Resources.AnimeType_Other;
-                case enAnimeType.OVA:
+                case AnimeType.OVA:
                     return Resources.AnimeType_OVA;
-                case enAnimeType.TVSeries:
+                case AnimeType.TVSeries:
                     return Resources.AnimeType_TVSeries;
-                case enAnimeType.TVSpecial:
+                case AnimeType.TVSpecial:
                     return Resources.AnimeType_TVSpecial;
-                case enAnimeType.Web:
+                case AnimeType.Web:
                     return Resources.AnimeType_Web;
                 default:
                     return Resources.AnimeType_Other;

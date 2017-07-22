@@ -142,6 +142,18 @@ namespace Shoko.Server.Models
                         if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
                     }
                 }
+                var filename_hash = RepoFactory.FileNameHash.GetByHash(VideoLocal.Hash);
+                if (!filename_hash.Any(a => a.FileName.Equals(renamed)))
+                {
+                    FileNameHash fnhash = new FileNameHash
+                    {
+                        DateTimeUpdated = DateTime.Now,
+                        FileName = renamed,
+                        FileSize = VideoLocal.FileSize,
+                        Hash = VideoLocal.Hash
+                    };
+                    RepoFactory.FileNameHash.Save(fnhash);
+                }
 
                 FilePath = tup.Item2;
                 RepoFactory.VideoLocalPlace.Save(this);

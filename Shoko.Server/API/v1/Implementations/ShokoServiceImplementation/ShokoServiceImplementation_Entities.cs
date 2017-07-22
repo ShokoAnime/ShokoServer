@@ -67,7 +67,7 @@ namespace Shoko.Server
                 if (series == null) return null;
 
                 List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID,
-                    (enEpisodeType) epType,
+                    (EpisodeType) epType,
                     epNum);
                 if (anieps.Count == 0) return null;
 
@@ -130,8 +130,8 @@ namespace Shoko.Server
                     if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
                     {
                         AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
-                        if (anidbep.EpisodeType == (int) enEpisodeType.Episode ||
-                            anidbep.EpisodeType == (int) enEpisodeType.Special)
+                        if (anidbep.EpisodeType == (int) EpisodeType.Episode ||
+                            anidbep.EpisodeType == (int) EpisodeType.Special)
                         {
                             SVR_AnimeEpisode_User userRecord = null;
                             if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
@@ -341,7 +341,7 @@ namespace Shoko.Server
 
                             if (seriesWatching.Count > 0)
                             {
-                                if (ser.GetAnime().AnimeType == (int) enAnimeType.TVSeries)
+                                if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
                                 {
                                     // make sure this series is not a sequel to an existing series we have already added
                                     foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
@@ -366,7 +366,7 @@ namespace Shoko.Server
                                 if (retEps.Count == maxRecords)
                                     return retEps;
 
-                                if (ser.GetAnime().AnimeType == (int) enAnimeType.TVSeries)
+                                if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
                                     seriesWatching.Add(ser.AniDB_ID);
                             }
                         }
@@ -1500,7 +1500,7 @@ namespace Shoko.Server
             {
                 AniDB_Episode aniEp = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
                 if (aniEp == null) return relGroups;
-                if (aniEp.GetEpisodeTypeEnum() != enEpisodeType.Episode) return relGroups;
+                if (aniEp.GetEpisodeTypeEnum() != EpisodeType.Episode) return relGroups;
 
                 SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniEp.AnimeID);
                 if (series == null) return relGroups;
@@ -1683,7 +1683,7 @@ namespace Shoko.Server
                 SVR_AnimeSeries ser = null;
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
-                    if (ep.EpisodeTypeEnum == (enEpisodeType) episodeType &&
+                    if (ep.EpisodeTypeEnum == (EpisodeType) episodeType &&
                         ep.AniDB_Episode.EpisodeNumber <= maxEpisodeNumber)
                     {
                         // check if this episode is already watched
@@ -2365,7 +2365,7 @@ namespace Shoko.Server
                         cmd2.Save(session);
                     }
 
-                    if (anime.AnimeType == (int) enAnimeType.Movie)
+                    if (anime.AnimeType == (int) AnimeType.Movie)
                     {
                         CommandRequest_MovieDBSearchAnime cmd3 =
                             new CommandRequest_MovieDBSearchAnime(anime.AnimeID, false);

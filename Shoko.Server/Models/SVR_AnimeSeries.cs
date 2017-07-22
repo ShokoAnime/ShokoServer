@@ -177,7 +177,7 @@ namespace Shoko.Server.Models
             return
                 RepoFactory.AnimeEpisode
                     .GetBySeriesID(AnimeSeriesID)
-                    .Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode &&
+                    .Count(a => a.EpisodeTypeEnum == EpisodeType.Episode &&
                                 RepoFactory.CrossRef_File_Episode
                                     .GetByEpisodeID(RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)
                                                         ?.EpisodeID ?? 0)
@@ -384,7 +384,7 @@ namespace Shoko.Server.Models
             foreach (SVR_AnimeEpisode ep in GetAnimeEpisodes())
             {
                 SVR_AnimeEpisode_User userRecord = ep.GetUserRecord(userID);
-                if (userRecord != null && ep.EpisodeTypeEnum == enEpisodeType.Episode)
+                if (userRecord != null && ep.EpisodeTypeEnum == EpisodeType.Episode)
                 {
                     if (watchedep == null)
                     {
@@ -939,12 +939,12 @@ namespace Shoko.Server.Models
 
         internal class EpisodeList : List<EpisodeList.StatEpisodes>
         {
-            public EpisodeList(enAnimeType ept)
+            public EpisodeList(AnimeType ept)
             {
                 AnimeType = ept;
             }
 
-            private enAnimeType AnimeType { get; set; }
+            private AnimeType AnimeType { get; set; }
 
             System.Text.RegularExpressions.Regex partmatch =
                 new System.Text.RegularExpressions.Regex("part (\\d.*?) of (\\d.*)");
@@ -956,7 +956,7 @@ namespace Shoko.Server.Models
 
             public void Add(SVR_AnimeEpisode ep, bool available)
             {
-                if ((AnimeType == enAnimeType.OVA) || (AnimeType == enAnimeType.Movie))
+                if ((AnimeType == AnimeType.OVA) || (AnimeType == AnimeType.Movie))
                 {
                     AniDB_Episode aniEp = ep.AniDB_Episode;
                     string ename = aniEp.EnglishName.ToLower();
@@ -1165,8 +1165,8 @@ namespace Shoko.Server.Models
                         }
                         if (epVids.Count == 0) continue;
 
-                        if (ep.EpisodeTypeEnum == enEpisodeType.Episode ||
-                            ep.EpisodeTypeEnum == enEpisodeType.Special)
+                        if (ep.EpisodeTypeEnum == EpisodeType.Episode ||
+                            ep.EpisodeTypeEnum == EpisodeType.Special)
                         {
                             SVR_AnimeEpisode_User epUserRecord = null;
                             if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
@@ -1201,7 +1201,7 @@ namespace Shoko.Server.Models
 
             if (missingEpsStats)
             {
-                enAnimeType animeType = enAnimeType.TVSeries;
+                AnimeType animeType = AnimeType.TVSeries;
                 SVR_AniDB_Anime aniDB_Anime = this.GetAnime();
                 if (aniDB_Anime != null)
                 {
@@ -1253,7 +1253,7 @@ namespace Shoko.Server.Models
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
                     //List<VideoLocal> vids = ep.VideoLocals;
-                    if (ep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
+                    if (ep.EpisodeTypeEnum != EpisodeType.Episode) continue;
 
                     List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))

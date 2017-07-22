@@ -715,8 +715,8 @@ namespace Shoko.Server
                             if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
                             {
                                 AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
-                                if (anidbep.EpisodeType == (int) enEpisodeType.Episode ||
-                                    anidbep.EpisodeType == (int) enEpisodeType.Special)
+                                if (anidbep.EpisodeType == (int) EpisodeType.Episode ||
+                                    anidbep.EpisodeType == (int) EpisodeType.Special)
                                 {
                                     SVR_AnimeEpisode_User userRecord = null;
                                     if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
@@ -901,7 +901,7 @@ namespace Shoko.Server
             #region normal episodes
 
             // now do stuff to improve performance
-            if (ep.GetEpisodeTypeEnum() == enEpisodeType.Episode)
+            if (ep.GetEpisodeTypeEnum() == EpisodeType.Episode)
             {
                 if (tvSummary != null && tvSummary.CrossRefTvDBV2 != null && tvSummary.CrossRefTvDBV2.Count > 0)
                 {
@@ -916,7 +916,7 @@ namespace Shoko.Server
                     CrossRef_AniDB_TvDBV2 xrefBase = null;
                     foreach (CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
                     {
-                        if (xrefTV.AniDBStartEpisodeType != (int) enEpisodeType.Episode) continue;
+                        if (xrefTV.AniDBStartEpisodeType != (int) EpisodeType.Episode) continue;
                         if (ep.EpisodeNumber >= xrefTV.AniDBStartEpisodeNumber)
                         {
                             foundStartingPoint = true;
@@ -979,7 +979,7 @@ namespace Shoko.Server
 
             #region special episodes
 
-            if (ep.GetEpisodeTypeEnum() == enEpisodeType.Special)
+            if (ep.GetEpisodeTypeEnum() == EpisodeType.Special)
             {
                 // find the xref that is right
                 // relies on the xref's being sorted by season number and then episode number (desc)
@@ -992,7 +992,7 @@ namespace Shoko.Server
                 CrossRef_AniDB_TvDBV2 xrefBase = null;
                 foreach (CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
                 {
-                    if (xrefTV.AniDBStartEpisodeType != (int) enEpisodeType.Special) continue;
+                    if (xrefTV.AniDBStartEpisodeType != (int) EpisodeType.Special) continue;
                     if (ep.EpisodeNumber >= xrefTV.AniDBStartEpisodeNumber)
                     {
                         foundStartingPoint = true;

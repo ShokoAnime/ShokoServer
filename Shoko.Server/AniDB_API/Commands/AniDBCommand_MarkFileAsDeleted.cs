@@ -67,7 +67,7 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileSize;
             commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFileStatus.Deleted;
+            commandText += "&state=" + (int) AniDBFile_State.Deleted;
             commandText += "&edit=1";
         }
     }

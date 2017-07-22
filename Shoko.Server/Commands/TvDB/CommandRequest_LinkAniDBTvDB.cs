@@ -13,7 +13,7 @@ namespace Shoko.Server.Commands.TvDB
     public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation, ICommandRequest
     {
         public int animeID;
-        public enEpisodeType aniEpType;
+        public EpisodeType aniEpType;
         public int aniEpNumber;
         public int tvDBID;
         public int tvSeasonNumber;
@@ -42,7 +42,7 @@ namespace Shoko.Server.Commands.TvDB
         {
         }
 
-        public CommandRequest_LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+        public CommandRequest_LinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
         {
             this.animeID = animeID;
@@ -100,7 +100,7 @@ namespace Shoko.Server.Commands.TvDB
 
                 // populate the fields
                 this.animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-                this.aniEpType = (enEpisodeType) Enum.Parse(typeof(enEpisodeType),
+                this.aniEpType = (EpisodeType) Enum.Parse(typeof(EpisodeType),
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
                 this.aniEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpNumber"));
                 this.tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
