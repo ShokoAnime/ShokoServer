@@ -27,10 +27,10 @@ namespace Shoko.Commons.Utils
         public static int GetAniDBDateAsSeconds(string dateXML, bool isStartDate)
         {
             // eg "2008-12-31" or "2008-12" or "2008"
-            if (dateXML.Trim().Length < 4) return 0;
+            if (dateXML == null || dateXML.Trim().Length < 4) return 0;
 
-            string month = "1";
-            string day = "1";
+            string month;
+            string day;
 
             string year = dateXML.Trim().Substring(0, 4);
 
@@ -53,7 +53,7 @@ namespace Shoko.Commons.Utils
                 else
                 {
                     // find the last day of the month
-                    int numberOfDays = DateTime.DaysInMonth(Int32.Parse(year), Int32.Parse(month));
+                    int numberOfDays = DateTime.DaysInMonth(int.Parse(year), int.Parse(month));
                     day = numberOfDays.ToString();
                 }
             }
@@ -61,7 +61,7 @@ namespace Shoko.Commons.Utils
             //BaseConfig.MyAnimeLog.Write("Date = {0}/{1}/{2}", year, month, day);
 
 
-            DateTime actualDate = new DateTime(Int32.Parse(year), Int32.Parse(month), Int32.Parse(day), 0, 0, 0);
+            DateTime actualDate = new DateTime(int.Parse(year), int.Parse(month), int.Parse(day), 0, 0, 0);
             //startDate = startDate.AddDays(-1);
 
             return GetAniDBDateAsSeconds(actualDate);
@@ -73,13 +73,13 @@ namespace Shoko.Commons.Utils
             // 0 = normal start and end date (2010-01-31)
             // 1 = start date is year-month (2010-01)
             // 2 = start date is a year (2010)
-            // 4 = normal start date, year-month end date 
-            // 8 = normal start date, year end date 
+            // 4 = normal start date, year-month end date
+            // 8 = normal start date, year end date
             // 10 = start date is a year (2010)
             // 16 = normal start and end date (2010-01-31)
 
-            Double.TryParse(dateInSeconds, out double secs);
-            if (secs == 0) return null;
+            if (!double.TryParse(dateInSeconds, out double secs)) return null;
+            if (Math.Abs(secs) < 0.1) return null;
 
             DateTime thisDate = new DateTime(1970, 1, 1, 0, 0, 0);
             thisDate = thisDate.AddSeconds(secs);
@@ -96,12 +96,11 @@ namespace Shoko.Commons.Utils
                 day = 1;
 
             return new DateTime(year, month, day, 0, 0, 0);
-            ;
         }
 
         public static int GetAniDBDateAsSeconds(DateTime? dtDate)
         {
-            if (!dtDate.HasValue) return 0;
+            if (dtDate == null) return 0;
 
             DateTime startDate = new DateTime(1970, 1, 1, 0, 0, 0);
             TimeSpan ts = dtDate.Value - startDate;
