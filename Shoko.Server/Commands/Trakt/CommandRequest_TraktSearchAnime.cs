@@ -91,7 +91,7 @@ namespace Shoko.Server.Commands
                                     logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
                                         showInfo.title);
                                     TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                        (enEpisodeType) xref.AniDBStartEpisodeType,
+                                        (EpisodeType) xref.AniDBStartEpisodeType,
                                         xref.AniDBStartEpisodeNumber,
                                         xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
                                     doReturn = true;
@@ -146,7 +146,7 @@ namespace Shoko.Server.Commands
                             logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
                                 AnimeID, showInfo.title);
                             TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                (enEpisodeType) tvXRef.AniDBStartEpisodeType,
+                                (EpisodeType) tvXRef.AniDBStartEpisodeType,
                                 tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
                                 tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
                                 true);
@@ -206,7 +206,7 @@ namespace Shoko.Server.Commands
                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)
                     {
-                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, enEpisodeType.Episode, 1,
+                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, EpisodeType.Episode, 1,
                             results[0].show.ids.slug, 1, 1,
                             true);
                         return true;

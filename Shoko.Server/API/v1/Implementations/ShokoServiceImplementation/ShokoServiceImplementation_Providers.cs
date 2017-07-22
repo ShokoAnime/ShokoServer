@@ -542,7 +542,7 @@ namespace Shoko.Server
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
 
                 CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID,
-                    (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                    (EpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
                     tvEpNumber, false, !crossRef_AniDB_TvDBV2ID.HasValue);
                 cmdRequest.Save();
 
@@ -601,7 +601,7 @@ namespace Shoko.Server
                         }
                     }
 
-                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AnimeID, (enEpisodeType) xref.AniDBStartEpisodeType,
+                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AnimeID, (EpisodeType) xref.AniDBStartEpisodeType,
                         xref.AniDBStartEpisodeNumber,
                         xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
                 }
@@ -637,7 +637,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TvDBApiHelper.RemoveLinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                TvDBApiHelper.RemoveLinkAniDBTvDB(animeID, (EpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
                     tvEpNumber);
 
                 return "";
@@ -834,7 +834,7 @@ namespace Shoko.Server
                     CrossRef_AniDB_TraktV2 xrefTemp =
                         RepoFactory.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
                     // delete the existing one if we are updating
-                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
+                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType) xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
                 }
@@ -857,7 +857,7 @@ namespace Shoko.Server
                     return msg;
                 }
 
-                return TraktTVHelper.LinkAniDBTrakt(animeID, (enEpisodeType) aniEpType, aniEpNumber, traktID,
+                return TraktTVHelper.LinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber, traktID,
                     seasonNumber,
                     traktEpNumber, false);
             }
@@ -935,7 +935,7 @@ namespace Shoko.Server
 
                 foreach (CrossRef_AniDB_TraktV2 xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
                 {
-                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType) xref.AniDBStartEpisodeType,
+                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) xref.AniDBStartEpisodeType,
                         xref.AniDBStartEpisodeNumber,
                         xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
                 }
@@ -970,7 +970,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType) aniEpType, aniEpNumber,
+                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber,
                     traktID, traktSeasonNumber, traktEpNumber);
 
                 return "";

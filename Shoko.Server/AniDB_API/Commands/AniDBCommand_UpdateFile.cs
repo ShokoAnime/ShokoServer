@@ -76,7 +76,7 @@ namespace AniDBAPI.Commands
 			commandText += "&edit=1";
 		}*/
 
-        public void Init(IHash fileData, bool watched, DateTime? watchedDate, bool isEdit, AniDBFileStatus? fileState)
+        public void Init(IHash fileData, bool watched, DateTime? watchedDate, bool isEdit, AniDBFile_State? fileState)
         {
             FileData = fileData;
             IsWatched = watched;

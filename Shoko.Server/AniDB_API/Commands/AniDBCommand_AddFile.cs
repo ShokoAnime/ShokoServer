@@ -78,7 +78,7 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.AddFile;
         }
 
-        public void Init(IHash fileData, AniDBFileStatus FileStatus)
+        public void Init(IHash fileData, AniDBFile_State FileState)
         {
             FileData = fileData;
 
@@ -87,10 +87,10 @@ namespace AniDBAPI.Commands
             commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText += "&viewed=0";
-            commandText += "&state=" + (int) FileStatus;
+            commandText += "&state=" + (int) FileState;
         }
 
-        public void Init(int animeID, int episodeNumber, AniDBFileStatus FileStatus)
+        public void Init(int animeID, int episodeNumber, AniDBFile_State FileState)
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
@@ -98,7 +98,7 @@ namespace AniDBAPI.Commands
             commandText += "&generic=1";
             commandText += "&epno=" + episodeNumber.ToString();
             commandText += "&viewed=0";
-            commandText += "&state=" + (int) FileStatus;
+            commandText += "&state=" + (int) FileState;
         }
     }
 }

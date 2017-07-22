@@ -14,35 +14,11 @@ namespace AniDBAPI
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static string AnimeURL
-        {
-            get
-            {
-                return
-                    "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={0}";
-                // they have said now that this will never change
-            }
-        }
+        public const string AnimeURL = @"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={0}";
 
-        public static string MyListURL
-        {
-            get
-            {
-                return
-                    "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={0}&pass={1}";
-                // they have said now that this will never change
-            }
-        }
+        public const string MyListURL = @"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={0}&pass={1}";
 
-        public static string VotesURL
-        {
-            get
-            {
-                return
-                    "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={0}&pass={1}";
-                // they have said now that this will never change
-            }
-        }
+        public const string VotesURL = @"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={0}&pass={1}";
 
         public static void GetAnime(int animeID, bool createSeriesRecord)
         {
@@ -162,13 +138,9 @@ namespace AniDBAPI
             };
 
             // check if there is any data
-            try
+            if (docAnime?["anime"]?.Attributes?["id"]?.Value == null)
             {
-                string id = docAnime["anime"].Attributes["id"].Value;
-            }
-            catch
-            {
-                //BaseConfig.MyAnimeLog.Write("Invalid xml document: {0}", animeID.ToString());
+                logger.Warn("AniDB ProcessAnimeDetails - Received no or invalid info in XML");
                 return null;
             }
 
@@ -190,8 +162,8 @@ namespace AniDBAPI
             anime.AirDate = AniDB.GetAniDBDateAsDate(convertedAirDate);
             anime.EndDate = AniDB.GetAniDBDateAsDate(convertedEndDate);
 
-            anime.BeginYear = anime.AirDate.HasValue ? anime.AirDate.Value.Year : 0;
-            anime.EndYear = anime.EndDate.HasValue ? anime.EndDate.Value.Year : 0;
+            anime.BeginYear = anime.AirDate?.Year ?? 0;
+            anime.EndYear = anime.EndDate?.Year ?? 0;
 
             //string enddate = TryGetProperty(docAnime, "anime", "enddate");
 
@@ -208,32 +180,23 @@ namespace AniDBAPI
 
             #region Related Anime
 
-            if (docAnime["anime"]["relatedanime"] != null)
+            XmlNodeList raItems = docAnime?["anime"]["relatedanime"]?.GetElementsByTagName("anime");
+            if (raItems != null)
             {
-                XmlNodeList raItems = docAnime["anime"]["relatedanime"].GetElementsByTagName("anime");
-                if (raItems != null)
+                anime.RelatedAnimeIdsRAW = "";
+                anime.RelatedAnimeTypesRAW = "";
+
+                foreach (XmlNode node in raItems)
                 {
-                    anime.RelatedAnimeIdsRAW = "";
-                    anime.RelatedAnimeTypesRAW = "";
+                    if (node?.Attributes?["id"]?.Value == null) continue;
+                    if (!int.TryParse(node.Attributes["id"].Value, out int id)) continue;
+                    int relType = ConvertReltTypeTextToEnum(TryGetAttribute(node, "type"));
 
-                    foreach (XmlNode node in raItems)
-                    {
-                        try
-                        {
-                            int id = int.Parse(node.Attributes["id"].Value);
-                            int relType = ConvertReltTypeTextToEnum(TryGetAttribute(node, "type"));
+                    if (anime.RelatedAnimeIdsRAW.Length > 0) anime.RelatedAnimeIdsRAW += "'";
+                    if (anime.RelatedAnimeTypesRAW.Length > 0) anime.RelatedAnimeTypesRAW += "'";
 
-                            if (anime.RelatedAnimeIdsRAW.Length > 0) anime.RelatedAnimeIdsRAW += "'";
-                            if (anime.RelatedAnimeTypesRAW.Length > 0) anime.RelatedAnimeTypesRAW += "'";
-
-                            anime.RelatedAnimeIdsRAW += id.ToString();
-                            anime.RelatedAnimeTypesRAW += relType.ToString();
-                        }
-                        catch
-                        {
-                            //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
-                        }
-                    }
+                    anime.RelatedAnimeIdsRAW += id.ToString();
+                    anime.RelatedAnimeTypesRAW += relType.ToString();
                 }
             }
 
@@ -241,28 +204,21 @@ namespace AniDBAPI
 
             #region Titles
 
-            if (docAnime["anime"]["titles"] != null)
+            XmlNodeList titleItems = docAnime["anime"]["titles"]?.GetElementsByTagName("title");
+            if (titleItems != null)
             {
-                XmlNodeList titleItems = docAnime["anime"]["titles"].GetElementsByTagName("title");
-                if (titleItems != null)
+                foreach (XmlNode node in titleItems)
                 {
-                    foreach (XmlNode node in titleItems)
-                    {
-                        try
-                        {
-                            string titleType = node.Attributes["type"].Value.Trim().ToLower();
-                            string languageType = node.Attributes["xml:lang"].Value.Trim().ToLower();
-                            string titleValue = node.InnerText.Trim();
+                    string titleType = node?.Attributes?["type"]?.Value?.Trim().ToLower();
+                    if (string.IsNullOrEmpty(titleType)) continue;
+                    string languageType = node.Attributes["xml:lang"]?.Value?.Trim().ToLower();
+                    if (string.IsNullOrEmpty(languageType)) continue;
+                    string titleValue = node.InnerText?.Trim();
+                    if (string.IsNullOrEmpty(titleValue)) continue;
 
-                            if (titleType.Trim().ToUpper() == "MAIN")
-                            {
-                                anime.MainTitle = titleValue;
-                            }
-                        }
-                        catch
-                        {
-                            //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
-                        }
+                    if (titleType.Trim().ToUpper().Equals("MAIN"))
+                    {
+                        anime.MainTitle = titleValue;
                     }
                 }
             }
@@ -282,56 +238,37 @@ namespace AniDBAPI
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            if (docAnime["anime"]["ratings"] != null)
+            XmlNodeList ratingItems = docAnime["anime"]["ratings"]?.ChildNodes;
+            if (ratingItems != null)
             {
-                XmlNodeList ratingItems = docAnime["anime"]["ratings"].ChildNodes;
-                if (ratingItems != null)
+                foreach (XmlNode node in ratingItems)
                 {
-                    foreach (XmlNode node in ratingItems)
+                    string name = node?.Name?.Trim().ToLower();
+                    if (string.IsNullOrEmpty(name)) continue;
+                    if (!int.TryParse(TryGetAttribute(node, "count"), out int iCount)) continue;
+                    if(!decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating)) continue;
+                    iRating = (int) Math.Round(iRating * 100);
+
+                    if (name.Equals("permanent"))
                     {
-                        try
-                        {
-                            if (node.Name.Trim().ToLower() == "permanent")
-                            {
-                                int.TryParse(TryGetAttribute(node, "count"), out int iCount);
-                                anime.VoteCount = iCount;
-
-                                decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating);
-                                anime.Rating = (int) (iRating * 100);
-                            }
-                            if (node.Name.Trim().ToLower() == "temporary")
-                            {
-                                int.TryParse(TryGetAttribute(node, "count"), out int iCount);
-                                anime.TempVoteCount = iCount;
-
-                                decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating);
-                                anime.TempRating = (int) (iRating * 100);
-                            }
-                            if (node.Name.Trim().ToLower() == "review")
-                            {
-                                int.TryParse(TryGetAttribute(node, "count"), out int iCount);
-                                anime.ReviewCount = iCount;
-
-                                decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating);
-                                anime.AvgReviewRating = (int) (iRating * 100);
-                            }
-                        }
-                        catch
-                        {
-                            //BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
-                        }
+                        anime.VoteCount = iCount;
+                        anime.Rating = (int)iRating;
+                    }
+                    else if (name.Equals("temporary"))
+                    {
+                        anime.TempVoteCount = iCount;
+                        anime.TempRating = (int) iRating;
+                    }
+                    else if (name.Equals("review"))
+                    {
+                        anime.ReviewCount = iCount;
+                        anime.AvgReviewRating = (int) iRating;
                     }
                 }
             }
 
             #endregion
-
-            //anime.VersionNumber = Raw_AniDB_Anime.LastVersion;
-            //BaseConfig.MyAnimeLog.Write("Anime: {0}", anime.ToString());
             return anime;
-            //anime.Save(true, createSeriesRecord);
-
-            //AniDB_Anime.UpdateDescription(anime.AnimeID, anime.Description);
         }
 
         public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)
@@ -539,6 +476,11 @@ namespace AniDBAPI
                         logger.Error(ex, "Error in ProcessEpisodes: {0}" + ex);
                     }
                 }
+            }
+            else
+            {
+                logger.Error("AniDB Sync_MyList - MyList xml is empty or invalid");
+                return null;
             }
 
             return mylistentries;
