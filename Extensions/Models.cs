@@ -39,10 +39,10 @@ namespace Shoko.Commons.Extensions
             return (double) similar.Approval / (double) similar.Total * (double) 100;
         }
 
-        public static enAnimeType GetAnimeTypeEnum(this AniDB_Anime anime)
+        public static AnimeType GetAnimeTypeEnum(this AniDB_Anime anime)
         {
-            if (anime.AnimeType > 5) return enAnimeType.Other;
-            return (enAnimeType) anime.AnimeType;
+            if (anime.AnimeType > 5) return AnimeType.Other;
+            return (AnimeType) anime.AnimeType;
         }
 
         public static bool GetFinishedAiring(this AniDB_Anime anime)
@@ -59,7 +59,7 @@ namespace Shoko.Commons.Extensions
         {
             if (anime.AirDate == null) return false;
             // If it isn't a normal series, then it won't adhere to standard airing norms
-            if (anime.AnimeType != (int) AnimeTypes.TV_Series) return false;
+            if (anime.AnimeType != (int) AnimeType.TVSeries) return false;
             DateTime seasonStartBegin;
             DateTime seasonStartEnd;
             switch (season)
@@ -141,40 +141,40 @@ namespace Shoko.Commons.Extensions
             anime.AnimeType = (int) RawToType(value);
         }
 
-        public static string GetAnimeTypeRAW(this AniDB_Anime anime) => ConvertToRAW((AnimeTypes) anime.AnimeType);
+        public static string GetAnimeTypeRAW(this AniDB_Anime anime) => ConvertToRAW((AnimeType) anime.AnimeType);
 
-        public static AnimeTypes RawToType(string raw)
+        public static AnimeType RawToType(string raw)
         {
             switch (raw.ToLowerInvariant().Trim())
             {
                 case "movie":
-                    return AnimeTypes.Movie;
+                    return AnimeType.Movie;
                 case "ova":
-                    return AnimeTypes.OVA;
+                    return AnimeType.OVA;
                 case "tv series":
-                    return AnimeTypes.TV_Series;
+                    return AnimeType.TVSeries;
                 case "tv special":
-                    return AnimeTypes.TV_Special;
+                    return AnimeType.TVSpecial;
                 case "web":
-                    return AnimeTypes.Web;
+                    return AnimeType.Web;
                 default:
-                    return AnimeTypes.Other;
+                    return AnimeType.Other;
             }
         }
 
-        public static string ConvertToRAW(AnimeTypes t)
+        public static string ConvertToRAW(AnimeType t)
         {
             switch (t)
             {
-                case AnimeTypes.Movie:
+                case AnimeType.Movie:
                     return "movie";
-                case AnimeTypes.OVA:
+                case AnimeType.OVA:
                     return "ova";
-                case AnimeTypes.TV_Series:
+                case AnimeType.TVSeries:
                     return "tv series";
-                case AnimeTypes.TV_Special:
+                case AnimeType.TVSpecial:
                     return "tv special";
-                case AnimeTypes.Web:
+                case AnimeType.Web:
                     return "web";
                 default:
                     return "other";
@@ -183,7 +183,7 @@ namespace Shoko.Commons.Extensions
 
         public static string GetAnimeTypeName(this AniDB_Anime anime)
         {
-            return Enum.GetName(typeof(AnimeTypes), (AnimeTypes) anime.AnimeType).Replace('_', ' ');
+            return Enum.GetName(typeof(AnimeType), (AnimeType) anime.AnimeType).Replace('_', ' ');
         }
 
         public static HashSet<string> GetAllTags(this AniDB_Anime anime)
@@ -224,12 +224,12 @@ namespace Shoko.Commons.Extensions
 
         public static bool GetSearchOnTvDB(this AniDB_Anime anime)
         {
-            return anime.AnimeType != (int) AnimeTypes.Movie && !(anime.Restricted > 0);
+            return anime.AnimeType != (int) AnimeType.Movie && !(anime.Restricted > 0);
         }
 
         public static bool GetSearchOnMovieDB(this AniDB_Anime anime)
         {
-            return anime.AnimeType == (int) AnimeTypes.Movie && !(anime.Restricted > 0);
+            return anime.AnimeType == (int) AnimeType.Movie && !(anime.Restricted > 0);
         }
 
         public static decimal GetAniDBRating(this AniDB_Anime anime)
@@ -282,7 +282,7 @@ namespace Shoko.Commons.Extensions
             return episode.GetAirDateAsDate().Value > DateTime.Now;
         }
 
-        public static enEpisodeType GetEpisodeTypeEnum(this AniDB_Episode episode) => (enEpisodeType) episode.EpisodeType;
+        public static EpisodeType GetEpisodeTypeEnum(this AniDB_Episode episode) => (EpisodeType) episode.EpisodeType;
 
         public static bool IsWatched(this AnimeEpisode_User epuser) => epuser.WatchedCount > 0;
 
@@ -467,25 +467,25 @@ namespace Shoko.Commons.Extensions
             string shortType = "";
             if (dupfile.EpisodeType.HasValue)
             {
-                enEpisodeType epType = (enEpisodeType) dupfile.EpisodeType.Value;
+                EpisodeType epType = (EpisodeType) dupfile.EpisodeType.Value;
                 switch (epType)
                 {
-                    case enEpisodeType.Credits:
+                    case EpisodeType.Credits:
                         shortType = "C";
                         break;
-                    case enEpisodeType.Episode:
+                    case EpisodeType.Episode:
                         shortType = "";
                         break;
-                    case enEpisodeType.Other:
+                    case EpisodeType.Other:
                         shortType = "O";
                         break;
-                    case enEpisodeType.Parody:
+                    case EpisodeType.Parody:
                         shortType = "P";
                         break;
-                    case enEpisodeType.Special:
+                    case EpisodeType.Special:
                         shortType = "S";
                         break;
-                    case enEpisodeType.Trailer:
+                    case EpisodeType.Trailer:
                         shortType = "T";
                         break;
                 }
@@ -1005,11 +1005,11 @@ namespace Shoko.Commons.Extensions
 
 
         public static string GetSiteURL(this CrossRef_AniDB_MAL crossanidb) => String.Format(Shoko.Models.Constants.URLS.MAL_Series, crossanidb.MALID);
-        public static string GetStartEpisodeTypeString(this CrossRef_AniDB_MAL crossanidb) => EnumTranslator.EpisodeTypeTranslated((enEpisodeType) crossanidb.StartEpisodeType);
+        public static string GetStartEpisodeTypeString(this CrossRef_AniDB_MAL crossanidb) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) crossanidb.StartEpisodeType);
 
         public static string GetSiteURL(this CL_CrossRef_AniDB_MAL_Response response) => String.Format(Shoko.Models.Constants.URLS.MAL_Series, response.MALID);
 
-        public static string GetStartEpisodeTypeString(this CL_CrossRef_AniDB_MAL_Response response) => EnumTranslator.EpisodeTypeTranslated((enEpisodeType) response.StartEpisodeType);
+        public static string GetStartEpisodeTypeString(this CL_CrossRef_AniDB_MAL_Response response) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) response.StartEpisodeType);
 
         public static bool GetAdminApproved(this CL_CrossRef_AniDB_MAL_Response response) => response.IsAdminApproved == 1;
         public static string GetEpisodeName(this AniDB_Episode episode) => !String.IsNullOrEmpty(episode.EnglishName) ? episode.EnglishName : episode.RomajiName;
@@ -1106,32 +1106,32 @@ namespace Shoko.Commons.Extensions
         public static string GetPosterPath(this CL_MALAnime_Response malresponse) => String.IsNullOrEmpty(malresponse.image) ? $"pack://application:,,,/{Assembly.GetEntryAssembly().GetName().Name};component/Images/blankposter.png" : malresponse.image;
         public static string GetSeriesURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => String.Format(Shoko.Models.Constants.URLS.TvDB_Series, crosstvdb.TvDBID);
         public static string GetAniDBURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => String.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstvdb.AnimeID);
-        public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TvDBV2 crosstvdb) => EnumTranslator.EpisodeTypeTranslated((enEpisodeType) crosstvdb.AniDBStartEpisodeType);
+        public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TvDBV2 crosstvdb) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) crosstvdb.AniDBStartEpisodeType);
         public static string GetAniDBStartEpisodeNumberString(this CrossRef_AniDB_TvDBV2 crosstvdb) => $"# {crosstvdb.AniDBStartEpisodeNumber}";
         public static string GetTvDBSeasonNumberString(this CrossRef_AniDB_TvDBV2 crosstvdb) => $"S{crosstvdb.TvDBSeasonNumber}";
         public static string GetTvDBStartEpisodeNumberString(this CrossRef_AniDB_TvDBV2 crosstvdb) => $"EP# {crosstvdb.TvDBStartEpisodeNumber}";
         public static string GetShowURL(this CrossRef_AniDB_TraktV2 crosstrakt) => String.Format(Shoko.Models.Constants.URLS.Trakt_Series, crosstrakt.TraktID);
         public static string GetAniDBURL(this CrossRef_AniDB_TraktV2 crosstrakt) => String.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstrakt.AnimeID);
-        public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TraktV2 crosstrakt) => EnumTranslator.EpisodeTypeTranslated((enEpisodeType) crosstrakt.AniDBStartEpisodeType);
+        public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TraktV2 crosstrakt) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) crosstrakt.AniDBStartEpisodeType);
         public static string GetAniDBStartEpisodeNumberString(this CrossRef_AniDB_TraktV2 crosstrakt) => $"# {crosstrakt.AniDBStartEpisodeNumber}";
         public static string GetTraktSeasonNumberString(this CrossRef_AniDB_TraktV2 crosstrakt) => $"S{crosstrakt.TraktSeasonNumber}";
         public static string GetTraktStartEpisodeNumberString(this CrossRef_AniDB_TraktV2 crosstrakt) => $"EP# {crosstrakt.TraktStartEpisodeNumber}";
 
-        public static string EpisodeTypeTranslated(this enEpisodeType epType)
+        public static string EpisodeTypeTranslated(this EpisodeType epType)
         {
             switch (epType)
             {
-                case enEpisodeType.Credits:
+                case EpisodeType.Credits:
                     return Resources.EpisodeType_Credits;
-                case enEpisodeType.Episode:
+                case EpisodeType.Episode:
                     return Resources.EpisodeType_Normal;
-                case enEpisodeType.Other:
+                case EpisodeType.Other:
                     return Resources.EpisodeType_Other;
-                case enEpisodeType.Parody:
+                case EpisodeType.Parody:
                     return Resources.EpisodeType_Parody;
-                case enEpisodeType.Special:
+                case EpisodeType.Special:
                     return Resources.EpisodeType_Specials;
-                case enEpisodeType.Trailer:
+                case EpisodeType.Trailer:
                     return Resources.EpisodeType_Trailer;
                 default:
                     return Resources.EpisodeType_Normal;
