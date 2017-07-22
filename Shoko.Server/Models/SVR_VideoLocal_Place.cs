@@ -576,6 +576,160 @@ namespace Shoko.Server.Models
             }
         }
 
+        public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName)
+        {
+            // check if this file is in the drop folder
+            // otherwise we don't need to move it
+            if (ImportFolder.IsDropSource == 0)
+            {
+                logger.Error("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
+                return "Not in drop folder";
+            }
+            IFile source_file = fileSystemResult.Result as IFile;
+            // We checked the above prior, so no error checking
+
+            // There is a possibilty of weird logic based on source of the file. Some handling should be made for it....later
+            (var destImpl, string newFullPath) = RenameFileHelper.GetRenamer(scriptName).GetDestinationFolder(this);
+
+            if (!(destImpl is SVR_ImportFolder destFolder))
+            {
+                // In this case, an error string was returned, but we'll suppress it and give an error elsewhere
+                if (newFullPath != null)
+                {
+                    logger.Error("Unable to find destination for: {0}", FullServerPath);
+                    logger.Error("The error message was: " + newFullPath);
+                    return "ERROR: " + newFullPath;
+                }
+                logger.Error("Unable to find destination for: {0}", FullServerPath);
+                return "ERROR: There was an error but no error code returned...";
+            }
+
+            // keep the original drop folder for later (take a copy, not a reference)
+            SVR_ImportFolder dropFolder = ImportFolder;
+
+            if (string.IsNullOrEmpty(newFullPath))
+            {
+                logger.Error("Unable to find destination for: {0}", FullServerPath);
+                return "ERROR: The returned path was null or empty";
+            }
+
+            // We've already resolved FullServerPath, so it doesn't need to be checked
+            string relativeFilePath = Path.Combine(newFullPath, Path.GetFileName(FullServerPath));
+            string newFullServerPath = Path.Combine(destFolder.ImportFolderLocation, relativeFilePath);
+
+            IDirectory destination;
+
+            fileSystemResult = destFolder.FileSystem.Resolve(Path.Combine(destFolder.ImportFolderLocation, newFullPath));
+            if (fileSystemResult != null && fileSystemResult.IsOk)
+            {
+                destination = fileSystemResult.Result as IDirectory;
+            }
+            else
+            {
+                //validate the directory tree.
+                destination = destFolder.BaseDirectory;
+                {
+                    var dir = Path.GetDirectoryName(relativeFilePath);
+
+                    foreach (var part in dir.Split(Path.DirectorySeparatorChar))
+                    {
+                        var wD = destination.Directories.FirstOrDefault(d => d.Name == part);
+                        if (wD == null)
+                        {
+                            var result = destination.CreateDirectory(part, null);
+                            if (!result.IsOk)
+                            {
+                                logger.Error(
+                                    $"Unable to create directory {part} in {destination.FullName}: {result.Error}");
+                                return
+                                    $"ERROR: Unable to create directory {part} in {destination.FullName}: {result.Error}";
+                            }
+                            destination = result.Result;
+                            continue;
+                        }
+
+                        destination = wD;
+                    }
+                }
+            }
+
+
+            // Last ditch effort to ensure we aren't moving a file unto itself
+            if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return "The file is already at its desired location";
+            }
+
+            IFileSystem f = ImportFolder.FileSystem;
+            FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
+            if (dst != null && dst.IsOk)
+            {
+                return "ERROR: The File already exists at the destination";
+            }
+            else
+            {
+                logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
+                FileSystemResult fr = source_file.Move(destination);
+                if (fr == null || !fr.IsOk)
+                {
+                    logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
+                        newFullServerPath, fr?.Error ?? "No Error String");
+                    return "ERROR: " + fr?.Error ?? "Error moving filebut no error string";
+                }
+
+                string originalFileName = FullServerPath;
+
+                ImportFolderID = destFolder.ImportFolderID;
+                FilePath = relativeFilePath;
+                RepoFactory.VideoLocalPlace.Save(this);
+
+                try
+                {
+                    // move any subtitle files
+                    foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
+                    {
+                        FileSystemResult<IObject> src = f.Resolve(subtitleFile);
+                        if (src == null || !src.IsOk || !(src.Result is IFile)) continue;
+                        string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
+                            ((IFile) src.Result).Name);
+                        dst = f.Resolve(newSubPath);
+                        if (dst != null && dst.IsOk && dst.Result is IFile)
+                        {
+                            FileSystemResult fr2 = src.Result.Delete(false);
+                            if (fr2 == null || !fr2.IsOk)
+                            {
+                                logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
+                                    fr2?.Error ?? string.Empty);
+                            }
+                        }
+                        else
+                        {
+                            FileSystemResult fr2 = ((IFile) src.Result).Move(destination);
+                            if (fr2 == null || !fr2.IsOk)
+                            {
+                                logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile,
+                                    newSubPath, fr2?.Error ?? string.Empty);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, ex.ToString());
+                }
+
+                // check for any empty folders in drop folder
+                // only for the drop folder
+                if (dropFolder.IsDropSource == 1)
+                {
+                    FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
+                    if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                        RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                }
+            }
+            return newFullPath;
+        }
+
         // returns false if we should retry
         private bool MoveFileIfRequired()
         {
@@ -787,7 +941,7 @@ namespace Shoko.Server.Models
                                 FileSystemResult fr2 = ((IFile) src.Result).Move(destination);
                                 if (fr2 == null || !fr2.IsOk)
                                 {
-                                    logger.Error("Unable to MOVE file: {0} to {1} error {2)", subtitleFile,
+                                    logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile,
                                         newSubPath, fr2?.Error ?? string.Empty);
                                 }
                             }
