@@ -364,6 +364,9 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Rename/Preview/{videoLocalID}", Verbs.Get)]
         CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID);
 
+        [Rest("File/Rename/{videoLocalID}/{scriptName}/{move}", Verbs.Get)]
+        CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move);
+
         [Rest("File/Rename/{videoLocalID}/{scriptName}", Verbs.Get)]
         CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName);
 
