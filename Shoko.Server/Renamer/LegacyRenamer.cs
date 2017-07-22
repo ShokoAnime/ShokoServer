@@ -1708,14 +1708,10 @@ namespace Shoko.Server.Renamer
                 if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Episode) epCount = anime.EpisodeCountNormal;
                 if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Special) epCount = anime.EpisodeCountSpecial;
 
-                if (epCount > 10 && epCount < 100) zeroPadding = 2;
-                if (epCount > 99 && epCount < 1000) zeroPadding = 3;
-                if (epCount > 999) zeroPadding = 4;
-
-                string episodeNumber = "";
+                zeroPadding = epCount.ToString().Length;
 
                 // normal episode
-                episodeNumber = prefix + episodes[0].EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
+                string episodeNumber = prefix + episodes[0].EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
 
                 if (episodes.Count > 1)
                     episodeNumber += "-" +
