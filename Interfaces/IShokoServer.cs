@@ -788,6 +788,16 @@ namespace Shoko.Models.Interfaces
 
         #endregion
 
+        #region Years and Seasons
+
+        [Rest("Years", Verbs.Get)]
+        List<string> GetAllYears();
+
+        [Rest("Seasons", Verbs.Get)]
+        List<string> GetAllSeasons();
+
+        #endregion
+
         #region MediaInformation
 
         [Rest("MediaInfo/Quality", Verbs.Get)]
