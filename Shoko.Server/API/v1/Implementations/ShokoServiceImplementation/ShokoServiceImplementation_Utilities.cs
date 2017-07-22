@@ -898,7 +898,7 @@ namespace Shoko.Server
                         epCount = eps.Count;
                         foreach (SVR_AnimeEpisode aep in ser.GetAnimeEpisodes())
                         {
-                            if (regularEpisodesOnly && aep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
+                            if (regularEpisodesOnly && aep.EpisodeTypeEnum != EpisodeType.Episode) continue;
 
                             AniDB_Episode aniep = aep.AniDB_Episode;
                             if (aniep.GetFutureDated()) continue;
@@ -1478,43 +1478,31 @@ namespace Shoko.Server
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
                     SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == Shoko.Models.Enums.enEpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == Shoko.Models.Enums.enEpisodeType.Special)
+                    if (animeEp.EpisodeTypeEnum == Shoko.Models.Enums.EpisodeType.Episode ||
+                        animeEp.EpisodeTypeEnum == Shoko.Models.Enums.EpisodeType.Special)
                     {
+                        string fileSource = Constants.NO_SOURCE_INFO;
+                        string fileGroupName = Constants.NO_GROUP_INFO;
                         // get the anibd file info
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile != null)
                         {
                             videoSource = SimplifyVideoSource(videoSource);
-                            string fileSource = SimplifyVideoSource(aniFile.File_Source);
-                            string vidResAniFile = Utils.GetStandardisedVideoResolution(aniFile.File_VideoResolution);
-
-                            // match based on group / video sorce / video res
-                            if (
-                                relGroupName.Equals(aniFile.Anime_GroupName,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                videoSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
-                                resolution.Equals(vidResAniFile, StringComparison.InvariantCultureIgnoreCase) &&
-                                thisBitDepth == videoBitDepth)
-                            {
-                                vids.Add(vid.ToClientDetailed(userID));
-                            }
+                            fileSource = SimplifyVideoSource(aniFile.File_Source);
+                            fileGroupName = aniFile.Anime_GroupName;
                         }
-                        else
-                        {
-                            string vidResInfo = Utils.GetStandardisedVideoResolution(vid.VideoResolution);
+                        // Sometimes, especially with older files, the info doesn't quite match for resution
+                        string vidResInfo = vid.VideoResolution;
 
-                            // match based on group / video sorce / video res
-                            if (
-                                relGroupName.Equals(Constants.NO_GROUP_INFO,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                videoSource.Equals(Constants.NO_SOURCE_INFO,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
-                                thisBitDepth == videoBitDepth)
-                            {
-                                vids.Add(vid.ToClientDetailed(userID));
-                            }
+                        // match based on group / video sorce / video res
+                        if (
+                            relGroupName.Equals(fileGroupName,
+                                StringComparison.InvariantCultureIgnoreCase) &&
+                            videoSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
+                            resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
+                            thisBitDepth == videoBitDepth)
+                        {
+                            vids.Add(vid.ToClientDetailed(userID));
                         }
                     }
                 }
@@ -1541,8 +1529,8 @@ namespace Shoko.Server
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
                     SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
+                        animeEp.EpisodeTypeEnum == EpisodeType.Special)
                     {
                         // get the anibd file info
                         AniDB_File aniFile = vid.GetAniDBFile();
@@ -1617,11 +1605,11 @@ namespace Shoko.Server
                     .Media.Parts.SelectMany(a => a.Streams)
                     .Count(a => a.StreamType.Equals("2"));
                 contract.IsChaptered = (ani?.IsChaptered ?? 0) == 1;
-                contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode);
-                contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == enEpisodeType.Special);
+                contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Episode);
+                contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;
                 contract.GroupNameShort = key.Key.GroupNameShort;
-                contract.NormalEpisodeNumbers = eps.Where(a => a.EpisodeTypeEnum == enEpisodeType.Episode)
+                contract.NormalEpisodeNumbers = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode)
                     .Select(a => a.AniDB_Episode.EpisodeNumber).OrderBy(a => a).ToList();
                 contract.NormalEpisodeNumberSummary = contract.NormalEpisodeNumbers.ToRanges();
                 contract.Ranking = rank;
@@ -1664,8 +1652,8 @@ namespace Shoko.Server
                     foreach (SVR_AnimeEpisode animeEp in eps)
                     {
                         //AnimeEpisode animeEp = eps[0];
-                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode ||
-                            animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
+                            animeEp.EpisodeTypeEnum == EpisodeType.Special)
                         {
                             AniDB_Episode anidbEp = animeEp.AniDB_Episode;
 
@@ -1682,14 +1670,14 @@ namespace Shoko.Server
                                     {
                                         foundSummaryRecord = true;
 
-                                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                             contract.FileCountNormal++;
-                                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Special)
                                             contract.FileCountSpecials++;
                                         contract.TotalFileSize += aniFile.FileSize;
                                         contract.TotalRunningTime += aniFile.File_LengthSeconds;
 
-                                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                         {
                                             if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
                                                 contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
@@ -1705,15 +1693,15 @@ namespace Shoko.Server
                                         TotalFileSize = 0,
                                         TotalRunningTime = 0
                                     };
-                                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) cl.FileCountNormal++;
-                                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) cl.FileCountSpecials++;
+                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode) cl.FileCountNormal++;
+                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Special) cl.FileCountSpecials++;
                                     cl.TotalFileSize += aniFile.FileSize;
                                     cl.TotalRunningTime += aniFile.File_LengthSeconds;
 
                                     cl.GroupName = aniFile.Anime_GroupName;
                                     cl.GroupNameShort = aniFile.Anime_GroupNameShort;
                                     cl.NormalEpisodeNumbers = new List<int>();
-                                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                     {
                                         if (!cl.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
                                             cl.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
@@ -1732,14 +1720,14 @@ namespace Shoko.Server
                                         StringComparison.InvariantCultureIgnoreCase))
                                     {
                                         foundSummaryRecord = true;
-                                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                             contract.FileCountNormal++;
-                                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Special)
                                             contract.FileCountSpecials++;
                                         contract.TotalFileSize += vid.FileSize;
                                         contract.TotalRunningTime += vid.Duration;
 
-                                        if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                         {
                                             if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
                                                 contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
@@ -1755,9 +1743,9 @@ namespace Shoko.Server
                                         TotalFileSize = 0,
                                         TotalRunningTime = 0
                                     };
-                                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                         cl.FileCountNormal++;
-                                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Special)
                                         cl.FileCountSpecials++;
                                     cl.TotalFileSize += vid.FileSize;
                                     cl.TotalRunningTime += vid.Duration;
@@ -1765,7 +1753,7 @@ namespace Shoko.Server
                                     cl.GroupName = "NO GROUP INFO";
                                     cl.GroupNameShort = "NO GROUP INFO";
                                     cl.NormalEpisodeNumbers = new List<int>();
-                                    if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                     {
                                         if (!cl.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
                                             cl.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);

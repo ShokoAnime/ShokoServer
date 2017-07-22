@@ -9,10 +9,10 @@ namespace Shoko.Server.PlexAndKodi
         public string Name { get; set; }
         public int Type { get; set; }
         public string Image { get; set; }
-        public AnimeTypes AnimeType { get; set; }
+        public AnimeType AnimeType { get; set; }
         public int Count { get; set; }
 
-        public static void EpisodeTypeTranslated(PlexEpisodeType tp, enEpisodeType epType, AnimeTypes an, int cnt)
+        public static void EpisodeTypeTranslated(PlexEpisodeType tp, EpisodeType epType, AnimeType an, int cnt)
         {
             tp.Type = (int) epType;
             tp.Count = cnt;
@@ -20,34 +20,34 @@ namespace Shoko.Server.PlexAndKodi
             bool plural = cnt > 1;
             switch (epType)
             {
-                case enEpisodeType.Credits:
+                case EpisodeType.Credits:
                     tp.Name = plural ? "Credits" : "Credit";
                     tp.Image = "plex_credits.png";
                     return;
-                case enEpisodeType.Episode:
+                case EpisodeType.Episode:
                     switch (an)
                     {
-                        case AnimeTypes.Movie:
+                        case AnimeType.Movie:
                             tp.Name = plural ? "Movies" : "Movie";
                             tp.Image = "plex_movies.png";
                             return;
-                        case AnimeTypes.OVA:
+                        case AnimeType.OVA:
                             tp.Name = plural ? "Ovas" : "Ova";
                             tp.Image = "plex_ovas.png";
                             return;
-                        case AnimeTypes.Other:
+                        case AnimeType.Other:
                             tp.Name = plural ? "Others" : "Other";
                             tp.Image = "plex_others.png";
                             return;
-                        case AnimeTypes.TV_Series:
+                        case AnimeType.TVSeries:
                             tp.Name = plural ? "Episodes" : "Episode";
                             tp.Image = "plex_episodes.png";
                             return;
-                        case AnimeTypes.TV_Special:
+                        case AnimeType.TVSpecial:
                             tp.Name = plural ? "TV Episodes" : "TV Episode";
                             tp.Image = "plex_tvepisodes.png";
                             return;
-                        case AnimeTypes.Web:
+                        case AnimeType.Web:
                             tp.Name = plural ? "Web Clips" : "Web Clip";
                             tp.Image = "plex_webclips.png";
                             return;
@@ -55,15 +55,15 @@ namespace Shoko.Server.PlexAndKodi
                     tp.Name = plural ? "Episodes" : "Episode";
                     tp.Image = "plex_episodes.png";
                     return;
-                case enEpisodeType.Parody:
+                case EpisodeType.Parody:
                     tp.Name = plural ? "Parodies" : "Parody";
                     tp.Image = "plex_parodies.png";
                     return;
-                case enEpisodeType.Special:
+                case EpisodeType.Special:
                     tp.Name = plural ? "Specials" : "Special";
                     tp.Image = "plex_specials.png";
                     return;
-                case enEpisodeType.Trailer:
+                case EpisodeType.Trailer:
                     tp.Name = plural ? "Trailers" : "Trailer";
                     tp.Image = "plex_trailers.png";
                     return;

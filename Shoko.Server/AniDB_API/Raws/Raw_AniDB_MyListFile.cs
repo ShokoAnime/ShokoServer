@@ -13,7 +13,7 @@ namespace AniDBAPI
         public int EpisodeID { get; set; }
         public int AnimeID { get; set; }
         public int GroupID { get; set; }
-        public int State { get; set; }
+        public int State { get; set; } // See Server/Enums/AniDBFile_State
         public string FileDate { get; set; }
         public DateTime? WatchedDate { get; set; }
         public int ViewDateUDP { get; set; }
@@ -21,7 +21,7 @@ namespace AniDBAPI
         public string Storage { get; set; }
         public string Source { get; set; }
         public string Other { get; set; }
-        public int FileState { get; set; }
+        public int FileState { get; set; } // See Server/Enums/AniDBFile_FileState
 
         public bool IsWatched
         {
@@ -104,13 +104,22 @@ namespace AniDBAPI
 
         public void ProcessHTTPSource(XmlNode node)
         {
-            if (node == null) return;
-            this.ListID = int.Parse(node.Attributes["id"].Value);
-            this.AnimeID = int.Parse(node.Attributes["aid"].Value);
-            this.EpisodeID = int.Parse(node.Attributes["eid"].Value);
-            this.FileID = int.Parse(node.Attributes["fid"].Value);
+            if (node == null)
+            {
+                logger.Warn("MyList item had a corrupted XML");
+                return;
+            }
+            if (string.IsNullOrEmpty(node.Attributes?["id"]?.Value))
+            {
+                logger.Warn("MyList item has no ID" + "\n" + node);
+                return;
+            }
+            ListID = int.Parse(node.Attributes["id"].Value);
+            AnimeID = int.Parse(node.Attributes["aid"].Value);
+            EpisodeID = int.Parse(node.Attributes["eid"].Value);
+            FileID = int.Parse(node.Attributes["fid"].Value);
 
-            this.ViewDateHTTP = AniDBHTTPHelper.TryGetAttribute(node, "viewdate");
+            ViewDateHTTP = AniDBHTTPHelper.TryGetAttribute(node, "viewdate");
 
             // calculate the watched date
             if (!string.IsNullOrEmpty(ViewDateHTTP) && ViewDateHTTP.Length > 17)
@@ -118,7 +127,7 @@ namespace AniDBAPI
                 try
                 {
                     // eg "2011-02-23T20:49:18+0000"
-                    int year = int.Parse(ViewDateHTTP.Trim().Substring(0, 4));
+                    /*int year = int.Parse(ViewDateHTTP.Trim().Substring(0, 4));
                     int month = int.Parse(ViewDateHTTP.Trim().Substring(5, 2));
                     int day = int.Parse(ViewDateHTTP.Trim().Substring(8, 2));
 
@@ -127,6 +136,11 @@ namespace AniDBAPI
                     int second = int.Parse(ViewDateHTTP.Trim().Substring(17, 2));
 
                     DateTime utcDate = new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
+                    */
+                    if (!DateTime.TryParse(ViewDateHTTP, out DateTime utcDate))
+                    {
+                        logger.Error("Error processing View Date HTTP: " + ViewDateHTTP);
+                    }
                     utcDate = utcDate.AddSeconds(ViewDateUDP);
 
                     WatchedDate = utcDate.ToLocalTime();
@@ -138,19 +152,29 @@ namespace AniDBAPI
             }
 
             string tempstate = AniDBHTTPHelper.TryGetProperty(node, "state");
-            if(int.TryParse(tempstate, out int istate))
+            bool state = int.TryParse(tempstate, out int istate);
+            if (state)
                 State = istate;
 
             string fstate = AniDBHTTPHelper.TryGetProperty(node, "filestate");
-            if(int.TryParse(fstate, out int ifilestate))
+            bool filestate = int.TryParse(fstate, out int ifilestate);
+            if (filestate)
                 FileState = ifilestate;
 
-            this.Source = AniDBHTTPHelper.TryGetProperty(node, "storage");
+            if (!state && !filestate)
+                logger.Warn($"AniDB Sync_MyList - MyListItem with fid {FileID} has no 'State' or 'FileState'");
+
+            Source = AniDBHTTPHelper.TryGetProperty(node, "storage");
         }
 
         public override string ToString()
         {
             return $"Raw_AniDB_MyListFile:: fileID: {FileID} | IsWatched: {IsWatched}";
+        }
+
+        public override int GetHashCode()
+        {
+            return FileID;
         }
     }
 }

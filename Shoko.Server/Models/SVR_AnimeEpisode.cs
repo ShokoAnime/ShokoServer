@@ -58,9 +58,9 @@ namespace Shoko.Server.Models
         }
 
 
-        public enEpisodeType EpisodeTypeEnum
+        public EpisodeType EpisodeTypeEnum
         {
-            get { return (enEpisodeType) AniDB_Episode.EpisodeType; }
+            get { return (EpisodeType) AniDB_Episode.EpisodeType; }
         }
 
         public AniDB_Episode AniDB_Episode

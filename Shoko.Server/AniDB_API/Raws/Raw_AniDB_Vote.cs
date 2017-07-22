@@ -44,10 +44,10 @@ namespace AniDBAPI
             this.EpisodeNumber = -1;
             this.VoteValue = int.Parse(sDetails[1].Trim());
             this.VoteType = (int) vtype;
-            this.EpisodeType = (int) enEpisodeType.Episode;
+            this.EpisodeType = (int) Shoko.Models.Enums.EpisodeType.Episode;
         }
 
-        public void ProcessVoteFoundEpisode(string sRecMessage, int animeID, int epno, enEpisodeType epType)
+        public void ProcessVoteFoundEpisode(string sRecMessage, int animeID, int epno, EpisodeType epType)
         {
             // remove the header info
             string[] sDetails = sRecMessage.Substring(15).Split('|');

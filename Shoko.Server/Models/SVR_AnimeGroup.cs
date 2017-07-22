@@ -1131,7 +1131,7 @@ namespace Shoko.Server.Models
 
                         foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                         {
-                            if (ep.EpisodeTypeEnum != enEpisodeType.Episode)
+                            if (ep.EpisodeTypeEnum != EpisodeType.Episode)
                             {
                                 continue;
                             }
@@ -1260,7 +1260,7 @@ namespace Shoko.Server.Models
                         // we will consider the group as not having a tvdb link
                         bool foundTvDBLink = tvDbXrefByAnime.Value[anime.AnimeID].Any();
                         bool foundMovieDBLink = movieDbXRefByAnime.Value[anime.AnimeID].Any();
-                        bool isMovie = anime.AnimeType == (int) enAnimeType.Movie;
+                        bool isMovie = anime.AnimeType == (int) AnimeType.Movie;
                         if (!foundTvDBLink)
                         {
                             if (!isMovie && !(anime.Restricted > 0))

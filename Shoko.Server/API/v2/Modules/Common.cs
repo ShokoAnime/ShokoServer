@@ -901,7 +901,8 @@ namespace Shoko.Server.API.v2.Modules
                 foreach(SVR_AnimeEpisode ep in list)
                 {
                     Serie serie = null;
-                    SVR_AnimeSeries series = ep.GetAnimeSeries();
+                    SVR_AnimeSeries series = ep?.GetAnimeSeries();
+                    if (series == null) continue;
                     if (results.ContainsKey(series.AnimeSeriesID)) serie = results[series.AnimeSeriesID];
                     if (serie == null)
                         serie =
@@ -1034,23 +1035,17 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
 
             // allow to offset be 0 to reset position
-            if (para.id != 0 && para.offset >= 0)
-            {
-                SVR_VideoLocal vlu = RepoFactory.VideoLocal.GetByID(para.id);
-                if (vlu != null)
-                {
-                    vlu.SetResumePosition(para.offset, user.JMMUserID);
-                    return APIStatus.statusOK();
-                }
-                else
-                {
-                    return APIStatus.notFound404();
-                }
-            }
-            else
+            if (para.id == 0 || para.offset < 0)
             {
                 return APIStatus.badRequest("Invalid arguments");
             }
+            SVR_VideoLocal vlu = RepoFactory.VideoLocal.GetByID(para.id);
+            if (vlu != null)
+            {
+                vlu.SetResumePosition(para.offset, user.JMMUserID);
+                return APIStatus.statusOK();
+            }
+            return APIStatus.notFound404();
         }
 
         #region internal function
@@ -2654,8 +2649,8 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                     {
-                        if (ep?.EpisodeTypeEnum == enEpisodeType.Credits) continue;
-                        if (ep?.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+                        if (ep?.EpisodeTypeEnum == EpisodeType.Credits) continue;
+                        if (ep?.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
                         ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, false, userid, true);
                     }

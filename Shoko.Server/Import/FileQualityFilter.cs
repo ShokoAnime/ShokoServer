@@ -405,8 +405,8 @@ namespace Shoko.Server
             if (string.IsNullOrEmpty(newFile.File_Source) || string.IsNullOrEmpty(oldFile.File_Source)) return 0;
             if (newFile.File_Source.Equals("unknown", StringComparison.InvariantCultureIgnoreCase) ||
                 oldFile.File_Source.Equals("unknown", StringComparison.InvariantCultureIgnoreCase)) return 0;
-            int newIndex = Array.IndexOf(Settings._sources, newFile.File_Source);
-            int oldIndex = Array.IndexOf(Settings._sources, oldFile.File_Source);
+            int newIndex = Array.IndexOf(Settings._sources, newFile.File_Source.ToLowerInvariant());
+            int oldIndex = Array.IndexOf(Settings._sources, oldFile.File_Source.ToLowerInvariant());
             return newIndex.CompareTo(oldIndex);
         }
 
@@ -479,12 +479,22 @@ namespace Shoko.Server
 
         #region Information from Models (Operations that aren't simple)
 
-        private static string GetResolution(SVR_VideoLocal videoLocal, SVR_AniDB_File aniFile)
+        public static string GetResolution(SVR_VideoLocal videoLocal, SVR_AniDB_File aniFile)
         {
             return GetResolution(GetResolutionInternal(videoLocal, aniFile));
         }
 
-        private static string GetResolution(Tuple<int, int> res)
+        public static string GetResolution(string res)
+        {
+            if (string.IsNullOrEmpty(res)) return null;
+            string[] parts = res.Split('x');
+            if (parts.Length != 2) return null;
+            if (!int.TryParse(parts[0], out int width)) return null;
+            if (!int.TryParse(parts[1], out int height)) return null;
+            return GetResolution(new Tuple<int, int>(width, height));
+        }
+
+        public static string GetResolution(Tuple<int, int> res)
         {
             if (res == null) return null;
             // not precise, but we are rounding and calculating distance anyway

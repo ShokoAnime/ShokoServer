@@ -3,6 +3,7 @@ using TvDbSharper;
 using NLog;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToLocalTime();
                 TimeSpan span = (new DateTime().ToLocalTime() - epoch);
-                return span.TotalSeconds.ToString();
+                return span.TotalSeconds.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -44,13 +45,21 @@ namespace Shoko.Server.Providers.TvDB
         {
         }
 
-        private static async Task _checkAuthorizationAsync()
+        private static async Task CheckAuthorizationAsync()
         {
-            client.AcceptedLanguage = ServerSettings.TvDB_Language;
-            if (client.Authentication.Token == null)
+            try
             {
-                TvDBRateLimiter.Instance.EnsureRate();
-                await client.Authentication.AuthenticateAsync(Constants.TvDBURLs.apiKey);
+                client.AcceptedLanguage = ServerSettings.TvDB_Language;
+                if (client.Authentication.Token == null)
+                {
+                    TvDBRateLimiter.Instance.EnsureRate();
+                    await client.Authentication.AuthenticateAsync(Constants.TvDB.apiKey);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, $"Error in TvDBAuth: {e}");
+                throw;
             }
         }
 
@@ -63,7 +72,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                await _checkAuthorizationAsync();
+                await CheckAuthorizationAsync();
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Series.GetAsync(seriesID);
@@ -83,7 +92,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetSeriesInfoOnlineAsync(seriesID);
                     // suppress 404 and move on
@@ -110,7 +119,7 @@ namespace Shoko.Server.Providers.TvDB
 
             try
             {
-                await _checkAuthorizationAsync();
+                await CheckAuthorizationAsync();
 
                 // Search for a series
                 logger.Trace("Search TvDB Series: {0}", criteria);
@@ -131,7 +140,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await SearchSeriesAsync(criteria);
                     // suppress 404 and move on
@@ -146,7 +155,7 @@ namespace Shoko.Server.Providers.TvDB
             return results;
         }
 
-        public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+        public static string LinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -252,7 +261,7 @@ namespace Shoko.Server.Providers.TvDB
 
                 if (aniEpType == -1)
                 {
-                    foreach (enEpisodeType eptype in Enum.GetValues(typeof(enEpisodeType)))
+                    foreach (EpisodeType eptype in Enum.GetValues(typeof(EpisodeType)))
                     {
                         CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(
                             animeID,
@@ -285,7 +294,7 @@ namespace Shoko.Server.Providers.TvDB
 
             try
             {
-                await _checkAuthorizationAsync();
+                await CheckAuthorizationAsync();
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Languages.GetAllAsync();
@@ -311,7 +320,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetLanguagesAsync();
                     // suppress 404 and move on
@@ -352,7 +361,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                await _checkAuthorizationAsync();
+                await CheckAuthorizationAsync();
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Series.GetImagesSummaryAsync(seriesID);
@@ -363,7 +372,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetSeriesImagesCountsAsync(seriesID);
                     // suppress 404 and move on
@@ -375,7 +384,7 @@ namespace Shoko.Server.Providers.TvDB
 
         static async Task<Image[]> GetSeriesImagesAsync(int seriesID, KeyType type)
         {
-            await _checkAuthorizationAsync();
+            await CheckAuthorizationAsync();
 
             ImagesQuery query = new ImagesQuery()
             {
@@ -392,7 +401,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetSeriesImagesAsync(seriesID, type);
                     // suppress 404 and move on
@@ -454,7 +463,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetFanartOnlineAsync(seriesID);
                     // suppress 404 and move on
@@ -521,7 +530,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                     {
                         return await GetPosterOnlineAsync(seriesID);
@@ -590,7 +599,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetBannerOnlineAsync(seriesID);
                     // suppress 404 and move on
@@ -738,7 +747,7 @@ namespace Shoko.Server.Providers.TvDB
             List<BasicEpisode> apiEpisodes = new List<BasicEpisode>();
             try
             {
-                await _checkAuthorizationAsync();
+                await CheckAuthorizationAsync();
 
                 var tasks = new List<Task<TvDbResponse<BasicEpisode[]>>>();
                 TvDBRateLimiter.Instance.EnsureRate();
@@ -759,7 +768,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetEpisodesOnlineAsync(seriesID);
                     // suppress 404 and move on
@@ -784,7 +793,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                await _checkAuthorizationAsync();
+                await CheckAuthorizationAsync();
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Episodes.GetAsync(episodeID);
@@ -795,7 +804,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetEpisodeDetailsAsync(episodeID);
                     // suppress 404 and move on
@@ -850,7 +859,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                     {
                         await QueueEpisodeImageDownloadAsync(item, existingEpIds, downloadImages, forceRefresh);
@@ -934,7 +943,7 @@ namespace Shoko.Server.Providers.TvDB
         }
 
         // Removes all TVDB information from a series, bringing it back to a blank state.
-        public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
+        public static void RemoveLinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber)
         {
             CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
@@ -1028,7 +1037,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
-                    await _checkAuthorizationAsync();
+                    await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                     {
                         return await GetUpdatedSeriesListAsync(serverTime);
