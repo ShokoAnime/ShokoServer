@@ -4,21 +4,15 @@ namespace Shoko.Server.AniDB_API
 {
     public class UpdatesCollection
     {
-        protected string rawAnimeIDs = "";
-
-        public string RawAnimeIDs
+        protected UpdatesCollection()
         {
-            get { return rawAnimeIDs; }
-            set { rawAnimeIDs = value; }
+            rawAnimeIDs = "";
+            updateCount = 0;
         }
 
-        protected long updateCount = 0;
+        public string rawAnimeIDs { get; set; }
 
-        public long UpdateCount
-        {
-            get { return updateCount; }
-            set { updateCount = value; }
-        }
+        public long updateCount { get; set; }
 
         public List<int> AnimeIDs
         {
@@ -33,12 +27,6 @@ namespace Shoko.Server.AniDB_API
 
                 return ids;
             }
-        }
-
-
-        // default constructor
-        public UpdatesCollection()
-        {
         }
     }
 }
