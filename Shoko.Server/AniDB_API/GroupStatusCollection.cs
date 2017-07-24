@@ -15,15 +15,6 @@ namespace AniDBAPI
 
         public List<Raw_AniDB_GroupStatus> GetMissingEpisodes(int latestEpNumber)
         {
-	        /*List<Raw_AniDB_GroupStatus> missingGroups = new List<Raw_AniDB_GroupStatus>();
-
-	        foreach (Raw_AniDB_GroupStatus grp in groups)
-	        {
-		        if (grp.LastEpisodeNumber > latestEpNumber)
-			        missingGroups.Add(grp);
-	        }
-
-	        return missingGroups;*/
 	        return groups.Where(grp => grp.LastEpisodeNumber > latestEpNumber).ToList();
         }
 
@@ -31,15 +22,6 @@ namespace AniDBAPI
         {
             get
             {
-	            /*int latest = 0;
-
-	            foreach (Raw_AniDB_GroupStatus grp in groups)
-	            {
-		            if (grp.LastEpisodeNumber > latest)
-			            latest = grp.LastEpisodeNumber;
-	            }
-
-	            return latest;*/
                 return groups.Select(grp => grp.LastEpisodeNumber).Concat(new[] {0}).Max();
             }
         }

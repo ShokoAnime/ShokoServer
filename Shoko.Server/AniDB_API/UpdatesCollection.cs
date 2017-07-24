@@ -28,11 +28,5 @@ namespace Shoko.Server.AniDB_API
                 return ids;
             }
         }
-
-
-        // default constructor
-        /*public UpdatesCollection()
-        {
-        }*/
     }
 }
