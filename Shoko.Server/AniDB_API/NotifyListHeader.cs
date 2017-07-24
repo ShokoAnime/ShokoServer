@@ -2,20 +2,14 @@
 {
     public class NotifyListHeader
     {
-        private string notifyType = "";
-
-        public string NotifyType
+        private NotifyListHeader()
         {
-            get { return notifyType; }
-            set { notifyType = value; }
+            NotifyID = 0;
+            NotifyType = "";
         }
 
-        private long notifyID = 0;
+        public string NotifyType { get; set; }
 
-        public long NotifyID
-        {
-            get { return notifyID; }
-            set { notifyID = value; }
-        }
+        public long NotifyID { get; set; }
     }
 }

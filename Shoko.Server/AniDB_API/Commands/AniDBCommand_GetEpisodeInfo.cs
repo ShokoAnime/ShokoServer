@@ -73,8 +73,11 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.NoSuchEpisode;
 
@@ -98,14 +101,8 @@ namespace AniDBAPI.Commands
 
                     // Response: 240 EPISODE 99297|6267|25|539|5|01|The Girl Returns|Shoujo Kikan|????|1238976000
                 }
-                case "340":
-                {
-                    return enHelperActivityType.NoSuchEpisode;
-                }
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "340": return enHelperActivityType.NoSuchEpisode;
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.NoSuchEpisode;

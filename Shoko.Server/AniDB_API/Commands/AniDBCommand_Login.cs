@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -24,8 +25,11 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.LoginFailed;
 
@@ -36,11 +40,11 @@ namespace AniDBAPI.Commands
             // 200 {str session_key} LOGIN ACCEPTED
             // 203 LOGGED OUT
             // 500 LOGIN FAILED 
-
-            if (sMsgType.Equals("500") || sMsgType.Equals("598"))
+            
+            /*if (sMsgType.Equals("500") || sMsgType.Equals("598"))
             {
                 return enHelperActivityType.LoginFailed;
-            }
+            }*/
 
             if (!sMsgType.Equals("200") && !sMsgType.Equals("201"))
             {
