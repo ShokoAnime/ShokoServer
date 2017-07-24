@@ -22,7 +22,7 @@ namespace AniDBAPI
         {
             get
             {
-                return groups.Select(grp => grp.LastEpisodeNumber).Concat(new[] {0}).Max();
+                return groups.Max(grp => grp.LastEpisodeNumber);
             }
         }
 
