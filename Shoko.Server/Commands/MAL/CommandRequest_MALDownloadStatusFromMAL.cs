@@ -57,8 +57,7 @@ namespace Shoko.Server.Commands.MAL
                 // find the latest eps to update
 
                 myanimelist mal = MALHelper.GetMALAnimeList();
-                if (mal == null) return;
-                if (mal.anime == null) return;
+                if (mal == null || mal.anime == null) return;
 
 
                 // find the anidb user
@@ -108,22 +107,13 @@ namespace Shoko.Server.Commands.MAL
                             // or it is currently un-watched
                             bool update = false;
                             if (usrRec == null) update = true;
-                            else
-                            {
-                                if (!usrRec.WatchedDate.HasValue) update = true;
-                            }
+                            else if (!usrRec.WatchedDate.HasValue) update = true;
 
                             if (update) ep.ToggleWatchedStatus(true, true, DateTime.Now, user.JMMUserID, false);
                         }
                         else
                         {
-                            bool update = false;
-                            if (usrRec != null)
-                            {
-                                if (usrRec.WatchedDate.HasValue) update = true;
-                            }
-
-                            if (update) ep.ToggleWatchedStatus(false, true, DateTime.Now, user.JMMUserID, false);
+                            if (usrRec != null && usrRec.WatchedDate.HasValue) ep.ToggleWatchedStatus(false, true, DateTime.Now, user.JMMUserID, false);
                         }
                     }
                 }
@@ -139,11 +129,8 @@ namespace Shoko.Server.Commands.MAL
         {
             foreach (CrossRef_AniDB_MAL xref in crossRefs)
             {
-                if (xref.StartEpisodeType == xrefBase.StartEpisodeType)
-                {
-                    if (xref.StartEpisodeNumber > xrefBase.StartEpisodeNumber)
-                        return xref.StartEpisodeNumber - 1;
-                }
+                if (xref.StartEpisodeType == xrefBase.StartEpisodeType && xref.StartEpisodeNumber > xrefBase.StartEpisodeNumber)
+                    return xref.StartEpisodeNumber - 1;
             }
 
             return int.MaxValue;

@@ -65,16 +65,18 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.NoSuchVote;
 
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "260":
-                    return enHelperActivityType.Voted;
+                case "260": return enHelperActivityType.Voted;
                 case "261":
 
                     // this means we were trying to retrieve the vote
@@ -94,25 +96,16 @@ namespace AniDBAPI.Commands
                         this.voteValue = vote.VoteValue;
                     }
                     return enHelperActivityType.VoteFound;
-                case "262":
-                    return enHelperActivityType.VoteUpdated;
-                case "263":
-                    return enHelperActivityType.VoteRevoked;
-                case "360":
-                    return enHelperActivityType.NoSuchVote;
-                case "361":
-                    return enHelperActivityType.InvalidVoteType;
-                case "362":
-                    return enHelperActivityType.InvalidVoteValue;
-                case "363":
-                    return enHelperActivityType.PermVoteNotAllowed;
-                case "364":
-                    return enHelperActivityType.PermVoteAlready;
+                case "262": return enHelperActivityType.VoteUpdated;
+                case "263": return enHelperActivityType.VoteRevoked;
+                    
+                case "360": return enHelperActivityType.NoSuchVote;
+                case "361": return enHelperActivityType.InvalidVoteType;
+                case "362": return enHelperActivityType.InvalidVoteValue;
+                case "363": return enHelperActivityType.PermVoteNotAllowed;
+                case "364": return enHelperActivityType.PermVoteAlready;
 
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.NoSuchVote;

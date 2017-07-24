@@ -24,8 +24,11 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.PingFailed;
 
@@ -33,10 +36,7 @@ namespace AniDBAPI.Commands
             string sMsgType = socketResponse.Substring(0, 3);
 
             // 300 PONG
-            if (sMsgType.Equals("300"))
-                return enHelperActivityType.PingFailed;
-            else
-                return enHelperActivityType.PingPong;
+            return sMsgType.Equals("300") ? enHelperActivityType.PingFailed : enHelperActivityType.PingPong;
         }
 
         public AniDBCommand_Ping()

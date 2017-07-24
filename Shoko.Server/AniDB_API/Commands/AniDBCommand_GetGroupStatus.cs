@@ -38,8 +38,11 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.NoGroupsFound;
 
@@ -58,18 +61,10 @@ namespace AniDBAPI.Commands
                     grpStatus = new GroupStatusCollection(animeID, socketResponse);
                     return enHelperActivityType.GotGroupStatus;
                 }
-                case "330":
-                {
-                    return enHelperActivityType.NoSuchAnime;
-                }
+                case "330": return enHelperActivityType.NoSuchAnime;
                 case "325": // no such description
-                {
                     return enHelperActivityType.NoGroupsFound;
-                }
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.FileDoesNotExist;

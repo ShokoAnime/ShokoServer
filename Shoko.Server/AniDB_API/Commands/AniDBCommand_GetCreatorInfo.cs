@@ -46,8 +46,11 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.NoSuchCreator;
 
@@ -71,14 +74,8 @@ namespace AniDBAPI.Commands
 
                     // 245 CREATOR 200|?????|Suwabe Jun`ichi|1|17015.jpg||http://www.haikyo.or.jp/PROFILE/man/11470.html|Junichi_Suwabe|%E8%AB%8F%E8%A8%AA%E9%83%A8%E9%A0%86%E4%B8%80|1236300570
                 }
-                case "345":
-                {
-                    return enHelperActivityType.NoSuchCreator;
-                }
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "345": return enHelperActivityType.NoSuchCreator;
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.NoSuchCreator;
