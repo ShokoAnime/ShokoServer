@@ -1564,6 +1564,7 @@ namespace Shoko.Server
                             videoSource = SimplifyVideoSource(videoSource);
                             fileSource = SimplifyVideoSource(aniFile.File_Source);
                             fileGroupName = aniFile.Anime_GroupName;
+                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
                         }
                         // Sometimes, especially with older files, the info doesn't quite match for resution
                         string vidResInfo = vid.VideoResolution;
@@ -1610,8 +1611,10 @@ namespace Shoko.Server
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile != null)
                         {
+                            string fileGroupName = aniFile.Anime_GroupName;
+                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
                             // match based on group / video sorce / video res
-                            if (relGroupName.Equals(aniFile.Anime_GroupName,
+                            if (relGroupName.Equals(fileGroupName,
                                 StringComparison.InvariantCultureIgnoreCase))
                             {
                                 vids.Add(vid.ToClientDetailed(userID));
