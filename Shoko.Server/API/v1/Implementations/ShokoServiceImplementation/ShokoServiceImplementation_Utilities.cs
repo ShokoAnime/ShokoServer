@@ -131,7 +131,8 @@ namespace Shoko.Server
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Where(b =>
                     b.Language.Equals("x-jat",
                         StringComparison.InvariantCultureIgnoreCase) ||
-                    b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase))
+                    b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase) ||
+                    b.Language.Equals(ServerSettings.LanguagePreference, StringComparison.InvariantCultureIgnoreCase))
                 .Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
