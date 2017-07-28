@@ -19,7 +19,7 @@ namespace Shoko.Commons.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -9903,6 +9903,15 @@ namespace Shoko.Commons.Properties {
         public static string Rename_ManuallyLinked {
             get {
                 return ResourceManager.GetString("Rename_ManuallyLinked", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Move if Needed.
+        /// </summary>
+        public static string Rename_MoveIfNeeded {
+            get {
+                return ResourceManager.GetString("Rename_MoveIfNeeded", resourceCulture);
             }
         }
         
