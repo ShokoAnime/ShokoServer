@@ -454,10 +454,10 @@ namespace Shoko.Server
 
         public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
         {
-            return RenameFile(videoLocalID, scriptName, false);
+            return RenameAndMoveFile(videoLocalID, scriptName, false);
         }
 
-        public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName, bool move)
+        public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
         {
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
