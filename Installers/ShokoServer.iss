@@ -5,7 +5,7 @@
 ; https://mitrichsoftware.wordpress.com/inno-setup-tools/inno-download-plugin/
 
 #include <idp.iss>
-#define AppVer GetFileVersion('..\JMMServer\bin\Release\ShokoServer.exe')
+#define AppVer GetFileVersion('..\Shoko.Server\bin\Release\ShokoServer.exe')
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -13,11 +13,11 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.7.0.6
+AppVersion=3.8.0.0
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://shokoanime.com/
-AppSupportURL=https://github.com/japanesemediamanager
+AppSupportURL=https://github.com/ShokoAnime
 AppUpdatesURL=https://shokoanime.com/downloads
 DefaultDirName={pf}\Shoko\Shoko Server
 DefaultGroupName=Shoko Server
@@ -35,80 +35,120 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-Source: "..\JMMServer\bin\Release\DeepCloner.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\DeepCloner.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\FluentNHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\FluentNHibernate.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\FluentNHibernate.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Smo.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SmoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SqlClrProvider.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SqlEnum.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.Win32.TaskScheduler.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.Win32.TaskScheduler.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\MimeTypeMap.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\MimeTypeMap.List.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\MySql.Data.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\MySqlBackup.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.Authentication.Stateless.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.Authentication.Stateless.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.Gzip.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.Hosting.Self.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.Hosting.Self.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.Serialization.JsonNet.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nancy.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Newtonsoft.Json.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Newtonsoft.Json.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\NHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\NHibernate.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nito.AsyncEx.Concurrent.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nito.AsyncEx.Concurrent.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nito.AsyncEx.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nito.AsyncEx.Enlightenment.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nito.AsyncEx.Enlightenment.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Nito.AsyncEx.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\NLog.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\NLog.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\protobuf-net.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\RestSharp.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\ShokoServer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\ShokoServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\ShokoServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Data.SQLite.dll.config"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Diagnostics.DiagnosticSource.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Diagnostics.DiagnosticSource.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\fr\*"; DestDir: "{app}\fr"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\nl\*"; DestDir: "{app}\nl"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\pt\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\webui\*"; DestDir: "{app}\webui"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\x86\*"; DestDir: "{app}\x86"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\System.ValueTuple.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.ValueTuple.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TvDbSharper.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TvDbSharper.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\AppGlue.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\DeepCloner.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\DeepCloner.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\FluentNHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\FluentNHibernate.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\FluentNHibernate.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\JetBrains.Annotations.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\JetBrains.Annotations.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.ConnectionInfoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.Smo.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.SmoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.SqlClrProvider.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.SqlServer.SqlEnum.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Threading.Tasks.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Threading.Tasks.Extensions.Desktop.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Threading.Tasks.Extensions.Desktop.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Threading.Tasks.Extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Threading.Tasks.Extensions.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Threading.Tasks.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Win32.TaskScheduler.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Microsoft.Win32.TaskScheduler.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MimeTypeMap.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MimeTypeMap.List.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MySql.Data.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MySqlBackup.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Authentication.Stateless.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Authentication.Stateless.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Gzip.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Hosting.Self.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Hosting.Self.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Rest.Annotations.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Rest.Annotations.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Rest.Module.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Rest.Module.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.Serialization.JsonNet.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nancy.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Newtonsoft.Json.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Newtonsoft.Json.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NHibernate.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nito.AsyncEx.Concurrent.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nito.AsyncEx.Concurrent.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nito.AsyncEx.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nito.AsyncEx.Enlightenment.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nito.AsyncEx.Enlightenment.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Nito.AsyncEx.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NLog.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NLog.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.GoogleDrive.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.GoogleDrive.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.GoogleDrive.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.OneDrive.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.OneDrive.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.CloudFileSystem.Plugins.OneDrive.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.Libraries.Web.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\NutzCode.Libraries.Web.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Pri.LongPath.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\SharpCompress.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Commons.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Commons.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Models.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Models.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Server.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Server.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Shoko.Server.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\ShokoServer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\ShokoServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\ShokoServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\fr\*"; DestDir: "{app}\fr"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\nl\*"; DestDir: "{app}\nl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\pt\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\webui\*"; DestDir: "{app}\webui"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\x86\*"; DestDir: "{app}\x86"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -121,19 +161,19 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Shoko Server"; Fil
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
-Filename: "http://shokoanime.com/shoko-version-3-7-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.7 Release Notes"
+Filename: " https://shokoanime.com/shoko-version-3-8-beta/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.8 Beta Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - File Port"" protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetroImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerPlex"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerKodi"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerREST"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerStreaming"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerMetroImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerPlex"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerKodi"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerREST"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerStreaming"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8112/JMMFilePort"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 
 [Dirs]

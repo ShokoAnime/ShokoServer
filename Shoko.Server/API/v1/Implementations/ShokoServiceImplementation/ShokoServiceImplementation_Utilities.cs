@@ -131,7 +131,8 @@ namespace Shoko.Server
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Where(b =>
                     b.Language.Equals("x-jat",
                         StringComparison.InvariantCultureIgnoreCase) ||
-                    b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase))
+                    b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase) ||
+                    b.Language.Equals(ServerSettings.LanguagePreference, StringComparison.InvariantCultureIgnoreCase))
                 .Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
@@ -453,6 +454,11 @@ namespace Shoko.Server
 
         public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
         {
+            return RenameAndMoveFile(videoLocalID, scriptName, false);
+        }
+
+        public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
+        {
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
                 VideoLocalID = videoLocalID,
@@ -505,6 +511,7 @@ namespace Shoko.Server
 
                 int errorCount = 0;
                 string errorString = "";
+
                 foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
                     // check if the file exists
@@ -519,13 +526,28 @@ namespace Shoko.Server
                         continue;
                     }
 
+                    if (move)
+                    {
+                        string moveResult = place.MoveWithResultString(fileSystemResult, scriptName);
+                        if (moveResult.StartsWith("ERROR: ")) ret.Success = false;
+
+                        ret.NewDestination = moveResult;
+                    }
+
                     // actually rename the file
                     string path = Path.GetDirectoryName(fullFileName);
                     string newFullName = Path.Combine(path, ret.NewFileName);
 
                     try
                     {
-                        logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
+                        FileSystemResult r = fs?.Resolve(newFullName);
+                        if (r != null && r.IsOk)
+                        {
+                            logger.Error($"Renaming file SKIPPED! Destination Exists ({newFullName})");
+                            errorCount++;
+                            errorString = "ERROR: Destination Exists";
+                            continue;
+                        }
 
                         if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                         {
@@ -536,10 +558,63 @@ namespace Shoko.Server
                         }
                         else
                         {
-                            ((IFile) fileSystemResult.Result).Rename(ret.NewFileName);
+                            logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
+                            var result = ((IFile) fileSystemResult.Result).Rename(ret.NewFileName);
+                            if (result == null || !result.IsOk)
+                            {
+                                logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {result.Error}");
+                                errorCount++;
+                                errorString = $"ERROR: {result.Error}";
+                                continue;
+                            }
                             logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
+
                             ret.NewFileName = newFullName;
                             var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+                            if (tup == null)
+                            {
+                                logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
+                                errorCount++;
+                                errorString = $"ERROR: Unable to locate file in import folders";
+                                continue;
+                            }
+                            // Before we change all references, remap Duplicate Files
+                            List<DuplicateFile> dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
+                            if (dups != null && dups.Count > 0)
+                            {
+                                foreach (var dup in dups)
+                                {
+                                    bool dupchanged = false;
+                                    if (dup.FilePathFile1.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                        dup.ImportFolderIDFile1 == place.ImportFolderID)
+                                    {
+                                        dup.FilePathFile1 = tup.Item2;
+                                        dupchanged = true;
+                                    }
+                                    else if (dup.FilePathFile2.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                             dup.ImportFolderIDFile2 == place.ImportFolderID)
+                                    {
+                                        dup.FilePathFile2 = tup.Item2;
+                                        dupchanged = true;
+                                    }
+                                    if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
+                                }
+                            }
+                            // Make FileNameHashes
+                            var filename_hash = RepoFactory.FileNameHash.GetByHash(vid.Hash);
+                            if (!filename_hash.Any(a => a.FileName.Equals(ret.NewFileName)))
+                            {
+                                FileNameHash fnhash = new FileNameHash
+                                {
+                                    DateTimeUpdated = DateTime.Now,
+                                    FileName = ret.NewFileName,
+                                    FileSize = vid.FileSize,
+                                    Hash = vid.Hash
+                                };
+                                RepoFactory.FileNameHash.Save(fnhash);
+                            }
+
+                            // Actually change the last internal references
                             place.FilePath = tup.Item2;
                             name = Path.GetFileName(tup.Item2);
                             RepoFactory.VideoLocalPlace.Save(place);
@@ -550,7 +625,7 @@ namespace Shoko.Server
                         logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                         logger.Error(ex, ex.ToString());
                         errorCount++;
-                        errorString = ex.Message;
+                        errorString = $"ERROR: {ex.Message}";
                     }
                 }
                 if (errorCount >= vid.Places.Count) // should never be greater but shit happens
@@ -1490,6 +1565,7 @@ namespace Shoko.Server
                             videoSource = SimplifyVideoSource(videoSource);
                             fileSource = SimplifyVideoSource(aniFile.File_Source);
                             fileGroupName = aniFile.Anime_GroupName;
+                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
                         }
                         // Sometimes, especially with older files, the info doesn't quite match for resution
                         string vidResInfo = vid.VideoResolution;
@@ -1536,8 +1612,10 @@ namespace Shoko.Server
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile != null)
                         {
+                            string fileGroupName = aniFile.Anime_GroupName;
+                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
                             // match based on group / video sorce / video res
-                            if (relGroupName.Equals(aniFile.Anime_GroupName,
+                            if (relGroupName.Equals(fileGroupName,
                                 StringComparison.InvariantCultureIgnoreCase))
                             {
                                 vids.Add(vid.ToClientDetailed(userID));

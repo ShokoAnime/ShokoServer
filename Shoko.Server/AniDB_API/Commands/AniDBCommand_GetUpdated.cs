@@ -39,8 +39,11 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.NoUpdates;
 
@@ -48,7 +51,6 @@ namespace AniDBAPI.Commands
 
             // Process Response
             string sMsgType = socketResponse.Substring(0, 3);
-
 
             switch (sMsgType)
             {
@@ -76,14 +78,8 @@ namespace AniDBAPI.Commands
 
                     return enHelperActivityType.GotUpdated;
                 }
-                case "343":
-                {
-                    return enHelperActivityType.NoUpdates;
-                }
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "343": return enHelperActivityType.NoUpdates;
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.NoUpdates;

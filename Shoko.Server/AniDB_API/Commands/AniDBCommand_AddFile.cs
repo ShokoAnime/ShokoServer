@@ -28,16 +28,17 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
-
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
             if (errorOccurred) return enHelperActivityType.NoSuchFile;
 
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "210":
-                    return enHelperActivityType.FileAdded;
+                case "210": return enHelperActivityType.FileAdded;
                 case "310":
                 {
                     //file already exists: read 'watched' status
@@ -55,19 +56,11 @@ namespace AniDBAPI.Commands
                     }
                 }
                     return enHelperActivityType.FileAlreadyExists;
-                case "311":
-                    return enHelperActivityType.UpdatingFile;
-                case "320":
-                    return enHelperActivityType.NoSuchFile;
-                case "411":
-                    return enHelperActivityType.NoSuchFile;
-
-                case "502":
-                    return enHelperActivityType.LoginFailed;
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "311": return enHelperActivityType.UpdatingFile;
+                case "320": return enHelperActivityType.NoSuchFile;
+                case "411": return enHelperActivityType.NoSuchFile;
+                case "502": return enHelperActivityType.LoginFailed;
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.FileDoesNotExist;
@@ -78,7 +71,7 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.AddFile;
         }
 
-        public void Init(IHash fileData, AniDBFile_State FileState)
+        public void Init(IHash fileData, AniDBFile_State fileState)
         {
             FileData = fileData;
 
@@ -87,10 +80,10 @@ namespace AniDBAPI.Commands
             commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText += "&viewed=0";
-            commandText += "&state=" + (int) FileState;
+            commandText += "&state=" + (int) fileState;
         }
 
-        public void Init(int animeID, int episodeNumber, AniDBFile_State FileState)
+        public void Init(int animeID, int episodeNumber, AniDBFile_State fileState)
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
@@ -98,7 +91,7 @@ namespace AniDBAPI.Commands
             commandText += "&generic=1";
             commandText += "&epno=" + episodeNumber.ToString();
             commandText += "&viewed=0";
-            commandText += "&state=" + (int) FileState;
+            commandText += "&state=" + (int) fileState;
         }
     }
 }

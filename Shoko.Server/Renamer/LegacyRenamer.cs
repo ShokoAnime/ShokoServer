@@ -192,14 +192,7 @@ namespace Shoko.Server.Renamer
             {
                 bool notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
 
-                bool epsLinked = false;
-                if (aniFile == null)
-                {
-                    if (episodes != null && episodes.Count > 0)
-                        epsLinked = true;
-                }
-                else
-                    epsLinked = true;
+                bool epsLinked = (aniFile == null && episodes != null && episodes.Count > 0);
 
                 if (notCondition)
                     return !epsLinked;
@@ -231,11 +224,7 @@ namespace Shoko.Server.Renamer
 
                 if (aniFile == null) return false;
 
-                if (notCondition)
-                {
-                    return aniFile.Languages.All(lan => !lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase));
-                }
-                return aniFile.Languages.Any(lan => lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase));
+                return notCondition ? aniFile.Languages.All(lan => !lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase)) : aniFile.Languages.Any(lan => lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase));
             }
             catch (Exception ex)
             {
@@ -268,16 +257,10 @@ namespace Shoko.Server.Renamer
                         .Equals(Constants.FileRenameReserved.None, StringComparison.InvariantCultureIgnoreCase) &&
                     aniFile.Subtitles.Count == 0)
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
 
-                if (notCondition)
-                {
-                    return aniFile.Subtitles.All(lan => !lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase));
-                }
-                return aniFile.Subtitles.Any(lan => lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase));
+                return notCondition ? aniFile.Subtitles.All(lan => !lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase)) : aniFile.Subtitles.Any(lan => lan.LanguageName.Trim().Equals(test.Trim(), StringComparison.InvariantCultureIgnoreCase));
             }
             catch (Exception ex)
             {
@@ -315,34 +298,28 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (aniFile.FileVersion == version) return true;
-                        return false;
+                        return aniFile.FileVersion == version;
                     }
-                    if (aniFile.FileVersion == version) return false;
-                    return true;
+                    return aniFile.FileVersion != version;
                 }
                 if (greaterThan)
                 {
-                    if (aniFile.FileVersion > version) return true;
-                    return false;
+                    return aniFile.FileVersion > version;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (aniFile.FileVersion >= version) return true;
-                    return false;
+                    return aniFile.FileVersion >= version;
                 }
 
                 if (lessThan)
                 {
-                    if (aniFile.FileVersion < version) return true;
-                    return false;
+                    return aniFile.FileVersion < version;
                 }
 
                 if (lessThanEqual)
                 {
-                    if (aniFile.FileVersion <= version) return true;
-                    return false;
+                    return aniFile.FileVersion <= version;
                 }
 
                 return false;
@@ -383,33 +360,27 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (testBitDepth == vidBitDepth) return true;
-                        return false;
+                        return testBitDepth == vidBitDepth;
                     }
-                    if (testBitDepth == vidBitDepth) return false;
-                    return true;
+                    return testBitDepth != vidBitDepth;
                 }
                 if (greaterThan)
                 {
-                    if (vidBitDepth > testBitDepth) return true;
-                    return false;
+                    return vidBitDepth > testBitDepth;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (vidBitDepth >= testBitDepth) return true;
-                    return false;
+                    return vidBitDepth >= testBitDepth;
                 }
 
                 if (lessThan)
                 {
-                    if (vidBitDepth < testBitDepth) return true;
-                    return false;
+                    return vidBitDepth < testBitDepth;
                 }
 
                 if (!lessThanEqual) return false;
-                if (vidBitDepth <= testBitDepth) return true;
-                return false;
+                return vidBitDepth <= testBitDepth;
             }
             catch (Exception ex)
             {
@@ -449,33 +420,27 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (testWidth == width) return true;
-                        return false;
+                        return testWidth == width;
                     }
-                    if (testWidth == width) return false;
-                    return true;
+                    return testWidth != width;
                 }
                 if (greaterThan)
                 {
-                    if (width > testWidth) return true;
-                    return false;
+                    return width > testWidth;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (width >= testWidth) return true;
-                    return false;
+                    return width >= testWidth;
                 }
 
                 if (lessThan)
                 {
-                    if (width < testWidth) return true;
-                    return false;
+                    return width < testWidth;
                 }
 
                 if (!lessThanEqual) return false;
-                if (width <= testWidth) return true;
-                return false;
+                return width <= testWidth;
             }
             catch (Exception ex)
             {
@@ -514,33 +479,27 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (testHeight == height) return true;
-                        return false;
+                        return testHeight == height;
                     }
-                    if (testHeight == height) return false;
-                    return true;
+                    return testHeight != height;
                 }
                 if (greaterThan)
                 {
-                    if (height > testHeight) return true;
-                    return false;
+                    return height > testHeight;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (height >= testHeight) return true;
-                    return false;
+                    return height >= testHeight;
                 }
 
                 if (lessThan)
                 {
-                    if (height < testHeight) return true;
-                    return false;
+                    return height < testHeight;
                 }
 
                 if (!lessThanEqual) return false;
-                if (height <= testHeight) return true;
-                return false;
+                return height <= testHeight;
             }
             catch (Exception ex)
             {
@@ -569,21 +528,15 @@ namespace Shoko.Server.Renamer
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
                     !hasSource)
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
 
 
                 if (test.Trim().Equals(aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
-                if (notCondition)
-                    return true;
-                return false;
+                return notCondition;
             }
             catch (Exception ex)
             {
@@ -612,21 +565,15 @@ namespace Shoko.Server.Renamer
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
                     !hasSource)
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
 
 
                 if (test.Trim().Equals(aniFile.File_VideoCodec, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
-                if (notCondition)
-                    return true;
-                return false;
+                return notCondition;
             }
             catch (Exception ex)
             {
@@ -655,21 +602,15 @@ namespace Shoko.Server.Renamer
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
                     !hasSource)
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
 
 
                 if (test.Trim().Equals(aniFile.File_AudioCodec, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
-                if (notCondition)
-                    return true;
-                return false;
+                return notCondition;
             }
             catch (Exception ex)
             {
@@ -695,21 +636,15 @@ namespace Shoko.Server.Renamer
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
                     !hasType)
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
 
 
                 if (test.Trim().Equals(anime.GetAnimeTypeRAW(), StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
-                if (notCondition)
-                    return true;
-                return false;
+                return notCondition;
             }
             catch (Exception ex)
             {
@@ -739,33 +674,27 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (anime.BeginYear == testYear) return true;
-                        return false;
+                        return anime.BeginYear == testYear;
                     }
-                    if (anime.BeginYear == testYear) return false;
-                    return true;
+                    return anime.BeginYear != testYear;
                 }
                 if (greaterThan)
                 {
-                    if (anime.BeginYear > testYear) return true;
-                    return false;
+                    return anime.BeginYear > testYear;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (anime.BeginYear >= testYear) return true;
-                    return false;
+                    return anime.BeginYear >= testYear;
                 }
 
                 if (lessThan)
                 {
-                    if (anime.BeginYear < testYear) return true;
-                    return false;
+                    return anime.BeginYear < testYear;
                 }
 
                 if (!lessThanEqual) return false;
-                if (anime.BeginYear <= testYear) return true;
-                return false;
+                return anime.BeginYear <= testYear;
             }
             catch (Exception ex)
             {
@@ -795,33 +724,27 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (episodes[0].EpisodeNumber == testEpNumber) return true;
-                        return false;
+                        return episodes[0].EpisodeNumber == testEpNumber;
                     }
-                    if (episodes[0].EpisodeNumber == testEpNumber) return false;
-                    return true;
+                    return episodes[0].EpisodeNumber != testEpNumber;
                 }
                 if (greaterThan)
                 {
-                    if (episodes[0].EpisodeNumber > testEpNumber) return true;
-                    return false;
+                    return episodes[0].EpisodeNumber > testEpNumber;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (episodes[0].EpisodeNumber >= testEpNumber) return true;
-                    return false;
+                    return episodes[0].EpisodeNumber >= testEpNumber;
                 }
 
                 if (lessThan)
                 {
-                    if (episodes[0].EpisodeNumber < testEpNumber) return true;
-                    return false;
+                    return episodes[0].EpisodeNumber < testEpNumber;
                 }
 
                 if (!lessThanEqual) return false;
-                if (episodes[0].EpisodeNumber <= testEpNumber) return true;
-                return false;
+                return episodes[0].EpisodeNumber <= testEpNumber;
             }
             catch (Exception ex)
             {
@@ -867,13 +790,9 @@ namespace Shoko.Server.Renamer
 
                 if (test.Trim().Equals(epType, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition)
-                        return false;
-                    return true;
+                    return !notCondition;
                 }
-                if (notCondition)
-                    return true;
-                return false;
+                return notCondition;
             }
             catch (Exception ex)
             {
@@ -949,33 +868,27 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        if (anime.EpisodeCountNormal == epCount) return true;
-                        return false;
+                        return anime.EpisodeCountNormal == epCount;
                     }
-                    if (anime.EpisodeCountNormal == epCount) return false;
-                    return true;
+                    return anime.EpisodeCountNormal != epCount;
                 }
                 if (greaterThan)
                 {
-                    if (anime.EpisodeCountNormal > epCount) return true;
-                    return false;
+                    return anime.EpisodeCountNormal > epCount;
                 }
 
                 if (greaterThanEqual)
                 {
-                    if (anime.EpisodeCountNormal >= epCount) return true;
-                    return false;
+                    return anime.EpisodeCountNormal >= epCount;
                 }
 
                 if (lessThan)
                 {
-                    if (anime.EpisodeCountNormal < epCount) return true;
-                    return false;
+                    return anime.EpisodeCountNormal < epCount;
                 }
 
                 if (!lessThanEqual) return false;
-                if (anime.EpisodeCountNormal <= epCount) return true;
-                return false;
+                return anime.EpisodeCountNormal <= epCount;
             }
             catch (Exception ex)
             {
@@ -1060,14 +973,11 @@ namespace Shoko.Server.Renamer
                     {
                         if (string.IsNullOrEmpty(aniFile.FileName))
                         {
-                            if (notCondition) return true;
-                            return false;
+                            return notCondition;
                         }
-                        if (notCondition) return false;
-                        return true;
+                        return !notCondition;
                     }
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
 
                 #endregion
@@ -1082,11 +992,9 @@ namespace Shoko.Server.Renamer
                     // manually linked files won't have an Episode Number
                     if (aniFile != null)
                     {
-                        if (notCondition) return false;
-                        return true;
+                        return !notCondition;
                     }
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
 
                 #endregion
@@ -1101,11 +1009,9 @@ namespace Shoko.Server.Renamer
                     // manually linked files won't have an anime id
                     if (aniFile != null)
                     {
-                        if (notCondition) return false;
-                        return true;
+                        return !notCondition;
                     }
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
 
                 #endregion
@@ -1117,8 +1023,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.ED2KUpper.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagED2KUpper, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1130,8 +1035,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.ED2KLower.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagED2KLower, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1147,12 +1051,10 @@ namespace Shoko.Server.Renamer
                         (ti.TitleType.Trim().Equals(AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) || ti.TitleType
                              .Trim().Equals(AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))))
                     {
-                        if (notCondition) return false;
-                        return true;
+                        return !notCondition;
                     }
 
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
 
                 #endregion
@@ -1172,11 +1074,9 @@ namespace Shoko.Server.Renamer
                                                          .Equals(AnimeTitleType.Official,
                                                              StringComparison.InvariantCultureIgnoreCase))))
                     {
-                        if (notCondition) return false;
-                        return true;
+                        return !notCondition;
                     }
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
 
                 #endregion
@@ -1196,11 +1096,9 @@ namespace Shoko.Server.Renamer
                                                          .Equals(AnimeTitleType.Official,
                                                              StringComparison.InvariantCultureIgnoreCase))))
                     {
-                        if (notCondition) return false;
-                        return true;
+                        return !notCondition;
                     }
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
 
                 #endregion
@@ -1213,11 +1111,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (string.IsNullOrEmpty(episodes[0].EnglishName))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1230,11 +1126,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (string.IsNullOrEmpty(episodes[0].RomajiName))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1248,11 +1142,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (string.IsNullOrEmpty(aniFile?.Anime_GroupNameShort))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1266,11 +1158,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (string.IsNullOrEmpty(aniFile?.Anime_GroupName))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1288,11 +1178,9 @@ namespace Shoko.Server.Renamer
 
                     if (string.IsNullOrEmpty(crc))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1310,11 +1198,9 @@ namespace Shoko.Server.Renamer
 
                     if (string.IsNullOrEmpty(crc))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1327,11 +1213,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (aniFile == null || aniFile.Languages.Count == 0)
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1344,11 +1228,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (aniFile == null || aniFile.Subtitles.Count == 0)
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1368,11 +1250,9 @@ namespace Shoko.Server.Renamer
 
                     if (string.IsNullOrEmpty(vidRes))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1385,11 +1265,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (string.IsNullOrEmpty(aniFile?.File_VideoCodec))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1402,11 +1280,9 @@ namespace Shoko.Server.Renamer
                 {
                     if (string.IsNullOrEmpty(aniFile?.File_AudioCodec))
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1425,11 +1301,9 @@ namespace Shoko.Server.Renamer
                     }
                     if (!bitDepthExists)
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1446,11 +1320,9 @@ namespace Shoko.Server.Renamer
 
                     if (!isCensored)
                     {
-                        if (notCondition) return true;
-                        return false;
+                        return notCondition;
                     }
-                    if (notCondition) return false;
-                    return true;
+                    return !notCondition;
                 }
 
                 #endregion
@@ -1466,11 +1338,9 @@ namespace Shoko.Server.Renamer
 
                 if (!isDeprecated)
                 {
-                    if (notCondition) return true;
-                    return false;
+                    return notCondition;
                 }
-                if (notCondition) return false;
-                return true;
+                return !notCondition;
 
                 #endregion=
             }

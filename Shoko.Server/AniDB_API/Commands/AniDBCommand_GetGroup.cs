@@ -46,14 +46,8 @@ namespace Shoko.Server.Commands
                     Group = new Raw_AniDB_Group(socketResponse);
                     return enHelperActivityType.GotGroup;
                 }
-                case "350":
-                {
-                    return enHelperActivityType.NoSuchGroup;
-                }
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "350": return enHelperActivityType.NoSuchGroup;
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.FileDoesNotExist;
