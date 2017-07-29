@@ -182,7 +182,7 @@ namespace AniDBAPI
 
             #region Related Anime
 
-            XmlNodeList raItems = docAnime?["anime"]["relatedanime"]?.GetElementsByTagName("anime");
+            XmlNodeList raItems = docAnime["anime"]["relatedanime"]?.GetElementsByTagName("anime");
             if (raItems != null)
             {
                 anime.RelatedAnimeIdsRAW = "";

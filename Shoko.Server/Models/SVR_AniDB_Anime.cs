@@ -1160,7 +1160,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             foreach (Raw_AniDB_Anime_Title rawtitle in titles)
             {
                 AniDB_Anime_Title title = new AniDB_Anime_Title();
-                title.Populate(rawtitle);
+                if (!title.Populate(rawtitle)) continue;
                 titlesToSave.Add(title);
 
                 if (this.AllTitles.Length > 0) this.AllTitles += "|";
@@ -1190,7 +1190,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 AniDB_Tag tag = RepoFactory.AniDB_Tag.GetByTagID(rawtag.TagID);
                 if (tag == null) tag = new AniDB_Tag();
 
-                tag.Populate(rawtag);
+                if(!tag.Populate(rawtag)) continue;
                 tagsToSave.Add(tag);
 
                 newTagIDs.Add(tag.TagID);
@@ -1254,7 +1254,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (chr == null)
                     chr = new AniDB_Character();
 
-                chr.PopulateFromHTTP(rawchar);
+                if (!chr.PopulateFromHTTP(rawchar)) continue;
                 chrsToSave.Add(chr);
 
                 // create cross ref's between anime and character, but don't actually download anything
@@ -1308,10 +1308,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     rawrel.RelatedAnimeID);
                 if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
 
-                anime_rel.Populate(rawrel);
+                if (!anime_rel.Populate(rawrel)) continue;
                 relsToSave.Add(anime_rel);
 
-                if (downloadRelations && ServerSettings.AutoGroupSeries)
+                if (downloadRelations || ServerSettings.AutoGroupSeries)
                 {
                     logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                         this.MainTitle, this.AnimeID, anime_rel.RelatedAnimeID);
