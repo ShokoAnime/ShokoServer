@@ -1035,7 +1035,7 @@ namespace Shoko.Server
         {
             //if (!Login()) return null;
 
-            SVR_AniDB_Anime anime = null;
+            SVR_AniDB_Anime anime;
             ISessionWrapper sessionWrapper = session.Wrap();
 
             bool skip = true;
@@ -1058,7 +1058,9 @@ namespace Shoko.Server
             {
                 getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
                 getAnimeCmd.Init(animeID, false, forceRefresh, false);
-                getAnimeCmd.Process();
+                var result = getAnimeCmd.Process();
+                if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                    return null;
             }
 
 
@@ -1074,7 +1076,7 @@ namespace Shoko.Server
                 }*/
             }
 
-            return anime;
+            return null;
         }
 
         private SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
