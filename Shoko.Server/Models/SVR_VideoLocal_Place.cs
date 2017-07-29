@@ -168,7 +168,7 @@ namespace Shoko.Server.Models
 
         public void RemoveRecord()
         {
-            logger.Info("Removing VideoLocal_Place recoord for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
+            logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
             List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
             SVR_VideoLocal v = VideoLocal;
@@ -585,14 +585,14 @@ namespace Shoko.Server.Models
             }
         }
 
-        public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName)
+        public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName, bool force = false)
         {
             // check if this file is in the drop folder
             // otherwise we don't need to move it
-            if (ImportFolder.IsDropSource == 0)
+            if (ImportFolder.IsDropSource == 0 && !force)
             {
                 logger.Error("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
-                return "Not in drop folder";
+                return "ERROR: Not in drop folder";
             }
             IFile source_file = fileSystemResult.Result as IFile;
             // We checked the above prior, so no error checking

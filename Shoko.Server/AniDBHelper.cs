@@ -1049,9 +1049,7 @@ namespace Shoko.Server
 
             if (skip)
             {
-                if (anime == null)
-                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
-
+                anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                 return anime;
             }
 
