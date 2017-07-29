@@ -576,11 +576,11 @@ namespace Shoko.Server.Models
             }
         }
 
-        public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName)
+        public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName, bool force = false)
         {
             // check if this file is in the drop folder
             // otherwise we don't need to move it
-            if (ImportFolder.IsDropSource == 0)
+            if (ImportFolder.IsDropSource == 0 && !force)
             {
                 logger.Error("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
                 return "ERROR: Not in drop folder";
