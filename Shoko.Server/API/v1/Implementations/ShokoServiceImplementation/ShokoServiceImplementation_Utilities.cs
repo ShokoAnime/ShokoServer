@@ -528,7 +528,7 @@ namespace Shoko.Server
 
                     if (move)
                     {
-                        string moveResult = place.MoveWithResultString(fileSystemResult, scriptName);
+                        string moveResult = place.MoveWithResultString(fileSystemResult, scriptName, move);
                         if (moveResult.StartsWith("ERROR: ")) ret.Success = false;
 
                         ret.NewDestination = moveResult;
