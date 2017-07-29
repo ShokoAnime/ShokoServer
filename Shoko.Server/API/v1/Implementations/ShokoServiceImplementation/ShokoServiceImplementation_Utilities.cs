@@ -1553,17 +1553,21 @@ namespace Shoko.Server
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
                     SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == Shoko.Models.Enums.EpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == Shoko.Models.Enums.EpisodeType.Special)
+                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
+                        animeEp.EpisodeTypeEnum == EpisodeType.Special)
                     {
-                        string fileSource = Constants.NO_SOURCE_INFO;
                         string fileGroupName = Constants.NO_GROUP_INFO;
+
+                        bool sourceMatches =
+                            videoSource.Equals(string.Intern("Manual Link"), StringComparison.InvariantCultureIgnoreCase) ||
+                            videoSource.Equals(string.Intern("unknown"), StringComparison.InvariantCultureIgnoreCase);
                         // get the anibd file info
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile != null)
                         {
                             videoSource = SimplifyVideoSource(videoSource);
-                            fileSource = SimplifyVideoSource(aniFile.File_Source);
+                            sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
+                                StringComparison.InvariantCultureIgnoreCase);
                             fileGroupName = aniFile.Anime_GroupName;
                             if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
                         }
@@ -1571,10 +1575,8 @@ namespace Shoko.Server
                         string vidResInfo = vid.VideoResolution;
 
                         // match based on group / video sorce / video res
-                        if (
-                            relGroupName.Equals(fileGroupName,
-                                StringComparison.InvariantCultureIgnoreCase) &&
-                            videoSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
+                        if (relGroupName.Equals(fileGroupName, StringComparison.InvariantCultureIgnoreCase) &&
+                            sourceMatches &&
                             resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
                             thisBitDepth == videoBitDepth)
                         {
@@ -1667,9 +1669,11 @@ namespace Shoko.Server
             files.Sort(FileQualityFilter.CompareTo);
             var lookup = files.ToLookup(a => new
             {
-                GroupName = a.ReleaseGroup?.GroupName ?? "NO GROUP INFO",
-                GroupNameShort = a.ReleaseGroup?.GroupNameShort ?? "NO GROUP INFO",
-                File_Source = a.GetAniDBFile()?.File_Source ?? "unknown",
+                GroupName = a.ReleaseGroup?.GroupName ?? Constants.NO_GROUP_INFO,
+                GroupNameShort = a.ReleaseGroup?.GroupNameShort ?? Constants.NO_GROUP_INFO,
+                File_Source = a.GetAniDBFile() == null
+                    ? string.Intern("Manual Link")
+                    : a.GetAniDBFile().File_Source ?? string.Intern("unknown"),
                 VideoResolution = a.VideoResolution
             });
             int rank = lookup.Count;
@@ -1682,7 +1686,8 @@ namespace Shoko.Server
                 contract.AudioStreamCount = videoLocals.First()
                     .Media.Parts.SelectMany(a => a.Streams)
                     .Count(a => a.StreamType.Equals("2"));
-                contract.IsChaptered = (ani?.IsChaptered ?? 0) == 1;
+                contract.IsChaptered =
+                    (ani?.IsChaptered ?? ((videoLocals.First().Media?.Chaptered ?? false) ? 1 : 0)) == 1;
                 contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Episode);
                 contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;
@@ -1794,7 +1799,7 @@ namespace Shoko.Server
                                 bool foundSummaryRecord = false;
                                 foreach (CL_GroupFileSummary contract in vidQuals)
                                 {
-                                    if (contract.GroupName.Equals("NO GROUP INFO",
+                                    if (contract.GroupName.Equals(Constants.NO_GROUP_INFO,
                                         StringComparison.InvariantCultureIgnoreCase))
                                     {
                                         foundSummaryRecord = true;
@@ -1828,8 +1833,8 @@ namespace Shoko.Server
                                     cl.TotalFileSize += vid.FileSize;
                                     cl.TotalRunningTime += vid.Duration;
 
-                                    cl.GroupName = "NO GROUP INFO";
-                                    cl.GroupNameShort = "NO GROUP INFO";
+                                    cl.GroupName = Constants.NO_GROUP_INFO;
+                                    cl.GroupNameShort = Constants.NO_GROUP_INFO;
                                     cl.NormalEpisodeNumbers = new List<int>();
                                     if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
                                     {
@@ -1876,9 +1881,9 @@ namespace Shoko.Server
                             contract.NormalEpisodeNumberSummary += ", ";
 
                         if (baseEpNum == lastEpNum)
-                            contract.NormalEpisodeNumberSummary += string.Format("{0}", baseEpNum);
+                            contract.NormalEpisodeNumberSummary += $"{baseEpNum}";
                         else
-                            contract.NormalEpisodeNumberSummary += string.Format("{0}-{1}", baseEpNum, lastEpNum);
+                            contract.NormalEpisodeNumberSummary += $"{baseEpNum}-{lastEpNum}";
 
                         lastEpNum = epNum;
                         baseEpNum = epNum;
@@ -1893,10 +1898,10 @@ namespace Shoko.Server
                                 contract.NormalEpisodeNumberSummary += ", ";
 
                             if (baseEpNum == contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1])
-                                contract.NormalEpisodeNumberSummary += string.Format("{0}", baseEpNum);
+                                contract.NormalEpisodeNumberSummary += $"{baseEpNum}";
                             else
-                                contract.NormalEpisodeNumberSummary += string.Format("{0}-{1}", baseEpNum,
-                                    contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1]);
+                                contract.NormalEpisodeNumberSummary +=
+                                    $"{baseEpNum}-{contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1]}";
                         }
                     }
                 }
