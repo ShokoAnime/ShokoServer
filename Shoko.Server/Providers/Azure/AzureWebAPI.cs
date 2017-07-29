@@ -557,8 +557,8 @@ namespace Shoko.Server.Providers.Azure
             }
             finally
             {
-                if (req != null) req.GetRequestStream().Close();
-                if (rsp != null) rsp.GetResponseStream().Close();
+                req?.GetRequestStream().Close();
+                rsp?.GetResponseStream()?.Close();
             }
 
             return ret;
