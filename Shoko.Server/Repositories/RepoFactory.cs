@@ -147,19 +147,7 @@ namespace Shoko.Server.Repositories
 
         public static void Init()
         {
-            try
-            {
-                foreach (var repo in CachedRepositories)
-                {
-                    Task task = new Task(() => repo.Populate());
-                    // don't wait longer than 3 minutes
-                    if (Task.WhenAny(task, Task.Delay(180000)).Result != task) throw new TimeoutException($"{repo.GetType()} took too long to cache.");
-                }
-            }
-            catch (Exception exception)
-            {
-                logger.Error($"There was an error starting the Database Factory - Caching: {exception}");
-            }
+            InitCaches();
 
             // Update Contracts if necessary
             try
@@ -176,8 +164,28 @@ namespace Shoko.Server.Repositories
             catch (Exception e)
             {
                 logger.Error($"There was an error starting the Database Factory - Regenerating: {e}");
+                throw;
             }
             CleanUpMemory();
+        }
+
+        public static void InitCaches()
+        {
+            try
+            {
+                foreach (var repo in CachedRepositories)
+                {
+                    Task task = Task.Run(() => repo.Populate());
+
+                    // don't wait longer than 3 minutes
+                    if (!task.Wait(180000)) throw new TimeoutException($"{repo.GetType()} took too long to cache.");
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.Error($"There was an error starting the Database Factory - Caching: {exception}");
+                throw;
+            }
         }
 
         public static void CleanUpMemory()
