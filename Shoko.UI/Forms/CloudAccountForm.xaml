@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Shoko.UI"
         xmlns:server="clr-namespace:Shoko.Server;assembly=Shoko.Server"
+        xmlns:converter="clr-namespace:Shoko.UI.Forms.Converter"
         Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=CloudAccounts_Title}" Height="Auto"
         Width="500" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
         SizeToContent="Height" Icon="/ShokoServer;component/Images/24_cloud.png">
@@ -13,11 +14,11 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Forms/UIStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-
+            <converter:ByteArrayToBitmapConverter x:Key="ByteArrayToBitmapConverter" />
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <DataTemplate x:Key="cmbTemplate">
                 <WrapPanel >
-                    <Image Width="24" Height="24" Stretch="Fill" Source="{Binding Bitmap}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,10,0"/>
+                    <Image Width="24" Height="24" Stretch="Fill" Source="{Binding Path=Bitmap, Converter={StaticResource ByteArrayToBitmapConverter}}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,10,0"/>
                     <Label Content="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" />
                 </WrapPanel>
             </DataTemplate>
