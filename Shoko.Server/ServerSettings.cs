@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
-using System.Windows.Forms;
+
 using AniDBAPI;
 using Shoko.Models;
 using Microsoft.Win32;
@@ -81,7 +81,10 @@ namespace Shoko.Server
 
         public static event EventHandler<ReasonedEventArgs> ServerShutdown;
         //public static event EventHandler<ReasonedEventArgs> ServerError;
-
+        public static void DoServerShutdown(ReasonedEventArgs args)
+        {
+            ServerShutdown?.Invoke(null, args);
+        }
         /// <summary>
         /// Load setting from custom file - ex. read setting from backup
         /// </summary>
@@ -365,7 +368,7 @@ namespace Shoko.Server
                         }
                         catch (Exception e)
                         {
-                            MessageBox.Show(Commons.Properties.Resources.Migration_SettingsError + " ",
+                            Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_SettingsError + " ",
                                 e.ToString());
                             logger.Error(e);
                             migrationActive = false;
@@ -423,13 +426,10 @@ namespace Shoko.Server
 
                     if (!Utils.IsAdministrator())
                         message = "Failed to set folder permissions, do you want to try and reset folder permissions?";
-
-                    CancelReasonEventArgs args = new CancelReasonEventArgs(message, "Failed to set folder permissions");
-                    YesNoRequired?.Invoke(null, args);
-                    
-                    switch (args.Cancel)
+                    bool res = Utils.ShowYesNo("Failed to set folder permissions", message);
+                    switch (res)
                     {
-                        case false:
+                        case true:
                             // gonna try grant access again in advance
                             try
                             {
@@ -440,8 +440,8 @@ namespace Shoko.Server
                             }
                             Utils.RestartAsAdmin();
                             break;
-                        case true:
-                            System.Windows.Application.Current.Shutdown();
+                        case false:
+                            ServerShutdown?.Invoke(null, new ReasonedEventArgs { Reason="Failed to set folder permissions" } );
                             Environment.Exit(0);
                             break;
                     }
@@ -451,28 +451,17 @@ namespace Shoko.Server
             {
                 migrationError = true;
                 migrationActive = false;
-                MessageBox.Show($"{Commons.Properties.Resources.Migration_LoadError} {e.Message}",
-                    Commons.Properties.Resources.Migration_LoadError);
+                Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_LoadError, $"{Commons.Properties.Resources.Migration_LoadError} {e.Message}");
                 logger.Error(e);
                 ServerShutdown?.Invoke(null, new ReasonedEventArgs {Exception = e});
             }
         }
 
-        public class CancelReasonEventArgs : CancelEventArgs
-        {
-            public CancelReasonEventArgs(string reason, string formTitle)
-            {
-                FormTitle = formTitle;
-                Reason = reason;
-            }
 
-            public string Reason { get; }
-            public string FormTitle { get; }
-        }
 
         public class FileEventArgs : EventArgs { public string FileName { get; set; } }
 
-        public static event EventHandler<CancelReasonEventArgs> YesNoRequired;
+
         public static event EventHandler<FileEventArgs> LocateFile;
 
         public static void LoadLegacySettingsFromFile(bool locateAutomatically)
@@ -571,13 +560,9 @@ namespace Shoko.Server
         public static string LocateLegacyConfigFile()
         {
             string configPath = "";
+            bool res = Utils.ShowYesNo(Commons.Properties.Resources.LocateSettingsFile, Commons.Properties.Resources.LocateSettingsFileDialog);
 
-            CancelReasonEventArgs args = new CancelReasonEventArgs(
-                Commons.Properties.Resources.LocateSettingsFileDialog,
-                Commons.Properties.Resources.LocateSettingsFile);
-            YesNoRequired?.Invoke(null, args);
-
-            if (args.Cancel) return configPath;
+            if (!res) return configPath;
 
             FileEventArgs fea = new FileEventArgs();
             LocateFile?.Invoke(null, fea);

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows;
-using System.Windows.Media.Imaging;
+
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -129,21 +128,5 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static BitmapImage CreateIconImage(this ICloudPlugin plugin)
-        {
-            return Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (plugin?.Icon == null)
-                    return null;
-
-                MemoryStream ms = new MemoryStream(plugin.Icon);
-                ms.Seek(0, SeekOrigin.Begin);
-                BitmapImage icon = new BitmapImage();
-                icon.BeginInit();
-                icon.StreamSource = ms;
-                icon.EndInit();
-                return icon;
-            });
-        }
     }
 }

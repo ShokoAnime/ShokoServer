@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
 using NLog;
@@ -166,7 +167,7 @@ namespace Shoko.UI
 
         private void SubscribeEvents()
         {
-            ServerSettings.YesNoRequired += (sender, args) =>
+            Utils.YesNoRequired += (sender, args) =>
             {
                 System.Windows.Forms.DialogResult dr =
                     System.Windows.Forms.MessageBox.Show(args.Reason, args.FormTitle,
@@ -185,8 +186,17 @@ namespace Shoko.UI
             };
 
             Utils.ErrorMessage +=
-                (sender, args) => MessageBox.Show(this, args.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
+                (sender, args) => MessageBox.Show(this, args.Message, args.Title ?? (args.IsError ? "Error" : "Message"), MessageBoxButton.OK, args.IsError ? MessageBoxImage.Error : MessageBoxImage.Information);
+            Utils.OnEvents +=
+                (sender, args) =>
+                {
+                    DoEvents();
+                };
+            Utils.OnDispatch +=
+                (action) =>
+                {
+                    Application.Current.Dispatcher.Invoke(action);
+                };
             AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
             {
                 MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail,
@@ -207,8 +217,23 @@ namespace Shoko.UI
 
             ShokoServer.Instance.DBSetupCompleted += DBSetupCompleted;
             ShokoServer.Instance.DatabaseSetup += (sender, args) => ShowDatabaseSetup();
+
+        
+        }
+        public void DoEvents()
+        {
+            DispatcherFrame frame = new DispatcherFrame();
+            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
+                new DispatcherOperationCallback(ExitFrame), frame);
+            Dispatcher.PushFrame(frame);
         }
 
+        public object ExitFrame(object f)
+        {
+            ((DispatcherFrame)f).Continue = false;
+
+            return null;
+        }
         private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
         {
             ShokoServer.Instance.SyncPlex();

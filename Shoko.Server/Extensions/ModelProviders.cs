@@ -327,7 +327,7 @@ namespace Shoko.Server.Extensions
                 episode.AirsBeforeSeason = null;
         }
 
-        public static void Populate(this TvDB_Episode episode, int seriesId, TvDbSharper.Clients.Series.Json.BasicEpisode apiEpisode)
+        public static void Populate(this TvDB_Episode episode, int seriesId, TvDbSharper.Dto.BasicEpisode apiEpisode)
         {
             // used when getting information from episode info
             // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
@@ -344,7 +344,7 @@ namespace Shoko.Server.Extensions
             episode.Overview = apiEpisode.Overview;
         }
 
-        public static void Populate(this TvDB_Episode episode, TvDbSharper.Clients.Episodes.Json.EpisodeRecord apiEpisode)
+        public static void Populate(this TvDB_Episode episode, TvDbSharper.Dto.EpisodeRecord apiEpisode)
         {
             episode.Id = apiEpisode.Id;
             episode.SeriesID = int.Parse(apiEpisode.SeriesId);
@@ -472,7 +472,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
+        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null) {
                 logger.Error("Error in TvDB_ImageFanart.Populate, image.Id is null, series: {0}",seriesID);
@@ -496,7 +496,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
+        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -520,7 +520,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Clients.Series.Json.Image image)
+        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -590,7 +590,7 @@ namespace Shoko.Server.Extensions
             series.Poster = TryGetSeriesProperty(doc, "poster");
         }
 
-        public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Clients.Series.Json.Series apiSeries)
+        public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Dto.Series apiSeries)
         {
             series.SeriesID = 0;
             series.Overview = string.Empty;
@@ -625,7 +625,7 @@ namespace Shoko.Server.Extensions
             if (series["language"] != null) response.Language = series["language"].InnerText;
         }
 
-        public static void Populate(this TVDB_Series_Search_Response response, TvDbSharper.Clients.Search.Json.SeriesSearchResult series)
+        public static void Populate(this TVDB_Series_Search_Response response, TvDbSharper.Dto.SeriesSearchResult series)
         {
             response.Id = string.Empty;
             response.SeriesID = series.Id;

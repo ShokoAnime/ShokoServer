@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web.Script.Serialization;
-using System.Windows.Media.Imaging;
+
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NLog;
@@ -115,12 +115,12 @@ namespace Shoko.Server.Models
             }
         }
 
-        private BitmapSource _bitmap;
+        private byte[] _bitmap;
 
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        public BitmapSource Bitmap
+        public byte[] Bitmap
         {
             get
             {
