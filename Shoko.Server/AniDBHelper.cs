@@ -204,7 +204,7 @@ namespace Shoko.Server
 
         public void CloseConnections()
         {
-            if (logoutTimer != null) logoutTimer.Stop();
+            logoutTimer?.Stop();
             logoutTimer = null;
             if (soUdp == null) return;
             soUdp.Shutdown(SocketShutdown.Both);
@@ -366,7 +366,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev == enHelperActivityType.GotEpisodeInfo && getInfoCmd != null && getInfoCmd.EpisodeInfo != null)
+            if (ev == enHelperActivityType.GotEpisodeInfo && getInfoCmd.EpisodeInfo != null)
             {
                 try
                 {
@@ -400,7 +400,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev == enHelperActivityType.GotFileInfo && getInfoCmd != null && getInfoCmd.fileInfo != null)
+            if (ev == enHelperActivityType.GotFileInfo && getInfoCmd.fileInfo != null)
             {
                 try
                 {
@@ -796,36 +796,6 @@ namespace Shoko.Server
             return chr;
         }
 
-        // NO LONGER USED
-        /*public AniDB_Seiyuu GetCreatorInfoUDP(int creatorID)
-		{
-			if (!Login()) return null;
-
-			enHelperActivityType ev = enHelperActivityType.NoSuchCreator;
-			AniDBCommand_GetCreatorInfo getCreatorCmd = null;
-			lock (lockAniDBConnections)
-			{
-				Pause();
-
-				getCreatorCmd = new AniDBCommand_GetCreatorInfo();
-				getCreatorCmd.Init(creatorID, true);
-				ev = getCreatorCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
-			}
-
-			AniDB_Seiyuu chr = null;
-			if (ev == enHelperActivityType.GotCreatorInfo && getCreatorCmd.CreatorInfo != null)
-			{
-				AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
-				chr = repCreator.GetByCreatorID(creatorID);
-				if (chr == null) chr = new AniDB_Seiyuu();
-
-				chr.Populate(getCreatorCmd.CreatorInfo);
-				repCreator.Save(chr);
-			}
-
-			return chr;
-		}*/
-
         public AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
         {
             if (!Login()) return null;
@@ -1017,12 +987,7 @@ namespace Shoko.Server
         }
 
 
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID)
-        {
-            return GetAnimeInfoHTTP(animeID, false, true);
-        }
-
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh, bool downloadRelations)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -1100,8 +1065,7 @@ namespace Shoko.Server
                 JMMImageType.AniDB_Cover,
                 false);
             cmd.Save(session);
-            // create AnimeEpisode records for all episodes in this anime
-            // only if we have a series
+            // create AnimeEpisode records for all episodes in this anime only if we have a series
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             RepoFactory.AniDB_Anime.Save(anime);
             if (ser != null)
@@ -1109,15 +1073,6 @@ namespace Shoko.Server
                 ser.CreateAnimeEpisodes(session);
                 RepoFactory.AnimeSeries.Save(ser, true, false);
             }
-
-            // update any files, that may have been linked
-            /*CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-            repCrossRefs.GetByAnimeID(*/
-
-            // update cached stats
-
-            //StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
-            //StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
             // download character images
             foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
@@ -1141,7 +1096,7 @@ namespace Shoko.Server
                 if (ServerSettings.AniDB_DownloadCreators)
                 {
                     AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
-                    if (seiyuu == null || string.IsNullOrEmpty(seiyuu.GetPosterPath())) continue;
+                    if (string.IsNullOrEmpty(seiyuu?.GetPosterPath())) continue;
 
                     if (!File.Exists(seiyuu.GetPosterPath()))
                     {
