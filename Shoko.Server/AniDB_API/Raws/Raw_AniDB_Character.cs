@@ -90,11 +90,11 @@ namespace AniDBAPI
             CreatorListRaw = "";
             foreach (XmlNode nodeChild in node.ChildNodes)
             {
-                if (nodeChild.Name == "seiyuu")
+                if (nodeChild?.Name == "seiyuu")
                 {
                     Raw_AniDB_Seiyuu seiyuu = new Raw_AniDB_Seiyuu();
 
-                    if (nodeChild.Attributes["id"] != null)
+                    if (nodeChild.Attributes?["id"] != null)
                     {
                         string creatorid = nodeChild.Attributes["id"].Value;
                         seiyuu.SeiyuuID = int.Parse(creatorid);
@@ -104,7 +104,7 @@ namespace AniDBAPI
                         CreatorListRaw += creatorid.Trim();
                     }
 
-                    if (nodeChild.Attributes["picture"] != null)
+                    if (nodeChild.Attributes?["picture"] != null)
                         seiyuu.PicName = nodeChild.Attributes["picture"].Value;
 
                     seiyuu.SeiyuuName = nodeChild.InnerText;

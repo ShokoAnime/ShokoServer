@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime;
+using System.Threading.Tasks;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server.Repositories.Cached;
@@ -12,6 +13,8 @@ namespace Shoko.Server.Repositories
 {
     public static class RepoFactory
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         public static readonly List<ICachedRepository> CachedRepositories = new List<ICachedRepository>();
         //Cached Ones
         // DECLARE THESE IN ORDER OF DEPENDENCY
@@ -144,10 +147,7 @@ namespace Shoko.Server.Repositories
 
         public static void Init()
         {
-            foreach (var repo in CachedRepositories)
-            {
-                repo.Populate();
-            }
+            InitCaches();
 
             // Update Contracts if necessary
             try
@@ -163,9 +163,29 @@ namespace Shoko.Server.Repositories
             }
             catch (Exception e)
             {
-                LogManager.GetCurrentClassLogger().Error($"There was an error starting the Database Factory: {e}");
+                logger.Error($"There was an error starting the Database Factory - Regenerating: {e}");
+                throw;
             }
             CleanUpMemory();
+        }
+
+        public static void InitCaches()
+        {
+            try
+            {
+                foreach (var repo in CachedRepositories)
+                {
+                    Task task = Task.Run(() => repo.Populate());
+
+                    // don't wait longer than 3 minutes
+                    if (!task.Wait(180000)) throw new TimeoutException($"{repo.GetType()} took too long to cache.");
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.Error($"There was an error starting the Database Factory - Caching: {exception}");
+                throw;
+            }
         }
 
         public static void CleanUpMemory()
