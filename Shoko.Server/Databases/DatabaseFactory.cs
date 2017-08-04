@@ -108,8 +108,7 @@ namespace Shoko.Server.Databases
                     if (ex is DatabaseCommandException)
                     {
                         logger.Error(ex, ex.ToString());
-                        Utils.ShowErrorMessage(
-                            "Database Error :\n\r " + ex +
+                        Utils.ShowErrorMessage("Database Error :\n\r " + ex.ToString() +
                             "\n\rNotify developers about this error, it will be logged in your logs", "Database Error");
                         ServerState.Instance.CurrentSetupStatus =
                             Commons.Properties.Resources.Server_DatabaseFail;

@@ -5,8 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Windows;
-using System.Windows.Threading;
+
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
@@ -54,7 +53,7 @@ namespace Shoko.Server
 
         public void Init()
         {
-            RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a));
+            Utils.MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
             SVR_Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
@@ -62,7 +61,7 @@ namespace Shoko.Server
                 StartScan();
             }
         }
-
+        
         public void StartScan()
         {
             if (ActiveScan == null)
@@ -80,24 +79,15 @@ namespace Shoko.Server
                 CancelScan();
             RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
             RepoFactory.Scan.Delete(ActiveScan);
+<<<<<<< HEAD
             Scans.Remove(ActiveScan);
+=======
+            Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
+>>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
             ActiveScan = null;
         }
 
-        public void DoEvents()
-        {
-            DispatcherFrame frame = new DispatcherFrame();
-            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
-                new DispatcherOperationCallback(ExitFrame), frame);
-            Dispatcher.PushFrame(frame);
-        }
 
-        public object ExitFrame(object f)
-        {
-            ((DispatcherFrame) f).Continue = false;
-
-            return null;
-        }
 
         public void CancelScan()
         {
@@ -108,7 +98,7 @@ namespace Shoko.Server
                 cancelIntegrityCheck = true;
                 while (workerIntegrityScanner.IsBusy)
                 {
-                    DoEvents();
+                    Utils.DoEvents();
                     Thread.Sleep(100);
                 }
                 cancelIntegrityCheck = false;
@@ -133,8 +123,12 @@ namespace Shoko.Server
                 {
                     activeScan = value;
                     Refresh();
+<<<<<<< HEAD
                     
                     {
+=======
+                    Utils.MainThreadDispatch(() => {
+>>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                         ActiveErrorFiles.Clear();
                         if (value != null)
                             RepoFactory.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
@@ -159,7 +153,11 @@ namespace Shoko.Server
 
         public void AddErrorScan(ScanFile file)
         {
+<<<<<<< HEAD
             
+=======
+            Utils.MainThreadDispatch(() => {
+>>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                 if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
                     ActiveErrorFiles.Add(file);
        

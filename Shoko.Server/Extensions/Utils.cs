@@ -126,14 +126,5 @@ namespace Shoko.Server.Extensions
             };
             return contract;
         }
-
-        public delegate object CreateIconEventHandler(ICloudPlugin plugin);
-        //TODO: Linux: Implement properly.
-        public static event CreateIconEventHandler CreateIcon;
-
-        public static object CreateIconImage(this ICloudPlugin plugin)
-        {
-            return CreateIcon?.Invoke(plugin);
-        }
     }
 }

@@ -231,11 +231,15 @@
     <Reference Include="Trinet.Core.IO.Ntfs, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0aeaaa20a328a46c, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Trinet.Core.IO.Ntfs.4.0.0\lib\net35\Trinet.Core.IO.Ntfs.dll</HintPath>
     </Reference>
-    <Reference Include="TvDbSharper">
-      <HintPath>$(SolutionDir)Dependencies\TvDbSharper.dll</HintPath>
+    <Reference Include="TvDbSharper, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\TvDbSharper.dll</HintPath>
     </Reference>
+<<<<<<< HEAD
     <Reference Include="WindowsBase" />
     <Reference Include="WindowsFormsIntegration" />
+=======
+>>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
   </ItemGroup>
   <ItemGroup>
     <!-- <ApplicationDefinition Include="App.xaml">

@@ -27,7 +27,7 @@ using Nancy.Hosting.Self;
 using Nancy.Rest.Module;
 using Action = System.Action;
 using System.Net.NetworkInformation;
-using System.Windows.Threading;
+
 using Microsoft.Win32.TaskScheduler;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -138,8 +138,13 @@ namespace Shoko.Server
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
             if (!MigrateProgramDataLocation())
             {
+<<<<<<< HEAD
 
                 Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.Migration_LoadError);
+=======
+                Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_LoadError,
+                    Commons.Properties.Resources.ShokoServer);
+>>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                 Environment.Exit(1);
             }
 
@@ -346,8 +351,9 @@ namespace Shoko.Server
                 {
                     
                     // Ask if user wants to uninstall first
-                    if (ServerSettings.CallYesNo(Shoko.Commons.Properties.Resources.DuplicateInstallDetectedQuestion,
-                        Shoko.Commons.Properties.Resources.DuplicateInstallDetected))
+                    bool res = Utils.ShowYesNo(Commons.Properties.Resources.DuplicateInstallDetectedQuestion, Commons.Properties.Resources.DuplicateInstallDetected);
+
+                    if (res)
                     {
                         try
                         {
@@ -387,7 +393,7 @@ namespace Shoko.Server
             {
                 if (Utils.IsAdministrator())
                 {
-                    Utils.ShowErrorMessage("Settings the ports, after that JMMServer will quit, run again in normal mode");
+                    Utils.ShowMessage(null, "Settings the ports, after that JMMServer will quit, run again in normal mode");
 
                     try
                     {
@@ -416,6 +422,24 @@ namespace Shoko.Server
             return true;
         }
 
+        public void ApplicationShutdown()
+        {
+            try
+            {
+                ThreadStart ts = () =>
+                {
+                    
+                    ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
+                    System.Environment.Exit(0);
+                };
+                new Thread(ts).Start();
+            }
+            catch (Exception ex)
+            {
+                logger.Log(LogLevel.Error, $"Error occured during ApplicationShutdown: {ex.Message}");
+            }
+        }
+
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             // for later use
@@ -427,7 +451,7 @@ namespace Shoko.Server
         }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
-
+        
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
             try
@@ -967,6 +991,11 @@ namespace Shoko.Server
                 workerMyAnime2.ReportProgress(0, ma2Progress);
             }
         }
+
+        private void ImportLinksFromMA2(string databasePath)
+        {
+        }
+
         #endregion
 
         private void GenerateAzureList()
@@ -1154,7 +1183,30 @@ namespace Shoko.Server
         }
 
         #region UI events and methods
+        
+        internal static string GetLocalIPv4(NetworkInterfaceType _type)
+        {
+            string output = "";
+            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
+                    IPInterfaceProperties adapterProperties = item.GetIPProperties();
 
+                    if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
+                    {
+                        foreach (UnicastIPAddressInformation ip in adapterProperties.UnicastAddresses)
+                        {
+                            if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            {
+                                output = ip.Address.ToString();
+                            }
+                        }
+                    }
+                }
+            }
+
+            return output;
+        }
 
         public event EventHandler ServerShutdown;
         public event EventHandler ServerRestart;

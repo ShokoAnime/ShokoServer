@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -683,11 +684,55 @@ namespace Shoko.Server
         public class ErrorEventArgs : EventArgs
         {
             public string Message { get; internal set; }
-            public string Title { get; internal set; } = "Error";
+
+            public string Title { get; internal set; }
+            
+            public bool IsError { get; internal set; }=true;
         }
 
-        public static event EventHandler<ErrorEventArgs> ErrorMessage; 
+        public class CancelReasonEventArgs : CancelEventArgs
+        {
+            public CancelReasonEventArgs(string reason, string formTitle)
+            {
+                FormTitle = formTitle;
+                Reason = reason;
+            }
 
+            public string Reason { get; }
+            public string FormTitle { get; }
+        }
+        
+        public static event EventHandler<ErrorEventArgs> ErrorMessage;
+        public static event EventHandler<CancelReasonEventArgs> YesNoRequired;
+
+        public static event EventHandler OnEvents;
+
+        public delegate void DispatchHandler(Action a);
+
+        public static event DispatchHandler OnDispatch;
+
+        public static void DoEvents()
+        {
+  
+            OnEvents?.Invoke(null,null);
+        }
+
+        public static void MainThreadDispatch(Action a)
+        {
+            if (OnDispatch != null)
+                OnDispatch?.Invoke(a);
+            else
+            {
+                a();
+            }
+
+        }
+        public static bool ShowYesNo(string title, string msg)
+        {
+            CancelReasonEventArgs args = new CancelReasonEventArgs(msg, title);
+            YesNoRequired?.Invoke(null, args);
+            return !args.Cancel;
+        }
         public static void ShowErrorMessage(Exception ex)
         {
             //MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -701,13 +746,21 @@ namespace Shoko.Server
             ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg });
             logger.Error(msg);
         }
-        public static void ShowErrorMessage(string msg, string title)
+
+        public static void ShowErrorMessage(string title, string msg)
         {
             //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg, Title = title });
+            ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg , Title=title });
             logger.Error(msg);
         }
 
+        public static void ShowMessage(string title, string msg)
+        {
+            //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ErrorMessage?.Invoke(null, new ErrorEventArgs() { Message = msg, Title = title, IsError=false});
+            logger.Error(msg);
+        }
+        
         public static string GetApplicationVersion(Assembly a)
         {
             AssemblyName an = a.GetName();
@@ -1553,7 +1606,7 @@ namespace Shoko.Server
                 }
 
                 proc.Start();
-                //System.Windows.Application.Current.Shutdown();
+                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());         
                 Environment.Exit(0);
             }
             catch (Exception ex)
