@@ -79,11 +79,7 @@ namespace Shoko.Server
                 CancelScan();
             RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
             RepoFactory.Scan.Delete(ActiveScan);
-<<<<<<< HEAD
-            Scans.Remove(ActiveScan);
-=======
             Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
             ActiveScan = null;
         }
 
@@ -123,16 +119,11 @@ namespace Shoko.Server
                 {
                     activeScan = value;
                     Refresh();
-<<<<<<< HEAD
-                    
-                    {
-=======
                     Utils.MainThreadDispatch(() => {
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                         ActiveErrorFiles.Clear();
                         if (value != null)
                             RepoFactory.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
-                    };
+                    });
                 }
             }
         }
@@ -153,13 +144,12 @@ namespace Shoko.Server
 
         public void AddErrorScan(ScanFile file)
         {
-<<<<<<< HEAD
-            
-=======
-            Utils.MainThreadDispatch(() => {
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
+
+            Utils.MainThreadDispatch(() =>
+            {
                 if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
                     ActiveErrorFiles.Add(file);
+            });
        
         }
 

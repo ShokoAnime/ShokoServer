@@ -1070,7 +1070,7 @@ namespace Shoko.Server
                     Utils.MainThreadDispatch(() =>
                     {
                         ServerInfo.Instance.RefreshImportFolders();
-                    }
+                    });
                 }
                 catch
                 {

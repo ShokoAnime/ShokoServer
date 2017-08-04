@@ -383,13 +383,8 @@ namespace Shoko.Server
                         }
                         catch (Exception e)
                         {
-<<<<<<< HEAD
-                            Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.Migration_SettingsError + " " +
-                                e);
-=======
                             Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_SettingsError + " ",
-                                e.ToString());
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
+                                e.ToString()); 
                             logger.Error(e);
                             migrationActive = false;
                             migrationError = true;
@@ -460,13 +455,8 @@ namespace Shoko.Server
                             }
                             Utils.RestartAsAdmin();
                             break;
-<<<<<<< HEAD
-                        case true:
-                            //ShokoServer.Instance.ApplicationShutdown();
-=======
                         case false:
                             ServerShutdown?.Invoke(null, new ReasonedEventArgs { Reason="Failed to set folder permissions" } );
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                             Environment.Exit(0);
                             break;
                     }
@@ -476,11 +466,7 @@ namespace Shoko.Server
             {
                 migrationError = true;
                 migrationActive = false;
-<<<<<<< HEAD
-                Utils.ShowErrorMessage($"{Shoko.Commons.Properties.Resources.Migration_LoadError} {e.Message}");
-=======
                 Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_LoadError, $"{Commons.Properties.Resources.Migration_LoadError} {e.Message}");
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                 logger.Error(e);
                 ServerShutdown?.Invoke(null, new ReasonedEventArgs {Exception = e});
             }
@@ -586,13 +572,6 @@ namespace Shoko.Server
                     string.Format("Error occured during LoadSettingsManuallyFromFile: {0}", ex.Message));
                 logger.Log(LogLevel.Fatal, ex.StackTrace);
             }
-        }
-
-        public static bool CallYesNo(string reason, string title)
-        {
-            CancelReasonEventArgs args = new CancelReasonEventArgs(reason, title);
-            YesNoRequired?.Invoke(null, args);
-            return args.Cancel;
         }
 
         public static string LocateLegacyConfigFile()

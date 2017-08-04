@@ -138,13 +138,8 @@ namespace Shoko.Server
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
             if (!MigrateProgramDataLocation())
             {
-<<<<<<< HEAD
-
-                Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.Migration_LoadError);
-=======
                 Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_LoadError,
                     Commons.Properties.Resources.ShokoServer);
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
                 Environment.Exit(1);
             }
 
@@ -1190,6 +1185,7 @@ namespace Shoko.Server
             foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
+                { 
                     IPInterfaceProperties adapterProperties = item.GetIPProperties();
 
                     if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
