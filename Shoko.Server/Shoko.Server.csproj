@@ -235,11 +235,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\TvDbSharper.dll</HintPath>
     </Reference>
-<<<<<<< HEAD
-    <Reference Include="WindowsBase" />
-    <Reference Include="WindowsFormsIntegration" />
-=======
->>>>>>> 9c1313457faa7652d942cf6155165e7ea15e8e2a
   </ItemGroup>
   <ItemGroup>
     <!-- <ApplicationDefinition Include="App.xaml">
