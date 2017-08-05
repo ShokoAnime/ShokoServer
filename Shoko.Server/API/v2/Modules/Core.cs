@@ -123,6 +123,10 @@ namespace Shoko.Server.API.v2.Modules
             Get["/log/rotate/start", true] = async (x,ct) => await Task.Factory.StartNew(StartRotateLogs, ct);
 
             #endregion
+
+            #region 11. Image Actions
+            Get["/images/update", true] = async (x, ct) => await Task.Factory.StartNew(() => UpdateImages());
+            #endregion
         }
 
         #region 01.Settings
@@ -945,6 +949,18 @@ namespace Shoko.Server.API.v2.Modules
             return result;
         }
 
+        #endregion
+
+        #region 11. Image Actions
+
+        private object UpdateImages()
+        {
+            Importer.RunImport_UpdateTvDB(true);
+            ShokoServer.Instance.DownloadAllImages();
+
+            return APIStatus.statusOK();
+        }
+        
         #endregion
     }
 }
