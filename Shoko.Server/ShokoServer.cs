@@ -27,7 +27,7 @@ using Nancy.Hosting.Self;
 using Nancy.Rest.Module;
 using Action = System.Action;
 using System.Net.NetworkInformation;
-using System.Windows.Threading;
+
 using Microsoft.Win32.TaskScheduler;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -138,8 +138,8 @@ namespace Shoko.Server
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
             if (!MigrateProgramDataLocation())
             {
-                MessageBox.Show(Commons.Properties.Resources.Migration_LoadError,
-                    Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_LoadError,
+                    Commons.Properties.Resources.ShokoServer);
                 Environment.Exit(1);
             }
 
@@ -288,7 +288,7 @@ namespace Shoko.Server
 
             return result;
         }
-
+        /*
         private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
         {
             foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
@@ -307,7 +307,7 @@ namespace Shoko.Server
                 Directory.CreateDirectory(imagePath);
             ServerSettings.ImagesPath = imagePath;
         }
-
+        */
         public bool MigrateProgramDataLocation()
         {
             string oldApplicationPath =
@@ -362,10 +362,9 @@ namespace Shoko.Server
                 if (!string.IsNullOrEmpty(jmmServerUninstallPath))
                 {
                     // Ask if user wants to uninstall first
-                    MessageBoxResult dr =
-                        MessageBox.Show(Commons.Properties.Resources.DuplicateInstallDetectedQuestion,
-                            Commons.Properties.Resources.DuplicateInstallDetected, MessageBoxButton.YesNo);
-                    if (dr == MessageBoxResult.Yes)
+                    bool res = Utils.ShowYesNo(Commons.Properties.Resources.DuplicateInstallDetectedQuestion, Commons.Properties.Resources.DuplicateInstallDetected);
+
+                    if (res)
                     {
                         try
                         {
@@ -405,7 +404,7 @@ namespace Shoko.Server
             {
                 if (Utils.IsAdministrator())
                 {
-                    MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
+                    Utils.ShowMessage(null, "Settings the ports, after that JMMServer will quit, run again in normal mode");
 
                     try
                     {
@@ -413,7 +412,7 @@ namespace Shoko.Server
                     }
                     catch (Exception exception)
                     {
-                        MessageBox.Show("Unable start hosting");
+                        Utils.ShowErrorMessage("Unable start hosting");
                         logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
                         logger.Error(exception);
                     }
@@ -425,7 +424,7 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
+                    Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
                     logger.Error(e);
                     ApplicationShutdown();
                     return false;
@@ -440,10 +439,9 @@ namespace Shoko.Server
             {
                 ThreadStart ts = () =>
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        Application.Current.Shutdown();
-                    });
+                    
+                    ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
+                    System.Environment.Exit(0);
                 };
                 new Thread(ts).Start();
             }
@@ -464,7 +462,7 @@ namespace Shoko.Server
         }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
-
+        /*
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
         {
             SyncHashes();
@@ -480,7 +478,7 @@ namespace Shoko.Server
                 Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
-
+        */
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
             try
@@ -591,7 +589,7 @@ namespace Shoko.Server
                 }
             }
         }
-
+        /*
         void BtnUploadAzureCache_Click(object sender, RoutedEventArgs e)
         {
             IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
@@ -611,7 +609,7 @@ namespace Shoko.Server
                 }
             }
         }
-
+        */
         void InitCulture()
         {
             
@@ -1040,11 +1038,12 @@ namespace Shoko.Server
                 workerMyAnime2.ReportProgress(0, ma2Progress);
             }
         }
-
+        /*
         void ImportManualLinks()
         {
             if (workerMyAnime2.IsBusy)
             {
+
                 MessageBox.Show(Commons.Properties.Resources.Server_Import,
                     Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1061,7 +1060,7 @@ namespace Shoko.Server
                 workerMyAnime2.RunWorkerAsync(ofd.FileName);
             }
         }
-
+        */
         private void ImportLinksFromMA2(string databasePath)
         {
         }
@@ -1253,7 +1252,7 @@ namespace Shoko.Server
         }
 
         #region UI events and methods
-
+        /*
         private void CommandBinding_ScanFolder(object sender, ExecutedRoutedEventArgs e)
         {
             object obj = e.Parameter;
@@ -1276,7 +1275,7 @@ namespace Shoko.Server
                 Utils.ShowErrorMessage(ex);
             }
         }
-
+        */
         internal static string GetLocalIPv4(NetworkInterfaceType _type)
         {
             string output = "";

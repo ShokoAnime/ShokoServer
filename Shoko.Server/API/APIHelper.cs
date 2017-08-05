@@ -80,19 +80,19 @@ namespace Shoko.Server.API
             return APIHelper.ProperURL(ctx, "/api/metadata/" + (int) JMMType.Playlist + "/" + pid, short_url);
         }
 
-        public static string ConstructSupportImageLink(NancyContext ctx, string name, bool short_url = false)
+        public static string ConstructSupportImageLink(NancyContext ctx, string name, bool short_url = true)
         {
             return APIHelper.ProperURL(ctx, "/api/image/support/" + name, short_url);
         }
 
-        public static string ConstructImageLinkFromRest(NancyContext ctx, string path, bool short_url = false)
+        public static string ConstructImageLinkFromRest(NancyContext ctx, string path, bool short_url = true)
         {
             return ConvertRestImageToNonRestUrl(ctx, path, short_url);
         }
 
-        public static string ConstructImageLinkFromTypeAndId(NancyContext ctx, int type, int id, bool short_url = false)
+        public static string ConstructImageLinkFromTypeAndId(NancyContext ctx, int type, int id, bool short_url = true)
         {
-            return APIHelper.ProperURL(ctx, "/api/image/" + type.ToString() + "/" + id.ToString());
+            return APIHelper.ProperURL(ctx, "/api/image/" + type.ToString() + "/" + id.ToString(), short_url);
         }
 
         public static string ConstructVideoLocalStream(NancyContext ctx, int userid, string vid, string name, bool autowatch)

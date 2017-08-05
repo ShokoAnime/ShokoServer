@@ -17,11 +17,9 @@ using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 using Pri.LongPath;
-using TvDbSharper.BaseSchemas;
-using TvDbSharper.Clients.Series.Json;
+
 using Shoko.Commons.Extensions;
-using TvDbSharper.Clients.Updates.Json;
-using TvDbSharper.Clients.Episodes.Json;
+using TvDbSharper.Dto;
 using HttpUtility = Nancy.Helpers.HttpUtility;
 
 namespace Shoko.Server.Providers.TvDB
@@ -87,16 +85,16 @@ namespace Shoko.Server.Providers.TvDB
 
                 return tvSeries;
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetSeriesInfoOnlineAsync(seriesID);
                     // suppress 404 and move on
-                } else if (exception.StatusCode == HttpStatusCode.NotFound) return null;
+                } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
 
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
@@ -126,25 +124,25 @@ namespace Shoko.Server.Providers.TvDB
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Search.SearchSeriesByNameAsync(criteria);
-                TvDbSharper.Clients.Search.Json.SeriesSearchResult[] series = response.Data;
+                TvDbSharper.Dto.SeriesSearchResult[] series = response.Data;
 
-                foreach (TvDbSharper.Clients.Search.Json.SeriesSearchResult item in series)
+                foreach (TvDbSharper.Dto.SeriesSearchResult item in series)
                 {
                     TVDB_Series_Search_Response searchResult = new TVDB_Series_Search_Response();
                     searchResult.Populate(item);
                     results.Add(searchResult);
                 }
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await SearchSeriesAsync(criteria);
                     // suppress 404 and move on
-                } else if (exception.StatusCode == HttpStatusCode.NotFound) return results;
+                } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return results;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message + "\n        when searching for " + criteria);
             }
             catch (Exception ex)
@@ -298,12 +296,12 @@ namespace Shoko.Server.Providers.TvDB
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Languages.GetAllAsync();
-                TvDbSharper.Clients.Languages.Json.Language[] apiLanguages = response.Data;
+                TvDbSharper.Dto.Language[] apiLanguages = response.Data;
 
                 if (apiLanguages.Length <= 0)
                     return languages;
 
-                foreach (TvDbSharper.Clients.Languages.Json.Language item in apiLanguages)
+                foreach (TvDbSharper.Dto.Language item in apiLanguages)
                 {
                     TvDB_Language lan = new TvDB_Language()
                     {
@@ -315,16 +313,16 @@ namespace Shoko.Server.Providers.TvDB
                     languages.Add(lan);
                 }
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetLanguagesAsync();
                     // suppress 404 and move on
-                } else if (exception.StatusCode == HttpStatusCode.NotFound) return languages;
+                } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return languages;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -367,16 +365,16 @@ namespace Shoko.Server.Providers.TvDB
                 var response = await client.Series.GetImagesSummaryAsync(seriesID);
                 return response.Data;
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
                     if (client.Authentication.Token != null)
                         return await GetSeriesImagesCountsAsync(seriesID);
                     // suppress 404 and move on
-                } else if (exception.StatusCode == HttpStatusCode.NotFound) return null;
+                } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             return null;
@@ -396,9 +394,9 @@ namespace Shoko.Server.Providers.TvDB
                 var response = await client.Series.GetImagesAsync(seriesID, query);
                 return response.Data;
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -406,7 +404,7 @@ namespace Shoko.Server.Providers.TvDB
                         return await GetSeriesImagesAsync(seriesID, type);
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return new Image[] { };
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return new Image[] { };
                 logger.Error(exception,
                     "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
@@ -458,9 +456,9 @@ namespace Shoko.Server.Providers.TvDB
                         RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
                 }
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -468,7 +466,7 @@ namespace Shoko.Server.Providers.TvDB
                         return await GetFanartOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return tvImages;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return tvImages;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -525,9 +523,9 @@ namespace Shoko.Server.Providers.TvDB
                         RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImagePosterID);
                 }
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -537,7 +535,7 @@ namespace Shoko.Server.Providers.TvDB
                     }
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return tvImages;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return tvImages;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -594,9 +592,9 @@ namespace Shoko.Server.Providers.TvDB
                         RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageWideBannerID);
                 }
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -604,7 +602,7 @@ namespace Shoko.Server.Providers.TvDB
                         return await GetBannerOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return tvImages;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return tvImages;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -763,9 +761,9 @@ namespace Shoko.Server.Providers.TvDB
 
                 apiEpisodes = firstResponse.Data.Concat(results.SelectMany(x => x.Data)).ToList();
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -773,7 +771,7 @@ namespace Shoko.Server.Providers.TvDB
                         return await GetEpisodesOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return apiEpisodes;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return apiEpisodes;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -799,9 +797,9 @@ namespace Shoko.Server.Providers.TvDB
                 var response = await client.Episodes.GetAsync(episodeID);
                 return response.Data;
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -809,7 +807,7 @@ namespace Shoko.Server.Providers.TvDB
                         return await GetEpisodeDetailsAsync(episodeID);
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return null;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -854,9 +852,9 @@ namespace Shoko.Server.Providers.TvDB
                     }
                 }
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -867,7 +865,7 @@ namespace Shoko.Server.Providers.TvDB
                     }
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)
@@ -915,6 +913,12 @@ namespace Shoko.Server.Providers.TvDB
 
                 var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvSeries.SeriesID).FirstOrDefault();
                 if (xref == null) return;
+                var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                var episodes = RepoFactory.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
+                foreach (SVR_AnimeEpisode episode in episodes)
+                {
+                    RepoFactory.AnimeEpisode.Save(episode);
+                }
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(xref.AnimeID);
             }
             catch (Exception ex)
@@ -1032,9 +1036,9 @@ namespace Shoko.Server.Providers.TvDB
 
                 return seriesList;
             }
-            catch (TvDbSharper.Errors.TvDbServerException exception)
+            catch (TvDbSharper.TvDbServerException exception)
             {
-                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
@@ -1044,7 +1048,7 @@ namespace Shoko.Server.Providers.TvDB
                     }
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == HttpStatusCode.NotFound) return seriesList;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return seriesList;
                 logger.Error(exception, "TvDB returned an error code: " + exception.StatusCode + "\n        " + exception.Message);
             }
             catch (Exception ex)

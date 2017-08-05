@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
-using System.Windows.Media.Imaging;
+
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
@@ -27,10 +27,6 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(value))
                 {
                     _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == value);
-                    if (_plugin != null)
-                    {
-                        Bitmap = _plugin.CreateIconImage();
-                    }
                 }
             }
         }
@@ -38,7 +34,7 @@ namespace Shoko.Server.Models
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        public BitmapImage Bitmap { get; set; }
+        public byte[] Bitmap => _plugin?.Icon;
 
         [ScriptIgnore]
         [JsonIgnore]
@@ -91,7 +87,6 @@ namespace Shoko.Server.Models
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            Bitmap = _plugin.CreateIconImage();
             FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(), auth, ConnectionString);
             if (res == null || !res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
