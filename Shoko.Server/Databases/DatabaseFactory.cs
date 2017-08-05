@@ -105,23 +105,21 @@ namespace Shoko.Server.Databases
                     if (ex is DatabaseCommandException)
                     {
                         logger.Error(ex, ex.ToString());
-                        MessageBox.Show(
-                            "Database Error :\n\r " + ex.ToString() +
-                            "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        Utils.ShowErrorMessage("Database Error :\n\r " + ex.ToString() +
+                            "\n\rNotify developers about this error, it will be logged in your logs", "Database Error");
                         ServerState.Instance.CurrentSetupStatus =
                             Commons.Properties.Resources.Server_DatabaseFail;
+                        return false;
                     }
-                    else
+                    if (ex is TimeoutException)
                     {
-                        if (ex is TimeoutException)
-                        {
-                            logger.Error(ex, "Database TimeOut: " + ex.ToString());
-                            ServerState.Instance.CurrentSetupStatus =
-                                Commons.Properties.Resources.Server_DatabaseTimeOut;
-                        }
+                        logger.Error(ex, "Database TimeOut: " + ex.ToString());
+                        ServerState.Instance.CurrentSetupStatus =
+                            Commons.Properties.Resources.Server_DatabaseTimeOut;
+                        return false;
                     }
-                    return false;
+                    // throw to the outer try/catch
+                    throw;
                 }
 
                 return true;

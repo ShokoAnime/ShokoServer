@@ -4,8 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using System.Windows.Media;
-using Shoko.Models.Server;
+
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
@@ -85,7 +84,7 @@ namespace Shoko.Server
                 {
                     CloudProvider p = new CloudProvider
                     {
-                        Bitmap = plugin.CreateIconImage(),
+                        Bitmap = plugin.Icon,
                         Name = plugin.Name,
                         Plugin = plugin
                     };
@@ -347,7 +346,7 @@ namespace Shoko.Server
         public class CloudProvider
         {
             public string Name { get; set; }
-            public ImageSource Bitmap { get; set; }
+            public byte[] Bitmap { get; set; }
             public ICloudPlugin Plugin { get; set; }
         }
 

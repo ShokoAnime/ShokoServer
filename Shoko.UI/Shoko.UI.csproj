@@ -142,6 +142,7 @@
     <Compile Include="Forms\CloudFolderBrowser.xaml.cs">
       <DependentUpon>CloudFolderBrowser.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Forms\Converter\ByteArrayToBitmapConverter.cs" />
     <Compile Include="Forms\HyperLinkStandard.xaml.cs">
       <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
     </Compile>

@@ -972,8 +972,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             this.DisableExternalLinksFlag = 0;
         }
 
-        private static void Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
+        private static bool Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
         {
+            // We need various values to be populated to be considered valid
+            if (animeInfo.AnimeID <= 0 || string.IsNullOrEmpty(animeInfo.MainTitle)) return false;
             adnidbanime.AirDate = animeInfo.AirDate;
             adnidbanime.AllCinemaID = animeInfo.AllCinemaID;
             adnidbanime.AnimeID = animeInfo.AnimeID;
@@ -986,7 +988,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             adnidbanime.BeginYear = animeInfo.BeginYear;
             adnidbanime.DateTimeDescUpdated = DateTime.Now;
             adnidbanime.DateTimeUpdated = DateTime.Now;
-            adnidbanime.Description = animeInfo.Description;
+            adnidbanime.Description = animeInfo.Description ?? string.Empty;
             adnidbanime.EndDate = animeInfo.EndDate;
             adnidbanime.EndYear = animeInfo.EndYear;
             adnidbanime.MainTitle = animeInfo.MainTitle;
@@ -1013,6 +1015,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             adnidbanime.TempVoteCount = animeInfo.TempVoteCount;
             adnidbanime.URL = animeInfo.URL;
             adnidbanime.VoteCount = animeInfo.VoteCount;
+            return true;
         }
 
         public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
@@ -1022,14 +1025,20 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
         {
             logger.Trace("------------------------------------------------");
-            logger.Trace(
-                String.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle));
+            logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle}");
             logger.Trace("------------------------------------------------");
 
             Stopwatch taskTimer = new Stopwatch();
             Stopwatch totalTimer = Stopwatch.StartNew();
 
-            Populate(this, animeInfo);
+            if (!Populate(this, animeInfo))
+            {
+                logger.Error("AniDB_Anime was unable to populate as it received invalid info. " +
+                             "This is not an error on our end. It is AniDB's issue, " +
+                             "as they did not return either an ID or a title for the anime.");
+                totalTimer.Stop();
+                return;
+            }
 
             // save now for FK purposes
             RepoFactory.AniDB_Anime.Save(this);
@@ -1966,7 +1975,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 // Update more than just stats in case the xrefs have changed
                 series.UpdateStats(true, true, false);
-                RepoFactory.AnimeSeries.Save(series, true, false, false, true);
+                RepoFactory.AnimeSeries.Save(series, true, false);
             }
         }
     }
