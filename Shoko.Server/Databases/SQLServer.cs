@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 59;
+        public int RequiredVersion { get; } = 60;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -512,6 +512,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(58, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT(-1)"),
             new DatabaseCommand(59, 1, "ALTER TABLE RenameScript ADD RenamerType nvarchar(max) NOT NULL DEFAULT('Legacy')"),
             new DatabaseCommand(59, 2, "ALTER TABLE RenameScript ADD ExtraData nvarchar(max)"),
+            new DatabaseCommand(60, 1,
+                "CREATE INDEX IX_AniDB_Anime_Character_CharID ON AniDB_Anime_Character(CharID);"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

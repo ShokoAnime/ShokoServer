@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 55;
+        public int RequiredVersion { get; } = 56;
 
 
         public void BackupDatabase(string fullfilename)
@@ -471,6 +471,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(54, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT -1"),
             new DatabaseCommand(55, 1, "ALTER TABLE RenameScript ADD RenamerType TEXT NOT NULL DEFAULT 'Legacy'"),
             new DatabaseCommand(55, 2, "ALTER TABLE RenameScript ADD ExtraData TEXT"),
+            new DatabaseCommand(56, 1,
+                "CREATE INDEX IX_AniDB_Anime_Character_CharID ON AniDB_Anime_Character(CharID);"),
         };
 
 
