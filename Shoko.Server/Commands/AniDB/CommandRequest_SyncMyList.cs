@@ -104,10 +104,10 @@ namespace Shoko.Server.Commands
                         Raw_AniDB_MyListFile file = onlineFiles[fileID];
                         
                         // Update file state if deleted
-                        if (fileID.State = (int) AniDBFile_State.Deleted)
+                        if (fileID.State == (int) AniDBFile_State.Deleted)
                         {
                             CommandRequest_UpdateMyListFileStatus cmdUpdateFile = 
-                                new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchDate.HasValue(), false, 0);
+                                new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchedDate.HasValue(), false, 0);
                             cmdUpdateFile.Save();
                         }
                     };
