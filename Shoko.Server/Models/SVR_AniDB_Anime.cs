@@ -35,7 +35,7 @@ namespace Shoko.Server.Models
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }
 
-        public const int CONTRACT_VERSION = 6;
+        public const int CONTRACT_VERSION = 7;
 
         #endregion
 
@@ -567,7 +567,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (GetDefaultFanart() == null)
             {
                 // get a random fanart
-                if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+                if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
                 {
                     List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
                     if (fanarts.Count == 0) return "";
@@ -649,7 +649,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (banner == null)
             {
                 // get a random banner (only tvdb)
-                if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+                if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
                 {
                     // MovieDB doesn't have banners
                     return null;
@@ -972,8 +972,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             this.DisableExternalLinksFlag = 0;
         }
 
-        private static void Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
+        private static bool Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
         {
+            // We need various values to be populated to be considered valid
+            if (animeInfo.AnimeID <= 0 || string.IsNullOrEmpty(animeInfo.MainTitle)) return false;
             adnidbanime.AirDate = animeInfo.AirDate;
             adnidbanime.AllCinemaID = animeInfo.AllCinemaID;
             adnidbanime.AnimeID = animeInfo.AnimeID;
@@ -986,7 +988,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             adnidbanime.BeginYear = animeInfo.BeginYear;
             adnidbanime.DateTimeDescUpdated = DateTime.Now;
             adnidbanime.DateTimeUpdated = DateTime.Now;
-            adnidbanime.Description = animeInfo.Description;
+            adnidbanime.Description = animeInfo.Description ?? string.Empty;
             adnidbanime.EndDate = animeInfo.EndDate;
             adnidbanime.EndYear = animeInfo.EndYear;
             adnidbanime.MainTitle = animeInfo.MainTitle;
@@ -1013,6 +1015,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             adnidbanime.TempVoteCount = animeInfo.TempVoteCount;
             adnidbanime.URL = animeInfo.URL;
             adnidbanime.VoteCount = animeInfo.VoteCount;
+            return true;
         }
 
         public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
@@ -1022,14 +1025,20 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
         {
             logger.Trace("------------------------------------------------");
-            logger.Trace(
-                String.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle));
+            logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle}");
             logger.Trace("------------------------------------------------");
 
             Stopwatch taskTimer = new Stopwatch();
             Stopwatch totalTimer = Stopwatch.StartNew();
 
-            Populate(this, animeInfo);
+            if (!Populate(this, animeInfo))
+            {
+                logger.Error("AniDB_Anime was unable to populate as it received invalid info. " +
+                             "This is not an error on our end. It is AniDB's issue, " +
+                             "as they did not return either an ID or a title for the anime.");
+                totalTimer.Stop();
+                return;
+            }
 
             // save now for FK purposes
             RepoFactory.AniDB_Anime.Save(this);
@@ -1109,7 +1118,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 //
                 // we need to do this check because some times AniDB will replace an existing episode with a new episode
                 List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
-                    epraw.AnimeID, (enEpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
+                    epraw.AnimeID, (EpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
 
                 // delete any old records
                 foreach (AniDB_Episode epOld in existingEps)
@@ -1138,10 +1147,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 epsToSave.Add(epNew);
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-                if (epNew.GetEpisodeTypeEnum() == enEpisodeType.Episode)
+                if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
                     this.EpisodeCountNormal++;
 
-                if (epNew.GetEpisodeTypeEnum() == enEpisodeType.Special)
+                if (epNew.GetEpisodeTypeEnum() == EpisodeType.Special)
                     this.EpisodeCountSpecial++;
             }
             RepoFactory.AniDB_Episode.Save(epsToSave);
@@ -1160,7 +1169,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             foreach (Raw_AniDB_Anime_Title rawtitle in titles)
             {
                 AniDB_Anime_Title title = new AniDB_Anime_Title();
-                title.Populate(rawtitle);
+                if (!title.Populate(rawtitle)) continue;
                 titlesToSave.Add(title);
 
                 if (this.AllTitles.Length > 0) this.AllTitles += "|";
@@ -1190,7 +1199,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 AniDB_Tag tag = RepoFactory.AniDB_Tag.GetByTagID(rawtag.TagID);
                 if (tag == null) tag = new AniDB_Tag();
 
-                tag.Populate(rawtag);
+                if(!tag.Populate(rawtag)) continue;
                 tagsToSave.Add(tag);
 
                 newTagIDs.Add(tag.TagID);
@@ -1254,7 +1263,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (chr == null)
                     chr = new AniDB_Character();
 
-                chr.PopulateFromHTTP(rawchar);
+                if (!chr.PopulateFromHTTP(rawchar)) continue;
                 chrsToSave.Add(chr);
 
                 // create cross ref's between anime and character, but don't actually download anything
@@ -1308,10 +1317,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     rawrel.RelatedAnimeID);
                 if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
 
-                anime_rel.Populate(rawrel);
+                if (!anime_rel.Populate(rawrel)) continue;
                 relsToSave.Add(anime_rel);
 
-                if (downloadRelations && ServerSettings.AutoGroupSeries)
+                if (downloadRelations || ServerSettings.AutoGroupSeries)
                 {
                     logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                         this.MainTitle, this.AnimeID, anime_rel.RelatedAnimeID);
@@ -1415,7 +1424,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<TvDB_ImageFanart> tvDbFanart = null;
             List<TvDB_ImageWideBanner> tvDbBanners = null;
 
-            if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
             {
                 movDbFanart = GetMovieDBFanarts(session);
             }
@@ -1453,7 +1462,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 cl.DefaultImageWideBanner = defaultImages.WideBanner?.ToContract();
             }
 
-            if (this.GetAnimeTypeEnum() == enAnimeType.Movie)
+            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
             {
                 cl.Fanarts = movDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
@@ -1563,6 +1572,20 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     })
                     .ToList();
 
+                // Seasons
+                if (anime.AirDate != null)
+                {
+                    int beginYear = anime.AirDate.Value.Year;
+                    int endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
+                    for (int year = beginYear; year <= endYear; year++)
+                    {
+                        foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
+                        {
+                            if (anime.IsInSeason(season, year)) contract.Stat_AllSeasons.Add($"{season} {year}");
+                        }
+                    }
+                }
+
                 // Anime tags
                 var dictAnimeTags = animeTagsByAnime[anime.AnimeID]
                     .ToDictionary(t => t.TagID);
@@ -1662,6 +1685,18 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 }
             }
 
+            if (AirDate != null)
+            {
+                int beginYear = AirDate.Value.Year;
+                int endYear = EndDate?.Year ?? DateTime.Today.Year;
+                for (int year = beginYear; year <= endYear; year++)
+                {
+                    foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
+                    {
+                        if (this.IsInSeason(season, year)) cl.Stat_AllSeasons.Add($"{season} {year}");
+                    }
+                }
+            }
 
             Dictionary<int, AniDB_Anime_Tag> dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
             foreach (AniDB_Anime_Tag animeTag in GetAnimeTags())
@@ -1888,7 +1923,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     cmd2.Save();
                 }
 
-                if (AnimeType == (int) enAnimeType.Movie)
+                if (AnimeType == (int) Shoko.Models.Enums.AnimeType.Movie)
                 {
                     CommandRequest_MovieDBSearchAnime cmd3 =
                         new CommandRequest_MovieDBSearchAnime(AnimeID, false);
@@ -1940,7 +1975,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 // Update more than just stats in case the xrefs have changed
                 series.UpdateStats(true, true, false);
-                RepoFactory.AnimeSeries.Save(series, true, false, false, true);
+                RepoFactory.AnimeSeries.Save(series, true, false);
             }
         }
     }

@@ -150,8 +150,8 @@ namespace Shoko.Server.Tasks
                     {
                         FromId = (int) r[0],
                         ToId = (int) r[1],
-                        FromType = (AnimeTypes) r[2],
-                        ToType = (AnimeTypes) r[3],
+                        FromType = (AnimeType) r[2],
+                        ToType = (AnimeType) r[3],
                         FromMainTitle = (string) r[4],
                         ToMainTitle = (string) r[5],
                         FromAirDate = (DateTime?) r[6],
@@ -413,9 +413,9 @@ namespace Shoko.Server.Tasks
             }
             // Check if we are excluding Movies or OVAs
             if ((_exclusions & AutoGroupExclude.Movie) == AutoGroupExclude.Movie &&
-                (rel.FromType == AnimeTypes.Movie || rel.ToType == AnimeTypes.Movie)
+                (rel.FromType == AnimeType.Movie || rel.ToType == AnimeType.Movie)
                 || (_exclusions & AutoGroupExclude.Ova) == AutoGroupExclude.Ova &&
-                (rel.FromType == AnimeTypes.OVA || rel.ToType == AnimeTypes.OVA))
+                (rel.FromType == AnimeType.OVA || rel.ToType == AnimeType.OVA))
             {
                 return false;
             }
@@ -494,13 +494,13 @@ namespace Shoko.Server.Tasks
 
                     switch (AnimeNode.Type)
                     {
-                        case AnimeTypes.TV_Series:
+                        case AnimeType.TVSeries:
                             score += 3;
                             break;
-                        case AnimeTypes.Web:
+                        case AnimeType.Web:
                             score += 2;
                             break;
-                        case AnimeTypes.OVA:
+                        case AnimeType.OVA:
                             score += 1;
                             break;
                     }
@@ -516,7 +516,7 @@ namespace Shoko.Server.Tasks
         [DebuggerDisplay("{AnimeId} ({Type})")]
         private sealed class RelationNode
         {
-            public RelationNode(int animeId, AnimeTypes type, DateTime? airDate)
+            public RelationNode(int animeId, AnimeType type, DateTime? airDate)
             {
                 AnimeId = animeId;
                 Type = type;
@@ -525,7 +525,7 @@ namespace Shoko.Server.Tasks
 
             public int AnimeId { get; }
 
-            public AnimeTypes Type { get; }
+            public AnimeType Type { get; }
 
             public DateTime? AirDate { get; }
         }
@@ -628,11 +628,11 @@ namespace Shoko.Server.Tasks
         public class AnimeRelation
         {
             public int FromId;
-            public AnimeTypes FromType;
+            public AnimeType FromType;
             public string FromMainTitle;
             public DateTime? FromAirDate;
             public int ToId;
-            public AnimeTypes ToType;
+            public AnimeType ToType;
             public string ToMainTitle;
             public DateTime? ToAirDate;
             public AnimeRelationType RelationType;

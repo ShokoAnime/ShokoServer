@@ -336,7 +336,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         #region Linking
 
-        public static string LinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID,
+        public static string LinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -346,7 +346,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        public static string LinkAniDBTrakt(ISession session, int animeID, enEpisodeType aniEpType, int aniEpNumber,
+        public static string LinkAniDBTrakt(ISession session, int animeID, EpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
             List<CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
@@ -358,7 +358,7 @@ namespace Shoko.Server.Providers.TraktTV
                 foreach (CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
                 {
                     // delete the existing one if we are updating
-                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
+                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType) xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
                 }
@@ -417,7 +417,7 @@ namespace Shoko.Server.Providers.TraktTV
             return "";
         }
 
-        public static void RemoveLinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID,
+        public static void RemoveLinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber)
         {
             CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
@@ -508,7 +508,7 @@ namespace Shoko.Server.Providers.TraktTV
                 if (anime != null)
                     logger.Trace("Found anime without Trakt association: " + anime.MainTitle);
 
-                if (anime.GetIsTraktLinkDisabled()) continue;
+                if (anime.IsTraktLinkDisabled()) continue;
 
                 CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(ser.AniDB_ID, false);
                 cmd.Save();
@@ -553,7 +553,7 @@ namespace Shoko.Server.Providers.TraktTV
                 #region normal episodes
 
                 // now do stuff to improve performance
-                if (ep.GetEpisodeTypeEnum() == enEpisodeType.Episode)
+                if (ep.GetEpisodeTypeEnum() == EpisodeType.Episode)
                 {
                     if (traktSummary != null && traktSummary.CrossRefTraktV2 != null &&
                         traktSummary.CrossRefTraktV2.Count > 0)
@@ -567,7 +567,7 @@ namespace Shoko.Server.Providers.TraktTV
                         CrossRef_AniDB_TraktV2 xrefBase = null;
                         foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                         {
-                            if (xrefTrakt.AniDBStartEpisodeType != (int) enEpisodeType.Episode) continue;
+                            if (xrefTrakt.AniDBStartEpisodeType != (int) EpisodeType.Episode) continue;
                             if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
                             {
                                 foundStartingPoint = true;
@@ -614,7 +614,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 #region special episodes
 
-                if (ep.GetEpisodeTypeEnum() == enEpisodeType.Special)
+                if (ep.GetEpisodeTypeEnum() == EpisodeType.Special)
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
@@ -625,7 +625,7 @@ namespace Shoko.Server.Providers.TraktTV
                     CrossRef_AniDB_TraktV2 xrefBase = null;
                     foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                     {
-                        if (xrefTrakt.AniDBStartEpisodeType != (int) enEpisodeType.Special) continue;
+                        if (xrefTrakt.AniDBStartEpisodeType != (int) EpisodeType.Special) continue;
                         if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
                         {
                             foundStartingPoint = true;
@@ -1620,7 +1620,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                 {
-                    if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
+                    if (ep.EpisodeTypeEnum == EpisodeType.Episode || ep.EpisodeTypeEnum == EpisodeType.Special)
                     {
                         ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers, collected, watched, true);
                     }
@@ -1682,7 +1682,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                     foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                     {
-                        if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
+                        if (ep.EpisodeTypeEnum == EpisodeType.Episode || ep.EpisodeTypeEnum == EpisodeType.Special)
                         {
                             EpisodeSyncDetails epsync = ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers,
                                 collected, watched, false);
@@ -1751,8 +1751,8 @@ namespace Shoko.Server.Providers.TraktTV
                             // if we have this series locSeries, let's sync the whole series
                             foreach (SVR_AnimeEpisode ep in locSeries.GetAnimeEpisodes())
                             {
-                                if (ep.EpisodeTypeEnum == enEpisodeType.Episode ||
-                                    ep.EpisodeTypeEnum == enEpisodeType.Special)
+                                if (ep.EpisodeTypeEnum == EpisodeType.Episode ||
+                                    ep.EpisodeTypeEnum == EpisodeType.Special)
                                 {
                                     EpisodeSyncDetails epsync = ReconSyncTraktEpisode(locSeries, ep, traktSummary,
                                         traktUsers, collected, watched,
@@ -1842,8 +1842,8 @@ namespace Shoko.Server.Providers.TraktTV
                             // if we have this series locSeries, let's sync the whole series
                             foreach (SVR_AnimeEpisode ep in locSeries.GetAnimeEpisodes())
                             {
-                                if (ep.EpisodeTypeEnum == enEpisodeType.Episode ||
-                                    ep.EpisodeTypeEnum == enEpisodeType.Special)
+                                if (ep.EpisodeTypeEnum == EpisodeType.Episode ||
+                                    ep.EpisodeTypeEnum == EpisodeType.Special)
                                 {
                                     EpisodeSyncDetails epsync = ReconSyncTraktEpisode(locSeries, ep, traktSummary,
                                         traktUsers, collected, watched,

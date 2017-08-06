@@ -180,7 +180,7 @@ namespace Shoko.Server.Repositories.Cached
                         allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
                             endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
                     }
-                    RepoFactory.GroupFilter.CreateOrVerifyTagsAndYearsFilters(false,
+                    RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
                         obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears);
                     //This call will create extra years or tags if the Group have a new year or tag
                     obj.UpdateGroupFilters(types, null);

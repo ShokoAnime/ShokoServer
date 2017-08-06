@@ -60,7 +60,7 @@ namespace Shoko.Server.Commands
 
                 Stream s = Utils.DownloadWebBinary(url);
                 int bytes = 2048;
-                byte[] data = new byte[2048];
+                byte[] data = new byte[bytes]; //USE OF BYTES LENGTH VALUES FOR DATA SIZE
                 StringBuilder b = new StringBuilder();
                 UTF8Encoding enc = new UTF8Encoding();
 

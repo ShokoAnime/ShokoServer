@@ -98,7 +98,7 @@ namespace Shoko.Server.Commands.MAL
                         malResults.entry[0].id,
                         malResults.entry[0].title);
                     MALHelper.LinkAniDBMAL(AnimeID, malResults.entry[0].id, malResults.entry[0].title,
-                        (int) enEpisodeType.Episode, 1,
+                        (int) EpisodeType.Episode, 1,
                         false);
                 }
                 else if (malResults.entry.Length == 0)
@@ -114,7 +114,7 @@ namespace Shoko.Server.Commands.MAL
                             logger.Trace("Using MAL search result for search on {0} : {1} ({2})", searchCriteria,
                                 res.id,
                                 res.title);
-                            MALHelper.LinkAniDBMAL(AnimeID, res.id, res.title, (int) enEpisodeType.Episode, 1, false);
+                            MALHelper.LinkAniDBMAL(AnimeID, res.id, res.title, (int) EpisodeType.Episode, 1, false);
                         }
                     }
                     logger.Trace("Too many MAL search result results for, skipping: {0}", searchCriteria);

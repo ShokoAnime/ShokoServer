@@ -1,11 +1,26 @@
 ﻿namespace AniDBAPI
 {
-    public enum AniDBFileStatus
+    public enum AniDBFile_State
     {
         Unknown = 0,
         HDD = 1,
         DVD = 2,
-        Deleted = 3
+        Deleted = 3,
+        Remote = 4
+    }
+
+    public enum AniDBFile_FileState
+    {
+        Normal = 0,
+        Corrupted = 1,
+        Self_Edited = 2,
+        Self_Ripped = 10,
+        On_DVD = 11,
+        On_VHS = 12,
+        On_TV = 13,
+        In_Theaters = 14,
+        Streamed = 15,
+        Other = 100
     }
 
     public enum enAniDBCommandType

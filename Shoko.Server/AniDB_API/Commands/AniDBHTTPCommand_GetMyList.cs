@@ -100,20 +100,19 @@ namespace AniDBAPI.Commands
             //XmlDocument docAnime = LoadAnimeMyListFromFile();
             //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
 
+            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
+
             if (xmlResult.Trim().Length > 0)
                 WriteAnimeMyListToFile(xmlResult);
-
-            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
 
             if (docAnime != null)
             {
                 myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
+                if (myListItems == null) return  enHelperActivityType.NoSuchAnime;
                 return enHelperActivityType.GotMyListHTTP;
             }
-            else
-            {
-                return enHelperActivityType.NoSuchAnime;
-            }
+
+            return enHelperActivityType.NoSuchAnime;
         }
 
         public AniDBHTTPCommand_GetMyList()

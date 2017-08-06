@@ -35,7 +35,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public const int CONTRACT_VERSION = 6;
+        public const int CONTRACT_VERSION = 7;
 
 
         private CL_AnimeSeries_User _contract = null;
@@ -177,7 +177,7 @@ namespace Shoko.Server.Models
             return
                 RepoFactory.AnimeEpisode
                     .GetBySeriesID(AnimeSeriesID)
-                    .Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode &&
+                    .Count(a => a.EpisodeTypeEnum == EpisodeType.Episode &&
                                 RepoFactory.CrossRef_File_Episode
                                     .GetByEpisodeID(RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)
                                                         ?.EpisodeID ?? 0)
@@ -384,7 +384,7 @@ namespace Shoko.Server.Models
             foreach (SVR_AnimeEpisode ep in GetAnimeEpisodes())
             {
                 SVR_AnimeEpisode_User userRecord = ep.GetUserRecord(userID);
-                if (userRecord != null && ep.EpisodeTypeEnum == enEpisodeType.Episode)
+                if (userRecord != null && ep.EpisodeTypeEnum == EpisodeType.Episode)
                 {
                     if (watchedep == null)
                     {
@@ -700,104 +700,119 @@ namespace Shoko.Server.Models
 
         public HashSet<GroupFilterConditionType> UpdateContract(bool onlystats = false)
         {
-            CL_AnimeSeries_User contract = Contract?.DeepClone();
-            if (contract == null)
+            try
             {
-                contract = new CL_AnimeSeries_User();
-                onlystats = false;
-            }
+                CL_AnimeSeries_User contract = Contract?.DeepClone();
+                if (contract == null)
+                {
+                    contract = new CL_AnimeSeries_User();
+                    onlystats = false;
+                }
 
 
-            contract.AniDB_ID = this.AniDB_ID;
-            contract.AnimeGroupID = this.AnimeGroupID;
-            contract.AnimeSeriesID = this.AnimeSeriesID;
-            contract.DateTimeUpdated = this.DateTimeUpdated;
-            contract.DateTimeCreated = this.DateTimeCreated;
-            contract.DefaultAudioLanguage = this.DefaultAudioLanguage;
-            contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
-            contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
-            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
-            contract.EpisodeAddedDate = this.EpisodeAddedDate;
-            contract.MissingEpisodeCount = this.MissingEpisodeCount;
-            contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
-            contract.SeriesNameOverride = this.SeriesNameOverride;
-            contract.DefaultFolder = this.DefaultFolder;
-            contract.PlayedCount = 0;
-            contract.StoppedCount = 0;
-            contract.UnwatchedEpisodeCount = 0;
-            contract.WatchedCount = 0;
-            contract.WatchedDate = null;
-            contract.WatchedEpisodeCount = 0;
-            if (onlystats)
-            {
-                HashSet<GroupFilterConditionType> types2 = GetConditionTypesChanged(Contract, contract);
+                contract.AniDB_ID = this.AniDB_ID;
+                contract.AnimeGroupID = this.AnimeGroupID;
+                contract.AnimeSeriesID = this.AnimeSeriesID;
+                contract.DateTimeUpdated = this.DateTimeUpdated;
+                contract.DateTimeCreated = this.DateTimeCreated;
+                contract.DefaultAudioLanguage = this.DefaultAudioLanguage;
+                contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
+                contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
+                contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
+                contract.EpisodeAddedDate = this.EpisodeAddedDate;
+                contract.MissingEpisodeCount = this.MissingEpisodeCount;
+                contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
+                contract.SeriesNameOverride = this.SeriesNameOverride;
+                contract.DefaultFolder = this.DefaultFolder;
+                contract.PlayedCount = 0;
+                contract.StoppedCount = 0;
+                contract.UnwatchedEpisodeCount = 0;
+                contract.WatchedCount = 0;
+                contract.WatchedDate = null;
+                contract.WatchedEpisodeCount = 0;
+                if (onlystats)
+                {
+                    HashSet<GroupFilterConditionType> types2 = GetConditionTypesChanged(Contract, contract);
+                    Contract = contract;
+                    return types2;
+                }
+                SVR_AniDB_Anime animeRec = this.GetAnime();
+                List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = this.GetCrossRefTvDBV2();
+                CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
+                MovieDB_Movie movie = null;
+                if (movieDBCrossRef != null)
+                    movie = movieDBCrossRef.GetMovieDB_Movie();
+                List<TvDB_Series> sers = new List<TvDB_Series>();
+                foreach (CrossRef_AniDB_TvDBV2 xref in tvDBCrossRefs)
+                {
+                    TvDB_Series tvser = xref.GetTvDBSeries();
+                    if (tvser != null)
+                        sers.Add(tvser);
+                    else
+                        logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID,
+                            xref.TvDBTitle);
+                }
+                // get AniDB data
+                if (animeRec != null)
+                {
+                    if (animeRec.Contract == null)
+                    {
+                        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                        {
+                            animeRec.UpdateContractDetailed(session.Wrap());
+                        }
+                    }
+                    contract.AniDBAnime = animeRec.Contract.DeepClone();
+                    contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
+                    if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
+                    {
+                        ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
+                        if (im != null)
+                        {
+                            contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
+                            {
+                                AnimeID = im.ImageID,
+                                ImageType = (int)im.ImageType
+                            };
+                        }
+                    }
+                    contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
+                    if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
+                    {
+                        ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
+                        if (im != null)
+                        {
+                            contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
+                            {
+                                AnimeID = im.ImageID,
+                                ImageType = (int)im.ImageType
+                            };
+                        }
+                    }
+                    contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
+                }
+
+                contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.Cast<CrossRef_AniDB_TvDBV2>().ToList();
+
+
+                contract.TvDB_Series = sers;
+                contract.CrossRefAniDBMovieDB = null;
+                if (movieDBCrossRef != null)
+                {
+                    contract.CrossRefAniDBMovieDB = movieDBCrossRef;
+                    contract.MovieDB_Movie = movie;
+                }
+                contract.CrossRefAniDBMAL = CrossRefMAL?.Cast<Shoko.Models.Server.CrossRef_AniDB_MAL>()?.ToList() ??
+                                            new List<Shoko.Models.Server.CrossRef_AniDB_MAL>();
+                HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
                 Contract = contract;
-                return types2;
+                return types;
             }
-            SVR_AniDB_Anime animeRec = this.GetAnime();
-            List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = this.GetCrossRefTvDBV2();
-            CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
-            MovieDB_Movie movie = null;
-            if (movieDBCrossRef != null)
-                movie = movieDBCrossRef.GetMovieDB_Movie();
-            List<TvDB_Series> sers = new List<TvDB_Series>();
-            foreach (CrossRef_AniDB_TvDBV2 xref in tvDBCrossRefs)
+            catch (Exception e)
             {
-                TvDB_Series tvser = xref.GetTvDBSeries();
-                if (tvser != null)
-                    sers.Add(tvser);
-                else
-                    logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID,
-                        xref.TvDBTitle);
+                throw;
             }
-            // get AniDB data
-            if (animeRec != null)
-            {
-                contract.AniDBAnime = animeRec.Contract.DeepClone();
-                contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
-                if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
-                {
-                    ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
-                    if (im != null)
-                    {
-                        contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
-                        {
-                            AnimeID = im.ImageID,
-                            ImageType = (int)im.ImageType
-                        };
-                    }
-                }
-                contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
-                if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
-                {
-                    ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
-                    if (im != null)
-                    {
-                        contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
-                        {
-                            AnimeID = im.ImageID,
-                            ImageType = (int)im.ImageType
-                        };
-                    }
-                }
-                contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
-            }
-
-            contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.Cast<CrossRef_AniDB_TvDBV2>().ToList();
-
-
-            contract.TvDB_Series = sers;
-            contract.CrossRefAniDBMovieDB = null;
-            if (movieDBCrossRef != null)
-            {
-                contract.CrossRefAniDBMovieDB = movieDBCrossRef;
-                contract.MovieDB_Movie = movie;
-            }
-            contract.CrossRefAniDBMAL = CrossRefMAL?.Cast<Shoko.Models.Server.CrossRef_AniDB_MAL>()?.ToList() ??
-                                        new List<Shoko.Models.Server.CrossRef_AniDB_MAL>();
-            HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
-            Contract = contract;
-            return types;
+           
         }
 
 
@@ -895,6 +910,9 @@ namespace Shoko.Server.Models
             if (oldyear != newyear)
                 h.Add(GroupFilterConditionType.Year);
 
+            if (oldcontract?.AniDBAnime?.Stat_AllSeasons == null || !oldcontract.AniDBAnime.Stat_AllSeasons.SetEquals(newcontract.AniDBAnime.Stat_AllSeasons))
+                h.Add(GroupFilterConditionType.Season);
+
             //TODO This three should be moved to AnimeSeries_User in the future...
             if (oldcontract == null ||
                 ((oldcontract.AniDBAnime.UserVote != null) &&
@@ -921,12 +939,12 @@ namespace Shoko.Server.Models
 
         internal class EpisodeList : List<EpisodeList.StatEpisodes>
         {
-            public EpisodeList(enAnimeType ept)
+            public EpisodeList(AnimeType ept)
             {
                 AnimeType = ept;
             }
 
-            private enAnimeType AnimeType { get; set; }
+            private AnimeType AnimeType { get; set; }
 
             System.Text.RegularExpressions.Regex partmatch =
                 new System.Text.RegularExpressions.Regex("part (\\d.*?) of (\\d.*)");
@@ -938,7 +956,7 @@ namespace Shoko.Server.Models
 
             public void Add(SVR_AnimeEpisode ep, bool available)
             {
-                if ((AnimeType == enAnimeType.OVA) || (AnimeType == enAnimeType.Movie))
+                if ((AnimeType == AnimeType.OVA) || (AnimeType == AnimeType.Movie))
                 {
                     AniDB_Episode aniEp = ep.AniDB_Episode;
                     string ename = aniEp.EnglishName.ToLower();
@@ -1147,8 +1165,8 @@ namespace Shoko.Server.Models
                         }
                         if (epVids.Count == 0) continue;
 
-                        if (ep.EpisodeTypeEnum == enEpisodeType.Episode ||
-                            ep.EpisodeTypeEnum == enEpisodeType.Special)
+                        if (ep.EpisodeTypeEnum == EpisodeType.Episode ||
+                            ep.EpisodeTypeEnum == EpisodeType.Special)
                         {
                             SVR_AnimeEpisode_User epUserRecord = null;
                             if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
@@ -1183,7 +1201,7 @@ namespace Shoko.Server.Models
 
             if (missingEpsStats)
             {
-                enAnimeType animeType = enAnimeType.TVSeries;
+                AnimeType animeType = AnimeType.TVSeries;
                 SVR_AniDB_Anime aniDB_Anime = this.GetAnime();
                 if (aniDB_Anime != null)
                 {
@@ -1235,7 +1253,7 @@ namespace Shoko.Server.Models
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
                     //List<VideoLocal> vids = ep.VideoLocals;
-                    if (ep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
+                    if (ep.EpisodeTypeEnum != EpisodeType.Episode) continue;
 
                     List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))

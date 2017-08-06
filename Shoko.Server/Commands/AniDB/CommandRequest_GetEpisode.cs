@@ -69,7 +69,6 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     //Change, AniDB_File do not create Series Episodes does.
 
-
                     foreach (CrossRef_File_Episode xref in xrefs)
                     {
                         int oldAnimeID = xref.AnimeID;

@@ -134,14 +134,6 @@ namespace Shoko.Server
     }
 
 
-    public enum StatCountType
-    {
-        Watched = 1,
-        Played = 2,
-        Stopped = 3
-    }
-
-
     public enum TraktSyncAction
     {
         Add = 1,

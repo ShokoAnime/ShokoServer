@@ -49,6 +49,11 @@ namespace Shoko.Server.Extensions
             return listhash.Overlaps(itemhash);
         }
 
+        public static bool FindInEnumerable(this IEnumerable<int> items, IEnumerable<int> list)
+        {
+            return list.ToHashSet().Overlaps(items.ToHashSet());
+        }
+
         public static bool FindIn(this string item, IEnumerable<string> list)
         {
             return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
@@ -120,15 +125,6 @@ namespace Shoko.Server.Extensions
                 StringComparer.InvariantCultureIgnoreCase)
             };
             return contract;
-        }
-
-        public delegate object CreateIconEventHandler(ICloudPlugin plugin);
-        //TODO: Linux: Implement properly.
-        public static event CreateIconEventHandler CreateIcon;
-
-        public static object CreateIconImage(this ICloudPlugin plugin)
-        {
-            return CreateIcon?.Invoke(plugin);
         }
     }
 }

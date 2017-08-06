@@ -114,14 +114,12 @@ namespace Shoko.Server.Models
             }
         }
 
-/*
- * TODO: Linux: Fix up
-        private BitmapSource _bitmap;
+        private byte[] _bitmap;
 
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        public BitmapSource Bitmap
+        public byte[] Bitmap
         {
             get
             {
@@ -136,7 +134,6 @@ namespace Shoko.Server.Models
                 return _bitmap;
             }
         }
-*/
 
         [ScriptIgnore]
         [JsonIgnore]

@@ -146,9 +146,9 @@ namespace Shoko.Server.Databases
 
                         // determine start ep type
                         if (xrefTrakt.TraktSeasonNumber == 0)
-                            xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Special;
+                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Special;
                         else
-                            xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Episode;
+                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Episode;
 
                         xrefNew.AniDBStartEpisodeNumber = 1;
                         xrefNew.TraktStartEpisodeNumber = 1;
@@ -176,7 +176,7 @@ namespace Shoko.Server.Databases
                         CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID,
                             0, 1,
                             xrefTrakt.AnimeID,
-                            (int) enEpisodeType.Special, 1);
+                            (int) EpisodeType.Special, 1);
                         if (temp != null) continue;
 
                         CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2
@@ -186,7 +186,7 @@ namespace Shoko.Server.Databases
                             TraktID = xrefTrakt.TraktID,
                             TraktSeasonNumber = 0,
                             TraktStartEpisodeNumber = 1,
-                            AniDBStartEpisodeType = (int)enEpisodeType.Special,
+                            AniDBStartEpisodeType = (int)EpisodeType.Special,
                             AniDBStartEpisodeNumber = 1,
                             TraktTitle = show.Title
                         };
@@ -223,9 +223,9 @@ namespace Shoko.Server.Databases
 
                         // determine start ep type
                         if (xrefTvDB.TvDBSeasonNumber == 0)
-                            xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Special;
+                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Special;
                         else
-                            xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Episode;
+                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Episode;
 
                         xrefNew.AniDBStartEpisodeNumber = 1;
                         xrefNew.TvDBStartEpisodeNumber = 1;
@@ -250,7 +250,7 @@ namespace Shoko.Server.Databases
                         CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0,
                             1,
                             xrefTvDB.AnimeID,
-                            (int) enEpisodeType.Special, 1);
+                            (int) EpisodeType.Special, 1);
                         if (temp != null) continue;
 
                         CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2
@@ -260,7 +260,7 @@ namespace Shoko.Server.Databases
                             TvDBID = xrefTvDB.TvDBID,
                             TvDBSeasonNumber = 0,
                             TvDBStartEpisodeNumber = 1,
-                            AniDBStartEpisodeType = (int)enEpisodeType.Special,
+                            AniDBStartEpisodeType = (int)EpisodeType.Special,
                             AniDBStartEpisodeNumber = 1
                         };
                         TvDB_Series ser = xrefTvDB.GetTvDBSeries();

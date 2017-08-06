@@ -268,6 +268,11 @@ namespace Shoko.Server
                 logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
+                // Get Ignored Files and remove them from the scan listing
+                var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+                    .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
+                fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
+
                 // get a list of all files in the share
                 foreach (string fileName in fileList)
                 {
@@ -310,6 +315,11 @@ namespace Shoko.Server
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
+
+            // Get Ignored Files and remove them from the scan listing
+            var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+                .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
+            fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
             // get a list of all the shares we are looking at
             int filesFound = 0, videosFound = 0;
@@ -955,6 +965,20 @@ namespace Shoko.Server
                     cmdDel.Save();
                 }
 
+                // Clean up failed imports
+                using (var transaction = session.BeginTransaction())
+                {
+                    var list = RepoFactory.VideoLocal.GetAll().SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+                        .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
+                                    a.GetEpisode() == null).ToArray();
+                    foreach (var xref in list)
+                    {
+                        // We don't need to update anything since they don't exist
+                        RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
+                    }
+                    transaction.Commit();
+                }
+
                 // update everything we modified
                 foreach (SVR_AnimeEpisode ep in episodesToUpdate)
                 {
@@ -1043,8 +1067,10 @@ namespace Shoko.Server
                 //hack until gui id dead
                 try
                 {
-                    //TODO: Test properly
+                    Utils.MainThreadDispatch(() =>
+                    {
                         ServerInfo.Instance.RefreshImportFolders();
+                    });
                 }
                 catch
                 {

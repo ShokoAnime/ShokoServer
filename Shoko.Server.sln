@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.6
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Server", "Shoko.Server\Shoko.Server.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -39,6 +39,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.UI", "Shoko.UI\Shoko.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{64D264D0-B20E-4889-B535-EFDC52F921C0}"
 	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
 		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
 	EndProjectSection
 EndProject
@@ -78,14 +79,16 @@ Global
 		{DA8F0783-0F82-4106-9860-6F09BA2EA522}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{DA8F0783-0F82-4106-9860-6F09BA2EA522}.Release|Win32.ActiveCfg = Release|Any CPU
 		{DA8F0783-0F82-4106-9860-6F09BA2EA522}.Release|x64.ActiveCfg = Release|Any CPU
-		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Any CPU.ActiveCfg = Release|Win32
-		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Any CPU.Build.0 = Release|Win32
-		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Mixed Platforms.ActiveCfg = Release|Win32
-		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Mixed Platforms.Build.0 = Release|Win32
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Any CPU.ActiveCfg = Debug|x64
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Any CPU.Build.0 = Debug|x64
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Any CPU.Deploy.0 = Debug|x64
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Mixed Platforms.ActiveCfg = Debug|Win32
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Mixed Platforms.Deploy.0 = Debug|Win32
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Win32.ActiveCfg = Release|Win32
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|Win32.Build.0 = Release|Win32
-		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|x64.ActiveCfg = Release|x64
-		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|x64.Build.0 = Release|x64
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|x64.ActiveCfg = Debug|x64
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|x64.Build.0 = Debug|x64
+		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.CLI|x64.Deploy.0 = Debug|x64
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.Debug|Any CPU.Build.0 = Debug|Win32
 		{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
@@ -143,8 +146,8 @@ Global
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Debug|x64.Build.0 = Debug|x64
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Mixed Platforms.Build.0 = Release|x86
+		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Win32.ActiveCfg = Release|x86
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|Win32.Build.0 = Release|x86
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Release|x64.ActiveCfg = Release|x64

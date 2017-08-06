@@ -25,31 +25,25 @@ namespace AniDBAPI.Commands
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            switch (ResponseCode)
+            {
+                case 598: return enHelperActivityType.UnknownCommand_598;
+                case 555: return enHelperActivityType.Banned_555;
+            }
 
             if (errorOccurred) return enHelperActivityType.NoSuchFile;
 
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "210":
-                    return enHelperActivityType.FileMarkedAsDeleted;
-                case "310":
-                    return enHelperActivityType.FileMarkedAsDeleted;
-                case "311":
-                    return enHelperActivityType.FileMarkedAsDeleted;
-                case "320":
-                    return enHelperActivityType.NoSuchFile;
-                case "411":
-                    return enHelperActivityType.NoSuchFile;
+                case "210": return enHelperActivityType.FileMarkedAsDeleted;
+                case "310": return enHelperActivityType.FileMarkedAsDeleted;
+                case "311": return enHelperActivityType.FileMarkedAsDeleted;
+                case "320": return enHelperActivityType.NoSuchFile;
+                case "411": return enHelperActivityType.NoSuchFile;
 
-                case "502":
-                    return enHelperActivityType.LoginFailed;
-                case "501":
-                {
-                    return enHelperActivityType.LoginRequired;
-                }
+                case "502": return enHelperActivityType.LoginFailed;
+                case "501": return enHelperActivityType.LoginRequired;
             }
 
             return enHelperActivityType.FileDoesNotExist;
@@ -67,7 +61,7 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileSize;
             commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFileStatus.Unknown;
+            commandText += "&state=" + (int) AniDBFile_State.Unknown;
             commandText += "&edit=1";
         }
     }

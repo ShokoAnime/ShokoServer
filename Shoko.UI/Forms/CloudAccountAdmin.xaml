@@ -7,6 +7,7 @@
              xmlns:jmmServer="clr-namespace:Shoko.UI"
              xmlns:server="clr-namespace:Shoko.Server;assembly=Shoko.Server"
              xmlns:forms="clr-namespace:Shoko.UI.Forms"
+             xmlns:converter="clr-namespace:Shoko.UI.Forms.Converter"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="400">
     <StackPanel Orientation="Vertical">
@@ -18,13 +19,12 @@
                     <ResourceDictionary Source="pack://application:,,,/Forms/UIStyles.xaml" />
                 </ResourceDictionary.MergedDictionaries>
 
-                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-
+                <converter:ByteArrayToBitmapConverter x:Key="ByteArrayToBitmapConverter" />
                 <!-- ImportFolderTemplate -->
                 <DataTemplate x:Key="CloudTemplate">
 
                     <StackPanel Orientation="Horizontal" Height="24">
-                        <Image Height="24" Width="24" Source="{Binding Path=Bitmap}" VerticalAlignment="Center"
+                        <Image Height="24" Width="24" Source="{Binding Path=Bitmap, Converter={StaticResource ByteArrayToBitmapConverter}}" VerticalAlignment="Center"
                                Margin="0,0,5,0"/>
                         <TextBlock Margin="5,0,10,0" Text="{Binding Path=Name}"
                                    VerticalAlignment="Center" FontWeight="DemiBold" />

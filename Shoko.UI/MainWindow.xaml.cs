@@ -12,7 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
 using NLog;
@@ -167,7 +167,7 @@ namespace Shoko.UI
 
         private void SubscribeEvents()
         {
-            ServerSettings.YesNoRequired += (sender, args) =>
+            Utils.YesNoRequired += (sender, args) =>
             {
                 System.Windows.Forms.DialogResult dr =
                     System.Windows.Forms.MessageBox.Show(args.Reason, args.FormTitle,
@@ -186,8 +186,17 @@ namespace Shoko.UI
             };
 
             Utils.ErrorMessage +=
-                (sender, args) => MessageBox.Show(this, args.Message, args.Title, MessageBoxButton.OK, MessageBoxImage.Error);
-
+                (sender, args) => MessageBox.Show(this, args.Message, args.Title ?? (args.IsError ? "Error" : "Message"), MessageBoxButton.OK, args.IsError ? MessageBoxImage.Error : MessageBoxImage.Information);
+            Utils.OnEvents +=
+                (sender, args) =>
+                {
+                    DoEvents();
+                };
+            Utils.OnDispatch +=
+                (action) =>
+                {
+                    Application.Current.Dispatcher.Invoke(action);
+                };
             AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
             {
                 MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail,
@@ -207,22 +216,22 @@ namespace Shoko.UI
             };
 
             ShokoServer.Instance.DBSetupCompleted += DBSetupCompleted;
-            ShokoServer.Instance.DatabaseSetup += (sender, args) => ShowDatabaseSetup();
-            Shoko.Server.Extensions.Utils.CreateIcon += plugin => Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (plugin?.Icon == null)
-                    return null;
-
-                MemoryStream ms = new MemoryStream(plugin.Icon);
-                ms.Seek(0, SeekOrigin.Begin);
-                BitmapImage icon = new BitmapImage();
-                icon.BeginInit();
-                icon.StreamSource = ms;
-                icon.EndInit();
-                return icon;
-            });
+            ShokoServer.Instance.DatabaseSetup += (sender, args) => ShowDatabaseSetup();        
+        }
+        public void DoEvents()
+        {
+            DispatcherFrame frame = new DispatcherFrame();
+            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
+                new DispatcherOperationCallback(ExitFrame), frame);
+            Dispatcher.PushFrame(frame);
         }
 
+        public object ExitFrame(object f)
+        {
+            ((DispatcherFrame)f).Continue = false;
+
+            return null;
+        }
         private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
         {
             ShokoServer.Instance.SyncPlex();
@@ -1049,6 +1058,12 @@ namespace Shoko.UI
             mnuShow.Click += new EventHandler(mnuShow_Click);
             ctxTrayMenu.Items.Add(mnuShow);
 
+            //Add Web UI item to the context menu.
+            System.Windows.Forms.ToolStripMenuItem mnuWebUI = new System.Windows.Forms.ToolStripMenuItem();
+            mnuWebUI.Text = Shoko.Commons.Properties.Resources.Toolbar_WebUI;
+            mnuWebUI.Click += new EventHandler(mnuWebUI_Click);
+            ctxTrayMenu.Items.Add(mnuWebUI);
+
             //Add the Menu Item to the context menu
             System.Windows.Forms.ToolStripMenuItem mnuExit = new System.Windows.Forms.ToolStripMenuItem();
             mnuExit.Text = Shoko.Commons.Properties.Resources.Toolbar_Shutdown;
@@ -1062,6 +1077,23 @@ namespace Shoko.UI
         void mnuShow_Click(object sender, EventArgs e)
         {
             this.Show();
+        }
+
+        void mnuWebUI_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string IP = GetLocalIPv4(NetworkInterfaceType.Ethernet);
+                if (string.IsNullOrEmpty(IP))
+                    IP = "127.0.0.1";
+
+                string url = $"http://{IP}:{ServerSettings.JMMServerPort}";
+                Process.Start(url);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
         }
 
         private void ShutDown()

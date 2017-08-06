@@ -322,7 +322,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                 SVR_AniDB_Anime anime = ser.GetAnime();
                 if (anime == null) continue;
 
-                if (anime.GetIsMALLinkDisabled()) continue;
+                if (anime.IsMALLinkDisabled()) continue;
 
                 // don't scan if it is associated on the TvDB
                 List<CrossRef_AniDB_MAL> xrefs = anime.GetCrossRefMAL();
@@ -471,9 +471,9 @@ namespace Shoko.Server.Providers.MyAnimeList
                             // find the total episode count
                             if (totalEpCount < 0)
                             {
-                                if (ep.EpisodeTypeEnum == enEpisodeType.Episode)
+                                if (ep.EpisodeTypeEnum == EpisodeType.Episode)
                                     totalEpCount = ser.GetAnime().EpisodeCountNormal;
-                                if (ep.EpisodeTypeEnum == enEpisodeType.Special)
+                                if (ep.EpisodeTypeEnum == EpisodeType.Special)
                                     totalEpCount = ser.GetAnime().EpisodeCountSpecial;
                                 totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
                             }

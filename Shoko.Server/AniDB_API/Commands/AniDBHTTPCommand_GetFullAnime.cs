@@ -228,7 +228,7 @@ namespace AniDBAPI.Commands
                 }
             }
 
-            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
+            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
 
             if (xmlResult.Trim().Length > 0)
                 WriteAnimeHTTPToFile(animeID, xmlResult);

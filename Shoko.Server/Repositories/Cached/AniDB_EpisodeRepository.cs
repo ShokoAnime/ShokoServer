@@ -74,7 +74,7 @@ namespace Shoko.Server.Repositories
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
             return Animes.GetMultiple(animeid)
-                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == enEpisodeType.Episode)
+                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
                 .ToList();
             /*
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -90,7 +90,7 @@ namespace Shoko.Server.Repositories
             }*/
         }
 
-        public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, enEpisodeType epType, int epnumber)
+        public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
         {
             return Animes.GetMultiple(animeid)
                 .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)

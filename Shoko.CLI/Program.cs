@@ -33,7 +33,7 @@ namespace Shoko.CLI
             bool running = true;
 
             ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => running = false;
-            ServerSettings.YesNoRequired += (sender, e) =>
+            Utils.YesNoRequired += (sender, e) =>
             {
                 e.Cancel = true;
             };

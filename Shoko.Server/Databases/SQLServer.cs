@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 58;
+        public int RequiredVersion { get; } = 59;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -510,6 +510,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(56, 1, DatabaseFixes.FixEmptyVideoInfos),
             new DatabaseCommand(57, 1, "ALTER TABLE JMMUser ADD PlexToken nvarchar(max) NULL"),
             new DatabaseCommand(58, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT(-1)"),
+            new DatabaseCommand(59, 1, "ALTER TABLE RenameScript ADD RenamerType nvarchar(max) NOT NULL DEFAULT('Legacy')"),
+            new DatabaseCommand(59, 2, "ALTER TABLE RenameScript ADD ExtraData nvarchar(max)"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

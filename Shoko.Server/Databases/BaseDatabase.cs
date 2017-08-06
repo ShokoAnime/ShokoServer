@@ -410,6 +410,7 @@ namespace Shoko.Server.Databases
 
             initialScript.ScriptName = Commons.Properties.Resources.Rename_Default;
             initialScript.IsEnabledOnImport = 0;
+            initialScript.RenamerType = "Legacy";
             initialScript.Script =
                 "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" +
                 Environment.NewLine +
