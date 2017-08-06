@@ -15,6 +15,7 @@ ADD https://github.com/NuGet/Home/releases/download/3.3/NuGet.exe .
 RUN mono NuGet.exe restore
 RUN xbuild /property:Configuration=CLI /property:OutDir=/usr/src/app/build/
 RUN rm -rf /usr/src/app/source
+RUN rm /usr/src/app/build/System.Net.Http.dll
 WORKDIR /usr/src/app/build
 
 VOLUME /root/.shoko/
