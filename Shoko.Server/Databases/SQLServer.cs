@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 59;
+        public int RequiredVersion { get; } = 60;
 
         public void BackupDatabase(string fullfilename)
         {

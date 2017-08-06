@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 55;
+        public int RequiredVersion { get; } = 56;
 
 
         public void BackupDatabase(string fullfilename)
