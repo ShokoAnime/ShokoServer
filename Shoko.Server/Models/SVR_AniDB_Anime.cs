@@ -90,7 +90,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             get
             {
-                if (String.IsNullOrEmpty(Picname)) return "";
+                if (string.IsNullOrEmpty(Picname)) return "";
 
                 return Path.Combine(ImageUtils.GetAniDBImagePath(AnimeID), Picname);
             }
@@ -296,7 +296,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             CrossRef_AniDB_Other xref = GetCrossRefMovieDB(criteriaFactory);
             if (xref == null) return null;
-            return RepoFactory.MovieDb_Movie.GetByOnlineID(criteriaFactory, Int32.Parse(xref.CrossRefID));
+            return RepoFactory.MovieDb_Movie.GetByOnlineID(criteriaFactory, int.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Fanart> GetMovieDBFanarts()
@@ -312,7 +312,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CrossRef_AniDB_Other xref = GetCrossRefMovieDB(session);
             if (xref == null) return new List<MovieDB_Fanart>();
 
-            return RepoFactory.MovieDB_Fanart.GetByMovieID(session, Int32.Parse(xref.CrossRefID));
+            return RepoFactory.MovieDB_Fanart.GetByMovieID(session, int.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Poster> GetMovieDBPosters()
@@ -328,7 +328,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CrossRef_AniDB_Other xref = GetCrossRefMovieDB(session);
             if (xref == null) return new List<MovieDB_Poster>();
 
-            return RepoFactory.MovieDB_Poster.GetByMovieID(session, Int32.Parse(xref.CrossRefID));
+            return RepoFactory.MovieDB_Poster.GetByMovieID(session, int.Parse(xref.CrossRefID));
         }
 
         public AniDB_Anime_DefaultImage GetDefaultPoster()
@@ -581,7 +581,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     if (fanarts.Count == 0) return null;
 
                     TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    return String.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+                    return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
                 }
             }
             else
@@ -596,7 +596,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         TvDB_ImageFanart tvFanart =
                             RepoFactory.TvDB_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
                         if (tvFanart != null)
-                            return String.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+                            return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
                         break;
 
                     case ImageEntityType.Trakt_Fanart:
@@ -1401,7 +1401,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 {
                     if (review.Trim().Length > 0)
                     {
-                        Int32.TryParse(review.Trim(), out int rev);
+                        int.TryParse(review.Trim(), out int rev);
                         if (rev != 0)
                         {
                             AniDB_Anime_Review csr = new AniDB_Anime_Review
@@ -1820,7 +1820,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             contract.Detail.EpisodeCountSpecial = this.EpisodeCountSpecial;
             contract.Detail.FanartURL = GetDefaultFanartOnlineURL(session);
             contract.Detail.OverallRating = this.GetAniDBRating();
-            contract.Detail.PosterURL = String.Format(Constants.URLS.AniDB_Images, Picname);
+            contract.Detail.PosterURL = string.Format(Constants.URLS.AniDB_Images, Picname);
             contract.Detail.TotalVotes = this.GetAniDBTotalVotes();
 
 
@@ -1867,7 +1867,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     IsSpoiler = false,
                     CommentDateLong = 0,
 
-                    ImageURL = String.Empty
+                    ImageURL = string.Empty
                 };
                 AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
                 switch (recType)
@@ -1917,7 +1917,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 cmd.Save();
 
                 // check for Trakt associations
-                if (ServerSettings.Trakt_IsEnabled && !String.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
                     CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
                     cmd2.Save();
