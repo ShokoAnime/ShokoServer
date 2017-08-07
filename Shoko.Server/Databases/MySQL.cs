@@ -571,7 +571,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(65, 1, "ALTER TABLE RenameScript ADD RenamerType varchar(255) character set utf8 NOT NULL DEFAULT 'Legacy'"),
             new DatabaseCommand(65, 2, "ALTER TABLE RenameScript ADD ExtraData TEXT character set utf8"),
             new DatabaseCommand(66, 1,
-                "ALTER TABLE `AniDB_Anime_Character` ADD UNIQUE INDEX `IX_AniDB_Anime_Character_CharID` (`CharID` ASC) ;"),
+                "ALTER TABLE `AniDB_Anime_Character` ADD INDEX `IX_AniDB_Anime_Character_CharID` (`CharID` ASC) ;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
