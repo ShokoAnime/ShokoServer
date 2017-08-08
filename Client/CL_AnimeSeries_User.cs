@@ -21,6 +21,7 @@ namespace Shoko.Models.Client
 
         public int MissingEpisodeCount { get; set; }
         public int MissingEpisodeCountGroups { get; set; }
+        public DayOfWeek? AirsOn { get; set; }
 
         public CL_AniDB_AnimeDetailed AniDBAnime { get; set; }
         public List<CrossRef_AniDB_TvDBV2> CrossRefAniDBTvDBV2 { get; set; }
