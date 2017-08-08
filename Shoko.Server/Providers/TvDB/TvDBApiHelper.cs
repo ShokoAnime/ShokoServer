@@ -876,7 +876,7 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
-            Task.Run(() => UpdateAllInfoAndImagesAsync(seriesID, forceRefresh, downloadImages));
+            Task.Run(() => UpdateAllInfoAndImagesAsync(seriesID, forceRefresh, downloadImages)).Wait();
         }
 
         public static async Task UpdateAllInfoAndImagesAsync(int seriesID, bool forceRefresh, bool downloadImages)

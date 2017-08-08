@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -101,6 +105,33 @@ namespace Shoko.Server.Repositories.Cached
         {
             return Cache.Values.Where(xref => xref.SeriesID == seriesID && xref.SeasonNumber == seasonNumber)
                 .OrderBy(xref => xref.EpisodeNumber).ToList();
+        }
+
+        public ILookup<int, TvDB_Episode> GetByAnimeIDs(ISessionWrapper session,
+            int[] animeIds)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (animeIds == null)
+                throw new ArgumentNullException(nameof(animeIds));
+
+            if (animeIds.Length == 0)
+            {
+                return new List<TvDB_Episode>().ToLookup(a => a.Id, a => a);
+            }
+
+            var tvDBEpisodeByAnime = session.CreateSQLQuery(@"
+                SELECT {tvxref.*}, {tvep.*}
+                    FROM CrossRef_AniDB_TvDBV2 tvxref
+                        INNER JOIN TvDB_Episode tvep
+                            ON tvxref.TvDBID = tvep.SeriesID
+                    WHERE tvxref.AnimeID IN (:animeIds)")
+                .AddEntity("tvxref", typeof(CrossRef_AniDB_TvDBV2))
+                .AddEntity("tvep", typeof(TvDB_Episode))
+                .SetParameterList("animeIds", animeIds)
+                .List<object[]>().ToLookup(r => ((CrossRef_AniDB_TvDBV2)r[0]).AnimeID, r => (TvDB_Episode)r[1]);
+
+            return tvDBEpisodeByAnime;
         }
 
         public override void RegenerateDb()

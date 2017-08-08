@@ -135,6 +135,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct);
             Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
             Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
+            Get["/serie/today", true] = async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct);
 
             #endregion
 
@@ -1480,6 +1481,38 @@ namespace Shoko.Server.API.v2.Modules
                 count = RepoFactory.AnimeSeries.GetAll().Count
             };
             return count;
+        }
+
+        /// <summary>
+        /// Handle /api/serie/today
+        /// </summary>
+        /// <returns>List<Serie> or Serie</returns>
+        private object SeriesToday()
+        {
+            Request request = this.Request;
+            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            // 1. get series airing
+            // 2. get eps for those series
+            // 3. calculate which series have most of the files released today
+            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                .FindInEnumerable(user.GetHideCategories()))
+                .AsParallel();
+
+            List<Serie> result = new List<Serie>();
+            result = allSeries.Where(ser =>
+            {
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                if (anime.EndDate != null) return false;
+                var finalDay = ser.Contract.AirsOn;
+                if (finalDay == null) return false;
+                return DateTime.Today.DayOfWeek == finalDay.Value;
+            }).Select(ser => Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID, para.nocast == 1,
+                para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic)).OrderBy(a => a.name).ToList();
+            return result;
         }
 
         /// <summary>

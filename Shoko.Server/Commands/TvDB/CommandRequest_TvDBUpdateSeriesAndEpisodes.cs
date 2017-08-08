@@ -6,6 +6,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
@@ -14,6 +15,7 @@ namespace Shoko.Server.Commands
     {
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
+        public string SeriesTitle { get; set; }
 
         public CommandRequestPriority DefaultPriority
         {
@@ -27,7 +29,7 @@ namespace Shoko.Server.Commands
                 return new QueueStateStruct()
                 {
                     queueState = QueueStateEnum.GettingTvDB,
-                    extraParams = new string[] {TvDBSeriesID.ToString()}
+                    extraParams = new string[] {$"{SeriesTitle} ({TvDBSeriesID})"}
                 };
             }
         }
@@ -42,6 +44,7 @@ namespace Shoko.Server.Commands
             this.ForceRefresh = forced;
             this.CommandType = (int) CommandRequestType.TvDB_SeriesEpisodes;
             this.Priority = (int) DefaultPriority;
+            this.SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
 
             GenerateCommandID();
         }
@@ -64,7 +67,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TvDBUpdateSeriesAndEpisodes{0}", this.TvDBSeriesID);
+            this.CommandID = $"CommandRequest_TvDBUpdateSeriesAndEpisodes{this.TvDBSeriesID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -88,6 +91,14 @@ namespace Shoko.Server.Commands
                 this.ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes",
                         "ForceRefresh"));
+                this.SeriesTitle =
+                    TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes",
+                        "SeriesTitle");
+                if (string.IsNullOrEmpty(SeriesTitle))
+                {
+                    this.SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
+                                       string.Intern("Name not Available");
+                }
             }
 
             return true;
