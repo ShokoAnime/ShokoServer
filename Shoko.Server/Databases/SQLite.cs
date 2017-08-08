@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 56;
+        public int RequiredVersion { get; } = 57;
 
 
         public void BackupDatabase(string fullfilename)
@@ -473,6 +473,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(55, 2, "ALTER TABLE RenameScript ADD ExtraData TEXT"),
             new DatabaseCommand(56, 1,
                 "CREATE INDEX IX_AniDB_Anime_Character_CharID ON AniDB_Anime_Character(CharID);"),
+            // This adds the new columns `AirDate` and `Rating` as well
+            new DatabaseCommand(57, 1, DropTvDB_EpisodeFirstAiredColumn),
+            new DatabaseCommand(57, 2, DatabaseFixes.UpdateAllTvDBSeries),
         };
 
 
@@ -509,6 +512,25 @@ namespace Shoko.Server.Databases
                     new List<string>() {"CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)"};
                 ((SQLite) DatabaseFactory.Instance).DropColumns(myConn, "VideoLocal",
                     new List<string>() {"FilePath", "ImportFolderID"}, createvlcommand, indexvlcommands);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+        }
+
+        private static Tuple<bool, string> DropTvDB_EpisodeFirstAiredColumn(object connection)
+        {
+            try
+            {
+                SQLiteConnection myConn = (SQLiteConnection) connection;
+                string createtvepcommand =
+                    "CREATE TABLE TvDB_Episode ( TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, Id integer NOT NULL, SeriesID integer NOT NULL, SeasonID integer NOT NULL, SeasonNumber integer NOT NULL, EpisodeNumber integer NOT NULL, EpisodeName text, Overview text, Filename text, EpImgFlag integer NOT NULL, AbsoluteNumber integer, AirsAfterSeason integer, AirsBeforeEpisode integer, AirsBeforeSeason integer, AirDate timestamp, Rating integer)";
+                List<string> indextvepcommands =
+                    new List<string>() {"CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id);"};
+                ((SQLite) DatabaseFactory.Instance).DropColumns(myConn, "TvDB_Episode",
+                    new List<string>() {"FirstAired"}, createtvepcommand, indextvepcommands);
                 return new Tuple<bool, string>(true, null);
             }
             catch (Exception e)
