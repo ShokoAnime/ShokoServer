@@ -207,7 +207,7 @@ namespace Shoko.Server
             logoutTimer?.Stop();
             logoutTimer = null;
             if (soUdp == null) return;
-            soUdp.Shutdown(SocketShutdown.Both);
+            if (soUdp.Connected) soUdp.Shutdown(SocketShutdown.Both);
             soUdp.Close();
             soUdp = null;
         }
