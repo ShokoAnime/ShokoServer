@@ -1309,7 +1309,7 @@ namespace Shoko.Server
             if (videoResolution.Trim().Length > 0)
             {
                 string[] dimensions = videoResolution.Split('x');
-                if (dimensions.Length > 0) Int32.TryParse(dimensions[0], out videoWidth);
+                if (dimensions.Length > 0) int.TryParse(dimensions[0], out videoWidth);
             }
             return videoWidth;
         }
@@ -1320,7 +1320,7 @@ namespace Shoko.Server
             if (videoResolution.Trim().Length > 0)
             {
                 string[] dimensions = videoResolution.Split('x');
-                if (dimensions.Length > 1) Int32.TryParse(dimensions[1], out videoHeight);
+                if (dimensions.Length > 1) int.TryParse(dimensions[1], out videoHeight);
             }
             return videoHeight;
         }
@@ -1372,10 +1372,10 @@ namespace Shoko.Server
                 case ScheduledUpdateFrequency.MonthOne:
                     return 24 * 30;
                 case ScheduledUpdateFrequency.Never:
-                    return Int32.MaxValue;
+                    return int.MaxValue;
             }
 
-            return Int32.MaxValue;
+            return int.MaxValue;
         }
 
         /*public static void GetFilesForImportFolder(string folderLocation, ref List<string> fileList)

@@ -202,6 +202,10 @@ namespace Shoko.Server.Commands
                         {
                             Paused = false;
                         }
+                        else
+                        {
+                            processingCommands = false;
+                        }
                     }
                     catch
                     {

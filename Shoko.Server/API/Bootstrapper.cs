@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nancy.Rest.Module;
+using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v2.Modules;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi;
@@ -119,7 +120,10 @@ namespace Shoko.Server.API
             logger.Error("Nancy Error => {0}", ex.ToString());
             logger.Error("Nancy Error => Request URL: {0}", ctx.Request.Url);
             logger.Error(ex);
-            return null;
+            var resp = new Response();
+            resp.StatusCode = HttpStatusCode.InternalServerError;
+            resp.ReasonPhrase = ex.Message;
+            return resp;
         }
 
         private Response BeforeProcessing(NancyContext ctx)

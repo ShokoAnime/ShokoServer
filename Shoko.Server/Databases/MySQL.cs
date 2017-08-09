@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 65;
+        public int RequiredVersion { get; } = 67;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -570,6 +570,12 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(64, 3, "ALTER TABLE `CrossRef_Languages_AniDB_File` ADD INDEX `IX_Xref_Epid` (`fileid` ASC) ;"),
             new DatabaseCommand(65, 1, "ALTER TABLE RenameScript ADD RenamerType varchar(255) character set utf8 NOT NULL DEFAULT 'Legacy'"),
             new DatabaseCommand(65, 2, "ALTER TABLE RenameScript ADD ExtraData TEXT character set utf8"),
+            new DatabaseCommand(66, 1,
+                "ALTER TABLE `AniDB_Anime_Character` ADD INDEX `IX_AniDB_Anime_Character_CharID` (`CharID` ASC) ;"),
+            new DatabaseCommand(67, 1, "ALTER TABLE `TvDB_Episode` ADD `Rating` int NULL"),
+            new DatabaseCommand(67, 2, "ALTER TABLE `TvDB_Episode` ADD `AirDate` datetime NULL"),
+            new DatabaseCommand(67, 3, "ALTER TABLE `TvDB_Episode` DROP COLUMN `FirstAired`"),
+            new DatabaseCommand(67, 4, DatabaseFixes.UpdateAllTvDBSeries),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

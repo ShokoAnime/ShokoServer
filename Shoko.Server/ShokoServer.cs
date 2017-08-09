@@ -1525,7 +1525,7 @@ namespace Shoko.Server
                 {
                     if (exception is System.Net.HttpListenerException)
                     {
-                        logger.Error($"An network serve operation took too long and timed out.");
+                        //logger.Error($"An network serve operation took too long and timed out.");
                     }
                     else
                     {
@@ -1545,7 +1545,7 @@ namespace Shoko.Server
                 new Uri("http://localhost:" + ServerSettings.JMMServerPort));
             if (ServerSettings.ExperimentalUPnP)
                 NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
-            Nancy.Json.JsonSettings.MaxJsonLength = Int32.MaxValue;
+            Nancy.Json.JsonSettings.MaxJsonLength = int.MaxValue;
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -364,6 +365,11 @@ namespace Shoko.Server.Extensions
             episode.AirsAfterSeason = apiEpisode.AirsAfterSeason;
             episode.AirsBeforeEpisode = apiEpisode.AirsBeforeEpisode;
             episode.AirsBeforeSeason = apiEpisode.AirsBeforeSeason;
+            if (apiEpisode.SiteRating != null) episode.Rating = (int) Math.Round(apiEpisode.SiteRating.Value);
+            if (!string.IsNullOrEmpty(apiEpisode.FirstAired))
+            {
+                episode.AirDate = DateTime.ParseExact(apiEpisode.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo);
+            }
         }
 
         public static void Populate(this TvDB_Episode episode, XmlNode node)

@@ -876,7 +876,7 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
-            Task.Run(() => UpdateAllInfoAndImagesAsync(seriesID, forceRefresh, downloadImages));
+            Task.Run(() => UpdateAllInfoAndImagesAsync(seriesID, forceRefresh, downloadImages)).Wait();
         }
 
         public static async Task UpdateAllInfoAndImagesAsync(int seriesID, bool forceRefresh, bool downloadImages)
@@ -1023,7 +1023,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 // Unix timestamp is seconds past epoch
                 DateTime lastUpdateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                lastUpdateTime = lastUpdateTime.AddSeconds(Int32.Parse(serverTime)).ToLocalTime();
+                lastUpdateTime = lastUpdateTime.AddSeconds(long.Parse(serverTime)).ToLocalTime();
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Updates.GetAsync(lastUpdateTime);
 

@@ -193,7 +193,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // if paused we will sleep for 5 seconds, and the try again
-                // we will remove the pause if it was set more than 6 hours ago
+                // we will remove the pause if it was set more than 12 hours ago
                 // the pause is initiated when banned from AniDB or manually by the user
                 if (Paused)
                 {
@@ -207,9 +207,13 @@ namespace Shoko.Server.Commands
 
                         //logger.Trace("Queue is paused: {0}", pauseTime.Value);
                         TimeSpan ts = DateTime.Now - pauseTime.Value;
-                        if (ts.TotalHours >= 6)
+                        if (ts.TotalHours >= 12)
                         {
                             Paused = false;
+                        }
+                        else
+                        {
+                            processingCommands = false;
                         }
                     }
                     catch

@@ -99,7 +99,19 @@ namespace Shoko.Server.Commands
 
                     int fileID = dictAniFiles[vid.Hash].FileID;
                     // Is it in MyList
-                    if (onlineFiles.ContainsKey(fileID)) continue;
+                    if (onlineFiles.ContainsKey(fileID))
+                    {
+                        Raw_AniDB_MyListFile file = onlineFiles[fileID];
+
+                        // Update file state if deleted
+                        if (file.State == (int) AniDBFile_State.Deleted)
+                        {
+                            CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
+                                new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchedDate.HasValue, false, 0);
+                            cmdUpdateFile.Save();
+                        }
+                        continue;
+                    }
 
                     // means we have found a file in our local collection, which is not recorded online
                     CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
