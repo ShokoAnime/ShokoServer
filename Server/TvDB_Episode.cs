@@ -1,5 +1,7 @@
 ﻿
 
+using System;
+
 namespace Shoko.Models.Server
 {
     public class TvDB_Episode
@@ -21,5 +23,7 @@ namespace Shoko.Models.Server
         public int? AirsAfterSeason { get; set; }
         public int? AirsBeforeEpisode { get; set; }
         public int? AirsBeforeSeason { get; set; }
+        public int? Rating { get; set; }
+        public DateTime? AirDate { get; set; }
     }
 }
