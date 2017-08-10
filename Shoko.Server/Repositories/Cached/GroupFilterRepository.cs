@@ -81,7 +81,7 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-        public new void PostProcess()
+        public override void PostProcess()
         {
             string t = "GroupFilter";
             ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
