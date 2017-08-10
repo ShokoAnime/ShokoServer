@@ -384,7 +384,7 @@ namespace Shoko.Server.Models
             else
             {
                 EvaluateAnimeGroups();
-                
+
                 foreach (int user in GroupsIds.Keys)
                 {
                     HashSet<int> ids = GroupsIds[user];
@@ -395,6 +395,8 @@ namespace Shoko.Server.Models
                         .ToHashSet();
                 }
             }
+            if ((FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag)
+                GroupFilterName = GroupFilterName.Replace('`', '\'');
         }
 
         private void EvaluateAnimeGroups()
