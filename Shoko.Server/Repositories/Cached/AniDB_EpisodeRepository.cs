@@ -44,12 +44,13 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            foreach (AniDB_Episode episode in Cache.Values)
+            foreach (AniDB_Episode episode in Cache.Values.ToList())
             {
                 if (episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`'))
                 {
                     episode.EnglishName = episode.EnglishName.Replace('`', '\'');
                     episode.RomajiName = episode.RomajiName.Replace('`', '\'');
+                    Save(episode);
                 }
             }
         }

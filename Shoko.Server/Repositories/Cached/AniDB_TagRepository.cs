@@ -33,7 +33,7 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            foreach (AniDB_Tag tag in Cache.Values)
+            foreach (AniDB_Tag tag in Cache.Values.ToList())
             {
                 if (tag.TagDescription.Contains('`') || tag.TagName.Contains('`'))
                 {
