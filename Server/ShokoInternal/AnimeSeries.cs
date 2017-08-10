@@ -15,6 +15,7 @@ namespace Shoko.Models.Server
         public string DefaultSubtitleLanguage { get; set; }
         public DateTime? EpisodeAddedDate { get; set; }
         public DateTime? LatestEpisodeAirDate { get; set; }
+        public DayOfWeek? AirsOn { get; set; }
         public int MissingEpisodeCount { get; set; }
         public int MissingEpisodeCountGroups { get; set; }
         public int LatestLocalEpisodeNumber { get; set; }
