@@ -144,7 +144,7 @@ namespace AniDBAPI
                 return null;
             }
 
-            anime.Description = TryGetProperty(docAnime, "anime", "description");
+            anime.Description = TryGetProperty(docAnime, "anime", "description").Replace('`', '\'');
             anime.AnimeTypeRAW = TryGetProperty(docAnime, "anime", "type");
 
 
@@ -220,7 +220,7 @@ namespace AniDBAPI
 
                     if (titleType.Trim().ToUpper().Equals("MAIN"))
                     {
-                        anime.MainTitle = titleValue;
+                        anime.MainTitle = titleValue.Replace('`', '\'');
                     }
                 }
             }
