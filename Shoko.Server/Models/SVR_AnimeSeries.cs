@@ -595,8 +595,6 @@ namespace Shoko.Server.Models
                 () => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeIDs(session, animeIds.Value), false);
             var defImagesByAnime = new Lazy<Dictionary<int, DefaultAnimeImages>>(
                 () => RepoFactory.AniDB_Anime.GetDefaultImagesByAnime(session, animeIds.Value), false);
-            var tvDBEpByAnime = new Lazy<ILookup<int, TvDB_Episode>>(
-                () => RepoFactory.TvDB_Episode.GetByAnimeIDs(session, animeIds.Value), false);
 
             foreach (SVR_AnimeSeries series in seriesBatch)
             {
@@ -618,6 +616,7 @@ namespace Shoko.Server.Models
                 contract.DefaultSubtitleLanguage = series.DefaultSubtitleLanguage;
                 contract.LatestLocalEpisodeNumber = series.LatestLocalEpisodeNumber;
                 contract.LatestEpisodeAirDate = series.LatestEpisodeAirDate;
+                contract.AirsOn = series.AirsOn;
                 contract.EpisodeAddedDate = series.EpisodeAddedDate;
                 contract.MissingEpisodeCount = series.MissingEpisodeCount;
                 contract.MissingEpisodeCountGroups = series.MissingEpisodeCountGroups;
@@ -685,21 +684,6 @@ namespace Shoko.Server.Models
                     // MAL contracts
                     contract.CrossRefAniDBMAL = malXrefByAnime.Value[series.AniDB_ID]
                         .ToList();
-
-                    DayOfWeek? finalDay;
-                    Dictionary<DayOfWeek, int> daysCounters = tvDBEpByAnime.Value[series.AniDB_ID]
-                        .Select(ep =>
-                        {
-                            if (ep.SeasonNumber == 0) return null;
-                            DayOfWeek? day = ep.AirDate?.DayOfWeek;
-                            return day;
-                        }).Where(day => day != null).Select(day => day.Value).ToList().GroupBy(day => day)
-                        .ToDictionary(a => a.Key, a => a.Count());
-                    if (daysCounters.Count <= 0)
-                        finalDay = null;
-                    else
-                        finalDay = daysCounters.OrderByDescending(a => a.Value).First().Key;
-                    contract.AirsOn = finalDay;
                 }
 
                 HashSet<GroupFilterConditionType> typesChanged = GetConditionTypesChanged(series.Contract, contract);
@@ -722,25 +706,6 @@ namespace Shoko.Server.Models
                     onlystats = false;
                 }
 
-                var eps = RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID);
-
-                DayOfWeek? finalDay;
-                Dictionary<int, DayOfWeek> daysCounters = eps
-                    .Select(
-                        ep =>
-                        {
-                            if (ep.EpisodeTypeEnum != EpisodeType.Episode) return null;
-                            TvDB_Episode tvep = ep.TvDBEpisode;
-                            DayOfWeek? day = tvep?.AirDate?.DayOfWeek;
-                            return day;
-                        }).Where(day => day != null).Select(day => day.Value).ToList().GroupBy(day => day)
-                    .ToDictionary(a => a.Count(), a => a.Key);
-                if (daysCounters.Count <= 0)
-                    finalDay = null;
-                else
-                    finalDay = daysCounters[daysCounters.Keys.Max()];
-                contract.AirsOn = finalDay;
-
                 contract.AniDB_ID = this.AniDB_ID;
                 contract.AnimeGroupID = this.AnimeGroupID;
                 contract.AnimeSeriesID = this.AnimeSeriesID;
@@ -750,6 +715,7 @@ namespace Shoko.Server.Models
                 contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
                 contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
                 contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
+                contract.AirsOn = this.AirsOn;
                 contract.EpisodeAddedDate = this.EpisodeAddedDate;
                 contract.MissingEpisodeCount = this.MissingEpisodeCount;
                 contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
@@ -843,7 +809,6 @@ namespace Shoko.Server.Models
             {
                 throw;
             }
-           
         }
 
 
@@ -1281,6 +1246,8 @@ namespace Shoko.Server.Models
                 EpisodeList epReleasedList = new EpisodeList(animeType);
                 EpisodeList epGroupReleasedList = new EpisodeList(animeType);
 
+                Dictionary<DayOfWeek, int> daysofweekcounter = new Dictionary<DayOfWeek, int>();
+
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
                     //List<VideoLocal> vids = ep.VideoLocals;
@@ -1314,6 +1281,12 @@ namespace Shoko.Server.Models
                     // Only count episodes that have already aired
                     if (airdate.HasValue && !(airdate > DateTime.Now))
                     {
+                        var airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
+                        airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
+                            TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
+                        if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
+                            daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
+                        daysofweekcounter[airdateLocal.DayOfWeek]++;
                         if (lastEpAirDate < airdate.Value)
                             lastEpAirDate = airdate.Value;
                     }
@@ -1355,6 +1328,10 @@ namespace Shoko.Server.Models
                 this.LatestLocalEpisodeNumber = latestLocalEpNumber;
                 if (lastEpAirDate != DateTime.MinValue)
                     this.LatestEpisodeAirDate = lastEpAirDate;
+                if (daysofweekcounter.Count > 0)
+                {
+                    AirsOn = daysofweekcounter.OrderByDescending(a => a.Value).FirstOrDefault().Key;
+                }
             }
 
             ts = DateTime.Now - start;

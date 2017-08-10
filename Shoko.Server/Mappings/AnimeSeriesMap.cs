@@ -1,4 +1,5 @@
-﻿using FluentNHibernate.Mapping;
+﻿using System;
+using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
@@ -28,6 +29,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.ContractVersion).Not.Nullable();
             Map(x => x.ContractBlob).Nullable().CustomType("BinaryBlob");
             Map(x => x.ContractSize).Not.Nullable();
+            Map(x => x.AirsOn);
         }
     }
 }
