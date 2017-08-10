@@ -34,6 +34,14 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
+            foreach (AniDB_Anime_Title title in Cache.Values)
+            {
+                if (title.Title.Contains('`'))
+                {
+                    title.Title = title.Title.Replace('`', '\'');
+                    Save(title);
+                }
+            }
         }
 
 

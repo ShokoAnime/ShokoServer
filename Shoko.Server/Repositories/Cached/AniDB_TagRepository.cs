@@ -33,6 +33,15 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
+            foreach (AniDB_Tag tag in Cache.Values)
+            {
+                if (tag.TagDescription.Contains('`') || tag.TagName.Contains('`'))
+                {
+                    tag.TagDescription = tag.TagDescription.Replace('`', '\'');
+                    tag.TagName = tag.TagName.Replace('`', '\'');
+                    Save(tag);
+                }
+            }
         }
 
         public List<AniDB_Tag> GetByAnimeID(int animeID)
