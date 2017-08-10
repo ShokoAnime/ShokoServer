@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 57;
+        public int RequiredVersion { get; } = 58;
 
 
         public void BackupDatabase(string fullfilename)
@@ -476,6 +476,7 @@ namespace Shoko.Server.Databases
             // This adds the new columns `AirDate` and `Rating` as well
             new DatabaseCommand(57, 1, DropTvDB_EpisodeFirstAiredColumn),
             new DatabaseCommand(57, 2, DatabaseFixes.UpdateAllTvDBSeries),
+            new DatabaseCommand(58, 1, "ALTER TABLE AnimeSeries ADD AirsOn TEXT NULL"),
         };
 
 
@@ -526,7 +527,7 @@ namespace Shoko.Server.Databases
             {
                 SQLiteConnection myConn = (SQLiteConnection) connection;
                 string createtvepcommand =
-                    "CREATE TABLE TvDB_Episode ( TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, Id integer NOT NULL, SeriesID integer NOT NULL, SeasonID integer NOT NULL, SeasonNumber integer NOT NULL, EpisodeNumber integer NOT NULL, EpisodeName text, Overview text, Filename text, EpImgFlag integer NOT NULL, AbsoluteNumber integer, AirsAfterSeason integer, AirsBeforeEpisode integer, AirsBeforeSeason integer, AirDate timestamp, Rating integer)";
+                    "CREATE TABLE TvDB_Episode ( TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, Id int NOT NULL, SeriesID int NOT NULL, SeasonID int NOT NULL, SeasonNumber int NOT NULL, EpisodeNumber int NOT NULL, EpisodeName text, Overview text, Filename text, EpImgFlag int NOT NULL, AbsoluteNumber int, AirsAfterSeason int, AirsBeforeEpisode int, AirsBeforeSeason int, AirDate timestamp, Rating int)";
                 List<string> indextvepcommands =
                     new List<string>() {"CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id);"};
                 ((SQLite) DatabaseFactory.Instance).DropColumns(myConn, "TvDB_Episode",
