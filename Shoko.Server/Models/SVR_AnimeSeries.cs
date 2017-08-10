@@ -1281,9 +1281,19 @@ namespace Shoko.Server.Models
                     // Only count episodes that have already aired
                     if (airdate.HasValue && !(airdate > DateTime.Now))
                     {
-                        var airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
-                        airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
-                            TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
+                        // Only convert if we have time info
+                        DateTime airdateLocal;
+                        if (airdate.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
+                        {
+                            airdateLocal = airdate.Value;
+                        }
+                        else
+                        {
+                            airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
+                            airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
+                                TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
+                        }
+
                         if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
                             daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
                         daysofweekcounter[airdateLocal.DayOfWeek]++;

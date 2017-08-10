@@ -1499,16 +1499,17 @@ namespace Shoko.Server.API.v2.Modules
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
                                 .FindInEnumerable(user.GetHideCategories()));
-
-            List<Serie> result = new List<Serie>();
-            result = allSeries.Where(ser =>
+            DateTime now = DateTime.Now;
+            List<Serie> result = allSeries.Where(ser =>
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 // It might end today, but that's okay
-                if (anime.EndDate != null && anime.EndDate - DateTime.Today < new TimeSpan(16,0,0)) return false;
-                var finalDay = ser.AirsOn;
-                if (finalDay == null) return false;
-                return DateTime.Today.DayOfWeek == finalDay.Value;
+                if (anime.EndDate != null)
+                {
+                    if (now > anime.EndDate.Value && now - anime.EndDate.Value > new TimeSpan(16, 0, 0)) return false;
+                }
+                if (ser.AirsOn == null) return false;
+                return DateTime.Now.DayOfWeek == ser.AirsOn.Value;
             }).Select(ser => Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID, para.nocast == 1,
                 para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic)).OrderBy(a => a.name).ToList();
             Group group = new Group()
