@@ -140,9 +140,9 @@ namespace AniDBAPI
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "rating", "votes"), out int votes);
             Rating = rating;
             Votes = votes;
-            EnglishName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "en").Replace('`', '\'');
-            RomajiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "x-jat").Replace('`', '\'');
-            KanjiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "ja").Replace('`', '\'');
+            EnglishName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "en")?.Replace('`', '\'');
+            RomajiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "x-jat")?.Replace('`', '\'');
+            KanjiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "ja")?.Replace('`', '\'');
 
             /*
 	
