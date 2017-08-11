@@ -191,7 +191,7 @@ namespace Shoko.Server.Commands
                         }
 
                         // If this has any issues, it will throw an exception, so the catch below will handle it
-                        RecursivelyRetryDownload(downloadURL, tempName, 0, 5);
+                        RecursivelyRetryDownload(downloadURL, ref tempName, 0, 5);
 
                         // move the file to it's final location
                         // check that the final folder exists
@@ -213,7 +213,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private void RecursivelyRetryDownload(string downloadURL, string tempFilePath, int count, int maxretry)
+        private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
         {
             try
             {
@@ -261,6 +261,7 @@ namespace Shoko.Server.Commands
                             {
                                 fs.Write(bytes, 0, bytes.Length);
                             }
+                            tempFilePath = newFile;
                         }
                     }
                 }
@@ -269,7 +270,7 @@ namespace Shoko.Server.Commands
             {
                 if (count + 1 >= maxretry) throw;
                 Thread.Sleep(500);
-                RecursivelyRetryDownload(downloadURL, tempFilePath, count + 1, maxretry);
+                RecursivelyRetryDownload(downloadURL, ref tempFilePath, count + 1, maxretry);
             }
         }
 
