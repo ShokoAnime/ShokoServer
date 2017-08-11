@@ -52,6 +52,8 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     TvDBRateLimiter.Instance.EnsureRate();
                     await client.Authentication.AuthenticateAsync(Constants.TvDB.apiKey);
+                    if (string.IsNullOrEmpty(client.Authentication.Token))
+                        throw new TvDbServerException("Authentication Failed", 200);
                 }
             }
             catch (Exception e)
@@ -1042,7 +1044,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                     {
                         return await GetUpdatedSeriesListAsync(serverTime);
                     }

@@ -69,6 +69,9 @@ namespace Shoko.Server.Repositories.Cached
             if (max <= 0) return;
             foreach (SVR_AnimeGroup g in grps)
             {
+                g.Description = g.Description.Replace('`', '\'');
+                g.GroupName = g.GroupName.Replace('`', '\'');
+                g.SortName = g.SortName.Replace('`', '\'');
                 Save(g, true, false, false);
                 cnt++;
                 if (cnt % 10 == 0)
