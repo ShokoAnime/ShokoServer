@@ -39,6 +39,9 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
         public string filename { get; set; }
 
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
+        public string server_path { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public new long size { get; set; }
 
@@ -112,7 +115,7 @@ namespace Shoko.Server.API.v2.Models.common
                 hash_source = vl.HashSource;
 
                 is_ignored = vl.IsIgnored;
-                VideoLocal_User vl_user = vl.GetUserRecord(uid);
+                var vl_user = vl.GetUserRecord(uid);
                 if (vl_user != null)
                 {
                     offset = vl_user.ResumePosition;
@@ -122,10 +125,11 @@ namespace Shoko.Server.API.v2.Models.common
                     offset = 0;
                 }
 
-                VideoLocal_Place place = vl.GetBestVideoLocalPlace();
+                var place = vl.GetBestVideoLocalPlace();
                 if (place != null)
                 {
                     filename = place.FilePath;
+                    server_path = place.FullServerPath;
                     videolocal_place_id = place.VideoLocal_Place_ID;
                     import_folder_id = place.ImportFolderID;
                 }
