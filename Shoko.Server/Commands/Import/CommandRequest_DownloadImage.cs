@@ -231,7 +231,7 @@ namespace Shoko.Server.Commands
                                 "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
 
                         ImageFormatEnum imageFormat = GetImageFormat(bytes);
-                        string extension = "";
+                        string extension;
                         switch (imageFormat)
                         {
                             case ImageFormatEnum.bmp:

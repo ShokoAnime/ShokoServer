@@ -144,7 +144,7 @@ namespace AniDBAPI
                 return null;
             }
 
-            anime.Description = TryGetProperty(docAnime, "anime", "description").Replace('`', '\'');
+            anime.Description = TryGetProperty(docAnime, "anime", "description")?.Replace('`', '\'');
             anime.AnimeTypeRAW = TryGetProperty(docAnime, "anime", "type");
 
 

@@ -82,8 +82,8 @@ namespace AniDBAPI
             this.CharID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
             this.CharType = AniDBHTTPHelper.TryGetAttribute(node, "type");
 
-            this.CharName = AniDBHTTPHelper.TryGetProperty(node, "name").Replace('`', '\'');
-            this.CharDescription = AniDBHTTPHelper.TryGetProperty(node, "description").Replace('`', '\'');
+            this.CharName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            this.CharDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
             this.EpisodeListRaw = AniDBHTTPHelper.TryGetProperty(node, "episodes");
             this.PicName = AniDBHTTPHelper.TryGetProperty(node, "picture");
 
