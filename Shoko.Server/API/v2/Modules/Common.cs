@@ -1489,30 +1489,39 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or Serie</returns>
         private object SeriesToday()
         {
-            Request request = this.Request;
             JMMUser user = (JMMUser) this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             // 1. get series airing
             // 2. get eps for those series
             // 3. calculate which series have most of the files released today
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                .FindInEnumerable(user.GetHideCategories()))
-                .AsParallel();
-
-            List<Serie> result = new List<Serie>();
-            result = allSeries.Where(ser =>
+                                .FindInEnumerable(user.GetHideCategories()));
+            DateTime now = DateTime.Now;
+            List<Serie> result = allSeries.Where(ser =>
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
-                if (anime.EndDate != null) return false;
-                var finalDay = ser.Contract.AirsOn;
-                if (finalDay == null) return false;
-                return DateTime.Today.DayOfWeek == finalDay.Value;
+                // It might end today, but that's okay
+                if (anime.EndDate != null)
+                {
+                    if (now > anime.EndDate.Value && now - anime.EndDate.Value > new TimeSpan(16, 0, 0)) return false;
+                }
+                if (ser.AirsOn == null) return false;
+                return DateTime.Now.DayOfWeek == ser.AirsOn.Value;
             }).Select(ser => Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID, para.nocast == 1,
                 para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic)).OrderBy(a => a.name).ToList();
-            return result;
+            Group group = new Group()
+            {
+                id = 0,
+                name = "Airing Today",
+                series = result,
+                size = result.Count,
+                summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
+                url = Request.Url,
+            };
+            return group;
         }
 
         /// <summary>

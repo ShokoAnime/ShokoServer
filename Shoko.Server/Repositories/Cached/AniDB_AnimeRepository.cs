@@ -63,6 +63,10 @@ namespace Shoko.Server.Repositories
                     {
                         foreach (SVR_AniDB_Anime anime in animeBatch)
                         {
+                            anime.Description = anime.Description.Replace('`', '\'');
+                            anime.MainTitle = anime.MainTitle.Replace('`', '\'');
+                            anime.AllTags = anime.AllTags.Replace('`', '\'');
+                            anime.AllTitles = anime.AllTitles.Replace('`', '\'');
                             session.Update(anime);
                             count++;
                         }
