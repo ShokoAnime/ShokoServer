@@ -48,7 +48,7 @@ namespace Shoko.Server.Providers.TvDB
             try
             {
                 client.AcceptedLanguage = ServerSettings.TvDB_Language;
-                if (client.Authentication.Token == null)
+                if (string.IsNullOrEmpty(client.Authentication.Token))
                 {
                     TvDBRateLimiter.Instance.EnsureRate();
                     await client.Authentication.AuthenticateAsync(Constants.TvDB.apiKey);
@@ -93,7 +93,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetSeriesInfoOnlineAsync(seriesID);
                     // suppress 404 and move on
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
@@ -141,7 +141,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await SearchSeriesAsync(criteria);
                     // suppress 404 and move on
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return results;
@@ -321,7 +321,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetLanguagesAsync();
                     // suppress 404 and move on
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return languages;
@@ -373,7 +373,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetSeriesImagesCountsAsync(seriesID);
                     // suppress 404 and move on
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
@@ -402,7 +402,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetSeriesImagesAsync(seriesID, type);
                     // suppress 404 and move on
                 }
@@ -464,7 +464,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetFanartOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
@@ -531,7 +531,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                     {
                         return await GetPosterOnlineAsync(seriesID);
                     }
@@ -600,7 +600,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetBannerOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
@@ -769,7 +769,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetEpisodesOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
@@ -805,7 +805,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetEpisodeDetailsAsync(episodeID);
                     // suppress 404 and move on
                 }
@@ -860,7 +860,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
-                    if (client.Authentication.Token != null)
+                    if (!string.IsNullOrEmpty(client.Authentication.Token))
                     {
                         await QueueEpisodeImageDownloadAsync(item, existingEpIds, downloadImages, forceRefresh);
                         return;
