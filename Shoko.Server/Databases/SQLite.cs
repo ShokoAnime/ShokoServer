@@ -474,8 +474,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(56, 1,
                 "CREATE INDEX IX_AniDB_Anime_Character_CharID ON AniDB_Anime_Character(CharID);"),
             // This adds the new columns `AirDate` and `Rating` as well
-            new DatabaseCommand(57, 1, DropTvDB_EpisodeFirstAiredColumn),
-            new DatabaseCommand(57, 2, DatabaseFixes.UpdateAllTvDBSeries),
+            new DatabaseCommand(57, 1, "DROP INDEX UIX_TvDB_Episode_Id;"),
+            new DatabaseCommand(57, 2, DropTvDB_EpisodeFirstAiredColumn),
+            new DatabaseCommand(57, 3, DatabaseFixes.UpdateAllTvDBSeries),
             new DatabaseCommand(58, 1, "ALTER TABLE AnimeSeries ADD AirsOn TEXT NULL"),
         };
 
