@@ -5373,4 +5373,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Stagione</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Spostare, se necessario</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Ottenere lo stato di File dal MyList: {0} ({1})</value>
+  </data>
 </root>

@@ -5373,4 +5373,10 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Seizoen</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Verplaatsen indien nodig</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Krijgen van de bestandsstatus van MyList: {0} ({1})</value>
+  </data>
 </root>

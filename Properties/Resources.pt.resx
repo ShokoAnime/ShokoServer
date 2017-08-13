@@ -5373,4 +5373,10 @@
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Temporada</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Movimento se necessário</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Recebendo o arquivo Status de MyList: {0} ({1})</value>
+  </data>
 </root>

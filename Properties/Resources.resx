@@ -5378,4 +5378,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Rename_MoveIfNeeded" xml:space="preserve">
     <value>Move if Needed</value>
   </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Getting File Status from MyList: {0} ({1})</value>
+  </data>
 </root>

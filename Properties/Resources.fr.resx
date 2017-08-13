@@ -5373,4 +5373,10 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Saison</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Déplacer si nécessaire</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Faire état du fichier de MyList : {0} ({1})</value>
+  </data>
 </root>

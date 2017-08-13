@@ -5373,4 +5373,10 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Temporada</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Mover si es necesario</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Obtener el archivo estado de MyList: {0} ({1})</value>
+  </data>
 </root>

@@ -5375,4 +5375,10 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Sezon</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Przenieść w razie potrzeby</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Uzyskanie statusu pliku od MyList: {0} ({1})</value>
+  </data>
 </root>

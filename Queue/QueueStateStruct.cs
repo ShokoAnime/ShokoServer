@@ -147,6 +147,8 @@ namespace Shoko.Commons.Queue
                     return Resources.Command_SyncPlex;
                 case QueueStateEnum.LinkFileManually:
                     return Resources.Command_LinkFileManually;
+                case QueueStateEnum.AniDB_MyListGetFile:
+                    return Resources.AniDB_MyListGetFile;
                 default:
                     throw new Exception("Unknown queue state format string");
             }

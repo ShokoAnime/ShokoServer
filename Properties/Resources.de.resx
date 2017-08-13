@@ -5373,4 +5373,10 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="GroupFilterConditionType_Season" xml:space="preserve">
     <value>Saison</value>
   </data>
+  <data name="Rename_MoveIfNeeded" xml:space="preserve">
+    <value>Verschieben Sie bei Bedarf</value>
+  </data>
+  <data name="AniDB_MyListGetFile" xml:space="preserve">
+    <value>Immer Dateistatus von MyList: {0} ({1})</value>
+  </data>
 </root>
