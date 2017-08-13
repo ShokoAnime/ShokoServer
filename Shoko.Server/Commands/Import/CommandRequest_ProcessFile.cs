@@ -328,14 +328,18 @@ namespace Shoko.Server.Commands
                 }
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
+                // It imports default unwatched, so we only need it to do anything if we want it watched
+                if (aniFile != null && ServerSettings.AniDB_MyList_ReadWatched)
+                {
+                    CommandRequest_GetFileMyListStatus mylistcmd =
+                        new CommandRequest_GetFileMyListStatus(aniFile.AniDB_FileID, vidLocal.FileName);
+                    mylistcmd.Save();
+                }
+
 
                 // update stats for groups and series
-                if (ser != null)
-                {
-                    // update all the groups above this series in the heirarchy
-                    ser.QueueUpdateStats();
-                    //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
-                }
+                // update all the groups above this series in the heirarchy
+                ser?.QueueUpdateStats();
 
 
                 // Add this file to the users list

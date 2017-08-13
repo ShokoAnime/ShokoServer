@@ -30,10 +30,7 @@ namespace Shoko.Server.Commands
         private SVR_AnimeEpisode episode = null;
         private SVR_VideoLocal vlocal = null;
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
         public QueueStateStruct PrettyDescription
         {
@@ -70,13 +67,6 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-            if (null==vlocal)
-            {
-                logger.Info("videolocal object {0} not found", VideoLocalID);
-                return;
-            }
-            episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
             CrossRef_File_Episode xref = new CrossRef_File_Episode();
             try
             {
@@ -162,6 +152,13 @@ namespace Shoko.Server.Commands
                 this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
                 this.EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
                 this.Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
+                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                if (null==vlocal)
+                {
+                    logger.Info("videolocal object {0} not found", VideoLocalID);
+                    return false;
+                }
+                episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
             }
 
             return true;
