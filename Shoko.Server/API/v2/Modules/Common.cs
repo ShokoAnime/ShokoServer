@@ -161,6 +161,8 @@ namespace Shoko.Server.API.v2.Modules
             Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct);
 
             #endregion
+
+            Get["/links/serie", true] = async (x, ct) => await Task.Factory.StartNew(GetLinks, ct);
         }
 
         #region 1.Import Folders
@@ -2671,5 +2673,24 @@ namespace Shoko.Server.API.v2.Modules
         #endregion
 
         #endregion
+
+        public object GetLinks()
+        {
+            Request request = this.Request;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            Dictionary<string, object> links = new Dictionary<string, object>();
+
+            var serie = RepoFactory.AnimeSeries.GetByID(para.id);
+            var trakt = serie.GetTraktShow();
+            links.Add("trakt", trakt?.Select(x => x.URL));
+            var tvdb = serie.GetTvDBSeries();
+            if (tvdb != null) links.Add("tvdb", tvdb.Select(x => x.SeriesID));
+            var tmdb = serie.CrossRefMovieDB;
+            if (tmdb != null) links.Add("tmdb", tmdb.CrossRefID); //not sure this will work.
+
+            return links;
+        }
     }
 }
