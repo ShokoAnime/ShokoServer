@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
+using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -47,77 +48,89 @@ namespace Shoko.Server
 
         private Stream StreamFromIFile(InfoResult r, bool? autowatch)
         {
-            Nancy.Request request = RestModule.CurrentModule.Request;
-
-            FileSystemResult<Stream> fr = r.File.OpenRead();
-            if (fr == null || !fr.IsOk)
+            try
             {
-                return new StreamWithResponse(HttpStatusCode.InternalServerError,
-                    "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
-            }
-            Stream org = fr.Result;
-            long totalsize = org.Length;
-            long start = 0;
-            long end = totalsize - 1;
+                Nancy.Request request = RestModule.CurrentModule.Request;
 
-            string rangevalue = request.Headers["Range"].FirstOrDefault() ?? request.Headers["range"].FirstOrDefault();
-            rangevalue = rangevalue?.Replace("bytes=", string.Empty);
-            bool range = !string.IsNullOrEmpty(rangevalue);
-
-            if (range)
-            {
-                // range: bytes=split[0]-split[1]
-                string[] split = rangevalue.Split('-');
-                if (split.Length == 2)
+                FileSystemResult<Stream> fr = r.File.OpenRead();
+                if (fr == null || !fr.IsOk)
                 {
-                    // bytes=-split[1] - tail of specified length
-                    if (string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
+                    return new StreamWithResponse(HttpStatusCode.InternalServerError,
+                        "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
+                }
+                Stream org = fr.Result;
+                long totalsize = org.Length;
+                long start = 0;
+                long end = totalsize - 1;
+
+                string rangevalue = request.Headers["Range"].FirstOrDefault() ??
+                                    request.Headers["range"].FirstOrDefault();
+                rangevalue = rangevalue?.Replace("bytes=", string.Empty);
+                bool range = !string.IsNullOrEmpty(rangevalue);
+
+                if (range)
+                {
+                    // range: bytes=split[0]-split[1]
+                    string[] split = rangevalue.Split('-');
+                    if (split.Length == 2)
                     {
-                        long e = long.Parse(split[1]);
-                        start = totalsize - e;
-                        end = totalsize - 1;
-                    }
-                    // bytes=split[0] - split[0] to end of file
-                    else if (!string.IsNullOrEmpty(split[0]) && string.IsNullOrEmpty(split[1]))
-                    {
-                        start = long.Parse(split[0]);
-                        end = totalsize - 1;
-                    }
-                    // bytes=split[0]-split[1] - specified beginning and end
-                    else if (!string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
-                    {
-                        start = long.Parse(split[0]);
-                        end = long.Parse(split[1]);
-                        if (start > totalsize - 1)
-                            start = totalsize - 1;
-                        if (end > totalsize - 1)
+                        // bytes=-split[1] - tail of specified length
+                        if (string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
+                        {
+                            long e = long.Parse(split[1]);
+                            start = totalsize - e;
                             end = totalsize - 1;
+                        }
+                        // bytes=split[0] - split[0] to end of file
+                        else if (!string.IsNullOrEmpty(split[0]) && string.IsNullOrEmpty(split[1]))
+                        {
+                            start = long.Parse(split[0]);
+                            end = totalsize - 1;
+                        }
+                        // bytes=split[0]-split[1] - specified beginning and end
+                        else if (!string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
+                        {
+                            start = long.Parse(split[0]);
+                            end = long.Parse(split[1]);
+                            if (start > totalsize - 1)
+                                start = totalsize - 1;
+                            if (end > totalsize - 1)
+                                end = totalsize - 1;
+                        }
                     }
                 }
+                var outstream = new SubStream(org, start, end - start + 1);
+                var resp = new StreamWithResponse {ContentType = r.Mime};
+                resp.Headers.Add("Server", ServerVersion);
+                resp.Headers.Add("Connection", "keep-alive");
+                resp.Headers.Add("Accept-Ranges", "bytes");
+                resp.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
+                resp.ContentLength = end - start + 1;
+
+                resp.ResponseStatus = range ? HttpStatusCode.PartialContent : HttpStatusCode.OK;
+
+                if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
+                {
+                    outstream.CrossPosition = (long) (totalsize * WatchedThreshold);
+                    outstream.CrossPositionCrossed +=
+                        (a) =>
+                        {
+                            Task.Factory.StartNew(() => { r.VideoLocal.ToggleWatchedStatus(true, r.User.JMMUserID); },
+                                new CancellationToken(),
+                                TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                        };
+                }
+                resp.Stream = outstream;
+                return resp;
             }
-            var outstream = new SubStream(org, start, end - start + 1);
-            var resp = new StreamWithResponse {ContentType = r.Mime};
-            resp.Headers.Add("Server", ServerVersion);
-            resp.Headers.Add("Connection", "keep-alive");
-            resp.Headers.Add("Accept-Ranges", "bytes");
-            resp.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
-            resp.ContentLength = end - start + 1;
-
-            resp.ResponseStatus = range ? HttpStatusCode.PartialContent : HttpStatusCode.OK;
-
-            if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
+            catch (Exception e)
             {
-                outstream.CrossPosition = (long)(totalsize * WatchedThreshold);
-                outstream.CrossPositionCrossed +=
-                    (a) =>
-                    {
-                        Task.Factory.StartNew(() => { r.VideoLocal.ToggleWatchedStatus(true, r.User.JMMUserID); },
-                            new CancellationToken(),
-                            TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                    };
+                logger.Error("An error occurred while serving a file: " + e);
+                var resp = new StreamWithResponse();
+                resp.ResponseStatus = HttpStatusCode.InternalServerError;
+                resp.ResponseDescription = e.Message;
+                return resp;
             }
-            resp.Stream = outstream;
-            return resp;
         }
 
         public Stream InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
@@ -160,17 +173,28 @@ namespace Shoko.Server
 
         private InfoResult ResolveVideoLocal(int videolocalid, int? userId, bool? autowatch)
         {
-            InfoResult r = new InfoResult();
-            SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
-            if (loc == null)
+            try
             {
-                r.Status = HttpStatusCode.NotFound;
-                r.StatusDescription = "Video Not Found";
-                return r;
+                InfoResult r = new InfoResult();
+                SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
+                if (loc == null)
+                {
+                    r.Status = HttpStatusCode.NotFound;
+                    r.StatusDescription = "Video Not Found";
+                    return r;
+                }
+                r.VideoLocal = loc;
+                r.File = loc.GetBestFileLink();
+                return FinishResolve(r, userId, autowatch);
             }
-            r.VideoLocal = loc;
-            r.File = loc.GetBestFileLink();
-            return FinishResolve(r, userId, autowatch);
+            catch (Exception e)
+            {
+                logger.Error("An error occurred while serving a file: " + e);
+                var resp = new InfoResult();
+                resp.Status = HttpStatusCode.InternalServerError;
+                resp.StatusDescription = e.Message;
+                return resp;
+            }
         }
 
         public static string Base64DecodeUrl(string base64EncodedData)

@@ -137,6 +137,7 @@ Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll
 Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "Fix_ShokoServer_Permissions.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -160,24 +161,30 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Shoko Server"; Fil
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/ sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
+Filename: "{app}\Fix_ShokoServer_Permissions.bat";
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
 Filename: " https://shokoanime.com/shoko-version-3-8-beta/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.8 Beta Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - File Port"" protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerMetroImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerPlex"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerKodi"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerREST"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
-Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMM.ServerStreaming"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetroImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerPlex"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerKodi"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerREST"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerStreaming"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8112/JMMFilePort"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 
 [Dirs]
 Name: "{app}"; Permissions: users-full
+Name: "C:\ProgramData\ShokoServer"; Permissions: users-full
 
 [Types]
 Name: "main"; Description: "Main"; Flags: iscustom

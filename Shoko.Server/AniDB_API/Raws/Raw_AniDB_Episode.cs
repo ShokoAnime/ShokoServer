@@ -98,9 +98,9 @@ namespace AniDBAPI
             IsDoubleEpisode = GetIsDoubleEpisode(epno);
             Rating = AniDBAPILib.ProcessAniDBInt(sDetails[3].Trim());
             Votes = AniDBAPILib.ProcessAniDBInt(sDetails[4].Trim());
-            EnglishName = AniDBAPILib.ProcessAniDBString(sDetails[6].Trim());
-            RomajiName = AniDBAPILib.ProcessAniDBString(sDetails[7].Trim());
-            KanjiName = AniDBAPILib.ProcessAniDBString(sDetails[8].Trim());
+            EnglishName = AniDBAPILib.ProcessAniDBString(sDetails[6].Trim()).Replace('`', '\'');
+            RomajiName = AniDBAPILib.ProcessAniDBString(sDetails[7].Trim()).Replace('`', '\'');
+            KanjiName = AniDBAPILib.ProcessAniDBString(sDetails[8].Trim()).Replace('`', '\'');
             AirDate = AniDBAPILib.ProcessAniDBInt(sDetails[9].Trim());
             //BaseConfig.MyAnimeLog.Write("EPISODE: {0}: {1}", sDetails[5].Trim(), this.ToString());
         }
@@ -140,9 +140,9 @@ namespace AniDBAPI
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "rating", "votes"), out int votes);
             Rating = rating;
             Votes = votes;
-            EnglishName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "en");
-            RomajiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "x-jat");
-            KanjiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "ja");
+            EnglishName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "en")?.Replace('`', '\'');
+            RomajiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "x-jat")?.Replace('`', '\'');
+            KanjiName = AniDBHTTPHelper.TryGetPropertyWithAttribute(node, "title", "xml:lang", "ja")?.Replace('`', '\'');
 
             /*
 	
@@ -205,9 +205,9 @@ namespace AniDBAPI
             IsDoubleEpisode = GetIsDoubleEpisode(epno);
             Rating = AniDBAPILib.ProcessAniDBInt(sDetails[22].Trim());
             Votes = AniDBAPILib.ProcessAniDBInt(sDetails[23].Trim());
-            EnglishName = AniDBAPILib.ProcessAniDBString(sDetails[19].Trim());
-            RomajiName = AniDBAPILib.ProcessAniDBString(sDetails[20].Trim());
-            KanjiName = AniDBAPILib.ProcessAniDBString(sDetails[21].Trim());
+            EnglishName = AniDBAPILib.ProcessAniDBString(sDetails[19].Trim()).Replace('`', '\'');
+            RomajiName = AniDBAPILib.ProcessAniDBString(sDetails[20].Trim()).Replace('`', '\'');
+            KanjiName = AniDBAPILib.ProcessAniDBString(sDetails[21].Trim()).Replace('`', '\'');
             AirDate = AniDBAPILib.ProcessAniDBInt(sDetails[17].Trim());
 
             //BaseConfig.MyAnimeLog.Write("EPISODE: {0}: {1}", sDetails[18].Trim(), this.ToString());

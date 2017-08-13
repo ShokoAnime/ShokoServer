@@ -36,7 +36,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
             }
 
-            return null;
+            return APIStatus.statusOK();
         }
 
         #region Plex events

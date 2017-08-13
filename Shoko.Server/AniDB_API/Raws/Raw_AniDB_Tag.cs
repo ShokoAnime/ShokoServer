@@ -43,8 +43,8 @@ namespace AniDBAPI
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out int tapp);
             this.Weight = tapp;
 
-            this.TagName = AniDBHTTPHelper.TryGetProperty(node, "name");
-            this.TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description");
+            this.TagName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            this.TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
 
             bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out bool lsp);
             this.Spoiler = lsp ? 1 : 0;

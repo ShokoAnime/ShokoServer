@@ -154,4 +154,14 @@ namespace Shoko.Server
         SHA1 = 2,
         CRC32 = 3
     }
+
+    public enum ImageFormatEnum
+    {
+        bmp,
+        jpeg,
+        gif,
+        tiff,
+        png,
+        unknown
+    }
 }

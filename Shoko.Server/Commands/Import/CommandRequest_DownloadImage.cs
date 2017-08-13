@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
+using System.Web;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Server.Repositories.Direct;
@@ -24,27 +27,15 @@ namespace Shoko.Server.Commands
         public int EntityType { get; set; }
         public bool ForceDownload { get; set; }
 
-        public JMMImageType EntityTypeEnum
-        {
-            get { return (JMMImageType) EntityType; }
-        }
+        public JMMImageType EntityTypeEnum => (JMMImageType) EntityType;
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority2; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct()
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.DownloadImage,
-                    extraParams = new string[] {EntityID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.DownloadImage,
+            extraParams = new string[] {EntityID.ToString()}
+        };
 
         public CommandRequest_DownloadImage()
         {
@@ -78,71 +69,61 @@ namespace Shoko.Server.Commands
 
                     case JMMImageType.TvDB_Episode:
                         TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
-                        if (ep == null) return;
-                        if (string.IsNullOrEmpty(ep.Filename)) return;
+                        if (string.IsNullOrEmpty(ep?.Filename)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, ep, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_FanArt:
                         TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
-                        if (fanart == null) return;
-                        if (string.IsNullOrEmpty(fanart.BannerPath)) return;
+                        if (string.IsNullOrEmpty(fanart?.BannerPath)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, fanart, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_Cover:
                         TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
-                        if (poster == null) return;
-                        if (string.IsNullOrEmpty(poster.BannerPath)) return;
+                        if (string.IsNullOrEmpty(poster?.BannerPath)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, poster, ForceDownload);
                         break;
 
                     case JMMImageType.TvDB_Banner:
                         TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
-                        if (wideBanner == null) return;
-                        if (string.IsNullOrEmpty(wideBanner.BannerPath)) return;
+                        if (string.IsNullOrEmpty(wideBanner?.BannerPath)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, wideBanner, ForceDownload);
                         break;
 
                     case JMMImageType.MovieDB_Poster:
                         MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
-                        if (moviePoster == null) return;
-                        if (string.IsNullOrEmpty(moviePoster.URL)) return;
+                        if (string.IsNullOrEmpty(moviePoster?.URL)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, moviePoster, ForceDownload);
                         break;
 
                     case JMMImageType.MovieDB_FanArt:
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
-                        if (movieFanart == null) return;
-                        if (string.IsNullOrEmpty(movieFanart.URL)) return;
+                        if (string.IsNullOrEmpty(movieFanart?.URL)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, movieFanart, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Poster:
                         Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
-                        if (traktPoster == null) return;
-                        if (string.IsNullOrEmpty(traktPoster.ImageURL)) return;
+                        if (string.IsNullOrEmpty(traktPoster?.ImageURL)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, traktPoster, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Fanart:
                         Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
-                        if (traktFanart == null) return;
-                        if (string.IsNullOrEmpty(traktFanart.ImageURL)) return;
+                        if (string.IsNullOrEmpty(traktFanart?.ImageURL)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, traktFanart, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Friend:
                         Trakt_Friend friend = RepoFactory.Trakt_Friend.GetByID(EntityID);
-                        if (friend == null) return;
-                        if (string.IsNullOrEmpty(friend.Avatar)) return;
+                        if (string.IsNullOrEmpty(friend?.Avatar)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, friend, ForceDownload);
                         break;
 
                     case JMMImageType.Trakt_Episode:
                         Trakt_Episode traktEp = RepoFactory.Trakt_Episode.GetByID(EntityID);
-                        if (traktEp == null) return;
-                        if (string.IsNullOrEmpty(traktEp.EpisodeImage)) return;
+                        if (string.IsNullOrEmpty(traktEp?.EpisodeImage)) return;
                         req = new ImageDownloadRequest(EntityTypeEnum, traktEp, ForceDownload);
                         break;
 
@@ -187,15 +168,7 @@ namespace Shoko.Server.Commands
                     bool downloadImage = true;
                     bool fileExists = File.Exists(fileName);
 
-                    if (fileExists)
-                    {
-                        if (!req.ForceDownload)
-                            downloadImage = false;
-                        else
-                            downloadImage = true;
-                    }
-                    else
-                        downloadImage = true;
+                    if (fileExists && !req.ForceDownload) downloadImage = false;
 
                     if (downloadImage)
                     {
@@ -217,43 +190,8 @@ namespace Shoko.Server.Commands
                             return;
                         }
 
-
-                        // download image
-                        using (WebClient client = new WebClient())
-                        {
-                            client.Headers.Add("user-agent", "JMM");
-                            //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
-                            //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
-                            if (downloadURL.Length > 0)
-                            {
-                                client.DownloadFile(downloadURL, tempName);
-
-                                string extension = "";
-                                string contentType = client.ResponseHeaders["Content-type"].ToLower();
-                                if (contentType.IndexOf("gif") >= 0) extension = ".gif";
-                                if (contentType.IndexOf("jpg") >= 0) extension = ".jpg";
-                                if (contentType.IndexOf("jpeg") >= 0) extension = ".jpg";
-                                if (contentType.IndexOf("bmp") >= 0) extension = ".bmp";
-                                if (contentType.IndexOf("png") >= 0) extension = ".png";
-                                if (extension.Length > 0)
-                                {
-                                    string newFile = Path.ChangeExtension(tempName, extension);
-                                    if (!newFile.ToLower().Equals(tempName.ToLower()))
-                                    {
-                                        try
-                                        {
-                                            System.IO.File.Delete(newFile);
-                                        }
-                                        catch
-                                        {
-                                            //BaseConfig.MyAnimeLog.Write("DownloadedImage:Download() Delete failed:{0}", newFile);
-                                        }
-                                        System.IO.File.Move(tempName, newFile);
-                                        tempName = newFile;
-                                    }
-                                }
-                            }
-                        }
+                        // If this has any issues, it will throw an exception, so the catch below will handle it
+                        RecursivelyRetryDownload(downloadURL, ref tempName, 0, 5);
 
                         // move the file to it's final location
                         // check that the final folder exists
@@ -262,7 +200,7 @@ namespace Shoko.Server.Commands
                             Directory.CreateDirectory(fullPath);
 
 
-                        System.IO.File.Move(tempName, fileName);
+                        File.Move(tempName, fileName);
                         logger.Info("Image downloaded: {0}", fileName);
                     }
                 }
@@ -273,6 +211,102 @@ namespace Shoko.Server.Commands
                     ex.Message);
                 return;
             }
+        }
+
+        private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
+        {
+            try
+            {
+                // download image
+                using (WebClient client = new WebClient())
+                {
+                    client.Headers.Add("user-agent", "JMM");
+                    //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
+                    //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
+                    if (downloadURL.Length > 0)
+                    {
+                        byte[] bytes = client.DownloadData(downloadURL);
+                        if (bytes.Length < 4)
+                            throw new WebException(
+                                "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
+
+                        ImageFormatEnum imageFormat = GetImageFormat(bytes);
+                        string extension;
+                        switch (imageFormat)
+                        {
+                            case ImageFormatEnum.bmp:
+                                extension = ".bmp";
+                                break;
+                            case ImageFormatEnum.gif:
+                                extension = ".gif";
+                                break;
+                            case ImageFormatEnum.jpeg:
+                                extension = ".jpeg";
+                                break;
+                            case ImageFormatEnum.png:
+                                extension = ".png";
+                                break;
+                            case ImageFormatEnum.tiff:
+                                extension = ".tiff";
+                                break;
+                            default: throw new WebException("The image download stream returned an invalid image");
+                        }
+
+                        if (extension.Length > 0)
+                        {
+                            string newFile = Path.ChangeExtension(tempFilePath, extension);
+                            if(newFile == null) return;
+
+                            using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
+                            {
+                                fs.Write(bytes, 0, bytes.Length);
+                            }
+                            tempFilePath = newFile;
+                        }
+                    }
+                }
+            }
+            catch (WebException)
+            {
+                if (count + 1 >= maxretry) throw;
+                Thread.Sleep(500);
+                RecursivelyRetryDownload(downloadURL, ref tempFilePath, count + 1, maxretry);
+            }
+        }
+
+        public static ImageFormatEnum GetImageFormat(byte[] bytes)
+        {
+            // see http://www.mikekunz.com/image_file_header.html
+            var bmp    = Encoding.ASCII.GetBytes("BM");     // BMP
+            var gif    = Encoding.ASCII.GetBytes("GIF");    // GIF
+            var png    = new byte[] { 137, 80, 78, 71 };    // PNG
+            var tiff   = new byte[] { 73, 73, 42 };         // TIFF
+            var tiff2  = new byte[] { 77, 77, 42 };         // TIFF
+            var jpeg   = new byte[] { 255, 216, 255, 224 }; // jpeg
+            var jpeg2  = new byte[] { 255, 216, 255, 225 }; // jpeg canon
+
+            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
+                return ImageFormatEnum.bmp;
+
+            if (gif.SequenceEqual(bytes.Take(gif.Length)))
+                return ImageFormatEnum.gif;
+
+            if (png.SequenceEqual(bytes.Take(png.Length)))
+                return ImageFormatEnum.png;
+
+            if (tiff.SequenceEqual(bytes.Take(tiff.Length)))
+                return ImageFormatEnum.tiff;
+
+            if (tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
+                return ImageFormatEnum.tiff;
+
+            if (jpeg.SequenceEqual(bytes.Take(jpeg.Length)))
+                return ImageFormatEnum.jpeg;
+
+            if (jpeg2.SequenceEqual(bytes.Take(jpeg2.Length)))
+                return ImageFormatEnum.jpeg;
+
+            return ImageFormatEnum.unknown;
         }
 
         public static string GetFileURL(ImageDownloadRequest req, bool thumbNailOnly)
@@ -405,7 +439,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_DownloadImage_{0}_{1}", EntityID, EntityType);
+            this.CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

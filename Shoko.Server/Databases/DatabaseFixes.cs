@@ -416,5 +416,10 @@ namespace Shoko.Server.Databases
                 logger.Error(e);
             }
         }
+
+        public static void UpdateAllTvDBSeries()
+        {
+            Importer.RunImport_UpdateTvDB(true);
+        }
     }
 }

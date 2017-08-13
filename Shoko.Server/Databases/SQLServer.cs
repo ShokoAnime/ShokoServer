@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 59;
+        public int RequiredVersion { get; } = 62;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -512,6 +512,13 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(58, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT(-1)"),
             new DatabaseCommand(59, 1, "ALTER TABLE RenameScript ADD RenamerType nvarchar(max) NOT NULL DEFAULT('Legacy')"),
             new DatabaseCommand(59, 2, "ALTER TABLE RenameScript ADD ExtraData nvarchar(max)"),
+            new DatabaseCommand(60, 1,
+                "CREATE INDEX IX_AniDB_Anime_Character_CharID ON AniDB_Anime_Character(CharID);"),
+            new DatabaseCommand(61, 1, "ALTER TABLE TvDB_Episode ADD Rating INT NULL"),
+            new DatabaseCommand(61, 2, "ALTER TABLE TvDB_Episode ADD AirDate datetime NULL"),
+            new DatabaseCommand(61, 3, "ALTER TABLE TvDB_Episode DROP COLUMN FirstAired"),
+            new DatabaseCommand(61, 4, DatabaseFixes.UpdateAllTvDBSeries),
+            new DatabaseCommand(62, 1, "ALTER TABLE AnimeSeries ADD AirsOn varchar(10) NULL"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

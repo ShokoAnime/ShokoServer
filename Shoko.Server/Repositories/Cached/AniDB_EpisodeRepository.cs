@@ -44,6 +44,13 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
+            List<AniDB_Episode> episodes = Cache.Values.Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
+            foreach (AniDB_Episode episode in episodes)
+            {
+                episode.EnglishName = episode.EnglishName.Replace('`', '\'');
+                episode.RomajiName = episode.RomajiName.Replace('`', '\'');
+                Save(episode);
+            }
         }
 
 

@@ -28,7 +28,7 @@ namespace AniDBAPI
 
             this.TitleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
             this.Language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
-            this.Title = node.InnerText.Trim();
+            this.Title = node.InnerText.Trim().Replace('`', '\'');
 
             // Title Types
             // -------------
