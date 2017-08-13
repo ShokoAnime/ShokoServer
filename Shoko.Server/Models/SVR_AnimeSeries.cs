@@ -35,7 +35,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public const int CONTRACT_VERSION = 7;
+        public const int CONTRACT_VERSION = 8;
 
 
         private CL_AnimeSeries_User _contract = null;
@@ -616,6 +616,7 @@ namespace Shoko.Server.Models
                 contract.DefaultSubtitleLanguage = series.DefaultSubtitleLanguage;
                 contract.LatestLocalEpisodeNumber = series.LatestLocalEpisodeNumber;
                 contract.LatestEpisodeAirDate = series.LatestEpisodeAirDate;
+                contract.AirsOn = series.AirsOn;
                 contract.EpisodeAddedDate = series.EpisodeAddedDate;
                 contract.MissingEpisodeCount = series.MissingEpisodeCount;
                 contract.MissingEpisodeCountGroups = series.MissingEpisodeCountGroups;
@@ -682,7 +683,6 @@ namespace Shoko.Server.Models
 
                     // MAL contracts
                     contract.CrossRefAniDBMAL = malXrefByAnime.Value[series.AniDB_ID]
-                        .Cast<Shoko.Models.Server.CrossRef_AniDB_MAL>()
                         .ToList();
                 }
 
@@ -706,7 +706,6 @@ namespace Shoko.Server.Models
                     onlystats = false;
                 }
 
-
                 contract.AniDB_ID = this.AniDB_ID;
                 contract.AnimeGroupID = this.AnimeGroupID;
                 contract.AnimeSeriesID = this.AnimeSeriesID;
@@ -716,6 +715,7 @@ namespace Shoko.Server.Models
                 contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
                 contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
                 contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
+                contract.AirsOn = this.AirsOn;
                 contract.EpisodeAddedDate = this.EpisodeAddedDate;
                 contract.MissingEpisodeCount = this.MissingEpisodeCount;
                 contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
@@ -809,7 +809,6 @@ namespace Shoko.Server.Models
             {
                 throw;
             }
-           
         }
 
 
@@ -1247,6 +1246,8 @@ namespace Shoko.Server.Models
                 EpisodeList epReleasedList = new EpisodeList(animeType);
                 EpisodeList epGroupReleasedList = new EpisodeList(animeType);
 
+                Dictionary<DayOfWeek, int> daysofweekcounter = new Dictionary<DayOfWeek, int>();
+
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
                     //List<VideoLocal> vids = ep.VideoLocals;
@@ -1280,6 +1281,22 @@ namespace Shoko.Server.Models
                     // Only count episodes that have already aired
                     if (airdate.HasValue && !(airdate > DateTime.Now))
                     {
+                        // Only convert if we have time info
+                        DateTime airdateLocal;
+                        if (airdate.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
+                        {
+                            airdateLocal = airdate.Value;
+                        }
+                        else
+                        {
+                            airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
+                            airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
+                                TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
+                        }
+
+                        if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
+                            daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
+                        daysofweekcounter[airdateLocal.DayOfWeek]++;
                         if (lastEpAirDate < airdate.Value)
                             lastEpAirDate = airdate.Value;
                     }
@@ -1321,6 +1338,10 @@ namespace Shoko.Server.Models
                 this.LatestLocalEpisodeNumber = latestLocalEpNumber;
                 if (lastEpAirDate != DateTime.MinValue)
                     this.LatestEpisodeAirDate = lastEpAirDate;
+                if (daysofweekcounter.Count > 0)
+                {
+                    AirsOn = daysofweekcounter.OrderByDescending(a => a.Value).FirstOrDefault().Key;
+                }
             }
 
             ts = DateTime.Now - start;

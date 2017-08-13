@@ -119,7 +119,7 @@ namespace Shoko.Server.Databases
                 RepoFactory.Versions.Delete(v);
                 foreach (DatabaseCommand dc in commands)
                 {
-                    if (dc.Version <= Int32.Parse(value))
+                    if (dc.Version <= int.Parse(value))
                     {
                         AddVersion(dc.Version.ToString(), dc.Revision.ToString(), dc.CommandName);
                     }

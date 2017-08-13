@@ -25,6 +25,8 @@ namespace Shoko.Server.Mappings
             Map(x => x.AirsAfterSeason);
             Map(x => x.AirsBeforeEpisode);
             Map(x => x.AirsBeforeSeason);
+            Map(x => x.Rating);
+            Map(x => x.AirDate);
         }
     }
 }

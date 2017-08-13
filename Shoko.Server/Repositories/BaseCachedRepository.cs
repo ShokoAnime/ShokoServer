@@ -240,7 +240,7 @@ namespace Shoko.Server.Repositories
         public abstract void PopulateIndexes();
         public abstract void RegenerateDb();
 
-        public void PostProcess()
+        public virtual void PostProcess()
         {
         }
     }

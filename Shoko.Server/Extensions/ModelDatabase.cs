@@ -83,7 +83,7 @@ namespace Shoko.Server.Extensions
         {
             if (cross.CrossRefType != (int) CrossRefType.MovieDB)
                 return null;
-            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, Int32.Parse(cross.CrossRefID));
+            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
         }
 
         public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)

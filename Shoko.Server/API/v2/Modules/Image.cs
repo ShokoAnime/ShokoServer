@@ -43,7 +43,7 @@ namespace Shoko.Server.API.v2.Modules
             string contentType = "";
             string path = ReturnImagePath(type, id, false);
 
-            if (path == "")
+            if (string.IsNullOrEmpty(path))
             {
                 Stream image = MissingImage();
                 contentType = "image/png";
@@ -76,7 +76,7 @@ namespace Shoko.Server.API.v2.Modules
 
             string path = ReturnImagePath(id, type, false);
 
-            if (path == "")
+            if (string.IsNullOrEmpty(path))
             {
                 Stream image = MissingImage();
                 contentType = "image/png";

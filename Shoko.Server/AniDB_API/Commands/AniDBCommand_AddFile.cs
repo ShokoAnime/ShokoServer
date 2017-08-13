@@ -14,7 +14,7 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_UpdateFile" + FileData.ED2KHash;
+            return "AniDBCommand_AddFile" + FileData.ED2KHash;
         }
 
         public virtual enHelperActivityType GetStartEventType()
