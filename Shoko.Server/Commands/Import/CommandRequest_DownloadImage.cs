@@ -162,19 +162,19 @@ namespace Shoko.Server.Commands
 
                 for (int i = 0; i < fileNames.Count; i++)
                 {
-                    string fileName = fileNames[i];
-                    downloadURL = downloadURLs[i];
-
-                    bool downloadImage = true;
-                    bool fileExists = File.Exists(fileName);
-
-                    if (fileExists && !req.ForceDownload) downloadImage = false;
-
-                    if (downloadImage)
+                    try
                     {
-                        string tempName = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(fileName));
-                        if (File.Exists(tempName)) File.Delete(tempName);
+                        string fileName = fileNames[i];
+                        downloadURL = downloadURLs[i];
 
+                        bool downloadImage = true;
+                        bool fileExists = File.Exists(fileName);
+
+                        if (fileExists && !req.ForceDownload) downloadImage = false;
+
+                        if (!downloadImage) continue;
+
+                        string tempName = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(fileName));
 
                         try
                         {
@@ -200,8 +200,15 @@ namespace Shoko.Server.Commands
                             Directory.CreateDirectory(fullPath);
 
 
+                        if (File.Exists(tempName)) File.Delete(tempName);
                         File.Move(tempName, fileName);
                         logger.Info("Image downloaded: {0}", fileName);
+                    }
+                    catch (WebException e)
+                    {
+                        logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL,
+                            EntityID,
+                            e.Message);
                     }
                 }
             }
@@ -209,7 +216,6 @@ namespace Shoko.Server.Commands
             {
                 logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID,
                     ex.Message);
-                return;
             }
         }
 
