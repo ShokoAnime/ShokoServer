@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -440,6 +441,28 @@ namespace Shoko.Server
                 enHelperActivityType ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
+                switch (ev)
+                {
+                        case enHelperActivityType.Banned_555:
+                            logger.Error("Recieved ban on trying to get MyList stats for file");
+                            return;
+                        // Ignore no info in MyList for file
+                        case enHelperActivityType.NoSuchMyListFile: return;
+                        case enHelperActivityType.LoginRequired:
+                            logger.Error("Not logged in to AniDB");
+                            return;
+                }
+                if (cmdGetFileStatus.MyListFile?.WatchedDate == null) return;
+                var aniFile = RepoFactory.AniDB_File.GetByFileID(aniDBFileID);
+                var vids = aniFile.EpisodeIDs.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a)).Where(a => a != null).ToList();
+                foreach (var vid in vids)
+                {
+                    foreach (var user in RepoFactory.JMMUser.GetAniDBUsers())
+                    {
+                        vid.ToggleWatchedStatus(true, false, cmdGetFileStatus.MyListFile.WatchedDate, true, true,
+                            user.JMMUserID, false, true);
+                    }
+                }
             }
         }
 

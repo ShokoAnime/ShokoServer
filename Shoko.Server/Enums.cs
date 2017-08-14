@@ -70,6 +70,7 @@ namespace Shoko.Server
         Refresh_GroupFilter = 92,
         Plex_Sync = 93,
         LinkFileManually = 94,
+        AniDB_GetMyListFile = 95,
     }
 
     public enum CommandRequestPriority
