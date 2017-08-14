@@ -2052,7 +2052,7 @@ namespace Shoko.Server.Renamer
                 // Continue if on a separate drive and there's no space
                 if (!fldr.CloudID.HasValue && !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
-                    var fsresultquota = fs.Quota();
+                    var fsresultquota = fldr.BaseDirectory.Quota();
                     if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
                 }
 
