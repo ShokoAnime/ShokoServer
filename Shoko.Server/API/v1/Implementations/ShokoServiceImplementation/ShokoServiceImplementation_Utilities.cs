@@ -39,6 +39,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
 using Pri.LongPath;
+using Shoko.Commons.Utils;
 using Shoko.Server.Renamer;
 using Shoko.Server.Utilities;
 
@@ -136,7 +137,7 @@ namespace Shoko.Server
                 .Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
-                int newDist = Utils.LevenshteinDistance(title, query);
+                int newDist = Shoko.Commons.Utils.Misc.LevenshteinDistance(title, query);
                 if (newDist < dist && newDist < Math.Min(title.Length, query.Length))
                 {
                     dist = newDist;
