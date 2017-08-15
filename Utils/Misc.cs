@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using DirectoryInfo = Pri.LongPath.DirectoryInfo;
 
 namespace Shoko.Commons.Utils
 {
@@ -183,6 +187,26 @@ namespace Shoko.Commons.Utils
             return new KeyValuePair<string, bool>(sortColumn,srt);
         }
 
+        public static Stream DownloadWebBinary(string url)
+        {
+            try
+            {
+                HttpWebResponse response = null;
+                HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
+                // Note: some network proxies require the useragent string to be set or they will deny the http request
+                // this is true for instance for EVERY thailand internet connection (also needs to be set for banners/episodethumbs and any other http request we send)
+                webReq.UserAgent = "Anime2MP";
+                webReq.Timeout = 20000; // 20 seconds
+                response = (HttpWebResponse)webReq.GetResponse();
+
+                return response.GetResponseStream();
+            }
+            catch
+            {
+                //BaseConfig.MyAnimeLog.Write(ex.ToString());
+                return null;
+            }
+        }
 
         public static string DownloadWebPage(string url, string cookieHeader, bool setUserAgent)
         {
@@ -235,7 +259,41 @@ namespace Shoko.Commons.Utils
                 return "";
             }
         }
+        public static int LevenshteinDistance(string s, string t)
+        {
+            int n = s.Length; //length of s
+            int m = t.Length; //length of t
 
+            int[,] d = new int[n + 1, m + 1]; // matrix
+
+            int cost; // cost
+
+            // Step 1
+            if (n == 0) return m;
+            if (m == 0) return n;
+
+            // Step 2
+            for (int i = 0; i <= n; d[i, 0] = i++) ;
+            for (int j = 0; j <= m; d[0, j] = j++) ;
+
+            // Step 3
+            for (int i = 1; i <= n; i++)
+            {
+                //Step 4
+                for (int j = 1; j <= m; j++)
+                {
+                    // Step 5
+                    cost = t.Substring(j - 1, 1) == s.Substring(i - 1, 1) ? 0 : 1;
+
+                    // Step 6
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+
+            // Step 7
+            return d[n, m];
+        }
         public static void DownloadFile(string url, string destFile, string cookieHeader, bool setUserAgent)
         {
             try
@@ -320,7 +378,7 @@ namespace Shoko.Commons.Utils
 
             while (end >= 0)
             {
-                if (char.IsWhiteSpace(sb[end]))
+                if (Char.IsWhiteSpace(sb[end]))
                     end--;
                 else
                     break;
@@ -330,7 +388,7 @@ namespace Shoko.Commons.Utils
 
             for (int i = start; i <= end; i++)
             {
-                if (char.IsWhiteSpace(sb[i]))
+                if (Char.IsWhiteSpace(sb[i]))
                 {
                     if (previousIsWhitespace) continue;
                     previousIsWhitespace = true;
@@ -390,7 +448,7 @@ namespace Shoko.Commons.Utils
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
             int WORD_SIZE = 31;
 
-            if (string.IsNullOrEmpty(query)) return -1;
+            if (String.IsNullOrEmpty(query)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
             R = new int[(k + 1) * sizeof(int)];
@@ -460,7 +518,7 @@ namespace Shoko.Commons.Utils
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
             int WORD_SIZE = 63;
 
-            if (string.IsNullOrEmpty(query)) return -1;
+            if (String.IsNullOrEmpty(query)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
             R = new ulong[(k + 1) * sizeof(ulong)];
@@ -513,6 +571,84 @@ namespace Shoko.Commons.Utils
             int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || text.Length <= 4) k = 0;
             return BitapFuzzySearch(text, query, k, out int dist) > -1;
+        }
+        private static readonly SecurityIdentifier _everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+        public static List<string> RecursiveGetDirectoriesWithoutEveryonePermission(string path)
+        {
+            List<string> dirs=new List<string>();
+            if (!Pri.LongPath.Directory.Exists(path))
+                return dirs;
+            DirectoryInfo info=new DirectoryInfo(path);
+            AuthorizationRuleCollection coll = info.GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier));
+            bool found = false;
+            foreach (AuthorizationRule ar in coll)
+            {
+                if (ar.IdentityReference.Value == _everyone.Value)
+                {
+                    FileSystemAccessRule facr = (FileSystemAccessRule)ar;
+                    if (facr.AccessControlType == AccessControlType.Allow && 
+                        facr.FileSystemRights.HasFlag(FileSystemRights.FullControl))
+                    {
+                        found = true;
+                        break;
+                    }                
+                }
+            }
+            if (!found)
+                dirs.Add(path);
+            foreach (string s in Directory.GetDirectories(path))
+            {
+                dirs.AddRange(RecursiveGetDirectoriesWithoutEveryonePermission(s));
+            }
+            return dirs;
+        }
+
+        public static bool RecursiveSetDirectoriesToEveryoneFullControlPermission(List<string> paths)
+        {
+            //C# version do not work, do not inherit permissions to childs.
+            string BatchFile = Path.Combine(Path.GetTempPath(), "GrantAccess.bat");
+            int exitCode;
+            Process proc = new Process();
+
+            proc.StartInfo.FileName = "cmd.exe";
+            proc.StartInfo.Arguments = $@"/c {BatchFile}";
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute = true;
+
+            try
+            {
+                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+
+                //Cleanup previous
+                try
+                {
+                    foreach(string fullPath in paths)
+                        BatchFileStream.WriteLine($"icacls \"{fullPath}\" /grant *S-1-1-0:(OI)(CI)F /T");
+                }
+                finally
+                {
+                    BatchFileStream.Close();
+                }
+
+                proc.Start();
+
+                proc.WaitForExit();
+
+                exitCode = proc.ExitCode;
+                proc.Close();
+
+                File.Delete(BatchFile);
+
+                if (exitCode == 0)
+                    return true;
+            }
+            catch (Exception ex)
+            {
+                //Ignored
+            }
+            return false;
         }
     }
 }
