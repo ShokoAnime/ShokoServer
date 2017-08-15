@@ -199,8 +199,6 @@ namespace Shoko.Server.Commands
                         if (!Directory.Exists(fullPath))
                             Directory.CreateDirectory(fullPath);
 
-
-                        if (File.Exists(tempName)) File.Delete(tempName);
                         File.Move(tempName, fileName);
                         logger.Info("Image downloaded: {0}", fileName);
                     }
@@ -224,52 +222,50 @@ namespace Shoko.Server.Commands
             try
             {
                 // download image
+                if (downloadURL.Length <= 0) return;
                 using (WebClient client = new WebClient())
                 {
                     client.Headers.Add("user-agent", "JMM");
                     //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
                     //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
-                    if (downloadURL.Length > 0)
+
+                    byte[] bytes = client.DownloadData(downloadURL);
+                    if (bytes.Length < 4)
+                        throw new WebException(
+                            "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
+
+                    ImageFormatEnum imageFormat = GetImageFormat(bytes);
+                    string extension;
+                    switch (imageFormat)
                     {
-                        byte[] bytes = client.DownloadData(downloadURL);
-                        if (bytes.Length < 4)
-                            throw new WebException(
-                                "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
-
-                        ImageFormatEnum imageFormat = GetImageFormat(bytes);
-                        string extension;
-                        switch (imageFormat)
-                        {
-                            case ImageFormatEnum.bmp:
-                                extension = ".bmp";
-                                break;
-                            case ImageFormatEnum.gif:
-                                extension = ".gif";
-                                break;
-                            case ImageFormatEnum.jpeg:
-                                extension = ".jpeg";
-                                break;
-                            case ImageFormatEnum.png:
-                                extension = ".png";
-                                break;
-                            case ImageFormatEnum.tiff:
-                                extension = ".tiff";
-                                break;
-                            default: throw new WebException("The image download stream returned an invalid image");
-                        }
-
-                        if (extension.Length > 0)
-                        {
-                            string newFile = Path.ChangeExtension(tempFilePath, extension);
-                            if(newFile == null) return;
-
-                            using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
-                            {
-                                fs.Write(bytes, 0, bytes.Length);
-                            }
-                            tempFilePath = newFile;
-                        }
+                        case ImageFormatEnum.bmp:
+                            extension = ".bmp";
+                            break;
+                        case ImageFormatEnum.gif:
+                            extension = ".gif";
+                            break;
+                        case ImageFormatEnum.jpeg:
+                            extension = ".jpeg";
+                            break;
+                        case ImageFormatEnum.png:
+                            extension = ".png";
+                            break;
+                        case ImageFormatEnum.tiff:
+                            extension = ".tiff";
+                            break;
+                        default: throw new WebException("The image download stream returned an invalid image");
                     }
+
+                    if (extension.Length <= 0) return;
+                    string newFile = Path.ChangeExtension(tempFilePath, extension);
+                    if(newFile == null) return;
+
+                    if (File.Exists(newFile)) File.Delete(newFile);
+                    using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
+                    {
+                        fs.Write(bytes, 0, bytes.Length);
+                    }
+                    tempFilePath = newFile;
                 }
             }
             catch (WebException)
