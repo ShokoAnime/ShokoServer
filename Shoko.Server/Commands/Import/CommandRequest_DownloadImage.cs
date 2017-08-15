@@ -200,7 +200,7 @@ namespace Shoko.Server.Commands
                             Directory.CreateDirectory(fullPath);
 
                         File.Move(tempName, fileName);
-                        logger.Info("Image downloaded: {0}", fileName);
+                        logger.Info($"Image downloaded: {fileName} from {downloadURL}");
                     }
                     catch (WebException e)
                     {
