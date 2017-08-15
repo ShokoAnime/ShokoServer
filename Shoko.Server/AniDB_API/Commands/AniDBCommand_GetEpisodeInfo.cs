@@ -96,6 +96,7 @@ namespace AniDBAPI.Commands
                     // the rest of the information should be the data list
 
                     episodeInfo = new Raw_AniDB_Episode(socketResponse, EpisodeSourceType.Episode);
+                    if (!episodeInfo.IsValid) return enHelperActivityType.NoSuchEpisode;
                     return enHelperActivityType.GotEpisodeInfo;
 
 

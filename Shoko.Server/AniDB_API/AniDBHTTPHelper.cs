@@ -444,7 +444,11 @@ namespace AniDBAPI
                     try
                     {
                         Raw_AniDB_Episode ep = new Raw_AniDB_Episode();
-                        ep.ProcessEpisodeSource(node, animeID);
+                        if (!ep.ProcessEpisodeSource(node, animeID))
+                        {
+                            logger.Error($"AniDB Episode raw data had invalid return data:\n        {node}");
+                            continue;
+                        }
                         eps.Add(ep);
                     }
                     catch (Exception exc)
@@ -551,13 +555,13 @@ namespace AniDBAPI
         public static string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
         {
             if (doc == null || string.IsNullOrEmpty(keyName) || string.IsNullOrEmpty(propertyName)) return string.Empty;
-            return doc[keyName]?[propertyName]?.InnerText?.Trim();
+            return doc[keyName]?[propertyName]?.InnerText.Trim() ?? string.Empty;
         }
 
         public static string TryGetProperty(XmlNode node, string propertyName)
         {
             if (node == null || string.IsNullOrEmpty(propertyName)) return string.Empty;
-            return node[propertyName]?.InnerText?.Trim();
+            return node[propertyName]?.InnerText.Trim() ?? string.Empty;
         }
 
 
@@ -568,7 +572,7 @@ namespace AniDBAPI
                 return string.Empty;
             foreach (XmlNode nodeChild in node.ChildNodes)
             {
-                if ((nodeChild?.Name?.Equals(propertyName) ?? false) &&
+                if ((nodeChild?.Name.Equals(propertyName) ?? false) &&
                     (nodeChild.Attributes?[attName]?.Value.Equals(attValue) ?? false) &&
                     !string.IsNullOrEmpty(nodeChild.InnerText))
                     return nodeChild.InnerText.Trim();
@@ -580,7 +584,7 @@ namespace AniDBAPI
         {
             if (parentnode == null || string.IsNullOrEmpty(nodeName) || string.IsNullOrEmpty(attName))
                 return string.Empty;
-            return parentnode?[nodeName]?.Attributes?[attName]?.Value;
+            return parentnode[nodeName]?.Attributes[attName]?.Value ?? string.Empty;
         }
 
         public static string TryGetAttribute(XmlNode node, string attName)
