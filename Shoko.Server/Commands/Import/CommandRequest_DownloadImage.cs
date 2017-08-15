@@ -286,6 +286,8 @@ namespace Shoko.Server.Commands
             var tiff2  = new byte[] { 77, 77, 42 };         // TIFF
             var jpeg   = new byte[] { 255, 216, 255, 224 }; // jpeg
             var jpeg2  = new byte[] { 255, 216, 255, 225 }; // jpeg canon
+            // there are many valid jpegs that store data in the 4th byte, this may make mistakes
+            var jpeg3  = new byte[] { 255, 216, 255 };
 
             if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
                 return ImageFormatEnum.bmp;
@@ -306,6 +308,9 @@ namespace Shoko.Server.Commands
                 return ImageFormatEnum.jpeg;
 
             if (jpeg2.SequenceEqual(bytes.Take(jpeg2.Length)))
+                return ImageFormatEnum.jpeg;
+
+            if (jpeg3.SequenceEqual(bytes.Take(jpeg3.Length)))
                 return ImageFormatEnum.jpeg;
 
             return ImageFormatEnum.unknown;
