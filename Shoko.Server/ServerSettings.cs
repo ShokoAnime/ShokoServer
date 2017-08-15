@@ -140,20 +140,8 @@ namespace Shoko.Server
 
                     if (!string.IsNullOrEmpty(ApplicationPath))
                     {
-                        // Check if programdata is write-able
-                        if (Directory.Exists(ApplicationPath))
-                        {
-                            if (!Utils.IsDirectoryWritable(ApplicationPath))
-                            {
-                                try
-                                {
-                                    Utils.GrantAccess(ApplicationPath);
-                                }
-                                catch (Exception)
-                                {
-                                }
-                            }
-                        }
+                        //TODO add MessageBox If Failed
+                        Utils.GrantAccess(ApplicationPath);
                     }
                     // Check and see if we have old JMMServer installation and add to migration if needed
                     string jmmServerInstallLocation =
@@ -336,6 +324,7 @@ namespace Shoko.Server
                                 Directory.CreateDirectory(ApplicationPath);
                                 logger.Info("Migration created application path: " + ApplicationPath);
                             }
+                            //TODO add MessageBox If Failed
                             Utils.GrantAccess(ApplicationPath);
                             disabledSave = false;
 
@@ -433,6 +422,7 @@ namespace Shoko.Server
                             // gonna try grant access again in advance
                             try
                             {
+                                //TODO add MessageBox If Failed
                                 Utils.GrantAccess(ApplicationPath);
                             }
                             catch (Exception)
