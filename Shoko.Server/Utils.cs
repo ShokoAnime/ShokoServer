@@ -59,6 +59,8 @@ namespace Shoko.Server
         */
         public static bool GrantAccess(string path)
         {
+            if (IsLinux()) return true; //TODO: Implement properly, but as linux uses $HOME for the path, we should be fine.
+
             if (Directory.Exists(path))
             {
                 List<string> perms = Commons.Utils.Misc.RecursiveGetDirectoriesWithoutEveryonePermission(path);
@@ -1515,6 +1517,12 @@ namespace Shoko.Server
         public static bool IsRunningOnMono()
         {
             return Type.GetType("Mono.Runtime") != null;
+        }
+
+        public static bool IsLinux()
+        {
+            int p = (int)Environment.OSVersion.Platform;
+            return ((p == 4) || (p == 6) || (p == 128));
         }
     }
 }
