@@ -45,6 +45,7 @@ namespace Shoko.Server
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         //Remove in .NET 4.0
+        /*
         public static void CopyTo(this Stream input, Stream output, int bufferSize = 0x1000)
         {
             byte[] buffer = new byte[bufferSize];
@@ -55,60 +56,40 @@ namespace Shoko.Server
                 output.Write(buffer, 0, bytesRead);
             }
         }
-
-
-        public static void GrantAccess(string fullPath)
+        */
+        public static bool GrantAccess(string path)
         {
-            //C# version do not work, do not inherit permissions to childs.
-            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "GrantAccess.bat");
-            int exitCode = -1;
-            Process proc = new Process();
-
-            proc.StartInfo.FileName = "cmd.exe";
-            proc.StartInfo.Arguments = $@"/c {BatchFile}";
-            proc.StartInfo.Verb = "runas";
-            proc.StartInfo.CreateNoWindow = true;
-            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            proc.StartInfo.UseShellExecute = true;
-
-            try
+            if (Directory.Exists(path))
             {
-                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
-
-                //Cleanup previous
-                try
+                List<string> perms = Commons.Utils.Misc.RecursiveGetDirectoriesWithoutEveryonePermission(path);
+                if (perms.Count > 0)
                 {
-                    BatchFileStream.WriteLine($"icacls \"{fullPath}\" /grant *S-1-1-0:(OI)(CI)F /T");
-                }
-                finally
-                {
-                    BatchFileStream.Close();
-                }
+                    bool result = Commons.Utils.Misc.RecursiveSetDirectoriesToEveryoneFullControlPermission(perms);
+                    if (result)
+                    {
+                        perms = Commons.Utils.Misc.RecursiveGetDirectoriesWithoutEveryonePermission(path);
+                        if (perms.Count > 0)
+                            result = false;
+                    }
+                    if (!result)
+                    {
+                        if (!IsAdministrator())
+                        {
+                            logger.Info("Needed to set '" + path + "' permissions and failed, restarting as admin.");
+                            RestartAsAdmin();
+                        }
+                        else
+                        {
+                            logger.Error("Unable to set Everyone permissions to '" + path + "' directory, or subdirectories, please chkdsk or set everyone permissions at hand.");
+                            return false;
+                        }
+                    }
 
-                proc.Start();
-
-                proc.WaitForExit();
-
-                exitCode = proc.ExitCode;
-                proc.Close();
-
-                File.Delete(BatchFile);
-
-                if (exitCode == 0)
-                {
-                    logger.Info("Successfully granted write permissions to " + fullPath);
-                }
-                else
-                {
-                    logger.Error("Temporary batch process for granting folder write access returned error code: " +
-                                 exitCode);
                 }
             }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
+            return true;
         }
+  
 
         public static string CalculateSHA1(string text, Encoding enc)
         {
@@ -126,288 +107,254 @@ namespace Shoko.Server
         /// <param name="s"></param>
         /// <param name="t"></param>
         /// <returns></returns>
-        public static int LevenshteinDistance(string s, string t)
-        {
-            int n = s.Length; //length of s
-            int m = t.Length; //length of t
+       
+        /*
+      // A char array of the allowed characters. This should be infinitely faster
+      private static readonly char[] AllowedSearchCharacters =
+          (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+-.?,/*&`'\"_").ToCharArray();
 
-            int[,] d = new int[n + 1, m + 1]; // matrix
+      public static string FilterCharacters(this string value, char[] allowed, bool blacklist = false)
+      {
+          StringBuilder sb = new StringBuilder(value);
+          int dest = 0;
+          for (int i = 0; i <= sb.Length - 1; i++)
+          {
+              if (!(blacklist ^ allowed.Contains(sb[i]))) continue;
+              sb[dest] = sb[i];
+              dest++;
+          }
 
-            int cost; // cost
+          sb.Length = dest;
+          return sb.ToString();
+      }
 
-            // Step 1
-            if (n == 0) return m;
-            if (m == 0) return n;
+      public static string CompactWhitespaces(this string s)
+      {
+          StringBuilder sb = new StringBuilder(s);
 
-            // Step 2
-            for (int i = 0; i <= n; d[i, 0] = i++) ;
-            for (int j = 0; j <= m; d[0, j] = j++) ;
+          CompactWhitespaces(sb);
 
-            // Step 3
-            for (int i = 1; i <= n; i++)
-            {
-                //Step 4
-                for (int j = 1; j <= m; j++)
-                {
-                    // Step 5
-                    cost = t.Substring(j - 1, 1) == s.Substring(i - 1, 1) ? 0 : 1;
+          return sb.ToString();
+      }
 
-                    // Step 6
-                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                        d[i - 1, j - 1] + cost);
-                }
-            }
+      private static void CompactWhitespaces(StringBuilder sb)
+      {
+          if (sb.Length == 0)
+              return;
 
-            // Step 7
-            return d[n, m];
-        }
+          // set [start] to first not-whitespace char or to sb.Length
 
-        // A char array of the allowed characters. This should be infinitely faster
-        private static readonly char[] AllowedSearchCharacters =
-            (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+-.?,/*&`'\"_").ToCharArray();
+          int start = 0;
 
-        public static string FilterCharacters(this string value, char[] allowed, bool blacklist = false)
-        {
-            StringBuilder sb = new StringBuilder(value);
-            int dest = 0;
-            for (int i = 0; i <= sb.Length - 1; i++)
-            {
-                if (!(blacklist ^ allowed.Contains(sb[i]))) continue;
-                sb[dest] = sb[i];
-                dest++;
-            }
+          while (start < sb.Length)
+          {
+              if (char.IsWhiteSpace(sb[start]))
+                  start++;
+              else
+                  break;
+          }
+          if (start == sb.Length)
+          {
+              sb.Length = 0;
+              return;
+          }
+          int end = sb.Length - 1;
 
-            sb.Length = dest;
-            return sb.ToString();
-        }
+          while (end >= 0)
+          {
+              if (char.IsWhiteSpace(sb[end]))
+                  end--;
+              else
+                  break;
+          }
+          int dest = 0;
+          bool previousIsWhitespace = false;
 
-        public static string CompactWhitespaces(this string s)
-        {
-            StringBuilder sb = new StringBuilder(s);
+          for (int i = start; i <= end; i++)
+          {
+              if (char.IsWhiteSpace(sb[i]))
+              {
+                  if (previousIsWhitespace) continue;
+                  previousIsWhitespace = true;
+                  sb[dest] = ' ';
+                  dest++;
+              }
+              else
+              {
+                  previousIsWhitespace = false;
+                  sb[dest] = sb[i];
+                  dest++;
+              }
+          }
 
-            CompactWhitespaces(sb);
+          sb.Length = dest;
+      }
 
-            return sb.ToString();
-        }
+      /// <summary>
+      /// Use the Bitap Fuzzy Algorithm to search for a string
+      /// This is used in grep, for an easy understanding
+      /// ref: https://en.wikipedia.org/wiki/Bitap_algorithm
+      /// source: https://www.programmingalgorithms.com/algorithm/fuzzy-bitap-algorithm
+      /// </summary>
+      /// <param name="text">The string to search</param>
+      /// <param name="pattern">The query to search for</param>
+      /// <param name="k">The maximum distance (in Levenshtein) to be allowed</param>
+      /// <param name="dist">The Levenstein distance of the result. -1 if inapplicable</param>
+      /// <returns></returns>
+      public static int BitapFuzzySearch32(string text, string pattern, int k, out int dist)
+      {
+          // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+          // No it's not perfect, but it works better for those who just want to do lazy searching
+          string inputString = text.FilterCharacters(AllowedSearchCharacters);
+          string query = pattern.FilterCharacters(AllowedSearchCharacters);
+          inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+          query = query.Replace('_', ' ').Replace('-', ' ');
+          query = query.CompactWhitespaces();
+          inputString = inputString.CompactWhitespaces();
+          // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+          query = query.ToLowerInvariant();
+          inputString = inputString.ToLowerInvariant();
 
-        private static void CompactWhitespaces(StringBuilder sb)
-        {
-            if (sb.Length == 0)
-                return;
+          // Shortcut
+          if (text.Equals(query))
+          {
+              dist = 0;
+              return 0;
+          }
 
-            // set [start] to first not-whitespace char or to sb.Length
+          int result = -1;
+          int m = query.Length;
+          int[] R;
+          int[] patternMask = new int[128];
+          int i, d;
+          dist = k + 1;
 
-            int start = 0;
+          // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
+          int WORD_SIZE = 31;
 
-            while (start < sb.Length)
-            {
-                if (char.IsWhiteSpace(sb[start]))
-                    start++;
-                else
-                    break;
-            }
-            if (start == sb.Length)
-            {
-                sb.Length = 0;
-                return;
-            }
-            int end = sb.Length - 1;
+          if (string.IsNullOrEmpty(query)) return -1;
+          if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
-            while (end >= 0)
-            {
-                if (char.IsWhiteSpace(sb[end]))
-                    end--;
-                else
-                    break;
-            }
-            int dest = 0;
-            bool previousIsWhitespace = false;
+          R = new int[(k + 1) * sizeof(int)];
+          for (i = 0; i <= k; ++i)
+              R[i] = ~1;
 
-            for (int i = start; i <= end; i++)
-            {
-                if (char.IsWhiteSpace(sb[i]))
-                {
-                    if (previousIsWhitespace) continue;
-                    previousIsWhitespace = true;
-                    sb[dest] = ' ';
-                    dest++;
-                }
-                else
-                {
-                    previousIsWhitespace = false;
-                    sb[dest] = sb[i];
-                    dest++;
-                }
-            }
+          for (i = 0; i <= 127; ++i)
+              patternMask[i] = ~0;
 
-            sb.Length = dest;
-        }
+          for (i = 0; i < m; ++i)
+              patternMask[query[i]] &= ~(1 << i);
 
-        /// <summary>
-        /// Use the Bitap Fuzzy Algorithm to search for a string
-        /// This is used in grep, for an easy understanding
-        /// ref: https://en.wikipedia.org/wiki/Bitap_algorithm
-        /// source: https://www.programmingalgorithms.com/algorithm/fuzzy-bitap-algorithm
-        /// </summary>
-        /// <param name="text">The string to search</param>
-        /// <param name="pattern">The query to search for</param>
-        /// <param name="k">The maximum distance (in Levenshtein) to be allowed</param>
-        /// <param name="dist">The Levenstein distance of the result. -1 if inapplicable</param>
-        /// <returns></returns>
-        public static int BitapFuzzySearch32(string text, string pattern, int k, out int dist)
-        {
-            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
-            // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = text.FilterCharacters(AllowedSearchCharacters);
-            string query = pattern.FilterCharacters(AllowedSearchCharacters);
-            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
-            query = query.Replace('_', ' ').Replace('-', ' ');
-            query = query.CompactWhitespaces();
-            inputString = inputString.CompactWhitespaces();
-            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
-            query = query.ToLowerInvariant();
-            inputString = inputString.ToLowerInvariant();
+          for (i = 0; i < inputString.Length; ++i)
+          {
+              int oldRd1 = R[0];
 
-            // Shortcut
-            if (text.Equals(query))
-            {
-                dist = 0;
-                return 0;
-            }
+              R[0] |= patternMask[inputString[i]];
+              R[0] <<= 1;
 
-            int result = -1;
-            int m = query.Length;
-            int[] R;
-            int[] patternMask = new int[128];
-            int i, d;
-            dist = k + 1;
+              for (d = 1; d <= k; ++d)
+              {
+                  int tmp = R[d];
 
-            // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
-            int WORD_SIZE = 31;
+                  R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
+                  oldRd1 = tmp;
+              }
 
-            if (string.IsNullOrEmpty(query)) return -1;
-            if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
+              if (0 != (R[k] & (1 << m))) continue;
+              dist = R[k];
+              result = (i - m) + 1;
+              break;
+          }
 
-            R = new int[(k + 1) * sizeof(int)];
-            for (i = 0; i <= k; ++i)
-                R[i] = ~1;
+          return result;
+      }
 
-            for (i = 0; i <= 127; ++i)
-                patternMask[i] = ~0;
+      public static int BitapFuzzySearch64(string text, string pattern, int k, out int dist)
+      {
+          // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+          // No it's not perfect, but it works better for those who just want to do lazy searching
+          string inputString = text.FilterCharacters(AllowedSearchCharacters);
+          string query = pattern.FilterCharacters(AllowedSearchCharacters);
+          inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+          query = query.Replace('_', ' ').Replace('-', ' ');
+          query = query.CompactWhitespaces();
+          inputString = inputString.CompactWhitespaces();
+          // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+          query = query.ToLowerInvariant();
+          inputString = inputString.ToLowerInvariant();
 
-            for (i = 0; i < m; ++i)
-                patternMask[query[i]] &= ~(1 << i);
+          // Shortcut
+          if (text.Equals(query))
+          {
+              dist = 0;
+              return 0;
+          }
 
-            for (i = 0; i < inputString.Length; ++i)
-            {
-                int oldRd1 = R[0];
+          int result = -1;
+          int m = query.Length;
+          ulong[] R;
+          ulong[] patternMask = new ulong[128];
+          int i, d;
+          dist = text.Length;
 
-                R[0] |= patternMask[inputString[i]];
-                R[0] <<= 1;
+          // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
+          int WORD_SIZE = 63;
 
-                for (d = 1; d <= k; ++d)
-                {
-                    int tmp = R[d];
+          if (string.IsNullOrEmpty(query)) return -1;
+          if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
-                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
-                    oldRd1 = tmp;
-                }
+          R = new ulong[(k + 1) * sizeof(ulong)];
+          for (i = 0; i <= k; ++i)
+              R[i] = ~1UL;
 
-                if (0 != (R[k] & (1 << m))) continue;
-                dist = R[k];
-                result = (i - m) + 1;
-                break;
-            }
+          for (i = 0; i <= 127; ++i)
+              patternMask[i] = ~0UL;
 
-            return result;
-        }
+          for (i = 0; i < m; ++i)
+              patternMask[query[i]] &= ~(1UL << i);
 
-        public static int BitapFuzzySearch64(string text, string pattern, int k, out int dist)
-        {
-            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
-            // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = text.FilterCharacters(AllowedSearchCharacters);
-            string query = pattern.FilterCharacters(AllowedSearchCharacters);
-            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
-            query = query.Replace('_', ' ').Replace('-', ' ');
-            query = query.CompactWhitespaces();
-            inputString = inputString.CompactWhitespaces();
-            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
-            query = query.ToLowerInvariant();
-            inputString = inputString.ToLowerInvariant();
+          for (i = 0; i < inputString.Length; ++i)
+          {
+              ulong oldRd1 = R[0];
 
-            // Shortcut
-            if (text.Equals(query))
-            {
-                dist = 0;
-                return 0;
-            }
+              R[0] |= patternMask[inputString[i]];
+              R[0] <<= 1;
 
-            int result = -1;
-            int m = query.Length;
-            ulong[] R;
-            ulong[] patternMask = new ulong[128];
-            int i, d;
-            dist = text.Length;
+              for (d = 1; d <= k; ++d)
+              {
+                  ulong tmp = R[d];
 
-            // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
-            int WORD_SIZE = 63;
+                  R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
+                  oldRd1 = tmp;
+              }
 
-            if (string.IsNullOrEmpty(query)) return -1;
-            if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
+              if (0 == (R[k] & (1UL << m)))
+              {
+                  dist = (int) R[k];
+                  result = (i - m) + 1;
+                  break;
+              }
+          }
 
-            R = new ulong[(k + 1) * sizeof(ulong)];
-            for (i = 0; i <= k; ++i)
-                R[i] = ~1UL;
+          return result;
+      }
 
-            for (i = 0; i <= 127; ++i)
-                patternMask[i] = ~0UL;
+      public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
+      {
+          if (IntPtr.Size > 4)
+          {
+              return BitapFuzzySearch64(text, pattern, k, out dist);
+          }
+          return BitapFuzzySearch32(text, pattern, k, out dist);
+      }
 
-            for (i = 0; i < m; ++i)
-                patternMask[query[i]] &= ~(1UL << i);
-
-            for (i = 0; i < inputString.Length; ++i)
-            {
-                ulong oldRd1 = R[0];
-
-                R[0] |= patternMask[inputString[i]];
-                R[0] <<= 1;
-
-                for (d = 1; d <= k; ++d)
-                {
-                    ulong tmp = R[d];
-
-                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
-                    oldRd1 = tmp;
-                }
-
-                if (0 == (R[k] & (1UL << m)))
-                {
-                    dist = (int) R[k];
-                    result = (i - m) + 1;
-                    break;
-                }
-            }
-
-            return result;
-        }
-
-        public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
-        {
-            if (IntPtr.Size > 4)
-            {
-                return BitapFuzzySearch64(text, pattern, k, out dist);
-            }
-            return BitapFuzzySearch32(text, pattern, k, out dist);
-        }
-
-        public static bool FuzzyMatches(this string text, string query)
-        {
-            int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
-            if (query.Length <= 4 || text.Length <= 4) k = 0;
-            return BitapFuzzySearch(text, query, k, out int dist) > -1;
-        }
-
+      public static bool FuzzyMatches(this string text, string query)
+      {
+          int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
+          if (query.Length <= 4 || text.Length <= 4) k = 0;
+          return BitapFuzzySearch(text, query, k, out int dist) > -1;
+      }
+      */
         /// <summary>
         /// Setup system with needed network settings for JMMServer operation. Will invoke an escalation prompt to user. If changing port numbers please give new and old port.
         /// Do NOT add nancy hosted URLs to this. Nancy has an issue with ServiceHost stealing the reservations, and will handle its URLs itself.
@@ -781,83 +728,8 @@ namespace Shoko.Server
         }
 
 
-        public static string DownloadWebPage(string url, Encoding forceEncoding = null, bool noCache = false)
-        {
-            try
-            {
-                //BaseConfig.MyAnimeLog.Write("DownloadWebPage called by: {0} - {1}", GetParentMethodName(), url);
+    
 
-                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
-                webReq.Timeout = 60000; // 60 seconds
-                webReq.Proxy = null;
-                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                if (noCache == true)
-                {
-                    HttpRequestCachePolicy noCachePolicy =
-                        new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
-                    webReq.CachePolicy = noCachePolicy;
-                }
-
-                HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse();
-
-                Stream responseStream = WebResponse.GetResponseStream();
-                String enco = WebResponse.CharacterSet;
-                Encoding encoding = null;
-                if (!String.IsNullOrEmpty(enco))
-                    encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
-                if (encoding == null)
-                    encoding = Encoding.Default;
-                if (forceEncoding != null)
-                    encoding = forceEncoding;
-                StreamReader Reader = new StreamReader(responseStream, encoding);
-
-                string output = Reader.ReadToEnd();
-
-                //BaseConfig.MyAnimeLog.Write("DownloadWebPage: {0}", output);
-
-                WebResponse.Close();
-                responseStream.Close();
-
-                return output;
-            }
-            catch (Exception ex)
-            {
-                string msg = "---------- ERROR IN DOWNLOAD WEB PAGE ---------" + Environment.NewLine +
-                             url + Environment.NewLine +
-                             ex.ToString() + Environment.NewLine + "------------------------------------";
-                //BaseConfig.MyAnimeLog.Write(msg);
-
-                // if the error is a 404 error it may mean that there is a bad series association
-                // so lets log it to the web cache so we can investigate
-                if (ex.ToString().Contains("(404) Not Found"))
-                {
-                }
-
-                return "";
-            }
-        }
-
-        public static Stream DownloadWebBinary(string url)
-        {
-            try
-            {
-                HttpWebResponse response = null;
-                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
-                // Note: some network proxies require the useragent string to be set or they will deny the http request
-                // this is true for instance for EVERY thailand internet connection (also needs to be set for banners/episodethumbs and any other http request we send)
-                webReq.UserAgent = "Anime2MP";
-                webReq.Timeout = 20000; // 20 seconds
-                response = (HttpWebResponse) webReq.GetResponse();
-
-                return response.GetResponseStream();
-            }
-            catch
-            {
-                //BaseConfig.MyAnimeLog.Write(ex.ToString());
-                return null;
-            }
-        }
 
         public static long GetCurrentUTCTime()
         {

@@ -84,7 +84,7 @@ namespace AniDBAPI
 
             this.CharName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
             this.CharDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
-            this.EpisodeListRaw = AniDBHTTPHelper.TryGetProperty(node, "episodes");
+            this.EpisodeListRaw = AniDBHTTPHelper.TryGetProperty(node, "episodes") ?? string.Empty;
             this.PicName = AniDBHTTPHelper.TryGetProperty(node, "picture");
 
             CreatorListRaw = "";

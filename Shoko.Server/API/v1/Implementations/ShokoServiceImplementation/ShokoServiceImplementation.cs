@@ -385,9 +385,8 @@ namespace Shoko.Server
                     FileSystemResult<IObject> dirr;
                     if ((n as LocalFileSystem) != null && path.Equals("null"))
                     {
-                        FileSystemResult<List<IDirectory>> dirs = (n as LocalFileSystem).GetRoots();
-                        if (dirs == null || !dirs.IsOk) return result;
-                        return dirs.Result.Select(a => a.FullName).OrderByNatural(a => a).ToList();
+                        if (n.Directories == null) return result;
+                        return n.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
                     }
                     if (path.Equals("null"))
                     {
