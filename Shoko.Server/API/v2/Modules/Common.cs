@@ -21,6 +21,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using System.Threading.Tasks;
+using Shoko.Commons.Utils;
 using Shoko.Server.Databases;
 
 namespace Shoko.Server.API.v2.Modules
@@ -1994,7 +1995,7 @@ namespace Shoko.Server.API.v2.Modules
                 if (string.IsNullOrEmpty(title)) continue;
                 int k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
                 if (query.Length <= 4 || title.Length <= 4) k = 0;
-                if (Utils.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
+                if (Shoko.Commons.Utils.Misc.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
                 if (newDist < dist)
                 {
                     match = title;
@@ -2029,7 +2030,7 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     if (string.IsNullOrEmpty(tag)) continue;
                     int k = Math.Min((int)(tag.Length / 6D), (int)(query.Length / 6D));
-                    if (Utils.BitapFuzzySearch(tag, query, k, out int newDist) == -1) continue;
+                    if (Shoko.Commons.Utils.Misc.BitapFuzzySearch(tag, query, k, out int newDist) == -1) continue;
                     if (newDist < dist)
                     {
                         match = tag;
@@ -2052,7 +2053,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (string.IsNullOrEmpty(customTag)) continue;
                 int k = Math.Min((int)(customTag.Length / 6D), (int)(query.Length / 6D));
-                if (Utils.BitapFuzzySearch(customTag, query, k, out int newDist) == -1) continue;
+                if (Shoko.Commons.Utils.Misc.BitapFuzzySearch(customTag, query, k, out int newDist) == -1) continue;
                 if (newDist < dist)
                 {
                     match = customTag;

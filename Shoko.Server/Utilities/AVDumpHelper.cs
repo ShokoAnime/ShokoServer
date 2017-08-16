@@ -5,6 +5,7 @@ using System.Linq;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Readers;
+using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
@@ -56,7 +57,7 @@ namespace Shoko.Server.Utilities
             try
             {
                 if (File.Exists(fileName)) return true;
-                using (Stream stream = Utils.DownloadWebBinary(sourceURL))
+                using (Stream stream = Misc.DownloadWebBinary(sourceURL))
                 {
                     if (stream == null) return false;
                     string destinationFolder = Directory.GetParent(fileName).FullName;

@@ -1029,10 +1029,12 @@ namespace Shoko.Server.Providers.TvDB
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Updates.GetAsync(lastUpdateTime);
 
-                Update[] updates = response.Data;
+                Update[] updates = response?.Data;
+                if (updates == null) return seriesList;
 
                 foreach (Update item in updates)
                 {
+                    if (item == null) continue;
                     seriesList.Add(item.Id);
                 }
 

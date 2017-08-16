@@ -355,6 +355,7 @@
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetFileMyListStatus.cs" />
     <Compile Include="Commands\CommandRequest_LinkFileManually.cs" />
     <Compile Include="Commands\Import\CommandRequest_DownloadImage.cs" />
     <Compile Include="Commands\Import\CommandRequest_HashFile.cs" />
