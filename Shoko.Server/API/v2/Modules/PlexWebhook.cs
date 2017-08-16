@@ -14,6 +14,7 @@ using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using Nancy.Security;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Providers.TraktTV;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -34,58 +35,43 @@ namespace Shoko.Server.API.v2.Modules
                 case "media.scrobble":
                     Scrobble(eventData);
                     break;
+                case "media.resume":
+                case "media.play":
+                    TraktScrobble(eventData, ScrobblePlayingStatus.Start);
+                    break;
+                case "media.pause":
+                    TraktScrobble(eventData, ScrobblePlayingStatus.Pause);
+                    break;
+                case "media.stop":
+                    TraktScrobble(eventData, ScrobblePlayingStatus.Stop);
+                    break;
             }
 
             return APIStatus.statusOK();
         }
-
         #region Plex events
+
+        private static void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
+        {
+            PlexEvent.PlexMetadata metadata = evt.Metadata;
+            (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
+
+            if (episode == null) return;
+
+            var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+
+            float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
+
+            ScrobblePlayingType scrobbleType = episode.PlexContract.IsMovie ? ScrobblePlayingType.movie : ScrobblePlayingType.episode;
+
+            TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
+        }
 
         private void Scrobble(PlexEvent data)
         {
             PlexEvent.PlexMetadata metadata = data.Metadata;
-            if (!data.Metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return;
-
-            string[] parts = metadata.Guid.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
-            int animeId = int.Parse(parts[1]);
-            int series = int.Parse(parts[2]);
-
-            var anime = RepoFactory.AnimeSeries.GetByID(animeId);
-
-            EpisodeType episodeType;
-            switch (series
-                ) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
-                {
-                    case -4:
-                        episodeType = EpisodeType.Parody;
-                        break;
-                    case -3:
-                        episodeType = EpisodeType.Trailer;
-                        break;
-                    case -2:
-                        episodeType = EpisodeType.Other;
-                        break;
-                    case -1:
-                        episodeType = EpisodeType.Credits;
-                        break;
-                    case 0:
-                        episodeType = EpisodeType.Special;
-                        break;
-                    default:
-                        episodeType = EpisodeType.Episode;
-                        break;
-                }
-
-            if (episodeType != EpisodeType.Episode ||
-                metadata.Index == 0) //metadata.index = 0 when it's something else.
-                return; //right now no clean way to detect the episode. I could do by title.
-
-
-            SVR_AnimeEpisode episode = anime
-                .GetAnimeEpisodes()
-                .Where(a => a.EpisodeTypeEnum == episodeType)
-                .Where(a => metadata.Title.Equals(a?.PlexContract?.Title, StringComparison.InvariantCultureIgnoreCase))
-                .FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series);
+            (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
+                        
             if (episode == null) return;
 
             var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
@@ -98,6 +84,53 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         #endregion
+
+        private static (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+        {
+            
+            if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
+
+            string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            int animeId = int.Parse(parts[1]);
+            int series = int.Parse(parts[2]);
+
+            var anime = RepoFactory.AnimeSeries.GetByID(animeId);
+
+            EpisodeType episodeType;
+            switch (series
+                ) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
+            {
+                case -4:
+                    episodeType = EpisodeType.Parody;
+                    break;
+                case -3:
+                    episodeType = EpisodeType.Trailer;
+                    break;
+                case -2:
+                    episodeType = EpisodeType.Other;
+                    break;
+                case -1:
+                    episodeType = EpisodeType.Credits;
+                    break;
+                case 0:
+                    episodeType = EpisodeType.Special;
+                    break;
+                default:
+                    episodeType = EpisodeType.Episode;
+                    break;
+            }
+
+            if (episodeType != EpisodeType.Episode ||
+                metadata.Index == 0) //metadata.index = 0 when it's something else.
+                return (null, anime); //right now no clean way to detect the episode. I could do by title.
+
+
+            return (anime
+                .GetAnimeEpisodes()
+                .Where(a => a.EpisodeTypeEnum == episodeType)
+                .Where(a => metadata.Title.Equals(a?.PlexContract?.Title, StringComparison.InvariantCultureIgnoreCase))
+                .FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series), anime);
+        }
 
         public DateTime FromUnixTime(long unixTime)
         {
@@ -163,6 +196,7 @@ namespace Shoko.Server.API.v2.Modules
                 public int LastViewedAt;
                 public int AddedAt;
                 public int UpdatedAt;
+                public int ViewOffset;
             }
         }
          #pragma warning restore 0649
