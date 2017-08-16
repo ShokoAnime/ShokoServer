@@ -162,19 +162,19 @@ namespace Shoko.Server.Commands
 
                 for (int i = 0; i < fileNames.Count; i++)
                 {
-                    string fileName = fileNames[i];
-                    downloadURL = downloadURLs[i];
-
-                    bool downloadImage = true;
-                    bool fileExists = File.Exists(fileName);
-
-                    if (fileExists && !req.ForceDownload) downloadImage = false;
-
-                    if (downloadImage)
+                    try
                     {
-                        string tempName = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(fileName));
-                        if (File.Exists(tempName)) File.Delete(tempName);
+                        string fileName = fileNames[i];
+                        downloadURL = downloadURLs[i];
 
+                        bool downloadImage = true;
+                        bool fileExists = File.Exists(fileName);
+
+                        if (fileExists && !req.ForceDownload) downloadImage = false;
+
+                        if (!downloadImage) continue;
+
+                        string tempName = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(fileName));
 
                         try
                         {
@@ -199,9 +199,14 @@ namespace Shoko.Server.Commands
                         if (!Directory.Exists(fullPath))
                             Directory.CreateDirectory(fullPath);
 
-
                         File.Move(tempName, fileName);
-                        logger.Info("Image downloaded: {0}", fileName);
+                        logger.Info($"Image downloaded: {fileName} from {downloadURL}");
+                    }
+                    catch (WebException e)
+                    {
+                        logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL,
+                            EntityID,
+                            e.Message);
                     }
                 }
             }
@@ -209,7 +214,6 @@ namespace Shoko.Server.Commands
             {
                 logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID,
                     ex.Message);
-                return;
             }
         }
 
@@ -218,52 +222,50 @@ namespace Shoko.Server.Commands
             try
             {
                 // download image
+                if (downloadURL.Length <= 0) return;
                 using (WebClient client = new WebClient())
                 {
                     client.Headers.Add("user-agent", "JMM");
                     //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
                     //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
-                    if (downloadURL.Length > 0)
+
+                    byte[] bytes = client.DownloadData(downloadURL);
+                    if (bytes.Length < 4)
+                        throw new WebException(
+                            "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
+
+                    ImageFormatEnum imageFormat = GetImageFormat(bytes);
+                    string extension;
+                    switch (imageFormat)
                     {
-                        byte[] bytes = client.DownloadData(downloadURL);
-                        if (bytes.Length < 4)
-                            throw new WebException(
-                                "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
-
-                        ImageFormatEnum imageFormat = GetImageFormat(bytes);
-                        string extension;
-                        switch (imageFormat)
-                        {
-                            case ImageFormatEnum.bmp:
-                                extension = ".bmp";
-                                break;
-                            case ImageFormatEnum.gif:
-                                extension = ".gif";
-                                break;
-                            case ImageFormatEnum.jpeg:
-                                extension = ".jpeg";
-                                break;
-                            case ImageFormatEnum.png:
-                                extension = ".png";
-                                break;
-                            case ImageFormatEnum.tiff:
-                                extension = ".tiff";
-                                break;
-                            default: throw new WebException("The image download stream returned an invalid image");
-                        }
-
-                        if (extension.Length > 0)
-                        {
-                            string newFile = Path.ChangeExtension(tempFilePath, extension);
-                            if(newFile == null) return;
-
-                            using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
-                            {
-                                fs.Write(bytes, 0, bytes.Length);
-                            }
-                            tempFilePath = newFile;
-                        }
+                        case ImageFormatEnum.bmp:
+                            extension = ".bmp";
+                            break;
+                        case ImageFormatEnum.gif:
+                            extension = ".gif";
+                            break;
+                        case ImageFormatEnum.jpeg:
+                            extension = ".jpeg";
+                            break;
+                        case ImageFormatEnum.png:
+                            extension = ".png";
+                            break;
+                        case ImageFormatEnum.tiff:
+                            extension = ".tiff";
+                            break;
+                        default: throw new WebException("The image download stream returned an invalid image");
                     }
+
+                    if (extension.Length <= 0) return;
+                    string newFile = Path.ChangeExtension(tempFilePath, extension);
+                    if(newFile == null) return;
+
+                    if (File.Exists(newFile)) File.Delete(newFile);
+                    using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
+                    {
+                        fs.Write(bytes, 0, bytes.Length);
+                    }
+                    tempFilePath = newFile;
                 }
             }
             catch (WebException)
@@ -284,6 +286,8 @@ namespace Shoko.Server.Commands
             var tiff2  = new byte[] { 77, 77, 42 };         // TIFF
             var jpeg   = new byte[] { 255, 216, 255, 224 }; // jpeg
             var jpeg2  = new byte[] { 255, 216, 255, 225 }; // jpeg canon
+            // there are many valid jpegs that store data in the 4th byte, this may make mistakes
+            var jpeg3  = new byte[] { 255, 216, 255 };
 
             if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
                 return ImageFormatEnum.bmp;
@@ -304,6 +308,9 @@ namespace Shoko.Server.Commands
                 return ImageFormatEnum.jpeg;
 
             if (jpeg2.SequenceEqual(bytes.Take(jpeg2.Length)))
+                return ImageFormatEnum.jpeg;
+
+            if (jpeg3.SequenceEqual(bytes.Take(jpeg3.Length)))
                 return ImageFormatEnum.jpeg;
 
             return ImageFormatEnum.unknown;

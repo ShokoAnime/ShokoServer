@@ -396,6 +396,10 @@ namespace Shoko.Server.Commands
                     CommandRequest_LinkFileManually cr_LinkFile = new CommandRequest_LinkFileManually();
                     cr_LinkFile.LoadFromDBCommand(crdb);
                     return cr_LinkFile;
+                case CommandRequestType.AniDB_GetMyListFile:
+                    CommandRequest_GetFileMyListStatus cr_MyListStatus = new CommandRequest_GetFileMyListStatus();
+                    cr_MyListStatus.LoadFromDBCommand(crdb);
+                    return cr_MyListStatus;
             }
 
             return null;

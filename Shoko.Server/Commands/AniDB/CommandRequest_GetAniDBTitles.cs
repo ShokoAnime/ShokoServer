@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
+using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Server.Repositories;
@@ -58,7 +59,7 @@ namespace Shoko.Server.Commands
                 string url = Constants.AniDBTitlesURL;
                 logger.Trace("Get AniDB Titles: {0}", url);
 
-                Stream s = Utils.DownloadWebBinary(url);
+                Stream s = Misc.DownloadWebBinary(url);
                 int bytes = 2048;
                 byte[] data = new byte[bytes]; //USE OF BYTES LENGTH VALUES FOR DATA SIZE
                 StringBuilder b = new StringBuilder();
