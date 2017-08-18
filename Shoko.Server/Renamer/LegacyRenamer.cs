@@ -36,6 +36,8 @@ namespace Shoko.Server.Renamer
         }
 
         private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
+
+        private const int MaxEpisodeNameLength = 33;
         /* TESTS
         A   int     Anime id
         G   int     Group id
@@ -1597,7 +1599,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
             {
                 string epname = episodes[0].EnglishName;
-                if (epname.Length > 33) epname = epname.Substring(0, 32) + "…";
+                if (epname.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
             }
 
@@ -1608,7 +1610,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
             {
                 string epname = episodes[0].RomajiName;
-                if (epname.Length > 33) epname = epname.Substring(0, 32) + "…";
+                if (epname.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
             }
 
