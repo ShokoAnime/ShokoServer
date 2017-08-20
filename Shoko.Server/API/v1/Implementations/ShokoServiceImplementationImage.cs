@@ -29,7 +29,7 @@ namespace Shoko.Server
         {
             string path = GetImagePath(imageId, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
-                return null;
+                return BlankImage();
             return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
         }
 
@@ -40,7 +40,7 @@ namespace Shoko.Server
                 return new StreamWithResponse(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
             }
             logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
-            return null;
+            return BlankImage();
         }
 
         public Stream BlankImage()
@@ -66,12 +66,12 @@ namespace Shoko.Server
             return dest;
         }
 
-        public Stream ResizeToRatio(Image im, float newratio)
+        public Stream ResizeToRatio(Image im, double newratio)
         {
-            float calcwidth = im.Width;
-            float calcheight = im.Height;
+            double calcwidth = im.Width;
+            double calcheight = im.Height;
 
-            if (newratio == 0)
+            if (Math.Abs(newratio) < 0.001D)
             {
                 MemoryStream stream = new MemoryStream();
                 im.Save(stream, ImageFormat.Jpeg);
@@ -79,7 +79,7 @@ namespace Shoko.Server
                 return new StreamWithResponse(stream, "image/jpg");
             }
 
-            float nheight = 0;
+            double nheight = 0;
             do
             {
                 nheight = calcwidth / newratio;
@@ -124,17 +124,15 @@ namespace Shoko.Server
             //Little hack
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-            if (!name.Contains("404") && (ratio == null || ratio.Value == 1.0F || ratio.Value == 0))
+            if (!name.Contains("404") || (ratio == null || Math.Abs(ratio.Value) < 0.001D))
             {
                 return new StreamWithResponse(ms, "image/png");
-                ;
             }
             Image im = Image.FromStream(ms);
             float w = im.Width;
             float h = im.Height;
             float nw;
             float nh;
-
 
             if (w <= h)
             {
@@ -196,7 +194,7 @@ namespace Shoko.Server
                     }
                 }
             }
-            return new MemoryStream();
+            return BlankImage();
         }
 
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
