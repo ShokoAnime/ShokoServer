@@ -207,6 +207,8 @@ namespace Shoko.Server.Commands
                         logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL,
                             EntityID,
                             e.Message);
+                        // Remove the record if the image doesn't exist or can't download
+                        RemoveImageRecord();
                     }
                 }
             }
@@ -215,6 +217,54 @@ namespace Shoko.Server.Commands
                 logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID,
                     ex.Message);
             }
+        }
+
+        private void RemoveImageRecord()
+        {
+            switch (EntityTypeEnum)
+                {
+                    case JMMImageType.TvDB_FanArt:
+                        TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
+                        if (fanart == null) return;
+                        RepoFactory.TvDB_ImageFanart.Delete(fanart);
+                        break;
+
+                    case JMMImageType.TvDB_Cover:
+                        TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
+                        if (poster == null) return;
+                        RepoFactory.TvDB_ImagePoster.Delete(poster);
+                        break;
+
+                    case JMMImageType.TvDB_Banner:
+                        TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
+                        if (wideBanner == null) return;
+                        RepoFactory.TvDB_ImageWideBanner.Delete(wideBanner);
+                        break;
+
+                    case JMMImageType.MovieDB_Poster:
+                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
+                        if (moviePoster == null) return;
+                        RepoFactory.MovieDB_Poster.Delete(moviePoster);
+                        break;
+
+                    case JMMImageType.MovieDB_FanArt:
+                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
+                        if (movieFanart == null) return;
+                        RepoFactory.MovieDB_Fanart.Delete(movieFanart);
+                        break;
+
+                    case JMMImageType.Trakt_Poster:
+                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
+                        if (traktPoster == null) return;
+                        RepoFactory.Trakt_ImagePoster.Delete(traktPoster);
+                        break;
+
+                    case JMMImageType.Trakt_Fanart:
+                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
+                        if (traktFanart == null) return;
+                        RepoFactory.Trakt_ImageFanart.Delete(traktFanart);
+                        break;
+                }
         }
 
         private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
