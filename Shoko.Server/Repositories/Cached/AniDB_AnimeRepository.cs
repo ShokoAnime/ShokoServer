@@ -198,13 +198,13 @@ namespace Shoko.Server.Repositories
                 .AddEntity("traktFanart", typeof(Trakt_ImageFanart))
                 .AddEntity("traktPoster", typeof(Trakt_ImagePoster))
                 .SetParameterList("animeIds", animeIds)
-                .SetInt32("tvdbBannerType", (int) JMMImageType.TvDB_Banner)
-                .SetInt32("tvdbCoverType", (int) JMMImageType.TvDB_Cover)
-                .SetInt32("tvdbFanartType", (int) JMMImageType.TvDB_FanArt)
-                .SetInt32("movdbPosterType", (int) JMMImageType.MovieDB_Poster)
-                .SetInt32("movdbFanartType", (int) JMMImageType.MovieDB_FanArt)
-                .SetInt32("traktFanartType", (int) JMMImageType.Trakt_Fanart)
-                .SetInt32("traktPosterType", (int) JMMImageType.Trakt_Poster)
+                .SetInt32("tvdbBannerType", (int) ImageEntityType.TvDB_Banner)
+                .SetInt32("tvdbCoverType", (int) ImageEntityType.TvDB_Cover)
+                .SetInt32("tvdbFanartType", (int) ImageEntityType.TvDB_FanArt)
+                .SetInt32("movdbPosterType", (int) ImageEntityType.MovieDB_Poster)
+                .SetInt32("movdbFanartType", (int) ImageEntityType.MovieDB_FanArt)
+                .SetInt32("traktFanartType", (int) ImageEntityType.Trakt_Fanart)
+                .SetInt32("traktPosterType", (int) ImageEntityType.Trakt_Poster)
                 .List<object[]>();
 
             foreach (object[] result in results)
@@ -212,27 +212,27 @@ namespace Shoko.Server.Repositories
                 var aniDbDefImage = (AniDB_Anime_DefaultImage) result[0];
                 IImageEntity parentImage = null;
 
-                switch ((JMMImageType) aniDbDefImage.ImageParentType)
+                switch ((ImageEntityType) aniDbDefImage.ImageParentType)
                 {
-                    case JMMImageType.TvDB_Banner:
+                    case ImageEntityType.TvDB_Banner:
                         parentImage = (IImageEntity) result[1];
                         break;
-                    case JMMImageType.TvDB_Cover:
+                    case ImageEntityType.TvDB_Cover:
                         parentImage = (IImageEntity) result[2];
                         break;
-                    case JMMImageType.TvDB_FanArt:
+                    case ImageEntityType.TvDB_FanArt:
                         parentImage = (IImageEntity) result[3];
                         break;
-                    case JMMImageType.MovieDB_Poster:
+                    case ImageEntityType.MovieDB_Poster:
                         parentImage = (IImageEntity) result[4];
                         break;
-                    case JMMImageType.MovieDB_FanArt:
+                    case ImageEntityType.MovieDB_FanArt:
                         parentImage = (IImageEntity) result[5];
                         break;
-                    case JMMImageType.Trakt_Fanart:
+                    case ImageEntityType.Trakt_Fanart:
                         parentImage = (IImageEntity) result[6];
                         break;
-                    case JMMImageType.Trakt_Poster:
+                    case ImageEntityType.Trakt_Poster:
                         parentImage = (IImageEntity) result[7];
                         break;
                 }
@@ -280,7 +280,7 @@ namespace Shoko.Server.Repositories
             return new CL_AniDB_Anime_DefaultImage
             {
                 AnimeID = AnimeID,
-                ImageType = (int) JMMImageType.AniDB_Cover
+                ImageType = (int) ImageEntityType.AniDB_Cover
             };
         }
 
@@ -341,6 +341,6 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Anime_DefaultImage AniDBImage { get; private set; }
 
-        public JMMImageType ParentImageType => (JMMImageType) AniDBImage.ImageParentType;
+        public ImageEntityType ParentImageType => (ImageEntityType) AniDBImage.ImageParentType;
     }
 }

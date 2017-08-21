@@ -29,6 +29,11 @@ namespace Shoko.Server.API.v2.Modules
             Get["/image/thumb/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, "0"), ct);
             Get["/image/support/{name}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name), ct);
             Get["/image/support/{name}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name, x.ratio), ct);
+            Get["/image/validateall", true] = async (x,ct) => await Task.Factory.StartNew(() =>
+            {
+                Importer.ValidateAllImages();
+                return APIStatus.statusOK();
+            }, ct);
         }
 
         /// <summary>
@@ -100,8 +105,6 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetSupportImage(string name)
         {
-            Nancy.Response response = new Nancy.Response();
-
             if (string.IsNullOrEmpty(name))
             {
                 return APIStatus.notFound404();
@@ -116,13 +119,11 @@ namespace Shoko.Server.API.v2.Modules
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
 
-            response = Response.FromStream(ms, "image/png");
-            return response;
+            return Response.FromStream(ms, "image/png");
         }
 
         private object GetSupportImage(string name, string ratio)
         {
-            Nancy.Response response = new Nancy.Response();
             if (string.IsNullOrEmpty(name))
             {
                 return APIStatus.notFound404();
@@ -143,8 +144,7 @@ namespace Shoko.Server.API.v2.Modules
             ms.Seek(0, SeekOrigin.Begin);
             System.Drawing.Image im = System.Drawing.Image.FromStream(ms);
 
-            response = Response.FromStream(ResizeToRatio(im, newratio), "image/png");
-            return response;
+            return Response.FromStream(ResizeToRatio(im, newratio), "image/png");
         }
 
         /// <summary>
@@ -156,13 +156,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>string</returns>
         internal string ReturnImagePath(int type, int id, bool thumb)
         {
-            JMMImageType imageType = (JMMImageType) type;
+            ImageEntityType imageType = (ImageEntityType) type;
             string path = "";
 
             switch (imageType)
             {
                 // 1
-                case JMMImageType.AniDB_Cover:
+                case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
                     if (anime == null)
                     {
@@ -181,7 +181,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 2
-                case JMMImageType.AniDB_Character:
+                case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(id);
                     if (chr == null)
                     {
@@ -200,7 +200,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 3
-                case JMMImageType.AniDB_Creator:
+                case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(id);
                     if (creator == null)
                     {
@@ -219,7 +219,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 4
-                case JMMImageType.TvDB_Banner:
+                case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(id);
                     if (wideBanner == null)
                     {
@@ -238,7 +238,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 5
-                case JMMImageType.TvDB_Cover:
+                case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(id);
                     if (poster == null)
                     {
@@ -257,7 +257,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 6
-                case JMMImageType.TvDB_Episode:
+                case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(id);
                     if (ep == null)
                     {
@@ -276,7 +276,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 7
-                case JMMImageType.TvDB_FanArt:
+                case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(id);
                     if (fanart == null)
                     {
@@ -312,7 +312,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 8
-                case JMMImageType.MovieDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
                     MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetByID(id);
                     if (mFanart == null)
                     {
@@ -336,7 +336,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 9
-                case JMMImageType.MovieDB_Poster:
+                case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(id);
                     if (mPoster == null)
                     {
@@ -360,7 +360,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 10
-                case JMMImageType.Trakt_Poster:
+                case ImageEntityType.Trakt_Poster:
                     Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(id);
                     if (tPoster == null)
                     {
@@ -379,7 +379,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 // 11
-                case JMMImageType.Trakt_Fanart:
+                case ImageEntityType.Trakt_Fanart:
                     Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(id);
                     if (tFanart == null)
                     {
@@ -399,8 +399,8 @@ namespace Shoko.Server.API.v2.Modules
 
 
                 // 12 + 16
-                case JMMImageType.Trakt_Episode:
-                case JMMImageType.Trakt_WatchedEpisode:
+                case ImageEntityType.Trakt_Episode:
+                case ImageEntityType.Trakt_WatchedEpisode:
                     Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(id);
                     if (tEpisode == null)
                     {

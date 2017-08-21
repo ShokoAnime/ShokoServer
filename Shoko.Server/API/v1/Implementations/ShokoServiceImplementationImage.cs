@@ -199,11 +199,11 @@ namespace Shoko.Server
 
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
         {
-            JMMImageType it = (JMMImageType) imageType;
+            ImageEntityType it = (ImageEntityType) imageType;
 
             switch (it)
             {
-                case JMMImageType.AniDB_Cover:
+                case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageId);
                     if (anime == null) return null;
                     if (File.Exists(anime.PosterPath))
@@ -216,7 +216,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.AniDB_Character:
+                case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(imageId);
                     if (chr == null) return null;
                     if (File.Exists(chr.GetPosterPath()))
@@ -229,7 +229,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.AniDB_Creator:
+                case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(imageId);
                     if (creator == null) return "";
                     if (File.Exists(creator.GetPosterPath()))
@@ -242,7 +242,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.TvDB_Cover:
+                case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(imageId);
                     if (poster == null) return null;
                     if (File.Exists(poster.GetFullImagePath()))
@@ -255,7 +255,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.TvDB_Banner:
+                case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageId);
                     if (wideBanner == null) return null;
                     if (File.Exists(wideBanner.GetFullImagePath()))
@@ -268,7 +268,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.TvDB_Episode:
+                case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(imageId);
                     if (ep == null) return null;
                     if (File.Exists(ep.GetFullImagePath()))
@@ -281,7 +281,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.TvDB_FanArt:
+                case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageId);
                     if (fanart == null) return null;
                     if (thumnbnailOnly.HasValue && thumnbnailOnly.Value)
@@ -309,7 +309,7 @@ namespace Shoko.Server
                         }
                     }
 
-                case JMMImageType.MovieDB_Poster:
+                case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(imageId);
                     if (mPoster == null) return null;
 
@@ -326,7 +326,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.MovieDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
                     MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetByID(imageId);
                     if (mFanart == null) return null;
                     mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
@@ -341,7 +341,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.Trakt_Fanart:
+                case ImageEntityType.Trakt_Fanart:
                     Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(imageId);
                     if (tFanart == null) return null;
                     if (File.Exists(tFanart.GetFullImagePath()))
@@ -354,7 +354,7 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.Trakt_Poster:
+                case ImageEntityType.Trakt_Poster:
                     Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(imageId);
                     if (tPoster == null) return null;
                     if (File.Exists(tPoster.GetFullImagePath()))
@@ -367,8 +367,8 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case JMMImageType.Trakt_Episode:
-                case JMMImageType.Trakt_WatchedEpisode:
+                case ImageEntityType.Trakt_Episode:
+                case ImageEntityType.Trakt_WatchedEpisode:
                     Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(imageId);
                     if (tEpisode == null) return null;
                     if (File.Exists(tEpisode.GetFullImagePath()))

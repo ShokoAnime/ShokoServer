@@ -746,7 +746,7 @@ namespace Shoko.Server.Providers.TraktTV
                             {
                                 CommandRequest_DownloadImage cmd =
                                     new CommandRequest_DownloadImage(fanart.Trakt_ImageFanartID,
-                                        JMMImageType.Trakt_Fanart, false);
+                                        ImageEntityType.Trakt_Fanart, false);
                                 cmd.Save();
                             }
                         }
@@ -768,7 +768,7 @@ namespace Shoko.Server.Providers.TraktTV
                                 {
                                     CommandRequest_DownloadImage cmd =
                                         new CommandRequest_DownloadImage(poster.Trakt_ImagePosterID,
-                                            JMMImageType.Trakt_Poster, false);
+                                            ImageEntityType.Trakt_Poster, false);
                                     cmd.Save();
                                 }
                             }
@@ -786,7 +786,7 @@ namespace Shoko.Server.Providers.TraktTV
                                 {
                                     CommandRequest_DownloadImage cmd =
                                         new CommandRequest_DownloadImage(ep.Trakt_EpisodeID,
-                                            JMMImageType.Trakt_Episode, false);
+                                            ImageEntityType.Trakt_Episode, false);
                                     cmd.Save();
                                 }
                             }
@@ -1506,7 +1506,7 @@ namespace Shoko.Server.Providers.TraktTV
                                 bool fileExists = File.Exists(episode.FullImagePath);
                                 if (!fileExists)
                                 {
-                                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+                                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, ImageEntityType.Trakt_Episode, false);
                                     cmd.Save();
                                 }
                             }

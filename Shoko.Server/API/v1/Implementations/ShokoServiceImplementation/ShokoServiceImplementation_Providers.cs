@@ -592,9 +592,9 @@ namespace Shoko.Server
                     List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                     foreach (AniDB_Anime_DefaultImage image in images)
                     {
-                        if (image.ImageParentType == (int) JMMImageType.TvDB_Banner ||
-                            image.ImageParentType == (int) JMMImageType.TvDB_Cover ||
-                            image.ImageParentType == (int) JMMImageType.TvDB_FanArt)
+                        if (image.ImageParentType == (int) ImageEntityType.TvDB_Banner ||
+                            image.ImageParentType == (int) ImageEntityType.TvDB_Cover ||
+                            image.ImageParentType == (int) ImageEntityType.TvDB_FanArt)
                         {
                             if (image.ImageParentID == xref.TvDBID)
                                 RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
@@ -628,9 +628,9 @@ namespace Shoko.Server
                 List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
-                    if (image.ImageParentType == (int) JMMImageType.TvDB_Banner ||
-                        image.ImageParentType == (int) JMMImageType.TvDB_Cover ||
-                        image.ImageParentType == (int) JMMImageType.TvDB_FanArt)
+                    if (image.ImageParentType == (int) ImageEntityType.TvDB_Banner ||
+                        image.ImageParentType == (int) ImageEntityType.TvDB_Cover ||
+                        image.ImageParentType == (int) ImageEntityType.TvDB_FanArt)
                     {
                         if (image.ImageParentID == tvDBID)
                             RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
@@ -926,8 +926,8 @@ namespace Shoko.Server
                 List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
-                    if (image.ImageParentType == (int) JMMImageType.Trakt_Fanart ||
-                        image.ImageParentType == (int) JMMImageType.Trakt_Poster)
+                    if (image.ImageParentType == (int) ImageEntityType.Trakt_Fanart ||
+                        image.ImageParentType == (int) ImageEntityType.Trakt_Poster)
                     {
                         RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
@@ -963,8 +963,8 @@ namespace Shoko.Server
                 List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
-                    if (image.ImageParentType == (int) JMMImageType.Trakt_Fanart ||
-                        image.ImageParentType == (int) JMMImageType.Trakt_Poster)
+                    if (image.ImageParentType == (int) ImageEntityType.Trakt_Fanart ||
+                        image.ImageParentType == (int) ImageEntityType.Trakt_Poster)
                     {
                         RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
@@ -1424,8 +1424,8 @@ namespace Shoko.Server
                             RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                         foreach (AniDB_Anime_DefaultImage image in images)
                         {
-                            if (image.ImageParentType == (int) JMMImageType.MovieDB_FanArt ||
-                                image.ImageParentType == (int) JMMImageType.MovieDB_Poster)
+                            if (image.ImageParentType == (int) ImageEntityType.MovieDB_FanArt ||
+                                image.ImageParentType == (int) ImageEntityType.MovieDB_Poster)
                             {
                                 RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                             }

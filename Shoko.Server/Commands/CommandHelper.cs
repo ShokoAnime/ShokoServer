@@ -400,6 +400,10 @@ namespace Shoko.Server.Commands
                     CommandRequest_GetFileMyListStatus cr_MyListStatus = new CommandRequest_GetFileMyListStatus();
                     cr_MyListStatus.LoadFromDBCommand(crdb);
                     return cr_MyListStatus;
+                case CommandRequestType.ValidateAllImages:
+                    CommandRequest_ValidateAllImages cr_ValidateImages = new CommandRequest_ValidateAllImages();
+                    cr_ValidateImages.LoadFromDBCommand(crdb);
+                    return cr_ValidateImages;
             }
 
             return null;

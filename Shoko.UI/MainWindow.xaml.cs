@@ -111,6 +111,7 @@ namespace Shoko.UI
             btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
             btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
             btnSyncPlex.Click += BtnSyncPlexOn_Click;
+            btnValidateImages.Click += BtnValidateAllImages_Click;
 
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 
@@ -235,6 +236,11 @@ namespace Shoko.UI
         private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
         {
             ShokoServer.Instance.SyncPlex();
+        }
+
+        private void BtnValidateAllImages_Click(object sender, RoutedEventArgs routedEventArgs)
+        {
+            Importer.ValidateAllImages();
         }
 
         private void BtnSetDefault_Click(object sender, RoutedEventArgs e)

@@ -263,6 +263,17 @@
                         				Margin="0,0,5,0" />
 							</StackPanel>
 						</Button>
+                        
+                        <!-- Validate Images -->
+                        <Button HorizontalAlignment="Left" x:Name="btnValidateImages" Margin="0,0,0,0"
+                                Style="{DynamicResource FlatButtonStyle}" Width="Auto">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Image Height="16" Width="16" Source="Images/16_update_data.png" Margin="0,0,5,0" />
+                                <TextBlock VerticalAlignment="Center"
+                                           Text="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Actions_ValidateAllImages}"
+                                           Margin="0,0,5,0" />
+                            </StackPanel>
+                        </Button>
 
 						<!-- btnUploadAzureCache -->
                         <Button HorizontalAlignment="Left" Name="btnUploadAzureCache" Margin="0,0,0,0"

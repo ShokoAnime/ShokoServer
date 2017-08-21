@@ -635,7 +635,7 @@ namespace Shoko.Server.PlexAndKodi
             ImageDetails details = new ImageDetails()
             {
                 ImageID = art.ImageID,
-                ImageType = (JMMImageType) art.ImageType
+                ImageType = (ImageEntityType) art.ImageType
             };
             return details.GenArt(prov);
         }
