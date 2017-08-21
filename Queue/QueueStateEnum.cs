@@ -67,6 +67,7 @@ namespace Shoko.Models.Queue
         RefreshGroupFilter,
         SyncPlex,
         LinkFileManually,
-        AniDB_MyListGetFile
+        AniDB_MyListGetFile,
+        ValidateAllImages,
     }
 }

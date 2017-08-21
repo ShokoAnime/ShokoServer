@@ -19,4 +19,14 @@ namespace Shoko.Models.Enums
         Trakt_CommentUser = 15,
         Trakt_WatchedEpisode = 16
     }
+
+    public enum ImageFormatEnum
+    {
+        bmp,
+        jpeg,
+        gif,
+        tiff,
+        png,
+        unknown
+    }
 }

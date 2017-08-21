@@ -188,7 +188,6 @@
     <Compile Include="Enums\ImageEntityType.cs" />
     <Compile Include="Enums\ImageSizeType.cs" />
     <Compile Include="Enums\ImportFolderType.cs" />
-    <Compile Include="Enums\JMMImageType.cs" />
     <Compile Include="SeasonComparator.cs" />
     <Compile Include="Server\AniDB\AniDB_Anime.cs" />
     <Compile Include="Server\AniDB\AniDB_Anime_Character.cs" />
