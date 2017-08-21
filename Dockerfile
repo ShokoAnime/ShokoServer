@@ -1,4 +1,4 @@
-FROM mono:5.0.0
+FROM mono:5
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 
