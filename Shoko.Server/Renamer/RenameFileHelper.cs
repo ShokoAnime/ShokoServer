@@ -85,7 +85,7 @@ namespace Shoko.Server
             foreach (var implementation in implementations)
             {
                 IEnumerable<RenamerAttribute> attributes = implementation.GetCustomAttributes<RenamerAttribute>();
-                foreach ((string key, string desc) in attributes.Select(a => (a.RenamerId, a.Description)))
+                foreach ((string key, string desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
                 {
                     if (key == null) continue;
                     if (ScriptImplementations.ContainsKey(key))
