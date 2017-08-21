@@ -8,7 +8,9 @@ using System.Text;
 using System.Threading;
 using System.Web;
 using System.Xml;
+using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
+using Shoko.Commons.Utils;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Models;
 using Shoko.Models.Enums;
@@ -27,21 +29,55 @@ namespace Shoko.Server.Commands
         public int EntityType { get; set; }
         public bool ForceDownload { get; set; }
 
-        public JMMImageType EntityTypeEnum => (JMMImageType) EntityType;
+        public ImageEntityType EntityTypeEnum => (ImageEntityType) EntityType;
 
         public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct()
+        public QueueStateStruct PrettyDescription
         {
-            queueState = QueueStateEnum.DownloadImage,
-            extraParams = new string[] {EntityID.ToString()}
-        };
+            get
+            {
+                string type;
+                switch (EntityTypeEnum)
+                {
+                    case ImageEntityType.TvDB_Episode:
+                        type = Resources.Command_ValidateAllImages_TvDBEpisodes;
+                        break;
+                    case ImageEntityType.TvDB_FanArt:
+                        type = Resources.Command_ValidateAllImages_TvDBFanarts;
+                        break;
+                    case ImageEntityType.TvDB_Cover:
+                        type = Resources.Command_ValidateAllImages_TvDBPosters;
+                        break;
+                    case ImageEntityType.TvDB_Banner:
+                        type = Resources.Command_ValidateAllImages_TvDBBanners;
+                        break;
+                    case ImageEntityType.AniDB_Cover:
+                        type = Resources.Command_ValidateAllImages_AniDBPosters;
+                        break;
+                    case ImageEntityType.AniDB_Character:
+                        type = Resources.Command_ValidateAllImages_AniDBCharacters;
+                        break;
+                    case ImageEntityType.AniDB_Creator:
+                        type = Resources.Command_ValidateAllImages_AniDBSeiyuus;
+                        break;
+                    default:
+                        type = "";
+                        break;
+                }
+                return new QueueStateStruct()
+                {
+                    queueState = QueueStateEnum.DownloadImage,
+                    extraParams = new[] { type, EntityID.ToString() }
+                };
+            }
+        }
 
         public CommandRequest_DownloadImage()
         {
         }
 
-        public CommandRequest_DownloadImage(int entityID, JMMImageType entityType, bool forced)
+        public CommandRequest_DownloadImage(int entityID, ImageEntityType entityType, bool forced)
         {
             this.EntityID = entityID;
             this.EntityType = (int) entityType;
@@ -61,86 +97,106 @@ namespace Shoko.Server.Commands
                 ImageDownloadRequest req = null;
                 switch (EntityTypeEnum)
                 {
-                    case JMMImageType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(EntityID);
-                        if (anime == null) return;
-                        req = new ImageDownloadRequest(EntityTypeEnum, anime, ForceDownload);
-                        break;
-
-                    case JMMImageType.TvDB_Episode:
+                    case ImageEntityType.TvDB_Episode:
                         TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(ep?.Filename)) return;
+                        if (string.IsNullOrEmpty(ep?.Filename))
+                        {
+                            logger.Warn($"TvDB Episode image failed to download: Can't get episode with ID: {EntityID}");
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, ep, ForceDownload);
                         break;
 
-                    case JMMImageType.TvDB_FanArt:
+                    case ImageEntityType.TvDB_FanArt:
                         TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(fanart?.BannerPath)) return;
+                        if (string.IsNullOrEmpty(fanart?.BannerPath))
+                        {
+                            logger.Warn($"TvDB Fanart image failed to download: Can't find valid fanart with ID: {EntityID}");
+                            RemoveImageRecord();
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, fanart, ForceDownload);
                         break;
 
-                    case JMMImageType.TvDB_Cover:
+                    case ImageEntityType.TvDB_Cover:
                         TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(poster?.BannerPath)) return;
+                        if (string.IsNullOrEmpty(poster?.BannerPath))
+                        {
+                            logger.Warn($"TvDB Poster image failed to download: Can't find valid poster with ID: {EntityID}");
+                            RemoveImageRecord();
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, poster, ForceDownload);
                         break;
 
-                    case JMMImageType.TvDB_Banner:
+                    case ImageEntityType.TvDB_Banner:
                         TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(wideBanner?.BannerPath)) return;
+                        if (string.IsNullOrEmpty(wideBanner?.BannerPath))
+                        {
+                            logger.Warn($"TvDB Banner image failed to download: Can't find valid banner with ID: {EntityID}");
+                            RemoveImageRecord();
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, wideBanner, ForceDownload);
                         break;
 
-                    case JMMImageType.MovieDB_Poster:
+                    case ImageEntityType.MovieDB_Poster:
                         MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(moviePoster?.URL)) return;
+                        if (string.IsNullOrEmpty(moviePoster?.URL))
+                        {
+                            logger.Warn($"MovieDB Poster image failed to download: Can't find valid poster with ID: {EntityID}");
+                            RemoveImageRecord();
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, moviePoster, ForceDownload);
                         break;
 
-                    case JMMImageType.MovieDB_FanArt:
+                    case ImageEntityType.MovieDB_FanArt:
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(movieFanart?.URL)) return;
+                        if (string.IsNullOrEmpty(movieFanart?.URL))
+                        {
+                            logger.Warn($"MovieDB Fanart image failed to download: Can't find valid fanart with ID: {EntityID}");
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, movieFanart, ForceDownload);
                         break;
 
-                    case JMMImageType.Trakt_Poster:
-                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(traktPoster?.ImageURL)) return;
-                        req = new ImageDownloadRequest(EntityTypeEnum, traktPoster, ForceDownload);
+                    case ImageEntityType.AniDB_Cover:
+                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(EntityID);
+                        if (anime == null)
+                        {
+                            logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {EntityID}");
+                            return;
+                        }
+                        req = new ImageDownloadRequest(EntityTypeEnum, anime, ForceDownload);
                         break;
 
-                    case JMMImageType.Trakt_Fanart:
-                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(traktFanart?.ImageURL)) return;
-                        req = new ImageDownloadRequest(EntityTypeEnum, traktFanart, ForceDownload);
-                        break;
-
-                    case JMMImageType.Trakt_Friend:
-                        Trakt_Friend friend = RepoFactory.Trakt_Friend.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(friend?.Avatar)) return;
-                        req = new ImageDownloadRequest(EntityTypeEnum, friend, ForceDownload);
-                        break;
-
-                    case JMMImageType.Trakt_Episode:
-                        Trakt_Episode traktEp = RepoFactory.Trakt_Episode.GetByID(EntityID);
-                        if (string.IsNullOrEmpty(traktEp?.EpisodeImage)) return;
-                        req = new ImageDownloadRequest(EntityTypeEnum, traktEp, ForceDownload);
-                        break;
-
-                    case JMMImageType.AniDB_Character:
-                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
-                        if (chr == null) return;
+                    case ImageEntityType.AniDB_Character:
+                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(EntityID);
+                        if (chr == null)
+                        {
+                            logger.Warn($"AniDB Character image failed to download: Can't find AniDB Character with ID: {EntityID}");
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
                         break;
 
-                    case JMMImageType.AniDB_Creator:
-                        AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
-                        if (creator == null) return;
+                    case ImageEntityType.AniDB_Creator:
+                        AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
+                        if (creator == null)
+                        {
+                            logger.Warn($"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {EntityID}");
+                            return;
+                        }
                         req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
                         break;
                 }
 
-                if (req == null) return;
+                if (req == null)
+                {
+                    logger.Warn($"Image failed to download: No implementation found for {EntityTypeEnum}");
+                    return;
+                }
 
                 List<string> fileNames = new List<string>();
                 List<string> downloadURLs = new List<string>();
@@ -151,7 +207,7 @@ namespace Shoko.Server.Commands
                 fileNames.Add(fileNameTemp);
                 downloadURLs.Add(downloadURLTemp);
 
-                if (req.ImageType == JMMImageType.TvDB_FanArt)
+                if (req.ImageType == ImageEntityType.TvDB_FanArt)
                 {
                     fileNameTemp = GetFileName(req, true);
                     downloadURLTemp = GetFileURL(req, true);
@@ -223,43 +279,43 @@ namespace Shoko.Server.Commands
         {
             switch (EntityTypeEnum)
                 {
-                    case JMMImageType.TvDB_FanArt:
+                    case ImageEntityType.TvDB_FanArt:
                         TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
                         if (fanart == null) return;
                         RepoFactory.TvDB_ImageFanart.Delete(fanart);
                         break;
 
-                    case JMMImageType.TvDB_Cover:
+                    case ImageEntityType.TvDB_Cover:
                         TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
                         if (poster == null) return;
                         RepoFactory.TvDB_ImagePoster.Delete(poster);
                         break;
 
-                    case JMMImageType.TvDB_Banner:
+                    case ImageEntityType.TvDB_Banner:
                         TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (wideBanner == null) return;
                         RepoFactory.TvDB_ImageWideBanner.Delete(wideBanner);
                         break;
 
-                    case JMMImageType.MovieDB_Poster:
+                    case ImageEntityType.MovieDB_Poster:
                         MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
                         if (moviePoster == null) return;
                         RepoFactory.MovieDB_Poster.Delete(moviePoster);
                         break;
 
-                    case JMMImageType.MovieDB_FanArt:
+                    case ImageEntityType.MovieDB_FanArt:
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
                         if (movieFanart == null) return;
                         RepoFactory.MovieDB_Fanart.Delete(movieFanart);
                         break;
 
-                    case JMMImageType.Trakt_Poster:
+                    case ImageEntityType.Trakt_Poster:
                         Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
                         if (traktPoster == null) return;
                         RepoFactory.Trakt_ImagePoster.Delete(traktPoster);
                         break;
 
-                    case JMMImageType.Trakt_Fanart:
+                    case ImageEntityType.Trakt_Fanart:
                         Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
                         if (traktFanart == null) return;
                         RepoFactory.Trakt_ImageFanart.Delete(traktFanart);
@@ -284,7 +340,7 @@ namespace Shoko.Server.Commands
                         throw new WebException(
                             "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
 
-                    ImageFormatEnum imageFormat = GetImageFormat(bytes);
+                    ImageFormatEnum imageFormat = Misc.GetImageFormat(bytes);
                     string extension;
                     switch (imageFormat)
                     {
@@ -326,102 +382,62 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public static ImageFormatEnum GetImageFormat(byte[] bytes)
-        {
-            // see http://www.mikekunz.com/image_file_header.html
-            var bmp    = Encoding.ASCII.GetBytes("BM");     // BMP
-            var gif    = Encoding.ASCII.GetBytes("GIF");    // GIF
-            var png    = new byte[] { 137, 80, 78, 71 };    // PNG
-            var tiff   = new byte[] { 73, 73, 42 };         // TIFF
-            var tiff2  = new byte[] { 77, 77, 42 };         // TIFF
-            var jpeg   = new byte[] { 255, 216, 255, 224 }; // jpeg
-            var jpeg2  = new byte[] { 255, 216, 255, 225 }; // jpeg canon
-            // there are many valid jpegs that store data in the 4th byte, this may make mistakes
-            var jpeg3  = new byte[] { 255, 216, 255 };
-
-            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
-                return ImageFormatEnum.bmp;
-
-            if (gif.SequenceEqual(bytes.Take(gif.Length)))
-                return ImageFormatEnum.gif;
-
-            if (png.SequenceEqual(bytes.Take(png.Length)))
-                return ImageFormatEnum.png;
-
-            if (tiff.SequenceEqual(bytes.Take(tiff.Length)))
-                return ImageFormatEnum.tiff;
-
-            if (tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
-                return ImageFormatEnum.tiff;
-
-            if (jpeg.SequenceEqual(bytes.Take(jpeg.Length)))
-                return ImageFormatEnum.jpeg;
-
-            if (jpeg2.SequenceEqual(bytes.Take(jpeg2.Length)))
-                return ImageFormatEnum.jpeg;
-
-            if (jpeg3.SequenceEqual(bytes.Take(jpeg3.Length)))
-                return ImageFormatEnum.jpeg;
-
-            return ImageFormatEnum.unknown;
-        }
-
         public static string GetFileURL(ImageDownloadRequest req, bool thumbNailOnly)
         {
             switch (req.ImageType)
             {
-                case JMMImageType.AniDB_Cover:
+                case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     return string.Format(Constants.URLS.AniDB_Images, anime.Picname);
 
-                case JMMImageType.TvDB_Episode:
+                case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = req.ImageData as TvDB_Episode;
                     return string.Format(Constants.URLS.TvDB_Images, ep.Filename);
 
-                case JMMImageType.TvDB_FanArt:
+                case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
                     if (thumbNailOnly)
                         return string.Format(Constants.URLS.TvDB_Images, fanart.ThumbnailPath);
                     else
                         return string.Format(Constants.URLS.TvDB_Images, fanart.BannerPath);
 
-                case JMMImageType.TvDB_Cover:
+                case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
                     return string.Format(Constants.URLS.TvDB_Images, poster.BannerPath);
 
-                case JMMImageType.TvDB_Banner:
+                case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
                     return string.Format(Constants.URLS.TvDB_Images, wideBanner.BannerPath);
 
-                case JMMImageType.MovieDB_Poster:
+                case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
                     return string.Format(Constants.URLS.MovieDB_Images, moviePoster.URL);
 
-                case JMMImageType.MovieDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
                     return string.Format(Constants.URLS.MovieDB_Images, movieFanart.URL);
 
-                case JMMImageType.Trakt_Poster:
+                case ImageEntityType.Trakt_Poster:
                     Trakt_ImagePoster traktPoster = req.ImageData as Trakt_ImagePoster;
                     return traktPoster.ImageURL;
 
-                case JMMImageType.Trakt_Fanart:
+                case ImageEntityType.Trakt_Fanart:
                     Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
                     return traktFanart.ImageURL;
 
-                case JMMImageType.Trakt_Friend:
+                case ImageEntityType.Trakt_Friend:
                     Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
                     return traktFriend.Avatar;
 
-                case JMMImageType.Trakt_Episode:
+                case ImageEntityType.Trakt_Episode:
                     Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
                     return traktEp.EpisodeImage;
 
-                case JMMImageType.AniDB_Character:
+                case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
                     return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
 
-                case JMMImageType.AniDB_Creator:
+                case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
                     return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
 
@@ -434,58 +450,58 @@ namespace Shoko.Server.Commands
         {
             switch (req.ImageType)
             {
-                case JMMImageType.AniDB_Cover:
+                case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     return anime.PosterPath;
 
-                case JMMImageType.TvDB_Episode:
+                case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = req.ImageData as TvDB_Episode;
                     return ep.GetFullImagePath();
 
-                case JMMImageType.TvDB_FanArt:
+                case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
                     if (thumbNailOnly)
                         return fanart.GetFullThumbnailPath();
                     else
                         return fanart.GetFullImagePath();
 
-                case JMMImageType.TvDB_Cover:
+                case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
                     return poster.GetFullImagePath();
 
-                case JMMImageType.TvDB_Banner:
+                case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
                     return wideBanner.GetFullImagePath();
 
-                case JMMImageType.MovieDB_Poster:
+                case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
                     return moviePoster.GetFullImagePath();
 
-                case JMMImageType.MovieDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
                     return movieFanart.GetFullImagePath();
 
-                case JMMImageType.Trakt_Poster:
+                case ImageEntityType.Trakt_Poster:
                     Trakt_ImagePoster traktPoster = req.ImageData as Trakt_ImagePoster;
                     return traktPoster.GetFullImagePath();
 
-                case JMMImageType.Trakt_Fanart:
+                case ImageEntityType.Trakt_Fanart:
                     Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
                     return traktFanart.GetFullImagePath();
 
-                case JMMImageType.Trakt_Friend:
+                case ImageEntityType.Trakt_Friend:
                     Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
                     return traktFriend.GetFullImagePath();
 
-                case JMMImageType.Trakt_Episode:
+                case ImageEntityType.Trakt_Episode:
                     Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
                     return traktEp.GetFullImagePath();
 
-                case JMMImageType.AniDB_Character:
+                case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
                     return chr.GetPosterPath();
 
-                case JMMImageType.AniDB_Creator:
+                case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
                     return creator.GetPosterPath();
 

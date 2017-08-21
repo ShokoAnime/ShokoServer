@@ -71,6 +71,7 @@ namespace Shoko.Server
         Plex_Sync = 93,
         LinkFileManually = 94,
         AniDB_GetMyListFile = 95,
+        ValidateAllImages = 96,
     }
 
     public enum CommandRequestPriority
@@ -154,15 +155,5 @@ namespace Shoko.Server
         MD5 = 1,
         SHA1 = 2,
         CRC32 = 3
-    }
-
-    public enum ImageFormatEnum
-    {
-        bmp,
-        jpeg,
-        gif,
-        tiff,
-        png,
-        unknown
     }
 }

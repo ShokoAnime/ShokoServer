@@ -92,7 +92,8 @@ namespace Shoko.Server.Commands
 
             if (CommandType == (int) CommandRequestType.HashFile)
                 ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
-            else if (CommandType == (int) CommandRequestType.ImageDownload)
+            else if (CommandType == (int) CommandRequestType.ImageDownload ||
+                     CommandType == (int) CommandRequestType.ValidateAllImages)
                 ShokoService.CmdProcessorImages.NotifyOfNewCommand();
             else
                 ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();

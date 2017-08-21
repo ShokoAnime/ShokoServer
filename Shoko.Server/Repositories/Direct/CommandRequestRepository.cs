@@ -46,6 +46,7 @@ namespace Shoko.Server.Repositories.Direct
                     .CreateCriteria(typeof(CommandRequest))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.HashFile))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
+                    .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ValidateAllImages))
                     .AddOrder(Order.Asc("Priority"))
                     .AddOrder(Order.Asc("DateTimeUpdated"))
                     .SetMaxResults(1)
@@ -65,6 +66,7 @@ namespace Shoko.Server.Repositories.Direct
                     .CreateCriteria(typeof(CommandRequest))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.HashFile))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
+                    .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ValidateAllImages))
                     .List<CommandRequest>();
 
                 return new List<CommandRequest>(crs);
@@ -108,7 +110,8 @@ namespace Shoko.Server.Repositories.Direct
             {
                 IList<CommandRequest> crs = session
                     .CreateCriteria(typeof(CommandRequest))
-                    .Add(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
+                    .Add(Restrictions.Or(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload),
+                        Restrictions.Eq("CommandType", (int) CommandRequestType.ValidateAllImages)))
                     .AddOrder(Order.Asc("Priority"))
                     .AddOrder(Order.Asc("DateTimeUpdated"))
                     .SetMaxResults(1)
@@ -126,7 +129,8 @@ namespace Shoko.Server.Repositories.Direct
             {
                 var crs = session
                     .CreateCriteria(typeof(CommandRequest))
-                    .Add(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
+                    .Add(Restrictions.Or(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload),
+                        Restrictions.Eq("CommandType", (int) CommandRequestType.ValidateAllImages)))
                     .List<CommandRequest>();
 
                 return new List<CommandRequest>(crs);
@@ -141,6 +145,7 @@ namespace Shoko.Server.Repositories.Direct
                     .CreateCriteria(typeof(CommandRequest))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.HashFile))
                     .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
+                    .Add(!Restrictions.Eq("CommandType", (int) CommandRequestType.ValidateAllImages))
                     .SetProjection(Projections.Count("CommandRequestID"))
                     .UniqueResult();
 
@@ -168,9 +173,10 @@ namespace Shoko.Server.Repositories.Direct
             {
                 var cnt = session
                     .CreateCriteria(typeof(CommandRequest))
-                    .Add(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload))
-                    .SetProjection(Projections.Count("CommandRequestID"))
-                    .UniqueResult();
+                    .Add(Restrictions.Or(Restrictions.Eq("CommandType", (int) CommandRequestType.ImageDownload),
+                            Restrictions.Eq("CommandType", (int) CommandRequestType.ValidateAllImages)))
+                        .SetProjection(Projections.Count("CommandRequestID"))
+                        .UniqueResult();
 
                 return (int) cnt;
             }

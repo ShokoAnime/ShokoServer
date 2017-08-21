@@ -867,60 +867,60 @@ namespace Shoko.Server
         {
             try
             {
-                JMMImageType imgType = (JMMImageType) imageType;
+                ImageEntityType imgType = (ImageEntityType) imageType;
 
                 switch (imgType)
                 {
-                    case JMMImageType.AniDB_Cover:
+                    case ImageEntityType.AniDB_Cover:
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageID);
                         if (anime == null) return "Could not find anime";
                         anime.ImageEnabled = enabled ? 1 : 0;
                         RepoFactory.AniDB_Anime.Save(anime);
                         break;
 
-                    case JMMImageType.TvDB_Banner:
+                    case ImageEntityType.TvDB_Banner:
                         TvDB_ImageWideBanner banner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
                         if (banner == null) return "Could not find image";
                         banner.Enabled = enabled ? 1 : 0;
                         RepoFactory.TvDB_ImageWideBanner.Save(banner);
                         break;
 
-                    case JMMImageType.TvDB_Cover:
+                    case ImageEntityType.TvDB_Cover:
                         TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
                         if (poster == null) return "Could not find image";
                         poster.Enabled = enabled ? 1 : 0;
                         RepoFactory.TvDB_ImagePoster.Save(poster);
                         break;
 
-                    case JMMImageType.TvDB_FanArt:
+                    case ImageEntityType.TvDB_FanArt:
                         TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
                         if (fanart == null) return "Could not find image";
                         fanart.Enabled = enabled ? 1 : 0;
                         RepoFactory.TvDB_ImageFanart.Save(fanart);
                         break;
 
-                    case JMMImageType.MovieDB_Poster:
+                    case ImageEntityType.MovieDB_Poster:
                         MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
                         if (moviePoster == null) return "Could not find image";
                         moviePoster.Enabled = enabled ? 1 : 0;
                         RepoFactory.MovieDB_Poster.Save(moviePoster);
                         break;
 
-                    case JMMImageType.MovieDB_FanArt:
+                    case ImageEntityType.MovieDB_FanArt:
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
                         if (movieFanart == null) return "Could not find image";
                         movieFanart.Enabled = enabled ? 1 : 0;
                         RepoFactory.MovieDB_Fanart.Save(movieFanart);
                         break;
 
-                    case JMMImageType.Trakt_Poster:
+                    case ImageEntityType.Trakt_Poster:
                         Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(imageID);
                         if (traktPoster == null) return "Could not find image";
                         traktPoster.Enabled = enabled ? 1 : 0;
                         RepoFactory.Trakt_ImagePoster.Save(traktPoster);
                         break;
 
-                    case JMMImageType.Trakt_Fanart:
+                    case ImageEntityType.Trakt_Fanart:
                         Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(imageID);
                         if (traktFanart == null) return "Could not find image";
                         traktFanart.Enabled = enabled ? 1 : 0;
@@ -941,25 +941,25 @@ namespace Shoko.Server
         {
             try
             {
-                JMMImageType imgType = (JMMImageType) imageType;
+                ImageEntityType imgType = (ImageEntityType) imageType;
                 ImageSizeType sizeType = ImageSizeType.Poster;
 
                 switch (imgType)
                 {
-                    case JMMImageType.AniDB_Cover:
-                    case JMMImageType.TvDB_Cover:
-                    case JMMImageType.MovieDB_Poster:
-                    case JMMImageType.Trakt_Poster:
+                    case ImageEntityType.AniDB_Cover:
+                    case ImageEntityType.TvDB_Cover:
+                    case ImageEntityType.MovieDB_Poster:
+                    case ImageEntityType.Trakt_Poster:
                         sizeType = ImageSizeType.Poster;
                         break;
 
-                    case JMMImageType.TvDB_Banner:
+                    case ImageEntityType.TvDB_Banner:
                         sizeType = ImageSizeType.WideBanner;
                         break;
 
-                    case JMMImageType.TvDB_FanArt:
-                    case JMMImageType.MovieDB_FanArt:
-                    case JMMImageType.Trakt_Fanart:
+                    case ImageEntityType.TvDB_FanArt:
+                    case ImageEntityType.MovieDB_FanArt:
+                    case ImageEntityType.Trakt_Fanart:
                         sizeType = ImageSizeType.Fanart;
                         break;
                 }

@@ -634,7 +634,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (!fileExists || (fileExists && forceDownload))
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageFanartID,
-                            JMMImageType.TvDB_FanArt, forceDownload);
+                            ImageEntityType.TvDB_FanArt, forceDownload);
                         cmd.Save();
                         imageCount++;
                     }
@@ -677,7 +677,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (!fileExists || (fileExists && forceDownload))
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImagePosterID,
-                            JMMImageType.TvDB_Cover, forceDownload);
+                            ImageEntityType.TvDB_Cover, forceDownload);
                         cmd.Save();
                         imageCount++;
                     }
@@ -719,7 +719,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (!fileExists || (fileExists && forceDownload))
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
-                            JMMImageType.TvDB_Banner, forceDownload);
+                            ImageEntityType.TvDB_Banner, forceDownload);
                         cmd.Save();
                         imageCount++;
                     }
@@ -848,7 +848,7 @@ namespace Shoko.Server.Providers.TvDB
                         {
                             CommandRequest_DownloadImage cmd =
                                 new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
-                                    JMMImageType.TvDB_Episode, forceRefresh);
+                                    ImageEntityType.TvDB_Episode, forceRefresh);
                             cmd.Save();
                         }
                     }

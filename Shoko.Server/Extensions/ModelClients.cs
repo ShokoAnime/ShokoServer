@@ -219,30 +219,30 @@ namespace Shoko.Server.Extensions
         public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage,
             ISessionWrapper session)
         {
-            JMMImageType imgType = (JMMImageType) defaultImage.ImageParentType;
+            ImageEntityType imgType = (ImageEntityType) defaultImage.ImageParentType;
             IImageEntity parentImage = null;
 
             switch (imgType)
             {
-                case JMMImageType.TvDB_Banner:
+                case ImageEntityType.TvDB_Banner:
                     parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case JMMImageType.TvDB_Cover:
+                case ImageEntityType.TvDB_Cover:
                     parentImage = RepoFactory.TvDB_ImagePoster.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case JMMImageType.TvDB_FanArt:
+                case ImageEntityType.TvDB_FanArt:
                     parentImage = RepoFactory.TvDB_ImageFanart.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case JMMImageType.MovieDB_Poster:
+                case ImageEntityType.MovieDB_Poster:
                     parentImage = RepoFactory.MovieDB_Poster.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case JMMImageType.MovieDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
                     parentImage = RepoFactory.MovieDB_Fanart.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case JMMImageType.Trakt_Fanart:
+                case ImageEntityType.Trakt_Fanart:
                     parentImage = RepoFactory.Trakt_ImageFanart.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case JMMImageType.Trakt_Poster:
+                case ImageEntityType.Trakt_Poster:
                     parentImage = RepoFactory.Trakt_ImagePoster.GetByID(session, defaultImage.ImageParentID);
                     break;
             }
@@ -270,29 +270,29 @@ namespace Shoko.Server.Extensions
                 ImageParentType = defaultimage.ImageParentType,
                 ImageType = defaultimage.ImageType
             };
-            JMMImageType imgType = (JMMImageType) defaultimage.ImageParentType;
+            ImageEntityType imgType = (ImageEntityType) defaultimage.ImageParentType;
 
             switch (imgType)
             {
-                case JMMImageType.TvDB_Banner:
+                case ImageEntityType.TvDB_Banner:
                     contract.TVWideBanner = (parentImage as TvDB_ImageWideBanner);
                     break;
-                case JMMImageType.TvDB_Cover:
+                case ImageEntityType.TvDB_Cover:
                     contract.TVPoster = (parentImage as TvDB_ImagePoster);
                     break;
-                case JMMImageType.TvDB_FanArt:
+                case ImageEntityType.TvDB_FanArt:
                     contract.TVFanart = (parentImage as TvDB_ImageFanart);
                     break;
-                case JMMImageType.MovieDB_Poster:
+                case ImageEntityType.MovieDB_Poster:
                     contract.MoviePoster = (parentImage as MovieDB_Poster);
                     break;
-                case JMMImageType.MovieDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
                     contract.MovieFanart = (parentImage as MovieDB_Fanart);
                     break;
-                case JMMImageType.Trakt_Fanart:
+                case ImageEntityType.Trakt_Fanart:
                     contract.TraktFanart = (parentImage as Trakt_ImageFanart);
                     break;
-                case JMMImageType.Trakt_Poster:
+                case ImageEntityType.Trakt_Poster:
                     contract.TraktPoster = (parentImage as Trakt_ImagePoster);
                     break;
             }
