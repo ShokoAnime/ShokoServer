@@ -107,7 +107,7 @@ namespace Shoko.Server.Providers.MovieDB
                         if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && !File.Exists(poster.GetFullImagePath()))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
-                                JMMImageType.MovieDB_Poster, false);
+                                ImageEntityType.MovieDB_Poster, false);
                             cmd.Save(session);
                             numPostersDownloaded++;
                         }
@@ -137,7 +137,7 @@ namespace Shoko.Server.Providers.MovieDB
                         if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && !File.Exists(fanart.GetFullImagePath()))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
-                                JMMImageType.MovieDB_FanArt, false);
+                                ImageEntityType.MovieDB_FanArt, false);
                             cmd.Save(session);
                             numFanartDownloaded++;
                         }

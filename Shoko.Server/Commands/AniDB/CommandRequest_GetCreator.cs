@@ -59,7 +59,7 @@ namespace JMMServer.Commands
 
 				if (creator != null || !string.IsNullOrEmpty(creator.PosterPath) && !File.Exists(creator.PosterPath))
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(creator.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(creator.AniDB_SeiyuuID, ImageEntityType.AniDB_Creator, false);
 					cmd.Save();
 				}
 

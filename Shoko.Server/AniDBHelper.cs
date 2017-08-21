@@ -1084,8 +1084,8 @@ namespace Shoko.Server
                 downloadRelations);
 
             // Request an image download
-            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID,
-                JMMImageType.AniDB_Cover,
+            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
+                ImageEntityType.AniDB_Cover,
                 false);
             cmd.Save(session);
             // create AnimeEpisode records for all episodes in this anime only if we have a series
@@ -1110,7 +1110,7 @@ namespace Shoko.Server
                         logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName,
                             chr.CharID,
                             chr.GetPosterPath());
-                        cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character,
+                        cmd = new CommandRequest_DownloadImage(chr.CharID, ImageEntityType.AniDB_Character,
                             false);
                         cmd.Save();
                     }
@@ -1127,7 +1127,7 @@ namespace Shoko.Server
                             seiyuu.SeiyuuName, seiyuu.SeiyuuID,
                             seiyuu.GetPosterPath());
                         cmd =
-                            new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+                            new CommandRequest_DownloadImage(seiyuu.SeiyuuID, ImageEntityType.AniDB_Creator, false);
                         cmd.Save();
                     }
                 }

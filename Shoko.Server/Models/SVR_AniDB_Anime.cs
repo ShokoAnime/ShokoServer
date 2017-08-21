@@ -416,7 +416,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public ImageDetails GetDefaultPosterDetailsNoBlanks(ISessionWrapper session)
         {
-            ImageDetails details = new ImageDetails() {ImageType = JMMImageType.AniDB_Cover, ImageID = this.AnimeID};
+            ImageDetails details = new ImageDetails() {ImageType = ImageEntityType.AniDB_Cover, ImageID = this.AnimeID};
             AniDB_Anime_DefaultImage defaultPoster = GetDefaultPoster(session);
 
             if (defaultPoster == null)
@@ -436,7 +436,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         if (tvPoster != null)
                             details = new ImageDetails()
                             {
-                                ImageType = JMMImageType.TvDB_Cover,
+                                ImageType = ImageEntityType.TvDB_Cover,
                                 ImageID = tvPoster.TvDB_ImagePosterID
                             };
                         return details;
@@ -447,7 +447,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         if (traktPoster != null)
                             details = new ImageDetails()
                             {
-                                ImageType = JMMImageType.Trakt_Poster,
+                                ImageType = ImageEntityType.Trakt_Poster,
                                 ImageID = traktPoster.Trakt_ImagePosterID
                             };
                         return details;
@@ -458,7 +458,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         if (moviePoster != null)
                             details = new ImageDetails()
                             {
-                                ImageType = JMMImageType.MovieDB_Poster,
+                                ImageType = ImageEntityType.MovieDB_Poster,
                                 ImageID = moviePoster.MovieDB_PosterID
                             };
                         return details;
@@ -503,7 +503,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 details = new ImageDetails()
                 {
                     ImageID = art.AniDB_Anime_DefaultImageID,
-                    ImageType = (JMMImageType) art.ImageType
+                    ImageType = (ImageEntityType) art.ImageType
                 };
                 return details;
             }
@@ -520,7 +520,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         if (tvFanart != null)
                             details = new ImageDetails()
                             {
-                                ImageType = JMMImageType.TvDB_FanArt,
+                                ImageType = ImageEntityType.TvDB_FanArt,
                                 ImageID = tvFanart.TvDB_ImageFanartID
                             };
                         return details;
@@ -531,7 +531,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         if (traktFanart != null)
                             details = new ImageDetails()
                             {
-                                ImageType = JMMImageType.Trakt_Fanart,
+                                ImageType = ImageEntityType.Trakt_Fanart,
                                 ImageID = traktFanart.Trakt_ImageFanartID
                             };
                         return details;
@@ -541,7 +541,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         if (movieFanart != null)
                             details = new ImageDetails()
                             {
-                                ImageType = JMMImageType.MovieDB_FanArt,
+                                ImageType = ImageEntityType.MovieDB_FanArt,
                                 ImageID = movieFanart.MovieDB_FanartID
                             };
                         return details;
@@ -662,7 +662,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     details = new ImageDetails()
                     {
                         ImageID = art.AniDB_Anime_DefaultImageID,
-                        ImageType = (JMMImageType) art.ImageType
+                        ImageType = (ImageEntityType) art.ImageType
                     };
                     return details;
                 }
@@ -676,7 +676,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     case ImageEntityType.TvDB_Banner:
                         details = new ImageDetails()
                         {
-                            ImageType = JMMImageType.TvDB_Banner,
+                            ImageType = ImageEntityType.TvDB_Banner,
                             ImageID = banner.ToClient(session).TVWideBanner.TvDB_ImageWideBannerID
                         };
                         return details;
@@ -1466,7 +1466,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 cl.Fanarts = movDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int) JMMImageType.MovieDB_FanArt,
+                        ImageType = (int) ImageEntityType.MovieDB_FanArt,
                         MovieFanart = a,
                         AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
                     })
@@ -1476,14 +1476,14 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 cl.Fanarts = tvDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int) JMMImageType.TvDB_FanArt,
+                        ImageType = (int) ImageEntityType.TvDB_FanArt,
                         TVFanart = a,
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
                     })
                     .ToList();
                 cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int) JMMImageType.TvDB_Banner,
+                        ImageType = (int) ImageEntityType.TvDB_Banner,
                         TVWideBanner = a,
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
                     })

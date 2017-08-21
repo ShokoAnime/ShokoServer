@@ -59,7 +59,7 @@ namespace JMMServer.Commands
 
 				if (chr != null || !string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, ImageEntityType.AniDB_Character, false);
 					cmd.Save();
 				}
 

@@ -883,7 +883,7 @@ namespace Shoko.Server
                         }
                         else
                         {
-                            contract.ImageType = (int) JMMImageType.TvDB_Episode;
+                            contract.ImageType = (int) ImageEntityType.TvDB_Episode;
                             contract.ImageID = tvep.TvDB_EpisodeID;
                         }
 
@@ -903,7 +903,7 @@ namespace Shoko.Server
             // now do stuff to improve performance
             if (ep.GetEpisodeTypeEnum() == EpisodeType.Episode)
             {
-                if (tvSummary != null && tvSummary.CrossRefTvDBV2 != null && tvSummary.CrossRefTvDBV2.Count > 0)
+                if (tvSummary.CrossRefTvDBV2 != null && tvSummary.CrossRefTvDBV2.Count > 0)
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
@@ -962,7 +962,7 @@ namespace Shoko.Server
                                 }
                                 else
                                 {
-                                    contract.ImageType = (int) JMMImageType.TvDB_Episode;
+                                    contract.ImageType = (int) ImageEntityType.TvDB_Episode;
                                     contract.ImageID = tvep.TvDB_EpisodeID;
                                 }
 
@@ -1037,7 +1037,7 @@ namespace Shoko.Server
                                 }
                                 else
                                 {
-                                    contract.ImageType = (int) JMMImageType.TvDB_Episode;
+                                    contract.ImageType = (int) ImageEntityType.TvDB_Episode;
                                     contract.ImageID = tvep.TvDB_EpisodeID;
                                 }
 

@@ -468,8 +468,8 @@ namespace Shoko.Server
                 bool fileExists = File.Exists(anime.PosterPath);
                 if (!fileExists)
                 {
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID,
-                        JMMImageType.AniDB_Cover,
+                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
+                        ImageEntityType.AniDB_Cover,
                         false);
                     cmd.Save();
                 }
@@ -508,7 +508,7 @@ namespace Shoko.Server
                     if (!fileExists && postersAvailable < ServerSettings.TvDB_AutoPostersAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID,
-                            JMMImageType.TvDB_Cover, false);
+                            ImageEntityType.TvDB_Cover, false);
                         cmd.Save();
 
                         if (postersCount.ContainsKey(tvPoster.SeriesID))
@@ -551,7 +551,7 @@ namespace Shoko.Server
                     if (!fileExists && fanartAvailable < ServerSettings.TvDB_AutoFanartAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID,
-                            JMMImageType.TvDB_FanArt, false);
+                            ImageEntityType.TvDB_FanArt, false);
                         cmd.Save();
 
                         if (fanartCount.ContainsKey(tvFanart.SeriesID))
@@ -596,7 +596,7 @@ namespace Shoko.Server
                     {
                         CommandRequest_DownloadImage cmd =
                             new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID,
-                                JMMImageType.TvDB_Banner, false);
+                                ImageEntityType.TvDB_Banner, false);
                         cmd.Save();
 
                         if (fanartCount.ContainsKey(tvBanner.SeriesID))
@@ -616,7 +616,7 @@ namespace Shoko.Server
                 if (!fileExists)
                 {
                     CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvEpisode.TvDB_EpisodeID,
-                        JMMImageType.TvDB_Episode, false);
+                        ImageEntityType.TvDB_Episode, false);
                     cmd.Save();
                 }
             }
@@ -655,7 +655,7 @@ namespace Shoko.Server
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
                             moviePoster.MovieDB_PosterID,
-                            JMMImageType.MovieDB_Poster, false);
+                            ImageEntityType.MovieDB_Poster, false);
                         cmd.Save();
 
                         if (postersCount.ContainsKey(moviePoster.MovieId))
@@ -700,7 +700,7 @@ namespace Shoko.Server
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
                             movieFanart.MovieDB_FanartID,
-                            JMMImageType.MovieDB_FanArt, false);
+                            ImageEntityType.MovieDB_FanArt, false);
                         cmd.Save();
 
                         if (fanartCount.ContainsKey(movieFanart.MovieId))
@@ -723,7 +723,7 @@ namespace Shoko.Server
                     {
                         CommandRequest_DownloadImage cmd =
                             new CommandRequest_DownloadImage(traktPoster.Trakt_ImagePosterID,
-                                JMMImageType.Trakt_Poster, false);
+                                ImageEntityType.Trakt_Poster, false);
                         cmd.Save();
                     }
                 }
@@ -740,7 +740,7 @@ namespace Shoko.Server
                     {
                         CommandRequest_DownloadImage cmd =
                             new CommandRequest_DownloadImage(traktFanart.Trakt_ImageFanartID,
-                                JMMImageType.Trakt_Fanart, false);
+                                ImageEntityType.Trakt_Fanart, false);
                         cmd.Save();
                     }
                 }
@@ -758,7 +758,7 @@ namespace Shoko.Server
                     if (!fileExists)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktEp.Trakt_EpisodeID,
-                            JMMImageType.Trakt_Episode, false);
+                            ImageEntityType.Trakt_Episode, false);
                         cmd.Save();
                     }
                 }
@@ -779,8 +779,8 @@ namespace Shoko.Server
                     bool fileExists = File.Exists(chr.GetPosterPath());
                     if (!fileExists)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID,
-                            JMMImageType.AniDB_Character, false);
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.CharID,
+                            ImageEntityType.AniDB_Character, false);
                         cmd.Save();
                     }
                 }
@@ -795,12 +795,18 @@ namespace Shoko.Server
                     bool fileExists = File.Exists(seiyuu.GetPosterPath());
                     if (!fileExists)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID,
-                            JMMImageType.AniDB_Creator, false);
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.SeiyuuID,
+                            ImageEntityType.AniDB_Creator, false);
                         cmd.Save();
                     }
                 }
             }
+        }
+
+        public static void ValidateAllImages()
+        {
+            CommandRequest_ValidateAllImages cmd = new CommandRequest_ValidateAllImages();
+            cmd.Save();
         }
 
         public static void RunImport_ScanTvDB()
