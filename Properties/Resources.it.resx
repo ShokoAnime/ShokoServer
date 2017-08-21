@@ -622,7 +622,7 @@
     <value>Errore durante l'eliminazione immagine: ({0}) - {1}</value>
   </data>
   <data name="Command_DownloadImage" xml:space="preserve">
-    <value>Download immagine: {0}</value>
+    <value>Download immagine{0}: {1}</value>
   </data>
   <data name="Command_DownloadMalWatched" xml:space="preserve">
     <value>Scaricare visto stati da MAL</value>
@@ -5378,5 +5378,32 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="AniDB_MyListGetFile" xml:space="preserve">
     <value>Ottenere lo stato di File dal MyList: {0} ({1})</value>
+  </data>
+  <data name="Command_ValidateAllImages" xml:space="preserve">
+    <value>Convalida di immagini{0}</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBEpisodes" xml:space="preserve">
+    <value> - TvDB episodi</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBPosters" xml:space="preserve">
+    <value> - Poster TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBFanarts" xml:space="preserve">
+    <value> - TvDB Fanarts</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBBanners" xml:space="preserve">
+    <value> - Banner TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBPosters" xml:space="preserve">
+    <value>  -Poster AniDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBCharacters" xml:space="preserve">
+    <value> - Personaggi AniDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBSeiyuus" xml:space="preserve">
+    <value> - AniDB Seiyuus</value>
+  </data>
+  <data name="Actions_ValidateAllImages" xml:space="preserve">
+    <value>Convalidare tutte le immagini</value>
   </data>
 </root>

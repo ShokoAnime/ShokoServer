@@ -650,5 +650,66 @@ namespace Shoko.Commons.Utils
             }
             return false;
         }
+
+        public static bool IsImageValid(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+                {
+                    byte[] bytes = new byte[4];
+                    if (fs.Length < 4) return false;
+                    fs.Read(bytes, 0, 4);
+                    if (GetImageFormat(bytes) == ImageFormatEnum.unknown) return false;
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static ImageFormatEnum GetImageFormat(byte[] bytes)
+        {
+            // see http://www.mikekunz.com/image_file_header.html
+            var bmp    = Encoding.ASCII.GetBytes("BM");     // BMP
+            var gif    = Encoding.ASCII.GetBytes("GIF");    // GIF
+            var png    = new byte[] { 137, 80, 78, 71 };    // PNG
+            var tiff   = new byte[] { 73, 73, 42 };         // TIFF
+            var tiff2  = new byte[] { 77, 77, 42 };         // TIFF
+            var jpeg   = new byte[] { 255, 216, 255, 224 }; // jpeg
+            var jpeg2  = new byte[] { 255, 216, 255, 225 }; // jpeg canon
+            // there are many valid jpegs that store data in the 4th byte, this may make mistakes
+            var jpeg3  = new byte[] { 255, 216, 255 };
+
+            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
+                return ImageFormatEnum.bmp;
+
+            if (gif.SequenceEqual(bytes.Take(gif.Length)))
+                return ImageFormatEnum.gif;
+
+            if (png.SequenceEqual(bytes.Take(png.Length)))
+                return ImageFormatEnum.png;
+
+            if (tiff.SequenceEqual(bytes.Take(tiff.Length)))
+                return ImageFormatEnum.tiff;
+
+            if (tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
+                return ImageFormatEnum.tiff;
+
+            if (jpeg.SequenceEqual(bytes.Take(jpeg.Length)))
+                return ImageFormatEnum.jpeg;
+
+            if (jpeg2.SequenceEqual(bytes.Take(jpeg2.Length)))
+                return ImageFormatEnum.jpeg;
+
+            if (jpeg3.SequenceEqual(bytes.Take(jpeg3.Length)))
+                return ImageFormatEnum.jpeg;
+
+            return ImageFormatEnum.unknown;
+        }
     }
 }

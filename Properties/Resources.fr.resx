@@ -622,7 +622,7 @@
     <value>Erreur de suppression d'image: ({0}) - {1}</value>
   </data>
   <data name="Command_DownloadImage" xml:space="preserve">
-    <value>Téléchargement d'Image : {0}</value>
+    <value>Téléchargement d'Image{0}: {1}</value>
   </data>
   <data name="Command_DownloadMalWatched" xml:space="preserve">
     <value>Téléchargement regardé des États de MAL</value>
@@ -5378,5 +5378,32 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="AniDB_MyListGetFile" xml:space="preserve">
     <value>Faire état du fichier de MyList : {0} ({1})</value>
+  </data>
+  <data name="Command_ValidateAllImages" xml:space="preserve">
+    <value>Validation des Images{0}</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBEpisodes" xml:space="preserve">
+    <value> - Les épisodes TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBPosters" xml:space="preserve">
+    <value> - TvDB affiches</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBFanarts" xml:space="preserve">
+    <value> - TvDB Fanarts</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBBanners" xml:space="preserve">
+    <value> - TvDB bannières</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBPosters" xml:space="preserve">
+    <value> - Affiches AniDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBCharacters" xml:space="preserve">
+    <value> - Caractères AniDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBSeiyuus" xml:space="preserve">
+    <value> - Matériel audio AniDB</value>
+  </data>
+  <data name="Actions_ValidateAllImages" xml:space="preserve">
+    <value>Valider toutes les Images</value>
   </data>
 </root>

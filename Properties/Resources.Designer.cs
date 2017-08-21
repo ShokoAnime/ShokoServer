@@ -241,6 +241,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Validate All Images.
+        /// </summary>
+        public static string Actions_ValidateAllImages {
+            get {
+                return ResourceManager.GetString("Actions_ValidateAllImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add.
         /// </summary>
         public static string Add {
@@ -1960,7 +1969,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Downloading Image: {0}.
+        ///   Looks up a localized string similar to Downloading Image{0}: {1}.
         /// </summary>
         public static string Command_DownloadImage {
             get {
@@ -2361,6 +2370,78 @@ namespace Shoko.Commons.Properties {
         public static string Command_UploadMALWatched {
             get {
                 return ResourceManager.GetString("Command_UploadMALWatched", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Validating Images{0}.
+        /// </summary>
+        public static string Command_ValidateAllImages {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - AniDB Characters.
+        /// </summary>
+        public static string Command_ValidateAllImages_AniDBCharacters {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_AniDBCharacters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - AniDB Posters.
+        /// </summary>
+        public static string Command_ValidateAllImages_AniDBPosters {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_AniDBPosters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - AniDB Seiyuus.
+        /// </summary>
+        public static string Command_ValidateAllImages_AniDBSeiyuus {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_AniDBSeiyuus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - TvDB Banners.
+        /// </summary>
+        public static string Command_ValidateAllImages_TvDBBanners {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_TvDBBanners", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - TvDB Episodes.
+        /// </summary>
+        public static string Command_ValidateAllImages_TvDBEpisodes {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_TvDBEpisodes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - TvDB Fanarts.
+        /// </summary>
+        public static string Command_ValidateAllImages_TvDBFanarts {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_TvDBFanarts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - TvDB Posters.
+        /// </summary>
+        public static string Command_ValidateAllImages_TvDBPosters {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_TvDBPosters", resourceCulture);
             }
         }
         

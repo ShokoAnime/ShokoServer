@@ -149,6 +149,8 @@ namespace Shoko.Commons.Queue
                     return Resources.Command_LinkFileManually;
                 case QueueStateEnum.AniDB_MyListGetFile:
                     return Resources.AniDB_MyListGetFile;
+                case QueueStateEnum.ValidateAllImages:
+                    return Resources.Command_ValidateAllImages;
                 default:
                     throw new Exception("Unknown queue state format string");
             }

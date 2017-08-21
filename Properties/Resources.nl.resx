@@ -622,7 +622,7 @@
     <value>Fout bij het verwijderen van afbeelding: ({0}) - {1}</value>
   </data>
   <data name="Command_DownloadImage" xml:space="preserve">
-    <value>Afbeelding downloaden: {0}</value>
+    <value>Afbeelding downloaden{0}: {1}</value>
   </data>
   <data name="Command_DownloadMalWatched" xml:space="preserve">
     <value>Staten van MAL downloaden keek</value>
@@ -5378,5 +5378,32 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   </data>
   <data name="AniDB_MyListGetFile" xml:space="preserve">
     <value>Krijgen van de bestandsstatus van MyList: {0} ({1})</value>
+  </data>
+  <data name="Command_ValidateAllImages" xml:space="preserve">
+    <value>Valideren van de Images{0}</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBEpisodes" xml:space="preserve">
+    <value> - TvDB afleveringen</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBPosters" xml:space="preserve">
+    <value> - TvDB Posters</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBFanarts" xml:space="preserve">
+    <value> - TvDB Fanarts</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBBanners" xml:space="preserve">
+    <value> - TvDB Banners</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBPosters" xml:space="preserve">
+    <value> - AniDB Posters</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBCharacters" xml:space="preserve">
+    <value>  -AniDB tekens</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBSeiyuus" xml:space="preserve">
+    <value> - AniDB Seiyuus</value>
+  </data>
+  <data name="Actions_ValidateAllImages" xml:space="preserve">
+    <value>Valideren van alle afbeeldingen</value>
   </data>
 </root>

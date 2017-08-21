@@ -622,7 +622,7 @@
     <value>Błąd podczas usuwania grafiki: ({0}) - {1}</value>
   </data>
   <data name="Command_DownloadImage" xml:space="preserve">
-    <value>Pobieranie grafiki: {0}</value>
+    <value>Pobieranie grafiki{0}: {1}</value>
   </data>
   <data name="Command_DownloadMalWatched" xml:space="preserve">
     <value>Pobieranie statusu z MAL</value>
@@ -5380,5 +5380,32 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   </data>
   <data name="AniDB_MyListGetFile" xml:space="preserve">
     <value>Uzyskanie statusu pliku od MyList: {0} ({1})</value>
+  </data>
+  <data name="Command_ValidateAllImages" xml:space="preserve">
+    <value>Sprawdzanie poprawności obrazów{0}</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBEpisodes" xml:space="preserve">
+    <value> - Odcinki TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBPosters" xml:space="preserve">
+    <value> - Plakaty TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBFanarts" xml:space="preserve">
+    <value> - Autora TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_TvDBBanners" xml:space="preserve">
+    <value> - Banery TvDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBPosters" xml:space="preserve">
+    <value> - Plakaty AniDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBCharacters" xml:space="preserve">
+    <value> - Znaki AniDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_AniDBSeiyuus" xml:space="preserve">
+    <value> - AniDB Seiyuus</value>
+  </data>
+  <data name="Actions_ValidateAllImages" xml:space="preserve">
+    <value>Sprawdź poprawność wszystkich obrazów</value>
   </data>
 </root>
