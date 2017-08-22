@@ -184,27 +184,19 @@ namespace Shoko.Server.Repositories
                             ON movPoster.MovieDB_PosterID = defImg.ImageParentID AND defImg.ImageParentType = :movdbPosterType
                         LEFT OUTER JOIN MovieDB_Fanart AS movFanart
                             ON movFanart.MovieDB_FanartID = defImg.ImageParentID AND defImg.ImageParentType = :movdbFanartType
-                        LEFT OUTER JOIN Trakt_ImageFanart AS traktFanart
-                            ON traktFanart.Trakt_ImageFanartID = defImg.ImageParentID AND defImg.ImageParentType = :traktFanartType
-                        LEFT OUTER JOIN Trakt_ImagePoster AS traktPoster
-                            ON traktPoster.Trakt_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = :traktPosterType
-                    WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType, :traktFanartType, :traktPosterType)")
+                    WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType)")
                 .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
                 .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
                 .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
                 .AddEntity("tvFanart", typeof(TvDB_ImageFanart))
                 .AddEntity("movPoster", typeof(MovieDB_Poster))
                 .AddEntity("movFanart", typeof(MovieDB_Fanart))
-                .AddEntity("traktFanart", typeof(Trakt_ImageFanart))
-                .AddEntity("traktPoster", typeof(Trakt_ImagePoster))
                 .SetParameterList("animeIds", animeIds)
                 .SetInt32("tvdbBannerType", (int) ImageEntityType.TvDB_Banner)
                 .SetInt32("tvdbCoverType", (int) ImageEntityType.TvDB_Cover)
                 .SetInt32("tvdbFanartType", (int) ImageEntityType.TvDB_FanArt)
                 .SetInt32("movdbPosterType", (int) ImageEntityType.MovieDB_Poster)
                 .SetInt32("movdbFanartType", (int) ImageEntityType.MovieDB_FanArt)
-                .SetInt32("traktFanartType", (int) ImageEntityType.Trakt_Fanart)
-                .SetInt32("traktPosterType", (int) ImageEntityType.Trakt_Poster)
                 .List<object[]>();
 
             foreach (object[] result in results)
@@ -228,12 +220,6 @@ namespace Shoko.Server.Repositories
                         break;
                     case ImageEntityType.MovieDB_FanArt:
                         parentImage = (IImageEntity) result[5];
-                        break;
-                    case ImageEntityType.Trakt_Fanart:
-                        parentImage = (IImageEntity) result[6];
-                        break;
-                    case ImageEntityType.Trakt_Poster:
-                        parentImage = (IImageEntity) result[7];
                         break;
                 }
 

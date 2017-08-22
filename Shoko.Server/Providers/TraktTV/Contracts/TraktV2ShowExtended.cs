@@ -65,9 +65,6 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         [DataMember(Name = "aired_episodes")]
         public int aired_episodes { get; set; }
 
-        [DataMember(Name = "images")]
-        public TraktV2ImagesExtended images { get; set; }
-
         public override string ToString()
         {
             return string.Format("{0} ({1})", title, year);

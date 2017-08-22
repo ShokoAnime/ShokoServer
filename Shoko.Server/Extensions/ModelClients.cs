@@ -239,12 +239,6 @@ namespace Shoko.Server.Extensions
                 case ImageEntityType.MovieDB_FanArt:
                     parentImage = RepoFactory.MovieDB_Fanart.GetByID(session, defaultImage.ImageParentID);
                     break;
-                case ImageEntityType.Trakt_Fanart:
-                    parentImage = RepoFactory.Trakt_ImageFanart.GetByID(session, defaultImage.ImageParentID);
-                    break;
-                case ImageEntityType.Trakt_Poster:
-                    parentImage = RepoFactory.Trakt_ImagePoster.GetByID(session, defaultImage.ImageParentID);
-                    break;
             }
 
             return defaultImage.ToClient(parentImage);
@@ -288,12 +282,6 @@ namespace Shoko.Server.Extensions
                     break;
                 case ImageEntityType.MovieDB_FanArt:
                     contract.MovieFanart = (parentImage as MovieDB_Fanart);
-                    break;
-                case ImageEntityType.Trakt_Fanart:
-                    contract.TraktFanart = (parentImage as Trakt_ImageFanart);
-                    break;
-                case ImageEntityType.Trakt_Poster:
-                    contract.TraktPoster = (parentImage as Trakt_ImagePoster);
                     break;
             }
 
