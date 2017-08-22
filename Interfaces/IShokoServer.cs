@@ -643,12 +643,6 @@ namespace Shoko.Models.Interfaces
         [Rest("Trakt/Pin/{pin}", Verbs.Post)]
         string EnterTraktPIN(string pin);
 
-        [Rest("Trakt/Fanart/{traktShowID?}", Verbs.Get)]
-        List<Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID);
-
-        [Rest("Trakt/Poster/{traktShowID?}", Verbs.Get)]
-        List<Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID);
-
         [Rest("Trakt/Episode/{traktShowID?}", Verbs.Get)]
         List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
 

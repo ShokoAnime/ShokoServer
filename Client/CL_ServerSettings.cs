@@ -96,9 +96,6 @@ namespace Shoko.Models.Client
         public string Trakt_TokenExpirationDate { get; set; }
         public int Trakt_UpdateFrequency { get; set; }
         public int Trakt_SyncFrequency { get; set; }
-        public bool Trakt_DownloadFanart { get; set; }
-        public bool Trakt_DownloadPosters { get; set; }
-        public bool Trakt_DownloadEpisodes { get; set; }
 
         // MAL
         public bool MAL_AutoLink { get; set; }

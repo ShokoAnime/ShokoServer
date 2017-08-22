@@ -267,8 +267,6 @@
     <Compile Include="Server\ShokoInternal\VideoLocal_User.cs" />
     <Compile Include="Server\Trakt_Episode.cs" />
     <Compile Include="Server\Trakt_Friend.cs" />
-    <Compile Include="Server\Trakt_ImageFanart.cs" />
-    <Compile Include="Server\Trakt_ImagePoster.cs" />
     <Compile Include="Server\Trakt_Season.cs" />
     <Compile Include="Server\Trakt_Show.cs" />
     <Compile Include="Server\TvDB_Episode.cs" />

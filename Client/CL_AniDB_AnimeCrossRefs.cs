@@ -18,8 +18,6 @@ namespace Shoko.Models.Client
         // Trakt
         public List<CrossRef_AniDB_TraktV2> CrossRef_AniDB_Trakt { get; set; }
         public List<CL_Trakt_Show> TraktShows { get; set; }
-        public List<Trakt_ImageFanart> TraktImageFanarts { get; set; }
-        public List<Trakt_ImagePoster> TraktImagePosters { get; set; }
 
         // MovieDB
         public CrossRef_AniDB_Other CrossRef_AniDB_MovieDB { get; set; }

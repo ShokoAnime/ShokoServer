@@ -11,7 +11,5 @@ namespace Shoko.Models.Client
         public TvDB_ImageFanart TVFanart { get; set; }
         public TvDB_ImageWideBanner TVWideBanner { get; set; }
 
-        public Trakt_ImagePoster TraktPoster { get; set; }
-        public Trakt_ImageFanart TraktFanart { get; set; }
     }
 }
