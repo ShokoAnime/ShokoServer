@@ -5406,4 +5406,10 @@
   <data name="Actions_ValidateAllImages" xml:space="preserve">
     <value>Validar todas as imagens</value>
   </data>
+  <data name="Command_ValidateAllImages_MovieDBPosters" xml:space="preserve">
+    <value> - Cartazes MovieDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
+    <value> - Fanarts MovieDB</value>
+  </data>
 </root>

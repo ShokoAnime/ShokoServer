@@ -2410,6 +2410,24 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to  - MovieDB Fanarts.
+        /// </summary>
+        public static string Command_ValidateAllImages_MovieDBFanarts {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_MovieDBFanarts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to  - MovieDB Posters.
+        /// </summary>
+        public static string Command_ValidateAllImages_MovieDBPosters {
+            get {
+                return ResourceManager.GetString("Command_ValidateAllImages_MovieDBPosters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to  - TvDB Banners.
         /// </summary>
         public static string Command_ValidateAllImages_TvDBBanners {

@@ -5406,4 +5406,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Actions_ValidateAllImages" xml:space="preserve">
     <value>Convalidare tutte le immagini</value>
   </data>
+  <data name="Command_ValidateAllImages_MovieDBPosters" xml:space="preserve">
+    <value> - Poster MovieDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
+    <value> - MovieDB Fanarts</value>
+  </data>
 </root>

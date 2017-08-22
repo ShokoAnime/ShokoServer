@@ -5406,4 +5406,10 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Actions_ValidateAllImages" xml:space="preserve">
     <value>Valider toutes les Images</value>
   </data>
+  <data name="Command_ValidateAllImages_MovieDBPosters" xml:space="preserve">
+    <value> - MovieDB affiches</value>
+  </data>
+  <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
+    <value> - Fanarts MovieDB</value>
+  </data>
 </root>

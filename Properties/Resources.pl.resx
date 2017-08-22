@@ -5408,4 +5408,10 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Actions_ValidateAllImages" xml:space="preserve">
     <value>Sprawdź poprawność wszystkich obrazów</value>
   </data>
+  <data name="Command_ValidateAllImages_MovieDBPosters" xml:space="preserve">
+    <value> - Plakaty MovieDB</value>
+  </data>
+  <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
+    <value> - Autora MovieDB</value>
+  </data>
 </root>

@@ -5406,4 +5406,10 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Actions_ValidateAllImages" xml:space="preserve">
     <value>Validate All Images</value>
   </data>
+  <data name="Command_ValidateAllImages_MovieDBPosters" xml:space="preserve">
+    <value> - MovieDB Posters</value>
+  </data>
+  <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
+    <value> - MovieDB Fanarts</value>
+  </data>
 </root>
