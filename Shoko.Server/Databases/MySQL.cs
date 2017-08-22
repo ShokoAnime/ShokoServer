@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 68;
+        public int RequiredVersion { get; } = 69;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -577,6 +577,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(67, 3, "ALTER TABLE `TvDB_Episode` DROP COLUMN `FirstAired`"),
             new DatabaseCommand(67, 4, DatabaseFixes.UpdateAllTvDBSeries),
             new DatabaseCommand(68, 1, "ALTER TABLE `AnimeSeries` ADD `AirsOn` TEXT character set utf8 NULL"),
+            new DatabaseCommand(69, 1, "DROP TABLE `Trakt_ImageFanart`"),
+            new DatabaseCommand(69, 2, "DROP TABLE `Trakt_ImagePoster`"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

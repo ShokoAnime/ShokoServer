@@ -54,8 +54,6 @@ namespace Shoko.Server.Repositories
 
         public static Trakt_ShowRepository Trakt_Show { get; } = Trakt_ShowRepository.Create();
         public static Trakt_SeasonRepository Trakt_Season { get; } = Trakt_SeasonRepository.Create();
-        public static Trakt_ImagePosterRepository Trakt_ImagePoster { get; } = Trakt_ImagePosterRepository.Create();
-        public static Trakt_ImageFanartRepository Trakt_ImageFanart { get; } = Trakt_ImageFanartRepository.Create();
         public static Trakt_FriendRepository Trakt_Friend { get; } = Trakt_FriendRepository.Create();
         public static Trakt_EpisodeRepository Trakt_Episode { get; } = Trakt_EpisodeRepository.Create();
         public static ScheduledUpdateRepository ScheduledUpdate { get; } = ScheduledUpdateRepository.Create();

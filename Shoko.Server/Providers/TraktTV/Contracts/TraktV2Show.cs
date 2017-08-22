@@ -14,9 +14,6 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         [DataMember(Name = "year")]
         public int? Year { get; set; }
 
-        [DataMember(Name = "images")]
-        public TraktV2Images Images { get; set; }
-
         [DataMember(Name = "ids")]
         public TraktV2Ids ids { get; set; }
 

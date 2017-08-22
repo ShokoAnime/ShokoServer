@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 58;
+        public int RequiredVersion { get; } = 59;
 
 
         public void BackupDatabase(string fullfilename)
@@ -478,6 +478,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(57, 2, DropTvDB_EpisodeFirstAiredColumn),
             new DatabaseCommand(57, 3, DatabaseFixes.UpdateAllTvDBSeries),
             new DatabaseCommand(58, 1, "ALTER TABLE AnimeSeries ADD AirsOn TEXT NULL"),
+            new DatabaseCommand(59, 1, "DROP TABLE Trakt_ImageFanart"),
+            new DatabaseCommand(59, 2, "DROP TABLE Trakt_ImagePoster"),
         };
 
 

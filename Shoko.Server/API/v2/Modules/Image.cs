@@ -359,66 +359,6 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     break;
 
-                // 10
-                case ImageEntityType.Trakt_Poster:
-                    Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(id);
-                    if (tPoster == null)
-                    {
-                        return null;
-                    }
-                    path = tPoster.GetFullImagePath();
-                    if (Pri.LongPath.File.Exists(path))
-                    {
-                        return path;
-                    }
-                    else
-                    {
-                        path = "";
-                        logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.GetFullImagePath());
-                    }
-                    break;
-
-                // 11
-                case ImageEntityType.Trakt_Fanart:
-                    Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(id);
-                    if (tFanart == null)
-                    {
-                        return null;
-                    }
-                    path = tFanart.GetFullImagePath();
-                    if (Pri.LongPath.File.Exists(path))
-                    {
-                        return path;
-                    }
-                    else
-                    {
-                        path = "";
-                        logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.GetFullImagePath());
-                    }
-                    break;
-
-
-                // 12 + 16
-                case ImageEntityType.Trakt_Episode:
-                case ImageEntityType.Trakt_WatchedEpisode:
-                    Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(id);
-                    if (tEpisode == null)
-                    {
-                        return null;
-                    }
-                    path = tEpisode.GetFullImagePath();
-                    if (Pri.LongPath.File.Exists(path))
-                    {
-                        return path;
-                    }
-                    else
-                    {
-                        path = "";
-                        logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.GetFullImagePath());
-                    }
-                    break;
-
-                // 0, 13-15, 17+
                 default:
                     path = "";
                     break;

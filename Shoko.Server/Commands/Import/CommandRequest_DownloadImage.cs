@@ -52,6 +52,12 @@ namespace Shoko.Server.Commands
                     case ImageEntityType.TvDB_Banner:
                         type = Resources.Command_ValidateAllImages_TvDBBanners;
                         break;
+                    case ImageEntityType.MovieDB_Poster:
+                        type = Resources.Command_ValidateAllImages_MovieDBPosters;
+                        break;
+                    case ImageEntityType.MovieDB_FanArt:
+                        type = Resources.Command_ValidateAllImages_MovieDBFanarts;
+                        break;
                     case ImageEntityType.AniDB_Cover:
                         type = Resources.Command_ValidateAllImages_AniDBPosters;
                         break;
@@ -308,18 +314,6 @@ namespace Shoko.Server.Commands
                         if (movieFanart == null) return;
                         RepoFactory.MovieDB_Fanart.Delete(movieFanart);
                         break;
-
-                    case ImageEntityType.Trakt_Poster:
-                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
-                        if (traktPoster == null) return;
-                        RepoFactory.Trakt_ImagePoster.Delete(traktPoster);
-                        break;
-
-                    case ImageEntityType.Trakt_Fanart:
-                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
-                        if (traktFanart == null) return;
-                        RepoFactory.Trakt_ImageFanart.Delete(traktFanart);
-                        break;
                 }
         }
 
@@ -386,10 +380,6 @@ namespace Shoko.Server.Commands
         {
             switch (req.ImageType)
             {
-                case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return string.Format(Constants.URLS.AniDB_Images, anime.Picname);
-
                 case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = req.ImageData as TvDB_Episode;
                     return string.Format(Constants.URLS.TvDB_Images, ep.Filename);
@@ -417,21 +407,9 @@ namespace Shoko.Server.Commands
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
                     return string.Format(Constants.URLS.MovieDB_Images, movieFanart.URL);
 
-                case ImageEntityType.Trakt_Poster:
-                    Trakt_ImagePoster traktPoster = req.ImageData as Trakt_ImagePoster;
-                    return traktPoster.ImageURL;
-
-                case ImageEntityType.Trakt_Fanart:
-                    Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
-                    return traktFanart.ImageURL;
-
-                case ImageEntityType.Trakt_Friend:
-                    Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
-                    return traktFriend.Avatar;
-
-                case ImageEntityType.Trakt_Episode:
-                    Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
-                    return traktEp.EpisodeImage;
+                case ImageEntityType.AniDB_Cover:
+                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
+                    return string.Format(Constants.URLS.AniDB_Images, anime.Picname);
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
@@ -480,22 +458,6 @@ namespace Shoko.Server.Commands
                 case ImageEntityType.MovieDB_FanArt:
                     MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
                     return movieFanart.GetFullImagePath();
-
-                case ImageEntityType.Trakt_Poster:
-                    Trakt_ImagePoster traktPoster = req.ImageData as Trakt_ImagePoster;
-                    return traktPoster.GetFullImagePath();
-
-                case ImageEntityType.Trakt_Fanart:
-                    Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
-                    return traktFanart.GetFullImagePath();
-
-                case ImageEntityType.Trakt_Friend:
-                    Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
-                    return traktFriend.GetFullImagePath();
-
-                case ImageEntityType.Trakt_Episode:
-                    Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
-                    return traktEp.GetFullImagePath();
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
