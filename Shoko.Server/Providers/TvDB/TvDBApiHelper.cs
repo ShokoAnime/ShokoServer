@@ -913,9 +913,10 @@ namespace Shoko.Server.Providers.TvDB
                         RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
                 }
 
-                var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvSeries.SeriesID).FirstOrDefault();
+                var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(seriesID).FirstOrDefault();
                 if (xref == null) return;
                 var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                if (anime == null) return;
                 var episodes = RepoFactory.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
                 foreach (SVR_AnimeEpisode episode in episodes)
                 {

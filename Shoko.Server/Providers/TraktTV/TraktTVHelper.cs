@@ -375,9 +375,6 @@ namespace Shoko.Server.Providers.TraktTV
             }
 
             // download and update series info, episode info and episode images
-            // will also download fanart, posters and wide banners
-            // download fanart, posters
-            DownloadImagesFromTMDB(traktID);
 
             CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID,
                 seasonNumber, traktEpNumber,
@@ -684,8 +681,6 @@ namespace Shoko.Server.Providers.TraktTV
 
         #endregion
 
-        #region Image Downloads
-
         /// <summary>
         /// Updates the followung
         /// 1. Series Info
@@ -695,113 +690,10 @@ namespace Shoko.Server.Providers.TraktTV
         /// </summary>
         /// <param name="seriesID"></param>
         /// <param name="forceRefresh"></param>
-        public static void UpdateAllInfoAndImages(string traktID, bool forceRefresh)
+        public static void UpdateAllInfo(string traktID, bool forceRefresh)
         {
-            DownloadImagesFromTMDB(traktID);
+            // This needs done
         }
-
-        private static void DownloadImagesFromTMDB(string traktID)
-        {
-            /*
-            TraktV2ShowExtended tvShow = GetShowInfoV2(traktID);
-
-            if (tvShow == null) return;
-
-            try
-            {
-                // Now download the images from TMDB
-                if (tvShow.ids.tmdb > 0)
-                {
-                    int TMDBid = (int)tvShow.ids.tmdb;
-                    MovieDBHelper.SearchWithTVShowID(TMDBid, true);
-                }
-
-                //DownloadAllImages(traktID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString());
-            }*/
-        }
-
-        /*
-        public static void DownloadAllImages(string traktID)
-        {
-            try
-            {
-                //now download the images
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
-                if (show == null) return;
-
-
-                if (ServerSettings.Trakt_DownloadFanart)
-                {
-                    //download the fanart image for the show
-                    Trakt_ImageFanart fanart = RepoFactory.Trakt_ImageFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-                    if (fanart != null)
-                    {
-                        if (!string.IsNullOrEmpty(fanart.FullImagePath))
-                        {
-                            if (!File.Exists(fanart.FullImagePath))
-                            {
-                                CommandRequest_DownloadImage cmd =
-                                    new CommandRequest_DownloadImage(fanart.Trakt_ImageFanartID,
-                                        ImageEntityType.Trakt_Fanart, false);
-                                cmd.Save();
-                            }
-                        }
-                    }
-                }
-
-
-                // download the posters for seasons
-                foreach (Trakt_Season season in show.Seasons)
-                {
-                    if (ServerSettings.Trakt_DownloadPosters)
-                    {
-                        Trakt_ImagePoster poster = RepoFactory.Trakt_ImagePoster.GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
-                        if (poster != null)
-                        {
-                            if (!string.IsNullOrEmpty(poster.FullImagePath))
-                            {
-                                if (!File.Exists(poster.FullImagePath))
-                                {
-                                    CommandRequest_DownloadImage cmd =
-                                        new CommandRequest_DownloadImage(poster.Trakt_ImagePosterID,
-                                            ImageEntityType.Trakt_Poster, false);
-                                    cmd.Save();
-                                }
-                            }
-                        }
-                    }
-
-                    if (ServerSettings.Trakt_DownloadEpisodes)
-                    {
-                        // download the screenshots for episodes
-                        foreach (Trakt_Episode ep in season.Episodes)
-                        {
-                            if (!string.IsNullOrEmpty(ep.FullImagePath))
-                            {
-                                if (!File.Exists(ep.FullImagePath))
-                                {
-                                    CommandRequest_DownloadImage cmd =
-                                        new CommandRequest_DownloadImage(ep.Trakt_EpisodeID,
-                                            ImageEntityType.Trakt_Episode, false);
-                                    cmd.Save();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error( ex,"Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString());
-            }
-        }
-        */
-
-        #endregion
 
         #region Send Data to Trakt
 
@@ -1267,29 +1159,6 @@ namespace Shoko.Server.Providers.TraktTV
                 show.Populate(tvshow);
                 RepoFactory.Trakt_Show.Save(show);
 
-
-                if (tvshow.images != null && tvshow.images.fanart != null)
-                {
-                    if (!string.IsNullOrEmpty(tvshow.images.fanart.full))
-                    {
-                        Trakt_ImageFanart fanart =
-                            RepoFactory.Trakt_ImageFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-                        if (fanart == null)
-                        {
-                            fanart = new Trakt_ImageFanart
-                            {
-                                Enabled = 0
-                            };
-                        }
-
-                        fanart.ImageURL = tvshow.images.fanart.full;
-                        fanart.Season = 1;
-                        fanart.Trakt_ShowID = show.Trakt_ShowID;
-                        RepoFactory.Trakt_ImageFanart.Save(fanart);
-                    }
-                }
-
-
                 // save the seasons
 
                 // delete episodes if they no longer exist on Trakt
@@ -1319,27 +1188,6 @@ namespace Shoko.Server.Providers.TraktTV
                     season.Trakt_ShowID = show.Trakt_ShowID;
                     RepoFactory.Trakt_Season.Save(season);
 
-                    if (sea.images != null && sea.images.poster != null)
-                    {
-                        if (!string.IsNullOrEmpty(sea.images.poster.full))
-                        {
-                            Trakt_ImagePoster poster =
-                                RepoFactory.Trakt_ImagePoster.GetByShowIDAndSeason(show.Trakt_ShowID, season.Season);
-                            if (poster == null)
-                            {
-                                poster = new Trakt_ImagePoster
-                                {
-                                    Enabled = 0
-                                };
-                            }
-
-                            poster.ImageURL = sea.images.poster.full;
-                            poster.Season = season.Season;
-                            poster.Trakt_ShowID = show.Trakt_ShowID;
-                            RepoFactory.Trakt_ImagePoster.Save(poster);
-                        }
-                    }
-
                     if (sea.episodes != null)
                     {
                         foreach (TraktV2Episode ep in sea.episodes)
@@ -1351,11 +1199,6 @@ namespace Shoko.Server.Providers.TraktTV
                                 episode = new Trakt_Episode();
 
                             Console.Write(ep.ids.trakt);
-
-                            if (ep.images.screenshot != null)
-                                episode.EpisodeImage = ep.images.screenshot.full;
-                            else
-                                episode.EpisodeImage = string.Empty;
 
                             episode.TraktID = ep.ids.TraktID;
                             episode.EpisodeNumber = ep.number;
@@ -1983,11 +1826,6 @@ namespace Shoko.Server.Providers.TraktTV
 
             // 3. Delete episodes
             RepoFactory.Trakt_Episode.Delete(RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
-
-            // 4. Delete fanart and posters
-            RepoFactory.Trakt_ImageFanart.Delete(RepoFactory.Trakt_ImageFanart.GetByShowID(show.Trakt_ShowID));
-
-            RepoFactory.Trakt_ImagePoster.Delete(RepoFactory.Trakt_ImagePoster.GetByShowID(show.Trakt_ShowID));
 
             // 5. Delete seasons
             RepoFactory.Trakt_Season.Delete(RepoFactory.Trakt_Season.GetByShowID(show.Trakt_ShowID));
