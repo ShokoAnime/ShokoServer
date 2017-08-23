@@ -341,46 +341,6 @@ namespace Shoko.Server
                         return "";
                     }
 
-                case ImageEntityType.Trakt_Fanart:
-                    Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(imageId);
-                    if (tFanart == null) return null;
-                    if (File.Exists(tFanart.GetFullImagePath()))
-                    {
-                        return tFanart.GetFullImagePath();
-                    }
-                    else
-                    {
-                        logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.GetFullImagePath());
-                        return "";
-                    }
-
-                case ImageEntityType.Trakt_Poster:
-                    Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(imageId);
-                    if (tPoster == null) return null;
-                    if (File.Exists(tPoster.GetFullImagePath()))
-                    {
-                        return tPoster.GetFullImagePath();
-                    }
-                    else
-                    {
-                        logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.GetFullImagePath());
-                        return "";
-                    }
-
-                case ImageEntityType.Trakt_Episode:
-                case ImageEntityType.Trakt_WatchedEpisode:
-                    Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(imageId);
-                    if (tEpisode == null) return null;
-                    if (File.Exists(tEpisode.GetFullImagePath()))
-                    {
-                        return tEpisode.GetFullImagePath();
-                    }
-                    else
-                    {
-                        logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.GetFullImagePath());
-                        return "";
-                    }
-
                 default:
                     return "";
             }

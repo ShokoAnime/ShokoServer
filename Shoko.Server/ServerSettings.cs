@@ -2093,9 +2093,6 @@ namespace Shoko.Server
                 Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate,
                 Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency,
                 Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency,
-                Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes,
-                Trakt_DownloadFanart = ServerSettings.Trakt_DownloadFanart,
-                Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters,
 
                 // MAL
                 MAL_AutoLink = ServerSettings.MAL_AutoLink,

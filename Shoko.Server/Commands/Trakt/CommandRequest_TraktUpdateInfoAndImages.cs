@@ -51,7 +51,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TraktTVHelper.UpdateAllInfoAndImages(TraktID, false);
+                TraktTVHelper.UpdateAllInfo(TraktID, false);
             }
             catch (Exception ex)
             {

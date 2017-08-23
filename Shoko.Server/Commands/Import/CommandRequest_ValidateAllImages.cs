@@ -84,6 +84,30 @@ namespace Shoko.Server.Commands
                                 fanart.TvDB_ImageWideBannerID, fanart));
                 }
 
+                if (ServerSettings.MovieDB_AutoPosters)
+                {
+                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBPosters};
+                    ShokoService.CmdProcessorImages.QueueState = queueState;
+                    RepoFactory.MovieDB_Poster.GetAll().Where(fanart =>
+                            !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
+                            !Misc.IsImageValid(fanart.GetFullImagePath()))
+                        .ForEach(
+                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_Poster,
+                                fanart.MovieDB_PosterID, fanart));
+                }
+
+                if (ServerSettings.MovieDB_AutoFanart)
+                {
+                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBFanarts};
+                    ShokoService.CmdProcessorImages.QueueState = queueState;
+                    RepoFactory.MovieDB_Fanart.GetAll().Where(fanart =>
+                            !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
+                            !Misc.IsImageValid(fanart.GetFullImagePath()))
+                        .ForEach(
+                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_FanArt,
+                                fanart.MovieDB_FanartID, fanart));
+                }
+
                 queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBPosters};
                 ShokoService.CmdProcessorImages.QueueState = queueState;
                 RepoFactory.AniDB_Anime.GetAll().Where(fanart =>

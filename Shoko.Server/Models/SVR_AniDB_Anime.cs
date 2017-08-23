@@ -385,14 +385,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         else
                             return this.PosterPath;
 
-                    case ImageEntityType.Trakt_Poster:
-                        Trakt_ImagePoster traktPoster =
-                            RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
-                        if (traktPoster != null)
-                            return traktPoster.GetFullImagePath();
-                        else
-                            return this.PosterPath;
-
                     case ImageEntityType.MovieDB_Poster:
                         MovieDB_Poster moviePoster =
                             RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
@@ -438,17 +430,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             {
                                 ImageType = ImageEntityType.TvDB_Cover,
                                 ImageID = tvPoster.TvDB_ImagePosterID
-                            };
-                        return details;
-
-                    case ImageEntityType.Trakt_Poster:
-                        Trakt_ImagePoster traktPoster =
-                            RepoFactory.Trakt_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
-                        if (traktPoster != null)
-                            details = new ImageDetails()
-                            {
-                                ImageType = ImageEntityType.Trakt_Poster,
-                                ImageID = traktPoster.Trakt_ImagePosterID
                             };
                         return details;
 
@@ -525,17 +506,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             };
                         return details;
 
-                    case ImageEntityType.Trakt_Fanart:
-                        Trakt_ImageFanart traktFanart =
-                            RepoFactory.Trakt_ImageFanart.GetByID(session, fanart.ImageParentID);
-                        if (traktFanart != null)
-                            details = new ImageDetails()
-                            {
-                                ImageType = ImageEntityType.Trakt_Fanart,
-                                ImageID = traktFanart.Trakt_ImageFanartID
-                            };
-                        return details;
-
                     case ImageEntityType.MovieDB_FanArt:
                         MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(session, fanart.ImageParentID);
                         if (movieFanart != null)
@@ -597,13 +567,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             RepoFactory.TvDB_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
                         if (tvFanart != null)
                             return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
-                        break;
-
-                    case ImageEntityType.Trakt_Fanart:
-                        Trakt_ImageFanart traktFanart =
-                            RepoFactory.Trakt_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
-                        if (traktFanart != null)
-                            return traktFanart.ImageURL;
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:

@@ -580,9 +580,6 @@ namespace Shoko.Server
                 ServerSettings.Trakt_TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
                 ServerSettings.Trakt_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_UpdateFrequency;
                 ServerSettings.Trakt_SyncFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_SyncFrequency;
-                ServerSettings.Trakt_DownloadEpisodes = contractIn.Trakt_DownloadEpisodes;
-                ServerSettings.Trakt_DownloadFanart = contractIn.Trakt_DownloadFanart;
-                ServerSettings.Trakt_DownloadPosters = contractIn.Trakt_DownloadPosters;
 
                 // MAL
                 ServerSettings.MAL_AutoLink = contractIn.MAL_AutoLink;
@@ -912,20 +909,6 @@ namespace Shoko.Server
                         movieFanart.Enabled = enabled ? 1 : 0;
                         RepoFactory.MovieDB_Fanart.Save(movieFanart);
                         break;
-
-                    case ImageEntityType.Trakt_Poster:
-                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(imageID);
-                        if (traktPoster == null) return "Could not find image";
-                        traktPoster.Enabled = enabled ? 1 : 0;
-                        RepoFactory.Trakt_ImagePoster.Save(traktPoster);
-                        break;
-
-                    case ImageEntityType.Trakt_Fanart:
-                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(imageID);
-                        if (traktFanart == null) return "Could not find image";
-                        traktFanart.Enabled = enabled ? 1 : 0;
-                        RepoFactory.Trakt_ImageFanart.Save(traktFanart);
-                        break;
                 }
 
                 return "";
@@ -949,7 +932,6 @@ namespace Shoko.Server
                     case ImageEntityType.AniDB_Cover:
                     case ImageEntityType.TvDB_Cover:
                     case ImageEntityType.MovieDB_Poster:
-                    case ImageEntityType.Trakt_Poster:
                         sizeType = ImageSizeType.Poster;
                         break;
 
@@ -959,7 +941,6 @@ namespace Shoko.Server
 
                     case ImageEntityType.TvDB_FanArt:
                     case ImageEntityType.MovieDB_FanArt:
-                    case ImageEntityType.Trakt_Fanart:
                         sizeType = ImageSizeType.Fanart;
                         break;
                 }

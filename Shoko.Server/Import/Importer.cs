@@ -711,60 +711,6 @@ namespace Shoko.Server
                 }
             }
 
-            /*
-            // Trakt Posters
-            if (ServerSettings.Trakt_DownloadPosters)
-            {
-                foreach (Trakt_ImagePoster traktPoster in RepoFactory.Trakt_ImagePoster.GetAll())
-                {
-                    if (string.IsNullOrEmpty(traktPoster.FullImagePath)) continue;
-                    bool fileExists = File.Exists(traktPoster.FullImagePath);
-                    if (!fileExists)
-                    {
-                        CommandRequest_DownloadImage cmd =
-                            new CommandRequest_DownloadImage(traktPoster.Trakt_ImagePosterID,
-                                ImageEntityType.Trakt_Poster, false);
-                        cmd.Save();
-                    }
-                }
-            }
-
-            // Trakt Fanart
-            if (ServerSettings.Trakt_DownloadFanart)
-            {
-                foreach (Trakt_ImageFanart traktFanart in RepoFactory.Trakt_ImageFanart.GetAll())
-                {
-                    if (string.IsNullOrEmpty(traktFanart.FullImagePath)) continue;
-                    bool fileExists = File.Exists(traktFanart.FullImagePath);
-                    if (!fileExists)
-                    {
-                        CommandRequest_DownloadImage cmd =
-                            new CommandRequest_DownloadImage(traktFanart.Trakt_ImageFanartID,
-                                ImageEntityType.Trakt_Fanart, false);
-                        cmd.Save();
-                    }
-                }
-            }
-
-            // Trakt Episode
-            if (ServerSettings.Trakt_DownloadEpisodes)
-            {
-                foreach (Trakt_Episode traktEp in RepoFactory.Trakt_Episode.GetAll())
-                {
-                    if (string.IsNullOrEmpty(traktEp.FullImagePath)) continue;
-                    if (!traktEp.TraktID.HasValue) continue; // if it doesn't have a TraktID it means it is old data
-
-                    bool fileExists = File.Exists(traktEp.FullImagePath);
-                    if (!fileExists)
-                    {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktEp.Trakt_EpisodeID,
-                            ImageEntityType.Trakt_Episode, false);
-                        cmd.Save();
-                    }
-                }
-            }
-            */
-
             // AniDB Characters
             if (ServerSettings.AniDB_DownloadCharacters)
             {
