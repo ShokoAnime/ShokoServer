@@ -36,10 +36,8 @@ namespace Shoko.Server.Models
         {
             get
             {
-                if ((_plexcontract == null) && (PlexContractBlob != null) && (PlexContractBlob.Length > 0) &&
-                    (PlexContractSize > 0))
-                    _plexcontract = CompressionHelper.DeserializeObject<Video>(PlexContractBlob, PlexContractSize);
-                return _plexcontract;
+                SVR_AnimeGroup ser = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+                return PlexAndKodi.Helper.GenerateFromAnimeGroup(ser, JMMUserID, ser.GetAllSeries());
             }
             set
             {
