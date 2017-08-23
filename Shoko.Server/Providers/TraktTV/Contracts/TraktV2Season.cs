@@ -12,9 +12,6 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         [DataMember(Name = "ids")]
         public TraktV2SeasonIds ids { get; set; }
 
-        [DataMember(Name = "images")]
-        public TraktV2Images images { get; set; }
-
         [DataMember(Name = "episodes")]
         public List<TraktV2Episode> episodes { get; set; }
     }

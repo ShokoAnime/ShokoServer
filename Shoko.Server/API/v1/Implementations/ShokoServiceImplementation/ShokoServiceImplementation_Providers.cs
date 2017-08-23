@@ -45,8 +45,6 @@ namespace Shoko.Server
 
                 CrossRef_AniDB_Trakt = new List<CrossRef_AniDB_TraktV2>(),
                 TraktShows = new List<CL_Trakt_Show>(),
-                TraktImageFanarts = new List<Trakt_ImageFanart>(),
-                TraktImagePosters = new List<Trakt_ImagePoster>(),
                 AnimeID = animeID
             };
 
@@ -89,19 +87,7 @@ namespace Shoko.Server
                         result.CrossRef_AniDB_Trakt.Add(xref);
 
                         Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
-                        if (show != null)
-                        {
-                            result.TraktShows.Add(show.ToClient());
-
-                            foreach (Trakt_ImageFanart fanart in RepoFactory.Trakt_ImageFanart.GetByShowID(session,
-                                show.Trakt_ShowID))
-                                result.TraktImageFanarts.Add(fanart);
-
-                            foreach (Trakt_ImagePoster poster in RepoFactory.Trakt_ImagePoster.GetByShowID(session,
-                                show.Trakt_ShowID)
-                            )
-                                result.TraktImagePosters.Add(poster);
-                        }
+                        if (show != null) result.TraktShows.Add(show.ToClient());
                     }
 
 
@@ -742,39 +728,6 @@ namespace Shoko.Server
 
         #region Trakt
 
-        public List<Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID)
-        {
-            List<Trakt_ImageFanart> allImages = new List<Trakt_ImageFanart>();
-            try
-            {
-                if (traktShowID.HasValue)
-                    return RepoFactory.Trakt_ImageFanart.GetByShowID(traktShowID.Value);
-                else
-                    return RepoFactory.Trakt_ImageFanart.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Trakt_ImageFanart>();
-            }
-        }
-
-        public List<Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID)
-        {
-            try
-            {
-                if (traktShowID.HasValue)
-                    return RepoFactory.Trakt_ImagePoster.GetByShowID(traktShowID.Value);
-                else
-                    return RepoFactory.Trakt_ImagePoster.GetAll().ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<Trakt_ImagePoster>();
-            }
-        }
-
         public List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
         {
             try
@@ -1092,7 +1045,7 @@ namespace Shoko.Server
         {
             try
             {
-                TraktTVHelper.UpdateAllInfoAndImages(traktD, true);
+                TraktTVHelper.UpdateAllInfo(traktD, true);
             }
             catch (Exception ex)
             {
