@@ -8980,6 +8980,16 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No users were synced as nobody was linked to plex!
+        ///Please link to plex via Desktop under settings -&gt;users to use this..
+        /// </summary>
+        public static string Plex_NoneAuthenticated {
+            get {
+                return ResourceManager.GetString("Plex_NoneAuthenticated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No Pin.
         /// </summary>
         public static string Plex_NoPin {

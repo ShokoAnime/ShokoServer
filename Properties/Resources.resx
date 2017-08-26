@@ -5417,4 +5417,8 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Press "Link" button, then enter the provided pin at http://plex.tv/pin</value>
   </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>No users were synced as nobody was linked to plex!
+Please link to plex via Desktop under settings -&gt;users to use this.</value>
+  </data>
 </root>
