@@ -5414,4 +5414,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - MovieDB Fanarts</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Press "Link" button, then enter the provided pin at http://plex.tv/pin</value>
+  </data>
 </root>

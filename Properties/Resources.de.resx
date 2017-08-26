@@ -5412,4 +5412,7 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - MovieDB Fanarts</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Drücken Sie die &amp;quot;Link&amp;quot; -Taste, und geben Sie dann den mitgelieferten Pin unter http://plex.tv/pin ein!</value>
+  </data>
 </root>

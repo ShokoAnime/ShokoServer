@@ -5412,4 +5412,7 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - Fanarts MovieDB</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Presione el botón &amp;quot;Link&amp;quot;, luego ingrese el pin suministrado en http://plex.tv/pin!</value>
+  </data>
 </root>
