@@ -33,8 +33,9 @@ namespace Shoko.Server.Commands.Plex
                     foreach (PlexEpisode episode in series.Episodes)
                     {
                         var animeEpisode = episode.AnimeEpisode;
-                        var isWatched = episode.WatchCount > 0;
-                        var lastWatched = FromUnixTime(episode.LastWatched);
+                        var userRecord = animeEpisode.GetUserRecord(_jmmuser.JMMUserID);
+                        var isWatched = userRecord.WatchedCount > 0;
+                        var lastWatched = userRecord.WatchedDate;
                         SVR_VideoLocal video = animeEpisode?.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
@@ -86,8 +87,5 @@ namespace Shoko.Server.Commands.Plex
             };
             return cq;
         }
-
-        public DateTime FromUnixTime(long unixTime) => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            .AddMilliseconds(unixTime);
     }
 }
