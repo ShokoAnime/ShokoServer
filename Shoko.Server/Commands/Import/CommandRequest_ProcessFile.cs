@@ -269,13 +269,7 @@ namespace Shoko.Server.Commands
                 {
                     logger.Debug("Creating groups, series and episodes....");
                     // check if there is an AnimeSeries Record associated with this AnimeID
-                    ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    if (ser == null)
-                    {
-                        // create a new AnimeSeries record
-                        ser = anime.CreateAnimeSeriesAndGroup();
-                    }
-
+                    ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
 
                     ser.CreateAnimeEpisodes();
 
