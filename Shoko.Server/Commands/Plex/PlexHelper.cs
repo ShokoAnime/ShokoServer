@@ -229,6 +229,7 @@ namespace Shoko.Server.Commands.Plex
         {
             if (!string.IsNullOrEmpty(_user.PlexToken))
                 return _user.PlexToken;
+            if (_plexPinId == -1) return null;
 
             var resp = GetXml($"https://plex.tv/pins/{_plexPinId}.xml", usePlexToken: false);
             if (resp == null)
