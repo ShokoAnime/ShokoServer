@@ -172,7 +172,7 @@ namespace Shoko.Server.Repositories
 
             // TODO: Determine if joining on the correct columns
             var results = session.CreateSQLQuery(@"
-                SELECT {defImg.*}, {tvWide.*}, {tvPoster.*}, {tvFanart.*}, {movPoster.*}, {movFanart.*}, {traktFanart.*}, {traktPoster.*}
+                SELECT {defImg.*}, {tvWide.*}, {tvPoster.*}, {tvFanart.*}, {movPoster.*}, {movFanart.*}
                     FROM AniDB_Anime_DefaultImage defImg
                         LEFT OUTER JOIN TvDB_ImageWideBanner AS tvWide
                             ON tvWide.TvDB_ImageWideBannerID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbBannerType
