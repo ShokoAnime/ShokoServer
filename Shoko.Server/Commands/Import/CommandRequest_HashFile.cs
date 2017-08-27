@@ -146,7 +146,7 @@ namespace Shoko.Server.Commands
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
-                    Console.WriteLine("Attempt # " + numAttempts.ToString());
+                    Console.WriteLine($"Attempt # {numAttempts}");
                 }
 
                 // if we failed to access the file, get ouuta here
@@ -159,7 +159,7 @@ namespace Shoko.Server.Commands
 
 
             FileSystemResult<IObject> source = f.Resolve(FileName);
-            if (source == null || !source.IsOk || (!(source.Result is IFile)))
+            if (source == null || !source.IsOk || !(source.Result is IFile))
             {
                 logger.Error("Could not access file: " + FileName);
                 return null;
@@ -218,7 +218,6 @@ namespace Shoko.Server.Commands
             }
 
             // check if we need to get a hash this file
-            Hashes hashes = null;
             if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
             {
                 // try getting the hash from the CrossRef
@@ -281,7 +280,7 @@ namespace Shoko.Server.Commands
                     DateTime start = DateTime.Now;
                     logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, ShokoServer.OnHashProgress,
+                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, ShokoServer.OnHashProgress,
                         true, true, true);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
