@@ -354,6 +354,36 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
+        private List<AniDB_Anime_DefaultImage> allPosters = null;
+        public List<AniDB_Anime_DefaultImage> AllPosters
+        {
+            get
+            {
+                if (allPosters != null) return allPosters;
+                var posters = new List<AniDB_Anime_DefaultImage>();
+                posters.Add(new AniDB_Anime_DefaultImage()
+                {
+                    AniDB_Anime_DefaultImageID = AnimeID,
+                    ImageType = (int) ImageEntityType.AniDB_Cover
+                });
+                var tvdbposters = GetTvDBImagePosters()?.Where(img => img != null).Select(img => new AniDB_Anime_DefaultImage()
+                {
+                    AniDB_Anime_DefaultImageID = img.TvDB_ImagePosterID,
+                    ImageType = (int) ImageEntityType.TvDB_Cover
+                });
+                if (tvdbposters != null) posters.AddRange(tvdbposters);
+
+                var moviebposters = GetMovieDBPosters()?.Where(img => img != null).Select(img => new AniDB_Anime_DefaultImage()
+                {
+                    AniDB_Anime_DefaultImageID = img.MovieDB_PosterID,
+                    ImageType = (int) ImageEntityType.MovieDB_Poster
+                });
+                if (moviebposters != null) posters.AddRange(moviebposters);
+
+                allPosters = posters;
+                return posters;
+            }
+        }
 
         public string GetDefaultPosterPathNoBlanks()
         {
