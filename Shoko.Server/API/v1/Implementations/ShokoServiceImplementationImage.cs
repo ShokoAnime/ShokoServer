@@ -29,7 +29,7 @@ namespace Shoko.Server
         {
             string path = GetImagePath(imageId, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
-                return BlankImage();
+                return new StreamWithResponse(HttpStatusCode.NotFound);
             return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
         }
 
@@ -40,7 +40,7 @@ namespace Shoko.Server
                 return new StreamWithResponse(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
             }
             logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
-            return BlankImage();
+            return new StreamWithResponse(HttpStatusCode.NotFound);
         }
 
         public Stream BlankImage()
@@ -194,7 +194,7 @@ namespace Shoko.Server
                     }
                 }
             }
-            return BlankImage();
+            return new StreamWithResponse(HttpStatusCode.NotFound);
         }
 
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
