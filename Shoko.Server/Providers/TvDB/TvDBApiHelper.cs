@@ -792,7 +792,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (episode == null)
                         return;
 
-                    ep = new TvDB_Episode();
+                    if (ep == null) ep = new TvDB_Episode();
                     ep.Populate(episode);
                     RepoFactory.TvDB_Episode.Save(ep);
                 }
