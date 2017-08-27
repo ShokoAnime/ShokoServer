@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:Shoko.UI"
         xmlns:server="clr-namespace:Shoko.Server;assembly=Shoko.Server"
         xmlns:forms="clr-namespace:Shoko.UI.Forms"
-        Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=ShokoServer}" Height="570" Width="550"
+        Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=ShokoServer}" Height="585" Width="600"
         Icon="/ShokoServer;component/db.ico" WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
