@@ -37,13 +37,13 @@ namespace Shoko.Server.Commands
                     return new QueueStateStruct()
                     {
                         queueState = QueueStateEnum.FileInfo,
-                        extraParams = new string[] {vlocal.FileName}
+                        extraParams = new[] {vlocal.FileName}
                     };
                 else
                     return new QueueStateStruct()
                     {
                         queueState = QueueStateEnum.FileInfo,
-                        extraParams = new string[] {VideoLocalID.ToString()}
+                        extraParams = new[] {VideoLocalID.ToString()}
                     };
             }
         }
@@ -137,11 +137,9 @@ namespace Shoko.Server.Commands
                             string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
                             foreach (string epid in epIDs)
                             {
-                                if (int.TryParse(epid, out int id))
-                                {
-                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                    cmdEp.Save();
-                                }
+                                if (!int.TryParse(epid, out int id)) continue;
+                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                cmdEp.Save();
                             }
                         }
 
@@ -172,37 +170,34 @@ namespace Shoko.Server.Commands
                                     vidLocal.ED2KHash);
                                 return;
                             }
-                            else
+                            foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
                             {
-                                foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
+                                CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
                                 {
-                                    CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
-                                    {
-                                        Hash = vidLocal.ED2KHash,
-                                        FileName = vidLocal.FileName,
-                                        FileSize = vidLocal.FileSize,
-                                        CrossRefSource = (int)CrossRefSource.WebCache,
-                                        AnimeID = xref.AnimeID,
-                                        EpisodeID = xref.EpisodeID,
-                                        Percentage = xref.Percentage,
-                                        EpisodeOrder = xref.EpisodeOrder
-                                    };
-                                    bool duplicate = false;
+                                    Hash = vidLocal.ED2KHash,
+                                    FileName = vidLocal.FileName,
+                                    FileSize = vidLocal.FileSize,
+                                    CrossRefSource = (int)CrossRefSource.WebCache,
+                                    AnimeID = xref.AnimeID,
+                                    EpisodeID = xref.EpisodeID,
+                                    Percentage = xref.Percentage,
+                                    EpisodeOrder = xref.EpisodeOrder
+                                };
+                                bool duplicate = false;
 
-                                    foreach (CrossRef_File_Episode xrefcheck in crossRefs)
-                                    {
-                                        if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
-                                            xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
-                                            xrefcheck.Hash == xrefEnt.Hash)
-                                            duplicate = true;
-                                    }
+                                foreach (CrossRef_File_Episode xrefcheck in crossRefs)
+                                {
+                                    if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
+                                        xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
+                                        xrefcheck.Hash == xrefEnt.Hash)
+                                        duplicate = true;
+                                }
 
-                                    if (!duplicate)
-                                    {
-                                        crossRefs.Add(xrefEnt);
-                                        // in this case we need to save the cross refs manually as AniDB did not provide them
-                                        RepoFactory.CrossRef_File_Episode.Save(xrefEnt);
-                                    }
+                                if (!duplicate)
+                                {
+                                    crossRefs.Add(xrefEnt);
+                                    // in this case we need to save the cross refs manually as AniDB did not provide them
+                                    RepoFactory.CrossRef_File_Episode.Save(xrefEnt);
                                 }
                             }
                         }
@@ -257,6 +252,8 @@ namespace Shoko.Server.Commands
                     TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
                     if (ts.TotalHours < 4) animeRecentlyUpdated = true;
                 }
+                else
+                    missingEpisodes = true;
 
                 // even if we are missing episode info, don't get data  more than once every 4 hours
                 // this is to prevent banning
@@ -272,13 +269,7 @@ namespace Shoko.Server.Commands
                 {
                     logger.Debug("Creating groups, series and episodes....");
                     // check if there is an AnimeSeries Record associated with this AnimeID
-                    ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    if (ser == null)
-                    {
-                        // create a new AnimeSeries record
-                        ser = anime.CreateAnimeSeriesAndGroup();
-                    }
-
+                    ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
 
                     ser.CreateAnimeEpisodes();
 

@@ -235,12 +235,19 @@ namespace Shoko.UI
         }
         private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
         {
-            ShokoServer.Instance.SyncPlex();
+            if (!ShokoServer.Instance.SyncPlex())
+            {
+                MessageBox.Show(Shoko.Commons.Properties.Resources.Plex_NoneAuthenticated, Shoko.Commons.Properties.Resources.Error,
+                    MessageBoxButton.OK, MessageBoxImage.Asterisk);
+            }
         }
 
         private void BtnValidateAllImages_Click(object sender, RoutedEventArgs routedEventArgs)
         {
             Importer.ValidateAllImages();
+            MessageBox.Show(string.Format(Shoko.Commons.Properties.Resources.Command_ValidateAllImages, ""),
+                Shoko.Commons.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void BtnSetDefault_Click(object sender, RoutedEventArgs e)

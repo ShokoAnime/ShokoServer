@@ -1054,7 +1054,7 @@ namespace Shoko.Server
 
             if (getAnimeCmd.Anime != null)
             {
-                anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
+                return SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
                 //this endpoint is not working, so comenting...
 /*
                 if (forceRefresh)

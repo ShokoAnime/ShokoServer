@@ -1632,15 +1632,22 @@ namespace Shoko.Server
             return 1; //continue hashing (return 0 to abort)
         }
 
-        public void SyncPlex()
+        /// <summary>
+        /// Sync plex watch status.
+        /// </summary>
+        /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
+        public bool SyncPlex()
         {
+            bool flag = false;
             foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
             {
                 if (!string.IsNullOrEmpty(user.PlexToken))
                 {
+                    flag = true;
                     new CommandRequest_PlexSyncWatched(user).Save();
                 }
             }
+            return flag;
         }
 
         public void EnableStartWithWindows()

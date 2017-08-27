@@ -79,21 +79,41 @@ namespace Shoko.Server.API.v2.Models.common
             }
 
             #region Images
-            Random rand = new Random();
-            Contract_ImageDetails art;
-            if (nv.Fanarts != null && nv.Fanarts.Count > 0)
+            var anime = ser.GetAnime();
+            if (anime != null)
             {
+                Random rand = new Random();
                 if (allpics || pic > 1)
                 {
                     if (allpics) { pic = 999; }
                     int pic_index = 0;
-                    foreach (Contract_ImageDetails cont_image in nv.Fanarts)
+                    foreach (var cont_image in anime.AllPosters)
+                    {
+                        if (pic_index < pic)
+                        {
+                            sr.art.thumb.Add(new Art()
+                            {
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                    cont_image.AniDB_Anime_DefaultImageID),
+                                index = pic_index
+                            });
+                            pic_index++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    pic_index = 0;
+                    foreach (var cont_image in anime.Contract.AniDBAnime.Fanarts)
                     {
                         if (pic_index < pic)
                         {
                             sr.art.fanart.Add(new Art()
                             {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType, cont_image.ImageID),
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                    cont_image.AniDB_Anime_DefaultImageID),
                                 index = pic_index
                             });
                             pic_index++;
@@ -103,31 +123,16 @@ namespace Shoko.Server.API.v2.Models.common
                             break;
                         }
                     }
-                }
-                else
-                {
-                    art = nv.Fanarts[rand.Next(nv.Fanarts.Count)];
-                    sr.art.fanart.Add(new Art()
-                    {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
-                        index = 0
-                    });
-                }
-            }
 
-            if (nv.Banners != null && nv.Banners.Count > 0)
-            {
-                if (allpics || pic > 1)
-                {
-                    if (allpics) { pic = 999; }
-                    int pic_index = 0;
-                    foreach (Contract_ImageDetails cont_image in nv.Banners)
+                    pic_index = 0;
+                    foreach (var cont_image in anime.Contract.AniDBAnime.Banners)
                     {
                         if (pic_index < pic)
                         {
                             sr.art.banner.Add(new Art()
                             {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType, cont_image.ImageID),
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                    cont_image.AniDB_Anime_DefaultImageID),
                                 index = pic_index
                             });
                             pic_index++;
@@ -140,18 +145,37 @@ namespace Shoko.Server.API.v2.Models.common
                 }
                 else
                 {
-                    art = nv.Banners[rand.Next(nv.Banners.Count)];
-                    sr.art.banner.Add(new Art()
+                    sr.art.thumb.Add(new Art()
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType, art.ImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
+                            anime.AnimeID),
                         index = 0
                     });
-                }
-            }
 
-            if (!string.IsNullOrEmpty(nv.Thumb))
-            {
-                sr.art.thumb.Add(new Art() {url = APIHelper.ConstructImageLinkFromRest(ctx, nv.Thumb), index = 0});
+                    var fanarts = anime.Contract.AniDBAnime.Fanarts;
+                    if (fanarts != null && fanarts.Count > 0)
+                    {
+                        var art = fanarts[rand.Next(fanarts.Count)];
+                        sr.art.fanart.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
+                                art.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
+                    }
+
+                    fanarts = anime.Contract.AniDBAnime.Banners;
+                    if (fanarts != null && fanarts.Count > 0)
+                    {
+                        var art = fanarts[rand.Next(fanarts.Count)];
+                        sr.art.banner.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
+                                art.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
+                    }
+                }
             }
             #endregion
 
@@ -162,46 +186,17 @@ namespace Shoko.Server.API.v2.Models.common
                     foreach (RoleTag rtg in nv.Roles)
                     {
                         Role new_role = new Role();
-                        if (!String.IsNullOrEmpty(rtg.Value))
-                        {
-                            new_role.name = rtg.Value;
-                        }
-                        else
-                        {
-                            new_role.name = "";
-                        }
-                        if (!String.IsNullOrEmpty(rtg.TagPicture))
-                        {
-                            new_role.namepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture);
-                        }
-                        else
-                        {
-                            new_role.namepic = "";
-                        }
-                        if (!String.IsNullOrEmpty(rtg.Role))
-                        {
-                            new_role.role = rtg.Role;
-                        }
-                        else
-                        {
-                            rtg.Role = "";
-                        }
-                        if (!String.IsNullOrEmpty(rtg.RoleDescription))
-                        {
-                            new_role.roledesc = rtg.RoleDescription;
-                        }
-                        else
-                        {
-                            new_role.roledesc = "";
-                        }
-                        if (!String.IsNullOrEmpty(rtg.RolePicture))
-                        {
-                            new_role.rolepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture);
-                        }
-                        else
-                        {
-                            new_role.rolepic = "";
-                        }
+                        new_role.name = !string.IsNullOrEmpty(rtg.Value) ? rtg.Value : string.Empty;
+                        new_role.namepic = !string.IsNullOrEmpty(rtg.TagPicture)
+                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture)
+                            : string.Empty;
+                        new_role.role = !string.IsNullOrEmpty(rtg.Role) ? rtg.Role : string.Empty;
+                        new_role.roledesc = !string.IsNullOrEmpty(rtg.RoleDescription)
+                            ? rtg.RoleDescription
+                            : string.Empty;
+                        new_role.rolepic = !string.IsNullOrEmpty(rtg.RolePicture)
+                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture)
+                            : string.Empty;
                         sr.roles.Add(new_role);
                     }
                 }
