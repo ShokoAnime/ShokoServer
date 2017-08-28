@@ -149,9 +149,9 @@ namespace Shoko.UI.Forms
                     : ImportFolderType.HDD);
                 contract.ImportFolderName = "NA";
                 contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
-                contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
-                contract.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
-                contract.IsWatched = chkIsWatched.IsChecked.Value ? 1 : 0;
+                contract.IsDropDestination = chkDropDestination.IsChecked ?? false ? 1 : 0;
+                contract.IsDropSource = chkDropSource.IsChecked ?? false ? 1 : 0;
+                contract.IsWatched = chkIsWatched.IsChecked ?? false ? 1 : 0;
                 if (comboProvider.SelectedIndex == 0)
                     contract.CloudID = null;
                 else
