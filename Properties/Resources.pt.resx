@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Por favor, aguarde até que o processo está completo</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Selecione em quais provedores você quer excluir</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Para excluir vários arquivos?</value>
   </data>
@@ -5414,5 +5411,12 @@
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Pressione o botão &amp;quot;Link&amp;quot;, depois insira o pino fornecido em http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Selecione os provedores para excluir o arquivo de.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Sem usuários estavam sincronizados como ninguém estava ligado ao plex!
+Por favor link para plex através do Desktop em configurações-&gt; usuários para usar isso.!</value>
   </data>
 </root>

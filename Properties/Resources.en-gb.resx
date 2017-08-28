@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Please wait until the process is complete</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Select in which providers you want to Delete</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Delete Multiple Files?</value>
   </data>
@@ -5414,5 +5411,12 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Press "Link" button, then enter the provided pin at http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Select the providers to delete the file from.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>No users were synced as nobody was linked to plex!
+Please link to plex via Desktop under settings -&gt;users to use this.!</value>
   </data>
 </root>

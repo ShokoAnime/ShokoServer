@@ -1081,7 +1081,7 @@
     <value>Please wait until the process is complete</value>
   </data>
   <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Select in which providers you want to Delete</value>
+    <value>Select the providers to delete the file from.</value>
   </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Delete Multiple Files?</value>

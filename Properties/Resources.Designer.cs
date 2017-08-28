@@ -3625,7 +3625,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select in which providers you want to Delete.
+        ///   Looks up a localized string similar to Select the providers to delete the file from..
         /// </summary>
         public static string DeleteFile_Confirm {
             get {

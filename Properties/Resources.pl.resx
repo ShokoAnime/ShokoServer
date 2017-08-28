@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Prosimy czekać, aż do zakończenia procesu</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Wybierz, w których dostawców, które chcesz usunąć</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Usuwanie wielu plików?</value>
   </data>
@@ -5416,5 +5413,12 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Naciśnij przycisk &amp;quot;Link&amp;quot;, a następnie podaj podany stempel pod adresem http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Wybierz dostawców, aby usunąć plik.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Użytkownicy nie zostały zsynchronizowane, nikt nie był związany z plex!
+Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wobec używać ten.!</value>
   </data>
 </root>

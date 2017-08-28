@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Пожалуйста, подождите завершения процесса</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Выберите, в которой поставщики необходимо удалить</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Удалить несколько файлов?</value>
   </data>
@@ -5414,5 +5411,12 @@
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Нажмите кнопку «Ссылка», затем введите предоставленный вывод в http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Выберите поставщиков для удаления файла с.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Пользователи не были синхронизированы, как никто не был связан с Плекс!
+Пожалуйста, ссылку на plex через рабочий стол в разделе Параметры-&gt; пользователям использовать это.!</value>
   </data>
 </root>

@@ -1059,9 +1059,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Por favor, espere hasta que finalice el proceso</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Seleccione en que los proveedores que desea eliminar</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>¿Borrar varios archivos?</value>
   </data>
@@ -5414,5 +5411,12 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Presione el botón &amp;quot;Link&amp;quot;, luego ingrese el pin suministrado en http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Seleccionar los proveedores para eliminar el archivo de.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Ningún usuario fueron sincronizado como nadie estaba vinculado a plex!
+Por favor enlace a plex via Desktop bajo configuración-&gt; usuarios utilizar este.!</value>
   </data>
 </root>

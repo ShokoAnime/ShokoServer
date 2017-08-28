@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Si prega di attendere fino al completamento del processo</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Selezionare nei provider che si desidera eliminare</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Eliminare più file?</value>
   </data>
@@ -5414,5 +5411,12 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Premere il tasto &amp;quot;Link&amp;quot;, quindi inserire il pin indicato all&amp;#39;indirizzo http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Selezionare i provider di eliminare il file da.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Gli utenti non sono stati sincronizzati come nessuno è stato collegato a plex!
+Si prega di link a plex tramite Desktop sotto impostazioni-&gt; agli utenti di utilizzare questo.!</value>
   </data>
 </root>

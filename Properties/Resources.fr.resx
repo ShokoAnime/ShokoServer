@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Veuillez patienter jusqu'à ce que le processus est terminé</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Sélectionnez dans les fournisseurs que vous souhaitez supprimer</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Supprimer plusieurs fichiers ?</value>
   </data>
@@ -5414,5 +5411,12 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Appuyez sur le bouton &amp;quot;Link&amp;quot;, puis entrez la broche fournie à http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Sélectionner les fournisseurs de supprimer le fichier de. !</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Aucun utilisateur ont été synchronisés car personne n’a été lié à plex !
+S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilisateurs d’utiliser cela. !</value>
   </data>
 </root>

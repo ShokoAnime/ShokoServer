@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Bitte warten Sie bis der Vorgang abgeschlossen ist</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Wählen Sie, welche Anbieter Sie löschen möchten</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Löschen mehrere Dateien?</value>
   </data>
@@ -5414,5 +5411,12 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Drücken Sie die &amp;quot;Link&amp;quot; -Taste, und geben Sie dann den mitgelieferten Pin unter http://plex.tv/pin ein!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Wählen Sie den Anbieter löschen die Datei aus.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Da niemand mit Plex verbunden war, wurden keine Benutzer synchronisiert!
+Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, dieses zu verwenden.!</value>
   </data>
 </root>

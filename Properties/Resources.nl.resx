@@ -1062,9 +1062,6 @@
   <data name="DeleteFiles_Wait" xml:space="preserve">
     <value>Wacht tot het proces voltooid is</value>
   </data>
-  <data name="DeleteFile_Confirm" xml:space="preserve">
-    <value>Selecteer in welke aanbieders u verwijderen wilt</value>
-  </data>
   <data name="DeleteFile_Multiple" xml:space="preserve">
     <value>Verwijderen van meerdere bestanden?</value>
   </data>
@@ -5414,5 +5411,12 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   </data>
   <data name="Plex_UsageMessage" xml:space="preserve">
     <value>Druk op de knop &amp;quot;Link&amp;quot; en voer de meegeleverde pin in op http://plex.tv/pin!</value>
+  </data>
+  <data name="DeleteFile_Confirm" xml:space="preserve">
+    <value>Selecteer de providers voor wegvagen naar de vijl van.!</value>
+  </data>
+  <data name="Plex_NoneAuthenticated" xml:space="preserve">
+    <value>Geen gebruikers werden gesynchroniseerd als niemand werd verbonden met plex!
+Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers gebruiken dit.!</value>
   </data>
 </root>
