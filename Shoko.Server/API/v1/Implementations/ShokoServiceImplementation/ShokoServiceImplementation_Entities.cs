@@ -3774,10 +3774,23 @@ namespace Shoko.Server
                     foreach (SVR_ImportFolder imf in allFolders)
                     {
                         if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
-                            (contract.ImportFolderID == 0 || (contract.ImportFolderID != imf.ImportFolderID)))
+                            (contract.ImportFolderID == 0 || contract.ImportFolderID != imf.ImportFolderID))
                         {
                             imf.IsDropDestination = 0;
                             RepoFactory.ImportFolder.Save(imf);
+                        }
+                        else if (imf.CloudID != contract.CloudID)
+                        {
+                            if (contract.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            {
+                                response.ErrorMessage = "A drop folders cannot have different file systems";
+                                return response;
+                            }
+                            if (contract.IsDropDestination == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            {
+                                response.ErrorMessage = "A drop folders cannot have different file systems";
+                                return response;
+                            }
                         }
                     }
                 }

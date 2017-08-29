@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pri.LongPath;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
@@ -33,8 +34,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc ||
-                                                    a.ImportFolderLocation == importloc);
+            return Cache.Values.FirstOrDefault(a =>
+                a.ImportFolderLocation?.Replace(Path.DirectorySeparatorChar, '').TrimEnd(Path.DirectorySeparatorChar)
+                    .Equals(importloc?.Replace(Path.DirectorySeparatorChar, '').TrimEnd(Path.DirectorySeparatorChar),
+                        StringComparison.InvariantCultureIgnoreCase) ?? false);
         }
 
         public List<SVR_ImportFolder> GetByCloudId(int cloudid)
