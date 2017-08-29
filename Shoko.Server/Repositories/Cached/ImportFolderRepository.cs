@@ -35,8 +35,11 @@ namespace Shoko.Server.Repositories.Cached
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
             return Cache.Values.FirstOrDefault(a =>
-                a.ImportFolderLocation?.Replace(Path.DirectorySeparatorChar, '').TrimEnd(Path.DirectorySeparatorChar)
-                    .Equals(importloc?.Replace(Path.DirectorySeparatorChar, '').TrimEnd(Path.DirectorySeparatorChar),
+                a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
+                    .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
+                    .Equals(
+                        importloc?.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar)
+                            .TrimEnd(Path.DirectorySeparatorChar),
                         StringComparison.InvariantCultureIgnoreCase) ?? false);
         }
 
