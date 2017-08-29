@@ -692,7 +692,7 @@ namespace Shoko.Server.Providers.TraktTV
         /// <param name="forceRefresh"></param>
         public static void UpdateAllInfo(string traktID, bool forceRefresh)
         {
-            // This needs done
+            GetShowInfoV2(traktID);
         }
 
         #region Send Data to Trakt
