@@ -72,12 +72,12 @@ namespace Shoko.UI.Forms
             if (comboProvider.SelectedIndex == 0)
             {
                 importFldr.CloudID = null;
-                chkIsWatched.IsEnabled = false;
+                chkIsWatched.IsEnabled = true;
             }
             else
             {
                 importFldr.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
-                chkIsWatched.IsEnabled = true;
+                chkIsWatched.IsEnabled = false;
             }
         }
 
