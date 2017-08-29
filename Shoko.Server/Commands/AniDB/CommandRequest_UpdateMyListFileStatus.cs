@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
@@ -34,7 +35,7 @@ namespace Shoko.Server.Commands
                 return new QueueStateStruct()
                 {
                     queueState = QueueStateEnum.UpdateMyListInfo,
-                    extraParams = new string[] {FullFileName}
+                    extraParams = new[] {FullFileName}
                 };
             }
         }
@@ -54,6 +55,7 @@ namespace Shoko.Server.Commands
             this.WatchedDateAsSecs = watchedDateSecs;
 
             GenerateCommandID();
+            this.FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
         public override void ProcessCommand()
@@ -150,6 +152,7 @@ namespace Shoko.Server.Commands
                         TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
                         out int dateSecs))
                     WatchedDateAsSecs = dateSecs;
+                this.FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
             }
 
             if (this.Hash.Trim().Length > 0)
