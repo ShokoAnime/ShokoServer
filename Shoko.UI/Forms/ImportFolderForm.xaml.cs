@@ -153,7 +153,6 @@ namespace Shoko.UI.Forms
                     MessageBox.Show(response.ErrorMessage, Shoko.Commons.Properties.Resources.Error,
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
-                    importFldr = null;
                     return;
                 }
                 importFldr = null;
