@@ -155,8 +155,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(episode.GetFullImagePath())) File.Delete(episode.GetFullImagePath());
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {episode.GetFullImagePath()} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_Episode, true);
@@ -169,8 +170,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(fanart.GetFullImagePath())) File.Delete(fanart.GetFullImagePath());
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {fanart.GetFullImagePath()} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_FanArt, true);
@@ -183,8 +185,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(poster.GetFullImagePath())) File.Delete(poster.GetFullImagePath());
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {poster.GetFullImagePath()} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_Cover, true);
@@ -197,8 +200,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(wideBanner.GetFullImagePath())) File.Delete(wideBanner.GetFullImagePath());
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {wideBanner.GetFullImagePath()} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_Banner, true);
@@ -211,8 +215,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(moviePoster.GetFullImagePath())) File.Delete(moviePoster.GetFullImagePath());
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {moviePoster.GetFullImagePath()} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.MovieDB_Poster, true);
@@ -225,8 +230,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(movieFanart.GetFullImagePath())) File.Delete(movieFanart.GetFullImagePath());
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {movieFanart.GetFullImagePath()} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.MovieDB_FanArt, true);
@@ -238,8 +244,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(coverpath)) File.Delete(coverpath);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {coverpath} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.AniDB_Cover, true);
@@ -251,8 +258,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(creatorpath)) File.Delete(creatorpath);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {creatorpath} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.AniDB_Creator, true);
@@ -264,8 +272,9 @@ namespace Shoko.Server.Commands
                     {
                         if (File.Exists(characterpath)) File.Delete(characterpath);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        logger.Error($"Unable to delete {characterpath} - {e.Message}");
                     }
 
                     cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.AniDB_Character, true);

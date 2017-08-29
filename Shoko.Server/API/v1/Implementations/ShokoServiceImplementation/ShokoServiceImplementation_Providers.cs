@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -57,7 +58,7 @@ namespace Shoko.Server
 
 
                     // TvDB
-                    foreach (CrossRef_AniDB_TvDBV2 xref in anime.GetCrossRefTvDBV2())
+                    foreach (CrossRef_AniDB_TvDBV2 xref in anime.GetCrossRefTvDBV2().DistinctBy(a => a.TvDBID).ToList())
                     {
                         result.CrossRef_AniDB_TvDB.Add(xref);
 
