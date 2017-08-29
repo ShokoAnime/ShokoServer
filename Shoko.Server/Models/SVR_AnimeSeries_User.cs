@@ -5,6 +5,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
+using System;
 
 namespace Shoko.Server.Models
 {
@@ -22,13 +23,20 @@ namespace Shoko.Server.Models
 
 
         private Video _plexcontract = null;
+        private DateTime _lastPlexRegen = DateTime.MinValue;
+        private Video _plexCache = null;
 
         public virtual Video PlexContract
         {
             get
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
-                return Shoko.Server.PlexAndKodi.Helper.GenerateFromSeries(ser.GetUserContract(JMMUserID), ser, ser.GetAnime(), JMMUserID);
+                if (_plexCache == null || _lastPlexRegen.Add(Constants.ContractLifespan) > DateTime.Now)
+                {
+                    _lastPlexRegen = DateTime.Now;
+                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+                    return _plexCache = PlexAndKodi.Helper.GenerateFromSeries(ser.GetUserContract(JMMUserID), ser, ser.GetAnime(), JMMUserID);
+                }
+                return _plexCache;
             }
             set
             {
