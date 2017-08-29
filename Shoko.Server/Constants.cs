@@ -11,6 +11,8 @@
         public static readonly int ForceLogoutPeriod = 300;
         public static readonly int PingFrequency = 45;
 
+        public static readonly System.TimeSpan ContractLifespan = System.TimeSpan.FromHours(2);
+
 
         public static readonly string NO_GROUP_INFO = "NO GROUP INFO";
         public static readonly string NO_SOURCE_INFO = "NO SOURCE INFO";

@@ -33,15 +33,19 @@ namespace Shoko.Server.Models
 
         private Video _plexcontract = null;
 
+        private DateTime _lastPlexRegen = DateTime.MinValue;
+        private Video _plexCache = null;
 
         public virtual Video PlexContract
         {
             get
             {
-                if ((_plexcontract == null) && (PlexContractBlob != null) && (PlexContractBlob.Length > 0) &&
-                    (PlexContractSize > 0))
-                    _plexcontract = CompressionHelper.DeserializeObject<Video>(PlexContractBlob, PlexContractSize);
-                return _plexcontract;
+                if (_plexCache == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
+                {
+                    _lastPlexRegen = DateTime.Now;
+                    return _plexCache = PlexAndKodi.Helper.GenerateVideoFromAnimeEpisode(this);
+                }
+                return _plexCache;
             }
             set
             {
