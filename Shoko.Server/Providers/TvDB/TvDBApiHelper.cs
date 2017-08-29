@@ -420,11 +420,13 @@ namespace Shoko.Server.Providers.TvDB
             {
                 Image[] images = await GetSeriesImagesAsync(seriesID, KeyType.Fanart);
 
+                int count = 0;
                 foreach (Image image in images)
                 {
                     int id = image.Id ?? 0;
                     if (id == 0) { continue; }
 
+                    if (count >= ServerSettings.TvDB_AutoFanartAmount) break;
                     TvDB_ImageFanart img = RepoFactory.TvDB_ImageFanart.GetByTvDBID(id);
 
                     if (img == null)
@@ -440,6 +442,7 @@ namespace Shoko.Server.Providers.TvDB
                     RepoFactory.TvDB_ImageFanart.Save(img);
                     tvImages.Add(img);
                     validIDs.Add(id);
+                    count++;
                 }
 
                 // delete any images from the database which are no longer valid
@@ -488,11 +491,13 @@ namespace Shoko.Server.Providers.TvDB
 
                 Image[] images = posters.Concat(season).ToArray();
 
+                int count = 0;
                 foreach (Image image in images)
                 {
                     int id = image.Id ?? 0;
                     if (id == 0) { continue; }
 
+                    if (count >= ServerSettings.TvDB_AutoPostersAmount) break;
                     TvDB_ImagePoster img = RepoFactory.TvDB_ImagePoster.GetByTvDBID(id) ?? new TvDB_ImagePoster()
                     {
                         Enabled = 1
@@ -503,6 +508,7 @@ namespace Shoko.Server.Providers.TvDB
                     RepoFactory.TvDB_ImagePoster.Save(img);
                     validIDs.Add(id);
                     tvImages.Add(img);
+                    count++;
                 }
 
                 // delete any images from the database which are no longer valid
@@ -553,11 +559,13 @@ namespace Shoko.Server.Providers.TvDB
 
                 Image[] images = season.Concat(series).ToArray();
 
+                int count = 0;
                 foreach (Image image in images)
                 {
                     int id = image.Id ?? 0;
                     if (id == 0) { continue; }
 
+                    if (count >= ServerSettings.TvDB_AutoWideBannersAmount) break;
                     TvDB_ImageWideBanner img = RepoFactory.TvDB_ImageWideBanner.GetByTvDBID(id) ?? new TvDB_ImageWideBanner
                     {
                         Enabled = 1
@@ -568,6 +576,7 @@ namespace Shoko.Server.Providers.TvDB
                     RepoFactory.TvDB_ImageWideBanner.Save(img);
                     validIDs.Add(id);
                     tvImages.Add(img);
+                    count++;
                 }
 
                 // delete any images from the database which are no longer valid

@@ -2,17 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
-using System.Web;
 using System.Xml;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
-using Shoko.Server.Repositories.Direct;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -20,6 +15,9 @@ using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
+using Directory = Pri.LongPath.Directory;
+using File = Pri.LongPath.File;
+using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {
