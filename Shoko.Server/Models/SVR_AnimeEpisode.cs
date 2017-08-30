@@ -9,6 +9,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.LZ4;
 using NHibernate;
+using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -30,35 +31,30 @@ namespace Shoko.Server.Models
 
         public const int PLEXCONTRACT_VERSION = 6;
 
-
-        private Video _plexcontract = null;
-
         private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexCache = null;
+        private Video _plexContract = null;
 
         public virtual Video PlexContract
         {
             get
             {
-                if (_plexCache == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
+                if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    return _plexCache = PlexAndKodi.Helper.GenerateVideoFromAnimeEpisode(this);
+                    return _plexContract = Helper.GenerateVideoFromAnimeEpisode(this);
                 }
-                return _plexCache;
+                return _plexContract;
             }
             set
             {
-                _plexcontract = value;
-                PlexContractBlob = CompressionHelper.SerializeObject(value, out int outsize, true);
-                PlexContractSize = outsize;
-                PlexContractVersion = PLEXCONTRACT_VERSION;
+                _plexContract = value;
+                _lastPlexRegen = DateTime.Now;
             }
         }
 
         public void CollectContractMemory()
         {
-            _plexcontract = null;
+            _plexContract = null;
         }
 
 
