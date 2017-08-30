@@ -37,17 +37,6 @@ namespace Shoko.Server.Tasks
                     return pb;
                 });
             });
-            ContractExtractors.Add("AnimeEpisode", (sw, za) =>
-            {
-                ExtractContracts<SVR_AnimeEpisode, Video>(sw, za, pb =>
-                {
-                    pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode>("AnimeEpisode\\s", a => a.AnimeSeriesID, "_e",
-                        a => a.AnimeEpisodeID));
-                    pb.Select(s => s.PlexContractSize);
-                    pb.Select(s => s.PlexContractBlob);
-                    return pb;
-                });
-            });
             ContractExtractors.Add("AnimeEpisode_User", (sw, za) =>
             {
                 ExtractContracts<SVR_AnimeEpisode_User, CL_AnimeEpisode_User>(sw, za, pb =>
@@ -69,17 +58,6 @@ namespace Shoko.Server.Tasks
                     return pb;
                 });
             });
-            ContractExtractors.Add("AnimeGroup_User", (sw, za) =>
-            {
-                ExtractContracts<SVR_AnimeGroup_User, Video>(sw, za, pb =>
-                {
-                    pb.Select(CreateEntryNameProjection<SVR_AnimeGroup_User>("AnimeGroup_User\\u", a => a.JMMUserID,
-                        "\\g", a => a.AnimeGroupID));
-                    pb.Select(s => s.PlexContractSize);
-                    pb.Select(s => s.PlexContractBlob);
-                    return pb;
-                });
-            });
             ContractExtractors.Add("AnimeSeries", (sw, za) =>
             {
                 ExtractContracts<SVR_AnimeSeries, CL_AnimeSeries_User>(sw, za, pb =>
@@ -88,17 +66,6 @@ namespace Shoko.Server.Tasks
                         a => a.AnimeSeriesID));
                     pb.Select(s => s.ContractSize);
                     pb.Select(s => s.ContractBlob);
-                    return pb;
-                });
-            });
-            ContractExtractors.Add("AnimeSeries_User", (sw, za) =>
-            {
-                ExtractContracts<SVR_AnimeSeries_User, Video>(sw, za, pb =>
-                {
-                    pb.Select(CreateEntryNameProjection<SVR_AnimeSeries_User>("AnimeSeries_User\\u", a => a.JMMUserID,
-                        "\\s", a => a.AnimeSeriesID));
-                    pb.Select(s => s.PlexContractSize);
-                    pb.Select(s => s.PlexContractBlob);
                     return pb;
                 });
             });

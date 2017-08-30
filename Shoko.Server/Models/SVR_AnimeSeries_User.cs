@@ -16,12 +16,6 @@ namespace Shoko.Server.Models
         {
         }
 
-        public int PlexContractVersion { get; set; }
-        public byte[] PlexContractBlob { get; set; }
-        public int PlexContractSize { get; set; }
-
-        public const int PLEXCONTRACT_VERSION = 6;
-
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract = null;
 
