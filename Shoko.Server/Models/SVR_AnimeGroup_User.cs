@@ -20,16 +20,6 @@ namespace Shoko.Server.Models
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        #region DB Columns
-
-        public int PlexContractVersion { get; set; }
-        public byte[] PlexContractBlob { get; set; }
-        public int PlexContractSize { get; set; }
-
-        #endregion
-
-        public const int PLEXCONTRACT_VERSION = 6;
-
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract = null;
 
