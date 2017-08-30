@@ -18,12 +18,12 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.Azure
 {
-    public class AzureWebAPI
+    public static class AzureWebAPI
     {
         private static readonly string azureHostBaseAddress = "jmm.azurewebsites.net";
         //private static readonly string azureHostBaseAddress = "localhost:50994";
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         #region TvDB
 
@@ -50,7 +50,7 @@ namespace Shoko.Server.Providers.Azure
                 }&p7={ServerSettings.WebCacheAuthKey}";
 
 
-            string json = DeleteDataJson(uri);
+            DeleteDataJson(uri);
         }
 
         public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
@@ -166,7 +166,7 @@ namespace Shoko.Server.Providers.Azure
                 }&p7={ServerSettings.WebCacheAuthKey}";
 
 
-            string json = DeleteDataJson(uri);
+            DeleteDataJson(uri);
         }
 
         #endregion
@@ -238,7 +238,7 @@ namespace Shoko.Server.Providers.Azure
                 }&p3={epNumber}";
 
 
-            string json = DeleteDataJson(uri);
+            DeleteDataJson(uri);
         }
 
         #endregion
@@ -309,7 +309,7 @@ namespace Shoko.Server.Providers.Azure
                 $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other/{animeID}?p={username}&p2={(int) xrefType}";
 
 
-            string json = DeleteDataJson(uri);
+            DeleteDataJson(uri);
         }
 
         #endregion
@@ -373,7 +373,7 @@ namespace Shoko.Server.Providers.Azure
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode/{hash}?p={username}";
 
 
-            string json = DeleteDataJson(uri);
+            DeleteDataJson(uri);
         }
 
         #endregion
@@ -395,15 +395,11 @@ namespace Shoko.Server.Providers.Azure
                 string xml = GetDataXML(uri);
 
                 // remove the string container
-                int iStart = xml.IndexOf("<?xml");
+                int iStart = xml.IndexOf("<?xml", StringComparison.Ordinal);
                 if (iStart > 0)
                 {
-                    string end = "</string>";
-                    int iEnd = xml.IndexOf(end);
-                    if (iEnd > 0)
-                    {
-                        xml = xml.Substring(iStart, iEnd - iStart - 1);
-                    }
+                    int iEnd = xml.IndexOf("</string>", StringComparison.Ordinal);
+                    if (iEnd > 0) xml = xml.Substring(iStart, iEnd - iStart - 1);
                 }
 
                 TimeSpan ts = DateTime.Now - start;
@@ -538,8 +534,7 @@ namespace Shoko.Server.Providers.Azure
                 req.Proxy = null;
 
                 // Wrap the request stream with a text-based writer
-                Encoding encoding = null;
-                encoding = Encoding.UTF8;
+                var encoding = Encoding.UTF8;
 
                 StreamWriter writer = new StreamWriter(req.GetRequestStream(), encoding);
                 // Write the XML text into the stream
@@ -562,10 +557,6 @@ namespace Shoko.Server.Providers.Azure
                             logger.Error("HTTP Status Code: " + (int) response.StatusCode);
                         ret = response.StatusCode.ToString();
                     }
-                    else
-                    {
-                        // no http status code available
-                    }
                 }
                 if (!uri.Contains("Admin"))
                     logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
@@ -587,8 +578,6 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                DateTime start = DateTime.Now;
-
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
                 webReq.Timeout = 30000; // 30 seconds
                 webReq.Proxy = null;
@@ -597,20 +586,20 @@ namespace Shoko.Server.Providers.Azure
                 webReq.ContentType = "application/json; charset=UTF-8"; // content type
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
 
-                HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse();
+                using (HttpWebResponse webResponse = (HttpWebResponse) webReq.GetResponse())
+                {
+                    using (Stream responseStream = webResponse.GetResponseStream())
+                    {
+                        if (responseStream == null) return string.Empty;
+                        Encoding encoding = Encoding.UTF8;
+                        StreamReader Reader = new StreamReader(responseStream, encoding);
 
-                Stream responseStream = WebResponse.GetResponseStream();
-                Encoding encoding = Encoding.UTF8;
-                StreamReader Reader = new StreamReader(responseStream, encoding);
+                        string output = Reader.ReadToEnd();
+                        output = HttpUtility.HtmlDecode(output);
 
-                string output = Reader.ReadToEnd();
-                output = HttpUtility.HtmlDecode(output);
-
-
-                WebResponse.Close();
-                responseStream.Close();
-
-                return output;
+                        return output;
+                    }
+                }
             }
             catch (WebException webEx)
             {
@@ -621,15 +610,14 @@ namespace Shoko.Server.Providers.Azure
                 logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
             }
 
-            return "";
+            return string.Empty;
         }
 
+        // ReSharper disable once UnusedMethodReturnValue.Local
         private static string DeleteDataJson(string uri)
         {
             try
             {
-                DateTime start = DateTime.Now;
-
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
                 webReq.Timeout = 30000; // 30 seconds
                 webReq.Proxy = null;
@@ -638,20 +626,20 @@ namespace Shoko.Server.Providers.Azure
                 webReq.ContentType = "application/json; charset=UTF-8"; // content type
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
 
-                HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse();
+                using (HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse())
+                {
+                    using (Stream responseStream = WebResponse.GetResponseStream())
+                    {
+                        if (responseStream == null) return string.Empty;
+                        Encoding encoding = Encoding.UTF8;
+                        StreamReader Reader = new StreamReader(responseStream, encoding);
 
-                Stream responseStream = WebResponse.GetResponseStream();
-                Encoding encoding = Encoding.UTF8;
-                StreamReader Reader = new StreamReader(responseStream, encoding);
+                        string output = Reader.ReadToEnd();
+                        output = HttpUtility.HtmlDecode(output);
 
-                string output = Reader.ReadToEnd();
-                output = HttpUtility.HtmlDecode(output);
-
-
-                WebResponse.Close();
-                responseStream.Close();
-
-                return output;
+                        return output;
+                    }
+                }
             }
             catch (WebException webEx)
             {
@@ -662,15 +650,13 @@ namespace Shoko.Server.Providers.Azure
                 logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
             }
 
-            return "";
+            return string.Empty;
         }
 
         private static string GetDataXML(string uri)
         {
             try
             {
-                DateTime start = DateTime.Now;
-
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
                 webReq.Timeout = 30000; // 30 seconds
                 webReq.Proxy = null;
@@ -711,7 +697,7 @@ namespace Shoko.Server.Providers.Azure
             return string.Empty;
         }
 
-        public static Azure_UserInfo GetUserInfoData(string dashType = "", string vidPlayer = "")
+        public static Azure_UserInfo GetUserInfoData(string vidPlayer = "")
         {
             try
             {
@@ -733,6 +719,7 @@ namespace Shoko.Server.Providers.Azure
                 }
                 catch
                 {
+                    // ignored
                 }
 
                 uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.AniDB_Username);
@@ -741,7 +728,7 @@ namespace Shoko.Server.Providers.Azure
                 uinfo.TraktEnabled = ServerSettings.Trakt_IsEnabled ? 1 : 0;
                 uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
 
-                uinfo.CountryLocation = "";
+                uinfo.CountryLocation = string.Empty;
 
                 // this field is not actually used
                 uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
@@ -798,7 +785,6 @@ namespace Shoko.Server.Providers.Azure
                     $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{animeID}?p={username}&p2={
                             ServerSettings.WebCacheAuthKey
                         }";
-                string msg = $"Getting AniDB/TvDB Cross Ref From Cache: {animeID}";
 
                 string json = GetDataJson(uri);
 
@@ -881,7 +867,6 @@ namespace Shoko.Server.Providers.Azure
                     $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{animeID}?p={username}&p2={
                             ServerSettings.WebCacheAuthKey
                         }";
-                string msg = $"Getting AniDB/Trakt Cross Ref From Cache: {animeID}";
 
                 string json = GetDataJson(uri);
 
@@ -951,6 +936,7 @@ namespace Shoko.Server.Providers.Azure
 
         #region File Hashes
 
+        // ReSharper disable once UnusedMember.Global
         public static void Send_FileHash(List<SVR_AniDB_File> aniFiles)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
@@ -1039,8 +1025,7 @@ namespace Shoko.Server.Providers.Azure
                     msg = $"Got File Hash From Cache: {hashDetails} - {ts.TotalMilliseconds}";
                     ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-                    return JSONHelper.Deserialize<List<Azure_FileHash>>(json) ??
-                           new List<Azure_FileHash>();
+                    return JSONHelper.Deserialize<List<Azure_FileHash>>(json);
                 }
                 catch
                 {
@@ -1048,10 +1033,7 @@ namespace Shoko.Server.Providers.Azure
                 }
             });
 
-            if (await Task.WhenAny(task, Task.Delay(30000)) == task)
-            {
-                return await task;
-            }
+            if (await Task.WhenAny(task, Task.Delay(30000)) == task) return await task;
             return await Task.FromResult(new List<Azure_FileHash>());
         }
 
@@ -1084,7 +1066,7 @@ namespace Shoko.Server.Providers.Azure
                 }
             }
 
-            if (inputs.Count > 0)
+            if (inputs.Count <= 0)
             {
                 string json = JSONHelper.Serialize(inputs);
                 SendData(uri, json, "POST");
