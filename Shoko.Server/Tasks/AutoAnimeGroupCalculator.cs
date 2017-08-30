@@ -72,7 +72,7 @@ namespace Shoko.Server.Tasks
                 ? MainAnimeSelectionStrategy.Weighted
                 : MainAnimeSelectionStrategy.MinAirDate;
 
-            if (!String.IsNullOrEmpty(exclusionsSetting))
+            if (!string.IsNullOrEmpty(exclusionsSetting))
             {
                 var exclusionTokens = exclusionsSetting
                     .Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
@@ -84,7 +84,7 @@ namespace Shoko.Server.Tasks
                     .Select(s =>
                     {
 
-                        s = s.Replace(" ", String.Empty);
+                        s = s.Replace(" ", string.Empty);
                         Enum.TryParse(s, true, out AutoGroupExclude exclude);
 
                         return exclude;
@@ -463,7 +463,7 @@ namespace Shoko.Server.Tasks
         private static string[] CreateTokensFromTitle(string title)
         {
             title = title.Replace('-', ' ');
-            title = TitleNoiseRegex.Replace(title, String.Empty);
+            title = TitleNoiseRegex.Replace(title, string.Empty);
 
             return title.Split(Whitespace, StringSplitOptions.RemoveEmptyEntries);
         }
