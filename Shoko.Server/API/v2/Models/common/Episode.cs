@@ -54,61 +54,58 @@ namespace Shoko.Server.API.v2.Models.common
         internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level)
         {
             Episode ep = new Episode();
-            if (aep != null)
+            CL_AnimeEpisode_User cae = aep?.GetUserContract(uid);
+            if (cae != null)
             {
-                CL_AnimeEpisode_User cae = aep.GetUserContract(uid);
-                if (cae != null)
+                ep.id = aep.AnimeEpisodeID;
+                ep.art = new ArtCollection();
+                ep.name = aep.PlexContract?.Title;
+                ep.summary = aep.PlexContract?.Summary;
+                ep.year = aep.PlexContract?.Year;
+                ep.air = aep.PlexContract?.AirDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                ep.votes = cae.AniDB_Votes;
+                ep.rating = aep.PlexContract?.Rating;
+                ep.userrating = aep.PlexContract?.UserRating;
+                if (double.TryParse(ep.rating, out double rating))
                 {
-                    ep.id = aep.AnimeEpisodeID;
-                    ep.art = new ArtCollection();
-                    ep.name = aep.PlexContract?.Title;
-                    ep.summary = aep.PlexContract?.Summary;
-                    ep.year = aep.PlexContract?.Year;
-                    ep.air = aep.PlexContract?.AirDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                    ep.votes = cae.AniDB_Votes;
-                    ep.rating = aep.PlexContract?.Rating;
-                    ep.userrating = aep.PlexContract?.UserRating;
-                    if (double.TryParse(ep.rating, out double rating))
+                    // 0.1 should be the absolute lowest rating
+                    if (rating > 10) ep.rating = (rating / 100).ToString(CultureInfo.InvariantCulture);
+                }
+
+                ep.view = cae.IsWatched() ? 1 : 0;
+                ep.epnumber = cae.EpisodeNumber;
+                ep.eptype = aep.EpisodeTypeEnum.ToString();
+
+                ep.season = aep.PlexContract?.Season;
+
+                // until fanart refactor this will be good for start
+                if (aep.PlexContract?.Thumb != null)
+                {
+                    ep.art.thumb.Add(new Art()
                     {
-                        // 0.1 should be the absolute lowest rating
-                        if (rating > 10) ep.rating = (rating / 100).ToString(CultureInfo.InvariantCulture);
-                    }
-
-                    ep.view = cae.IsWatched() ? 1 : 0;
-                    ep.epnumber = cae.EpisodeNumber;
-                    ep.eptype = aep.EpisodeTypeEnum.ToString();
-
-                    ep.season = aep.PlexContract?.Season;
-
-                    // until fanart refactor this will be good for start
-                    if (aep.PlexContract?.Thumb != null)
+                        url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Thumb),
+                        index = 0
+                    });
+                }
+                if (aep.PlexContract?.Art != null)
+                {
+                    ep.art.fanart.Add(new Art()
                     {
-                        ep.art.thumb.Add(new Art()
+                        url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Art),
+                        index = 0
+                    });
+                }
+
+                if (level > 0)
+                {
+                    List<SVR_VideoLocal> vls = aep.GetVideoLocals();
+                    if (vls.Count > 0)
+                    {
+                        ep.files = new List<RawFile>();
+                        foreach (SVR_VideoLocal vl in vls)
                         {
-                            url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Thumb),
-                            index = 0
-                        });
-                    }
-                    if (aep.PlexContract?.Art != null)
-                    {
-                        ep.art.fanart.Add(new Art()
-                        {
-                            url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Art),
-                            index = 0
-                        });
-                    }
-
-                    if (level > 0)
-                    {
-                        List<SVR_VideoLocal> vls = aep.GetVideoLocals();
-                        if (vls.Count > 0)
-                        {
-                            ep.files = new List<RawFile>();
-                            foreach (SVR_VideoLocal vl in vls)
-                            {
-                                RawFile file = new RawFile(ctx, vl, (level - 1), uid);
-                                ep.files.Add(file);
-                            }
+                            RawFile file = new RawFile(ctx, vl, (level - 1), uid);
+                            ep.files.Add(file);
                         }
                     }
                 }
