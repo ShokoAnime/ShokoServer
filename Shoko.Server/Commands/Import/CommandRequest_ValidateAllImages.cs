@@ -22,7 +22,7 @@ namespace Shoko.Server.Commands
         public QueueStateStruct PrettyDescription => new QueueStateStruct()
         {
             queueState = QueueStateEnum.ValidateAllImages,
-            extraParams = new string[] {""}
+            extraParams = new[] {string.Empty}
         };
 
         public CommandRequest_ValidateAllImages()
@@ -41,100 +41,224 @@ namespace Shoko.Server.Commands
                 QueueStateStruct queueState = PrettyDescription;
                 queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBEpisodes};
                 ShokoService.CmdProcessorImages.QueueState = queueState;
-                RepoFactory.TvDB_Episode.GetAll().Where(fanart =>
+                int count = 0;
+                logger.Info("Scanning TvDB Episode thumbs for corrupted images");
+                var episodes = RepoFactory.TvDB_Episode.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
-                        !Misc.IsImageValid(fanart.GetFullImagePath()))
-                    .ForEach(fanart =>
-                        RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Episode, fanart.TvDB_EpisodeID, fanart));
+                        !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
+
+                logger.Info($"Found {episodes.Count} corrupted TvDB Episode {(episodes.Count == 1 ? "thumb" : "thumbs")}");
+                foreach (var fanart in episodes)
+                {
+                    logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                    RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Episode, fanart.TvDB_EpisodeID, fanart);
+                    count++;
+                    if (count % 10 == 0)
+                    {
+                        logger.Info($"Deleting and queueing for redownload {count}/{episodes.Count}");
+                        queueState.extraParams = new[]
+                            {$"{Resources.Command_ValidateAllImages_TvDBEpisodes} - {count}/{episodes.Count}"};
+                        ShokoService.CmdProcessorImages.QueueState = queueState;
+                    }
+                }
 
                 if (ServerSettings.TvDB_AutoFanart)
                 {
+                    count = 0;
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBFanarts};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.TvDB_ImageFanart.GetAll().Where(fanart =>
-                            !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
-                            !Misc.IsImageValid(fanart.GetFullImagePath()))
-                        .ForEach(
-                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.TvDB_FanArt,
-                                fanart.TvDB_ImageFanartID, fanart));
+                    logger.Info("Scanning TvDB Fanarts for corrupted images");
+                    var fanarts = RepoFactory.TvDB_ImageFanart.GetAll().Where(fanart =>
+                        !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
+                        !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
+
+                    logger.Info($"Found {fanarts.Count} corrupted TvDB {(fanarts.Count == 1 ? "Fanart" : "Fanarts")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.TvDB_FanArt, fanart.TvDB_ImageFanartID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_TvDBFanarts} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
 
                 if (ServerSettings.TvDB_AutoPosters)
                 {
+                    count = 0;
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBPosters};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.TvDB_ImagePoster.GetAll().Where(fanart =>
+                    logger.Info("Scanning TvDB Posters for corrupted images");
+                    var fanarts = RepoFactory.TvDB_ImagePoster.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
-                            !Misc.IsImageValid(fanart.GetFullImagePath()))
-                        .ForEach(fanart =>
-                            RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Cover, fanart.TvDB_ImagePosterID,
-                                fanart));
+                            !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
+
+                    logger.Info($"Found {fanarts.Count} corrupted TvDB {(fanarts.Count == 1 ? "Poster" : "Posters")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Cover, fanart.TvDB_ImagePosterID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_TvDBPosters} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
 
                 if (ServerSettings.TvDB_AutoWideBanners)
                 {
+                    count = 0;
+                    logger.Info("Scanning TvDB Banners for corrupted images");
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBBanners};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.TvDB_ImageWideBanner.GetAll()
-                        .Where(fanart =>
-                            !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
-                            !Misc.IsImageValid(fanart.GetFullImagePath()))
-                        .ForEach(
-                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Banner,
-                                fanart.TvDB_ImageWideBannerID, fanart));
+                    var fanarts = RepoFactory.TvDB_ImageWideBanner.GetAll().Where(fanart =>
+                        !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
+                        !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
+
+                    logger.Info($"Found {fanarts.Count} corrupted TvDB {(fanarts.Count == 1 ? "Banner" : "Banners")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Banner, fanart.TvDB_ImageWideBannerID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_TvDBBanners} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
 
                 if (ServerSettings.MovieDB_AutoPosters)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBPosters};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.MovieDB_Poster.GetAll().Where(fanart =>
-                            !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
-                            !Misc.IsImageValid(fanart.GetFullImagePath()))
-                        .ForEach(
-                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_Poster,
-                                fanart.MovieDB_PosterID, fanart));
+                    count = 0;
+                    logger.Info("Scanning MovieDB Posters for corrupted images");
+                    var fanarts = RepoFactory.MovieDB_Poster.GetAll().Where(fanart =>
+                        !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
+                        !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
+
+                    logger.Info($"Found {fanarts.Count} corrupted MovieDB {(fanarts.Count == 1 ? "Poster" : "Posters")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_Poster, fanart.MovieDB_PosterID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_MovieDBPosters} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
 
                 if (ServerSettings.MovieDB_AutoFanart)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBFanarts};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.MovieDB_Fanart.GetAll().Where(fanart =>
+                    count = 0;
+                    logger.Info("Scanning MovieDB Fanarts for corrupted images");
+                    var fanarts = RepoFactory.MovieDB_Fanart.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
-                            !Misc.IsImageValid(fanart.GetFullImagePath()))
-                        .ForEach(
-                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_FanArt,
-                                fanart.MovieDB_FanartID, fanart));
+                            !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
+                    logger.Info($"Found {fanarts.Count} corrupted MovieDB {(fanarts.Count == 1 ? "Fanart" : "Fanarts")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_FanArt, fanart.MovieDB_FanartID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_MovieDBFanarts} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
 
                 queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBPosters};
                 ShokoService.CmdProcessorImages.QueueState = queueState;
-                RepoFactory.AniDB_Anime.GetAll().Where(fanart =>
-                        !string.IsNullOrEmpty(fanart.PosterPath) && !Misc.IsImageValid(fanart.PosterPath))
-                    .ForEach(fanart =>
-                        RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Cover, fanart.AnimeID, fanart));
+                count = 0;
+                logger.Info("Scanning AniDB Posters for corrupted images");
+                var posters = RepoFactory.AniDB_Anime.GetAll().Where(fanart =>
+                        !string.IsNullOrEmpty(fanart.PosterPath) && !Misc.IsImageValid(fanart.PosterPath)).ToList();
+                logger.Info($"Found {posters.Count} corrupted AniDB {(posters.Count == 1 ? "Poster" : "Posters")}");
+                foreach (var fanart in posters)
+                {
+                    logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.PosterPath}");
+                    RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Cover, fanart.AnimeID, fanart);
+                    count++;
+                    if (count % 10 == 0)
+                    {
+                        logger.Info($"Deleting and queueing for redownload {count}/{posters.Count}");
+                        queueState.extraParams = new[]
+                            {$"{Resources.Command_ValidateAllImages_AniDBPosters} - {count}/{posters.Count}"};
+                        ShokoService.CmdProcessorImages.QueueState = queueState;
+                    }
+                }
 
                 if (ServerSettings.AniDB_DownloadCharacters)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBCharacters};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.AniDB_Character.GetAll().Where(fanart =>
+                    count = 0;
+                    logger.Info("Scanning AniDB Characters for corrupted images");
+                    var fanarts = RepoFactory.AniDB_Character.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath()))
-                        .ForEach(fanart => RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Character,
-                            fanart.AniDB_CharacterID, fanart));
+                        .ToList();
+                    logger.Info($"Found {fanarts.Count} corrupted AniDB Character {(fanarts.Count == 1 ? "image" : "images")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetPosterPath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Character, fanart.AniDB_CharacterID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_AniDBCharacters} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
 
                 if (ServerSettings.AniDB_DownloadCreators)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBSeiyuus};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    RepoFactory.AniDB_Seiyuu.GetAll()
-                        .Where(fanart =>
-                            !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath()))
-                        .ForEach(
-                            fanart => RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Creator, fanart.SeiyuuID,
-                                fanart));
+                    count = 0;
+                    logger.Info("Scanning AniDB Seiyuus for corrupted images");
+                    var fanarts = RepoFactory.AniDB_Seiyuu.GetAll().Where(fanart =>
+                        !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath())).ToList();
+                    logger.Info($"Found {fanarts.Count} corrupted AniDB Seiyuu {(fanarts.Count == 1 ? "image" : "images")}");
+                    foreach (var fanart in fanarts)
+                    {
+                        logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetPosterPath()}");
+                        RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Creator, fanart.SeiyuuID, fanart);
+                        count++;
+                        if (count % 10 == 0)
+                        {
+                            logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            queueState.extraParams = new[]
+                                {$"{Resources.Command_ValidateAllImages_AniDBSeiyuus} - {count}/{fanarts.Count}"};
+                            ShokoService.CmdProcessorImages.QueueState = queueState;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
