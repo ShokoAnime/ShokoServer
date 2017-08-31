@@ -5421,4 +5421,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
     <value>No users were synced as nobody was linked to plex!
 Please link to plex via Desktop under settings -&gt;users to use this.</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>The group name will be generated from the anime title preferences.</value>
+  </data>
 </root>

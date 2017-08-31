@@ -5419,4 +5419,7 @@
     <value>Sem usuários estavam sincronizados como ninguém estava ligado ao plex!
 Por favor link para plex através do Desktop em configurações-&gt; usuários para usar isso.!</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>O nome do grupo será gerado a partir das preferências de título do anime.</value>
+  </data>
 </root>

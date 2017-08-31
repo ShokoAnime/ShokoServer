@@ -5419,4 +5419,7 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
     <value>Da niemand mit Plex verbunden war, wurden keine Benutzer synchronisiert!
 Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, dieses zu verwenden.!</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>Der Gruppenname wird aus der Anime-Titel-Einstellungen generiert werden.</value>
+  </data>
 </root>

@@ -5419,4 +5419,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
     <value>Gli utenti non sono stati sincronizzati come nessuno è stato collegato a plex!
 Si prega di link a plex tramite Desktop sotto impostazioni-&gt; agli utenti di utilizzare questo.!</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>Il nome del gruppo verrà generato dalle preferenze di titolo dell'anime.</value>
+  </data>
 </root>

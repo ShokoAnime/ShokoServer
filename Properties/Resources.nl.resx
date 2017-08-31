@@ -5419,4 +5419,7 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
     <value>Geen gebruikers werden gesynchroniseerd als niemand werd verbonden met plex!
 Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers gebruiken dit.!</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>De groepsnaam van de zal worden gegenereerd uit de anime titel voorkeuren.</value>
+  </data>
 </root>

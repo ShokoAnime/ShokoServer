@@ -5419,4 +5419,7 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
     <value>Ningún usuario fueron sincronizado como nadie estaba vinculado a plex!
 Por favor enlace a plex via Desktop bajo configuración-&gt; usuarios utilizar este.!</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>Se genera el nombre del grupo de las preferencias de título de anime.</value>
+  </data>
 </root>

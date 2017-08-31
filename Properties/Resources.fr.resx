@@ -5419,4 +5419,7 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
     <value>Aucun utilisateur ont été synchronisés car personne n’a été lié à plex !
 S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilisateurs d’utiliser cela. !</value>
   </data>
+  <data name="NewSeries_NameInfo" xml:space="preserve">
+    <value>Le nom du groupe sera généré dans les préférences de titre anime.</value>
+  </data>
 </root>
