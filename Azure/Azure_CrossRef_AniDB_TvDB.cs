@@ -15,6 +15,5 @@ namespace Shoko.Models.Azure
         public string Username { get; set; }
         public int IsAdminApproved { get; set; }
         public long DateSubmitted { get; set; }
-     
     }
 }

@@ -9,7 +9,5 @@ namespace Shoko.Models.Azure
         public int Version { get; set; }
         public string Username { get; set; }
         public string AuthGUID { get; set; }
-
-     
     }
 }

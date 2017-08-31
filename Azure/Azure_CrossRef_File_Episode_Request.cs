@@ -10,7 +10,5 @@ namespace Shoko.Models.Azure
         public int Percentage { get; set; }
         public int EpisodeOrder { get; set; }
         public string Username { get; set; }
-
-     
     }
 }
