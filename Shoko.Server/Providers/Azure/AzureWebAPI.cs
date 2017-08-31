@@ -87,7 +87,7 @@ namespace Shoko.Server.Providers.Azure
 
                 List<Azure_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_TvDB>>(json);
 
-                return xrefs;
+                return xrefs ?? new List<Azure_CrossRef_AniDB_TvDB>();
             }
             catch
             {
@@ -121,7 +121,7 @@ namespace Shoko.Server.Providers.Azure
 
                 List<Azure_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_Trakt>>(json);
 
-                return xrefs;
+                return xrefs ?? new List<Azure_CrossRef_AniDB_Trakt>();
             }
             catch
             {
@@ -342,7 +342,7 @@ namespace Shoko.Server.Providers.Azure
                 List<Azure_CrossRef_File_Episode> xrefs =
                     JSONHelper.Deserialize<List<Azure_CrossRef_File_Episode>>(json);
 
-                return xrefs;
+                return xrefs ?? new List<Azure_CrossRef_File_Episode>();
             }
             catch
             {
@@ -467,7 +467,7 @@ namespace Shoko.Server.Providers.Azure
 
                 List<Azure_AnimeIDTitle> titles = JSONHelper.Deserialize<List<Azure_AnimeIDTitle>>(json);
 
-                return titles;
+                return titles ?? new List<Azure_AnimeIDTitle>();
             }
             catch
             {
@@ -488,7 +488,7 @@ namespace Shoko.Server.Providers.Azure
 
                 List<Azure_AdminMessage> msgs = JSONHelper.Deserialize<List<Azure_AdminMessage>>(json);
 
-                return msgs;
+                return msgs ?? new List<Azure_AdminMessage>();
             }
             catch (Exception ex)
             {
@@ -790,7 +790,7 @@ namespace Shoko.Server.Providers.Azure
 
                 List<Azure_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_TvDB>>(json);
 
-                return xrefs;
+                return xrefs ?? new List<Azure_CrossRef_AniDB_TvDB>();
             }
             catch
             {
@@ -872,7 +872,7 @@ namespace Shoko.Server.Providers.Azure
 
                 List<Azure_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_Trakt>>(json);
 
-                return xrefs;
+                return xrefs ?? new List<Azure_CrossRef_AniDB_Trakt>();
             }
             catch
             {

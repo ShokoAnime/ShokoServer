@@ -17,7 +17,8 @@ namespace Shoko.Server.Providers
                 new JsonSerializerSettings()
                 {
                     EqualityComparer = StringComparer.InvariantCultureIgnoreCase,
-                    MissingMemberHandling = MissingMemberHandling.Ignore
+                    MissingMemberHandling = MissingMemberHandling.Ignore,
+                    NullValueHandling = NullValueHandling.Ignore
                 });
             return obj;
         }

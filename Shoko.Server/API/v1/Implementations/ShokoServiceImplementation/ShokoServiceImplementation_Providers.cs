@@ -171,10 +171,7 @@ namespace Shoko.Server
                 }
 
 
-                if (link != null)
-                    return link;
-
-                return null;
+                return link;
             }
             catch (Exception ex)
             {
