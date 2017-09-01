@@ -75,9 +75,10 @@ namespace Shoko.Server.Providers.TraktTV
 
                 // get the response
                 var response = (HttpWebResponse) request.GetResponse();
-                if (response == null) return 400;
-
+                
                 Stream responseStream = response.GetResponseStream();
+                if (responseStream == null) return ret;
+                
                 StreamReader reader = new StreamReader(responseStream);
                 string strResponse = reader.ReadToEnd();
 
@@ -165,9 +166,9 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 WebResponse response = (HttpWebResponse) request.GetResponse();
-                if (response == null) return null;
-
                 Stream stream = response.GetResponseStream();
+                if (stream == null) return null;
+
                 StreamReader reader = new StreamReader(stream);
                 string strResponse = reader.ReadToEnd();
 
