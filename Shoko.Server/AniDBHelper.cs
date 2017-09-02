@@ -611,11 +611,9 @@ namespace Shoko.Server
             return false;
         }
 
-        public bool AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
+        public bool? AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return false;
-
-            if (!Login()) return false;
+            if (!Login()) return null;
 
             enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_AddFile cmdAddFile = null;
@@ -631,13 +629,14 @@ namespace Shoko.Server
             }
 
             // if the user already has this file on 
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
+            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
             {
                 watchedDate = cmdAddFile.WatchedDate;
                 return cmdAddFile.ReturnIsWatched;
             }
+            if (ServerSettings.AniDB_MyList_ReadUnwatched) return false;
 
-            return false;
+            return null;
         }
 
         internal bool MarkFileAsExternalStorage(string Hash, long FileSize)
