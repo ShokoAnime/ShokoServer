@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
 
                 // mark the video file as watched
                 DateTime? watchedDate = null;
-                bool newWatchedStatus = false;
+                bool? newWatchedStatus;
 
                 if (isManualLink)
                     newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
@@ -85,15 +85,15 @@ namespace Shoko.Server.Commands
                 List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
 
-                if (aniDBUsers.Count > 0)
+                if (aniDBUsers.Count > 0 && newWatchedStatus != null)
                 {
                     SVR_JMMUser juser = aniDBUsers[0];
-                    vid.ToggleWatchedStatus(newWatchedStatus, false, watchedDate, false, false, juser.JMMUserID,
+                    vid.ToggleWatchedStatus(newWatchedStatus.Value, false, watchedDate, false, false, juser.JMMUserID,
                         false, true);
                     logger.Info($"Adding file to list: {vid.FileName} - {watchedDate}");
 
                     // if the the episode is watched we may want to set the file to watched as well
-                    if (ServerSettings.Import_UseExistingFileWatchedStatus && !newWatchedStatus)
+                    if (ServerSettings.Import_UseExistingFileWatchedStatus && !newWatchedStatus.Value)
                     {
                         if (animeEpisodes.Count > 0)
                         {
