@@ -300,18 +300,6 @@
   <data name="Anime" xml:space="preserve">
     <value>Anime</value>
   </data>
-  <data name="AnimeBytesResetBody" xml:space="preserve">
-    <value>Réinitialiser le cookie si vous n'obtenez aucun résultat de AnimeBytes quand vous devriez être. Cela va forcer une connexion d'accès à AnimeBytes à nouveau.</value>
-  </data>
-  <data name="AnimeBytesResetTitle" xml:space="preserve">
-    <value>Réinitialiser le cookie</value>
-  </data>
-  <data name="AnimeBytesSeriesBody" xml:space="preserve">
-    <value>Lorsque vous recherchez une série, AnimeBytes (et BakaBT) sera la source de torrent seulement utilisée pour la recherche initiale</value>
-  </data>
-  <data name="AnimeBytesSeriesTitle" xml:space="preserve">
-    <value>AnimeBytes (et BakaBT) seulement</value>
-  </data>
   <data name="AnimeEpisode_Next" xml:space="preserve">
     <value>Prochain épisode</value>
   </data>
@@ -545,18 +533,6 @@
   </data>
   <data name="Back" xml:space="preserve">
     <value>Précédent</value>
-  </data>
-  <data name="BakaBTResetBody" xml:space="preserve">
-    <value>Réinitialiser le cookie si vous n'obtenez aucun résultat de BakaBT quand vous devriez être. Cela va forcer une connexion d'accès à BakaBT à nouveau.</value>
-  </data>
-  <data name="BakaBTResetTitle" xml:space="preserve">
-    <value>Réinitialiser le Cookie</value>
-  </data>
-  <data name="BakaBTSeriesBody" xml:space="preserve">
-    <value>Lorsque vous recherchez une série, BakaBT (et AnimeBytes) sera la source de torrent seulement utilisée pour la recherche initiale</value>
-  </data>
-  <data name="BakaBTSeriesTitle" xml:space="preserve">
-    <value>BakaBT (et AnimeBytes) seulement</value>
   </data>
   <data name="Bookmarks_CurrentlyDownloading" xml:space="preserve">
     <value>En cours de téléchargement</value>
@@ -1098,149 +1074,8 @@
   <data name="Down" xml:space="preserve">
     <value>Vers le bas</value>
   </data>
-  <data name="Downloads_AnimeBytes" xml:space="preserve">
-    <value>Paramètres de AnimeBytes</value>
-  </data>
-  <data name="Downloads_AnimeBytesDetails" xml:space="preserve">
-    <value>Veuillez entrer les identifiants Anime octets</value>
-  </data>
-  <data name="Downloads_AnimeBytesInfo" xml:space="preserve">
-    <value>AnimeBytes est un site de torrent anime qui se spécialise dans les téléchargements de toute la série, mais il nécessite un compte tout d'abord</value>
-  </data>
-  <data name="Downloads_BakaBT" xml:space="preserve">
-    <value>Paramètres de BakaBT</value>
-  </data>
-  <data name="Downloads_BakaBTDetails" xml:space="preserve">
-    <value>Veuillez entrer les informations de connexion BakaBT</value>
-  </data>
-  <data name="Downloads_BakaBTInfo" xml:space="preserve">
-    <value>BakaBT est un site de torrent anime qui se spécialise dans les téléchargements de toute la série, mais il nécessite un compte tout d'abord</value>
-  </data>
-  <data name="Downloads_Connected" xml:space="preserve">
-    <value>Connecté avec succès</value>
-  </data>
-  <data name="Downloads_Details" xml:space="preserve">
-    <value>Détails</value>
-  </data>
-  <data name="Downloads_DisableRefresh" xml:space="preserve">
-    <value>Utiliser uniquement lors de l’actualisation automatique est désactivée</value>
-  </data>
-  <data name="Downloads_Download" xml:space="preserve">
-    <value>Télécharger</value>
-  </data>
-  <data name="Downloads_Failed" xml:space="preserve">
-    <value>A échoué ! Consultez le journal pour plus de détails si nécessaire</value>
-  </data>
-  <data name="Downloads_GoTo" xml:space="preserve">
-    <value>Accédez au site Web</value>
-  </data>
-  <data name="Downloads_GoWebsite" xml:space="preserve">
-    <value>Accédez au site Web</value>
-  </data>
-  <data name="Downloads_Results" xml:space="preserve">
-    <value>{0} résultats</value>
-  </data>
-  <data name="Downloads_Searching" xml:space="preserve">
-    <value>La recherche...</value>
-  </data>
-  <data name="Downloads_TorrentBlackHole" xml:space="preserve">
-    <value>Paramètres du trou noir torrent</value>
-  </data>
-  <data name="Downloads_TorrentDefault" xml:space="preserve">
-    <value>Sources de Torrent par défaut pour la recherche</value>
-  </data>
-  <data name="Downloads_uTorrentDetails" xml:space="preserve">
-    <value>Veuillez saisir tous les détails d'uTorrent</value>
-  </data>
-  <data name="Downloads_uTorrentWebUI" xml:space="preserve">
-    <value>uTorrent WebUI détails</value>
-  </data>
-  <data name="Download_AnimeBytesOnly" xml:space="preserve">
-    <value>AnimeBytes uniquement pour les séries</value>
-  </data>
-  <data name="Download_Approval" xml:space="preserve">
-    <value>Approbation</value>
-  </data>
-  <data name="Download_AutoRefresh" xml:space="preserve">
-    <value>Auto Refresh</value>
-  </data>
-  <data name="Download_BakaBTOnly" xml:space="preserve">
-    <value>BakaBT uniquement pour les séries</value>
-  </data>
-  <data name="Download_Bookmark" xml:space="preserve">
-    <value>Mettre en signet cet anime à télécharger plus tard</value>
-  </data>
-  <data name="Download_Done" xml:space="preserve">
-    <value>Fait</value>
-  </data>
-  <data name="Download_Downloaded" xml:space="preserve">
-    <value>Téléchargé</value>
-  </data>
-  <data name="Download_DownSpeed" xml:space="preserve">
-    <value>Vitesse</value>
-  </data>
-  <data name="Download_EnterCred" xml:space="preserve">
-    <value>Veuillez entrer vos informations d'identification sous l'onglet paramètre, puis retourner</value>
-  </data>
-  <data name="Download_ExtraInfo" xml:space="preserve">
-    <value>Infos supplémentaires</value>
-  </data>
-  <data name="Download_FolderLocation" xml:space="preserve">
-    <value>Emplacement du dossier</value>
-  </data>
-  <data name="Download_InvalidCred" xml:space="preserve">
-    <value>Vous n'avez pas spécifié les informations d'identification valides uTorrent</value>
-  </data>
-  <data name="Download_Leechers" xml:space="preserve">
-    <value>Leechers</value>
-  </data>
-  <data name="Download_Name" xml:space="preserve">
-    <value>Nom</value>
-  </data>
-  <data name="Download_Peers" xml:space="preserve">
-    <value>Pairs</value>
-  </data>
   <data name="Download_Priority" xml:space="preserve">
     <value>Priorité</value>
-  </data>
-  <data name="Download_Queue" xml:space="preserve">
-    <value>#</value>
-  </data>
-  <data name="Download_Ratio" xml:space="preserve">
-    <value>Ratio</value>
-  </data>
-  <data name="Download_RecommendPrompt" xml:space="preserve">
-    <value>Cet utilitaire vous affiche une liste des anime recommandée qui ne sont pas dans votre collection basée sur vos propres cotes et la rétroaction des utilisateurs AniDB</value>
-  </data>
-  <data name="Download_RefreshInterval" xml:space="preserve">
-    <value>Intervalle (secondes) d'actualisation</value>
-  </data>
-  <data name="Download_ResetCookie" xml:space="preserve">
-    <value>Réinitialiser le Cookie</value>
-  </data>
-  <data name="Download_Seeders" xml:space="preserve">
-    <value>Semoirs</value>
-  </data>
-  <data name="Download_SeriesSearch" xml:space="preserve">
-    <value>Recherche de téléchargements pour cette série</value>
-  </data>
-  <data name="Download_Server" xml:space="preserve">
-    <value>Serveur</value>
-  </data>
-  <data name="Download_Size" xml:space="preserve">
-    <value>Taille</value>
-  </data>
-  <data name="Download_Source" xml:space="preserve">
-    <value>Source</value>
-  </data>
-  <data name="Download_TorrentFolder" xml:space="preserve">
-    <value>Emplacement du dossier torrent</value>
-  </data>
-  <data name="Download_UpSpeed" xml:space="preserve">
-    <value>Vitesse de téléchargement</value>
-  </data>
-  <data name="Download_UseBlackHole" xml:space="preserve">
-    <value>Utilisez le trou noir Torrent</value>
   </data>
   <data name="Download_WrongSeries" xml:space="preserve">
     <value>Mauvaise série ?</value>
@@ -1358,9 +1193,6 @@
   </data>
   <data name="Episode_Availability" xml:space="preserve">
     <value>Disponibilité</value>
-  </data>
-  <data name="Episode_DownloadSearch" xml:space="preserve">
-    <value>Rechercher téléchargements pour cet épisode</value>
   </data>
   <data name="Episode_ForceAniDBUpdate" xml:space="preserve">
     <value>Information mise à jour force de AniDB</value>
@@ -3294,9 +3126,6 @@
   <data name="Tab_Bookmarks" xml:space="preserve">
     <value>Marque-pages</value>
   </data>
-  <data name="Tab_BrowseTorrents" xml:space="preserve">
-    <value>Parcourir Torrents</value>
-  </data>
   <data name="Tab_Comments" xml:space="preserve">
     <value>Commentaires des utilisateurs</value>
   </data>
@@ -3375,9 +3204,6 @@
   <data name="Tab_Search" xml:space="preserve">
     <value>Recherche</value>
   </data>
-  <data name="Tab_SearchTorrents" xml:space="preserve">
-    <value>Recherche de Torrents</value>
-  </data>
   <data name="TAB_SeriesEpisodes" xml:space="preserve">
     <value>Collection</value>
   </data>
@@ -3449,9 +3275,6 @@
   </data>
   <data name="TAB_Utilities" xml:space="preserve">
     <value>Utilitaires</value>
-  </data>
-  <data name="Tab_uTorrent" xml:space="preserve">
-    <value>uTorrent</value>
   </data>
   <data name="TagApproval" xml:space="preserve">
     <value>Approbation</value>
@@ -3851,12 +3674,6 @@ Marque inconnue -, laisse le fichier sur votre liste, mais remplace l'état inco
   <data name="Tooltip_ZeroFiles" xml:space="preserve">
     <value>Il n'y a pas de fichiers disponibles pour cet épisode</value>
   </data>
-  <data name="Torrent" xml:space="preserve">
-    <value>Torrent</value>
-  </data>
-  <data name="Torrents" xml:space="preserve">
-    <value>Torrents</value>
-  </data>
   <data name="TotalFileCount" xml:space="preserve">
     <value>Nombre de fichiers au total:</value>
   </data>
@@ -4195,12 +4012,6 @@ Marque inconnue -, laisse le fichier sur votre liste, mais remplace l'état inco
   </data>
   <data name="Utilities_Size" xml:space="preserve">
     <value>Taille</value>
-  </data>
-  <data name="uTorrent_Connecting" xml:space="preserve">
-    <value>Connexion...</value>
-  </data>
-  <data name="uTorrent_NotConnected" xml:space="preserve">
-    <value>Pas connecté</value>
   </data>
   <data name="ValueCompare_FieldName" xml:space="preserve">
     <value>Nom de domaine </value>
@@ -5421,5 +5232,14 @@ S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilis
   </data>
   <data name="NewSeries_NameInfo" xml:space="preserve">
     <value>Le nom du groupe sera généré dans les préférences de titre anime.</value>
+  </data>
+  <data name="Download_Approval" xml:space="preserve">
+    <value>Approbation</value>
+  </data>
+  <data name="Download_Bookmark" xml:space="preserve">
+    <value>Mettre en signet cet anime à télécharger plus tard</value>
+  </data>
+  <data name="Download_RecommendPrompt" xml:space="preserve">
+    <value>Cet utilitaire vous affiche une liste des anime recommandée qui ne sont pas dans votre collection basée sur vos propres cotes et la rétroaction des utilisateurs AniDB</value>
   </data>
 </root>

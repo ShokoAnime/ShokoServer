@@ -19,7 +19,7 @@ namespace Shoko.Commons.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -1213,42 +1213,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Reset the cookie if you are not getting any results from AnimeBytes when you should be. This will force a login to AnimeBytes again..
-        /// </summary>
-        public static string AnimeBytesResetBody {
-            get {
-                return ResourceManager.GetString("AnimeBytesResetBody", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Reset cookie.
-        /// </summary>
-        public static string AnimeBytesResetTitle {
-            get {
-                return ResourceManager.GetString("AnimeBytesResetTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to When searching for a series, AnimeBytes (and BakaBT) will be the only torrent source used in the initial search.
-        /// </summary>
-        public static string AnimeBytesSeriesBody {
-            get {
-                return ResourceManager.GetString("AnimeBytesSeriesBody", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to AnimeBytes (and BakaBT) Only.
-        /// </summary>
-        public static string AnimeBytesSeriesTitle {
-            get {
-                return ResourceManager.GetString("AnimeBytesSeriesTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Next Episode.
         /// </summary>
         public static string AnimeEpisode_Next {
@@ -1605,42 +1569,6 @@ namespace Shoko.Commons.Properties {
         public static string Back {
             get {
                 return ResourceManager.GetString("Back", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Reset the cookie if you are not getting any results from BakaBT when you should be. This will force a login to BakaBT again..
-        /// </summary>
-        public static string BakaBTResetBody {
-            get {
-                return ResourceManager.GetString("BakaBTResetBody", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Reset Cookie.
-        /// </summary>
-        public static string BakaBTResetTitle {
-            get {
-                return ResourceManager.GetString("BakaBTResetTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to When searching for a series, BakaBT (and AnimeBytes) will be the only torrent source used in the initial search.
-        /// </summary>
-        public static string BakaBTSeriesBody {
-            get {
-                return ResourceManager.GetString("BakaBTSeriesBody", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to BakaBT (and AnimeBytes) Only.
-        /// </summary>
-        public static string BakaBTSeriesTitle {
-            get {
-                return ResourceManager.GetString("BakaBTSeriesTitle", resourceCulture);
             }
         }
         
@@ -3796,38 +3724,11 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AnimeBytes ONLY for Series.
-        /// </summary>
-        public static string Download_AnimeBytesOnly {
-            get {
-                return ResourceManager.GetString("Download_AnimeBytesOnly", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Approval.
         /// </summary>
         public static string Download_Approval {
             get {
                 return ResourceManager.GetString("Download_Approval", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Auto Refresh.
-        /// </summary>
-        public static string Download_AutoRefresh {
-            get {
-                return ResourceManager.GetString("Download_AutoRefresh", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to BakaBT ONLY for Series.
-        /// </summary>
-        public static string Download_BakaBTOnly {
-            get {
-                return ResourceManager.GetString("Download_BakaBTOnly", resourceCulture);
             }
         }
         
@@ -3841,96 +3742,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Done.
-        /// </summary>
-        public static string Download_Done {
-            get {
-                return ResourceManager.GetString("Download_Done", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Downloaded.
-        /// </summary>
-        public static string Download_Downloaded {
-            get {
-                return ResourceManager.GetString("Download_Downloaded", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Down Speed.
-        /// </summary>
-        public static string Download_DownSpeed {
-            get {
-                return ResourceManager.GetString("Download_DownSpeed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Please enter your credentials on the setting tab and then return.
-        /// </summary>
-        public static string Download_EnterCred {
-            get {
-                return ResourceManager.GetString("Download_EnterCred", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Extra Info.
-        /// </summary>
-        public static string Download_ExtraInfo {
-            get {
-                return ResourceManager.GetString("Download_ExtraInfo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Folder Location.
-        /// </summary>
-        public static string Download_FolderLocation {
-            get {
-                return ResourceManager.GetString("Download_FolderLocation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to You haven&apos;t specified valid uTorrent credentials.
-        /// </summary>
-        public static string Download_InvalidCred {
-            get {
-                return ResourceManager.GetString("Download_InvalidCred", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Leechers.
-        /// </summary>
-        public static string Download_Leechers {
-            get {
-                return ResourceManager.GetString("Download_Leechers", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Name.
-        /// </summary>
-        public static string Download_Name {
-            get {
-                return ResourceManager.GetString("Download_Name", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Peers.
-        /// </summary>
-        public static string Download_Peers {
-            get {
-                return ResourceManager.GetString("Download_Peers", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Priority.
         /// </summary>
         public static string Download_Priority {
@@ -3940,119 +3751,11 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to #.
-        /// </summary>
-        public static string Download_Queue {
-            get {
-                return ResourceManager.GetString("Download_Queue", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Ratio.
-        /// </summary>
-        public static string Download_Ratio {
-            get {
-                return ResourceManager.GetString("Download_Ratio", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to This utility shows you a list of recommended anime which are not in your collection based on your own ratings and feedback from AniDB users.
         /// </summary>
         public static string Download_RecommendPrompt {
             get {
                 return ResourceManager.GetString("Download_RecommendPrompt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Refresh Interval (seconds).
-        /// </summary>
-        public static string Download_RefreshInterval {
-            get {
-                return ResourceManager.GetString("Download_RefreshInterval", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Reset Cookie.
-        /// </summary>
-        public static string Download_ResetCookie {
-            get {
-                return ResourceManager.GetString("Download_ResetCookie", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Seeders.
-        /// </summary>
-        public static string Download_Seeders {
-            get {
-                return ResourceManager.GetString("Download_Seeders", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Search for downloads for this series.
-        /// </summary>
-        public static string Download_SeriesSearch {
-            get {
-                return ResourceManager.GetString("Download_SeriesSearch", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Server.
-        /// </summary>
-        public static string Download_Server {
-            get {
-                return ResourceManager.GetString("Download_Server", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Size.
-        /// </summary>
-        public static string Download_Size {
-            get {
-                return ResourceManager.GetString("Download_Size", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Source.
-        /// </summary>
-        public static string Download_Source {
-            get {
-                return ResourceManager.GetString("Download_Source", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Torrent Folder Location.
-        /// </summary>
-        public static string Download_TorrentFolder {
-            get {
-                return ResourceManager.GetString("Download_TorrentFolder", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Upload Speed.
-        /// </summary>
-        public static string Download_UpSpeed {
-            get {
-                return ResourceManager.GetString("Download_UpSpeed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Use Torrent Black Hole.
-        /// </summary>
-        public static string Download_UseBlackHole {
-            get {
-                return ResourceManager.GetString("Download_UseBlackHole", resourceCulture);
             }
         }
         
@@ -4071,177 +3774,6 @@ namespace Shoko.Commons.Properties {
         public static string Download_YourVote {
             get {
                 return ResourceManager.GetString("Download_YourVote", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to AnimeBytes Settings.
-        /// </summary>
-        public static string Downloads_AnimeBytes {
-            get {
-                return ResourceManager.GetString("Downloads_AnimeBytes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Please enter Anime Bytes login details.
-        /// </summary>
-        public static string Downloads_AnimeBytesDetails {
-            get {
-                return ResourceManager.GetString("Downloads_AnimeBytesDetails", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to AnimeBytes is an anime torrent site which specializes in full series downloads, however it requires an account first.
-        /// </summary>
-        public static string Downloads_AnimeBytesInfo {
-            get {
-                return ResourceManager.GetString("Downloads_AnimeBytesInfo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to BakaBT Settings.
-        /// </summary>
-        public static string Downloads_BakaBT {
-            get {
-                return ResourceManager.GetString("Downloads_BakaBT", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Please enter BakaBT login details.
-        /// </summary>
-        public static string Downloads_BakaBTDetails {
-            get {
-                return ResourceManager.GetString("Downloads_BakaBTDetails", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to BakaBT is an anime torrent site which specializes in full series downloads, however it requires an account first.
-        /// </summary>
-        public static string Downloads_BakaBTInfo {
-            get {
-                return ResourceManager.GetString("Downloads_BakaBTInfo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Connected sucessfully.
-        /// </summary>
-        public static string Downloads_Connected {
-            get {
-                return ResourceManager.GetString("Downloads_Connected", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Details.
-        /// </summary>
-        public static string Downloads_Details {
-            get {
-                return ResourceManager.GetString("Downloads_Details", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Only use when auto refresh is disabled.
-        /// </summary>
-        public static string Downloads_DisableRefresh {
-            get {
-                return ResourceManager.GetString("Downloads_DisableRefresh", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Download.
-        /// </summary>
-        public static string Downloads_Download {
-            get {
-                return ResourceManager.GetString("Downloads_Download", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Failed! See log for more details if needed.
-        /// </summary>
-        public static string Downloads_Failed {
-            get {
-                return ResourceManager.GetString("Downloads_Failed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Go to Website.
-        /// </summary>
-        public static string Downloads_GoTo {
-            get {
-                return ResourceManager.GetString("Downloads_GoTo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Go to Website.
-        /// </summary>
-        public static string Downloads_GoWebsite {
-            get {
-                return ResourceManager.GetString("Downloads_GoWebsite", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to {0} Results.
-        /// </summary>
-        public static string Downloads_Results {
-            get {
-                return ResourceManager.GetString("Downloads_Results", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Searching....
-        /// </summary>
-        public static string Downloads_Searching {
-            get {
-                return ResourceManager.GetString("Downloads_Searching", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Torrent Black Hole Settings.
-        /// </summary>
-        public static string Downloads_TorrentBlackHole {
-            get {
-                return ResourceManager.GetString("Downloads_TorrentBlackHole", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Default Torrent Sources for Searching.
-        /// </summary>
-        public static string Downloads_TorrentDefault {
-            get {
-                return ResourceManager.GetString("Downloads_TorrentDefault", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Please enter all uTorrent details.
-        /// </summary>
-        public static string Downloads_uTorrentDetails {
-            get {
-                return ResourceManager.GetString("Downloads_uTorrentDetails", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to uTorrent WebUI details.
-        /// </summary>
-        public static string Downloads_uTorrentWebUI {
-            get {
-                return ResourceManager.GetString("Downloads_uTorrentWebUI", resourceCulture);
             }
         }
         
@@ -4350,15 +3882,6 @@ namespace Shoko.Commons.Properties {
         public static string Episode_Availability {
             get {
                 return ResourceManager.GetString("Episode_Availability", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Search downloads for this episode.
-        /// </summary>
-        public static string Episode_DownloadSearch {
-            get {
-                return ResourceManager.GetString("Episode_DownloadSearch", resourceCulture);
             }
         }
         
@@ -12266,15 +11789,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Browse Torrents.
-        /// </summary>
-        public static string Tab_BrowseTorrents {
-            get {
-                return ResourceManager.GetString("Tab_BrowseTorrents", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Cloud Accounts.
         /// </summary>
         public static string Tab_CloudAccounts {
@@ -12536,15 +12050,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Search Torrents.
-        /// </summary>
-        public static string Tab_SearchTorrents {
-            get {
-                return ResourceManager.GetString("Tab_SearchTorrents", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Collection.
         /// </summary>
         public static string TAB_SeriesEpisodes {
@@ -12775,15 +12280,6 @@ namespace Shoko.Commons.Properties {
         public static string TAB_Utilities {
             get {
                 return ResourceManager.GetString("TAB_Utilities", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to uTorrent.
-        /// </summary>
-        public static string Tab_uTorrent {
-            get {
-                return ResourceManager.GetString("Tab_uTorrent", resourceCulture);
             }
         }
         
@@ -14084,24 +13580,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Torrent.
-        /// </summary>
-        public static string Torrent {
-            get {
-                return ResourceManager.GetString("Torrent", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Torrents.
-        /// </summary>
-        public static string Torrents {
-            get {
-                return ResourceManager.GetString("Torrents", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Total File Count:.
         /// </summary>
         public static string TotalFileCount {
@@ -15196,24 +14674,6 @@ namespace Shoko.Commons.Properties {
         public static string Utilities_Size {
             get {
                 return ResourceManager.GetString("Utilities_Size", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Connecting....
-        /// </summary>
-        public static string uTorrent_Connecting {
-            get {
-                return ResourceManager.GetString("uTorrent_Connecting", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not Connected.
-        /// </summary>
-        public static string uTorrent_NotConnected {
-            get {
-                return ResourceManager.GetString("uTorrent_NotConnected", resourceCulture);
             }
         }
         
