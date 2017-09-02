@@ -808,7 +808,7 @@ namespace Shoko.Server.Models
                 Contract = contract;
                 return types;
             }
-            catch (Exception e)
+            catch
             {
                 throw;
             }

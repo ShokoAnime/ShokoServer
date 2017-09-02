@@ -56,32 +56,6 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            foreach (int n in Cache.Values.Select(a => a.JMMUserID).Distinct())
-            {
-                Changes[n] = new ChangeTracker<int>();
-                Changes[n].AddOrUpdateRange(Users.GetMultiple(n).Select(a => a.AnimeSeriesID));
-            }
-            int cnt = 0;
-            List<SVR_AnimeSeries_User> sers =
-                Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
-            int max = sers.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
-                typeof(AnimeSeries_User).Name, " DbRegen");
-            if (max <= 0) return;
-            foreach (SVR_AnimeSeries_User g in sers)
-            {
-                Save(g);
-                cnt++;
-                if (cnt % 10 == 0)
-                {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, typeof(AnimeSeries_User).Name,
-                        " DbRegen - " + cnt + "/" + max);
-                }
-            }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
-                typeof(AnimeSeries_User).Name,
-                " DbRegen - " + max + "/" + max);
         }
 
 

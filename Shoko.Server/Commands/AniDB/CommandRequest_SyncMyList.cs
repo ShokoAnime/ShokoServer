@@ -114,8 +114,11 @@ namespace Shoko.Server.Commands
                     }
 
                     // means we have found a file in our local collection, which is not recorded online
-                    CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
-                    cmdAddFile.Save();
+                    if (ServerSettings.AniDB_MyList_AddFiles)
+                    {
+                        CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
+                        cmdAddFile.Save();
+                    }
                     missingFiles++;
                 }
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");

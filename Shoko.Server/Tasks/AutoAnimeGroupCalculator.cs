@@ -72,7 +72,7 @@ namespace Shoko.Server.Tasks
                 ? MainAnimeSelectionStrategy.Weighted
                 : MainAnimeSelectionStrategy.MinAirDate;
 
-            if (!String.IsNullOrEmpty(exclusionsSetting))
+            if (!string.IsNullOrEmpty(exclusionsSetting))
             {
                 var exclusionTokens = exclusionsSetting
                     .Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
@@ -84,7 +84,7 @@ namespace Shoko.Server.Tasks
                     .Select(s =>
                     {
 
-                        s = s.Replace(" ", String.Empty);
+                        s = s.Replace(" ", string.Empty);
                         Enum.TryParse(s, true, out AutoGroupExclude exclude);
 
                         return exclude;
@@ -179,10 +179,10 @@ namespace Shoko.Server.Tasks
                             relation.RelationType = AnimeRelationType.Sequel;
                             break;
                         case "alternative setting":
-                            relation.RelationType = AnimeRelationType.AlternativeSetting;
+                            relation.RelationType = AnimeRelationType.AlternateSetting;
                             break;
                         case "alternative version":
-                            relation.RelationType = AnimeRelationType.AlternativeVersion;
+                            relation.RelationType = AnimeRelationType.AlternateVersion;
                             break;
                         case "same setting":
                             relation.RelationType = AnimeRelationType.SameSetting;
@@ -307,7 +307,7 @@ namespace Shoko.Server.Tasks
                 foreach (RelationEdge edge in edges)
                 {
                     if ((edge.AnimeId1 == node.AnimeId || edge.AnimeId2 == node.AnimeId) &&
-                        edge.RelationType1 == AnimeRelationType.AlternativeSetting)
+                        edge.RelationType1 == AnimeRelationType.AlternateSetting)
                     {
                         stats.AlternateVersions++;
                     }
@@ -463,7 +463,7 @@ namespace Shoko.Server.Tasks
         private static string[] CreateTokensFromTitle(string title)
         {
             title = title.Replace('-', ' ');
-            title = TitleNoiseRegex.Replace(title, String.Empty);
+            title = TitleNoiseRegex.Replace(title, string.Empty);
 
             return title.Split(Whitespace, StringSplitOptions.RemoveEmptyEntries);
         }
@@ -649,12 +649,12 @@ namespace Shoko.Server.Tasks
             Prequel = 16,
             Sequel = 32,
             Summary = 64,
-            AlternativeSetting = 128,
-            AlternativeVersion = 256, // Haven't seen this relation in my database. Included for completeness sake
+            AlternateSetting = 128,
+            AlternateVersion = 256, // Haven't seen this relation in my database. Included for completeness sake
             SameSetting = 512,
             Character = 1024,
 
-            SecondaryRelations = AlternativeSetting | AlternativeVersion | SameSetting | Character | Other
+            SecondaryRelations = AlternateSetting | AlternateVersion | SameSetting | Character | Other
         }
     }
 
@@ -677,8 +677,8 @@ namespace Shoko.Server.Tasks
         Prequel = AutoAnimeGroupCalculator.AnimeRelationType.Prequel,
         Sequel = AutoAnimeGroupCalculator.AnimeRelationType.Sequel,
         Summary = AutoAnimeGroupCalculator.AnimeRelationType.Summary,
-        AlternativeSetting = AutoAnimeGroupCalculator.AnimeRelationType.AlternativeSetting,
-        AlternativeVersion = AutoAnimeGroupCalculator.AnimeRelationType.AlternativeVersion,
+        AlternateSetting = AutoAnimeGroupCalculator.AnimeRelationType.AlternateSetting,
+        AlternateVersion = AutoAnimeGroupCalculator.AnimeRelationType.AlternateVersion,
         SameSetting = AutoAnimeGroupCalculator.AnimeRelationType.SameSetting,
         Character = AutoAnimeGroupCalculator.AnimeRelationType.Character,
 

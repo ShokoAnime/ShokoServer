@@ -1594,6 +1594,26 @@ namespace Shoko.Server.Renamer
 
             #endregion
 
+            #region Episode Number
+
+            if (action.Trim().ToLower().Contains(Constants.FileRenameTag.Episodes.ToLower()))
+            {
+                int zeroPadding = 2;
+                string prefix = "";
+                int epCount = 1;
+
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Episode) epCount = anime.EpisodeCountNormal;
+                if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Special) epCount = anime.EpisodeCountSpecial;
+
+                zeroPadding = epCount.ToString().Length;
+
+                string episodeNumber = prefix + epCount.ToString().PadLeft(zeroPadding, '0');
+
+                newFileName = newFileName.Replace(Constants.FileRenameTag.Episodes, episodeNumber);
+            }
+
+            #endregion
+
             #region Episode name (english)
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))

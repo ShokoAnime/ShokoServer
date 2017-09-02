@@ -44,32 +44,6 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            int cnt = 0;
-            List<SVR_AnimeEpisode> grps =
-                Cache.Values.Where(a => a.PlexContractVersion < SVR_AnimeEpisode.PLEXCONTRACT_VERSION).ToList();
-            int max = grps.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
-                typeof(AnimeEpisode).Name, " DbRegen");
-            if (max <= 0) return;
-            foreach (SVR_AnimeEpisode g in grps)
-            {
-                try
-                {
-                    Save(g);
-                }
-                catch
-                {
-                }
-                cnt++;
-                if (cnt % 10 == 0)
-                {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name,
-                        " DbRegen - " + cnt + "/" + max);
-                }
-            }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
-                typeof(AnimeEpisode).Name, " DbRegen - " + max + "/" + max);
         }
 
 

@@ -20,9 +20,6 @@ namespace Shoko.Server.Mappings
             Map(x => x.WatchedCount).Not.Nullable();
             Map(x => x.WatchedDate);
             Map(x => x.WatchedEpisodeCount).Not.Nullable();
-            Map(x => x.PlexContractVersion).Not.Nullable();
-            Map(x => x.PlexContractBlob).Nullable().CustomType("BinaryBlob");
-            Map(x => x.PlexContractSize).Not.Nullable();
         }
     }
 }

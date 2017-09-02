@@ -131,21 +131,18 @@ namespace AniDBAPI.Commands
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
 
-            string fileName = string.Format("AnimeDoc_{0}.xml", animeID);
+            string fileName = $"AnimeDoc_{animeID}.xml";
             string fileNameWithPath = Path.Combine(filePath, fileName);
 
-            XmlDocument docAnime = null;
-            if (File.Exists(fileNameWithPath))
+            if (!File.Exists(fileNameWithPath)) return null;
+            using (StreamReader re = File.OpenText(fileNameWithPath))
             {
-                StreamReader re = File.OpenText(fileNameWithPath);
                 string rawXML = re.ReadToEnd();
-                re.Close();
 
-                docAnime = new XmlDocument();
+                var docAnime = new XmlDocument();
                 docAnime.LoadXml(rawXML);
+                return docAnime;
             }
-
-            return docAnime;
         }
 
         private void WriteAnimeHTTPToFile(int animeID, string xml)
@@ -167,10 +164,10 @@ namespace AniDBAPI.Commands
                 // Check again and only if write-able we create it
                 if (Utils.IsDirectoryWritable(filePath))
                 {
-                    StreamWriter sw;
-                    sw = File.CreateText(fileNameWithPath);
-                    sw.Write(xml);
-                    sw.Close();
+                    using (var sw = File.CreateText(fileNameWithPath))
+                    {
+                        sw.Write(xml);
+                    }
                 }
             }
             catch (Exception ex)

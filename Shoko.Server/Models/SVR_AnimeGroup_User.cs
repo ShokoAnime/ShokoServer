@@ -20,45 +20,31 @@ namespace Shoko.Server.Models
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        #region DB Columns
-
-        public int PlexContractVersion { get; set; }
-        public byte[] PlexContractBlob { get; set; }
-        public int PlexContractSize { get; set; }
-
-        #endregion
-
-        public const int PLEXCONTRACT_VERSION = 6;
-
-
-        private Video _plexcontract = null;
         private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexCache = null;
+        private Video _plexContract = null;
 
         public virtual Video PlexContract
         {
             get
             {
-                if (_plexCache == null || _lastPlexRegen.Add(Constants.ContractLifespan) > DateTime.Now)
+                if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    SVR_AnimeGroup ser = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
-                    return _plexCache = PlexAndKodi.Helper.GenerateFromAnimeGroup(ser, JMMUserID, ser.GetAllSeries());
+                    var group = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+                    return _plexContract = Helper.GenerateFromAnimeGroup(group, JMMUserID, group.GetAllSeries());
                 }
-                return _plexCache;
+                return _plexContract;
             }
             set
             {
-                _plexcontract = value;
-                PlexContractBlob = CompressionHelper.SerializeObject(value, out int outsize, true);
-                PlexContractSize = outsize;
-                PlexContractVersion = PLEXCONTRACT_VERSION;
+                _plexContract = value;
+                _lastPlexRegen = DateTime.Now;
             }
         }
 
         public void CollectContractMemory()
         {
-            _plexcontract = null;
+            _plexContract = null;
         }
 
 

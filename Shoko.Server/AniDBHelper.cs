@@ -238,6 +238,7 @@ namespace Shoko.Server
                 }
                 catch
                 {
+                    //IGNORE
                 }
                 return;
             }
@@ -323,7 +324,6 @@ namespace Shoko.Server
                 //aniDBCommands.Clear();
                 //OnQueueUpdateEvent(new QueueUpdateEventArgs(this.QueueCount));
                 // this will exit the thread
-                return false;
             }
             else
             {
@@ -333,6 +333,8 @@ namespace Shoko.Server
                 this.IsInvalidSession = false;
                 return true;
             }
+            
+            return false;
         }
 
         public void ForceLogout()
@@ -609,11 +611,9 @@ namespace Shoko.Server
             return false;
         }
 
-        public bool AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
+        public bool? AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return false;
-
-            if (!Login()) return false;
+            if (!Login()) return null;
 
             enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_AddFile cmdAddFile = null;
@@ -629,13 +629,14 @@ namespace Shoko.Server
             }
 
             // if the user already has this file on 
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
+            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
             {
                 watchedDate = cmdAddFile.WatchedDate;
                 return cmdAddFile.ReturnIsWatched;
             }
+            if (ServerSettings.AniDB_MyList_ReadUnwatched) return false;
 
-            return false;
+            return null;
         }
 
         internal bool MarkFileAsExternalStorage(string Hash, long FileSize)
@@ -755,6 +756,7 @@ namespace Shoko.Server
                 if (anime == null) skip = false;
             }
 
+            //TODO: Skip AND null Anime? or Skip OR null Anime?
             if (skip)
             {
                 if (anime == null)
@@ -1176,22 +1178,31 @@ namespace Shoko.Server
             // Dont send Expect 100 requests. These requests arnt always supported by remote internet devices, in which case can cause failure.
             System.Net.ServicePointManager.Expect100Continue = false;
 
-            IPHostEntry localHostEntry;
-            localHostEntry = Dns.GetHostEntry(Dns.GetHostName());
+            try
+            {
+                IPHostEntry localHostEntry;
+                localHostEntry = Dns.GetHostEntry(Dns.GetHostName());
 
 
-            logger.Info("-------- Local IP Addresses --------");
-            localIpEndPoint = new IPEndPoint(IPAddress.Any, Convert.ToInt32(clientPort));
-            logger.Info("-------- End Local IP Addresses --------");
+                logger.Info("-------- Local IP Addresses --------");
+                localIpEndPoint = new IPEndPoint(IPAddress.Any, Convert.ToInt32(clientPort));
+                logger.Info("-------- End Local IP Addresses --------");
 
-            soUdp.Bind(localIpEndPoint);
-            soUdp.ReceiveTimeout = 30000; // 30 seconds
+                soUdp.Bind(localIpEndPoint);
+                soUdp.ReceiveTimeout = 30000; // 30 seconds
 
-            logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})", localIpEndPoint.ToString(),
-                clientPort,
-                localIpEndPoint.AddressFamily);
+                logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})",
+                    localIpEndPoint.ToString(),
+                    clientPort,
+                    localIpEndPoint.AddressFamily);
 
-            return true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, $"Could not bind to local port: {ex}");
+                return false;
+            }
         }
 
         private bool BindToRemotePort()

@@ -120,8 +120,11 @@ namespace Shoko.Server.Commands
                 RepoFactory.AnimeGroup.Save(grp, false, false);
             }
 
-            CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
-            cmdAddFile.Save();
+            if (ServerSettings.AniDB_MyList_AddFiles)
+            {
+                CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
+                cmdAddFile.Save();
+            }
         }
 
         /// <summary>
