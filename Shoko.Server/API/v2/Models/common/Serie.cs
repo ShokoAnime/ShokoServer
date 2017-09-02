@@ -87,61 +87,64 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     if (allpics) { pic = 999; }
                     int pic_index = 0;
-                    foreach (var cont_image in anime.AllPosters)
-                    {
-                        if (pic_index < pic)
+                    if (anime.AllPosters != null)
+                        foreach (var cont_image in anime.AllPosters)
                         {
-                            sr.art.thumb.Add(new Art()
+                            if (pic_index < pic)
                             {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                    cont_image.AniDB_Anime_DefaultImageID),
-                                index = pic_index
-                            });
-                            pic_index++;
+                                sr.art.thumb.Add(new Art()
+                                {
+                                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                        cont_image.AniDB_Anime_DefaultImageID),
+                                    index = pic_index
+                                });
+                                pic_index++;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        else
-                        {
-                            break;
-                        }
-                    }
 
                     pic_index = 0;
-                    foreach (var cont_image in anime.Contract.AniDBAnime.Fanarts)
-                    {
-                        if (pic_index < pic)
+                    if (anime.Contract.AniDBAnime.Fanarts != null)
+                        foreach (var cont_image in anime.Contract.AniDBAnime.Fanarts)
                         {
-                            sr.art.fanart.Add(new Art()
+                            if (pic_index < pic)
                             {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                    cont_image.AniDB_Anime_DefaultImageID),
-                                index = pic_index
-                            });
-                            pic_index++;
+                                sr.art.fanart.Add(new Art()
+                                {
+                                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                        cont_image.AniDB_Anime_DefaultImageID),
+                                    index = pic_index
+                                });
+                                pic_index++;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        else
-                        {
-                            break;
-                        }
-                    }
 
                     pic_index = 0;
-                    foreach (var cont_image in anime.Contract.AniDBAnime.Banners)
-                    {
-                        if (pic_index < pic)
+                    if (anime.Contract.AniDBAnime.Banners != null)
+                        foreach (var cont_image in anime.Contract.AniDBAnime.Banners)
                         {
-                            sr.art.banner.Add(new Art()
+                            if (pic_index < pic)
                             {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                    cont_image.AniDB_Anime_DefaultImageID),
-                                index = pic_index
-                            });
-                            pic_index++;
+                                sr.art.banner.Add(new Art()
+                                {
+                                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                        cont_image.AniDB_Anime_DefaultImageID),
+                                    index = pic_index
+                                });
+                                pic_index++;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        else
-                        {
-                            break;
-                        }
-                    }
                 }
                 else
                 {
