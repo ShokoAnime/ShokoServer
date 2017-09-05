@@ -84,6 +84,12 @@ namespace Shoko.Server.Repositories.Cached
                                                        xref.EpisodeNumber == epNumber);
         }
 
+        public TvDB_Episode GetBySeriesIDAndDate(int seriesID, DateTime date)
+        {
+            return SeriesIDs.GetMultiple(seriesID)
+                .FirstOrDefault(a => a.AirDate != null && Math.Abs((a.AirDate.Value - date).TotalDays) < 1.5D);
+        }
+
         /// <summary>
         /// Returns the Number of Episodes in a Season
         /// </summary>
