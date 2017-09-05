@@ -11,7 +11,7 @@ namespace Shoko.Server.Mappings
             Not.LazyLoad();
             Id(x => x.TvDB_ImageFanartID);
 
-            Map(x => x.BannerPath);
+            Map(x => x.BannerPath).CustomType<CustomType.CrossPlatformPathProvider>();
             Map(x => x.BannerType);
             Map(x => x.BannerType2);
             Map(x => x.Chosen).Not.Nullable();
@@ -20,8 +20,8 @@ namespace Shoko.Server.Mappings
             Map(x => x.Id).Not.Nullable();
             Map(x => x.Language);
             Map(x => x.SeriesID).Not.Nullable();
-            Map(x => x.ThumbnailPath);
-            Map(x => x.VignettePath);
+            Map(x => x.ThumbnailPath).CustomType<CustomType.CrossPlatformPathProvider>();
+            Map(x => x.VignettePath).CustomType<CustomType.CrossPlatformPathProvider>();
         }
     }
 }

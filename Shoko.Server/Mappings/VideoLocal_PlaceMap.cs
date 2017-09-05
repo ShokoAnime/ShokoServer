@@ -13,7 +13,7 @@ namespace Shoko.Server.Mappings
             Not.LazyLoad();
             Id(x => x.VideoLocal_Place_ID);
             Map(x => x.VideoLocalID).Not.Nullable();
-            Map(x => x.FilePath).Not.Nullable();
+            Map(x => x.FilePath).Not.Nullable().CustomType<CustomType.CrossPlatformPathProvider>();
             Map(x => x.ImportFolderID).Not.Nullable();
             Map(x => x.ImportFolderType).Not.Nullable();
         }

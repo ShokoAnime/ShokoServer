@@ -11,7 +11,7 @@ namespace Shoko.Server.Mappings
             Not.LazyLoad();
             Id(x => x.TvDB_ImageWideBannerID);
 
-            Map(x => x.BannerPath);
+            Map(x => x.BannerPath).CustomType<CustomType.CrossPlatformPathProvider>();
             Map(x => x.BannerType);
             Map(x => x.BannerType2);
             Map(x => x.Enabled).Not.Nullable();

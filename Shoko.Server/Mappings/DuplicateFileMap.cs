@@ -14,8 +14,8 @@ namespace Shoko.Server.Mappings
             Id(x => x.DuplicateFileID);
 
             Map(x => x.DateTimeUpdated).Not.Nullable();
-            Map(x => x.FilePathFile1);
-            Map(x => x.FilePathFile2);
+            Map(x => x.FilePathFile1).CustomType<CustomType.CrossPlatformPathProvider>();
+            Map(x => x.FilePathFile2).CustomType<CustomType.CrossPlatformPathProvider>();
             Map(x => x.Hash);
             Map(x => x.ImportFolderIDFile1).Not.Nullable();
             Map(x => x.ImportFolderIDFile2).Not.Nullable();

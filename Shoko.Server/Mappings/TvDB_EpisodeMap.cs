@@ -15,7 +15,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.EpImgFlag).Not.Nullable();
             Map(x => x.EpisodeName);
             Map(x => x.EpisodeNumber).Not.Nullable();
-            Map(x => x.Filename);
+            Map(x => x.Filename).CustomType<CustomType.CrossPlatformPathProvider>();
             Map(x => x.Id).Not.Nullable();
             Map(x => x.Overview).CustomType("StringClob");
             Map(x => x.SeasonID).Not.Nullable();
