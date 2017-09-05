@@ -256,14 +256,14 @@ namespace Shoko.Server.API.v2.Models.common
             int trailers = 0;
             int parodies = 0;
             int others = 0;
-            
+
             int local_eps = 0;
             int local_credits = 0;
             int local_specials = 0;
             int local_trailers = 0;
             int local_parodies = 0;
             int local_others = 0;
-            
+
             int watched_eps = 0;
             int watched_credits = 0;
             int watched_specials = 0;
@@ -275,47 +275,48 @@ namespace Shoko.Server.API.v2.Models.common
             foreach (SVR_AnimeEpisode ep in ael)
             {
                 if (ep == null) continue;
+                var contract = ep.PlexContract;
                 switch (ep.EpisodeTypeEnum)
                 {
                     case EpisodeType.Episode:
                     {
                         eps++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_eps++;
+                        if (contract?.Medias?.Any() ?? false) local_eps++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_eps++;
                         break;
                     }
                     case EpisodeType.Credits:
                     {
                         credits++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_credits++;
+                        if (contract?.Medias?.Any() ?? false) local_credits++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_credits++;
                         break;
                     }
                     case EpisodeType.Special:
                     {
                         specials++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_specials++;
+                        if (contract?.Medias?.Any() ?? false) local_specials++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_specials++;
                         break;
                     }
                     case EpisodeType.Trailer:
                     {
                         trailers++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_trailers++;
+                        if (contract?.Medias?.Any() ?? false) local_trailers++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_trailers++;
                         break;
                     }
                     case EpisodeType.Parody:
                     {
                         parodies++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_parodies++;
+                        if (contract?.Medias?.Any() ?? false) local_parodies++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_parodies++;
                         break;
                     }
                     case EpisodeType.Other:
                     {
                         others++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_others++;
+                        if (contract?.Medias?.Any() ?? false) local_others++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_others++;
                         break;
                     }
@@ -325,7 +326,7 @@ namespace Shoko.Server.API.v2.Models.common
             sr.size = eps + credits + specials + trailers + parodies + others;
             sr.localsize = local_eps + local_credits + local_specials + local_trailers + local_parodies + local_others;
             sr.viewed = watched_eps + watched_credits + watched_specials + watched_trailers + watched_parodies + watched_others;
-            
+
             sr.total_sizes = new Sizes()
             {
                 Episodes = eps,
@@ -335,7 +336,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Parodies = parodies,
                 Others = others
             };
-            
+
             sr.local_sizes = new Sizes()
             {
                 Episodes = local_eps,
@@ -345,7 +346,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Parodies = local_parodies,
                 Others = local_others
             };
-            
+
             sr.watched_sizes = new Sizes()
             {
                 Episodes = watched_eps,

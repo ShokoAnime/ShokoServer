@@ -57,15 +57,16 @@ namespace Shoko.Server.API.v2.Models.common
             CL_AnimeEpisode_User cae = aep?.GetUserContract(uid);
             if (cae != null)
             {
+                var contract = aep.PlexContract;
                 ep.id = aep.AnimeEpisodeID;
                 ep.art = new ArtCollection();
-                ep.name = aep.PlexContract?.Title;
-                ep.summary = aep.PlexContract?.Summary;
-                ep.year = aep.PlexContract?.Year;
-                ep.air = aep.PlexContract?.AirDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                ep.name = contract?.Title;
+                ep.summary = contract?.Summary;
+                ep.year = contract?.Year;
+                ep.air = contract?.AirDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 ep.votes = cae.AniDB_Votes;
-                ep.rating = aep.PlexContract?.Rating;
-                ep.userrating = aep.PlexContract?.UserRating;
+                ep.rating = contract?.Rating;
+                ep.userrating = contract?.UserRating;
                 if (double.TryParse(ep.rating, out double rating))
                 {
                     // 0.1 should be the absolute lowest rating
@@ -76,22 +77,22 @@ namespace Shoko.Server.API.v2.Models.common
                 ep.epnumber = cae.EpisodeNumber;
                 ep.eptype = aep.EpisodeTypeEnum.ToString();
 
-                ep.season = aep.PlexContract?.Season;
+                ep.season = contract?.Season;
 
                 // until fanart refactor this will be good for start
-                if (aep.PlexContract?.Thumb != null)
+                if (contract?.Thumb != null)
                 {
                     ep.art.thumb.Add(new Art()
                     {
-                        url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Thumb),
+                        url = APIHelper.ConstructImageLinkFromRest(ctx, contract?.Thumb),
                         index = 0
                     });
                 }
-                if (aep.PlexContract?.Art != null)
+                if (contract?.Art != null)
                 {
                     ep.art.fanart.Add(new Art()
                     {
-                        url = APIHelper.ConstructImageLinkFromRest(ctx, aep.PlexContract?.Art),
+                        url = APIHelper.ConstructImageLinkFromRest(ctx, contract?.Art),
                         index = 0
                     });
                 }
