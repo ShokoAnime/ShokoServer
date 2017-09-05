@@ -291,47 +291,48 @@ namespace Shoko.Server.API.v2.Models.common
             foreach (SVR_AnimeEpisode ep in ael)
             {
                 if (ep == null) continue;
+                var contract = ep.PlexContract;
                 switch (ep.EpisodeTypeEnum)
                 {
                     case EpisodeType.Episode:
                     {
                         eps++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_eps++;
+                        if (contract?.Medias?.Any() ?? false) local_eps++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_eps++;
                         break;
                     }
                     case EpisodeType.Credits:
                     {
                         credits++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_credits++;
+                        if (contract?.Medias?.Any() ?? false) local_credits++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_credits++;
                         break;
                     }
                     case EpisodeType.Special:
                     {
                         specials++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_specials++;
+                        if (contract?.Medias?.Any() ?? false) local_specials++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_specials++;
                         break;
                     }
                     case EpisodeType.Trailer:
                     {
                         trailers++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_trailers++;
+                        if (contract?.Medias?.Any() ?? false) local_trailers++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_trailers++;
                         break;
                     }
                     case EpisodeType.Parody:
                     {
                         parodies++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_parodies++;
+                        if (contract?.Medias?.Any() ?? false) local_parodies++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_parodies++;
                         break;
                     }
                     case EpisodeType.Other:
                     {
                         others++;
-                        if (ep.PlexContract?.Medias?.Any() ?? false) local_others++;
+                        if (contract?.Medias?.Any() ?? false) local_others++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_others++;
                         break;
                     }
