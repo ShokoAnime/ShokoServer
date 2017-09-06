@@ -38,7 +38,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<Tag>();
         }
 
-        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic)
+        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, byte tagfilter)
         {
             Serie sr = new Serie();
 
@@ -46,14 +46,14 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 foreach (SVR_AnimeEpisode ep in vl.GetAnimeEpisodes())
                 {
-                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all, allpics, pic);
+                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all, allpics, pic, tagfilter);
                 }
             }
 
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic)
+        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, byte tagfilter)
         {
             Serie sr = new Serie();
 
