@@ -31,6 +31,11 @@
         public int tags = 0;
 
         /// <summary>
+        /// byte flags as defined in TagFilter
+        /// </summary>
+        public byte tagfilter = 0;
+
+        /// <summary>
         /// For searching, enable or disable fuzzy searching
         /// </summary>
         public int fuzzy = 1;

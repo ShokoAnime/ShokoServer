@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -30,7 +31,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
-            bool all, int filterid, bool allpic, int pic)
+            bool all, int filterid, bool allpic, int pic, byte tagfilter)
         {
             Group g = new Group
             {
@@ -225,11 +226,11 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     if (vag.Genres != null)
                     {
-                        foreach (Shoko.Models.PlexAndKodi.Tag otg in vag.Genres)
+                        foreach (string value in TagFilter.ProcessTags(tagfilter, vag.Genres.Select(a => a.Value).ToList()))
                         {
                             Tag new_tag = new Tag
                             {
-                                tag = otg.Value
+                                tag = value
                             };
                             g.tags.Add(new_tag);
                         }
@@ -255,7 +256,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (!series.Contains(ada.AnimeSeriesID)) continue;
                     }
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic, pic));
+                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic, pic, tagfilter));
                 }
                 // This should be faster
                 g.series.Sort();
