@@ -474,7 +474,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                     {
                         if (minstance == null)
                             minstance = new MediaInfoLib.MediaInfo();
-                        minstance.Open(filename);
+                        if (minstance.Open(filename) == 0) return; //it's a boolean response.
                         Stream VideoStream = null;
                         int video_count = minstance.GetInt(StreamKind.General, 0, "VideoCount");
                         int audio_count = minstance.GetInt(StreamKind.General, 0, "AudioCount");

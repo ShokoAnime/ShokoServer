@@ -235,16 +235,20 @@ namespace MediaInfoLib
         {
             if (Handle == (IntPtr) 0)
                 return 0;
+
+            if (!Shoko.Server.Utils.IsLinux)
+                FileName = FileName.StartsWith(@"\\") ? FileName : @"\\?\" + FileName; // add long path prefix if not running on linux, and not a unc path.
+
             if (MustUseAnsi)
             {
-                IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi("\\\\?\\"+FileName); // prepend "no long path check" prefix
+                IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);
                 int ToReturn = (int) MediaInfoA_Open(Handle, FileName_Ptr);
                 Marshal.FreeHGlobal(FileName_Ptr);
                 return ToReturn;
             }
             try
             {
-                return (int) MediaInfo_Open(Handle, "\\\\?\\"+FileName); // prepend "no long path check" prefix
+                return (int) MediaInfo_Open(Handle, FileName);
             }
             catch (Exception)
             {
