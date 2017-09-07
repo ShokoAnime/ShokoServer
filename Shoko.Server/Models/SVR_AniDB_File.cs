@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
+using Nancy.Extensions;
+using NHibernate.Util;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -385,82 +387,81 @@ namespace Shoko.Server.Models
 
         public void CreateCrossEpisodes(string localFileName)
         {
-            if (episodesRAW != null) //Only create relations if the origin of the data if from Raw (AniDB)
+            if (episodesRAW == null) return;
+            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+
+            foreach (CrossRef_File_Episode fileEp in fileEps)
+                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+
+            fileEps = new List<CrossRef_File_Episode>();
+
+            char apostrophe = "'".ToCharArray()[0];
+            char epiSplit = ',';
+            if (episodesRAW.Contains(apostrophe))
+                epiSplit = apostrophe;
+
+            char eppSplit = ',';
+            if (episodesPercentRAW.Contains(apostrophe))
+                eppSplit = apostrophe;
+
+            string[] epi = episodesRAW.Split(epiSplit);
+            string[] epp = episodesPercentRAW.Split(eppSplit);
+            for (int x = 0; x < epi.Length; x++)
             {
-                List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
-
-                foreach (CrossRef_File_Episode fileEp in fileEps)
-                    RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
-
-                char apostrophe = "'".ToCharArray()[0];
-                char epiSplit = ',';
-                if (episodesRAW.Contains(apostrophe))
-                    epiSplit = apostrophe;
-
-                char eppSplit = ',';
-                if (episodesPercentRAW.Contains(apostrophe))
-                    eppSplit = apostrophe;
-
-                string[] epi = episodesRAW.Split(epiSplit);
-                string[] epp = episodesPercentRAW.Split(eppSplit);
-                for (int x = 0; x < epi.Length; x++)
+                string epis = epi[x].Trim();
+                string epps = epp[x].Trim();
+                if (epis.Length <= 0) continue;
+                if(!int.TryParse(epis, out int epid)) continue;
+                if(!int.TryParse(epps, out int eppp)) continue;
+                if (epid == 0) continue;
+                CrossRef_File_Episode cross = new CrossRef_File_Episode
                 {
-                    string epis = epi[x].Trim();
-                    string epps = epp[x].Trim();
-                    if (epis.Length > 0)
-                    {
-                        int.TryParse(epis, out int epid);
-                        int.TryParse(epps, out int eppp);
-                        if (epid != 0)
-                        {
-                            CrossRef_File_Episode cross = new CrossRef_File_Episode
-                            {
-                                Hash = Hash,
-                                CrossRefSource = (int)CrossRefSource.AniDB,
-                                AnimeID = this.AnimeID,
-                                EpisodeID = epid,
-                                Percentage = eppp,
-                                EpisodeOrder = x + 1,
-                                FileName = localFileName,
-                                FileSize = FileSize
-                            };
-                            RepoFactory.CrossRef_File_Episode.Save(cross);
-                        }
-                    }
-                }
+                    Hash = Hash,
+                    CrossRefSource = (int)CrossRefSource.AniDB,
+                    AnimeID = AnimeID,
+                    EpisodeID = epid,
+                    Percentage = eppp,
+                    EpisodeOrder = x + 1,
+                    FileName = localFileName,
+                    FileSize = FileSize
+                };
+                fileEps.Add(cross);
             }
+            // There is a chance that AniDB returned a dup, however unlikely
+            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}")
+                .ForEach(fileEp => RepoFactory.CrossRef_File_Episode.Save(fileEp));
         }
 
         public string ToXML()
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(@"<AniDB_File>");
-            sb.Append(string.Format("<ED2KHash>{0}</ED2KHash>", Hash));
-            sb.Append(string.Format("<Hash>{0}</Hash>", Hash));
-            sb.Append(string.Format("<CRC>{0}</CRC>", CRC));
-            sb.Append(string.Format("<MD5>{0}</MD5>", MD5));
-            sb.Append(string.Format("<SHA1>{0}</SHA1>", SHA1));
-            sb.Append(string.Format("<FileID>{0}</FileID>", FileID));
-            sb.Append(string.Format("<AnimeID>{0}</AnimeID>", AnimeID));
-            sb.Append(string.Format("<GroupID>{0}</GroupID>", GroupID));
-            sb.Append(string.Format("<File_LengthSeconds>{0}</File_LengthSeconds>", File_LengthSeconds));
-            sb.Append(string.Format("<File_Source>{0}</File_Source>", File_Source));
-            sb.Append(string.Format("<File_AudioCodec>{0}</File_AudioCodec>", File_AudioCodec));
-            sb.Append(string.Format("<File_VideoCodec>{0}</File_VideoCodec>", File_VideoCodec));
-            sb.Append(string.Format("<File_VideoResolution>{0}</File_VideoResolution>", File_VideoResolution));
-            sb.Append(string.Format("<File_FileExtension>{0}</File_FileExtension>", File_FileExtension));
-            sb.Append(string.Format("<File_Description>{0}</File_Description>", File_Description));
-            sb.Append(string.Format("<FileName>{0}</FileName>", FileName));
-            sb.Append(string.Format("<File_ReleaseDate>{0}</File_ReleaseDate>", File_ReleaseDate));
-            sb.Append(string.Format("<Anime_GroupName>{0}</Anime_GroupName>", Anime_GroupName));
-            sb.Append(string.Format("<Anime_GroupNameShort>{0}</Anime_GroupNameShort>", Anime_GroupNameShort));
-            sb.Append(string.Format("<Episode_Rating>{0}</Episode_Rating>", Episode_Rating));
-            sb.Append(string.Format("<Episode_Votes>{0}</Episode_Votes>", Episode_Votes));
-            sb.Append(string.Format("<DateTimeUpdated>{0}</DateTimeUpdated>", DateTimeUpdated));
-            sb.Append(string.Format("<EpisodesRAW>{0}</EpisodesRAW>", EpisodesRAW));
-            sb.Append(string.Format("<SubtitlesRAW>{0}</SubtitlesRAW>", SubtitlesRAW));
-            sb.Append(string.Format("<LanguagesRAW>{0}</LanguagesRAW>", LanguagesRAW));
-            sb.Append(string.Format("<EpisodesPercentRAW>{0}</EpisodesPercentRAW>", EpisodesPercentRAW));
+            sb.Append($"<ED2KHash>{Hash}</ED2KHash>");
+            sb.Append($"<Hash>{Hash}</Hash>");
+            sb.Append($"<CRC>{CRC}</CRC>");
+            sb.Append($"<MD5>{MD5}</MD5>");
+            sb.Append($"<SHA1>{SHA1}</SHA1>");
+            sb.Append($"<FileID>{FileID}</FileID>");
+            sb.Append($"<AnimeID>{AnimeID}</AnimeID>");
+            sb.Append($"<GroupID>{GroupID}</GroupID>");
+            sb.Append($"<File_LengthSeconds>{File_LengthSeconds}</File_LengthSeconds>");
+            sb.Append($"<File_Source>{File_Source}</File_Source>");
+            sb.Append($"<File_AudioCodec>{File_AudioCodec}</File_AudioCodec>");
+            sb.Append($"<File_VideoCodec>{File_VideoCodec}</File_VideoCodec>");
+            sb.Append($"<File_VideoResolution>{File_VideoResolution}</File_VideoResolution>");
+            sb.Append($"<File_FileExtension>{File_FileExtension}</File_FileExtension>");
+            sb.Append($"<File_Description>{File_Description}</File_Description>");
+            sb.Append($"<FileName>{FileName}</FileName>");
+            sb.Append($"<File_ReleaseDate>{File_ReleaseDate}</File_ReleaseDate>");
+            sb.Append($"<Anime_GroupName>{Anime_GroupName}</Anime_GroupName>");
+            sb.Append($"<Anime_GroupNameShort>{Anime_GroupNameShort}</Anime_GroupNameShort>");
+            sb.Append($"<Episode_Rating>{Episode_Rating}</Episode_Rating>");
+            sb.Append($"<Episode_Votes>{Episode_Votes}</Episode_Votes>");
+            sb.Append($"<DateTimeUpdated>{DateTimeUpdated}</DateTimeUpdated>");
+            sb.Append($"<EpisodesRAW>{EpisodesRAW}</EpisodesRAW>");
+            sb.Append($"<SubtitlesRAW>{SubtitlesRAW}</SubtitlesRAW>");
+            sb.Append($"<LanguagesRAW>{LanguagesRAW}</LanguagesRAW>");
+            sb.Append($"<EpisodesPercentRAW>{EpisodesPercentRAW}</EpisodesPercentRAW>");
             sb.Append(@"</AniDB_File>");
 
             return sb.ToString();
