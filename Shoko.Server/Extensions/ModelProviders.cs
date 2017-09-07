@@ -289,62 +289,6 @@ namespace Shoko.Server.Extensions
             show.Year = tvshow.Year.ToString();
         }
 
-        [System.Obsolete("This method is deprecated", false)]
-        public static void Populate(this TvDB_Episode episode, XmlDocument doc)
-        {
-            // used when getting information from episode info
-            // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
-
-            episode.Id = int.Parse(TryGetEpisodeProperty(doc, "id"));
-            episode.SeriesID = int.Parse(TryGetEpisodeProperty(doc, "seriesid"));
-            episode.SeasonID = int.Parse(TryGetEpisodeProperty(doc, "seasonid"));
-            episode.SeasonNumber = int.Parse(TryGetEpisodeProperty(doc, "SeasonNumber"));
-            episode.EpisodeNumber = int.Parse(TryGetEpisodeProperty(doc, "EpisodeNumber"));
-
-            if (int.TryParse(TryGetEpisodeProperty(doc, "EpImgFlag"), out int flag))
-                episode.EpImgFlag = flag;
-
-            if (int.TryParse(TryGetEpisodeProperty(doc, "absolute_number"), out int abnum))
-                episode.AbsoluteNumber = abnum;
-
-            episode.EpisodeName = TryGetEpisodeProperty(doc, "EpisodeName");
-            episode.Overview = TryGetEpisodeProperty(doc, "Overview");
-            episode.Filename = TryGetEpisodeProperty(doc, "filename");
-            //this.FirstAired = TryGetProperty(doc, "FirstAired");
-
-            if (int.TryParse(TryGetEpisodeProperty(doc, "airsafter_season"), out int aas))
-                episode.AirsAfterSeason = aas;
-            else
-                episode.AirsAfterSeason = null;
-
-            if (int.TryParse(TryGetEpisodeProperty(doc, "airsbefore_episode"), out int abe))
-                episode.AirsBeforeEpisode = abe;
-            else
-                episode.AirsBeforeEpisode = null;
-
-            if (int.TryParse(TryGetEpisodeProperty(doc, "airsbefore_season"), out int abs))
-                episode.AirsBeforeSeason = abs;
-            else
-                episode.AirsBeforeSeason = null;
-        }
-
-        public static void Populate(this TvDB_Episode episode, int seriesId, TvDbSharper.Dto.BasicEpisode apiEpisode)
-        {
-            // used when getting information from episode info
-            // http://thetvdb.com/api/B178B8940CAF4A2C/episodes/306542/en.xml
-
-            episode.Id = apiEpisode.Id;
-            episode.SeriesID = seriesId;
-            episode.SeasonID = 0;
-            episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
-            episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
-            episode.EpImgFlag = 0;
-            episode.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
-
-            episode.EpisodeName = apiEpisode.EpisodeName;
-            episode.Overview = apiEpisode.Overview;
-        }
-
         public static void Populate(this TvDB_Episode episode, TvDbSharper.Dto.EpisodeRecord apiEpisode)
         {
             episode.Id = apiEpisode.Id;
@@ -359,9 +303,9 @@ namespace Shoko.Server.Extensions
 
             episode.EpImgFlag = flag;
             episode.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
-            episode.EpisodeName = apiEpisode.EpisodeName;
+            episode.EpisodeName = apiEpisode.EpisodeName ?? string.Empty;
             episode.Overview = apiEpisode.Overview;
-            episode.Filename = apiEpisode.Filename;
+            episode.Filename = apiEpisode.Filename ?? string.Empty;
             episode.AirsAfterSeason = apiEpisode.AirsAfterSeason;
             episode.AirsBeforeEpisode = apiEpisode.AirsBeforeEpisode;
             episode.AirsBeforeSeason = apiEpisode.AirsBeforeSeason;
@@ -370,44 +314,6 @@ namespace Shoko.Server.Extensions
             {
                 episode.AirDate = DateTime.ParseExact(apiEpisode.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo);
             }
-        }
-
-        public static void Populate(this TvDB_Episode episode, XmlNode node)
-        {
-            // used when getting information from full series info
-            // http://thetvdb.com/api/B178B8940CAF4A2C/series/84187/all/en.xml
-
-            episode.Id = int.Parse(TryGetProperty(node, "id"));
-            episode.SeriesID = int.Parse(TryGetProperty(node, "seriesid"));
-            episode.SeasonID = int.Parse(TryGetProperty(node, "seasonid"));
-            episode.SeasonNumber = int.Parse(TryGetProperty(node, "SeasonNumber"));
-            episode.EpisodeNumber = int.Parse(TryGetProperty(node, "EpisodeNumber"));
-
-            if (int.TryParse(TryGetProperty(node, "EpImgFlag"), out int flag))
-                episode.EpImgFlag = flag;
-
-            if (int.TryParse(TryGetProperty(node, "absolute_number"), out int abnum))
-                episode.AbsoluteNumber = abnum;
-
-            episode.EpisodeName = TryGetProperty(node, "EpisodeName");
-            episode.Overview = TryGetProperty(node, "Overview");
-            episode.Filename = TryGetProperty(node, "filename");
-            //this.FirstAired = TryGetProperty(node, "FirstAired");
-
-            if (int.TryParse(TryGetProperty(node, "airsafter_season"), out int aas))
-                episode.AirsAfterSeason = aas;
-            else
-                episode.AirsAfterSeason = null;
-
-            if (int.TryParse(TryGetProperty(node, "airsbefore_episode"), out int abe))
-                episode.AirsBeforeEpisode = abe;
-            else
-                episode.AirsBeforeEpisode = null;
-
-            if (int.TryParse(TryGetProperty(node, "airsbefore_season"), out int abs))
-                episode.AirsBeforeSeason = abs;
-            else
-                episode.AirsBeforeSeason = null;
         }
 
         private static string TryGetProperty(XmlNode node, string propertyName)
