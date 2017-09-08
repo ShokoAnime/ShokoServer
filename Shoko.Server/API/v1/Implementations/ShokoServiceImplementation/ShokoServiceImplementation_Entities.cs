@@ -1068,7 +1068,7 @@ namespace Shoko.Server
             try
             {
                 return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
-                    .DistinctBy(a => a.Places.First().FilePath)
+                    .DistinctBy(a => a.Places.FirstOrDefault()?.FullServerPath)
                     .Select(a => a.ToClient(userID))
                     .ToList();
             }
@@ -1077,9 +1077,10 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 try
                 {
+                    // Two checks because the Where doesn't guarantee that First will not be null, only that a not-null value exists
                     return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
-                            a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FilePath)) != null)
-                        .DistinctBy(a => a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FilePath))?.FilePath)
+                            a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath)) != null)
+                        .DistinctBy(a => a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath)
                         .Select(a => a.ToClient(userID))
                         .ToList();
                 }
