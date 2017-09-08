@@ -1075,6 +1075,18 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
+                try
+                {
+                    return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                            a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FilePath)) != null)
+                        .DistinctBy(a => a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FilePath))?.FilePath)
+                        .Select(a => a.ToClient(userID))
+                        .ToList();
+                }
+                catch
+                {
+                    // Ignore
+                }
             }
             return new List<CL_VideoLocal>();
         }
