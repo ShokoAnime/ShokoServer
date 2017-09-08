@@ -199,14 +199,18 @@ namespace Shoko.UI
                 {
                     Application.Current.Dispatcher.Invoke(action);
                 };
+            bool anidbLoginOpen = false;
             AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
             {
+                if (anidbLoginOpen) return;
                 MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail,
                     Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
 
                 InitialSetupForm frm = new InitialSetupForm();
+                anidbLoginOpen = true;
                 frm.ShowDialog();
+                anidbLoginOpen = false;
             });
             ShokoServer.Instance.LoginFormNeeded += (a, e) => Application.Current.Dispatcher.Invoke(() => new InitialSetupForm().ShowDialog());
 
