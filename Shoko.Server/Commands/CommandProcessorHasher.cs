@@ -83,8 +83,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
             }
         }
 
@@ -105,8 +105,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
-                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
                 }
+                OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
             }
         }
 
@@ -128,6 +128,7 @@ namespace Shoko.Server.Commands
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             processingCommands = false;
+            paused = false;
             //logger.Trace("Stopping command worker (hasher)...");
             QueueState = new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
             QueueCount = 0;
@@ -202,15 +203,11 @@ namespace Shoko.Server.Commands
                         {
                             Paused = false;
                         }
-                        else
-                        {
-                            processingCommands = false;
-                        }
                     }
                     catch
                     {
                     }
-                    Thread.Sleep(5000);
+                    Thread.Sleep(200);
                     continue;
                 }
 

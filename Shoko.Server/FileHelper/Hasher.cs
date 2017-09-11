@@ -130,7 +130,8 @@ namespace Shoko.Server.FileHelper
                 int rval = -1;
                 try
                 {
-                    rval = CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1);
+                    string filename = strPath.StartsWith(@"\\") ? strPath : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
+                    rval = CalculateHashes_dll(filename, ref hash, onHashProgress, getCRC32, getMD5, getSHA1);
                     if (0 == rval)
                     {
                         rhash.ED2K = HashToString(hash, 0, 16);

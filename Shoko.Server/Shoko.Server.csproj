@@ -520,6 +520,7 @@
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utilities\AVDumpHelper.cs" />
     <Compile Include="Utilities\LinuxFS.cs" />
+    <Compile Include="Utilities\TagFilter.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationMetro.cs" />

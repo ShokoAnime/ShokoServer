@@ -241,6 +241,9 @@ namespace MediaInfoLib
 
         public int Open(string fileName)
         {
+            if (!Shoko.Server.Utils.IsLinux())
+                fileName = fileName.StartsWith(@"\\") ? fileName : @"\\?\" + fileName; // add long path prefix if not running on linux, and not a unc path.
+
             var pFileName = MakeStringParameter(fileName);
             try
             {

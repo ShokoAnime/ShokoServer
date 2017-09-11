@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
@@ -198,14 +199,18 @@ namespace Shoko.UI
                 {
                     Application.Current.Dispatcher.Invoke(action);
                 };
+            bool anidbLoginOpen = false;
             AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
             {
+                if (anidbLoginOpen) return;
                 MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_LoginFail,
                     Shoko.Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
 
                 InitialSetupForm frm = new InitialSetupForm();
+                anidbLoginOpen = true;
                 frm.ShowDialog();
+                anidbLoginOpen = false;
             });
             ShokoServer.Instance.LoginFormNeeded += (a, e) => Application.Current.Dispatcher.Invoke(() => new InitialSetupForm().ShowDialog());
 
@@ -308,9 +313,8 @@ namespace Shoko.UI
 
         void btnImagesClear_Click(object sender, RoutedEventArgs e)
         {
-            try
+            Task task = new Task(() =>
             {
-                this.Cursor = Cursors.Wait;
                 ShokoService.CmdProcessorImages.Stop();
 
                 // wait until the queue stops
@@ -323,44 +327,56 @@ namespace Shoko.UI
                 RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
 
                 ShokoService.CmdProcessorImages.Init();
+            });
+
+            try
+            {
+                this.Cursor = Cursors.Wait;
+                task.Start();
+                task.Wait();
+                this.Cursor = Cursors.Arrow;
             }
             catch (Exception ex)
             {
                 Utils.ShowErrorMessage(ex.Message);
             }
-            this.Cursor = Cursors.Arrow;
         }
 
         void btnGeneralClear_Click(object sender, RoutedEventArgs e)
         {
+            Task task = new Task(() =>
+            {
+                    ShokoService.CmdProcessorGeneral.Stop();
+
+                    // wait until the queue stops
+                    while (ShokoService.CmdProcessorGeneral.ProcessingCommands)
+                    {
+                        Thread.Sleep(200);
+                    }
+                    Thread.Sleep(200);
+
+                    RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
+
+                    ShokoService.CmdProcessorGeneral.Init();
+            });
+
             try
             {
                 this.Cursor = Cursors.Wait;
-                ShokoService.CmdProcessorGeneral.Stop();
-
-                // wait until the queue stops
-                while (ShokoService.CmdProcessorGeneral.ProcessingCommands)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
-
-                ShokoService.CmdProcessorGeneral.Init();
+                task.Start();
+                task.Wait();
+                this.Cursor = Cursors.Arrow;
             }
             catch (Exception ex)
             {
                 Utils.ShowErrorMessage(ex.Message);
             }
-            this.Cursor = Cursors.Arrow;
         }
 
         void btnHasherClear_Click(object sender, RoutedEventArgs e)
         {
-            try
+            Task task = new Task(() =>
             {
-                this.Cursor = Cursors.Wait;
                 ShokoService.CmdProcessorHasher.Stop();
 
                 // wait until the queue stops
@@ -373,12 +389,19 @@ namespace Shoko.UI
                 RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
 
                 ShokoService.CmdProcessorHasher.Init();
+            });
+
+            try
+            {
+                this.Cursor = Cursors.Wait;
+                task.Start();
+                task.Wait();
+                this.Cursor = Cursors.Arrow;
             }
             catch (Exception ex)
             {
                 Utils.ShowErrorMessage(ex.Message);
             }
-            this.Cursor = Cursors.Arrow;
         }
 
 

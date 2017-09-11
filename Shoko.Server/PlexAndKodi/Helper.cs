@@ -362,12 +362,10 @@ namespace Shoko.Server.PlexAndKodi
                     #region TvDB
 
                     List<CrossRef_AniDB_TvDBV2> xref_tvdbv2 =
-                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
-                            aep.EpisodeNumber);
-                    if (xref_tvdbv2?.Count > 0)
+                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(aep.AnimeID);
+                    if (xref_tvdbv2.Count > 0)
                     {
-                        TvDB_Episode tvep = ep?.TvDBEpisode;
-
+                        TvDB_Episode tvep = ep.TvDBEpisode;
                         if (tvep != null)
                         {
                             l.Thumb = tvep.GenPoster(null);
@@ -378,11 +376,16 @@ namespace Shoko.Server.PlexAndKodi
                         {
                             string anime = "[Blank]";
                             SVR_AnimeSeries ser = ep.GetAnimeSeries();
-                            if (ser?.GetSeriesName() != null) anime = ser.GetSeriesName();
-                            LogManager.GetCurrentClassLogger()
-                                .Warn(
-                                    $"Episode {aep.EpisodeNumber}: {aep.EnglishName} from {anime} is out of range" +
-                                    " for its TvDB Link. Please check the TvDB links for it.");
+                            var anidb = ser.GetAnime();
+                            bool shouldhaveTvDB = anidb.AnimeType != (int) AnimeType.Movie && anidb.Restricted == 0 &&
+                                                  !aep.GetFutureDated();
+                            if (shouldhaveTvDB)
+                            {
+                                if (ser.GetSeriesName() != null) anime = ser.GetSeriesName();
+                                LogManager.GetCurrentClassLogger()
+                                    .Warn(
+                                        $"{anime}:  Episode {aep.EpisodeNumber} - {aep.EnglishName} did not match an episode to its TvDB Link. Please check the TvDB links for it.");
+                            }
                         }
                     }
 

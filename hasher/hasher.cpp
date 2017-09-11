@@ -150,12 +150,9 @@ static const unsigned int BlockSize = 1024 * 1024;
 
 extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
-	std::wstring fileName(L"\\\\?\\"); // prepend "disable long file name check" prefix
-	fileName.append(pszFile);
-
 	//get file size
 	struct _stat64 statFile;
-	if (_wstat64(fileName.c_str(), &statFile) != 0)
+	if (_wstat64(pszFile, &statFile) != 0)
 		return 1;
 	if (statFile.st_size <= 0)
 		return 6;
@@ -166,7 +163,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 		nChunks++;
 
 	//open file
-	HANDLE hFile = CreateFileW(fileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
+	HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
 		FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN, 0);       
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 2;

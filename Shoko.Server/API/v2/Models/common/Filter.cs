@@ -36,7 +36,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         internal static Filter GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
-            bool all, bool allpic, int pic)
+            bool all, bool allpic, int pic, byte tagfilter)
         {
             List<Group> groups = new List<Group>();
             Filter filter = new Filter
@@ -94,7 +94,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             Group group =
                                 Group.GenerateFromAnimeGroup(ctx, ag, uid, nocast, notag, (level - 1), all,
-                                    filter.id, allpic, pic);
+                                    filter.id, allpic, pic, tagfilter);
                             groups.Add(group);
                             order.Add(ag.GetUserContract(uid), group);
                         }
