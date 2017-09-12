@@ -67,6 +67,11 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
+            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+
+            foreach (CrossRef_File_Episode fileEp in fileEps)
+                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+
             CrossRef_File_Episode xref = new CrossRef_File_Episode();
             try
             {
