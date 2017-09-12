@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                 {
                     queueState = value;
                 }
-                OnQueueCountChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
+                OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
             }
         }
 
