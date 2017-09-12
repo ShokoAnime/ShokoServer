@@ -25,6 +25,7 @@ namespace Shoko.Models.Server
         public string AudioCodec { get; set; } = string.Empty;
         public string AudioBitrate { get; set; } = string.Empty;
         public long Duration { get; set; }
+        [Obsolete("Use VideoLocal_Place.FilePath instead")]
         public string FileName { get; set; }
         
         #endregion
