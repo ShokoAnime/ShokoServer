@@ -1148,12 +1148,9 @@ namespace Shoko.Server
                 getAnimeCmd.Process();
             }
 
-            SVR_AniDB_Anime anime = null;
-            if (getAnimeCmd.Anime != null)
-            {
-                anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
-            }
-            return anime;
+            return getAnimeCmd.Anime != null
+                ? SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd)
+                : null;
         }
 
         public bool ValidAniDBCredentials()
@@ -1180,8 +1177,7 @@ namespace Shoko.Server
 
             try
             {
-                IPHostEntry localHostEntry;
-                localHostEntry = Dns.GetHostEntry(Dns.GetHostName());
+                IPHostEntry localHostEntry = Dns.GetHostEntry(Dns.GetHostName());
 
 
                 logger.Info("-------- Local IP Addresses --------");

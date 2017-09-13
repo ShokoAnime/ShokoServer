@@ -70,26 +70,24 @@ namespace Shoko.Server.LZ4
         public static int Encode(byte[] input, int inputOffset, int inputLength, byte[] output, int outputOffset,
             int outputLength)
         {
-            if (is64bit)
-                return LZ4Codec.Encode64(input, inputOffset, inputLength, output, outputOffset, outputLength);
-            return LZ4Codec.Encode32(input, inputOffset, inputLength, output, outputOffset, outputLength);
+            return is64bit 
+                ? LZ4Codec.Encode64(input, inputOffset, inputLength, output, outputOffset, outputLength) 
+                : LZ4Codec.Encode32(input, inputOffset, inputLength, output, outputOffset, outputLength);
         }
 
         public static byte[] Decode(byte[] input, int inputOffset, int inputLength, int outputlength)
         {
-            if (is64bit)
-                return LZ4Codec.Decode64(input, inputOffset, inputLength, outputlength);
-            return LZ4Codec.Decode32(input, inputOffset, inputLength, outputlength);
+            return is64bit 
+                ? LZ4Codec.Decode64(input, inputOffset, inputLength, outputlength) 
+                : LZ4Codec.Decode32(input, inputOffset, inputLength, outputlength);
         }
 
         public static int Decode(byte[] input, int inputOffset, int inputLength, byte[] output, int outputOffset,
             int outputLength, bool knowouputlength)
         {
-            if (is64bit)
-                return LZ4Codec.Decode64(input, inputOffset, inputLength, output, outputOffset, outputLength,
-                    knowouputlength);
-            return LZ4Codec.Decode32(input, inputOffset, inputLength, output, outputOffset, outputLength,
-                knowouputlength);
+            return is64bit
+                ? LZ4Codec.Decode64(input, inputOffset, inputLength, output, outputOffset, outputLength, knowouputlength)
+                : LZ4Codec.Decode32(input, inputOffset, inputLength, output, outputOffset, outputLength, knowouputlength);
         }
     }
 }

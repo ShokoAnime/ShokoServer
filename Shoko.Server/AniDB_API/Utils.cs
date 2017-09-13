@@ -64,10 +64,9 @@ namespace AniDBAPI
                 webReq.Timeout = 20000; // 20 seconds
                 response = (HttpWebResponse) webReq.GetResponse();
 
-                if (response != null) // Get the stream associated with the response.
-                    return response.GetResponseStream();
-                else
-                    return null;
+                return response != null 
+                    ? response.GetResponseStream() 
+                    : null;
             }
             catch (Exception ex)
             {

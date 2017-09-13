@@ -1347,10 +1347,9 @@ namespace Shoko.Server
             try
             {
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
-                if (ep != null)
-                    return ep.GetVideoDetailedContracts(userID);
-                else
-                    return new List<CL_VideoDetailed>();
+                return ep != null 
+                    ? ep.GetVideoDetailedContracts(userID) 
+                    : new List<CL_VideoDetailed>();
             }
             catch (Exception ex)
             {

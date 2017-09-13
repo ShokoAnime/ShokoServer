@@ -934,8 +934,6 @@ namespace Shoko.Server
                     case 90:
                         operatingSystem = "Me";
                         break;
-                    default:
-                        break;
                 }
             }
             else if (os.Platform == PlatformID.Win32NT)
@@ -973,8 +971,6 @@ namespace Shoko.Server
                                 operatingSystem = "Unknown";
                                 break;
                         }
-                        break;
-                    default:
                         break;
                 }
             }
@@ -1028,10 +1024,7 @@ namespace Shoko.Server
 
         public static int GetOSArchitecture()
         {
-            if (Is64BitOperatingSystem)
-                return 64;
-            else
-                return 32;
+            return Is64BitOperatingSystem ? 64 : 32;
         }
 
         public static bool Is64BitProcess => IntPtr.Size == 8;
