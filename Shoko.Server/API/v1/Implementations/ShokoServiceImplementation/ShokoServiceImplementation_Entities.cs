@@ -3163,7 +3163,7 @@ namespace Shoko.Server
                     start = DateTime.Now;
                     foreach (SVR_GroupFilter gf in allGfs)
                     {
-                        gfs.Add(gf.ToClient(session));
+                        gfs.Add(gf.ToClient());
                     }
                 }
             }
@@ -3192,7 +3192,7 @@ namespace Shoko.Server
                     start = DateTime.Now;
                     foreach (SVR_GroupFilter gf in allGfs)
                     {
-                        gfs.Add(gf.ToClient(session));
+                        gfs.Add(gf.ToClient());
                     }
                 }
             }

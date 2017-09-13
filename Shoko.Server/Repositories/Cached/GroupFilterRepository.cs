@@ -501,9 +501,15 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     obj.UpdateEntityReferenceStrings();
                 }
+                bool resaveConditions = obj.GroupFilterID == 0;
                 obj.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(obj._conditions);
                 obj.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
                 base.Save(obj);
+                if (resaveConditions)
+                {
+                    obj.Conditions.ForEach(a => a.GroupFilterID = obj.GroupFilterID);
+                    Save(obj);
+                }
             }
         }
 
