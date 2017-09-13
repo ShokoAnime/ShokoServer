@@ -159,17 +159,13 @@ namespace Shoko.Server.Models
             }
         }
 
-
         public CL_GroupFilter ToClient()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            if (Conditions.FirstOrDefault(a => a.GroupFilterID == 0) != null)
             {
-                return ToClient(session);
+                Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
+                RepoFactory.GroupFilter.Save(this);
             }
-        }
-
-        public CL_GroupFilter ToClient(ISession session)
-        {
             CL_GroupFilter contract = new CL_GroupFilter
             {
                 GroupFilterID = this.GroupFilterID,
@@ -208,6 +204,7 @@ namespace Shoko.Server.Models
                 GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>(),
                 SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>()
             };
+            if (gf.GroupFilterID != 0) gf.Conditions.ForEach(a => a.GroupFilterID = gf.GroupFilterID);
             return gf;
         }
 
@@ -640,7 +637,7 @@ namespace Shoko.Server.Models
                             contractGroup.Stat_HasFinishedAiring == false)
                             return false;
                         if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_IsCurrentlyAiring == false)
+                            contractGroup.Stat_HasFinishedAiring == true)
                             return false;
                         break;
 
