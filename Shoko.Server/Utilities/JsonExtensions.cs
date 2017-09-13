@@ -38,14 +38,7 @@ namespace Shoko.Server.Utilities
 
                 //var result = JsonConvert.DeserializeObject<IEnumerable<T>>(jsonArray, settings);
                 var result = JsonConvert.DeserializeObject<IEnumerable<T>>(jsonArray);
-                if (result == null)
-                {
-                    return new List<T>();
-                }
-                else
-                {
-                    return result;
-                }
+                return result ?? new List<T>();
 
                 /*using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(jsonArray)))
                 {

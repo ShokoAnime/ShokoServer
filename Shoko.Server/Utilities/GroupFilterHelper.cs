@@ -50,21 +50,35 @@ namespace Shoko.Server
 
         public static GroupFilterSorting GetEnumForText_Sorting(string enumDesc)
         {
-            if (enumDesc == "AniDB Rating") return GroupFilterSorting.AniDBRating;
-            if (enumDesc == "Episode Added Date") return GroupFilterSorting.EpisodeAddedDate;
-            if (enumDesc == "Episode Air Date") return GroupFilterSorting.EpisodeAirDate;
-            if (enumDesc == "Episode Watched Date") return GroupFilterSorting.EpisodeWatchedDate;
-            if (enumDesc == "Group Name") return GroupFilterSorting.GroupName;
-            if (enumDesc == "Sort Name") return GroupFilterSorting.SortName;
-            if (enumDesc == "Missing Episode Count") return GroupFilterSorting.MissingEpisodeCount;
-            if (enumDesc == "Series Added Date") return GroupFilterSorting.SeriesAddedDate;
-            if (enumDesc == "Series Count") return GroupFilterSorting.SeriesCount;
-            if (enumDesc == "Unwatched Episode Count") return GroupFilterSorting.UnwatchedEpisodeCount;
-            if (enumDesc == "User Rating") return GroupFilterSorting.UserRating;
-            if (enumDesc == "Year") return GroupFilterSorting.Year;
-
-
-            return GroupFilterSorting.AniDBRating;
+            switch (enumDesc)
+            {
+                case "AniDB Rating":
+                    return GroupFilterSorting.AniDBRating;
+                case "Episode Added Date":
+                    return GroupFilterSorting.EpisodeAddedDate;
+                case "Episode Air Date":
+                    return GroupFilterSorting.EpisodeAirDate;
+                case "Episode Watched Date":
+                    return GroupFilterSorting.EpisodeWatchedDate;
+                case "Group Name":
+                    return GroupFilterSorting.GroupName;
+                case "Sort Name":
+                    return GroupFilterSorting.SortName;
+                case "Missing Episode Count":
+                    return GroupFilterSorting.MissingEpisodeCount;
+                case "Series Added Date":
+                    return GroupFilterSorting.SeriesAddedDate;
+                case "Series Count":
+                    return GroupFilterSorting.SeriesCount;
+                case "Unwatched Episode Count":
+                    return GroupFilterSorting.UnwatchedEpisodeCount;
+                case "User Rating":
+                    return GroupFilterSorting.UserRating;
+                case "Year":
+                    return GroupFilterSorting.Year;
+                default:
+                    return GroupFilterSorting.AniDBRating;
+            }
         }
 
         public static string GetTextForEnum_SortDirection(GroupFilterSortDirection sort)
@@ -82,10 +96,16 @@ namespace Shoko.Server
 
         public static GroupFilterSortDirection GetEnumForText_SortDirection(string enumDesc)
         {
-            if (enumDesc == "Asc") return GroupFilterSortDirection.Asc;
-            if (enumDesc == "Desc") return GroupFilterSortDirection.Desc;
+            switch (enumDesc)
+            {
+                case "Asc":
+                    return GroupFilterSortDirection.Asc;
+                case "Desc":
+                    return GroupFilterSortDirection.Desc;
+                default:
+                    return GroupFilterSortDirection.Asc;
+            }
 
-            return GroupFilterSortDirection.Asc;
         }
 
         public static List<string> GetAllSortTypes()
@@ -204,6 +224,8 @@ namespace Shoko.Server
                 case GroupFilterSorting.UserRating:
                     return Order(groups, a => a.Stat_UserVoteOverall, gfsc.SortDirection, isfirst);
                 case GroupFilterSorting.GroupName:
+                case GroupFilterSorting.GroupFilterName:
+                    return Order(groups, a => a.GroupName, gfsc.SortDirection, isfirst);
                 default:
                     return Order(groups, a => a.GroupName, gfsc.SortDirection, isfirst);
             }
@@ -214,17 +236,12 @@ namespace Shoko.Server
             GroupFilterSortDirection direc, bool isfirst)
         {
             if (isfirst)
-            {
-                if (direc == GroupFilterSortDirection.Asc)
-                    return groups.OrderBy(o);
-                return groups.OrderByDescending(o);
-            }
-            else
-            {
-                if (direc == GroupFilterSortDirection.Asc)
-                    return ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenBy(o);
-                return ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenByDescending(o);
-            }
+                return direc == GroupFilterSortDirection.Asc 
+                    ? groups.OrderBy(o) 
+                    : groups.OrderByDescending(o);
+            return direc == GroupFilterSortDirection.Asc 
+                ? ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenBy(o) 
+                : ((IOrderedEnumerable<CL_AnimeGroup_User>) groups).ThenByDescending(o);
         }
 
         /*

@@ -539,12 +539,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Dictionary<string, object></returns>
         private object GetDashboard()
         {
-            Dictionary<string, object> dash = new Dictionary<string, object>();
-            dash.Add("queue", GetQueue());
-            dash.Add("file", GetRecentFiles(0, 1)); //updated
-            dash.Add("folder", GetFolders());
-            dash.Add("file_count", CountFiles()); //updated
-            dash.Add("serie_count", CountSerie()); //updated
+            Dictionary<string, object> dash = new Dictionary<string, object>
+            {
+                {"queue", GetQueue()},
+                {"file", GetRecentFiles(0, 1)},
+                {"folder", GetFolders()},
+                {"file_count", CountFiles()},
+                {"serie_count", CountSerie()}
+            };
             return dash;
         }
 
@@ -878,14 +880,9 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) this.Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            if (para.id == 0)
-            {
-                return GetAllFiles(para.limit, para.level, user.JMMUserID);
-            }
-            else
-            {
-                return GetFileById(para.id, para.level, user.JMMUserID);
-            }
+            return para.id == 0 
+                ? GetAllFiles(para.limit, para.level, user.JMMUserID) 
+                : GetFileById(para.id, para.level, user.JMMUserID);
         }
 
         /// <summary>

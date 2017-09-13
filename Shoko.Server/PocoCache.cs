@@ -70,9 +70,9 @@ namespace NutzCode.InMemoryIndex
 
         public S Get(T key)
         {
-            if (_dict.ContainsKey(key))
-                return _dict[key];
-            return null;
+            return _dict.ContainsKey(key) 
+                ? _dict[key] 
+                : null;
         }
 
         public void Update(S obj)
@@ -132,9 +132,9 @@ namespace NutzCode.InMemoryIndex
             if (_cache == null || !_dict.ContainsInverseKey(key))
                 return null;
             HashSet<T> hashes = _dict.FindInverse(key);
-            if (hashes.Count == 0)
-                return null;
-            return _cache.Get(hashes.First());
+            return hashes.Count == 0 
+                ? null 
+                : _cache.Get(hashes.First());
         }
 
         public List<S> GetMultiple(U key)
@@ -324,9 +324,9 @@ namespace NutzCode.InMemoryIndex
 
         public HashSet<T> FindInverse(S k)
         {
-            if (inverse.ContainsKey(k))
-                return inverse[k];
-            return new HashSet<T>();
+            return inverse.ContainsKey(k) 
+                ? inverse[k] 
+                : new HashSet<T>();
         }
 
         public void Remove(T key)
@@ -417,9 +417,9 @@ namespace NutzCode.InMemoryIndex
 
         public HashSet<T> FindInverse(S k)
         {
-            if (inverse.ContainsKey(k))
-                return inverse[k];
-            return new HashSet<T>();
+            return inverse.ContainsKey(k) 
+                ? inverse[k] 
+                : new HashSet<T>();
         }
 
         public void Remove(T key)
@@ -457,9 +457,7 @@ namespace NutzCode.InMemoryIndex
 
         public static bool HasItems<T>(this List<T> org)
         {
-            if (org != null && org.Count > 0)
-                return true;
-            return false;
+            return (org != null && org.Count > 0);
         }
     }
 }

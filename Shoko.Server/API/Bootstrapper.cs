@@ -58,14 +58,9 @@ namespace Shoko.Server.API
                         //take out value of "apikey" from query that was pass in request and check for User
                         apiKey = (string) nancyContext.Request.Query.apikey.Value;
                     }
-                    if (apiKey != null)
-                    {
-                        return UserDatabase.GetUserFromApiKey(apiKey);
-                    }
-                    else
-                    {
-                        return null;
-                    }
+                    return apiKey != null 
+                        ? UserDatabase.GetUserFromApiKey(apiKey) 
+                        : null;
                 });
             StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
