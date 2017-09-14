@@ -47,5 +47,7 @@ namespace Shoko.Server.API.v1.Implementations
             return _impl.VoteAnime(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue,
                 votetype);
         }
+
+        public MediaContainer GetMetadataWithoutHistory(string userId, int type, string id) => GetMetadata(userId, type, id, null, null);
     }
 }
