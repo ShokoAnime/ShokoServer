@@ -116,6 +116,7 @@ namespace Shoko.Server.PlexAndKodi
 
         public static BreadCrumbs FromKey(string key)
         {
+            if (key == null) return new BreadCrumbs();
             if (Cache.ContainsKey(key))
             {
                 BreadCrumbs n = Cache[key].DeepClone();
