@@ -82,14 +82,9 @@ namespace Shoko.Server.API.v2.Modules
                 }
 
                 //check if tag was parsed corrently as it make the url
-                if (url != "")
-                {
-                    return WebUIUpdate(url, channel, tag_name);
-                }
-                else
-                {
-                    return new APIMessage(204, "Content is missing");
-                }
+                return url != "" 
+                    ? WebUIUpdate(url, channel, tag_name) 
+                    : new APIMessage(204, "Content is missing");
             }
             catch
             {

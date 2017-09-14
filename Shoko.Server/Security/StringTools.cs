@@ -64,13 +64,9 @@ namespace Shoko.Server
         {
             if (string.IsNullOrEmpty(sourceString))
                 return sourceString;
-            else
-            {
-                if (startIndex > sourceString.Length)
-                    return String.Empty;
-
-                return sourceString.Substring(startIndex, Math.Min(maxLength, sourceString.Length - startIndex));
-            }
+            return startIndex > sourceString.Length 
+                ? String.Empty 
+                : sourceString.Substring(startIndex, Math.Min(maxLength, sourceString.Length - startIndex));
         }
     }
 }

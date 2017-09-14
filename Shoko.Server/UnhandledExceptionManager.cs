@@ -755,10 +755,8 @@ namespace Shoko.Server
         private static ImageCodecInfo GetEncoderInfo(string strMimeType)
         {
             int j = 0;
-            System.Drawing.Imaging.ImageCodecInfo[] objImageCodecInfo = null;
-            objImageCodecInfo = System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders();
-
-            j = 0;
+            ImageCodecInfo[] objImageCodecInfo = ImageCodecInfo.GetImageEncoders();
+            
             while (j < objImageCodecInfo.Length)
             {
                 if (objImageCodecInfo[j].MimeType == strMimeType)
@@ -821,30 +819,13 @@ namespace Shoko.Server
                 string strTemp = Convert.ToString(ConfigurationManager.AppSettings.Get(_strClassName + "/" + strKey));
                 if (strTemp == null)
                 {
-                    if (strDefault == null)
-                    {
-                        return string.Format(_strKeyNotPresent, _strClassName + "/" + strKey);
-                    }
-                    else
-                    {
-                        return strDefault;
-                    }
+                    return strDefault ?? string.Format(_strKeyNotPresent, _strClassName + "/" + strKey);
                 }
-                else
-                {
-                    return strTemp;
-                }
+                return strTemp;
             }
             catch (Exception ex)
             {
-                if (strDefault == null)
-                {
-                    return string.Format(_strKeyError, ex.Message, _strClassName + "/" + strKey);
-                }
-                else
-                {
-                    return strDefault;
-                }
+                return strDefault ?? string.Format(_strKeyError, ex.Message, _strClassName + "/" + strKey);
             }
         }
 
@@ -867,20 +848,14 @@ namespace Shoko.Server
                 return blnDefault;
             }
 
-            if (strTemp == null)
+            if (strTemp == null) return blnDefault;
+            switch (strTemp.ToLower())
             {
-                return blnDefault;
-            }
-            else
-            {
-                switch (strTemp.ToLower())
-                {
-                    case "1":
-                    case "true":
-                        return true;
-                    default:
-                        return false;
-                }
+                case "1":
+                case "true":
+                    return true;
+                default:
+                    return false;
             }
         }
     }

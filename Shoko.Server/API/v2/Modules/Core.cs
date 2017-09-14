@@ -301,19 +301,11 @@ namespace Shoko.Server.API.v2.Modules
                 Settings setting = this.Bind();
                 if (setting.setting != null & setting.value != null)
                 {
-                    if (ServerSettings.Set(setting.setting, setting.value) == true)
-                    {
-                        return APIStatus.statusOK();
-                    }
-                    else
-                    {
-                        return APIStatus.badRequest("Setting not saved.");
-                    }
+                    return ServerSettings.Set(setting.setting, setting.value)
+                        ? APIStatus.statusOK() 
+                        : APIStatus.badRequest("Setting not saved.");
                 }
-                else
-                {
-                    return APIStatus.badRequest("Setting/Value was null.");
-                }
+                return APIStatus.badRequest("Setting/Value was null.");
             }
             catch
             {
@@ -343,10 +335,8 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 return APIStatus.statusOK();
             }
-            else
-            {
-                return new APIMessage(400, "Login and Password missing");
-            }
+            
+            return new APIMessage(400, "Login and Password missing");
         }
 
         /// <summary>
@@ -371,10 +361,8 @@ namespace Shoko.Server.API.v2.Modules
                 ShokoService.AnidbProcessor.ForceLogout();
                 return APIStatus.statusOK();
             }
-            else
-            {
-                return APIStatus.unauthorized();
-            }
+            
+            return APIStatus.unauthorized();
         }
 
         /// <summary>
@@ -442,10 +430,8 @@ namespace Shoko.Server.API.v2.Modules
                 ServerSettings.MAL_Password = cred.password;
                 return APIStatus.statusOK();
             }
-            else
-            {
-                return new APIMessage(400, "Login and Password missing");
-            }
+            
+            return new APIMessage(400, "Login and Password missing");
         }
 
         /// <summary>
@@ -468,14 +454,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object TestMAL()
         {
-            if (Providers.MyAnimeList.MALHelper.VerifyCredentials())
-            {
-                return APIStatus.statusOK();
-            }
-            else
-            {
-                return APIStatus.unauthorized();
-            }
+            return Providers.MyAnimeList.MALHelper.VerifyCredentials() 
+                ? APIStatus.statusOK() 
+                : APIStatus.unauthorized();
         }
 
         /// <summary>
@@ -526,10 +507,8 @@ namespace Shoko.Server.API.v2.Modules
                 ServerSettings.Trakt_PIN = cred.token;
                 return APIStatus.statusOK();
             }
-            else
-            {
-                return new APIMessage(400, "Token missing");
-            }
+            
+            return new APIMessage(400, "Token missing");
         }
 
         /// <summary>
@@ -538,14 +517,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object CreateTrakt()
         {
-            if (Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success")
-            {
-                return APIStatus.statusOK();
-            }
-            else
-            {
-                return APIStatus.unauthorized();
-            }
+            return Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success" 
+                ? APIStatus.statusOK() 
+                : APIStatus.unauthorized();
         }
 
         /// <summary>
@@ -574,10 +548,8 @@ namespace Shoko.Server.API.v2.Modules
                 cmd.Save();
                 return APIStatus.statusOK();
             }
-            else
-            {
-                return new APIMessage(204, "Trak is not enabled or you missing authtoken");
-            }
+            
+            return new APIMessage(204, "Trak is not enabled or you missing authtoken");
         }
 
         /// <summary>
@@ -645,19 +617,12 @@ namespace Shoko.Server.API.v2.Modules
                 user.Password = Digest.Hash(user.Password);
                 user.HideCategories = "";
                 user.PlexUsers = "";
-                if (new ShokoServiceImplementation().SaveUser(user) == "")
-                {
-                    return APIStatus.statusOK();
-                }
-                else
-                {
-                    return APIStatus.internalError();
-                }
+                return new ShokoServiceImplementation().SaveUser(user) == "" 
+                    ? APIStatus.statusOK() 
+                    : APIStatus.internalError();
             }
-            else
-            {
-                return APIStatus.adminNeeded();
-            }
+            
+            return APIStatus.adminNeeded();
         }
 
         /// <summary>
@@ -682,19 +647,12 @@ namespace Shoko.Server.API.v2.Modules
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
-                if (new ShokoServiceImplementation().ChangePassword(uid, user.Password) == "")
-                {
-                    return APIStatus.statusOK();
-                }
-                else
-                {
-                    return APIStatus.internalError();
-                }
+                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == "" 
+                    ? APIStatus.statusOK() 
+                    : APIStatus.internalError();
             }
-            else
-            {
-                return APIStatus.adminNeeded();
-            }
+            
+            return APIStatus.adminNeeded();
         }
 
         /// <summary>
@@ -708,19 +666,12 @@ namespace Shoko.Server.API.v2.Modules
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
-                if (new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == "")
-                {
-                    return APIStatus.statusOK();
-                }
-                else
-                {
-                    return APIStatus.internalError();
-                }
+                return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == "" 
+                    ? APIStatus.statusOK() 
+                    : APIStatus.internalError();
             }
-            else
-            {
-                return APIStatus.adminNeeded();
-            }
+            
+            return APIStatus.adminNeeded();
         }
 
         #endregion
@@ -778,10 +729,8 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 return dir;
             }
-            else
-            {
-                return new APIMessage(400, "full_path missing");
-            }
+            
+            return new APIMessage(400, "full_path missing");
         }
 
         /// <summary>
@@ -877,10 +826,8 @@ namespace Shoko.Server.API.v2.Modules
 
                 return APIStatus.statusOK();
             }
-            else
-            {
-                return APIStatus.adminNeeded();
-            }
+            
+            return APIStatus.adminNeeded();
         }
 
         /// <summary>

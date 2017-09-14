@@ -345,7 +345,7 @@ namespace LeanWork.IO.FileSystem
                 foreach (var fileName in sortedFileNames)
                 {
                     InvokeHandler(_onExistedHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
-                    InvokeHandler(_onAllChangesHandler,new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
+                    InvokeHandler(_onAllChangesHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
                 }
             }
             else
@@ -353,7 +353,7 @@ namespace LeanWork.IO.FileSystem
                 foreach (var fileName in Directory.EnumerateFiles(Path))
                 {
                     InvokeHandler(_onExistedHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
-                    InvokeHandler(_onAllChangesHandler,new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
+                    InvokeHandler(_onAllChangesHandler, new FileSystemEventArgs(WatcherChangeTypes.All, Path, fileName));
                 }
             }
         }

@@ -42,9 +42,9 @@ namespace Shoko.Server
 
         public static string Get(string key)
         {
-            if (appSettings.ContainsKey(key))
-                return appSettings[key];
-            return null;
+            return appSettings.ContainsKey(key) 
+                ? appSettings[key] 
+                : null;
         }
 
         public static bool Set(string key, string value)
@@ -1418,10 +1418,9 @@ namespace Shoko.Server
             get
             {
                 string language = Get("TvDB_Language");
-                if (string.IsNullOrEmpty(language))
-                    return "en";
-                else
-                    return language;
+                return string.IsNullOrEmpty(language) 
+                    ? "en"
+                    : language;
             }
             set { Set("TvDB_Language", value); }
         }

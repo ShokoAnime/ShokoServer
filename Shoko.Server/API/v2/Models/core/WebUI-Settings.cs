@@ -18,10 +18,7 @@ namespace Shoko.Server.API.v2.Models.core
             if (String.IsNullOrEmpty(uiTheme)) return false;
             bool validChannel = channels.Any(s => otherUpdateChannel.Contains(s));
             if (validChannel == false) return false;
-            if (logDelta < 0)
-            {
-                return false;
-            }
+            if (logDelta < 0) return false;
 
             return true;
         }

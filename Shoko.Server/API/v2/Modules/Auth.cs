@@ -48,14 +48,9 @@ namespace Shoko.Server.API.v2.Modules
             Delete["/", true] = async (x,ct) => await Task.Factory.StartNew(() =>
             {
                 var apiKey = (string) this.Request.Query.apikey;
-                if (UserDatabase.RemoveApiKey(apiKey))
-                {
-                    return HttpStatusCode.OK;
-                }
-                else
-                {
-                    return HttpStatusCode.InternalServerError;
-                }
+                return UserDatabase.RemoveApiKey(apiKey) 
+                    ? HttpStatusCode.OK 
+                    : HttpStatusCode.InternalServerError;
             }, ct);
         }
     }

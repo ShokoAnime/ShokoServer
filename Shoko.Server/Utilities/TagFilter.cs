@@ -1,17 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Web.UI.WebControls;
-using NHibernate.Engine;
-using Shoko.Server.API.v2.Models.common;
 
 namespace Shoko.Server
 {
     public static class TagFilter
     {
         // ported from python
+        // ReSharper disable once UnusedMember.Local
         private const int version = 2; // increase with each push/edit
 
-        public static HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
+        public static readonly HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
         {
             // AniDB tags that don't help with anything
             "body and host",
@@ -59,7 +57,7 @@ namespace Shoko.Server
             "unsorted"
         };
 
-        public static HashSet<string> TagBlackListSource = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListSource = new HashSet<string>
         {
             // tags containing source of serie
             "4-koma",
@@ -82,7 +80,7 @@ namespace Shoko.Server
             "visual novel"
         };
 
-        public static HashSet<string> TagBlackListArtStyle = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListArtStyle = new HashSet<string>
         {
             // tags that focus on art style
             "3d cg animation",
@@ -105,7 +103,7 @@ namespace Shoko.Server
             "widescreen transition"
         };
 
-        public static HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
         {
             // tags that focus on episode attributes
             "ed variety",
@@ -122,7 +120,7 @@ namespace Shoko.Server
             "subtle op ed sequence change"
         };
 
-        public static HashSet<string> TagBlackListPlotSpoilers = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListPlotSpoilers = new HashSet<string>
         {
             // tags that could contain story-line spoilers
             "branching story",
@@ -163,20 +161,26 @@ namespace Shoko.Server
 
             bool readdOriginal = true;
 
-            var stringsSet = new HashSet<string>(strings).AsParallel();
-            stringsSet.ForAll(a =>
+            var stringsSet = new HashSet<string>(strings);
+            strings.AsParallel().ForAll(a =>
             {
                 string tag = a.Trim().ToLowerInvariant();
                 if ((flags & 0b00010) == 0b00010)
                 {
                     if (TagBlackListArtStyle.Contains(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("censor"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                 }
@@ -185,12 +189,18 @@ namespace Shoko.Server
                     readdOriginal = false;
                     if (TagBlackListSource.Contains(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if ("original work".Equals(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                 }
@@ -203,7 +213,10 @@ namespace Shoko.Server
                     }
                     if ("original work".Equals(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                 }
@@ -212,12 +225,18 @@ namespace Shoko.Server
                 {
                     if (TagBlackListUsefulHelpers.Contains(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.StartsWith("preview"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                 }
@@ -226,13 +245,19 @@ namespace Shoko.Server
                 {
                     if (TagBlackListPlotSpoilers.Contains(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.StartsWith("plot") || tag.EndsWith(" dies") || tag.EndsWith(" end") ||
                         tag.EndsWith(" ending"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                 }
@@ -241,83 +266,98 @@ namespace Shoko.Server
                 {
                     if (TagBlacklistAniDBHelpers.Contains(tag))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
-                    if (tag.Contains("to be"))
+                    if (tag.Contains("to be") && tag.Contains("split"))
                     {
-                        lock(toRemove) toRemove.Add(a);
-                        return;
-                    }
-                    if (tag.Contains("merged"))
-                    {
-                        lock(toRemove) toRemove.Add(a);
-                        return;
-                    }
-                    if (tag.Contains("deleted"))
-                    {
-                        lock(toRemove) toRemove.Add(a);
-                        return;
-                    }
-                    if (tag.Contains("split"))
-                    {
-                        lock(toRemove) toRemove.Add(a);
-                        return;
-                    }
-                    if (tag.Contains("moved"))
-                    {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("need") || tag.Contains("needs"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("merging") || tag.Contains("merged"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("deleting") || tag.Contains("deleted"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("moving") || tag.Contains("moved"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("old animetags"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.Contains("missing"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.StartsWith("predominantly"))
                     {
-                        lock(toRemove) toRemove.Add(a);
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                         return;
                     }
                     if (tag.StartsWith("weekly"))
                     {
-                        lock(toRemove) toRemove.Add(a);
-                        return;
+                        lock(toRemove)
+                        {
+                            toRemove.Add(a);
+                        }
                     }
                 }
             });

@@ -90,7 +90,7 @@ namespace Shoko.Server.Commands
                 {
                     queueCount = value;
                 }
-                OnQueueCountChangedEvent(new QueueCountEventArgs(queueCount));
+                OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
             }
         }
 
