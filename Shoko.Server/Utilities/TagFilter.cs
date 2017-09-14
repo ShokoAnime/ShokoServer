@@ -1,17 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Web.UI.WebControls;
-using NHibernate.Engine;
-using Shoko.Server.API.v2.Models.common;
 
 namespace Shoko.Server
 {
     public static class TagFilter
     {
         // ported from python
+        // ReSharper disable once UnusedMember.Local
         private const int version = 2; // increase with each push/edit
 
-        public static HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
+        public static readonly HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
         {
             // AniDB tags that don't help with anything
             "body and host",
@@ -59,7 +57,7 @@ namespace Shoko.Server
             "unsorted"
         };
 
-        public static HashSet<string> TagBlackListSource = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListSource = new HashSet<string>
         {
             // tags containing source of serie
             "4-koma",
@@ -82,7 +80,7 @@ namespace Shoko.Server
             "visual novel"
         };
 
-        public static HashSet<string> TagBlackListArtStyle = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListArtStyle = new HashSet<string>
         {
             // tags that focus on art style
             "3d cg animation",
@@ -105,7 +103,7 @@ namespace Shoko.Server
             "widescreen transition"
         };
 
-        public static HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
         {
             // tags that focus on episode attributes
             "ed variety",
@@ -122,7 +120,7 @@ namespace Shoko.Server
             "subtle op ed sequence change"
         };
 
-        public static HashSet<string> TagBlackListPlotSpoilers = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListPlotSpoilers = new HashSet<string>
         {
             // tags that could contain story-line spoilers
             "branching story",
@@ -360,7 +358,6 @@ namespace Shoko.Server
                         {
                             toRemove.Add(a);
                         }
-                        return;
                     }
                 }
             });
