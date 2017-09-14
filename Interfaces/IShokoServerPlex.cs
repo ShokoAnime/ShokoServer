@@ -13,8 +13,11 @@ namespace Shoko.Models.Interfaces
         [Rest("Filters/{userId}", Verbs.Get)]
         MediaContainer GetFilters(string userId);
 
-        [Rest("Metadata/{userId}/{type}/{id}/{historyinfo?}/{filterid?}", Verbs.Get)]
+        [Rest("Metadata/{userId}/{type}/{id}/{historyinfo}/{filterid?}", Verbs.Get)]
         MediaContainer GetMetadata(string userId, int type, string id, string historyinfo, int? filterid);
+
+        [Rest("Metadata/{userId}/{type}/{id}", Verbs.Get)]
+        MediaContainer GetMetadataWithoutHistory(string userId, int type, string id);
 
         [Rest("User", Verbs.Get)]
         PlexContract_Users GetUsers();
