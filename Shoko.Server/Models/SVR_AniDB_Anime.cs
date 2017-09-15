@@ -4,12 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
 using AniDBAPI;
-using Shoko.Models.Azure;
 using NHibernate;
 using NLog;
+using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
-using Shoko.Models;
+using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -18,12 +18,9 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
-using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
-using Pri.LongPath;
 
 namespace Shoko.Server.Models
 {
@@ -39,7 +36,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        private CL_AniDB_AnimeDetailed _contract = null;
+        private CL_AniDB_AnimeDetailed _contract;
 
         public virtual CL_AniDB_AnimeDetailed Contract
         {
@@ -64,7 +61,7 @@ namespace Shoko.Server.Models
             _contract = null;
         }
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         // these files come from AniDB but we don't directly save them
         private string reviewIDListRAW;
@@ -106,7 +103,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return results;
         }
 
-        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
+        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes;
         public Dictionary<int, TvDB_Episode> GetDictTvDBEpisodes()
         {
             if (dictTvDBEpisodes == null)
@@ -137,7 +134,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return dictTvDBEpisodes;
         }
 
-        private Dictionary<int, int> dictTvDBSeasons = null;
+        private Dictionary<int, int> dictTvDBSeasons;
         public Dictionary<int, int> GetDictTvDBSeasons()
         {
             if (dictTvDBSeasons == null)
@@ -165,7 +162,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return dictTvDBSeasons;
         }
 
-        private Dictionary<int, int> dictTvDBSeasonsSpecials = null;
+        private Dictionary<int, int> dictTvDBSeasonsSpecials;
         public Dictionary<int, int> GetDictTvDBSeasonsSpecials()
         {
             if (dictTvDBSeasonsSpecials == null)
@@ -199,15 +196,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return dictTvDBSeasonsSpecials;
         }
 
-        public List<CrossRef_AniDB_TvDB_Episode> GetCrossRefTvDBEpisodes()
-        {
-            return RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(AnimeID);
-        }
+        public List<CrossRef_AniDB_TvDB_Episode> GetCrossRefTvDBEpisodes() => RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(AnimeID);
 
-        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
-        {
-            return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(this.AnimeID);
-        }
+        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2() => RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
         {
@@ -217,10 +208,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
-        {
-            return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, this.AnimeID);
-        }
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session) => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AnimeID);
 
         public List<CrossRef_AniDB_MAL> GetCrossRefMAL()
         {
@@ -230,10 +218,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL(ISession session)
-        {
-            return RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(session, this.AnimeID);
-        }
+        public List<CrossRef_AniDB_MAL> GetCrossRefMAL(ISession session) => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(session, AnimeID);
 
         public TvDB_Series GetTvDBSeries()
         {
@@ -277,11 +262,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public CrossRef_AniDB_Other GetCrossRefMovieDB(ISessionWrapper criteriaFactory)
-        {
-            return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(criteriaFactory, this.AnimeID,
-                CrossRefType.MovieDB);
-        }
+        public CrossRef_AniDB_Other GetCrossRefMovieDB(ISessionWrapper criteriaFactory) => RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(criteriaFactory, AnimeID,
+            CrossRefType.MovieDB);
 
 
         public MovieDB_Movie GetMovieDBMovie()
@@ -339,11 +321,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public AniDB_Anime_DefaultImage GetDefaultPoster(ISessionWrapper criteriaFactory)
-        {
-            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(criteriaFactory, this.AnimeID,
-                (int) ImageSizeType.Poster);
-        }
+        public AniDB_Anime_DefaultImage GetDefaultPoster(ISessionWrapper criteriaFactory) => RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(criteriaFactory, AnimeID,
+            (int) ImageSizeType.Poster);
 
         public string PosterPathNoDefault
         {
@@ -354,26 +333,26 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        private List<AniDB_Anime_DefaultImage> allPosters = null;
+        private List<AniDB_Anime_DefaultImage> allPosters;
         public List<AniDB_Anime_DefaultImage> AllPosters
         {
             get
             {
                 if (allPosters != null) return allPosters;
                 var posters = new List<AniDB_Anime_DefaultImage>();
-                posters.Add(new AniDB_Anime_DefaultImage()
+                posters.Add(new AniDB_Anime_DefaultImage
                 {
                     AniDB_Anime_DefaultImageID = AnimeID,
                     ImageType = (int) ImageEntityType.AniDB_Cover
                 });
-                var tvdbposters = GetTvDBImagePosters()?.Where(img => img != null).Select(img => new AniDB_Anime_DefaultImage()
+                var tvdbposters = GetTvDBImagePosters()?.Where(img => img != null).Select(img => new AniDB_Anime_DefaultImage
                 {
                     AniDB_Anime_DefaultImageID = img.TvDB_ImagePosterID,
                     ImageType = (int) ImageEntityType.TvDB_Cover
                 });
                 if (tvdbposters != null) posters.AddRange(tvdbposters);
 
-                var moviebposters = GetMovieDBPosters()?.Where(img => img != null).Select(img => new AniDB_Anime_DefaultImage()
+                var moviebposters = GetMovieDBPosters()?.Where(img => img != null).Select(img => new AniDB_Anime_DefaultImage
                 {
                     AniDB_Anime_DefaultImageID = img.MovieDB_PosterID,
                     ImageType = (int) ImageEntityType.MovieDB_Poster
@@ -398,31 +377,28 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             AniDB_Anime_DefaultImage defaultPoster = GetDefaultPoster(session);
             if (defaultPoster == null)
                 return PosterPathNoDefault;
-            else
+            ImageEntityType imageType = (ImageEntityType) defaultPoster.ImageParentType;
+
+            switch (imageType)
             {
-                ImageEntityType imageType = (ImageEntityType) defaultPoster.ImageParentType;
+                case ImageEntityType.AniDB_Cover:
+                    return PosterPath;
 
-                switch (imageType)
-                {
-                    case ImageEntityType.AniDB_Cover:
-                        return this.PosterPath;
+                case ImageEntityType.TvDB_Cover:
+                    TvDB_ImagePoster tvPoster =
+                        RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
+                    if (tvPoster != null)
+                        return tvPoster.GetFullImagePath();
+                    else
+                        return PosterPath;
 
-                    case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster tvPoster =
-                            RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
-                        if (tvPoster != null)
-                            return tvPoster.GetFullImagePath();
-                        else
-                            return this.PosterPath;
-
-                    case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster =
-                            RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
-                        if (moviePoster != null)
-                            return moviePoster.GetFullImagePath();
-                        else
-                            return this.PosterPath;
-                }
+                case ImageEntityType.MovieDB_Poster:
+                    MovieDB_Poster moviePoster =
+                        RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
+                    if (moviePoster != null)
+                        return moviePoster.GetFullImagePath();
+                    else
+                        return PosterPath;
             }
 
             return PosterPath;
@@ -438,42 +414,39 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public ImageDetails GetDefaultPosterDetailsNoBlanks(ISessionWrapper session)
         {
-            ImageDetails details = new ImageDetails() {ImageType = ImageEntityType.AniDB_Cover, ImageID = this.AnimeID};
+            ImageDetails details = new ImageDetails {ImageType = ImageEntityType.AniDB_Cover, ImageID = AnimeID};
             AniDB_Anime_DefaultImage defaultPoster = GetDefaultPoster(session);
 
             if (defaultPoster == null)
                 return details;
-            else
+            ImageEntityType imageType = (ImageEntityType) defaultPoster.ImageParentType;
+
+            switch (imageType)
             {
-                ImageEntityType imageType = (ImageEntityType) defaultPoster.ImageParentType;
+                case ImageEntityType.AniDB_Cover:
+                    return details;
 
-                switch (imageType)
-                {
-                    case ImageEntityType.AniDB_Cover:
-                        return details;
+                case ImageEntityType.TvDB_Cover:
+                    TvDB_ImagePoster tvPoster =
+                        RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
+                    if (tvPoster != null)
+                        details = new ImageDetails
+                        {
+                            ImageType = ImageEntityType.TvDB_Cover,
+                            ImageID = tvPoster.TvDB_ImagePosterID
+                        };
+                    return details;
 
-                    case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster tvPoster =
-                            RepoFactory.TvDB_ImagePoster.GetByID(session, defaultPoster.ImageParentID);
-                        if (tvPoster != null)
-                            details = new ImageDetails()
-                            {
-                                ImageType = ImageEntityType.TvDB_Cover,
-                                ImageID = tvPoster.TvDB_ImagePosterID
-                            };
-                        return details;
-
-                    case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster =
-                            RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
-                        if (moviePoster != null)
-                            details = new ImageDetails()
-                            {
-                                ImageType = ImageEntityType.MovieDB_Poster,
-                                ImageID = moviePoster.MovieDB_PosterID
-                            };
-                        return details;
-                }
+                case ImageEntityType.MovieDB_Poster:
+                    MovieDB_Poster moviePoster =
+                        RepoFactory.MovieDB_Poster.GetByID(session, defaultPoster.ImageParentID);
+                    if (moviePoster != null)
+                        details = new ImageDetails
+                        {
+                            ImageType = ImageEntityType.MovieDB_Poster,
+                            ImageID = moviePoster.MovieDB_PosterID
+                        };
+                    return details;
             }
 
             return details;
@@ -487,11 +460,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public AniDB_Anime_DefaultImage GetDefaultFanart(ISessionWrapper factory)
-        {
-            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(factory, this.AnimeID,
-                (int) ImageSizeType.Fanart);
-        }
+        public AniDB_Anime_DefaultImage GetDefaultFanart(ISessionWrapper factory) => RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(factory, AnimeID,
+            (int) ImageSizeType.Fanart);
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
         {
@@ -511,41 +481,38 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 List<CL_AniDB_Anime_DefaultImage> fanarts = Contract.AniDBAnime.Fanarts;
                 if (fanarts == null || fanarts.Count == 0) return null;
                 CL_AniDB_Anime_DefaultImage art = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                details = new ImageDetails()
+                details = new ImageDetails
                 {
                     ImageID = art.AniDB_Anime_DefaultImageID,
                     ImageType = (ImageEntityType) art.ImageType
                 };
                 return details;
             }
-            else
+            // TODO Move this to contract as well
+            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
+
+            switch (imageType)
             {
-                // TODO Move this to contract as well
-                AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
-                ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
+                case ImageEntityType.TvDB_FanArt:
+                    TvDB_ImageFanart tvFanart = RepoFactory.TvDB_ImageFanart.GetByID(session, fanart.ImageParentID);
+                    if (tvFanart != null)
+                        details = new ImageDetails
+                        {
+                            ImageType = ImageEntityType.TvDB_FanArt,
+                            ImageID = tvFanart.TvDB_ImageFanartID
+                        };
+                    return details;
 
-                switch (imageType)
-                {
-                    case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart tvFanart = RepoFactory.TvDB_ImageFanart.GetByID(session, fanart.ImageParentID);
-                        if (tvFanart != null)
-                            details = new ImageDetails()
-                            {
-                                ImageType = ImageEntityType.TvDB_FanArt,
-                                ImageID = tvFanart.TvDB_ImageFanartID
-                            };
-                        return details;
-
-                    case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(session, fanart.ImageParentID);
-                        if (movieFanart != null)
-                            details = new ImageDetails()
-                            {
-                                ImageType = ImageEntityType.MovieDB_FanArt,
-                                ImageID = movieFanart.MovieDB_FanartID
-                            };
-                        return details;
-                }
+                case ImageEntityType.MovieDB_FanArt:
+                    MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(session, fanart.ImageParentID);
+                    if (movieFanart != null)
+                        details = new ImageDetails
+                        {
+                            ImageType = ImageEntityType.MovieDB_FanArt,
+                            ImageID = movieFanart.MovieDB_FanartID
+                        };
+                    return details;
             }
 
             return null;
@@ -584,28 +551,25 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
                 }
             }
-            else
+            // TODO Move this to contract as well
+            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
+
+            switch (imageType)
             {
-                // TODO Move this to contract as well
-                AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
-                ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
+                case ImageEntityType.TvDB_FanArt:
+                    TvDB_ImageFanart tvFanart =
+                        RepoFactory.TvDB_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
+                    if (tvFanart != null)
+                        return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+                    break;
 
-                switch (imageType)
-                {
-                    case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart tvFanart =
-                            RepoFactory.TvDB_ImageFanart.GetByID(GetDefaultFanart(session).ImageParentID);
-                        if (tvFanart != null)
-                            return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
-                        break;
-
-                    case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart =
-                            RepoFactory.MovieDB_Fanart.GetByID(GetDefaultFanart(session).ImageParentID);
-                        if (movieFanart != null)
-                            return movieFanart.URL;
-                        break;
-                }
+                case ImageEntityType.MovieDB_FanArt:
+                    MovieDB_Fanart movieFanart =
+                        RepoFactory.MovieDB_Fanart.GetByID(GetDefaultFanart(session).ImageParentID);
+                    if (movieFanart != null)
+                        return movieFanart.URL;
+                    break;
             }
 
             return "";
@@ -619,11 +583,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public AniDB_Anime_DefaultImage GetDefaultWideBanner(ISessionWrapper session)
-        {
-            return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(session, this.AnimeID,
-                (int) ImageSizeType.WideBanner);
-        }
+        public AniDB_Anime_DefaultImage GetDefaultWideBanner(ISessionWrapper session) => RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(session, AnimeID,
+            (int) ImageSizeType.WideBanner);
 
         public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
         {
@@ -637,7 +598,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             Random bannerRandom = new Random();
 
-            ImageDetails details = null;
+            ImageDetails details;
             AniDB_Anime_DefaultImage banner = GetDefaultWideBanner();
             if (banner == null)
             {
@@ -647,33 +608,27 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     // MovieDB doesn't have banners
                     return null;
                 }
-                else
+                List<CL_AniDB_Anime_DefaultImage> banners = Contract.AniDBAnime.Banners;
+                if (banners == null || banners.Count == 0) return null;
+                CL_AniDB_Anime_DefaultImage art = banners[bannerRandom.Next(0, banners.Count)];
+                details = new ImageDetails
                 {
-                    List<CL_AniDB_Anime_DefaultImage> banners = Contract.AniDBAnime.Banners;
-                    if (banners == null || banners.Count == 0) return null;
-                    CL_AniDB_Anime_DefaultImage art = banners[bannerRandom.Next(0, banners.Count)];
-                    details = new ImageDetails()
+                    ImageID = art.AniDB_Anime_DefaultImageID,
+                    ImageType = (ImageEntityType) art.ImageType
+                };
+                return details;
+            }
+            ImageEntityType imageType = (ImageEntityType) banner.ImageParentType;
+
+            switch (imageType)
+            {
+                case ImageEntityType.TvDB_Banner:
+                    details = new ImageDetails
                     {
-                        ImageID = art.AniDB_Anime_DefaultImageID,
-                        ImageType = (ImageEntityType) art.ImageType
+                        ImageType = ImageEntityType.TvDB_Banner,
+                        ImageID = banner.ToClient(session).TVWideBanner.TvDB_ImageWideBannerID
                     };
                     return details;
-                }
-            }
-            else
-            {
-                ImageEntityType imageType = (ImageEntityType) banner.ImageParentType;
-
-                switch (imageType)
-                {
-                    case ImageEntityType.TvDB_Banner:
-                        details = new ImageDetails()
-                        {
-                            ImageType = ImageEntityType.TvDB_Banner,
-                            ImageID = banner.ToClient(session).TVWideBanner.TvDB_ImageWideBannerID
-                        };
-                        return details;
-                }
             }
 
             return null;
@@ -707,41 +662,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return tags;
         }
 
-        /*public List<AniDB_Anime_Tag> GetAnimeTags()
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-                return GetAnimeTags(session);
-			}
-		}
+        public List<CustomTag> GetCustomTagsForAnime() => RepoFactory.CustomTag.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Anime_Tag> GetAnimeTags(ISession session)
-		{
-            AniDB_Anime_TagRepository repTagXRef = new AniDB_Anime_TagRepository();
-			return repTagXRef.GetByAnimeID(session, AnimeID);
-		}
+        public List<AniDB_Tag> GetAniDBTags() => RepoFactory.AniDB_Tag.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Tag> GetAniDBTags(ISession session)
-		{
-            AniDB_TagRepository repCats = new AniDB_TagRepository();
-			return repCats.GetByAnimeID(session, AnimeID);
-		}
-        */
-
-        public List<CustomTag> GetCustomTagsForAnime()
-        {
-            return RepoFactory.CustomTag.GetByAnimeID(AnimeID);
-        }
-
-        public List<AniDB_Tag> GetAniDBTags()
-        {
-            return RepoFactory.AniDB_Tag.GetByAnimeID(AnimeID);
-        }
-
-        public List<AniDB_Anime_Tag> GetAnimeTags()
-        {
-            return RepoFactory.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
-        }
+        public List<AniDB_Anime_Tag> GetAnimeTags() => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
 
         public List<AniDB_Anime_Relation> GetRelatedAnime()
         {
@@ -751,10 +676,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public List<AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session)
-        {
-            return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
-        }
+        public List<AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session) => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
 
         public List<AniDB_Anime_Similar> GetSimilarAnime()
         {
@@ -764,16 +686,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public List<AniDB_Anime_Similar> GetSimilarAnime(ISession session)
-        {
-            return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(session, AnimeID);
-        }
+        public List<AniDB_Anime_Similar> GetSimilarAnime(ISession session) => RepoFactory.AniDB_Anime_Similar.GetByAnimeID(session, AnimeID);
 
         [XmlIgnore]
-        public List<AniDB_Anime_Review> AnimeReviews
-        {
-            get { return RepoFactory.AniDB_Anime_Review.GetByAnimeID(AnimeID); }
-        }
+        public List<AniDB_Anime_Review> AnimeReviews => RepoFactory.AniDB_Anime_Review.GetByAnimeID(AnimeID);
 
         public List<SVR_AniDB_Anime> GetAllRelatedAnime()
         {
@@ -789,7 +705,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<int> relListIDs = new List<int>();
             List<int> searchedIDs = new List<int>();
 
-            GetRelatedAnimeRecursive(session, this.AnimeID, ref relList, ref relListIDs, ref searchedIDs);
+            GetRelatedAnimeRecursive(session, AnimeID, ref relList, ref relListIDs, ref searchedIDs);
             return relList;
         }
 
@@ -801,15 +717,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public List<AniDB_Anime_Character> GetAnimeCharacters(ISessionWrapper session)
-        {
-            return RepoFactory.AniDB_Anime_Character.GetByAnimeID(session, AnimeID);
-        }
+        public List<AniDB_Anime_Character> GetAnimeCharacters(ISessionWrapper session) => RepoFactory.AniDB_Anime_Character.GetByAnimeID(session, AnimeID);
 
-        public List<AniDB_Anime_Title> GetTitles()
-        {
-            return RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
-        }
+        public List<AniDB_Anime_Title> GetTitles() => RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
 
         public string GetFormattedTitle(List<AniDB_Anime_Title> titles)
         {
@@ -855,12 +765,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
 
             // otherwise just use the main title
-            return this.MainTitle;
+            return MainTitle;
         }
 
         public string GetFormattedTitle()
         {
-            List<AniDB_Anime_Title> thisTitles = this.GetTitles();
+            List<AniDB_Anime_Title> thisTitles = GetTitles();
             return GetFormattedTitle(thisTitles);
         }
 
@@ -871,11 +781,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 try
                 {
-                    return RepoFactory.AniDB_Vote.GetByAnimeID(this.AnimeID);
+                    return RepoFactory.AniDB_Vote.GetByAnimeID(AnimeID);
                 }
                 catch (Exception ex)
                 {
-                    logger.Error("Error in  UserVote: {0}", ex.ToString());
+                    logger.Error($"Error in  UserVote: {ex}");
                     return null;
                 }
             }
@@ -885,11 +795,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             try
             {
-                return RepoFactory.AniDB_Vote.GetByAnimeID(session, this.AnimeID);
+                return RepoFactory.AniDB_Vote.GetByAnimeID(session, AnimeID);
             }
             catch (Exception ex)
             {
-                logger.Error("Error in  UserVote: {0}", ex.ToString());
+                logger.Error($"Error in  UserVote: {ex}");
                 return null;
             }
         }
@@ -899,7 +809,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             get
             {
-                List<AniDB_Anime_Title> titles = this.GetTitles();
+                List<AniDB_Anime_Title> titles = GetTitles();
 
                 foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
                 {
@@ -955,14 +865,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         [XmlIgnore]
         public List<AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Episode> GetAniDBEpisodes()
-        {
-            return RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
-        }
+        public List<AniDB_Episode> GetAniDBEpisodes() => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
 
         public SVR_AniDB_Anime()
         {
-            this.DisableExternalLinksFlag = 0;
+            DisableExternalLinksFlag = 0;
         }
 
         private static bool Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
@@ -1087,7 +994,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public void PopulateAndSaveFromUDP(Raw_AniDB_Anime animeInfo)
         {
             // raw fields
-            this.reviewIDListRAW = animeInfo.ReviewIDListRAW;
+            reviewIDListRAW = animeInfo.ReviewIDListRAW;
 
             // save now for FK purposes
             RepoFactory.AniDB_Anime.Save(this);
@@ -1100,8 +1007,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (eps == null) return;
 
 
-            this.EpisodeCountSpecial = 0;
-            this.EpisodeCountNormal = 0;
+            EpisodeCountSpecial = 0;
+            EpisodeCountNormal = 0;
 
             List<SVR_AnimeEpisode> animeEpsToDelete = new List<SVR_AnimeEpisode>();
             List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
@@ -1141,21 +1048,21 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
-                    this.EpisodeCountNormal++;
+                    EpisodeCountNormal++;
 
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Special)
-                    this.EpisodeCountSpecial++;
+                    EpisodeCountSpecial++;
             }
             RepoFactory.AniDB_Episode.Save(epsToSave);
 
-            this.EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
+            EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
         }
 
         private void CreateTitles(List<Raw_AniDB_Anime_Title> titles)
         {
             if (titles == null) return;
 
-            this.AllTitles = "";
+            AllTitles = "";
 
             List<AniDB_Anime_Title> titlesToDelete = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             List<AniDB_Anime_Title> titlesToSave = new List<AniDB_Anime_Title>();
@@ -1165,8 +1072,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (!title.Populate(rawtitle)) continue;
                 titlesToSave.Add(title);
 
-                if (this.AllTitles.Length > 0) this.AllTitles += "|";
-                this.AllTitles += rawtitle.Title;
+                if (AllTitles.Length > 0) AllTitles += "|";
+                AllTitles += rawtitle.Title;
             }
             RepoFactory.AniDB_Anime_Title.Delete(titlesToDelete);
             RepoFactory.AniDB_Anime_Title.Save(titlesToSave);
@@ -1176,7 +1083,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             if (tags == null) return;
 
-            this.AllTags = "";
+            AllTags = "";
 
 
             List<AniDB_Tag> tagsToSave = new List<AniDB_Tag>();
@@ -1204,8 +1111,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 anime_tag.Populate(rawtag);
                 xrefsToSave.Add(anime_tag);
 
-                if (this.AllTags.Length > 0) this.AllTags += "|";
-                this.AllTags += tag.TagName;
+                if (AllTags.Length > 0) AllTags += "|";
+                AllTags += tag.TagName;
             }
 
             foreach (AniDB_Anime_Tag curTag in currentTags)
@@ -1316,7 +1223,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (downloadRelations || ServerSettings.AutoGroupSeries)
                 {
                     logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
-                        this.MainTitle, this.AnimeID, anime_rel.RelatedAnimeID);
+                        MainTitle, AnimeID, anime_rel.RelatedAnimeID);
 
                     // I have disable the downloading of relations here because of banning issues
                     // basically we will download immediate relations, but not relations of relations
@@ -1384,9 +1291,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 //Delete old if changed
                 List<AniDB_Anime_Review> animeReviews = RepoFactory.AniDB_Anime_Review.GetByAnimeID(AnimeID);
                 foreach (AniDB_Anime_Review xref in animeReviews)
-                {
                     RepoFactory.AniDB_Anime_Review.Delete(xref.AniDB_Anime_ReviewID);
-                }
 
 
                 string[] revs = reviewIDListRAW.Split(',');
@@ -1399,7 +1304,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         {
                             AniDB_Anime_Review csr = new AniDB_Anime_Review
                             {
-                                AnimeID = this.AnimeID,
+                                AnimeID = AnimeID,
                                 ReviewID = rev
                             };
                             RepoFactory.AniDB_Anime_Review.Save(csr);
@@ -1495,7 +1400,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             try
             {
-                List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(this.AnimeID);
+                List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID);
                 if (animeChars == null || animeChars.Count == 0) return chars;
 
                 foreach (AniDB_Anime_Character animeChar in animeChars)
@@ -1544,9 +1449,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
                 defImagesByAnime.TryGetValue(anime.AnimeID, out DefaultAnimeImages defImages);
 
-                var characterContracts = (charsByAnime[anime.AnimeID] ?? Enumerable.Empty<AnimeCharacterAndSeiyuu>())
-                    .Select(ac => ac.ToClient())
-                    .ToList();
+                var characterContracts = charsByAnime[anime.AnimeID].Select(ac => ac.ToClient()).ToList();
                 var movieDbFanart = movDbFanartByAnime[anime.AnimeID];
                 var tvDbBanners = tvDbBannersByAnime[anime.AnimeID];
                 var tvDbFanart = tvDbFanartByAnime[anime.AnimeID];
@@ -1573,9 +1476,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     for (int year = beginYear; year <= endYear; year++)
                     {
                         foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                        {
                             if (anime.IsInSeason(season, year)) contract.Stat_AllSeasons.Add($"{season} {year}");
-                        }
                     }
                 }
 
@@ -1685,9 +1586,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 for (int year = beginYear; year <= endYear; year++)
                 {
                     foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                    {
                         if (this.IsInSeason(season, year)) cl.Stat_AllSeasons.Add($"{season} {year}");
-                    }
                 }
             }
 
@@ -1720,8 +1619,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             foreach (CustomTag custag in GetCustomTagsForAnime())
                 cl.CustomTags.Add(custag);
 
-            if (this.UserVote != null)
-                cl.UserVote = this.UserVote;
+            if (UserVote != null)
+                cl.UserVote = UserVote;
 
             HashSet<string> audioLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
             HashSet<string> subtitleLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
@@ -1730,7 +1629,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             // audio languages
             Dictionary<int, LanguageStat> dicAudio =
-                RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, this.AnimeID);
+                RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, AnimeID);
             foreach (KeyValuePair<int, LanguageStat> kvp in dicAudio)
             {
                 foreach (string lanName in kvp.Value.LanguageNames)
@@ -1744,7 +1643,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             // subtitle languages
             Dictionary<int, LanguageStat> dicSubtitle =
-                RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, this.AnimeID);
+                RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID);
             foreach (KeyValuePair<int, LanguageStat> kvp in dicSubtitle)
             {
                 foreach (string lanName in kvp.Value.LanguageNames)
@@ -1763,9 +1662,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             cl.Stat_SubtitleLanguages = subtitleLanguages;
 
             //logger.Trace(" XXXX 10");
-            cl.Stat_AllVideoQuality = RepoFactory.Adhoc.GetAllVideoQualityForAnime(session, this.AnimeID);
+            cl.Stat_AllVideoQuality = RepoFactory.Adhoc.GetAllVideoQualityForAnime(session, AnimeID);
 
-            AnimeVideoQualityStat stat = RepoFactory.Adhoc.GetEpisodeVideoQualityStatsForAnime(session, this.AnimeID);
+            AnimeVideoQualityStat stat = RepoFactory.Adhoc.GetEpisodeVideoQualityStatsForAnime(session, AnimeID);
             cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
             if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
@@ -1801,16 +1700,16 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 Characters = new List<Azure_AnimeCharacter>(),
                 Comments = new List<Azure_AnimeComment>()
             };
-            contract.Detail.AllTags = this.TagsString;
-            contract.Detail.AllCategories = this.TagsString;
-            contract.Detail.AnimeID = this.AnimeID;
-            contract.Detail.AnimeName = this.MainTitle;
+            contract.Detail.AllTags = TagsString;
+            contract.Detail.AllCategories = TagsString;
+            contract.Detail.AnimeID = AnimeID;
+            contract.Detail.AnimeName = MainTitle;
             contract.Detail.AnimeType = this.GetAnimeTypeDescription();
-            contract.Detail.Description = this.Description;
-            contract.Detail.EndDateLong = AniDB.GetAniDBDateAsSeconds(this.EndDate);
-            contract.Detail.StartDateLong = AniDB.GetAniDBDateAsSeconds(this.AirDate);
-            contract.Detail.EpisodeCountNormal = this.EpisodeCountNormal;
-            contract.Detail.EpisodeCountSpecial = this.EpisodeCountSpecial;
+            contract.Detail.Description = Description;
+            contract.Detail.EndDateLong = AniDB.GetAniDBDateAsSeconds(EndDate);
+            contract.Detail.StartDateLong = AniDB.GetAniDBDateAsSeconds(AirDate);
+            contract.Detail.EpisodeCountNormal = EpisodeCountNormal;
+            contract.Detail.EpisodeCountSpecial = EpisodeCountSpecial;
             contract.Detail.FanartURL = GetDefaultFanartOnlineURL(session);
             contract.Detail.OverallRating = this.GetAniDBRating();
             contract.Detail.PosterURL = string.Format(Constants.URLS.AniDB_Images, Picname);
@@ -1819,7 +1718,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(session, AnimeID);
 
-            if (animeChars != null || animeChars.Count > 0)
+            if (animeChars != null && animeChars.Count > 0)
             {
                 // first get all the main characters
                 foreach (
@@ -1904,7 +1803,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             RepoFactory.AnimeSeries.Save(series, false, false);
 
             // check for TvDB associations
-            if (this.Restricted == 0)
+            if (Restricted == 0)
             {
                 CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
                 cmd.Save();
