@@ -791,20 +791,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public AniDB_Vote GetUserVote(ISession session)
-        {
-            try
-            {
-                return RepoFactory.AniDB_Vote.GetByAnimeID(session, AnimeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error in  UserVote: {ex}");
-                return null;
-            }
-        }
-
-
         public string PreferredTitle
         {
             get
@@ -1428,10 +1414,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             int[] animeIds = animeColl.Select(a => a.AnimeID).ToArray();
 
             var titlesByAnime = RepoFactory.AniDB_Anime_Title.GetByAnimeIDs(session, animeIds);
-            var animeTagsByAnime = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDs(session, animeIds);
-            var tagsByAnime = RepoFactory.AniDB_Tag.GetByAnimeIDs(session, animeIds);
+            var animeTagsByAnime = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDs(animeIds);
+            var tagsByAnime = RepoFactory.AniDB_Tag.GetByAnimeIDs(animeIds);
             var custTagsByAnime = RepoFactory.CustomTag.GetByAnimeIDs(session, animeIds);
-            var voteByAnime = RepoFactory.AniDB_Vote.GetByAnimeIDs(session, animeIds);
+            var voteByAnime = RepoFactory.AniDB_Vote.GetByAnimeIDs(animeIds);
             var audioLangByAnime = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, animeIds);
             var subtitleLangByAnime = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, animeIds);
             var vidQualByAnime = RepoFactory.Adhoc.GetAllVideoQualityByAnime(session, animeIds);

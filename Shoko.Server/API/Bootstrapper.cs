@@ -1,13 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Nancy.Rest.Module;
-using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.API.v2.Modules;
-using Shoko.Server.PlexAndKodi.Kodi;
+using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API
 {
@@ -23,7 +20,6 @@ namespace Shoko.Server.API
     using NLog;
     using System;
     using Nancy.Gzip;
-    using core;
 
     public class Bootstrapper : RestBootstrapper
     {
@@ -41,6 +37,7 @@ namespace Shoko.Server.API
             }
         }
 
+        /// <inheritdoc />
         /// <summary>
         /// This function override the RequestStartup which is used each time a request came to Nancy
         /// </summary>
@@ -51,6 +48,7 @@ namespace Shoko.Server.API
             var configuration =
                 new StatelessAuthenticationConfiguration(nancyContext =>
                 {
+                    if (!(ServerState.Instance?.ServerOnline ?? false)) return null;
                     //try to take "apikey" from header
                     string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault();
                     if (string.IsNullOrEmpty(apiKey))
@@ -58,8 +56,9 @@ namespace Shoko.Server.API
                         //take out value of "apikey" from query that was pass in request and check for User
                         apiKey = (string) nancyContext.Request.Query.apikey.Value;
                     }
-                    return apiKey != null 
-                        ? UserDatabase.GetUserFromApiKey(apiKey) 
+                    AuthTokens auth = RepoFactory.AuthTokens.GetByToken(apiKey);
+                    return auth != null
+                        ? RepoFactory.JMMUser.GetByID(auth.UserID)
                         : null;
                 });
             StaticConfiguration.DisableErrorTraces = false;
@@ -94,6 +93,7 @@ namespace Shoko.Server.API
             #endregion
         }
 
+        /// <inheritdoc />
         /// <summary>
         /// overwrite the folder of static content
         /// </summary>
@@ -123,6 +123,14 @@ namespace Shoko.Server.API
 
         private Response BeforeProcessing(NancyContext ctx)
         {
+            if (!(ServerState.Instance?.ServerOnline ?? false) && !ctx.Request.Path.StartsWith("/api/init/"))
+            {
+                return new Response
+                {
+                    StatusCode = HttpStatusCode.ServiceUnavailable,
+                    ReasonPhrase = "Server is not running"
+                };
+            }
             return null;
         }
 
