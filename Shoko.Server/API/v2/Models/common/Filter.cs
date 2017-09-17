@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -57,33 +58,34 @@ namespace Shoko.Server.API.v2.Models.common
                         .Where(a => a != null)
                         .ToList();
 
-                    List<Video> arts = groupsList.Select(a => a.GetPlexContract(uid)).Where(contract =>
-                    {
-                        if (!(contract.Fanarts?.Any() ?? false)) return false;
-                        if (!(contract.Banners?.Any() ?? false)) return false;
-                        return !string.IsNullOrEmpty(contract.Art);
-                    }).ToList();
+                    var arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
 
                     if (arts.Count > 0)
                     {
                         Random rand = new Random();
-                        Video art = arts[rand.Next(arts.Count)];
-                        var fanart = art.Fanarts[rand.Next(art.Fanarts.Count)];
+                        var anime = arts[rand.Next(arts.Count)];
+
+                        var fanart = anime.Fanarts[rand.Next(anime.Fanarts.Count)];
                         filter.art.fanart.Add(new Art()
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType, fanart.ImageID)
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType,
+                                fanart.AniDB_Anime_DefaultImageID)
                         });
-                        var banner = art.Banners[rand.Next(art.Banners.Count)];
+
+                        var banner = anime.Banners[rand.Next(anime.Banners.Count)];
                         filter.art.banner.Add(new Art()
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType, banner.ImageID)
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType,
+                                banner.AniDB_Anime_DefaultImageID)
                         });
+
                         filter.art.thumb.Add(new Art()
                         {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromRest(ctx, art.Thumb)
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
+                                anime.AnimeID),
+                            index = 0
                         });
                     }
 
@@ -117,6 +119,26 @@ namespace Shoko.Server.API.v2.Models.common
             filter.url = APIHelper.ConstructFilterIdUrl(ctx, filter.id);
 
             return filter;
+        }
+
+        private static CL_AniDB_Anime GetAnimeContractFromGroup(SVR_AnimeGroup grp)
+        {
+            var anime = grp.Anime.OrderBy(a => a.BeginYear)
+                .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+                .FirstOrDefault();
+            return anime?.Contract.AniDBAnime;
+        }
+
+        private static bool GroupHasCompleteArt(SVR_AnimeGroup grp)
+        {
+            var anime = grp.Anime.OrderBy(a => a.BeginYear)
+                .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+                .FirstOrDefault();
+            var fanarts = anime?.Contract.AniDBAnime.Fanarts;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            fanarts = anime.Contract.AniDBAnime.Banners;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            return true;
         }
     }
 }
