@@ -382,7 +382,6 @@
     <Compile Include="API\v2\Models\core\QueueInfo.cs" />
     <Compile Include="API\v2\Models\core\RecentFile.cs" />
     <Compile Include="API\v2\Models\core\WebNews.cs" />
-    <Compile Include="API\v2\Models\core\UserDatabase.cs" />
     <Compile Include="Commands\CommandRequest_RefreshGroupFilter.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="Databases\BaseDatabase.cs" />
@@ -401,6 +400,8 @@
     <Compile Include="Renamer\LegacyRenamer.cs" />
     <Compile Include="Renamer\RenameFileHelper.cs" />
     <Compile Include="Renamer\RenamerAttribute.cs" />
+    <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
+    <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\TvDB_EpisodeRepository.cs" />
@@ -610,7 +611,6 @@
     <Compile Include="Repositories\RepoFactory.cs" />
     <Compile Include="Repositories\Direct\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\Direct\AniDB_RecommendationRepository.cs" />
-    <Compile Include="Repositories\Direct\AuthTokensRepository.cs" />
     <Compile Include="Repositories\Direct\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\ChangeTracker.cs" />
     <Compile Include="Repositories\Cached\CloudAccountRepository.cs" />
@@ -727,7 +727,6 @@
     <Compile Include="Repositories\Direct\AniDB_ReleaseGroupRepository.cs" />
     <Compile Include="Repositories\Direct\AniDB_ReviewRepository.cs" />
     <Compile Include="Repositories\Cached\AniDB_TagRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_VoteRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeEpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeEpisode_UserRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeGroupRepository.cs" />

@@ -71,10 +71,8 @@ namespace Shoko.Server.Repositories
         }
 
 
-        public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ICollection<int> ids)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
             if (ids == null)
                 throw new ArgumentNullException(nameof(ids));
 
@@ -83,12 +81,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
             }
 
-            var tags = session.CreateCriteria<AniDB_Anime_Tag>()
-                .Add(Restrictions.InG(nameof(AniDB_Anime_Tag.AnimeID), ids))
-                .List<AniDB_Anime_Tag>()
-                .ToLookup(t => t.AnimeID);
-
-            return tags;
+            return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
         }
 
         /// <summary>

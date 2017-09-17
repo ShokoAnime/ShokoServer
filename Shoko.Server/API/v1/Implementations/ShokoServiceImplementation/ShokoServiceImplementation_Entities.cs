@@ -15,7 +15,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using NLog;
-using Shoko.Server.API.core;
 using NutzCode.CloudFileSystem;
 using Pri.LongPath;
 using Shoko.Server.Commands;
@@ -3558,7 +3557,7 @@ namespace Shoko.Server
                 RepoFactory.JMMUser.Save(jmmUser, false);
                 if (revokeapikey)
                 {
-                    UserDatabase.RemoveApiKeysForUserID(userID);
+                    RepoFactory.AuthTokens.DeleteAllWithUserID(jmmUser.JMMUserID);
                 }
             }
             catch (Exception ex)

@@ -512,8 +512,7 @@ namespace Shoko.Server.Models
                 .ToList();
         }
 
-        public static Dictionary<int, GroupVotes> BatchGetVotes(ISessionWrapper session,
-            IReadOnlyCollection<SVR_AnimeGroup> animeGroups)
+        public static Dictionary<int, GroupVotes> BatchGetVotes(IReadOnlyCollection<SVR_AnimeGroup> animeGroups)
         {
             if (animeGroups == null)
                 throw new ArgumentNullException(nameof(animeGroups));
@@ -528,7 +527,7 @@ namespace Shoko.Server.Models
             var seriesByGroup = animeGroups.ToDictionary(g => g.AnimeGroupID, g => g.GetAllSeries());
             var allAnimeIds = seriesByGroup.Values.SelectMany(serLst => serLst.Select(series => series.AniDB_ID))
                 .ToArray();
-            var votesByAnime = RepoFactory.AniDB_Vote.GetByAnimeIDs(session, allAnimeIds);
+            var votesByAnime = RepoFactory.AniDB_Vote.GetByAnimeIDs(allAnimeIds);
 
             foreach (SVR_AnimeGroup animeGroup in animeGroups)
             {
@@ -574,7 +573,7 @@ namespace Shoko.Server.Models
 
         public GroupVotes GetVotes(ISessionWrapper session)
         {
-            var votesByGroup = BatchGetVotes(session, new[] {this});
+            var votesByGroup = BatchGetVotes(new[] {this});
 
             votesByGroup.TryGetValue(AnimeGroupID, out GroupVotes votes);
 
@@ -1045,7 +1044,7 @@ namespace Shoko.Server.Models
                     CrossRefType.MovieDB), isThreadSafe: false);
             var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
                 () => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeIDs(session, allAnimeIds.Value), isThreadSafe: false);
-            var votesByGroup = BatchGetVotes(session, animeGroups);
+            var votesByGroup = BatchGetVotes(animeGroups);
             DateTime now = DateTime.Now;
 
             foreach (SVR_AnimeGroup animeGroup in animeGroups)
