@@ -36,7 +36,7 @@ namespace Shoko.Server.Repositories.Direct
             MovieDB_Fanart cr = session
                 .CreateCriteria(typeof(MovieDB_Fanart))
                 .Add(Restrictions.Eq("URL", url))
-                .UniqueResult<MovieDB_Fanart>();
+                .List<MovieDB_Fanart>().FirstOrDefault();
             return cr;
         }
 
