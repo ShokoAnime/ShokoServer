@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
@@ -32,7 +33,7 @@ namespace Shoko.Server.Repositories.Direct
             MovieDB_Poster cr = session
                 .CreateCriteria(typeof(MovieDB_Poster))
                 .Add(Restrictions.Eq("URL", url))
-                .UniqueResult<MovieDB_Poster>();
+                .List<MovieDB_Poster>().FirstOrDefault();
             return cr;
         }
 
