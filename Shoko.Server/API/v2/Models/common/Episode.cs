@@ -5,6 +5,7 @@ using Nancy;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Server.Models;
+using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -63,7 +64,7 @@ namespace Shoko.Server.API.v2.Models.common
                 ep.name = contract?.Title;
                 ep.summary = contract?.Summary;
                 ep.year = contract?.Year;
-                ep.air = contract?.AirDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                ep.air = contract?.AirDate.ToPlexDate();
                 ep.votes = cae.AniDB_Votes;
                 ep.rating = contract?.Rating;
                 ep.userrating = contract?.UserRating;
