@@ -143,10 +143,8 @@ namespace Shoko.Server.Repositories
             return repo;
         }
 
-        public static void Init()
+        public static void PostInit()
         {
-            InitCaches();
-
             // Update Contracts if necessary
             try
             {
@@ -161,7 +159,7 @@ namespace Shoko.Server.Repositories
             CleanUpMemory();
         }
 
-        public static void InitCaches()
+        public static void Init()
         {
             try
             {
