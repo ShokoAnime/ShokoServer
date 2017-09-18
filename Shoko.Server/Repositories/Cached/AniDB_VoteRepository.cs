@@ -85,7 +85,7 @@ namespace Shoko.Server.Repositories.Cached
             if (animeIDs == null)
                 throw new ArgumentNullException(nameof(animeIDs));
 
-            var votesByAnime = animeIDs.Select(GetByAnimeID).GroupBy(v => v.EntityID)
+            var votesByAnime = animeIDs.Select(GetByAnimeID).Where(vote => vote != null).GroupBy(v => v.EntityID)
                 .ToDictionary(g => g.Key, g => g.FirstOrDefault());
 
             return votesByAnime;
