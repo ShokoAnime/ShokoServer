@@ -403,7 +403,9 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+                var filters = RepoFactory.GroupFilter.GetAll();
+                if (filters.Count == 0) return;
+                foreach (SVR_GroupFilter gf in filters)
                 {
                     if (gf.FilterType != (int) GroupFilterType.Year) continue;
                     gf.ApplyToSeries = 1;

@@ -4,50 +4,45 @@ using System.ComponentModel;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Globalization;
-using FileSystemEventArgs = System.IO.FileSystemEventArgs;
-using RenamedEventArgs = System.IO.RenamedEventArgs;
-using WatcherChangeTypes = System.IO.WatcherChangeTypes;
-using FileAttributes = System.IO.FileAttributes;
-using SearchOption = System.IO.SearchOption;
+using System.IO;
 using System.Linq;
-using System.ServiceModel;
-using System.ServiceModel.Channels;
-using System.ServiceModel.Description;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Threading;
 using System.Timers;
-using System.Windows;
-using System.Windows.Input;
-using Shoko.Models;
-using Shoko.Models.Server;
 using LeanWork.IO.FileSystem;
 using Microsoft.Win32;
+using Microsoft.Win32.TaskScheduler;
+using Nancy;
+using Nancy.Hosting.Self;
+using Nancy.Json;
 using NHibernate;
 using NLog;
-using Nancy.Hosting.Self;
-using Nancy.Rest.Module;
-using Action = System.Action;
-using System.Net.NetworkInformation;
-
-using Microsoft.Win32.TaskScheduler;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
-using Shoko.Models.Interfaces;
-using Shoko.Server.API.core;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using UPnP;
-using Pri.LongPath;
 using Trinet.Core.IO.Ntfs;
+using UPnP;
+using Action = System.Action;
+using Directory = Pri.LongPath.Directory;
+using File = Pri.LongPath.File;
+using FileInfo = Pri.LongPath.FileInfo;
+using Path = Pri.LongPath.Path;
+using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
 {
@@ -62,24 +57,11 @@ namespace Shoko.Server
         internal static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
 
-        //private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
-        //private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
-
-        //private static string baseAddressStreamingString = @"http://localhost:{0}/JMMServerStreaming";
-        //private static string baseAddressStreamingStringMex = @"net.tcp://localhost:{0}/JMMServerStreaming/mex";
-        //private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
-        //private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
-
-        //private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
-        //private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
-        //private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
-        //private static string baseAddressKodiString = @"http://localhost:{0}/JMMServerKodi";
-
         public static string PathAddressREST = "api/Image";
         public static string PathAddressPlex = "api/Plex";
         public static string PathAddressKodi = "Kodi";
 
-        private static Nancy.Hosting.Self.NancyHost hostNancy = null;
+        private static NancyHost hostNancy;
 
         private static BackgroundWorker workerImport = new BackgroundWorker();
         private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -95,13 +77,13 @@ namespace Shoko.Server
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
         internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
 
-        private static System.Timers.Timer autoUpdateTimer = null;
-        private static System.Timers.Timer autoUpdateTimerShort = null;
-        private static System.Timers.Timer cloudWatchTimer = null;
-        internal static System.Timers.Timer LogRotatorTimer = null;
+        private static Timer autoUpdateTimer;
+        private static Timer autoUpdateTimerShort;
+        private static Timer cloudWatchTimer;
+        internal static Timer LogRotatorTimer;
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
-        private static List<RecoveringFileSystemWatcher> watcherVids = null;
+        private static List<RecoveringFileSystemWatcher> watcherVids;
 
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
@@ -130,7 +112,7 @@ namespace Shoko.Server
             // Check if any of the DLL are blocked, common issue with daily builds
             if (!CheckBlockedFiles())
             {
-                Utils.ShowErrorMessage(Commons.Properties.Resources.ErrorBlockedDll);
+                Utils.ShowErrorMessage(Resources.ErrorBlockedDll);
                 Environment.Exit(1);
             }
 
@@ -138,8 +120,8 @@ namespace Shoko.Server
             // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
             if (!MigrateProgramDataLocation())
             {
-                Utils.ShowErrorMessage(Commons.Properties.Resources.Migration_LoadError,
-                    Commons.Properties.Resources.ShokoServer);
+                Utils.ShowErrorMessage(Resources.Migration_LoadError,
+                    Resources.ShokoServer);
                 Environment.Exit(1);
             }
 
@@ -188,36 +170,36 @@ namespace Shoko.Server
             //logrotator worker setup
             LogRotatorWorker.WorkerReportsProgress = false;
             LogRotatorWorker.WorkerSupportsCancellation = false;
-            LogRotatorWorker.DoWork += new DoWorkEventHandler(LogRotatorWorker_DoWork);
+            LogRotatorWorker.DoWork += LogRotatorWorker_DoWork;
             LogRotatorWorker.RunWorkerCompleted +=
-                new RunWorkerCompletedEventHandler(LogRotatorWorker_RunWorkerCompleted);
+                LogRotatorWorker_RunWorkerCompleted;
 
             ServerState.Instance.DatabaseAvailable = false;
             ServerState.Instance.ServerOnline = false;
             ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
             
-            downloadImagesWorker.DoWork += new DoWorkEventHandler(DownloadImagesWorker_DoWork);
+            downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
 
-            workerMyAnime2.DoWork += new DoWorkEventHandler(WorkerMyAnime2_DoWork);
-            workerMyAnime2.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkerMyAnime2_RunWorkerCompleted);
-            workerMyAnime2.ProgressChanged += new ProgressChangedEventHandler(WorkerMyAnime2_ProgressChanged);
+            workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
+            workerMyAnime2.RunWorkerCompleted += WorkerMyAnime2_RunWorkerCompleted;
+            workerMyAnime2.ProgressChanged += WorkerMyAnime2_ProgressChanged;
             workerMyAnime2.WorkerReportsProgress = true;
 
-            workerMediaInfo.DoWork += new DoWorkEventHandler(WorkerMediaInfo_DoWork);
+            workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
 
             workerImport.WorkerReportsProgress = true;
             workerImport.WorkerSupportsCancellation = true;
-            workerImport.DoWork += new DoWorkEventHandler(WorkerImport_DoWork);
+            workerImport.DoWork += WorkerImport_DoWork;
 
             workerScanFolder.WorkerReportsProgress = true;
             workerScanFolder.WorkerSupportsCancellation = true;
-            workerScanFolder.DoWork += new DoWorkEventHandler(WorkerScanFolder_DoWork);
+            workerScanFolder.DoWork += WorkerScanFolder_DoWork;
 
 
             workerScanDropFolders.WorkerReportsProgress = true;
             workerScanDropFolders.WorkerSupportsCancellation = true;
-            workerScanDropFolders.DoWork += new DoWorkEventHandler(WorkerScanDropFolders_DoWork);
+            workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
 
 
             workerSyncHashes.WorkerReportsProgress = true;
@@ -230,14 +212,14 @@ namespace Shoko.Server
 
             workerRemoveMissing.WorkerReportsProgress = true;
             workerRemoveMissing.WorkerSupportsCancellation = true;
-            workerRemoveMissing.DoWork += new DoWorkEventHandler(WorkerRemoveMissing_DoWork);
+            workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
 
             workerDeleteImportFolder.WorkerReportsProgress = false;
             workerDeleteImportFolder.WorkerSupportsCancellation = true;
-            workerDeleteImportFolder.DoWork += new DoWorkEventHandler(WorkerDeleteImportFolder_DoWork);
+            workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
 
-            workerSetupDB.DoWork += new DoWorkEventHandler(WorkerSetupDB_DoWork);
-            workerSetupDB.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkerSetupDB_RunWorkerCompleted);
+            workerSetupDB.DoWork += WorkerSetupDB_DoWork;
+            workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
             
             ServerState.Instance.LoadSettings();
             
@@ -247,6 +229,9 @@ namespace Shoko.Server
             // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
+
+            SetupNetHosts();
+
             return true;
         }
 
@@ -259,7 +244,7 @@ namespace Shoko.Server
                 return true;
             }
             string programlocation =
-                Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+                        Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             string[] dllFiles = Directory.GetFiles(programlocation, "*.dll", SearchOption.AllDirectories);
             bool result = true;
 
@@ -296,12 +281,12 @@ namespace Shoko.Server
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
             string newApplicationPath =
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    System.Reflection.Assembly.GetEntryAssembly().GetName().Name);
+                    Assembly.GetEntryAssembly().GetName().Name);
             if (Directory.Exists(oldApplicationPath) && !Directory.Exists(newApplicationPath))
             {
                 try
                 {
-                    List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>()
+                    List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>
                     {
                         new MigrationDirectory
                         {
@@ -346,7 +331,7 @@ namespace Shoko.Server
                 {
                     
                     // Ask if user wants to uninstall first
-                    bool res = Utils.ShowYesNo(Commons.Properties.Resources.DuplicateInstallDetectedQuestion, Commons.Properties.Resources.DuplicateInstallDetected);
+                    bool res = Utils.ShowYesNo(Resources.DuplicateInstallDetectedQuestion, Resources.DuplicateInstallDetected);
 
                     if (res)
                     {
@@ -406,14 +391,11 @@ namespace Shoko.Server
                     }
                     return false;
                 }
-                else
-                {
                     Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
                     logger.Error(e);
                     ShutDown();
                     return false;
                 }
-            }
             return true;
         }
 
@@ -425,7 +407,7 @@ namespace Shoko.Server
                 {
                     
                     ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
-                    System.Environment.Exit(0);
+                    Environment.Exit(0);
                 };
                 new Thread(ts).Start();
             }
@@ -446,7 +428,7 @@ namespace Shoko.Server
         }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
-        
+
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
             try
@@ -548,7 +530,7 @@ namespace Shoko.Server
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex.ToString());
+                    logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex);
                     if (queueFileEvents.Contains(evt))
                     {
                         queueFileEvents.Remove(evt);
@@ -576,7 +558,7 @@ namespace Shoko.Server
             {
                 ServerInfo.Instance.RefreshImportFolders();
                 ServerInfo.Instance.RefreshCloudAccounts();
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_Complete;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
                 ServerState.Instance.ServerOnline = true;
                 ServerSettings.FirstRun = false;
                 ServerSettings.SaveSettings();
@@ -611,7 +593,7 @@ namespace Shoko.Server
 
         public static void StartCloudWatchTimer()
         {
-            cloudWatchTimer = new System.Timers.Timer
+            cloudWatchTimer = new Timer
             {
                 AutoReset = true,
                 Interval = ServerSettings.CloudWatcherTime * 60 * 1000
@@ -622,7 +604,7 @@ namespace Shoko.Server
 
         public static void StartLogRotatorTimer()
         {
-            LogRotatorTimer = new System.Timers.Timer
+            LogRotatorTimer = new Timer
             {
                 AutoReset = true,
                 // 86400000 = 24h
@@ -662,6 +644,19 @@ namespace Shoko.Server
             }
         }
 
+        public void SetupNetHosts()
+        {
+            logger.Info("Initializing Hosts...");
+            ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
+            bool started = true;
+            started &= NetPermissionWrapper(StartNancyHost);
+            if (!started)
+            {
+                StopHost();
+                throw new Exception("Failed to start all of the network hosts");
+            }
+        }
+
         void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
@@ -669,12 +664,12 @@ namespace Shoko.Server
             try
             {
                 ServerState.Instance.ServerOnline = false;
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_Cleaning;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_Cleaning;
 
                 StopWatchingFiles();
 
                 AniDBDispose();
-                StopHost();
+                SetupAniDBProcessor();
 
                 ShokoService.CmdProcessorGeneral.Stop();
                 ShokoService.CmdProcessorHasher.Stop();
@@ -696,27 +691,10 @@ namespace Shoko.Server
 
                 DatabaseFactory.CloseSessionFactory();
 
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_Initializing;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_Initializing;
                 Thread.Sleep(1000);
 
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_DatabaseSetup;
-
-                logger.Info("Initializing Hosts...");
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_InitializingHosts;
-                SetupAniDBProcessor();
-                bool started = true;
-                started &= NetPermissionWrapper(StartNancyHost);
-                /*
-	            started &= NetPermissionWrapper(StartImageHost);
-	            started &= NetPermissionWrapper(StartBinaryHost);
-	            started &= NetPermissionWrapper(StartMetroHost);
-	            started &= NetPermissionWrapper(StartImageHostMetro);
-	            started &= NetPermissionWrapper(StartStreamingHost);*/
-                if (!started)
-                {
-                    StopHost();
-                    throw new Exception("Failed to start all of the network hosts");
-                }
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
                 if (!DatabaseFactory.InitDB())
@@ -725,11 +703,10 @@ namespace Shoko.Server
 
                     if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
                         ServerState.Instance.CurrentSetupStatus =
-                            Commons.Properties.Resources.Server_DatabaseConfig;
+                            Resources.Server_DatabaseConfig;
                     e.Result = false;
                     return;
                 }
-                else
                     ServerState.Instance.DatabaseAvailable = true;
                 logger.Info("Initializing Session Factory...");
 
@@ -737,40 +714,40 @@ namespace Shoko.Server
 
 
                 //init session factory
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_InitializingSession;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingSession;
                 ISessionFactory temp = DatabaseFactory.SessionFactory;
 
 
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_InitializingQueue;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingQueue;
                 ShokoService.CmdProcessorGeneral.Init();
                 ShokoService.CmdProcessorHasher.Init();
                 ShokoService.CmdProcessorImages.Init();
 
 
                 // timer for automatic updates
-                autoUpdateTimer = new System.Timers.Timer
+                autoUpdateTimer = new Timer
                 {
                     AutoReset = true,
                     Interval = 5 * 60 * 1000 // 5 * 60 seconds (5 minutes)
                 };
-                autoUpdateTimer.Elapsed += new ElapsedEventHandler(AutoUpdateTimer_Elapsed);
+                autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
                 autoUpdateTimer.Start();
 
                 // timer for automatic updates
-                autoUpdateTimerShort = new System.Timers.Timer
+                autoUpdateTimerShort = new Timer
                 {
                     AutoReset = true,
                     Interval = 5 * 1000 // 5 seconds, later we set it to 30 seconds
                 };
-                autoUpdateTimerShort.Elapsed += new ElapsedEventHandler(AutoUpdateTimerShort_Elapsed);
+                autoUpdateTimerShort.Elapsed += AutoUpdateTimerShort_Elapsed;
                 autoUpdateTimerShort.Start();
 
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_InitializingFile;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingFile;
 
                 StartFileWorker();
 
                 StartWatchingFiles();
-                ShokoServer._pauseFileWatchDog.Set();
+                _pauseFileWatchDog.Set();
 
                 DownloadAllImages();
 
@@ -939,7 +916,7 @@ namespace Shoko.Server
                             catch (Exception ex)
                             {
                                 string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(),
-                                    ex.ToString());
+                                    ex);
                                 throw;
                             }
 
@@ -1007,8 +984,8 @@ namespace Shoko.Server
             Dictionary<int, int> validAnimeIDs = new Dictionary<int, int>();
 
             string line;
-            System.IO.StreamReader file =
-                new System.IO.StreamReader(@"e:\animetitles.txt");
+            StreamReader file =
+                new StreamReader(@"e:\animetitles.txt");
             while ((line = file.ReadLine()) != null)
             {
                 string[] titlesArray = line.Split('|');
@@ -1073,8 +1050,8 @@ namespace Shoko.Server
             string line;
 
             // Read the file and display it line by line.
-            System.IO.StreamReader file =
-                new System.IO.StreamReader(@"e:\animetitles.txt");
+            StreamReader file =
+                new StreamReader(@"e:\animetitles.txt");
             while ((line = file.ReadLine()) != null)
             {
                 string[] titlesArray = line.Split('|');
@@ -1147,13 +1124,13 @@ namespace Shoko.Server
                 // get the latest version as according to the release
 
                 // get the user's version
-                System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
+                Assembly a = Assembly.GetEntryAssembly();
                 if (a == null)
                 {
                     logger.Error("Could not get current version");
                     return;
                 }
-                System.Reflection.AssemblyName an = a.GetName();
+                AssemblyName an = a.GetName();
 
                 //verNew = verInfo.versions.ServerVersionAbs;
 
@@ -1178,21 +1155,21 @@ namespace Shoko.Server
         }
 
         #region UI events and methods
-        
+
         internal static string GetLocalIPv4(NetworkInterfaceType _type)
         {
             string output = "";
             foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
-                { 
+                {
                     IPInterfaceProperties adapterProperties = item.GetIPProperties();
 
                     if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
                     {
                         foreach (UnicastIPAddressInformation ip in adapterProperties.UnicastAddresses)
                         {
-                            if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
                             {
                                 output = ip.Address.ToString();
                             }
@@ -1219,7 +1196,7 @@ namespace Shoko.Server
 
         #endregion
 
-        void AutoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
         {
             autoUpdateTimerShort.Enabled = false;
             ShokoService.CmdProcessorImages.NotifyOfNewCommand();
@@ -1261,7 +1238,7 @@ namespace Shoko.Server
 
         #endregion
 
-        static void AutoUpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        static void AutoUpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             Importer.CheckForDayFilters();
             Importer.CheckForCalendarUpdate(false);
@@ -1499,20 +1476,20 @@ namespace Shoko.Server
         {
             foreach (string ext in SubtitleHelper.Extensions.Keys)
             {
-                if (!Nancy.MimeTypes.GetMimeType("file." + ext)
+                if (!MimeTypes.GetMimeType("file." + ext)
                     .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase)) continue;
                 if (!SubtitleHelper.Extensions[ext]
                     .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
-                    Nancy.MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
+                    MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
             }
 
-            if (Nancy.MimeTypes.GetMimeType("file.mkv") == "application/octet-stream")
+            if (MimeTypes.GetMimeType("file.mkv") == "application/octet-stream")
             {
-                Nancy.MimeTypes.AddType("mkv", "video/x-matroska");
-                Nancy.MimeTypes.AddType("mka", "audio/x-matroska");
-                Nancy.MimeTypes.AddType("mk3d", "video/x-matroska-3d");
-                Nancy.MimeTypes.AddType("ogm", "video/ogg");
-                Nancy.MimeTypes.AddType("flv", "video/x-flv");
+                MimeTypes.AddType("mkv", "video/x-matroska");
+                MimeTypes.AddType("mka", "audio/x-matroska");
+                MimeTypes.AddType("mk3d", "video/x-matroska-3d");
+                MimeTypes.AddType("ogm", "video/ogg");
+                MimeTypes.AddType("flv", "video/x-flv");
             }
 
             if (hostNancy != null)
@@ -1523,7 +1500,7 @@ namespace Shoko.Server
                 // set Nancy Hosting config here
                 UnhandledExceptionCallback = exception =>
                 {
-                    if (exception is System.Net.HttpListenerException)
+                    if (exception is HttpListenerException)
                     {
                         //logger.Error($"An network serve operation took too long and timed out.");
                     }
@@ -1541,11 +1518,11 @@ namespace Shoko.Server
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             config.AllowChunkedEncoding = false;
-            hostNancy = new Nancy.Hosting.Self.NancyHost(config,
+            hostNancy = new NancyHost(config,
                 new Uri("http://localhost:" + ServerSettings.JMMServerPort));
             if (ServerSettings.ExperimentalUPnP)
                 NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
-            Nancy.Json.JsonSettings.MaxJsonLength = int.MaxValue;
+            JsonSettings.MaxJsonLength = int.MaxValue;
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
@@ -1556,7 +1533,6 @@ namespace Shoko.Server
             {
                 logger.Error(ex);
             }
-            UserDatabase.Refresh();
         }
 
 
@@ -1601,9 +1577,8 @@ namespace Shoko.Server
 
         public static void StopHost()
         {
-            /*if (hostNancy != null)
-                hostNancy.Stop();
-            */
+            hostNancy?.Dispose();
+            hostNancy = null;
         }
 
         private static void SetupAniDBProcessor()
@@ -1664,7 +1639,7 @@ namespace Shoko.Server
                 try
                 {
                     state.AutostartRegistryKey.SetValue(state.autostartKey,
-                        '"' + System.Reflection.Assembly.GetEntryAssembly().Location + '"');
+                        '"' + Assembly.GetEntryAssembly().Location + '"');
                     state.LoadSettings();
                 }
                 catch (Exception ex)
@@ -1688,7 +1663,7 @@ namespace Shoko.Server
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
 
-                td.Actions.Add('"' + System.Reflection.Assembly.GetEntryAssembly().Location + '"');
+                td.Actions.Add('"' + Assembly.GetEntryAssembly().Location + '"');
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();
@@ -1752,12 +1727,9 @@ namespace Shoko.Server
 
         public void CheckForUpdates()
         {
-            System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
-            if (a != null)
-            {
+            Assembly a = Assembly.GetExecutingAssembly();
                 ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
                 ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
-            }
 
             logger.Info("Checking for updates...");
             CheckForUpdatesNew(false);

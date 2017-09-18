@@ -31,9 +31,9 @@ namespace Shoko.Server
         // we use this lock to make don't try and access AniDB too much (UDP and HTTP)
         private object lockAniDBConnections = new object();
 
-        private IPEndPoint localIpEndPoint = null;
-        private IPEndPoint remoteIpEndPoint = null;
-        private Socket soUdp = null;
+        private IPEndPoint localIpEndPoint;
+        private IPEndPoint remoteIpEndPoint;
+        private Socket soUdp;
         private string curSessionID = string.Empty;
 
         private string userName = string.Empty;

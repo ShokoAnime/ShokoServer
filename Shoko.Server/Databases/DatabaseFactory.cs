@@ -102,6 +102,7 @@ namespace Shoko.Server.Databases
                     RepoFactory.Init();
                     Instance.ExecuteDatabaseFixes();
                     Instance.PopulateInitialData();
+                    RepoFactory.PostInit();
                 }
                 catch (Exception ex)
                 {

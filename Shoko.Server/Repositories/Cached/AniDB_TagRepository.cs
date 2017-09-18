@@ -21,15 +21,9 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        public static AniDB_TagRepository Create()
-        {
-            return new AniDB_TagRepository();
-        }
+        public static AniDB_TagRepository Create() => new AniDB_TagRepository();
 
-        protected override int SelectKey(AniDB_Tag entity)
-        {
-            return entity.AniDB_TagID;
-        }
+        protected override int SelectKey(AniDB_Tag entity) => entity.AniDB_TagID;
 
         public override void RegenerateDb()
         {
@@ -48,24 +42,11 @@ namespace Shoko.Server.Repositories
                 .Select(a => GetByTagID(a.TagID))
                 .Where(a => a != null)
                 .ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var tags =
-                    session.CreateQuery(
-                        "Select tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID= :animeID")
-                        .SetParameter("animeID", animeID)
-                        .List<AniDB_Tag>();
-
-                return new List<AniDB_Tag>(tags);
-            }*/
         }
 
 
-        public ILookup<int, AniDB_Tag> GetByAnimeIDs(ISessionWrapper session, int[] ids)
+        public ILookup<int, AniDB_Tag> GetByAnimeIDs(int[] ids)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
             if (ids == null)
                 throw new ArgumentNullException(nameof(ids));
 
@@ -74,31 +55,12 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Tag>.Instance;
             }
 
-            var tags = session
-                .CreateQuery(
-                    "Select xref.AnimeID, tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID IN (:animeIDs)")
-                .SetParameterList("animeIDs", ids)
-                .List<object[]>()
-                .ToLookup(t => (int) t[0], t => (AniDB_Tag) t[1]);
-
-            return tags;
+            return RepoFactory.AniDB_Anime_Tag.GetByAnimeIDs(ids).SelectMany(a => a.ToList())
+                .ToLookup(t => t.AnimeID, t => GetByTagID(t.TagID));
         }
 
 
-        public AniDB_Tag GetByTagID(int id)
-        {
-            return Tags.GetOne(id);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                AniDB_Tag cr = session
-                    .CreateCriteria(typeof(AniDB_Tag))
-                    .Add(Restrictions.Eq("TagID", id))
-                    .UniqueResult<AniDB_Tag>();
-
-                return cr;
-            }*/
-        }
+        public AniDB_Tag GetByTagID(int id) => Tags.GetOne(id);
 
 
         /// <summary>
@@ -113,17 +75,6 @@ namespace Shoko.Server.Repositories
                 .Select(a => GetByTagID(a.TagID))
                 .Distinct()
                 .ToList();
-            /*
-
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var tags =
-                    session.CreateQuery(
-                        "FROM AniDB_Tag tag WHERE tag.TagID in (SELECT aat.TagID FROM AniDB_Anime_Tag aat, AnimeSeries aser WHERE aat.AnimeID = aser.AniDB_ID)")
-                        .List<AniDB_Tag>();
-
-                return new List<AniDB_Tag>(tags);
-            }*/
         }
     }
 }
