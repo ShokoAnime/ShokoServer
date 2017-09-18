@@ -173,7 +173,7 @@ namespace Shoko.Server.PlexAndKodi
 
         public static string ToPlexDate(this DateTime dt)
         {
-            return dt.Year.ToString("0000") + "-" + dt.Month.ToString("00") + "-" + dt.Day.ToString("00");
+            return dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         }
 
 

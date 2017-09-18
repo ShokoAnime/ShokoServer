@@ -1,15 +1,14 @@
 ﻿﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Runtime.Serialization;
-using Nancy;
-using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+ using System.Collections.Generic;
+ using System.Globalization;
+ using System.Linq;
+ using System.Runtime.Serialization;
+ using Nancy;
+ using Shoko.Models.Enums;
+ using Shoko.Models.PlexAndKodi;
+ using Shoko.Server.Models;
+ using Shoko.Server.PlexAndKodi;
+ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -42,7 +41,7 @@ namespace Shoko.Server.API.v2.Models.common
                 edited = ag.DateTimeUpdated
             };
 
-            var animes = ag.Anime;
+            var animes = ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
             if (animes != null && animes.Count > 0)
             {
                 Random rand = new Random();
@@ -59,7 +58,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                g.art.thumb.Add(new Art()
+                                g.art.thumb.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -78,7 +77,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                g.art.fanart.Add(new Art()
+                                g.art.fanart.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -97,7 +96,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                g.art.banner.Add(new Art()
+                                g.art.banner.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -114,11 +113,10 @@ namespace Shoko.Server.API.v2.Models.common
                 }
                 else
                 {
-                    var anime = animes.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue)
-                        .FirstOrDefault();
+                    var anime = animes.FirstOrDefault();
                     if (anime != null)
                     {
-                        g.art.thumb.Add(new Art()
+                        g.art.thumb.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
                                 anime.AnimeID),
@@ -129,7 +127,7 @@ namespace Shoko.Server.API.v2.Models.common
                         if (fanarts != null && fanarts.Count > 0)
                         {
                             var art = fanarts[rand.Next(fanarts.Count)];
-                            g.art.fanart.Add(new Art()
+                            g.art.fanart.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
                                     art.AniDB_Anime_DefaultImageID),
@@ -141,7 +139,7 @@ namespace Shoko.Server.API.v2.Models.common
                         if (fanarts != null && fanarts.Count > 0)
                         {
                             var art = fanarts[rand.Next(fanarts.Count)];
-                            g.art.banner.Add(new Art()
+                            g.art.banner.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
                                     art.AniDB_Anime_DefaultImageID),
@@ -154,9 +152,7 @@ namespace Shoko.Server.API.v2.Models.common
             List<SVR_AnimeEpisode> ael = ag.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
             GenerateSizes(g, ael, uid);
 
-            g.air = (ag.Contract.Stat_AirDate_Min ??
-                     ag.Anime.OrderBy(a => a.AirDate).FirstOrDefault(a => a.AirDate != null)?.AirDate)
-                    ?.ToPlexDate() ?? string.Empty;
+            g.air = (ag.Contract.Stat_AirDate_Min ?? animes?.FirstOrDefault()?.AirDate)?.ToPlexDate() ?? string.Empty;
 
             g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
             g.summary = ag.Contract.Description;
@@ -293,7 +289,7 @@ namespace Shoko.Server.API.v2.Models.common
             grp.localsize = local_eps + local_credits + local_specials + local_trailers + local_parodies + local_others;
             grp.viewed = watched_eps + watched_credits + watched_specials + watched_trailers + watched_parodies + watched_others;
 
-            grp.total_sizes = new Sizes()
+            grp.total_sizes = new Sizes
             {
                 Episodes = eps,
                 Credits = credits,
@@ -303,7 +299,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Others = others
             };
 
-            grp.local_sizes = new Sizes()
+            grp.local_sizes = new Sizes
             {
                 Episodes = local_eps,
                 Credits = local_credits,
@@ -313,7 +309,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Others = local_others
             };
 
-            grp.watched_sizes = new Sizes()
+            grp.watched_sizes = new Sizes
             {
                 Episodes = watched_eps,
                 Credits = watched_credits,
