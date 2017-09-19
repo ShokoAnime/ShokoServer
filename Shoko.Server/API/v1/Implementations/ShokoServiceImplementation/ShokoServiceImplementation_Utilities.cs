@@ -480,7 +480,6 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                string name = vid.FileName;
                 if (vid.Places.Count <= 0)
                 {
                     ret.VideoLocal = null;
@@ -491,9 +490,11 @@ namespace Shoko.Server
 
                 int errorCount = 0;
                 string errorString = "";
+                string name = vid.FileName;
 
                 foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
+                    name = Path.GetFileName(place.FilePath);
                     // check if the file exists
                     string fullFileName = place.FullServerPath;
                     IFileSystem fs = place.ImportFolder.FileSystem;
@@ -502,7 +503,7 @@ namespace Shoko.Server
                     {
                         logger.Error($"Renaming file FAIL From ({fullFileName}): The file could not be accessed");
                         errorCount++;
-                        errorString = "ERROR: Could not access the original file";
+                        errorString = "ERROR: Could not access the original file (it's missing or in use)";
                         continue;
                     }
 
@@ -521,6 +522,13 @@ namespace Shoko.Server
                     try
                     {
                         FileSystemResult r = fs?.Resolve(newFullName);
+                        if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            logger.Info(
+                                $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
+                            errorString = "ERROR: No change in file name";
+                            continue;
+                        }
                         if (r != null && r.IsOk)
                         {
                             logger.Error($"Renaming file SKIPPED! Destination Exists ({newFullName})");
@@ -529,76 +537,66 @@ namespace Shoko.Server
                             continue;
                         }
 
-                        if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
+                        logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
+                        var result = ((IFile) fileSystemResult.Result).Rename(ret.NewFileName);
+                        if (result == null || !result.IsOk)
                         {
-                            logger.Info(
-                                $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
-                            ret.NewFileName = newFullName;
-                            name = Path.GetFileName(fullFileName);
+                            logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {result.Error}");
+                            errorCount++;
+                            errorString = $"ERROR: {result.Error}";
+                            continue;
                         }
-                        else
-                        {
-                            logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
-                            var result = ((IFile) fileSystemResult.Result).Rename(ret.NewFileName);
-                            if (result == null || !result.IsOk)
-                            {
-                                logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {result.Error}");
-                                errorCount++;
-                                errorString = $"ERROR: {result.Error}";
-                                continue;
-                            }
-                            logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
+                        logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
 
-                            ret.NewFileName = newFullName;
-                            var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                            if (tup == null)
+                        ret.NewFileName = newFullName;
+                        var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+                        if (tup == null)
+                        {
+                            logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
+                            errorCount++;
+                            errorString = "ERROR: Unable to locate file in import folders";
+                            continue;
+                        }
+                        // Before we change all references, remap Duplicate Files
+                        List<DuplicateFile> dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
+                        if (dups != null && dups.Count > 0)
+                        {
+                            foreach (var dup in dups)
                             {
-                                logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
-                                errorCount++;
-                                errorString = $"ERROR: Unable to locate file in import folders";
-                                continue;
-                            }
-                            // Before we change all references, remap Duplicate Files
-                            List<DuplicateFile> dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
-                            if (dups != null && dups.Count > 0)
-                            {
-                                foreach (var dup in dups)
+                                bool dupchanged = false;
+                                if (dup.FilePathFile1.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                    dup.ImportFolderIDFile1 == place.ImportFolderID)
                                 {
-                                    bool dupchanged = false;
-                                    if (dup.FilePathFile1.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                        dup.ImportFolderIDFile1 == place.ImportFolderID)
-                                    {
-                                        dup.FilePathFile1 = tup.Item2;
-                                        dupchanged = true;
-                                    }
-                                    else if (dup.FilePathFile2.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                             dup.ImportFolderIDFile2 == place.ImportFolderID)
-                                    {
-                                        dup.FilePathFile2 = tup.Item2;
-                                        dupchanged = true;
-                                    }
-                                    if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
+                                    dup.FilePathFile1 = tup.Item2;
+                                    dupchanged = true;
                                 }
-                            }
-                            // Make FileNameHashes
-                            var filename_hash = RepoFactory.FileNameHash.GetByHash(vid.Hash);
-                            if (!filename_hash.Any(a => a.FileName.Equals(ret.NewFileName)))
-                            {
-                                FileNameHash fnhash = new FileNameHash
+                                else if (dup.FilePathFile2.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                         dup.ImportFolderIDFile2 == place.ImportFolderID)
                                 {
-                                    DateTimeUpdated = DateTime.Now,
-                                    FileName = ret.NewFileName,
-                                    FileSize = vid.FileSize,
-                                    Hash = vid.Hash
-                                };
-                                RepoFactory.FileNameHash.Save(fnhash);
+                                    dup.FilePathFile2 = tup.Item2;
+                                    dupchanged = true;
+                                }
+                                if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
                             }
-
-                            // Actually change the last internal references
-                            place.FilePath = tup.Item2;
-                            name = Path.GetFileName(tup.Item2);
-                            RepoFactory.VideoLocalPlace.Save(place);
                         }
+                        // Make FileNameHashes
+                        var filename_hash = RepoFactory.FileNameHash.GetByHash(vid.Hash);
+                        if (!filename_hash.Any(a => a.FileName.Equals(ret.NewFileName)))
+                        {
+                            FileNameHash fnhash = new FileNameHash
+                            {
+                                DateTimeUpdated = DateTime.Now,
+                                FileName = ret.NewFileName,
+                                FileSize = vid.FileSize,
+                                Hash = vid.Hash
+                            };
+                            RepoFactory.FileNameHash.Save(fnhash);
+                        }
+
+                        // Actually change the last internal references
+                        place.FilePath = tup.Item2;
+                        name = Path.GetFileName(tup.Item2);
+                        RepoFactory.VideoLocalPlace.Save(place);
                     }
                     catch (Exception ex)
                     {
