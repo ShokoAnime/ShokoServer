@@ -68,9 +68,20 @@ namespace Shoko.Server.Models
                 return true;
             }
 
-            IFileSystem filesys = ImportFolder?.FileSystem;
+            if (ImportFolder == null)
+            {
+                logger.Error(
+                    $"Error: The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: {FilePath}");
+                return false;
+            }
+
+            IFileSystem filesys = ImportFolder.FileSystem;
             if (filesys == null)
+            {
+                logger.Error(
+                    $"Error: The renamer can't get the filesystem for: {FullServerPath}");
                 return true;
+            }
             // actually rename the file
             string fullFileName = FullServerPath;
 
@@ -79,7 +90,7 @@ namespace Shoko.Server.Models
             FileSystemResult<IObject> re = filesys.Resolve(fullFileName);
             if ((re == null) || (!re.IsOk))
             {
-                logger.Error("Error could not find the original file for renaming: " + fullFileName);
+                logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
                 return false;
             }
             IObject file = re.Result;
@@ -279,7 +290,7 @@ namespace Shoko.Server.Models
 
             if (!string.IsNullOrEmpty(m.Duration))
             {
-                bool isValidDuration = double.TryParse(m.Duration, out double duration);
+                bool isValidDuration = double.TryParse(m.Duration, out double _);
                 if (isValidDuration)
                     info.Duration =
                         (long) double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);
@@ -435,7 +446,7 @@ namespace Shoko.Server.Models
             {
                 logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
 
-                IFileSystem fileSystem = ImportFolder?.FileSystem;
+                IFileSystem fileSystem = ImportFolder.FileSystem;
                 if (fileSystem == null)
                 {
                     logger.Error("Unable to delete file, filesystem not found. Removing record.");
