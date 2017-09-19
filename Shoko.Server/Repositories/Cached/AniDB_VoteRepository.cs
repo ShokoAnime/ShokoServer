@@ -47,7 +47,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
-            List<AniDB_Vote> cr = EntityIDs.GetMultiple(entID).Where(a => a.VoteType == (int) voteType).ToList();
+            List<AniDB_Vote> cr = EntityIDs.GetMultiple(entID)?.Where(a => a.VoteType == (int) voteType).ToList();
 
             if (cr.Count <= 1) return cr.FirstOrDefault();
 
@@ -72,12 +72,15 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public List<AniDB_Vote> GetByEntity(int entID) => EntityIDs.GetMultiple(entID).ToList();
+        public List<AniDB_Vote> GetByEntity(int entID)
+        {
+            return EntityIDs.GetMultiple(entID)?.ToList();
+        }
 
         public AniDB_Vote GetByAnimeID(int animeID)
         {
-            return EntityIDs.GetMultiple(animeID).FirstOrDefault(a =>
-                a.VoteType == (int) AniDBVoteType.Anime || a.VoteType == (int) AniDBVoteType.AnimeTemp);
+            return GetByEntityAndType(animeID, AniDBVoteType.Anime) ??
+                   GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp);
         }
 
         public Dictionary<int, AniDB_Vote> GetByAnimeIDs(IReadOnlyCollection<int> animeIDs)
@@ -85,8 +88,7 @@ namespace Shoko.Server.Repositories.Cached
             if (animeIDs == null)
                 throw new ArgumentNullException(nameof(animeIDs));
 
-            var votesByAnime = animeIDs.Select(GetByAnimeID).Where(vote => vote != null).GroupBy(v => v.EntityID)
-                .ToDictionary(g => g.Key, g => g.FirstOrDefault());
+            var votesByAnime = animeIDs.Where(a => GetByAnimeID(a) != null).ToDictionary(a => a, GetByAnimeID);
 
             return votesByAnime;
         }
