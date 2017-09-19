@@ -492,6 +492,8 @@ namespace Shoko.Server
                 string errorString = "";
                 string name = vid.FileName;
 
+                ShokoServer.StopWatchingFiles();
+
                 foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
                     name = Path.GetFileName(place.FilePath);
@@ -611,6 +613,7 @@ namespace Shoko.Server
                     ret.VideoLocal = null;
                     ret.Success = false;
                     ret.NewFileName = errorString;
+                    ShokoServer.StartWatchingFiles();
                     return ret;
                 }
                 vid.FileName = name;
@@ -627,6 +630,7 @@ namespace Shoko.Server
                 ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
+            ShokoServer.StartWatchingFiles();
             return ret;
         }
 
