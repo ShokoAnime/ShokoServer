@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using Nancy;
-using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+﻿﻿using System;
+ using System.Collections.Generic;
+ using System.Globalization;
+ using System.Linq;
+ using System.Runtime.Serialization;
+ using Nancy;
+ using Shoko.Models.Enums;
+ using Shoko.Models.PlexAndKodi;
+ using Shoko.Server.Models;
+ using Shoko.Server.PlexAndKodi;
+ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -18,10 +19,7 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Serie> series { get; set; }
 
-        public override string type
-        {
-            get { return "group"; }
-        }
+        public override string type => "group";
 
         public Group()
         {
@@ -43,7 +41,7 @@ namespace Shoko.Server.API.v2.Models.common
                 edited = ag.DateTimeUpdated
             };
 
-            var animes = ag.Anime;
+            var animes = ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
             if (animes != null && animes.Count > 0)
             {
                 Random rand = new Random();
@@ -60,7 +58,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                g.art.thumb.Add(new Art()
+                                g.art.thumb.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -79,7 +77,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                g.art.fanart.Add(new Art()
+                                g.art.fanart.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -98,7 +96,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                g.art.banner.Add(new Art()
+                                g.art.banner.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -115,11 +113,10 @@ namespace Shoko.Server.API.v2.Models.common
                 }
                 else
                 {
-                    var anime = animes.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue)
-                        .FirstOrDefault();
+                    var anime = animes.FirstOrDefault();
                     if (anime != null)
                     {
-                        g.art.thumb.Add(new Art()
+                        g.art.thumb.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
                                 anime.AnimeID),
@@ -130,7 +127,7 @@ namespace Shoko.Server.API.v2.Models.common
                         if (fanarts != null && fanarts.Count > 0)
                         {
                             var art = fanarts[rand.Next(fanarts.Count)];
-                            g.art.fanart.Add(new Art()
+                            g.art.fanart.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
                                     art.AniDB_Anime_DefaultImageID),
@@ -142,7 +139,7 @@ namespace Shoko.Server.API.v2.Models.common
                         if (fanarts != null && fanarts.Count > 0)
                         {
                             var art = fanarts[rand.Next(fanarts.Count)];
-                            g.art.banner.Add(new Art()
+                            g.art.banner.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
                                     art.AniDB_Anime_DefaultImageID),
@@ -152,89 +149,39 @@ namespace Shoko.Server.API.v2.Models.common
                     }
                 }
             }
-            Video vag = ag.GetPlexContract(uid);
+            List<SVR_AnimeEpisode> ael = ag.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
+            GenerateSizes(g, ael, uid);
 
-            if (vag != null)
+            g.air = (ag.Contract.Stat_AirDate_Min ?? animes?.FirstOrDefault()?.AirDate)?.ToPlexDate() ?? string.Empty;
+
+            g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
+            g.summary = ag.Contract.Description;
+            g.titles = ag.Titles.ToAPIContract();
+            g.year = ag.Contract.Stat_AllYears.Min().ToString(NumberFormatInfo.InvariantInfo);
+
+            if (!notag && ag.Contract.Stat_AllTags != null)
+                g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList())
+                    .Select(value => new Tag {tag = value}).ToList();
+
+            if (!nocast)
             {
-                g.air = vag.OriginallyAvailableAt;
-
-                List<SVR_AnimeEpisode> ael = ag.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
-
-                GenerateSizes(g, ael, uid);
-
-                g.rating = vag.Rating;
-                g.userrating = vag.UserRating;
-
-                g.summary = vag.Summary;
-                g.titles = vag.Titles;
-                g.year = vag.Year;
-
-                if (!nocast)
+                Video vag = ag.GetPlexContract(uid);
+                if (vag?.Roles != null)
                 {
-                    if (vag.Roles != null)
+                    g.roles = vag.Roles?.Select(rtg => new Role
                     {
-                        g.roles = new List<Role>();
-                        foreach (RoleTag rtg in vag.Roles)
-                        {
-                            Role new_role = new Role();
-                            if (!String.IsNullOrEmpty(rtg.Value))
-                            {
-                                new_role.name = rtg.Value;
-                            }
-                            else
-                            {
-                                new_role.name = "";
-                            }
-                            if (!String.IsNullOrEmpty(rtg.TagPicture))
-                            {
-                                new_role.namepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture);
-                            }
-                            else
-                            {
-                                new_role.namepic = "";
-                            }
-                            if (!String.IsNullOrEmpty(rtg.Role))
-                            {
-                                new_role.role = rtg.Role;
-                            }
-                            else
-                            {
-                                rtg.Role = "";
-                            }
-                            if (!String.IsNullOrEmpty(rtg.RoleDescription))
-                            {
-                                new_role.roledesc = rtg.RoleDescription;
-                            }
-                            else
-                            {
-                                new_role.roledesc = "";
-                            }
-                            if (!String.IsNullOrEmpty(rtg.RolePicture))
-                            {
-                                new_role.rolepic = APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture);
-                            }
-                            else
-                            {
-                                new_role.rolepic = "";
-                            }
-                            g.roles.Add(new_role);
-                        }
-                    }
-                }
-
-                if (!notag)
-                {
-                    if (vag.Genres != null)
-                    {
-                        foreach (string value in TagFilter.ProcessTags(tagfilter, vag.Genres.Select(a => a.Value).ToList()))
-                        {
-                            Tag new_tag = new Tag
-                            {
-                                tag = value
-                            };
-                            g.tags.Add(new_tag);
-                        }
-                    }
+                        name = !string.IsNullOrEmpty(rtg.Value) ? rtg.Value : string.Empty,
+                        namepic = !string.IsNullOrEmpty(rtg.TagPicture)
+                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture)
+                            : string.Empty,
+                        role = !string.IsNullOrEmpty(rtg.Role) ? rtg.Role : string.Empty,
+                        roledesc = !string.IsNullOrEmpty(rtg.RoleDescription)
+                            ? rtg.RoleDescription
+                            : string.Empty,
+                        rolepic = !string.IsNullOrEmpty(rtg.RolePicture)
+                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture)
+                            : string.Empty
+                    }).ToList();
                 }
             }
 
@@ -252,11 +199,9 @@ namespace Shoko.Server.API.v2.Models.common
                 }
                 foreach (SVR_AnimeSeries ada in ag.GetSeries())
                 {
-                    if (series != null && series.Count > 0)
-                    {
-                        if (!series.Contains(ada.AnimeSeriesID)) continue;
-                    }
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic, pic, tagfilter));
+                    if (series != null && series.Count > 0 && !series.Contains(ada.AnimeSeriesID)) continue;
+                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic,
+                        pic, tagfilter));
                 }
                 // This should be faster
                 g.series.Sort();
@@ -292,48 +237,48 @@ namespace Shoko.Server.API.v2.Models.common
             foreach (SVR_AnimeEpisode ep in ael)
             {
                 if (ep == null) continue;
-                var contract = ep.PlexContract;
+                var local = ep.GetVideoLocals().Any();
                 switch (ep.EpisodeTypeEnum)
                 {
                     case EpisodeType.Episode:
                     {
                         eps++;
-                        if (contract?.Medias?.Any() ?? false) local_eps++;
+                        if (local) local_eps++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_eps++;
                         break;
                     }
                     case EpisodeType.Credits:
                     {
                         credits++;
-                        if (contract?.Medias?.Any() ?? false) local_credits++;
+                        if (local) local_credits++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_credits++;
                         break;
                     }
                     case EpisodeType.Special:
                     {
                         specials++;
-                        if (contract?.Medias?.Any() ?? false) local_specials++;
+                        if (local) local_specials++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_specials++;
                         break;
                     }
                     case EpisodeType.Trailer:
                     {
                         trailers++;
-                        if (contract?.Medias?.Any() ?? false) local_trailers++;
+                        if (local) local_trailers++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_trailers++;
                         break;
                     }
                     case EpisodeType.Parody:
                     {
                         parodies++;
-                        if (contract?.Medias?.Any() ?? false) local_parodies++;
+                        if (local) local_parodies++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_parodies++;
                         break;
                     }
                     case EpisodeType.Other:
                     {
                         others++;
-                        if (contract?.Medias?.Any() ?? false) local_others++;
+                        if (local) local_others++;
                         if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_others++;
                         break;
                     }
@@ -344,7 +289,7 @@ namespace Shoko.Server.API.v2.Models.common
             grp.localsize = local_eps + local_credits + local_specials + local_trailers + local_parodies + local_others;
             grp.viewed = watched_eps + watched_credits + watched_specials + watched_trailers + watched_parodies + watched_others;
 
-            grp.total_sizes = new Sizes()
+            grp.total_sizes = new Sizes
             {
                 Episodes = eps,
                 Credits = credits,
@@ -354,7 +299,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Others = others
             };
 
-            grp.local_sizes = new Sizes()
+            grp.local_sizes = new Sizes
             {
                 Episodes = local_eps,
                 Credits = local_credits,
@@ -364,7 +309,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Others = local_others
             };
 
-            grp.watched_sizes = new Sizes()
+            grp.watched_sizes = new Sizes
             {
                 Episodes = watched_eps,
                 Credits = watched_credits,
