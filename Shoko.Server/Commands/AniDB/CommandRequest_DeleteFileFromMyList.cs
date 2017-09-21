@@ -50,7 +50,7 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_DeleteFileFromMyList(int fileID)
         {
-            this.Hash = "";
+            this.Hash = string.Empty;
             this.FileSize = 0;
             this.FileID = fileID;
             this.CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;

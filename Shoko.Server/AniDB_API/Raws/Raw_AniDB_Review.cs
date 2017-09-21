@@ -24,7 +24,7 @@ namespace AniDBAPI
             RatingCharacter = 0;
             RatingValue = 0;
             RatingEnjoyment = 0;
-            ReviewText = "";
+            ReviewText = string.Empty;
         }
 
         public Raw_AniDB_Review(string sRecMessage)

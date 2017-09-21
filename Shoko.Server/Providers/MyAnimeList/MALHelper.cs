@@ -38,7 +38,7 @@ namespace Shoko.Server.Providers.MyAnimeList
 
             searchTitle = HttpUtility.UrlPathEncode(searchTitle);
 
-            string searchResultXML = "";
+            string searchResultXML = string.Empty;
             try
             {
                 searchResultXML =
@@ -501,7 +501,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                         }
                     }
 
-                    string fanSubs = "";
+                    string fanSubs = string.Empty;
                     foreach (string fgrp in fanSubGroups)
                     {
                         if (!string.IsNullOrEmpty(fanSubs)) fanSubs += ",";
@@ -537,7 +537,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                         continue;
                     }
 
-                    string confirmationMessage = "";
+                    string confirmationMessage = string.Empty;
                     if (animeListHashtable.ContainsKey(malID))
                     {
                         if ((ServerSettings.MAL_NeverDecreaseWatchedNums && lastWatchedEpNumberMAL > 0) && lastWatchedEpNumber <= lastWatchedEpNumberMAL)
@@ -587,7 +587,7 @@ namespace Shoko.Server.Providers.MyAnimeList
         {
             try
             {
-                string res = "";
+                string res = string.Empty;
 
                 string animeValuesXMLString = string.Format(
                     "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
@@ -616,7 +616,7 @@ namespace Shoko.Server.Providers.MyAnimeList
         {
             try
             {
-                string res = "";
+                string res = string.Empty;
                 string animeValuesXMLString = string.Format(
                     "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
                     lastEpisodeWatched, status, score);

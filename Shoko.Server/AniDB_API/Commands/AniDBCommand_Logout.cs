@@ -27,7 +27,7 @@ namespace AniDBAPI.Commands
         public AniDBCommand_Logout()
         {
             commandType = enAniDBCommandType.Logout;
-            commandID = "";
+            commandID = string.Empty;
         }
 
         public void Init()

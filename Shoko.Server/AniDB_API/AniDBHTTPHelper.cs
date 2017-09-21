@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Xml;
+using NLog;
+using Shoko.Commons.Properties;
+using Shoko.Commons.Utils;
 using Shoko.Server;
 using Shoko.Server.AniDB_API.Raws;
-using NLog;
-using Shoko.Commons.Utils;
 
 namespace AniDBAPI
 {
@@ -20,49 +21,24 @@ namespace AniDBAPI
 
         public const string VotesURL = @"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={0}&pass={1}";
 
-        public static void GetAnime(int animeID, bool createSeriesRecord)
-        {
-            try
-            {
-                string uri = string.Format(AniDBHTTPHelper.AnimeURL, animeID);
-                //BaseConfig.MyAnimeLog.Write("GetAnime: {0}", uri);
-                string xml = APIUtils.DownloadWebPage(uri);
-
-                //BaseConfig.MyAnimeLog.Write("AniDBHTTPHelper.GetAnime: {0}", xml);
-
-                if (xml.Trim().Length == 0) return;
-
-                XmlDocument docAnime = new XmlDocument();
-                docAnime.LoadXml(xml);
-
-                ProcessAnimeDetails(docAnime, animeID);
-                ProcessEpisodes(docAnime, animeID);
-            }
-            catch
-            {
-                //BaseConfig.MyAnimeLog.Write("Error in AniDBHTTPHelper.GetAnime: {0}", ex);
-                return;
-            }
-        }
-
         public static XmlDocument GetAnimeXMLFromAPI(int animeID, ref string rawXML)
         {
             try
             {
-                string uri = string.Format(AniDBHTTPHelper.AnimeURL, animeID);
+                string uri = string.Format(AnimeURL, animeID);
                 //APIUtils.WriteToLog("GetAnimeXMLFromAPI: " + uri);
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 DateTime start = DateTime.Now;
-                string msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_GettingAnimeXML, animeID);
+                string msg = string.Format(Resources.AniDB_GettingAnimeXML, animeID);
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 rawXML = APIUtils.DownloadWebPage(uri);
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;
                 if (content.Length > 100) content = content.Substring(0, 100);
-                msg = string.Format(Shoko.Commons.Properties.Resources.AniDB_GotAnimeXML, animeID, ts.TotalMilliseconds,
+                msg = string.Format(Resources.AniDB_GotAnimeXML, animeID, ts.TotalMilliseconds,
                     content);
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
@@ -91,7 +67,7 @@ namespace AniDBAPI
                 //rawXML = re.ReadToEnd();
                 //re.Close();
 
-                string uri = string.Format(AniDBHTTPHelper.MyListURL, username, password);
+                string uri = string.Format(MyListURL, username, password);
                 rawXML = APIUtils.DownloadWebPage(uri);
 
                 if (rawXML.Trim().Length == 0) return null;
@@ -112,7 +88,7 @@ namespace AniDBAPI
         {
             try
             {
-                string uri = string.Format(AniDBHTTPHelper.VotesURL, username, password);
+                string uri = string.Format(VotesURL, username, password);
                 rawXML = APIUtils.DownloadWebPage(uri);
 
                 if (rawXML.Trim().Length == 0) return null;
@@ -138,7 +114,7 @@ namespace AniDBAPI
             };
 
             // check if there is any data
-            if (docAnime?["anime"]?.Attributes?["id"]?.Value == null)
+            if (docAnime?["anime"]?.Attributes["id"]?.Value == null)
             {
                 logger.Warn("AniDB ProcessAnimeDetails - Received no or invalid info in XML");
                 return null;
@@ -185,8 +161,8 @@ namespace AniDBAPI
             XmlNodeList raItems = docAnime["anime"]["relatedanime"]?.GetElementsByTagName("anime");
             if (raItems != null)
             {
-                anime.RelatedAnimeIdsRAW = "";
-                anime.RelatedAnimeTypesRAW = "";
+                anime.RelatedAnimeIdsRAW = string.Empty;
+                anime.RelatedAnimeTypesRAW = string.Empty;
 
                 foreach (XmlNode node in raItems)
                 {
@@ -215,13 +191,11 @@ namespace AniDBAPI
                     if (string.IsNullOrEmpty(titleType)) continue;
                     string languageType = node.Attributes["xml:lang"]?.Value?.Trim().ToLower();
                     if (string.IsNullOrEmpty(languageType)) continue;
-                    string titleValue = node.InnerText?.Trim();
+                    string titleValue = node.InnerText.Trim();
                     if (string.IsNullOrEmpty(titleValue)) continue;
 
                     if (titleType.Trim().ToUpper().Equals("MAIN"))
-                    {
                         anime.MainTitle = titleValue.Replace('`', '\'');
-                    }
                 }
             }
 
@@ -241,41 +215,40 @@ namespace AniDBAPI
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
             XmlNodeList ratingItems = docAnime["anime"]["ratings"]?.ChildNodes;
-            if (ratingItems != null)
+            if (ratingItems == null) return anime;
+            foreach (XmlNode node in ratingItems)
             {
-                foreach (XmlNode node in ratingItems)
-                {
-                    string name = node?.Name?.Trim().ToLower();
-                    if (string.IsNullOrEmpty(name)) continue;
-                    if (!int.TryParse(TryGetAttribute(node, "count"), out int iCount)) continue;
-                    if(!decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating)) continue;
-                    iRating = (int) Math.Round(iRating * 100);
+                string name = node?.Name?.Trim().ToLower();
+                if (string.IsNullOrEmpty(name)) continue;
+                if (!int.TryParse(TryGetAttribute(node, "count"), out int iCount)) continue;
+                if (!decimal.TryParse(node.InnerText.Trim(), style, culture, out decimal iRating)) continue;
+                iRating = (int) Math.Round(iRating * 100);
 
-                    if (name.Equals("permanent"))
-                    {
-                        anime.VoteCount = iCount;
-                        anime.Rating = (int)iRating;
-                    }
-                    else if (name.Equals("temporary"))
-                    {
-                        anime.TempVoteCount = iCount;
-                        anime.TempRating = (int) iRating;
-                    }
-                    else if (name.Equals("review"))
-                    {
-                        anime.ReviewCount = iCount;
-                        anime.AvgReviewRating = (int) iRating;
-                    }
+                if (name.Equals("permanent"))
+                {
+                    anime.VoteCount = iCount;
+                    anime.Rating = (int) iRating;
+                }
+                else if (name.Equals("temporary"))
+                {
+                    anime.TempVoteCount = iCount;
+                    anime.TempRating = (int) iRating;
+                }
+                else if (name.Equals("review"))
+                {
+                    anime.ReviewCount = iCount;
+                    anime.AvgReviewRating = (int) iRating;
                 }
             }
 
             #endregion
+
             return anime;
         }
 
         public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)
         {
-            string xmlResult = "";
+            string xmlResult = string.Empty;
             XmlDocument docAnime = GetAnimeXMLFromAPI(animeID, ref xmlResult);
             if (docAnime == null)
                 return null;
@@ -287,20 +260,18 @@ namespace AniDBAPI
             List<Raw_AniDB_Tag> tags = new List<Raw_AniDB_Tag>();
 
             XmlNodeList tagItems = docAnime?["anime"]?["tags"]?.GetElementsByTagName("tag");
-            if (tagItems != null)
+            if (tagItems == null) return tags;
+            foreach (XmlNode node in tagItems)
             {
-                foreach (XmlNode node in tagItems)
+                try
                 {
-                    try
-                    {
-                        Raw_AniDB_Tag tag = new Raw_AniDB_Tag();
-                        tag.ProcessFromHTTPResult(node, animeID);
-                        tags.Add(tag);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessTags: {ex}");
-                    }
+                    Raw_AniDB_Tag tag = new Raw_AniDB_Tag();
+                    tag.ProcessFromHTTPResult(node, animeID);
+                    tags.Add(tag);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessTags: {ex}");
                 }
             }
 
@@ -312,20 +283,18 @@ namespace AniDBAPI
             List<Raw_AniDB_Character> chars = new List<Raw_AniDB_Character>();
 
             XmlNodeList charItems = docAnime?["anime"]?["characters"]?.GetElementsByTagName("character");
-            if (charItems != null)
+            if (charItems == null) return chars;
+            foreach (XmlNode node in charItems)
             {
-                foreach (XmlNode node in charItems)
+                try
                 {
-                    try
-                    {
-                        Raw_AniDB_Character chr = new Raw_AniDB_Character();
-                        chr.ProcessFromHTTPResult(node, animeID);
-                        chars.Add(chr);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessCharacters: {ex}");
-                    }
+                    Raw_AniDB_Character chr = new Raw_AniDB_Character();
+                    chr.ProcessFromHTTPResult(node, animeID);
+                    chars.Add(chr);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessCharacters: {ex}");
                 }
             }
 
@@ -337,20 +306,18 @@ namespace AniDBAPI
             List<Raw_AniDB_Anime_Title> titles = new List<Raw_AniDB_Anime_Title>();
 
             XmlNodeList titleItems = docAnime?["anime"]?["titles"]?.GetElementsByTagName("title");
-            if (titleItems != null)
+            if (titleItems == null) return titles;
+            foreach (XmlNode node in titleItems)
             {
-                foreach (XmlNode node in titleItems)
+                try
                 {
-                    try
-                    {
-                        Raw_AniDB_Anime_Title animeTitle = new Raw_AniDB_Anime_Title();
-                        animeTitle.ProcessFromHTTPResult(node, animeID);
-                        titles.Add(animeTitle);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessTitles: {animeID} - {ex}");
-                    }
+                    Raw_AniDB_Anime_Title animeTitle = new Raw_AniDB_Anime_Title();
+                    animeTitle.ProcessFromHTTPResult(node, animeID);
+                    titles.Add(animeTitle);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessTitles: {animeID} - {ex}");
                 }
             }
 
@@ -362,20 +329,18 @@ namespace AniDBAPI
             List<Raw_AniDB_RelatedAnime> rels = new List<Raw_AniDB_RelatedAnime>();
 
             XmlNodeList relItems = docAnime?["anime"]?["relatedanime"]?.GetElementsByTagName("anime");
-            if (relItems != null)
+            if (relItems == null) return rels;
+            foreach (XmlNode node in relItems)
             {
-                foreach (XmlNode node in relItems)
+                try
                 {
-                    try
-                    {
-                        Raw_AniDB_RelatedAnime rel = new Raw_AniDB_RelatedAnime();
-                        rel.ProcessFromHTTPResult(node, animeID);
-                        rels.Add(rel);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Error in AniDBHTTPHelper.ProcessRelations: {0}");
-                    }
+                    Raw_AniDB_RelatedAnime rel = new Raw_AniDB_RelatedAnime();
+                    rel.ProcessFromHTTPResult(node, animeID);
+                    rels.Add(rel);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error in AniDBHTTPHelper.ProcessRelations: {0}");
                 }
             }
 
@@ -387,20 +352,18 @@ namespace AniDBAPI
             List<Raw_AniDB_SimilarAnime> rels = new List<Raw_AniDB_SimilarAnime>();
 
             XmlNodeList simItems = docAnime["anime"]?["similaranime"]?.GetElementsByTagName("anime");
-            if (simItems != null)
+            if (simItems == null) return rels;
+            foreach (XmlNode node in simItems)
             {
-                foreach (XmlNode node in simItems)
+                try
                 {
-                    try
-                    {
-                        Raw_AniDB_SimilarAnime sim = new Raw_AniDB_SimilarAnime();
-                        sim.ProcessFromHTTPResult(node, animeID);
-                        rels.Add(sim);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Error in AniDBHTTPHelper.ProcessSimilarAnime: {0}");
-                    }
+                    Raw_AniDB_SimilarAnime sim = new Raw_AniDB_SimilarAnime();
+                    sim.ProcessFromHTTPResult(node, animeID);
+                    rels.Add(sim);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Error in AniDBHTTPHelper.ProcessSimilarAnime: {0}");
                 }
             }
 
@@ -412,20 +375,18 @@ namespace AniDBAPI
             List<Raw_AniDB_Recommendation> recs = new List<Raw_AniDB_Recommendation>();
 
             XmlNodeList recItems = docAnime?["anime"]?["recommendations"]?.GetElementsByTagName("recommendation");
-            if (recItems != null)
+            if (recItems == null) return recs;
+            foreach (XmlNode node in recItems)
             {
-                foreach (XmlNode node in recItems)
+                try
                 {
-                    try
-                    {
-                        Raw_AniDB_Recommendation rec = new Raw_AniDB_Recommendation();
-                        rec.ProcessFromHTTPResult(node, animeID);
-                        recs.Add(rec);
-                    }
-                    catch (Exception exc)
-                    {
-                        logger.Error(exc, "Error in Processing Node in Recommendations: {0}" + exc);
-                    }
+                    Raw_AniDB_Recommendation rec = new Raw_AniDB_Recommendation();
+                    rec.ProcessFromHTTPResult(node, animeID);
+                    recs.Add(rec);
+                }
+                catch (Exception exc)
+                {
+                    logger.Error(exc, "Error in Processing Node in Recommendations: {0}" + exc);
                 }
             }
 
@@ -437,24 +398,22 @@ namespace AniDBAPI
             List<Raw_AniDB_Episode> eps = new List<Raw_AniDB_Episode>();
 
             XmlNodeList episodeItems = docAnime?["anime"]?["episodes"]?.GetElementsByTagName("episode");
-            if (episodeItems != null)
+            if (episodeItems == null) return eps;
+            foreach (XmlNode node in episodeItems)
             {
-                foreach (XmlNode node in episodeItems)
+                try
                 {
-                    try
+                    Raw_AniDB_Episode ep = new Raw_AniDB_Episode();
+                    if (!ep.ProcessEpisodeSource(node, animeID))
                     {
-                        Raw_AniDB_Episode ep = new Raw_AniDB_Episode();
-                        if (!ep.ProcessEpisodeSource(node, animeID))
-                        {
-                            logger.Error($"AniDB Episode raw data had invalid return data:\n        {node}");
-                            continue;
-                        }
-                        eps.Add(ep);
+                        logger.Error($"AniDB Episode raw data had invalid return data:\n        {node}");
+                        continue;
                     }
-                    catch (Exception exc)
-                    {
-                        logger.Error(exc, $"Error in ProcessEpisodes: {exc}");
-                    }
+                    eps.Add(ep);
+                }
+                catch (Exception exc)
+                {
+                    logger.Error(exc, $"Error in ProcessEpisodes: {exc}");
                 }
             }
 

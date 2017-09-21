@@ -174,7 +174,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             else
             {
-                if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != "")
+                if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != string.Empty)
                 {
                     if (Directory.Exists(imagepath.path))
                     {
@@ -324,8 +324,8 @@ namespace Shoko.Server.API.v2.Modules
         private object SetAniDB()
         {
             Creditentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) &&
-                cred.password != "")
+            if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
+                cred.password != string.Empty)
             {
                 ServerSettings.AniDB_Username = cred.login;
                 ServerSettings.AniDB_Password = cred.password;
@@ -423,8 +423,8 @@ namespace Shoko.Server.API.v2.Modules
         private object SetMAL()
         {
             Creditentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) &&
-                cred.password != "")
+            if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
+                cred.password != string.Empty)
             {
                 ServerSettings.MAL_Username = cred.login;
                 ServerSettings.MAL_Password = cred.password;
@@ -502,7 +502,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetTraktPIN()
         {
             Creditentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.token) && cred.token != "")
+            if (!String.IsNullOrEmpty(cred.token) && cred.token != string.Empty)
             {
                 ServerSettings.Trakt_PIN = cred.token;
                 return APIStatus.statusOK();
@@ -615,9 +615,9 @@ namespace Shoko.Server.API.v2.Modules
             {
                 JMMUser user = this.Bind();
                 user.Password = Digest.Hash(user.Password);
-                user.HideCategories = "";
-                user.PlexUsers = "";
-                return new ShokoServiceImplementation().SaveUser(user) == "" 
+                user.HideCategories = string.Empty;
+                user.PlexUsers = string.Empty;
+                return new ShokoServiceImplementation().SaveUser(user) == string.Empty 
                     ? APIStatus.statusOK() 
                     : APIStatus.internalError();
             }
@@ -647,7 +647,7 @@ namespace Shoko.Server.API.v2.Modules
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
-                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == "" 
+                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty 
                     ? APIStatus.statusOK() 
                     : APIStatus.internalError();
             }
@@ -666,7 +666,7 @@ namespace Shoko.Server.API.v2.Modules
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
-                return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == "" 
+                return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty 
                     ? APIStatus.statusOK() 
                     : APIStatus.internalError();
             }

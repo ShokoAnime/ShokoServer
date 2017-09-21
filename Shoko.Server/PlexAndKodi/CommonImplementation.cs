@@ -329,7 +329,7 @@ namespace Shoko.Server.PlexAndKodi
             SVR_VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
-                    Path.GetFileNameWithoutExtension(vi.FileName ?? ""),
+                    Path.GetFileNameWithoutExtension(vi.FileName ?? string.Empty),
                     true, false, info));
             Video v2 = Helper.VideoFromVideoLocal(prov, vi, userid);
             List<Video> dirs = new List<Video>();

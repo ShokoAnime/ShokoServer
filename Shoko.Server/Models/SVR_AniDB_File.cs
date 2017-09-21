@@ -113,7 +113,7 @@ namespace Shoko.Server.Models
             {
                 if (!string.IsNullOrEmpty(subtitlesRAW))
                     return subtitlesRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (Language lang in this.Subtitles)
                 {
                     if (ret.Length > 0)
@@ -132,7 +132,7 @@ namespace Shoko.Server.Models
             {
                 if (!string.IsNullOrEmpty(languagesRAW))
                     return languagesRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (Language lang in this.Languages)
                 {
                     if (ret.Length > 0)
@@ -151,7 +151,7 @@ namespace Shoko.Server.Models
             {
                 if (!string.IsNullOrEmpty(episodesRAW))
                     return episodesRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (CrossRef_File_Episode cross in EpisodeCrossRefs)
                 {
                     if (ret.Length > 0)
@@ -170,7 +170,7 @@ namespace Shoko.Server.Models
             {
                 if (!string.IsNullOrEmpty(episodesPercentRAW))
                     return episodesPercentRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (CrossRef_File_Episode cross in EpisodeCrossRefs)
                 {
                     if (ret.Length > 0)
@@ -190,7 +190,7 @@ namespace Shoko.Server.Models
 
                 if (!string.IsNullOrEmpty(subtitlesRAW))
                     return subtitlesRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (Language lang in this.Subtitles)
                 {
                     if (ret.Length > 0)
@@ -211,7 +211,7 @@ namespace Shoko.Server.Models
 
                 if (!string.IsNullOrEmpty(languagesRAW))
                     return languagesRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (Language lang in this.Languages)
                 {
                     if (ret.Length > 0)
@@ -232,7 +232,7 @@ namespace Shoko.Server.Models
 
                 if (!string.IsNullOrEmpty(episodesRAW))
                     return episodesRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (CrossRef_File_Episode cross in EpisodeCrossRefs)
                 {
                     if (ret.Length > 0)
@@ -253,7 +253,7 @@ namespace Shoko.Server.Models
 
                 if (!string.IsNullOrEmpty(episodesPercentRAW))
                     return episodesPercentRAW;
-                string ret = "";
+                string ret = string.Empty;
                 foreach (CrossRef_File_Episode cross in EpisodeCrossRefs)
                 {
                     if (ret.Length > 0)

@@ -50,7 +50,7 @@ namespace Shoko.Server.Commands
                     sched = new ScheduledUpdate
                     {
                         UpdateType = (int)ScheduledUpdateType.AniDBMyListSync,
-                        UpdateDetails = ""
+                        UpdateDetails = string.Empty
                     };
                 }
                 else
@@ -184,7 +184,7 @@ namespace Shoko.Server.Commands
                         VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
                         if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
 
-                        string action = "";
+                        string action = string.Empty;
                         if (localStatus == myitem.IsWatched) continue;
 
                         // localStatus and AniDB Status are different

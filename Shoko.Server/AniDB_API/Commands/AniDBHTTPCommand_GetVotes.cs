@@ -16,7 +16,7 @@ namespace Shoko.Server.AniDB_API.Commands
             set { myVotes = value; }
         }
 
-        private string username = "";
+        private string username = string.Empty;
 
         public string Username
         {
@@ -24,7 +24,7 @@ namespace Shoko.Server.AniDB_API.Commands
             set { username = value; }
         }
 
-        private string password = "";
+        private string password = string.Empty;
 
         public string Password
         {
@@ -32,7 +32,7 @@ namespace Shoko.Server.AniDB_API.Commands
             set { password = value; }
         }
 
-        private string xmlResult = "";
+        private string xmlResult = string.Empty;
 
         public string XmlResult
         {

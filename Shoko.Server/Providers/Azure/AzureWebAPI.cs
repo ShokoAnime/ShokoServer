@@ -762,7 +762,7 @@ namespace Shoko.Server.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = $@"http://{azureHostBaseAddress}/api/Admin/{username}?p={ServerSettings.WebCacheAuthKey}";
-            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, "");
+            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, string.Empty);
             string json = string.Empty;
 
             return SendData(uri, json, "POST");

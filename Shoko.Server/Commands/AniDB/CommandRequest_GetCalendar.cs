@@ -59,7 +59,7 @@ namespace Shoko.Server.Commands
                     sched = new ScheduledUpdate
                     {
                         UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
-                        UpdateDetails = ""
+                        UpdateDetails = string.Empty
                     };
                 }
                 else

@@ -32,7 +32,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetupDB()
         {
             Models.core.Database db = this.Bind();
-            if (!String.IsNullOrEmpty(db.type) && db.type != "")
+            if (!String.IsNullOrEmpty(db.type) && db.type != string.Empty)
             {
                 switch (db.type.ToLower())
                 {
@@ -77,7 +77,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 type = ServerSettings.DatabaseType
             };
-            if (!String.IsNullOrEmpty(db.type) && db.type != "")
+            if (!String.IsNullOrEmpty(db.type) && db.type != string.Empty)
             {
                 switch (db.type.ToLower())
                 {

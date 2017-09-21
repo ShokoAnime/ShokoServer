@@ -65,8 +65,8 @@ namespace AniDBAPI.Commands
             bool multipart = false;
             int part = 0;
             int maxpart = 1;
-            string fulldesc = "";
-            string decodedstring = "";
+            string fulldesc = string.Empty;
+            string decodedstring = string.Empty;
             DateTime start = DateTime.Now;
 
             do
@@ -277,7 +277,7 @@ namespace AniDBAPI.Commands
             else
             {
                 ShokoService.AnidbProcessor.IsBanned = false;
-                ShokoService.AnidbProcessor.BanOrigin = "";
+                ShokoService.AnidbProcessor.BanOrigin = string.Empty;
             }
 
             // 598 UNKNOWN COMMAND usually means we had connections issue
@@ -297,7 +297,7 @@ namespace AniDBAPI.Commands
             // 604 TIMEOUT - DELAY AND RESUBMIT
             if (ResponseCode == 600 || ResponseCode == 601 || ResponseCode == 602 || ResponseCode == 604)
             {
-                string errormsg = "";
+                string errormsg = string.Empty;
                 switch (ResponseCode)
                 {
                     case 600:

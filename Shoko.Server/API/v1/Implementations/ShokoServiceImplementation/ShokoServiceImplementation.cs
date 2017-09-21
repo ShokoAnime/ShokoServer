@@ -46,7 +46,7 @@ namespace Shoko.Server
         {
             CL_Response<CL_BookmarkedAnime> contractRet = new CL_Response<CL_BookmarkedAnime>
             {
-                ErrorMessage = ""
+                ErrorMessage = string.Empty
             };
             try
             {
@@ -104,7 +104,7 @@ namespace Shoko.Server
 
                 RepoFactory.BookmarkedAnime.Delete(bookmarkedAnimeID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -369,7 +369,7 @@ namespace Shoko.Server
                     }
                     if (path.Equals("null"))
                     {
-                        path = "";
+                        path = string.Empty;
                     }
                     dirr = n.Resolve(path);
                     if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
@@ -408,7 +408,7 @@ namespace Shoko.Server
         {
             CL_Response contract = new CL_Response
             {
-                ErrorMessage = ""
+                ErrorMessage = string.Empty
             };
             try
             {
@@ -741,7 +741,7 @@ namespace Shoko.Server
 
         public string TestAniDBConnection()
         {
-            string log = "";
+            string log = string.Empty;
             try
             {
                 log += "Disposing..." + Environment.NewLine;
@@ -890,7 +890,7 @@ namespace Shoko.Server
                         break;
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -952,7 +952,7 @@ namespace Shoko.Server
                 SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 RepoFactory.AnimeSeries.Save(series, false);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1031,7 +1031,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
+            return string.Empty;
         }
 
         /*public List<Contract_AniDBAnime> GetMiniCalendar(int numberOfDays)

@@ -28,8 +28,8 @@ namespace AniDBAPI
             this.CategoryID = 0;
             this.ParentID = 0;
             this.IsHentai = 0;
-            this.CategoryName = "";
-            this.CategoryDescription = "";
+            this.CategoryName = string.Empty;
+            this.CategoryDescription = string.Empty;
             this.Weighting = 0;
 
             this.CategoryID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));

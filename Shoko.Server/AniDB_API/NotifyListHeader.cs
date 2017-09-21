@@ -2,7 +2,7 @@
 {
     public class NotifyListHeader
     {
-        private string notifyType = "";
+        private string notifyType = string.Empty;
 
         public string NotifyType
         {

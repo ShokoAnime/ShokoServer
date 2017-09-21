@@ -381,7 +381,7 @@ namespace MediaInfoLib
 
         public String Option(String Option_)
         {
-            return Option(Option_, "");
+            return Option(Option_, string.Empty);
         }
 
         public int Count_Get(StreamKind StreamKind)
@@ -518,7 +518,7 @@ namespace MediaInfoLib
 
         public String Option(String Option_)
         {
-            return Option(Option_, "");
+            return Option(Option_, string.Empty);
         }
 
         public int Count_Get(int FilePos, StreamKind StreamKind)

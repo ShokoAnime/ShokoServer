@@ -14,7 +14,7 @@ namespace AniDBAPI.Commands
             set { reviewID = value; }
         }
 
-        private string reviewText = "";
+        private string reviewText = string.Empty;
 
         public string ReviewText
         {

@@ -407,7 +407,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
+            return string.Empty;
         }
 
         public List<TvDB_Language> GetTvDBLanguages()
@@ -530,7 +530,7 @@ namespace Shoko.Server
                     tvEpNumber, false, !crossRef_AniDB_TvDBV2ID.HasValue);
                 cmdRequest.Save();
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -545,7 +545,7 @@ namespace Shoko.Server
             {
                 TvDBApiHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID, animeID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -568,7 +568,7 @@ namespace Shoko.Server
                 if (ser == null) return "Could not find Series for Anime!";
 
                 List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
-                if (xrefs == null) return "";
+                if (xrefs == null) return string.Empty;
 
                 foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
                 {
@@ -590,7 +590,7 @@ namespace Shoko.Server
                         xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -624,7 +624,7 @@ namespace Shoko.Server
                 TvDBApiHelper.RemoveLinkAniDBTvDB(animeID, (EpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
                     tvEpNumber);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -648,7 +648,7 @@ namespace Shoko.Server
 
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(xref.CrossRef_AniDB_TvDB_EpisodeID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -891,7 +891,7 @@ namespace Shoko.Server
                         xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -924,7 +924,7 @@ namespace Shoko.Server
                 TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber,
                     traktID, traktSeasonNumber, traktEpNumber);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1049,7 +1049,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
+            return string.Empty;
         }
 
         public string SyncTraktSeries(int animeID)
@@ -1207,7 +1207,7 @@ namespace Shoko.Server
                 CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
                 if (xrefTemp != null)
                 {
-                    string animeName = "";
+                    string animeName = string.Empty;
                     try
                     {
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTemp.AnimeID);
@@ -1231,7 +1231,7 @@ namespace Shoko.Server
 
                 MALHelper.LinkAniDBMAL(animeID, malID, malTitle, epType, epNumber, false);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1268,7 +1268,7 @@ namespace Shoko.Server
             {
                 MALHelper.RemoveLinkAniDBMAL(animeID, epType, epNumber);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1282,7 +1282,7 @@ namespace Shoko.Server
             try
             {
                 if (MALHelper.VerifyCredentials())
-                    return "";
+                    return string.Empty;
 
                 return "Login is not valid";
             }
@@ -1348,7 +1348,7 @@ namespace Shoko.Server
                         break;
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1385,7 +1385,7 @@ namespace Shoko.Server
                         break;
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1459,7 +1459,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
+            return string.Empty;
         }
 
         #endregion

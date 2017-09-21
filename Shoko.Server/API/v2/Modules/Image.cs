@@ -45,7 +45,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetImage(int type, int id)
         {
             Nancy.Response response = new Nancy.Response();
-            string contentType = "";
+            string contentType = string.Empty;
             string path = ReturnImagePath(type, id, false);
 
             if (string.IsNullOrEmpty(path))
@@ -74,7 +74,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetThumb(int type, int id, string ratio)
         {
             Nancy.Response response = new Nancy.Response();
-            string contentType = "";
+            string contentType = string.Empty;
             ratio = ratio.Replace(',', '.');
             float.TryParse(ratio, System.Globalization.NumberStyles.AllowDecimalPoint,
                 System.Globalization.CultureInfo.CreateSpecificCulture("en-EN"), out float newratio);
@@ -157,7 +157,7 @@ namespace Shoko.Server.API.v2.Modules
         internal string ReturnImagePath(int type, int id, bool thumb)
         {
             ImageEntityType imageType = (ImageEntityType) type;
-            string path = "";
+            string path = string.Empty;
 
             switch (imageType)
             {
@@ -175,7 +175,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
                     }
                     break;
@@ -194,7 +194,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find AniDB_Character image: {0}", chr.GetPosterPath());
                     }
                     break;
@@ -213,7 +213,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find AniDB_Creator image: {0}", creator.GetPosterPath());
                     }
                     break;
@@ -232,7 +232,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
                     }
                     break;
@@ -251,7 +251,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
                     }
                     break;
@@ -270,7 +270,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
                     }
                     break;
@@ -292,7 +292,7 @@ namespace Shoko.Server.API.v2.Modules
                         }
                         else
                         {
-                            path = "";
+                            path = string.Empty;
                             logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
                         }
                     }
@@ -305,7 +305,7 @@ namespace Shoko.Server.API.v2.Modules
                         }
                         else
                         {
-                            path = "";
+                            path = string.Empty;
                             logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
                         }
                     }
@@ -330,7 +330,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
                     }
                     break;
@@ -354,13 +354,13 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        path = "";
+                        path = string.Empty;
                         logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
                     }
                     break;
 
                 default:
-                    path = "";
+                    path = string.Empty;
                     break;
             }
 

@@ -235,14 +235,14 @@ namespace Shoko.Server.FileHelper
             if (getED2k)
             {
                 //byte[] baHashFinal = md4.ComputeHash(baED2KHash);
-                //rhash.ed2k = BitConverter.ToString(baHashFinal).Replace("-", "").ToUpper();
+                //rhash.ed2k = BitConverter.ToString(baHashFinal).Replace("-", string.Empty).ToUpper();
                 rhash.ED2K = nBlocks > 1
-                    ? BitConverter.ToString(md4.ComputeHash(baED2KHash)).Replace("-", "").ToUpper()
-                    : BitConverter.ToString(baED2KHash).Replace("-", "").ToUpper();
+                    ? BitConverter.ToString(md4.ComputeHash(baED2KHash)).Replace("-", string.Empty).ToUpper()
+                    : BitConverter.ToString(baED2KHash).Replace("-", string.Empty).ToUpper();
             }
-            if (getCRC32) rhash.CRC32 = BitConverter.ToString(crc32.Hash).Replace("-", "").ToUpper();
-            if (getMD5) rhash.MD5 = BitConverter.ToString(md5.Hash).Replace("-", "").ToUpper();
-            if (getSHA1) rhash.SHA1 = BitConverter.ToString(sha1.Hash).Replace("-", "").ToUpper();
+            if (getCRC32) rhash.CRC32 = BitConverter.ToString(crc32.Hash).Replace("-", string.Empty).ToUpper();
+            if (getMD5) rhash.MD5 = BitConverter.ToString(md5.Hash).Replace("-", string.Empty).ToUpper();
+            if (getSHA1) rhash.SHA1 = BitConverter.ToString(sha1.Hash).Replace("-", string.Empty).ToUpper();
             return rhash;
         }
     }

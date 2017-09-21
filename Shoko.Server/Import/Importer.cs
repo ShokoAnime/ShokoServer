@@ -1036,7 +1036,7 @@ namespace Shoko.Server
                 }
 
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1140,7 +1140,7 @@ namespace Shoko.Server
             {
                 sched = new ScheduledUpdate
                 {
-                    UpdateDetails = "",
+                    UpdateDetails = string.Empty,
                     UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate
                 };
             }
@@ -1248,7 +1248,7 @@ namespace Shoko.Server
                 sched = new ScheduledUpdate
                 {
                     UpdateType = (int)ScheduledUpdateType.AzureUserInfo,
-                    UpdateDetails = ""
+                    UpdateDetails = string.Empty
                 };
             }
             sched.LastUpdate = DateTime.Now;
@@ -1306,7 +1306,7 @@ namespace Shoko.Server
                 sched = new ScheduledUpdate
                 {
                     UpdateType = (int)ScheduledUpdateType.MALUpdate,
-                    UpdateDetails = ""
+                    UpdateDetails = string.Empty
                 };
             }
             sched.LastUpdate = DateTime.Now;
@@ -1434,7 +1434,7 @@ namespace Shoko.Server
                     sched = new ScheduledUpdate
                     {
                         UpdateType = (int)ScheduledUpdateType.TraktToken,
-                        UpdateDetails = ""
+                        UpdateDetails = string.Empty
                     };
                 }
                 sched.LastUpdate = DateTime.Now;
@@ -1484,7 +1484,7 @@ namespace Shoko.Server
                 sched = new ScheduledUpdate
                 {
                     UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
-                    UpdateDetails = ""
+                    UpdateDetails = string.Empty
                 };
             }
             sched.LastUpdate = DateTime.Now;
@@ -1545,7 +1545,7 @@ namespace Shoko.Server
                 sched = new ScheduledUpdate
                 {
                     UpdateType = (int)ScheduledUpdateType.AniDBTitles,
-                    UpdateDetails = ""
+                    UpdateDetails = string.Empty
                 };
             }
             sched.LastUpdate = DateTime.Now;

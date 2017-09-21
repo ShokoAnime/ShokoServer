@@ -159,7 +159,7 @@ namespace Shoko.Server.Commands
                     if (!ServerSettings.TvDB_AutoLink) return;
 
                     // finally lets try searching Trakt directly
-                    string searchCriteria = "";
+                    string searchCriteria = string.Empty;
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 

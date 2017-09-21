@@ -58,7 +58,7 @@ namespace Shoko.Server.Commands
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
-                string showName = "";
+                string showName = string.Empty;
                 if (tvShow != null) showName = tvShow.Title;
 
                 AzureWebAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);

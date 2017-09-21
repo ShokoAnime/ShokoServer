@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
                         type = Resources.Command_ValidateAllImages_AniDBSeiyuus;
                         break;
                     default:
-                        type = "";
+                        type = string.Empty;
                         break;
                 }
                 return new QueueStateStruct()
@@ -95,7 +95,7 @@ namespace Shoko.Server.Commands
         public override void ProcessCommand()
         {
             logger.Info("Processing CommandRequest_DownloadImage: {0}", EntityID);
-            string downloadURL = "";
+            string downloadURL = string.Empty;
             try
             {
                 ImageDownloadRequest req = null;
@@ -418,7 +418,7 @@ namespace Shoko.Server.Commands
                     return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
 
                 default:
-                    return "";
+                    return string.Empty;
             }
         }
 
@@ -466,7 +466,7 @@ namespace Shoko.Server.Commands
                     return creator.GetPosterPath();
 
                 default:
-                    return "";
+                    return string.Empty;
             }
         }
 

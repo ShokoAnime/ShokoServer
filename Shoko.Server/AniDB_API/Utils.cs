@@ -46,7 +46,7 @@ namespace AniDBAPI
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in APIUtils.DownloadWebPage: {0}");
-                return "";
+                return string.Empty;
             }
         }
 

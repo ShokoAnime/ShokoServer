@@ -49,7 +49,7 @@ namespace Shoko.Server
         }
 
 
-        private string currentSetupStatus = "";
+        private string currentSetupStatus = string.Empty;
 
         public string CurrentSetupStatus
         {
@@ -81,7 +81,7 @@ namespace Shoko.Server
             set { this.SetField(() => databaseIsMySQL, value); }
         }
 
-        private string baseImagePath = "";
+        private string baseImagePath = string.Empty;
 
         public string BaseImagePath
         {
@@ -97,7 +97,7 @@ namespace Shoko.Server
             set { this.SetField(() => newVersionAvailable, value); }
         }
 
-        private string newVersionNumber = "";
+        private string newVersionNumber = string.Empty;
 
         public string NewVersionNumber
         {
@@ -105,7 +105,7 @@ namespace Shoko.Server
             set { this.SetField(() => newVersionNumber, value); }
         }
 
-        private string newVersionDownloadLink = "";
+        private string newVersionDownloadLink = string.Empty;
 
         public string NewVersionDownloadLink
         {
@@ -113,7 +113,7 @@ namespace Shoko.Server
             set { this.SetField(() => newVersionDownloadLink, value); }
         }
 
-        private string applicationVersion = "";
+        private string applicationVersion = string.Empty;
 
         public string ApplicationVersion
         {
@@ -121,7 +121,7 @@ namespace Shoko.Server
             set { this.SetField(() => applicationVersion, value); }
         }
 
-        private string applicationVersionExtra = "";
+        private string applicationVersionExtra = string.Empty;
 
         public string ApplicationVersionExtra
         {
@@ -129,7 +129,7 @@ namespace Shoko.Server
             set { this.SetField(() => applicationVersionExtra, value); }
         }
 
-        private string applicationVersionLatest = "";
+        private string applicationVersionLatest = string.Empty;
 
         public string ApplicationVersionLatest
         {
@@ -137,7 +137,7 @@ namespace Shoko.Server
             set { this.SetField(() => applicationVersionLatest, value); }
         }
 
-        private string aniDB_Username = "";
+        private string aniDB_Username = string.Empty;
 
         public string AniDB_Username
         {
@@ -145,7 +145,7 @@ namespace Shoko.Server
             set { this.SetField(() => aniDB_Username, value); }
         }
 
-        private string aniDB_Password = "";
+        private string aniDB_Password = string.Empty;
 
         public string AniDB_Password
         {
@@ -153,7 +153,7 @@ namespace Shoko.Server
             set { this.SetField(() => aniDB_Password, value); }
         }
 
-        private string aniDB_ServerAddress = "";
+        private string aniDB_ServerAddress = string.Empty;
 
         public string AniDB_ServerAddress
         {
@@ -161,7 +161,7 @@ namespace Shoko.Server
             set { this.SetField(() => aniDB_ServerAddress, value); }
         }
 
-        private string aniDB_ServerPort = "";
+        private string aniDB_ServerPort = string.Empty;
 
         public string AniDB_ServerPort
         {
@@ -169,7 +169,7 @@ namespace Shoko.Server
             set { this.SetField(() => aniDB_ServerPort, value); }
         }
 
-        private string aniDB_ClientPort = "";
+        private string aniDB_ClientPort = string.Empty;
 
         public string AniDB_ClientPort
         {
@@ -177,7 +177,7 @@ namespace Shoko.Server
             set { this.SetField(() => aniDB_ClientPort, value); }
         }
 
-        private string aniDB_TestStatus = "";
+        private string aniDB_TestStatus = string.Empty;
 
         public string AniDB_TestStatus
         {
@@ -202,7 +202,7 @@ namespace Shoko.Server
         }
 
 
-        private string vLCLocation = "";
+        private string vLCLocation = string.Empty;
 
         public string VLCLocation
         {
