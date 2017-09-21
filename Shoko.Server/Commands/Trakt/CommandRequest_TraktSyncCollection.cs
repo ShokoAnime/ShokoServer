@@ -55,7 +55,7 @@ namespace Shoko.Server.Commands
                     sched = new ScheduledUpdate
                     {
                         UpdateType = (int)ScheduledUpdateType.TraktSync,
-                        UpdateDetails = ""
+                        UpdateDetails = string.Empty
                     };
                 }
                 else

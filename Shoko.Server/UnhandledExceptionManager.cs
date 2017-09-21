@@ -19,9 +19,9 @@ namespace Shoko.Server
         private static System.Drawing.Imaging.ImageFormat _ScreenshotImageFormat =
             System.Drawing.Imaging.ImageFormat.Png;
 
-        private static string _strScreenshotFullPath = "";
+        private static string _strScreenshotFullPath = string.Empty;
 
-        private static string _strLogFullPath = "";
+        private static string _strLogFullPath = string.Empty;
         private static Assembly _objParentAssembly = null;
         private static string _strException;
 
@@ -287,7 +287,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 _strException = "Error '" + ex.Message + "' while generating exception string";
-                _strExceptionType = "";
+                _strExceptionType = string.Empty;
             }
 
             //-- log this error to various locations
@@ -521,7 +521,7 @@ namespace Shoko.Server
             }
             catch
             {
-                return "";
+                return string.Empty;
             }
         }
 
@@ -536,7 +536,7 @@ namespace Shoko.Server
             }
             catch
             {
-                return "";
+                return string.Empty;
             }
         }
 

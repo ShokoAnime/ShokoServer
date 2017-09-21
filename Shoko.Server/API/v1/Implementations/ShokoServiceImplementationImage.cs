@@ -213,7 +213,7 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.AniDB_Character:
@@ -226,12 +226,12 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find AniDB_Character image: {0}", chr.GetPosterPath());
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(imageId);
-                    if (creator == null) return "";
+                    if (creator == null) return string.Empty;
                     if (File.Exists(creator.GetPosterPath()))
                     {
                         return creator.GetPosterPath();
@@ -239,7 +239,7 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find AniDB_Creator image: {0}", creator.GetPosterPath());
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.TvDB_Cover:
@@ -252,7 +252,7 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.TvDB_Banner:
@@ -265,7 +265,7 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.TvDB_Episode:
@@ -278,7 +278,7 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.TvDB_FanArt:
@@ -293,7 +293,7 @@ namespace Shoko.Server
                         else
                         {
                             logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                            return "";
+                            return string.Empty;
                         }
                     }
                     else
@@ -305,7 +305,7 @@ namespace Shoko.Server
                         else
                         {
                             logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                            return "";
+                            return string.Empty;
                         }
                     }
 
@@ -323,7 +323,7 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
-                        return "";
+                        return string.Empty;
                     }
 
                 case ImageEntityType.MovieDB_FanArt:
@@ -338,11 +338,11 @@ namespace Shoko.Server
                     else
                     {
                         logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
-                        return "";
+                        return string.Empty;
                     }
 
                 default:
-                    return "";
+                    return string.Empty;
             }
         }
     }

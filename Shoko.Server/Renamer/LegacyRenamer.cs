@@ -1189,7 +1189,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.Resolution.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVidRes, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    string vidRes = "";
+                    string vidRes = string.Empty;
                     if (aniFile != null)
                         vidRes = aniFile.File_VideoResolution;
 
@@ -1438,7 +1438,7 @@ namespace Shoko.Server.Renamer
 
 
             newFileName += action;
-            newFileName = newFileName.Replace("'", "");
+            newFileName = newFileName.Replace("'", string.Empty);
 
             #region Anime ID
 
@@ -1677,7 +1677,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.DubLanguage))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.DubLanguage, aniFile?.LanguagesRAW ?? "");
+                newFileName = newFileName.Replace(Constants.FileRenameTag.DubLanguage, aniFile?.LanguagesRAW ?? string.Empty);
             }
 
             #endregion
@@ -1686,7 +1686,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.SubLanguage))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.SubLanguage, aniFile?.SubtitlesRAW ?? "");
+                newFileName = newFileName.Replace(Constants.FileRenameTag.SubLanguage, aniFile?.SubtitlesRAW ?? string.Empty);
             }
 
             #endregion
@@ -1742,7 +1742,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Resolution))
             {
-                string res = "";
+                string res = string.Empty;
                 bool hasResolution = true;
                 if (aniFile != null)
                 {
@@ -1770,7 +1770,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoHeight))
             {
-                string res = "";
+                string res = string.Empty;
                 bool hasResolution = true;
                 if (aniFile != null)
                 {
@@ -1879,7 +1879,7 @@ namespace Shoko.Server.Renamer
         {
             // find the first test
             int posStart = line.IndexOf("DO ", StringComparison.Ordinal);
-            if (posStart < 0) return "";
+            if (posStart < 0) return string.Empty;
 
             string action = line.Substring(posStart + 3, line.Length - posStart - 3);
             return action;

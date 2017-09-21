@@ -201,7 +201,7 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes,
                         ConditionOperator = (int)GroupFilterOperator.Include,
-                        ConditionParameter = "",
+                        ConditionParameter = string.Empty,
                         GroupFilterID = gf.GroupFilterID
                     };
                     gf.Conditions.Add(gfc);
@@ -209,7 +209,7 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
                         ConditionOperator = (int)GroupFilterOperator.Include,
-                        ConditionParameter = "",
+                        ConditionParameter = string.Empty,
                         GroupFilterID = gf.GroupFilterID
                     };
                     gf.Conditions.Add(gfc);

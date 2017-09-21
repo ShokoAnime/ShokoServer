@@ -6,7 +6,7 @@ namespace Shoko.Server.AniDB_API
     {
         protected UpdatesCollection()
         {
-            rawAnimeIDs = "";
+            rawAnimeIDs = string.Empty;
             updateCount = 0;
         }
 

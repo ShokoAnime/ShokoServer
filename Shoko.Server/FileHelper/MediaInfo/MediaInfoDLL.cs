@@ -138,7 +138,7 @@ namespace MediaInfoLib
             if (_handle != IntPtr.Zero)
             {
                 MediaInfo_Delete(_handle);
-            }
+        }
             if (moduleHandle != IntPtr.Zero)
             {
                 FreeLibrary(moduleHandle);
@@ -161,7 +161,7 @@ namespace MediaInfoLib
         }
 
         private void InitializeEncoding()
-        {
+            {
             if (Environment.OSVersion.ToString().IndexOf("Windows") != -1)
             {
                 // Windows guaranteed UCS-2
@@ -175,27 +175,27 @@ namespace MediaInfoLib
                 Encoding = Encoding.UTF32;
 
                 if (Option("Info_Version", "").StartsWith("MediaInfoLib"))
-                {
+        {
                     return;
-                }
+        }
 
                 Encoding = Encoding.Unicode;
 
                 if (Option("Info_Version", "").StartsWith("MediaInfoLib"))
-                {
+        {
                     return;
-                }
+        }
 
                 MustUseAnsi = true;
                 Encoding = Encoding.Default;
 
                 if (Option("Info_Version", "").StartsWith("MediaInfoLib"))
-                {
+        {
                     return;
-                }
+        }
 
                 throw new NotSupportedException("Unsupported MediaInfoLib encoding");
-            }
+        }
         }
 
         private IntPtr MakeStringParameter(string value)
@@ -215,17 +215,17 @@ namespace MediaInfoLib
             if (Encoding == Encoding.Unicode)
             {
                 return Marshal.PtrToStringUni(value);
-            }
+        }
             else if (Encoding == Encoding.UTF32)
-            {
+        {
                 int i = 0;
                 for (; i < 1024; i += 4)
-                {
+            {
                     var data = Marshal.ReadInt32(value, i);
                     if (data == 0)
                     {
                         break;
-                    }
+            }
                 }
 
                 var buffer = new byte[i];
@@ -246,64 +246,64 @@ namespace MediaInfoLib
 
             var pFileName = MakeStringParameter(fileName);
             try
+        {
+            if (MustUseAnsi)
             {
-                if (MustUseAnsi)
-                {
                     return (int)MediaInfoA_Open(_handle, pFileName);
-                }
-                else
-                {
+            }
+            else
+        {
                     return (int)MediaInfo_Open(_handle, pFileName);
-                }
-            }
+        }
+        }
             finally
-            {
+        {
                 Marshal.FreeHGlobal(pFileName);
-            }
+        }
         }
 
         public int Open(System.IO.Stream stream)
         {
             if (stream.Length < 1024)
-            {
+        {
                 return 0;
-            }
+        }
 
             var isValid = (int)MediaInfo_Open_Buffer_Init(_handle, stream.Length, 0);
             if (isValid == 1)
-            {
+        {
                 var buffer = new byte[16 * 1024];
                 long seekStart = 0;
                 long totalRead = 0;
                 int bufferRead;
 
                 do
-                {
+    {
                     bufferRead = stream.Read(buffer, 0, buffer.Length);
                     totalRead += bufferRead;
 
                     var status = (BufferStatus)MediaInfo_Open_Buffer_Continue(_handle, buffer, (IntPtr)bufferRead);
 
                     if (status.HasFlag(BufferStatus.Finalized) || status <= 0 || bufferRead == 0)
-                    {
+        {
                         Logger.Trace("Read file offset {0}-{1} ({2} bytes)", seekStart, stream.Position, stream.Position - seekStart);
                         break;
-                    }
+        }
 
                     var seekPos = MediaInfo_Open_Buffer_Continue_GoTo_Get(_handle);
                     if (seekPos != -1)
-                    {
+        {
                         Logger.Trace("Read file offset {0}-{1} ({2} bytes)", seekStart, stream.Position, stream.Position - seekStart);
                         seekPos = stream.Seek(seekPos, System.IO.SeekOrigin.Begin);
                         seekStart = seekPos;
                         MediaInfo_Open_Buffer_Init(_handle, stream.Length, seekPos);
-                    }
+        }
                 } while (bufferRead > 0);
 
                 MediaInfo_Open_Buffer_Finalize(_handle);
 
                 Logger.Trace("Read a total of {0} bytes ({1:0.0}%)", totalRead, totalRead * 100.0 / stream.Length);
-            }
+        }
 
             return isValid;
         }
@@ -319,16 +319,16 @@ namespace MediaInfoLib
             try
             {
                 if (MustUseAnsi)
-                {
+        {
                     return MakeStringResult(MediaInfoA_Get(_handle, (IntPtr)streamKind, (IntPtr)streamNumber, pParameter, (IntPtr)infoKind, (IntPtr)searchKind));
-                }
+        }
                 else
-                {
+        {
                     return MakeStringResult(MediaInfo_Get(_handle, (IntPtr)streamKind, (IntPtr)streamNumber, pParameter, (IntPtr)infoKind, (IntPtr)searchKind));
                 }
-            }
+        }
             finally
-            {
+        {
                 Marshal.FreeHGlobal(pParameter);
             }
         }
@@ -336,11 +336,11 @@ namespace MediaInfoLib
         public string Get(StreamKind streamKind, int streamNumber, int parameter, InfoKind infoKind)
         {
             if (MustUseAnsi)
-            {
+        {
                 return MakeStringResult(MediaInfoA_GetI(_handle, (IntPtr)streamKind, (IntPtr)streamNumber, (IntPtr)parameter, (IntPtr)infoKind));
-            }
+        }
             else
-            {
+        {
                 return MakeStringResult(MediaInfo_GetI(_handle, (IntPtr)streamKind, (IntPtr)streamNumber, (IntPtr)parameter, (IntPtr)infoKind));
             }
         }
@@ -352,19 +352,19 @@ namespace MediaInfoLib
             try
             {
                 if (MustUseAnsi)
-                {
+        {
                     return MakeStringResult(MediaInfoA_Option(_handle, pOption, pValue));
-                }
+        }
                 else
-                {
+        {
                     return MakeStringResult(MediaInfo_Option(_handle, pOption, pValue));
-                }
-            }
+        }
+        }
             finally
-            {
+        {
                 Marshal.FreeHGlobal(pOption);
                 Marshal.FreeHGlobal(pValue);
-            }
+        }
         }
 
         public int State_Get()
@@ -403,7 +403,7 @@ namespace MediaInfoLib
         private static extern IntPtr MediaInfo_State_Get(IntPtr handle);
         [DllImport("MediaInfo.dll")]
         private static extern IntPtr MediaInfo_Count_Get(IntPtr handle, IntPtr StreamKind, IntPtr streamNumber);
-
+            
         [DllImport("MediaInfo.dll")]
         private static extern IntPtr MediaInfoA_New();
         [DllImport("MediaInfo.dll")]

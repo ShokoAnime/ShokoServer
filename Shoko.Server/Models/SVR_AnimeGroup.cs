@@ -74,7 +74,7 @@ namespace Shoko.Server.Models
         public string GetPosterPathNoBlanks(ISessionWrapper session)
         {
             List<string> allPosters = GetPosterFilenames(session);
-            string posterName = "";
+            string posterName = string.Empty;
             if (allPosters.Count > 0)
                 //posterName = allPosters[fanartRandom.Next(0, allPosters.Count)];
                 posterName = allPosters[0];
@@ -82,7 +82,7 @@ namespace Shoko.Server.Models
             if (!String.IsNullOrEmpty(posterName))
                 return posterName;
 
-            return "";
+            return string.Empty;
         }
 
         private List<string> GetPosterFilenames()
@@ -585,7 +585,7 @@ namespace Shoko.Server.Models
 		{
 			get
 			{
-				string temp = "";
+				string temp = string.Empty;
                 foreach (AniDB_Tag tag in Tags)
                     temp += tag.TagName + "|";
 				if (temp.Length > 2)
@@ -635,7 +635,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                string temp = "";
+                string temp = string.Empty;
                 foreach (CustomTag tag in CustomTags)
                 {
                     if (!string.IsNullOrEmpty(temp))
@@ -703,7 +703,7 @@ namespace Shoko.Server.Models
 		{
 			get
 			{
-				string temp = "";
+				string temp = string.Empty;
 				foreach (AniDB_Anime_Title title in Titles)
 					temp += title.Title + ", ";
 				if (temp.Length > 2)
@@ -722,7 +722,7 @@ namespace Shoko.Server.Models
         public override string ToString()
         {
             return String.Format("Group: {0} ({1})", GroupName, AnimeGroupID);
-            //return "";
+            //return string.Empty;
         }
 
         public void UpdateStatsFromTopLevel(bool watchedStats, bool missingEpsStats)

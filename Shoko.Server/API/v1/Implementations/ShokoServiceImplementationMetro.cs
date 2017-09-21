@@ -1184,7 +1184,7 @@ namespace Shoko.Server
                         Metro_Comment shout = new Metro_Comment
                         {
                             UserID = rec.UserID,
-                            UserName = "",
+                            UserName = string.Empty,
 
                             // shout details
                             CommentText = rec.RecommendationText,
@@ -1364,7 +1364,7 @@ namespace Shoko.Server
             CL_Response<CL_AnimeEpisode_User> response =
                 new CL_Response<CL_AnimeEpisode_User>
                 {
-                    ErrorMessage = "",
+                    ErrorMessage = string.Empty,
                     Result = null
                 };
             try
@@ -1408,7 +1408,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
+            return string.Empty;
         }
     }
 }

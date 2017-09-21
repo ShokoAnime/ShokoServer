@@ -72,7 +72,7 @@ namespace Shoko.Server.Models
 
         public string GetSeriesName()
         {
-            string seriesName = "";
+            string seriesName = string.Empty;
             if (!string.IsNullOrEmpty(SeriesNameOverride))
                 seriesName = SeriesNameOverride;
             else
@@ -161,7 +161,7 @@ namespace Shoko.Server.Models
             get
             {
                 if (GetAnime() == null)
-                    return "";
+                    return string.Empty;
                 return GetAnime().TagsString;
             }
         }
@@ -450,7 +450,7 @@ namespace Shoko.Server.Models
             this.LatestLocalEpisodeNumber = 0;
             this.DateTimeUpdated = DateTime.Now;
             this.DateTimeCreated = DateTime.Now;
-            this.SeriesNameOverride = "";
+            this.SeriesNameOverride = string.Empty;
         }
 
         public void CreateAnimeEpisodes()
@@ -933,7 +933,7 @@ namespace Shoko.Server.Models
         public override string ToString()
         {
             return string.Format("Series: {0} ({1})", GetAnime().MainTitle, AnimeSeriesID);
-            //return "";
+            //return string.Empty;
         }
 
         internal class EpisodeList : List<EpisodeList.StatEpisodes>

@@ -105,7 +105,7 @@ namespace AniDBAPI.Commands
             set { createAnimeSeriesRecord = value; }
         }
 
-        private string xmlResult = "";
+        private string xmlResult = string.Empty;
 
         public string XmlResult
         {
@@ -201,15 +201,15 @@ namespace AniDBAPI.Commands
                 {
                     //Disable usage of Azure API for this type of data
                     /*xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
-					if (string.IsNullOrEmpty(xmlResult))
-					{
-						docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
-					}
-					else
-					{
-						docAnime = new XmlDocument();
-						docAnime.LoadXml(xmlResult);
-					}*/
+                    if (string.IsNullOrEmpty(xmlResult))
+                    {
+                        docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+                    }
+                    else
+                    {
+                        docAnime = new XmlDocument();
+                        docAnime.LoadXml(xmlResult);
+                    }*/
 
                     //logger.Info("Trying to load Anime HTTP info from cache file...");
                     docAnime = LoadAnimeHTTPFromFile(animeID);
@@ -227,12 +227,13 @@ namespace AniDBAPI.Commands
 
             if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
 
-            if (xmlResult.Trim().Length > 0)
-                WriteAnimeHTTPToFile(animeID, xmlResult);
-            
+            if (xmlResult.Trim().Length > 0) WriteAnimeHTTPToFile(animeID, xmlResult);
+
             if (docAnime != null)
             {
                 anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
+                if (anime == null) return enHelperActivityType.NoSuchAnime;
+
                 episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
                 titles = AniDBHTTPHelper.ProcessTitles(docAnime, animeID);
                 tags = AniDBHTTPHelper.ProcessTags(docAnime, animeID);
@@ -242,10 +243,7 @@ namespace AniDBAPI.Commands
                 recommendations = AniDBHTTPHelper.ProcessRecommendations(docAnime, animeID);
                 return enHelperActivityType.GotAnimeInfoHTTP;
             }
-            else
-            {
-                return enHelperActivityType.NoSuchAnime;
-            }
+            return enHelperActivityType.NoSuchAnime;
         }
 
 

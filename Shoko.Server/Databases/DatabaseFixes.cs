@@ -301,7 +301,7 @@ namespace Shoko.Server.Databases
 
             foreach (CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
             {
-                string msg = "";
+                string msg = string.Empty;
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime != null) msg = anime.MainTitle;
 
@@ -339,7 +339,7 @@ namespace Shoko.Server.Databases
 
             foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
             {
-                string msg = "";
+                string msg = string.Empty;
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime != null) msg = anime.MainTitle;
 

@@ -788,7 +788,7 @@ namespace Shoko.Server
                     if (ser != null)
                         ser.QueueUpdateStats();
                 }
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -806,7 +806,7 @@ namespace Shoko.Server
                     return "Could not find video record";
                 vid.IsIgnored = isIgnored ? 1 : 0;
                 RepoFactory.VideoLocal.Save(vid, false);
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -824,7 +824,7 @@ namespace Shoko.Server
                     return "Could not find video record";
                 vid.IsVariation = isVariation ? 1 : 0;
                 RepoFactory.VideoLocal.Save(vid, false);
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -849,14 +849,14 @@ namespace Shoko.Server
 
                 var com = new CommandRequest_LinkFileManually(videoLocalID, animeEpisodeID);
                 com.Save();
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
             }
 
-            return "";
+            return string.Empty;
         }
 
         public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum,
@@ -889,14 +889,14 @@ namespace Shoko.Server
                     com.Save();
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
             }
 
-            return "";
+            return string.Empty;
         }
 
         public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber,
@@ -947,7 +947,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return "";
+            return string.Empty;
         }
 
         public int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
@@ -969,7 +969,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 return ex.Message;
             }
-            return "";
+            return string.Empty;
         }
 
         public string UpdateEpisodeData(int episodeID)
@@ -984,7 +984,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 return ex.Message;
             }
-            return "";
+            return string.Empty;
         }
 
         public string RescanFile(int videoLocalID)
@@ -1003,7 +1003,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.Message);
                 return ex.Message;
             }
-            return "";
+            return string.Empty;
         }
 
         public void RehashFile(int videoLocalID)
@@ -1053,7 +1053,7 @@ namespace Shoko.Server
                 if (vid == null)
                     return "Could not find video local record";
                 vid.SetResumePosition(resumeposition, userID);
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1409,7 +1409,7 @@ namespace Shoko.Server
                 if (vid == null)
                     return "Could not find video local record";
                 vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true, true);
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1424,7 +1424,7 @@ namespace Shoko.Server
             CL_Response<CL_AnimeEpisode_User> response =
                 new CL_Response<CL_AnimeEpisode_User>
                 {
-                    ErrorMessage = "",
+                    ErrorMessage = string.Empty,
                     Result = null
                 };
             try
@@ -1721,7 +1721,7 @@ namespace Shoko.Server
                     ser.UpdateStats(true, true, true);
                     //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
                 }
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -1763,7 +1763,7 @@ namespace Shoko.Server
                         asfs.FileCount++;
                         asfs.FileSize += vi.FileSize;
 
-                        //string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
+                        //string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, string.Empty);
                         //filePath = filePath.TrimStart('\\');
                         string filePath = RepoFactory.VideoLocalPlace.GetByVideoLocal(vi.VideoLocalID)[0].FilePath;
                         if (!asfs.Folders.Contains(filePath))
@@ -1985,7 +1985,7 @@ namespace Shoko.Server
                     }
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -2077,7 +2077,7 @@ namespace Shoko.Server
         {
             CL_Response<CL_AnimeGroup_User> contractout = new CL_Response<CL_AnimeGroup_User>
             {
-                ErrorMessage = "",
+                ErrorMessage = string.Empty,
                 Result = null
             };
             try
@@ -2097,11 +2097,11 @@ namespace Shoko.Server
                 {
                     grp = new SVR_AnimeGroup
                     {
-                        Description = "",
+                        Description = string.Empty,
                         IsManuallyNamed = 0,
                         DateTimeCreated = DateTime.Now,
                         DateTimeUpdated = DateTime.Now,
-                        SortName = "",
+                        SortName = string.Empty,
                         MissingEpisodeCount = 0,
                         MissingEpisodeCountGroups = 0,
                         OverrideDescription = 0
@@ -2150,7 +2150,7 @@ namespace Shoko.Server
         {
             CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
             {
-                ErrorMessage = "",
+                ErrorMessage = string.Empty,
                 Result = null
             };
             try
@@ -2220,7 +2220,7 @@ namespace Shoko.Server
         {
             CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
             {
-                ErrorMessage = "",
+                ErrorMessage = string.Empty,
                 Result = null
             };
             try
@@ -2246,12 +2246,12 @@ namespace Shoko.Server
                     ser = new SVR_AnimeSeries
                     {
                         DateTimeCreated = DateTime.Now,
-                        DefaultAudioLanguage = "",
-                        DefaultSubtitleLanguage = "",
+                        DefaultAudioLanguage = string.Empty,
+                        DefaultSubtitleLanguage = string.Empty,
                         MissingEpisodeCount = 0,
                         MissingEpisodeCountGroups = 0,
                         LatestLocalEpisodeNumber = 0,
-                        SeriesNameOverride = ""
+                        SeriesNameOverride = string.Empty
                     };
                 }
 
@@ -2303,7 +2303,7 @@ namespace Shoko.Server
             CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>
             {
                 Result = null,
-                ErrorMessage = ""
+                ErrorMessage = string.Empty
             };
             try
             {
@@ -2429,7 +2429,7 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
+            return string.Empty;
         }
 
         public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
@@ -2669,7 +2669,7 @@ namespace Shoko.Server
                     }
                 }
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -3053,7 +3053,7 @@ namespace Shoko.Server
 
                 RepoFactory.GroupFilter.Delete(groupFilterID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -3249,7 +3249,7 @@ namespace Shoko.Server
         {
             CL_Response<Playlist> contractRet = new CL_Response<Playlist>
             {
-                ErrorMessage = ""
+                ErrorMessage = string.Empty
             };
             try
             {
@@ -3304,7 +3304,7 @@ namespace Shoko.Server
 
                 RepoFactory.Playlist.Delete(playlistID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -3347,7 +3347,7 @@ namespace Shoko.Server
         {
             CL_Response<CrossRef_CustomTag> contractRet = new CL_Response<CrossRef_CustomTag>
             {
-                ErrorMessage = ""
+                ErrorMessage = string.Empty
             };
             try
             {
@@ -3393,7 +3393,7 @@ namespace Shoko.Server
 
                 RepoFactory.CrossRef_CustomTag.Delete(xrefID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -3414,7 +3414,7 @@ namespace Shoko.Server
 
                 RepoFactory.CrossRef_CustomTag.Delete(xrefs[0].CrossRef_CustomTagID);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(crossRefID);
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -3427,7 +3427,7 @@ namespace Shoko.Server
         {
             CL_Response<CustomTag> contractRet = new CL_Response<CustomTag>
             {
-                ErrorMessage = ""
+                ErrorMessage = string.Empty
             };
             try
             {
@@ -3489,7 +3489,7 @@ namespace Shoko.Server
                 }
 
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -3566,7 +3566,7 @@ namespace Shoko.Server
                 return ex.Message;
             }
 
-            return "";
+            return string.Empty;
         }
 
         public string SaveUser(JMMUser user)
@@ -3606,7 +3606,7 @@ namespace Shoko.Server
                 jmmUser.PlexToken = user.PlexToken;
                 if (string.IsNullOrEmpty(user.Password))
                 {
-                    jmmUser.Password = "";
+                    jmmUser.Password = string.Empty;
                 }
                 else
                 {
@@ -3657,7 +3657,7 @@ namespace Shoko.Server
                 return ex.Message;
             }
 
-            return "";
+            return string.Empty;
         }
 
         public string DeleteUser(int userID)
@@ -3697,7 +3697,7 @@ namespace Shoko.Server
                 return ex.Message;
             }
 
-            return "";
+            return string.Empty;
         }
 
         #endregion
@@ -3720,7 +3720,7 @@ namespace Shoko.Server
         {
             CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
             {
-                ErrorMessage = "",
+                ErrorMessage = string.Empty,
                 Result = null
             };
             try
@@ -3838,7 +3838,7 @@ namespace Shoko.Server
         public string DeleteImportFolder(int importFolderID)
         {
             ShokoServer.DeleteImportFolder(importFolderID);
-            return "";
+            return string.Empty;
         }
         #endregion
     }

@@ -87,7 +87,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             get
             {
-                if (string.IsNullOrEmpty(Picname)) return "";
+                if (string.IsNullOrEmpty(Picname)) return string.Empty;
 
                 return Path.Combine(ImageUtils.GetAniDBImagePath(AnimeID), Picname);
             }
@@ -537,7 +537,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
                 {
                     List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
-                    if (fanarts.Count == 0) return "";
+                    if (fanarts.Count == 0) return string.Empty;
 
                     MovieDB_Fanart movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
                     return movieFanart.URL;
@@ -572,7 +572,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     break;
             }
 
-            return "";
+            return string.Empty;
         }
 
         public AniDB_Anime_DefaultImage GetDefaultWideBanner()
@@ -641,7 +641,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             get
             {
                 List<AniDB_Tag> tags = GetTags();
-                string temp = "";
+                string temp = string.Empty;
                 foreach (AniDB_Tag tag in tags)
                     temp += tag.TagName + "|";
                 if (temp.Length > 2)
@@ -858,49 +858,49 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             DisableExternalLinksFlag = 0;
         }
 
-        private static bool Populate(SVR_AniDB_Anime adnidbanime, Raw_AniDB_Anime animeInfo)
+        private bool Populate(Raw_AniDB_Anime animeInfo)
         {
             // We need various values to be populated to be considered valid
-            if (animeInfo.AnimeID <= 0 || string.IsNullOrEmpty(animeInfo.MainTitle)) return false;
-            adnidbanime.AirDate = animeInfo.AirDate;
-            adnidbanime.AllCinemaID = animeInfo.AllCinemaID;
-            adnidbanime.AnimeID = animeInfo.AnimeID;
+            if (string.IsNullOrEmpty(animeInfo?.MainTitle) || animeInfo.AnimeID <= 0) return false;
+            AirDate = animeInfo.AirDate;
+            AllCinemaID = animeInfo.AllCinemaID;
+            AnimeID = animeInfo.AnimeID;
             //this.AnimeNfo = animeInfo.AnimeNfoID;
-            adnidbanime.AnimePlanetID = animeInfo.AnimePlanetID;
-            adnidbanime.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW);
-            adnidbanime.ANNID = animeInfo.ANNID;
-            adnidbanime.AvgReviewRating = animeInfo.AvgReviewRating;
-            adnidbanime.AwardList = animeInfo.AwardList;
-            adnidbanime.BeginYear = animeInfo.BeginYear;
-            adnidbanime.DateTimeDescUpdated = DateTime.Now;
-            adnidbanime.DateTimeUpdated = DateTime.Now;
-            adnidbanime.Description = animeInfo.Description ?? string.Empty;
-            adnidbanime.EndDate = animeInfo.EndDate;
-            adnidbanime.EndYear = animeInfo.EndYear;
-            adnidbanime.MainTitle = animeInfo.MainTitle;
-            adnidbanime.AllTitles = "";
-            adnidbanime.AllTags = "";
+            AnimePlanetID = animeInfo.AnimePlanetID;
+            this.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW);
+            ANNID = animeInfo.ANNID;
+            AvgReviewRating = animeInfo.AvgReviewRating;
+            AwardList = animeInfo.AwardList;
+            BeginYear = animeInfo.BeginYear;
+            DateTimeDescUpdated = DateTime.Now;
+            DateTimeUpdated = DateTime.Now;
+            Description = animeInfo.Description ?? string.Empty;
+            EndDate = animeInfo.EndDate;
+            EndYear = animeInfo.EndYear;
+            MainTitle = animeInfo.MainTitle;
+            AllTitles = string.Empty;
+            AllTags = string.Empty;
             //this.EnglishName = animeInfo.EnglishName;
-            adnidbanime.EpisodeCount = animeInfo.EpisodeCount;
-            adnidbanime.EpisodeCountNormal = animeInfo.EpisodeCountNormal;
-            adnidbanime.EpisodeCountSpecial = animeInfo.EpisodeCountSpecial;
+            EpisodeCount = animeInfo.EpisodeCount;
+            EpisodeCountNormal = animeInfo.EpisodeCountNormal;
+            EpisodeCountSpecial = animeInfo.EpisodeCountSpecial;
             //this.genre
-            adnidbanime.ImageEnabled = 1;
+            ImageEnabled = 1;
             //this.KanjiName = animeInfo.KanjiName;
-            adnidbanime.LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
+            LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
             //this.OtherName = animeInfo.OtherName;
-            adnidbanime.Picname = animeInfo.Picname;
-            adnidbanime.Rating = animeInfo.Rating;
+            Picname = animeInfo.Picname;
+            Rating = animeInfo.Rating;
             //this.relations
-            adnidbanime.Restricted = animeInfo.Restricted;
-            adnidbanime.ReviewCount = animeInfo.ReviewCount;
+            Restricted = animeInfo.Restricted;
+            ReviewCount = animeInfo.ReviewCount;
             //this.RomajiName = animeInfo.RomajiName;
             //this.ShortNames = animeInfo.ShortNames.Replace("'", "|");
             //this.Synonyms = animeInfo.Synonyms.Replace("'", "|");
-            adnidbanime.TempRating = animeInfo.TempRating;
-            adnidbanime.TempVoteCount = animeInfo.TempVoteCount;
-            adnidbanime.URL = animeInfo.URL;
-            adnidbanime.VoteCount = animeInfo.VoteCount;
+            TempRating = animeInfo.TempRating;
+            TempVoteCount = animeInfo.TempVoteCount;
+            URL = animeInfo.URL;
+            VoteCount = animeInfo.VoteCount;
             return true;
         }
 
@@ -917,7 +917,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             Stopwatch taskTimer = new Stopwatch();
             Stopwatch totalTimer = Stopwatch.StartNew();
 
-            if (!Populate(this, animeInfo))
+            if (!Populate(animeInfo))
             {
                 logger.Error("AniDB_Anime was unable to populate as it received invalid info. " +
                              "This is not an error on our end. It is AniDB's issue, " +
@@ -1048,7 +1048,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             if (titles == null) return;
 
-            AllTitles = "";
+            AllTitles = string.Empty;
 
             List<AniDB_Anime_Title> titlesToDelete = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             List<AniDB_Anime_Title> titlesToSave = new List<AniDB_Anime_Title>();
@@ -1069,7 +1069,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             if (tags == null) return;
 
-            AllTags = "";
+            AllTags = string.Empty;
 
 
             List<AniDB_Tag> tagsToSave = new List<AniDB_Tag>();
@@ -1738,7 +1738,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 Azure_AnimeComment comment = new Azure_AnimeComment
                 {
                     UserID = rec.UserID,
-                    UserName = "",
+                    UserName = string.Empty,
 
                     // Comment details
                     CommentText = rec.RecommendationText,

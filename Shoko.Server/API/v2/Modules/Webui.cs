@@ -71,7 +71,7 @@ namespace Shoko.Server.API.v2.Modules
                             tag_name));
 
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-                string url = "";
+                string url = string.Empty;
                 foreach (dynamic obj in result.assets)
                 {
                     if (obj.name == "latest.zip")
@@ -82,7 +82,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
 
                 //check if tag was parsed corrently as it make the url
-                return url != "" 
+                return url != string.Empty 
                     ? WebUIUpdate(url, channel, tag_name) 
                     : new APIMessage(204, "Content is missing");
             }
@@ -285,7 +285,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                 }
             }
-            return "";
+            return string.Empty;
         }
 
         /// <summary>

@@ -21,7 +21,7 @@ namespace Shoko.Server.Extensions
     {
         public static string GetFullImagePath(this MovieDB_Fanart fanart)
         {
-            if (String.IsNullOrEmpty(fanart.URL)) return "";
+            if (String.IsNullOrEmpty(fanart.URL)) return string.Empty;
 
             //strip out the base URL
             int pos = fanart.URL.IndexOf('/', 0);
@@ -32,7 +32,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetFullImagePath(this MovieDB_Poster movie)
         {
-            if (String.IsNullOrEmpty(movie.URL)) return "";
+            if (String.IsNullOrEmpty(movie.URL)) return string.Empty;
 
             //strip out the base URL
             int pos = movie.URL.IndexOf('/', 0);
@@ -43,7 +43,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetFullImagePath(this TvDB_Episode episode)
         {
-            if (String.IsNullOrEmpty(episode.Filename)) return "";
+            if (String.IsNullOrEmpty(episode.Filename)) return string.Empty;
 
             string fname = episode.Filename;
             fname = episode.Filename.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
@@ -52,7 +52,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetFullImagePath(this TvDB_ImageFanart fanart)
         {
-            if (String.IsNullOrEmpty(fanart.BannerPath)) return "";
+            if (String.IsNullOrEmpty(fanart.BannerPath)) return string.Empty;
 
             string fname = fanart.BannerPath;
             fname = fanart.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
@@ -68,7 +68,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetFullImagePath(this TvDB_ImagePoster poster)
         {
-            if (String.IsNullOrEmpty(poster.BannerPath)) return "";
+            if (String.IsNullOrEmpty(poster.BannerPath)) return string.Empty;
 
             string fname = poster.BannerPath;
             fname = poster.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
@@ -77,7 +77,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetFullImagePath(this TvDB_ImageWideBanner banner)
         {
-            if (String.IsNullOrEmpty(banner.BannerPath)) return "";
+            if (String.IsNullOrEmpty(banner.BannerPath)) return string.Empty;
 
             string fname = banner.BannerPath;
             fname = banner.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
@@ -102,14 +102,14 @@ namespace Shoko.Server.Extensions
 
         public static string GetPosterPath(this AniDB_Character character)
         {
-            if (String.IsNullOrEmpty(character.PicName)) return "";
+            if (String.IsNullOrEmpty(character.PicName)) return string.Empty;
 
             return System.IO.Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharID), character.PicName);
         }
 
         public static string GetPosterPath(this AniDB_Seiyuu seiyuu)
         {
-            if (String.IsNullOrEmpty(seiyuu.PicName)) return "";
+            if (String.IsNullOrEmpty(seiyuu.PicName)) return string.Empty;
 
             return System.IO.Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.SeiyuuID), seiyuu.PicName);
         }

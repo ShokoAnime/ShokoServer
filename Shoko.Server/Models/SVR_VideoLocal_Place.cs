@@ -486,7 +486,7 @@ namespace Shoko.Server.Models
                 }
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {

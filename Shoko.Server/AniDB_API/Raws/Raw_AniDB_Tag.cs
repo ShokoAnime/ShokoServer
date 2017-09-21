@@ -32,8 +32,8 @@ namespace AniDBAPI
             this.Spoiler = 0;
             this.LocalSpoiler = 0;
             this.GlobalSpoiler = 0;
-            this.TagName = "";
-            this.TagDescription = "";
+            this.TagName = string.Empty;
+            this.TagDescription = string.Empty;
             this.TagCount = 0;
             this.Approval = 0;
             this.Weight = 0;

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using NLog;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Readers;
@@ -11,14 +12,14 @@ using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using Path = Pri.LongPath.Path;
 
-namespace Shoko.Server.Utilities
+namespace Shoko.Server
 {
-    public class AVDumpHelper
+    public static class AVDumpHelper
     {
         public static readonly string destination = Path.Combine(ServerSettings.ApplicationPath, "Utilities");
         public static readonly string avdumpRarDestination = Path.Combine(destination, "avdump2.rar");
 
-        public static readonly string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_6714.rar";
+        public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_6714.rar";
         public static readonly string avdumpDestination = Path.Combine(destination, "AVDump2CL.exe");
 
         public static bool GetAndExtractAVDump()
@@ -35,13 +36,11 @@ namespace Shoko.Server.Utilities
                 using (var archive = RarArchive.Open(avdumpRarDestination))
                 {
                     foreach (var entry in archive.Entries.Where(entry => !entry.IsDirectory))
-                    {
                         entry.WriteToDirectory(destination, new ExtractionOptions()
                         {
                             ExtractFullPath = true,
                             Overwrite = true
                         });
-                    }
                 }
                 File.Delete(avdumpRarDestination);
             }
@@ -80,9 +79,7 @@ namespace Shoko.Server.Utilities
             byte[] buffer = new byte[8 * 1024];
             int len;
             while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
-            {
                 output.Write(buffer, 0, len);
-            }
         }
 
         public static string DumpFile(int vid)
@@ -97,34 +94,48 @@ namespace Shoko.Server.Utilities
 
         public static string DumpFile(string file)
         {
-            if (!File.Exists(avdumpDestination) && !GetAndExtractAVDump())
-                return "Could not find  or download AvDump2 CLI";
-            if (string.IsNullOrEmpty(file))
-                return "File path cannot be null";
-            if (!File.Exists(file))
-                return "Could not find Video File: " + file;
+            try
+            {
+                if (!File.Exists(avdumpDestination) && !GetAndExtractAVDump())
+                    return "Could not find  or download AvDump2 CLI";
+                if (string.IsNullOrEmpty(file))
+                    return "File path cannot be null";
+                if (!File.Exists(file))
+                    return "Could not find Video File: " + file;
 
-            //Create process
-            Process pProcess = new Process();
-            pProcess.StartInfo.FileName = avdumpDestination;
+                //strCommandParameters are parameters to pass to program
+                string fileName = (char) 34 + file + (char) 34;
 
-            //strCommandParameters are parameters to pass to program
-            string fileName = (char)34 + file + (char)34;
+                //Create process
+                Process pProcess = new Process
+                {
+                    StartInfo =
+                    {
+                        FileName = avdumpDestination,
+                        Arguments =
+                            $@" --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={
+                                    ServerSettings.AniDB_AVDumpClientPort
+                                } --PrintEd2kLink -t {fileName}",
+                        UseShellExecute = false,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
 
-            pProcess.StartInfo.Arguments =
-                $@" --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={ServerSettings.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+                pProcess.Start();
+                string strOutput = pProcess.StandardOutput.ReadToEnd();
 
-            pProcess.StartInfo.UseShellExecute = false;
-            pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            pProcess.StartInfo.RedirectStandardOutput = true;
-            pProcess.StartInfo.CreateNoWindow = true;
-            pProcess.Start();
-            string strOutput = pProcess.StandardOutput.ReadToEnd();
+                //Wait for process to finish
+                pProcess.WaitForExit();
 
-            //Wait for process to finish
-            pProcess.WaitForExit();
-
-            return strOutput;
+                return strOutput;
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetCurrentClassLogger().Error($"An error occurred while AVDumping the file \"file\":\n{ex}");
+                return $"An error occurred while AVDumping the file:\n{ex}";
+            }
         }
 
         public static string DumpFile_Mono(string file)

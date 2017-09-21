@@ -230,9 +230,9 @@ namespace Shoko.Server.Providers.TraktTV
                     string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken) ||
                     string.IsNullOrEmpty(ServerSettings.Trakt_RefreshToken))
                 {
-                    ServerSettings.Trakt_AuthToken = "";
-                    ServerSettings.Trakt_RefreshToken = "";
-                    ServerSettings.Trakt_TokenExpirationDate = "";
+                    ServerSettings.Trakt_AuthToken = string.Empty;
+                    ServerSettings.Trakt_RefreshToken = string.Empty;
+                    ServerSettings.Trakt_TokenExpirationDate = string.Empty;
 
                     return false;
                 }
@@ -264,18 +264,18 @@ namespace Shoko.Server.Providers.TraktTV
                 }
                 else
                 {
-                    ServerSettings.Trakt_AuthToken = "";
-                    ServerSettings.Trakt_RefreshToken = "";
-                    ServerSettings.Trakt_TokenExpirationDate = "";
+                    ServerSettings.Trakt_AuthToken = string.Empty;
+                    ServerSettings.Trakt_RefreshToken = string.Empty;
+                    ServerSettings.Trakt_TokenExpirationDate = string.Empty;
 
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                ServerSettings.Trakt_AuthToken = "";
-                ServerSettings.Trakt_RefreshToken = "";
-                ServerSettings.Trakt_TokenExpirationDate = "";
+                ServerSettings.Trakt_AuthToken = string.Empty;
+                ServerSettings.Trakt_RefreshToken = string.Empty;
+                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
 
                 logger.Error(ex, "Error in TraktTVHelper.RefreshAuthToken: " + ex.ToString());
                 return false;
@@ -315,18 +315,18 @@ namespace Shoko.Server.Providers.TraktTV
                 }
                 else
                 {
-                    ServerSettings.Trakt_AuthToken = "";
-                    ServerSettings.Trakt_RefreshToken = "";
-                    ServerSettings.Trakt_TokenExpirationDate = "";
+                    ServerSettings.Trakt_AuthToken = string.Empty;
+                    ServerSettings.Trakt_RefreshToken = string.Empty;
+                    ServerSettings.Trakt_TokenExpirationDate = string.Empty;
 
                     return string.Format("Error returned from Trakt: {0}", response);
                 }
             }
             catch (Exception ex)
             {
-                ServerSettings.Trakt_AuthToken = "";
-                ServerSettings.Trakt_RefreshToken = "";
-                ServerSettings.Trakt_TokenExpirationDate = "";
+                ServerSettings.Trakt_AuthToken = string.Empty;
+                ServerSettings.Trakt_RefreshToken = string.Empty;
+                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
 
                 logger.Error(ex, "Error in TraktTVHelper.TestUserLogin: " + ex.ToString());
                 return ex.Message;
@@ -412,7 +412,7 @@ namespace Shoko.Server.Providers.TraktTV
                 req.Save();
             }
 
-            return "";
+            return string.Empty;
         }
 
         public static void RemoveLinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
@@ -957,9 +957,9 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     return 401;
 
-                string json = "";
+                string json = string.Empty;
 
-                string url = "";
+                string url = string.Empty;
                 switch (scrobbleStatus)
                 {
                     case ScrobblePlayingStatus.Start:
@@ -976,7 +976,7 @@ namespace Shoko.Server.Providers.TraktTV
                 //1.get traktid and slugid from episode id
                 int.TryParse(AnimeEpisodeID, out int aep);
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
-                string slugID = "";
+                string slugID = string.Empty;
                 int season = 0;
                 int epNumber = 0;
                 int? traktID = GetTraktEpisodeIdV2(ep, ref slugID, ref season, ref epNumber);

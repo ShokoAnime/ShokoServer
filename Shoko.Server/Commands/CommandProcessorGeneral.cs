@@ -65,7 +65,7 @@ namespace Shoko.Server.Commands
                         };
                         pauseTime = null;
                         ShokoService.AnidbProcessor.IsBanned = false;
-                        ShokoService.AnidbProcessor.BanOrigin = "";
+                        ShokoService.AnidbProcessor.BanOrigin = string.Empty;
                     }
                     ServerInfo.Instance.GeneralQueuePaused = paused;
                     ServerInfo.Instance.GeneralQueueRunning = !paused;
