@@ -68,7 +68,7 @@ namespace Shoko.Server.Commands.Azure
                 string fileName = string.Format("AnimeDoc_{0}.xml", AnimeID);
                 string fileNameWithPath = Path.Combine(filePath, fileName);
 
-                string rawXML = "";
+                string rawXML = string.Empty;
                 if (File.Exists(fileNameWithPath))
                 {
                     StreamReader re = File.OpenText(fileNameWithPath);

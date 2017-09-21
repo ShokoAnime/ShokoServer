@@ -101,7 +101,7 @@ namespace Shoko.Server.Commands
                     // Use TvDB setting
                     if (!ServerSettings.TvDB_AutoLink) return;
 
-                    string searchCriteria = "";
+                    string searchCriteria = string.Empty;
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 

@@ -7,7 +7,7 @@ namespace AniDBAPI.Commands
     public class AniDBCommand_MarkFileAsUnknown : AniDBUDPCommand, IAniDBUDPCommand
     {
         public bool ReturnIsWatched = false;
-        public string Hash = "";
+        public string Hash = string.Empty;
 
         public string GetKey()
         {

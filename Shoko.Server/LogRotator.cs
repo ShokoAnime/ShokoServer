@@ -80,7 +80,7 @@ namespace Shoko.Server
 
                 foreach (string file_ext in compress)
                 {
-                    string file = file_ext.Replace("txt", "");
+                    string file = file_ext.Replace("txt", string.Empty);
                     string path = Path.Combine(GetDirectory(), file);
 
                     if (File.Exists(path + "txt"))

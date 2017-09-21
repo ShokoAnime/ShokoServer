@@ -167,7 +167,7 @@ namespace Shoko.Server
             set { this.SetField(() => hasherQueueCount, value); }
         }
 
-        private string hasherQueueState = "";
+        private string hasherQueueState = string.Empty;
 
         public string HasherQueueState
         {
@@ -183,7 +183,7 @@ namespace Shoko.Server
             set { this.SetField(() => imagesQueueCount, value); }
         }
 
-        private string imagesQueueState = "";
+        private string imagesQueueState = string.Empty;
 
         public string ImagesQueueState
         {
@@ -199,7 +199,7 @@ namespace Shoko.Server
             set { this.SetField(() => generalQueueCount, value); }
         }
 
-        private string generalQueueState = "";
+        private string generalQueueState = string.Empty;
 
         public string GeneralQueueState
         {
@@ -255,7 +255,7 @@ namespace Shoko.Server
             set { this.SetField(() => imagesQueueRunning, value); }
         }
 
-        private string banReason = "";
+        private string banReason = string.Empty;
 
         public string BanReason
         {
@@ -263,7 +263,7 @@ namespace Shoko.Server
             set { this.SetField(() => banReason, value); }
         }
 
-        private string banOrigin = "";
+        private string banOrigin = string.Empty;
 
         public string BanOrigin
         {
@@ -321,7 +321,7 @@ namespace Shoko.Server
             set { this.SetField(() => waitingOnResponseAniDBUDPString, value); }
         }
 
-        private string extendedPauseString = "";
+        private string extendedPauseString = string.Empty;
 
         public string ExtendedPauseString
         {

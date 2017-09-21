@@ -24,7 +24,7 @@ namespace AniDBAPI
             CreatorKanjiName = string.Empty;
             CreatorType = 1;
             PicName = string.Empty;
-            CreatorDescription = "";
+            CreatorDescription = string.Empty;
             URLEnglish = string.Empty;
             URLJapanese = string.Empty;
             URLWikiEnglish = string.Empty;
@@ -59,7 +59,7 @@ namespace AniDBAPI
             CreatorName = AniDBAPILib.ProcessAniDBString(sDetails[2].Trim());
             CreatorType = AniDBAPILib.ProcessAniDBInt(AniDBAPILib.ProcessAniDBString(sDetails[3].Trim()));
             PicName = AniDBAPILib.ProcessAniDBString(sDetails[4].Trim());
-            CreatorDescription = "";
+            CreatorDescription = string.Empty;
             URLEnglish = AniDBAPILib.ProcessAniDBString(sDetails[5].Trim());
             URLJapanese = AniDBAPILib.ProcessAniDBString(sDetails[6].Trim());
             URLWikiEnglish = AniDBAPILib.ProcessAniDBString(sDetails[7].Trim());

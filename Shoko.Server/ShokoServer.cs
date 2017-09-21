@@ -860,7 +860,7 @@ namespace Shoko.Server
             MA2Progress ma2Progress = new MA2Progress
             {
                 CurrentFile = 0,
-                ErrorMessage = "",
+                ErrorMessage = string.Empty,
                 MigratedFiles = 0,
                 TotalFiles = 0
             };
@@ -1077,7 +1077,7 @@ namespace Shoko.Server
 
             file.Close();
 
-            string aids = "";
+            string aids = string.Empty;
             var shuffledList = validAnimeIDs.Values.OrderBy(a => Guid.NewGuid());
             int i = 0;
             foreach (int animeID in shuffledList)
@@ -1089,7 +1089,7 @@ namespace Shoko.Server
                 if (i == 250)
                 {
                     logger.Info(aids);
-                    aids = "";
+                    aids = string.Empty;
                     i = 0;
                 }
             }
@@ -1255,7 +1255,7 @@ namespace Shoko.Server
         */
         internal static string GetLocalIPv4(NetworkInterfaceType _type)
         {
-            string output = "";
+            string output = string.Empty;
             foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)

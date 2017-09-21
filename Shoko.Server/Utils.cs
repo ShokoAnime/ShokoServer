@@ -75,7 +75,7 @@ namespace Shoko.Server
             byte[] buffer = enc.GetBytes(text);
             SHA1CryptoServiceProvider cryptoTransformSHA1 =
                 new SHA1CryptoServiceProvider();
-            string hash = BitConverter.ToString(cryptoTransformSHA1.ComputeHash(buffer)).Replace("-", "");
+            string hash = BitConverter.ToString(cryptoTransformSHA1.ComputeHash(buffer)).Replace("-", string.Empty);
 
             return hash;
         }
@@ -465,29 +465,29 @@ namespace Shoko.Server
 
         public static string ReparseDescription(string description)
         {
-            if (string.IsNullOrEmpty(description)) return "";
+            if (string.IsNullOrEmpty(description)) return string.Empty;
 
             string val = description;
             val = val.Replace("<br />", Environment.NewLine)
                 .Replace("<br/>", Environment.NewLine)
-                .Replace("<i>", "")
-                .Replace("</i>", "")
-                .Replace("<b>", "")
-                .Replace("</b>", "")
-                .Replace("[i]", "")
-                .Replace("[/i]", "")
-                .Replace("[b]", "")
-                .Replace("[/b]", "");
+                .Replace("<i>", string.Empty)
+                .Replace("</i>", string.Empty)
+                .Replace("<b>", string.Empty)
+                .Replace("</b>", string.Empty)
+                .Replace("[i]", string.Empty)
+                .Replace("[/i]", string.Empty)
+                .Replace("[b]", string.Empty)
+                .Replace("[/b]", string.Empty);
             val = val.Replace("<BR />", Environment.NewLine)
                 .Replace("<BR/>", Environment.NewLine)
-                .Replace("<I>", "")
-                .Replace("</I>", "")
-                .Replace("<B>", "")
-                .Replace("</B>", "")
-                .Replace("[I]", "")
-                .Replace("[/I]", "")
-                .Replace("[B]", "")
-                .Replace("[/B]", "");
+                .Replace("<I>", string.Empty)
+                .Replace("</I>", string.Empty)
+                .Replace("<B>", string.Empty)
+                .Replace("</B>", string.Empty)
+                .Replace("[I]", string.Empty)
+                .Replace("[/I]", string.Empty)
+                .Replace("[B]", string.Empty)
+                .Replace("[/B]", string.Empty);
 
             string vup = val.ToUpper();
             while (vup.Contains("[URL") || vup.Contains("[/URL]"))
@@ -589,15 +589,15 @@ namespace Shoko.Server
 
         public static string RemoveInvalidFolderNameCharacters(string folderName)
         {
-            string ret = folderName.Replace(@"*", "");
-            ret = ret.Replace(@"|", "");
-            ret = ret.Replace(@"\", "");
-            ret = ret.Replace(@"/", "");
-            ret = ret.Replace(@":", "");
-            ret = ret.Replace("\"", ""); // double quote
-            ret = ret.Replace(@">", "");
-            ret = ret.Replace(@"<", "");
-            ret = ret.Replace(@"?", "");
+            string ret = folderName.Replace(@"*", string.Empty);
+            ret = ret.Replace(@"|", string.Empty);
+            ret = ret.Replace(@"\", string.Empty);
+            ret = ret.Replace(@"/", string.Empty);
+            ret = ret.Replace(@":", string.Empty);
+            ret = ret.Replace("\"", string.Empty); // double quote
+            ret = ret.Replace(@">", string.Empty);
+            ret = ret.Replace(@"<", string.Empty);
+            ret = ret.Replace(@"?", string.Empty);
             while (ret.EndsWith("."))
                 ret = ret.Substring(0, ret.Length - 1);
             return ret.Trim();
@@ -640,7 +640,7 @@ namespace Shoko.Server
             Version vs = os.Version;
 
             //Variable to hold our return value
-            string operatingSystem = "";
+            string operatingSystem = string.Empty;
 
             if (os.Platform == PlatformID.Win32Windows)
             {
@@ -702,12 +702,12 @@ namespace Shoko.Server
             //Make sure we actually got something in our OS check
             //We don't want to just return " Service Pack 2" or " 32-bit"
             //That information is useless without the OS version.
-            if (operatingSystem != "")
+            if (operatingSystem != string.Empty)
             {
                 //Got something.  Let's prepend "Windows" and get more info.
                 operatingSystem = "Windows " + operatingSystem;
                 //See if there's a service pack installed.
-                if (os.ServicePack != "")
+                if (os.ServicePack != string.Empty)
                 {
                     //Append it to the OS name.  i.e. "Windows XP Service Pack 3"
                     operatingSystem += " " + os.ServicePack;

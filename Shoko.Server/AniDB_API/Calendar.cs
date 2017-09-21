@@ -23,7 +23,7 @@ namespace AniDBAPI
             set { releaseDate = value; }
         }
 
-        private string releaseDateRaw = "";
+        private string releaseDateRaw = string.Empty;
 
         public string ReleaseDateRaw
         {
@@ -108,7 +108,7 @@ namespace AniDBAPI
 
         public override string ToString()
         {
-            string ret = "";
+            string ret = string.Empty;
             foreach (Calendar cal in calendars)
             {
                 ret += cal.ToString() + Environment.NewLine;

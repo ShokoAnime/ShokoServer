@@ -94,7 +94,7 @@
         /// <summary>
         /// filename string for task like searching by it
         /// </summary>
-        public string filename = "";
+        public string filename = string.Empty;
 
         /// <summary>
         /// show all know pictures related to object

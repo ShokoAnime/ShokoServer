@@ -221,7 +221,7 @@ namespace Shoko.Server.Commands.Plex
 
         public void InvalidateToken()
         {
-            _user.PlexToken = "";
+            _user.PlexToken = string.Empty;
             new ShokoServiceImplementation().SaveUser(_user);
         }
 

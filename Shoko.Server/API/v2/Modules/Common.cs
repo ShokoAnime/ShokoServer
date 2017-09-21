@@ -203,7 +203,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 ImportFolder folder = this.Bind();
-                if (folder.ImportFolderLocation != "")
+                if (folder.ImportFolderLocation != string.Empty)
                 {
                     try
                     {
@@ -293,7 +293,7 @@ namespace Shoko.Server.API.v2.Modules
             if (folder.ImportFolderID != 0)
             {
                 string res = Importer.DeleteImportFolder(folder.ImportFolderID);
-                if (res == "")
+                if (res == string.Empty)
                 {
                     return APIStatus.statusOK();
                 }
@@ -566,7 +566,7 @@ namespace Shoko.Server.API.v2.Modules
                 //hardcoded
                 para.limit = 100;
             }
-            if (query != "")
+            if (query != string.Empty)
             {
                 Filter search_filter = new Filter
                 {
@@ -609,7 +609,7 @@ namespace Shoko.Server.API.v2.Modules
                 //hardcoded
                 para.limit = 100;
             }
-            if (query != "")
+            if (query != string.Empty)
             {
                 Filter search_filter = new Filter
                 {
@@ -1672,7 +1672,7 @@ namespace Shoko.Server.API.v2.Modules
                 //hardcoded
                 para.limit = 100;
             }
-            if (para.query != "")
+            if (para.query != string.Empty)
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
                     para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter);
@@ -1698,7 +1698,7 @@ namespace Shoko.Server.API.v2.Modules
                 //hardcoded
                 para.limit = 100;
             }
-            if (para.query != "")
+            if (para.query != string.Empty)
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
                     para.nocast != 0,
@@ -1986,7 +1986,7 @@ namespace Shoko.Server.API.v2.Modules
             if (distLevenshtein.Count >= limit) return;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
             int dist = int.MaxValue;
-            string match = "";
+            string match = string.Empty;
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
@@ -2019,7 +2019,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (distLevenshtein.Count >= limit) return;
             int dist = int.MaxValue;
-            string match = "";
+            string match = string.Empty;
             if (a?.Contract?.AniDBAnime?.Tags != null &&
                 a.Contract.AniDBAnime.Tags.Count > 0)
             {
@@ -2045,7 +2045,7 @@ namespace Shoko.Server.API.v2.Modules
                 a.Contract.AniDBAnime.CustomTags.Count <= 0) return;
 
             dist = int.MaxValue;
-            match = "";
+            match = string.Empty;
             foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName).ToList())
             {
                 if (string.IsNullOrEmpty(customTag)) continue;
@@ -2107,7 +2107,7 @@ namespace Shoko.Server.API.v2.Modules
                                             .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
                                                 StringComparison.InvariantCultureIgnoreCase) >= 0)
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => "");
+                            .ToDictionary(a => a, a => string.Empty);
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
@@ -2167,7 +2167,7 @@ namespace Shoko.Server.API.v2.Modules
                                              .Select(b => b.TagName)
                                              .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => "");
+                            .ToDictionary(a => a, a => string.Empty);
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
@@ -2224,7 +2224,7 @@ namespace Shoko.Server.API.v2.Modules
                                             .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
                                                 StringComparison.InvariantCultureIgnoreCase) >= 0)
                             .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => "");
+                            .ToDictionary(a => a, a => string.Empty);
 
                         int tag_limit = use_extra ? limit_tag : limit - series.Count;
                         if (tag_limit < 0) tag_limit = 0;
@@ -2241,7 +2241,7 @@ namespace Shoko.Server.API.v2.Modules
                                                                           StringComparer.InvariantCultureIgnoreCase)))
                                 .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                                 .Take(tag_limit)
-                                .ToDictionary(a => a, a => ""));
+                                .ToDictionary(a => a, a => string.Empty));
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
@@ -2305,7 +2305,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (series.Count >= limit) return;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
-            string match = "";
+            string match = string.Empty;
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
@@ -2315,7 +2315,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
             }
             // Keep the lowest distance
-            if (match != "")
+            if (match != string.Empty)
                 series.TryAdd(a, match);
         }
 

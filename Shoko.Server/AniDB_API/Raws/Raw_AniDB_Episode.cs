@@ -284,7 +284,7 @@ namespace AniDBAPI
         {
             //BaseConfig.MyAnimeLog.Write("GetEpisodeType: {0}", fld);
 
-            string epType = "";
+            string epType = string.Empty;
             if (int.TryParse(fld.Trim().Substring(0, 1), out int epno))
             // if the first char is a numeric than it is a normal episode
             {

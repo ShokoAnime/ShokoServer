@@ -233,7 +233,7 @@ namespace Shoko.Server.Databases
             {
                 ConditionType = (int)GroupFilterConditionType.Favourite,
                 ConditionOperator = (int)GroupFilterOperator.Include,
-                ConditionParameter = ""
+                ConditionParameter = string.Empty
             };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
@@ -252,7 +252,7 @@ namespace Shoko.Server.Databases
             {
                 ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting,
                 ConditionOperator = (int)GroupFilterOperator.Include,
-                ConditionParameter = ""
+                ConditionParameter = string.Empty
             };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
@@ -310,21 +310,21 @@ namespace Shoko.Server.Databases
             {
                 ConditionType = (int)GroupFilterConditionType.CompletedSeries,
                 ConditionOperator = (int)GroupFilterOperator.Include,
-                ConditionParameter = ""
+                ConditionParameter = string.Empty
             };
             gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition
             {
                 ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
                 ConditionOperator = (int)GroupFilterOperator.Exclude,
-                ConditionParameter = ""
+                ConditionParameter = string.Empty
             };
             gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition
             {
                 ConditionType = (int)GroupFilterConditionType.UserVotedAny,
                 ConditionOperator = (int)GroupFilterOperator.Exclude,
-                ConditionParameter = ""
+                ConditionParameter = string.Empty
             };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
@@ -362,7 +362,7 @@ namespace Shoko.Server.Databases
             {
                 ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo,
                 ConditionOperator = (int)GroupFilterOperator.Exclude,
-                ConditionParameter = ""
+                ConditionParameter = string.Empty
             };
             gf.Conditions.Add(gfc);
             gf.CalculateGroupsAndSeries();
@@ -378,11 +378,11 @@ namespace Shoko.Server.Databases
             SVR_JMMUser defaultUser = new SVR_JMMUser
             {
                 CanEditServerSettings = 1,
-                HideCategories = "",
+                HideCategories = string.Empty,
                 IsAdmin = 1,
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
-                Password = "",
+                Password = string.Empty,
                 Username = Commons.Properties.Resources.Users_Default
             };
             RepoFactory.JMMUser.Save(defaultUser, true);
@@ -394,7 +394,7 @@ namespace Shoko.Server.Databases
                 IsAdmin = 1,
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
-                Password = "",
+                Password = string.Empty,
                 Username = Commons.Properties.Resources.Users_FamilyFriendly
             };
             RepoFactory.JMMUser.Save(familyUser, true);
@@ -433,14 +433,14 @@ namespace Shoko.Server.Databases
                 "IF Z(10) DO ADD ' %bitbit'" + Environment.NewLine +
                 "DO ADD ') '" + Environment.NewLine +
                 "DO ADD '[%CRC]'" + Environment.NewLine +
-                "" + Environment.NewLine +
+                string.Empty + Environment.NewLine +
                 "// Replacement rules (cleanup)" + Environment.NewLine +
                 "DO REPLACE ' ' '_' // replace spaces with underscores" + Environment.NewLine +
                 "DO REPLACE 'H264/AVC' 'H264'" + Environment.NewLine +
                 "DO REPLACE '0x0' ''" + Environment.NewLine +
                 "DO REPLACE '__' '_'" + Environment.NewLine +
                 "DO REPLACE '__' '_'" + Environment.NewLine +
-                "" + Environment.NewLine +
+                string.Empty + Environment.NewLine +
                 "// Replace all illegal file name characters" + Environment.NewLine +
                 "DO REPLACE '<' '('" + Environment.NewLine +
                 "DO REPLACE '>' ')'" + Environment.NewLine +
@@ -559,14 +559,14 @@ namespace Shoko.Server.Databases
              GroupFilterCondition gfc = new GroupFilterCondition();
              gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
              gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-             gfc.ConditionParameter = "";
+             gfc.ConditionParameter = string.Empty;
              gfc.GroupFilterID = gf.GroupFilterID;
              repGFC.Save(gfc);
 
              gfc = new GroupFilterCondition();
              gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
              gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-             gfc.ConditionParameter = "";
+             gfc.ConditionParameter = string.Empty;
              gfc.GroupFilterID = gf.GroupFilterID;
              repGFC.Save(gfc);
          }

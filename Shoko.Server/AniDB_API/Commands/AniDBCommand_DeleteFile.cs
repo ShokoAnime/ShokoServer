@@ -6,7 +6,7 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_DeleteFile : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public string Hash = "";
+        public string Hash = string.Empty;
         public long FileSize = 0;
         public int FileID = 0;
 
@@ -66,7 +66,7 @@ namespace AniDBAPI.Commands
 
         public void Init(int fileID)
         {
-            Hash = "";
+            Hash = string.Empty;
             FileSize = 0;
             FileID = fileID;
 

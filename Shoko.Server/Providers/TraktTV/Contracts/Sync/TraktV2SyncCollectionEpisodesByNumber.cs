@@ -118,7 +118,7 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
             if (ids != null)
                 return string.Format("{0}", ids.slug);
             else
-                return "";
+                return string.Empty;
         }
     }
 

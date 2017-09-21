@@ -42,7 +42,7 @@ namespace AniDBAPI.Commands
         public AniDBCommand_Ping()
         {
             commandType = enAniDBCommandType.Ping;
-            commandID = "";
+            commandID = string.Empty;
         }
 
         public void Init()

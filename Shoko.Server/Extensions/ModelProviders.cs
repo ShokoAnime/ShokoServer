@@ -68,7 +68,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -86,7 +86,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -135,7 +135,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -155,7 +155,7 @@ namespace Shoko.Server.Extensions
             r.Username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -178,7 +178,7 @@ namespace Shoko.Server.Extensions
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
 
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -199,7 +199,7 @@ namespace Shoko.Server.Extensions
             };
             if (ServerSettings.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -328,7 +328,7 @@ namespace Shoko.Server.Extensions
                 //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
 
-            return "";
+            return string.Empty;
         }
 
         private static string TryGetEpisodeProperty(XmlDocument doc, string propertyName)
@@ -343,7 +343,7 @@ namespace Shoko.Server.Extensions
                 logger.Error(ex, "Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
 
-            return "";
+            return string.Empty;
         }
 
         private static string TryGetSeriesProperty(XmlDocument doc, string propertyName)
@@ -358,7 +358,7 @@ namespace Shoko.Server.Extensions
                 logger.Error(ex, "Error in TvDB_Series.TryGetProperty: " + ex.ToString());
             }
 
-            return "";
+            return string.Empty;
         }
 
         [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]

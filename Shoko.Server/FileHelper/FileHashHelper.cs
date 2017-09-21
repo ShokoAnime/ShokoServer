@@ -31,7 +31,7 @@ namespace Shoko.Server.FileHelper
             List<string> videoExtensions = GetVideoExtensions();
             if (videoExtensions.Count == 0) return false;
 
-            if (videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", "").Trim().ToUpper()))
+            if (videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim().ToUpper()))
                 return true;
 
             return false;

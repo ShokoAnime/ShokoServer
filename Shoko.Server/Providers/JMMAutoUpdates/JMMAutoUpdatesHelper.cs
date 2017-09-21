@@ -47,7 +47,7 @@ namespace Shoko.Server.Providers.JMMAutoUpdates
 
         public static string GetLatestVersionNumber(string channel)
         {
-            string versionNumber = "";
+            string versionNumber = string.Empty;
             try
             {
                 // get the latest version as according to the release

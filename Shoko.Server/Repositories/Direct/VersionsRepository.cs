@@ -26,9 +26,9 @@ namespace Shoko.Server.Repositories.Direct
                 return session.CreateCriteria(typeof(Versions))
                     .Add(Restrictions.Eq("VersionType", vertype))
                     .List<Versions>()
-                    .GroupBy(a => a.VersionValue ?? "")
+                    .GroupBy(a => a.VersionValue ?? string.Empty)
                     .ToDictionary(a => a.Key,
-                        a => a.GroupBy(b => b.VersionRevision ?? "").ToDictionary(b => b.Key, b => b.FirstOrDefault()));
+                        a => a.GroupBy(b => b.VersionRevision ?? string.Empty).ToDictionary(b => b.Key, b => b.FirstOrDefault()));
             }
         }
     }

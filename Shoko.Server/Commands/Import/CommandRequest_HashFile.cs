@@ -113,7 +113,7 @@ namespace Shoko.Server.Commands
         {
             // hash and read media info for file
             int nshareID = -1;
-            string filePath = "";
+            string filePath = string.Empty;
 
 
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);

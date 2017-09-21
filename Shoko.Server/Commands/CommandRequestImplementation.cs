@@ -50,7 +50,7 @@ namespace Shoko.Server.Commands
         public string ToXML()
         {
             XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
-            ns.Add("", "");
+            ns.Add("", string.Empty);
 
             XmlSerializer serializer = new XmlSerializer(this.GetType());
             XmlWriterSettings settings = new XmlWriterSettings
@@ -114,7 +114,7 @@ namespace Shoko.Server.Commands
                 //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
             }
 
-            return "";
+            return string.Empty;
         }
     }
 }

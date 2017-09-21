@@ -114,7 +114,7 @@ namespace Shoko.Server.Commands
 
                     if (!ServerSettings.TvDB_AutoLink) return;
 
-                    string searchCriteria = "";
+                    string searchCriteria = string.Empty;
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null) return;
 
@@ -178,7 +178,7 @@ namespace Shoko.Server.Commands
                     if (ep?.AbsoluteNumber != null)
                     {
                         AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
-                            season, tvser?.SeriesName ?? "");
+                            season, tvser?.SeriesName ?? string.Empty);
                     }
                 }
                 return true;
@@ -207,7 +207,7 @@ namespace Shoko.Server.Commands
                         if (ep?.AbsoluteNumber != null)
                         {
                             AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
-                                season, tvser?.SeriesName ?? "");
+                                season, tvser?.SeriesName ?? string.Empty);
                         }
                     }
                     return true;

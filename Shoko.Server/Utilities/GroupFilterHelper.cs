@@ -255,7 +255,7 @@ namespace Shoko.Server
         public static SortPropOrFieldAndDirection GetSortDescription(GroupFilterSorting sortType,
             GroupFilterSortDirection sortDirection)
         {
-            string sortColumn = "";
+            string sortColumn = string.Empty;
             bool sortDescending = sortDirection == GroupFilterSortDirection.Desc;
             SortType sortFieldType = SortType.eString;
 

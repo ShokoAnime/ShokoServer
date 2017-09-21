@@ -245,21 +245,6 @@ namespace AniDBAPI
             GenreRAW = sDetails[5];
             BeginYear = AirDate.HasValue ? AirDate.Value.Year : 0;
             EndYear = EndDate.HasValue ? EndDate.Value.Year : 0;
-
-            foreach (int rid in this.ReviewIDList)
-            {
-                //BaseConfig.MyAnimeLog.Write("ReviewID: {0}", rid.ToString());
-            }
-
-            /*
-            char[] chars = sDetails[5].ToCharArray();
-
-            foreach (char c in chars)
-			{
-				if ((int)c > 31 && (int)c < 127)
-					genreRAW += c.ToString();
-			}
-            */
         }
 
 

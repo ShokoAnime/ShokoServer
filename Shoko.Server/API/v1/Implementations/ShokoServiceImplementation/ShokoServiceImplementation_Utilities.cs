@@ -85,7 +85,7 @@ namespace Shoko.Server
             var releaseGroups = SVR_AniDB_Anime.GetAllReleaseGroups();
             foreach (string releaseGroup in releaseGroups)
             {
-                value = ReplaceCaseInsensitive(value, releaseGroup, "");
+                value = ReplaceCaseInsensitive(value, releaseGroup, string.Empty);
                 if (originalLength > value.Length) break;
             }
             return value;
@@ -96,7 +96,7 @@ namespace Shoko.Server
             if (!replaceInvalid) return value;
 
             value = value.FilterCharacters(InvalidPathChars, true);
-            value = ReplacementStrings.Aggregate(value, (current, c) => ReplaceCaseInsensitive(current, c, ""));
+            value = ReplacementStrings.Aggregate(value, (current, c) => ReplaceCaseInsensitive(current, c, string.Empty));
             value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
             // Takes too long
             //value = RemoveSubgroups(value);
@@ -489,7 +489,7 @@ namespace Shoko.Server
                 }
 
                 int errorCount = 0;
-                string errorString = "";
+                string errorString = string.Empty;
                 string name = vid.FileName;
 
                 ShokoServer.StopWatchingFiles();
@@ -671,7 +671,7 @@ namespace Shoko.Server
         {
             CL_Response<RenameScript> response = new CL_Response<RenameScript>
             {
-                ErrorMessage = "",
+                ErrorMessage = string.Empty,
                 Result = null
             };
             try
@@ -748,7 +748,7 @@ namespace Shoko.Server
                 if (df == null) return "Database entry does not exist";
                 RepoFactory.RenameScript.Delete(renameScriptID);
 
-                return "";
+                return string.Empty;
             }
             catch (Exception ex)
             {
@@ -991,7 +991,7 @@ namespace Shoko.Server
                                 cl.AnimeTitle = anime.MainTitle;
 
                                 start = DateTime.Now;
-                                cl.GroupFileSummary = "";
+                                cl.GroupFileSummary = string.Empty;
                                 List<CL_GroupVideoQuality> summ = null;
                                 if (gvqCache.ContainsKey(ser.AniDB_ID))
                                     summ = gvqCache[ser.AniDB_ID];
@@ -1011,7 +1011,7 @@ namespace Shoko.Server
                                         gvq.VideoSource, gvq.VideoBitDepth, gvq.NormalEpisodeNumberSummary);
                                 }
 
-                                cl.GroupFileSummarySimple = "";
+                                cl.GroupFileSummarySimple = string.Empty;
                                 List<CL_GroupFileSummary> summFiles = null;
                                 if (gfqCache.ContainsKey(ser.AniDB_ID))
                                     summFiles = gfqCache[ser.AniDB_ID];
@@ -1366,7 +1366,7 @@ namespace Shoko.Server
                 DuplicateFile df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
                 if (df == null) return "Database entry does not exist";
 
-                if (fileNumber != 1 && fileNumber != 2) return "";
+                if (fileNumber != 1 && fileNumber != 2) return string.Empty;
                 SVR_VideoLocal_Place place;
                 switch (fileNumber)
                 {
@@ -1836,7 +1836,7 @@ namespace Shoko.Server
                     contract.SpecialsComplete = (contract.FileCountSpecials >= anime.EpisodeCountSpecial) &&
                                                 (anime.EpisodeCountSpecial > 0);
 
-                    contract.NormalEpisodeNumberSummary = "";
+                    contract.NormalEpisodeNumberSummary = string.Empty;
                     contract.NormalEpisodeNumbers.Sort();
                     int lastEpNum = 0;
                     int baseEpNum = 0;

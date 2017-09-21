@@ -641,22 +641,22 @@ namespace Shoko.Server.Models
             }
             else
             {
-                cl.AniDB_Anime_GroupName = "";
-                cl.AniDB_Anime_GroupNameShort = "";
-                cl.AniDB_CRC = "";
-                cl.AniDB_File_AudioCodec = "";
-                cl.AniDB_File_Description = "";
-                cl.AniDB_File_FileExtension = "";
-                cl.AniDB_File_Source = "";
-                cl.AniDB_File_VideoCodec = "";
-                cl.AniDB_File_VideoResolution = "";
-                cl.AniDB_MD5 = "";
-                cl.AniDB_SHA1 = "";
+                cl.AniDB_Anime_GroupName = string.Empty;
+                cl.AniDB_Anime_GroupNameShort = string.Empty;
+                cl.AniDB_CRC = string.Empty;
+                cl.AniDB_File_AudioCodec = string.Empty;
+                cl.AniDB_File_Description = string.Empty;
+                cl.AniDB_File_FileExtension = string.Empty;
+                cl.AniDB_File_Source = string.Empty;
+                cl.AniDB_File_VideoCodec = string.Empty;
+                cl.AniDB_File_VideoResolution = string.Empty;
+                cl.AniDB_MD5 = string.Empty;
+                cl.AniDB_SHA1 = string.Empty;
                 cl.AniDB_File_FileVersion = 1;
 
                 // languages
-                cl.LanguagesAudio = "";
-                cl.LanguagesSubtitle = "";
+                cl.LanguagesAudio = string.Empty;
+                cl.LanguagesSubtitle = string.Empty;
             }
 
 

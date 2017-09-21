@@ -55,7 +55,7 @@ namespace AniDBAPI.Commands
             set { forceRefresh = value; }
         }
 
-        string key = "";
+        string key = string.Empty;
 
         public string GetKey()
         {

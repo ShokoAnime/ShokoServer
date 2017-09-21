@@ -63,7 +63,7 @@ namespace AniDBAPI.Commands
         public AniDBCommand_Login()
         {
             commandType = enAniDBCommandType.Login;
-            commandID = "";
+            commandID = string.Empty;
         }
 
         public void Init(string userName, string password)

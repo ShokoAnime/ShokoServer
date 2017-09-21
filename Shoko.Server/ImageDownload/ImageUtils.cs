@@ -87,7 +87,7 @@ namespace Shoko.Server.ImageDownload
 
         public static string GetAniDBCharacterImagePath(int charID)
         {
-            string subFolder = "";
+            string subFolder = string.Empty;
             string sid = charID.ToString();
             if (sid.Length == 1)
                 subFolder = sid;
@@ -104,7 +104,7 @@ namespace Shoko.Server.ImageDownload
 
         public static string GetAniDBCreatorImagePath(int creatorID)
         {
-            string subFolder = "";
+            string subFolder = string.Empty;
             string sid = creatorID.ToString();
             if (sid.Length == 1)
                 subFolder = sid;
@@ -121,7 +121,7 @@ namespace Shoko.Server.ImageDownload
 
         public static string GetAniDBImagePath(int animeID)
         {
-            string subFolder = "";
+            string subFolder = string.Empty;
             string sid = animeID.ToString();
             if (sid.Length == 1)
                 subFolder = sid;

@@ -22,9 +22,9 @@ namespace AniDBAPI
         public void ProcessFromHTTPResult(XmlNode node, int anid)
         {
             this.AnimeID = anid;
-            this.TitleType = "";
-            this.Language = "";
-            this.Title = "";
+            this.TitleType = string.Empty;
+            this.Language = string.Empty;
+            this.Title = string.Empty;
 
             this.TitleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
             this.Language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");

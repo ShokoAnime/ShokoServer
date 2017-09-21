@@ -31,13 +31,13 @@ namespace Shoko.Server.PlexAndKodi
         {
             BreadCrumbs cache = this.DeepClone();
             cache.GrandParentKey = cache.ParentKey;
-            cache.GrandParentTitle = cache.ParentTitle ?? "";
+            cache.GrandParentTitle = cache.ParentTitle ?? string.Empty;
             cache.ParentKey = cache.Key;
-            cache.ParentTitle = cache.Title ?? "";
+            cache.ParentTitle = cache.Title ?? string.Empty;
             cache.ParentIndex = cache.Index;
 
             cache.Key = v.Key;
-            cache.Title = v.Title ?? "";
+            cache.Title = v.Title ?? string.Empty;
             cache.Index = v.Index;
             if (!noart)
             {
@@ -70,8 +70,8 @@ namespace Shoko.Server.PlexAndKodi
                 m.ParentKey = prov.Proxyfy(ParentKey);
             if (GrandParentKey != null)
                 m.GrandparentKey = prov.Proxyfy(GrandParentKey);
-            m.ParentTitle = ParentTitle ?? "";
-            m.GrandparentTitle = GrandParentTitle ?? "";
+            m.ParentTitle = ParentTitle ?? string.Empty;
+            m.GrandparentTitle = GrandParentTitle ?? string.Empty;
             if (!noimage)
             {
                 m.ParentArt = ParentArt;

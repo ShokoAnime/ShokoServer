@@ -87,7 +87,7 @@ namespace AniDBAPI
             this.EpisodeListRaw = AniDBHTTPHelper.TryGetProperty(node, "episodes") ?? string.Empty;
             this.PicName = AniDBHTTPHelper.TryGetProperty(node, "picture");
 
-            CreatorListRaw = "";
+            CreatorListRaw = string.Empty;
             foreach (XmlNode nodeChild in node.ChildNodes)
             {
                 if (nodeChild?.Name == "seiyuu")

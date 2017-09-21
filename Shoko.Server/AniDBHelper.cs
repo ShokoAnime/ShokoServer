@@ -71,11 +71,11 @@ namespace Shoko.Server
                     ServerInfo.Instance.BanReason = BanTime.ToString();
                 }
                 else
-                    ServerInfo.Instance.BanReason = "";
+                    ServerInfo.Instance.BanReason = string.Empty;
             }
         }
 
-        private string banOrigin = "";
+        private string banOrigin = string.Empty;
 
         public string BanOrigin
         {
@@ -132,7 +132,7 @@ namespace Shoko.Server
             set { extendPauseSecs = value; }
         }
 
-        private string extendPauseReason = "";
+        private string extendPauseReason = string.Empty;
         private bool networkAvailable;
         public bool IsNetworkAvailable
         {
@@ -166,8 +166,8 @@ namespace Shoko.Server
         public void ResetExtendPause()
         {
             ExtendPauseSecs = null;
-            ExtendPauseReason = "";
-            ServerInfo.Instance.ExtendedPauseString = "";
+            ExtendPauseReason = string.Empty;
+            ServerInfo.Instance.ExtendedPauseString = string.Empty;
             ServerInfo.Instance.HasExtendedPause = false;
         }
 
@@ -320,7 +320,7 @@ namespace Shoko.Server
                 LoginFailed?.Invoke(this, null);
 
                 //BaseConfig.MyAnimeLog.Write("ProcessCommands: Login Failed!");
-                //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.LoginFailed, ""));
+                //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.LoginFailed, string.Empty));
                 //aniDBCommands.Clear();
                 //OnQueueUpdateEvent(new QueueUpdateEventArgs(this.QueueCount));
                 // this will exit the thread
@@ -1077,9 +1077,7 @@ namespace Shoko.Server
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
-            if (anime == null)
-                anime = new SVR_AniDB_Anime();
+            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
             anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
@@ -1136,21 +1134,6 @@ namespace Shoko.Server
             }
 
             return anime;
-        }
-
-        public SVR_AniDB_Anime GetAnimeInfoHTTPFromCache(ISession session, int animeID, bool downloadRelations)
-        {
-            AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
-            lock (lockAniDBConnections)
-            {
-                getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
-                getAnimeCmd.Init(animeID, false, false, true);
-                getAnimeCmd.Process();
-            }
-
-            return getAnimeCmd.Anime != null
-                ? SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd)
-                : null;
         }
 
         public bool ValidAniDBCredentials()

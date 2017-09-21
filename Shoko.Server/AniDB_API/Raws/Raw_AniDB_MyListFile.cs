@@ -46,12 +46,12 @@ namespace AniDBAPI
             EpisodeID = 0;
             AnimeID = 0;
             GroupID = 0;
-            FileDate = "";
+            FileDate = string.Empty;
             ViewDateUDP = 0;
-            ViewDateHTTP = "";
-            Storage = "";
-            Source = "";
-            Other = "";
+            ViewDateHTTP = string.Empty;
+            Storage = string.Empty;
+            Source = string.Empty;
+            Other = string.Empty;
             FileState = 0;
             WatchedDate = null;
         }

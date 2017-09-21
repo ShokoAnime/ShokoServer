@@ -237,7 +237,7 @@ namespace Shoko.Server.API
             }
             else
             {
-                return "";
+                return string.Empty;
             }
         }
     }
