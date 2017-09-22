@@ -1028,13 +1028,19 @@ namespace Shoko.Server
             SVR_AniDB_Anime anime;
             ISessionWrapper sessionWrapper = session.Wrap();
 
+            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
             bool skip = true;
-            if (forceRefresh)
-                skip = false;
-            else
+            bool animeRecentlyUpdated = false;
+            if (anime != null)
             {
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
-                if (anime == null) skip = false;
+                TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+            }
+            if (!animeRecentlyUpdated)
+            {
+                if (forceRefresh)
+                    skip = false;
+                else if (anime == null) skip = false;
             }
 
             if (skip)
