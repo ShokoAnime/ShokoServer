@@ -8,6 +8,7 @@ using AniDBAPI;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using NutzCode.CloudFileSystem;
+using Pri.LongPath;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
@@ -113,35 +114,48 @@ namespace Shoko.Server.Commands
                 {
                     // get info from AniDB
                     logger.Debug("Getting AniDB_File record from AniDB....");
-                    Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
-                    if (fileInfo != null)
+
+                    // check if we already have a record
+                    aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+
+                    if (aniFile == null)
                     {
-                        // check if we already have a record
-                        aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+                        aniFile = new SVR_AniDB_File();
+                        ForceAniDB = true;
+                    }
 
-                        if (aniFile == null)
-                            aniFile = new SVR_AniDB_File();
+                    if (ForceAniDB)
+                    {
+                        Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
+                        if (fileInfo != null)
+                        {
+                            SVR_AniDB_File.Populate(aniFile, fileInfo);
+                            if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                            {
+                                string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
+                                foreach (string epid in epIDs)
+                                {
+                                    if (!int.TryParse(epid, out int id)) continue;
+                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                    cmdEp.Save();
+                                }
+                            }
+                        }
+                        else aniFile = null;
+                    }
 
-                        SVR_AniDB_File.Populate(aniFile, fileInfo);
-
+                    if (aniFile != null)
+                    {
                         //overwrite with local file name
-                        string localFileName = vidLocal.FileName;
+                        string localFileName = vidLocal.GetBestVideoLocalPlace().FullServerPath;
+                        localFileName = !string.IsNullOrEmpty(localFileName)
+                            ? Path.GetFileName(localFileName)
+                            : vidLocal.FileName;
                         aniFile.FileName = localFileName;
 
                         RepoFactory.AniDB_File.Save(aniFile, false);
                         aniFile.CreateLanguages();
                         aniFile.CreateCrossEpisodes(localFileName);
-
-                        if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
-                        {
-                            string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                            foreach (string epid in epIDs)
-                            {
-                                if (!int.TryParse(epid, out int id)) continue;
-                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                cmdEp.Save();
-                            }
-                        }
 
                         animeID = aniFile.AnimeID;
                     }
@@ -170,12 +184,14 @@ namespace Shoko.Server.Commands
                                     vidLocal.ED2KHash);
                                 return;
                             }
+                            string fileName = vidLocal.GetBestVideoLocalPlace().FullServerPath;
+                            fileName = !string.IsNullOrEmpty(fileName) ? Path.GetFileName(fileName) : vidLocal.FileName;
                             foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
                             {
                                 CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
                                 {
                                     Hash = vidLocal.ED2KHash,
-                                    FileName = vidLocal.FileName,
+                                    FileName = fileName,
                                     FileSize = vidLocal.FileSize,
                                     CrossRefSource = (int)CrossRefSource.WebCache,
                                     AnimeID = xref.AnimeID,

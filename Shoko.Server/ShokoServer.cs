@@ -1351,7 +1351,7 @@ namespace Shoko.Server
             Importer.SendUserInfoUpdate(false);
         }
 
-        public static void StartWatchingFiles()
+        public static void StartWatchingFiles(bool log = true)
         {
             StopWatchingFiles();
             StopCloudWatchTimer();
@@ -1361,13 +1361,13 @@ namespace Shoko.Server
             {
                 try
                 {
-                    if (share.FolderIsWatched)
+                    if (share.FolderIsWatched && log)
                     {
                         logger.Info($"Watching ImportFolder: {share.ImportFolderName} || {share.ImportFolderLocation}");
                     }
                     if (share.CloudID == null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
-                        logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
+                        if (log) logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
                         RecoveringFileSystemWatcher fsw = new RecoveringFileSystemWatcher
                         {
                             Path = share.ImportFolderLocation
@@ -1385,7 +1385,7 @@ namespace Shoko.Server
                     }
                     else if (!share.FolderIsWatched)
                     {
-                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
+                        if (log) logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
                             share.ImportFolderLocation);
                     }
                 }

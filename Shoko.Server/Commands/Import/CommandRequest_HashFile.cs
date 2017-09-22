@@ -146,7 +146,7 @@ namespace Shoko.Server.Commands
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
-                    Console.WriteLine($"Attempt # {numAttempts}");
+                    Console.WriteLine($@"Attempt # {numAttempts}");
                 }
 
                 // if we failed to access the file, get ouuta here
@@ -181,18 +181,22 @@ namespace Shoko.Server.Commands
 
                 if (vlocalplace.FullServerPath == null)
                 {
-                    if (vlocal.Places.Count == 1) RepoFactory.VideoLocal.Delete(vlocal);
+                    if (vlocal.Places.Count == 1)
+                    {
+                        RepoFactory.VideoLocal.Delete(vlocal);
+                        vlocal = null;
+                    }
                     RepoFactory.VideoLocalPlace.Delete(vlocalplace);
                     vlocalplace = null;
-                    vlocal = null;
-                } else if (ForceHash)
+                }
+                if (vlocal != null && ForceHash)
                 {
                     vlocal.FileSize = filesize;
                     vlocal.DateTimeUpdated = DateTime.Now;
                 }
             }
 
-            if (vlocalplace == null)
+            if (vlocal == null)
             {
                 logger.Trace("VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal
@@ -208,13 +212,18 @@ namespace Shoko.Server.Commands
                     IsIgnored = 0,
                     IsVariation = 0
                 };
+            }
 
+            if (vlocalplace == null)
+            {
                 vlocalplace = new SVR_VideoLocal_Place
                 {
                     FilePath = filePath,
                     ImportFolderID = nshareID,
                     ImportFolderType = folder.ImportFolderType
                 };
+                // Male sure we have an ID
+                RepoFactory.VideoLocalPlace.Save(vlocalplace);
             }
 
             // check if we need to get a hash this file

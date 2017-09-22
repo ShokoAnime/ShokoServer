@@ -613,7 +613,7 @@ namespace Shoko.Server
                     ret.VideoLocal = null;
                     ret.Success = false;
                     ret.NewFileName = errorString;
-                    ShokoServer.StartWatchingFiles();
+                    ShokoServer.StartWatchingFiles(false);
                     return ret;
                 }
                 vid.FileName = name;
@@ -630,7 +630,7 @@ namespace Shoko.Server
                 ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
-            ShokoServer.StartWatchingFiles();
+            ShokoServer.StartWatchingFiles(false);
             return ret;
         }
 
