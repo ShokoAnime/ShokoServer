@@ -122,7 +122,7 @@ namespace Shoko.Server.Models
                 {
                     logger.Info(
                         $"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r?.Error ?? "Result is null"}");
-                    ShokoServer.StartWatchingFiles();
+                    ShokoServer.StartWatchingFiles(false);
                     return false;
                 }
 
@@ -131,7 +131,7 @@ namespace Shoko.Server.Models
                 if (tup == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
-                    ShokoServer.StartWatchingFiles();
+                    ShokoServer.StartWatchingFiles(false);
                     return false;
                 }
 
@@ -178,7 +178,7 @@ namespace Shoko.Server.Models
                 logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                 logger.Error(ex, ex.ToString());
             }
-            ShokoServer.StartWatchingFiles();
+            ShokoServer.StartWatchingFiles(false);
             return true;
         }
 
@@ -702,8 +702,8 @@ namespace Shoko.Server.Models
             {
                 logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
                     newFullServerPath, fr?.Error ?? "No Error String");
-                ShokoServer.StartWatchingFiles();
-                return "ERROR: " + fr?.Error ?? "Error moving filebut no error string";
+                ShokoServer.StartWatchingFiles(false);
+                return "ERROR: " + (fr?.Error ?? "Error moving file, but no error string");
             }
 
             string originalFileName = FullServerPath;
@@ -755,7 +755,7 @@ namespace Shoko.Server.Models
                 if (dd != null && dd.IsOk && dd.Result is IDirectory)
                     RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
             }
-            ShokoServer.StartWatchingFiles();
+            ShokoServer.StartWatchingFiles(false);
             return newFolderPath;
         }
 
@@ -914,7 +914,7 @@ namespace Shoko.Server.Models
                     {
                         logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
                             newFullServerPath, fr?.Error ?? "No Error String");
-                        ShokoServer.StartWatchingFiles();
+                        ShokoServer.StartWatchingFiles(false);
                         return false;
                     }
 
@@ -967,7 +967,7 @@ namespace Shoko.Server.Models
                         if (dd != null && dd.IsOk && dd.Result is IDirectory)
                             RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                     }
-                    ShokoServer.StartWatchingFiles();
+                    ShokoServer.StartWatchingFiles(false);
                 }
             }
             catch (Exception ex)

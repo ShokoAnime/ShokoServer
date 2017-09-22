@@ -56,6 +56,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void Delete(SVR_VideoLocal_Place obj)
         {
+            // Remove associated duplicate file records
+            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(obj.FilePath, obj.ImportFolderID);
+            if (dups != null && dups.Count > 0) dups.ForEach(RepoFactory.DuplicateFile.Delete);
+
             base.Delete(obj);
             foreach (SVR_AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
             {
