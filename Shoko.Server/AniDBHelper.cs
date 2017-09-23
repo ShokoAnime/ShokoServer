@@ -909,11 +909,8 @@ namespace Shoko.Server
                         }
                         // update the missing episode stats on groups and children
                         SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                        if (series != null)
-                        {
-                            series.QueueUpdateStats();
-                            //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-                        }
+                        series?.QueueUpdateStats();
+                        //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                     }
                 }
             }
@@ -1025,10 +1022,9 @@ namespace Shoko.Server
         {
             //if (!Login()) return null;
 
-            SVR_AniDB_Anime anime;
             ISessionWrapper sessionWrapper = session.Wrap();
 
-            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
             bool skip = true;
             bool animeRecentlyUpdated = false;
             if (anime != null)
@@ -1078,16 +1074,15 @@ namespace Shoko.Server
         private SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
-            SVR_AniDB_Anime anime = null;
             ISessionWrapper sessionWrapper = session.Wrap();
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
-            anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
+            if (anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                downloadRelations);
+                downloadRelations)) return null;
 
             // Request an image download
             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
