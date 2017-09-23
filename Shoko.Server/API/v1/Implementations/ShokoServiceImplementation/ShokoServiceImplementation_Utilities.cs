@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using AniDBAPI;
 using AniDBAPI.Commands;
@@ -904,24 +905,11 @@ namespace Shoko.Server
 
             AiringState airState = (AiringState) airingState;
 
-            Dictionary<int, SVR_AniDB_Anime> animeCache = new Dictionary<int, SVR_AniDB_Anime>();
-            Dictionary<int, List<CL_GroupVideoQuality>> gvqCache =
-                new Dictionary<int, List<CL_GroupVideoQuality>>();
-            Dictionary<int, List<CL_GroupFileSummary>> gfqCache =
-                new Dictionary<int, List<CL_GroupFileSummary>>();
-
             try
             {
-                int i = 0;
                 IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
                 foreach (SVR_AnimeSeries ser in allSeries)
                 {
-                    i++;
-                    //string msg = string.Format("Updating series {0} of {1} ({2}) -  {3}", i, allSeries.Count, ser.Anime.MainTitle, DateTime.Now);
-                    //logger.Debug(msg);
-
-                    //if (ser.Anime.AnimeID != 69) continue;
-
                     int missingEps = ser.MissingEpisodeCount;
                     if (onlyMyGroups) missingEps = ser.MissingEpisodeCountGroups;
 
@@ -930,128 +918,55 @@ namespace Shoko.Server
                     if (!finishedAiring && airState == AiringState.FinishedAiring) continue;
                     if (finishedAiring && airState == AiringState.StillAiring) continue;
 
-                    DateTime start = DateTime.Now;
-                    TimeSpan ts = DateTime.Now - start;
+                    if (missingEps <= 0) continue;
 
-                    double totalTiming = 0;
-                    double timingVids = 0;
-                    double timingSeries = 0;
-                    double timingAnime = 0;
-                    double timingQuality = 0;
-                    double timingEps = 0;
-                    double timingAniEps = 0;
-                    int epCount = 0;
+                    SVR_AniDB_Anime anime = ser.GetAnime();
+                    List<CL_GroupVideoQuality> summ = GetGroupVideoQualitySummary(anime.AnimeID);
+                    List<CL_GroupFileSummary> summFiles = GetGroupFileSummary(anime.AnimeID);
 
-                    DateTime oStart = DateTime.Now;
+                    StringBuilder groupSummaryBuilder = new StringBuilder();
+                    StringBuilder groupSummarySimpleBuilder = new StringBuilder();
 
-                    if (missingEps > 0)
+                    foreach (CL_GroupVideoQuality gvq in summ)
                     {
-                        // find the missing episodes
-                        start = DateTime.Now;
-                        List<SVR_AnimeEpisode> eps = ser.GetAnimeEpisodes();
-                        ts = DateTime.Now - start;
-                        timingEps += ts.TotalMilliseconds;
+                        if (groupSummaryBuilder.Length > 0)
+                            groupSummaryBuilder.Append(" --- ");
 
-                        epCount = eps.Count;
-                        foreach (SVR_AnimeEpisode aep in ser.GetAnimeEpisodes())
+                        groupSummaryBuilder.Append(
+                            $"{gvq.GroupNameShort} - {gvq.Resolution}/{gvq.VideoSource}/{gvq.VideoBitDepth}bit ({gvq.NormalEpisodeNumberSummary})");
+                    }
+
+                    foreach (CL_GroupFileSummary gfq in summFiles)
+                    {
+                        if (groupSummarySimpleBuilder.Length > 0)
+                            groupSummarySimpleBuilder.Append(", ");
+
+                        groupSummarySimpleBuilder.Append($"{gfq.GroupNameShort} ({gfq.NormalEpisodeNumberSummary})");
+                    }
+
+                    // find the missing episodes
+                    foreach (SVR_AnimeEpisode aep in ser.GetAnimeEpisodes())
+                    {
+                        if (regularEpisodesOnly && aep.EpisodeTypeEnum != EpisodeType.Episode) continue;
+
+                        AniDB_Episode aniep = aep.AniDB_Episode;
+                        if (aniep.GetFutureDated()) continue;
+
+                        List<SVR_VideoLocal> vids = aep.GetVideoLocals();
+
+                        if (vids.Count != 0) continue;
+
+                        contracts.Add(new CL_MissingEpisode
                         {
-                            if (regularEpisodesOnly && aep.EpisodeTypeEnum != EpisodeType.Episode) continue;
-
-                            AniDB_Episode aniep = aep.AniDB_Episode;
-                            if (aniep.GetFutureDated()) continue;
-
-                            start = DateTime.Now;
-                            List<SVR_VideoLocal> vids = aep.GetVideoLocals();
-                            ts = DateTime.Now - start;
-                            timingVids += ts.TotalMilliseconds;
-
-                            if (vids.Count == 0)
-                            {
-                                CL_MissingEpisode cl = new CL_MissingEpisode
-                                {
-                                    AnimeID = ser.AniDB_ID
-                                };
-                                start = DateTime.Now;
-                                cl.AnimeSeries = ser.GetUserContract(userID);
-                                ts = DateTime.Now - start;
-                                timingSeries += ts.TotalMilliseconds;
-
-                                SVR_AniDB_Anime anime = null;
-                                if (animeCache.ContainsKey(ser.AniDB_ID))
-                                    anime = animeCache[ser.AniDB_ID];
-                                else
-                                {
-                                    start = DateTime.Now;
-                                    anime = ser.GetAnime();
-                                    ts = DateTime.Now - start;
-                                    timingAnime += ts.TotalMilliseconds;
-                                    animeCache[ser.AniDB_ID] = anime;
-                                }
-
-                                cl.AnimeTitle = anime.MainTitle;
-
-                                start = DateTime.Now;
-                                cl.GroupFileSummary = string.Empty;
-                                List<CL_GroupVideoQuality> summ = null;
-                                if (gvqCache.ContainsKey(ser.AniDB_ID))
-                                    summ = gvqCache[ser.AniDB_ID];
-                                else
-                                {
-                                    summ = GetGroupVideoQualitySummary(anime.AnimeID);
-                                    gvqCache[ser.AniDB_ID] = summ;
-                                }
-
-                                foreach (CL_GroupVideoQuality gvq in summ)
-                                {
-                                    if (cl.GroupFileSummary.Length > 0)
-                                        cl.GroupFileSummary += " --- ";
-
-                                    cl.GroupFileSummary += string.Format("{0} - {1}/{2}/{3}bit ({4})",
-                                        gvq.GroupNameShort, gvq.Resolution,
-                                        gvq.VideoSource, gvq.VideoBitDepth, gvq.NormalEpisodeNumberSummary);
-                                }
-
-                                cl.GroupFileSummarySimple = string.Empty;
-                                List<CL_GroupFileSummary> summFiles = null;
-                                if (gfqCache.ContainsKey(ser.AniDB_ID))
-                                    summFiles = gfqCache[ser.AniDB_ID];
-                                else
-                                {
-                                    summFiles = GetGroupFileSummary(anime.AnimeID);
-                                    gfqCache[ser.AniDB_ID] = summFiles;
-                                }
-
-                                foreach (CL_GroupFileSummary gfq in summFiles)
-                                {
-                                    if (cl.GroupFileSummarySimple.Length > 0)
-                                        cl.GroupFileSummarySimple += ", ";
-
-                                    cl.GroupFileSummarySimple += string.Format("{0} ({1})", gfq.GroupNameShort,
-                                        gfq.NormalEpisodeNumberSummary);
-                                }
-
-                                ts = DateTime.Now - start;
-                                timingQuality += ts.TotalMilliseconds;
-                                animeCache[ser.AniDB_ID] = anime;
-
-                                start = DateTime.Now;
-                                cl.EpisodeID = aniep.EpisodeID;
-                                cl.EpisodeNumber = aniep.EpisodeNumber;
-                                cl.EpisodeType = aniep.EpisodeType;
-                                contracts.Add(cl);
-                                ts = DateTime.Now - start;
-                                timingAniEps += ts.TotalMilliseconds;
-                            }
-                        }
-
-                        ts = DateTime.Now - oStart;
-                        totalTiming = ts.TotalMilliseconds;
-
-                        string msg2 =
-                            string.Format("Timing for series {0} ({1}) : {2}/{3}/{4}/{5}/{6}/{7} - {8} eps (AID: {9})",
-                                ser.GetAnime().MainTitle, totalTiming, timingVids, timingSeries,
-                                timingAnime, timingQuality, timingEps, timingAniEps, epCount, ser.GetAnime().AnimeID);
-                        //logger.Debug(msg2);
+                            AnimeID = ser.AniDB_ID,
+                            AnimeSeries = ser.GetUserContract(userID),
+                            AnimeTitle = anime.MainTitle,
+                            EpisodeID = aniep.EpisodeID,
+                            EpisodeNumber = aniep.EpisodeNumber,
+                            EpisodeType = aniep.EpisodeType,
+                            GroupFileSummary = groupSummaryBuilder.ToString(),
+                            GroupFileSummarySimple = groupSummarySimpleBuilder.ToString()
+                        });
                     }
                 }
                 contracts = contracts.OrderBy(a => a.AnimeTitle)
@@ -1069,21 +984,6 @@ namespace Shoko.Server
         public List<CL_MissingFile> GetMyListFilesForRemoval(int userID)
         {
             List<CL_MissingFile> contracts = new List<CL_MissingFile>();
-
-            /*Contract_MissingFile missingFile2 = new Contract_MissingFile();
-			missingFile2.AnimeID = 1;
-			missingFile2.AnimeTitle = "Gundam Age";
-			missingFile2.EpisodeID = 2;
-			missingFile2.EpisodeNumber = 7;
-			missingFile2.FileID = 8;
-			missingFile2.AnimeSeries = null;
-			contracts.Add(missingFile2);
-
-			Thread.Sleep(5000);
-
-			return contracts;*/
-
-
             Dictionary<int, SVR_AniDB_Anime> animeCache = new Dictionary<int, SVR_AniDB_Anime>();
             Dictionary<int, SVR_AnimeSeries> animeSeriesCache = new Dictionary<int, SVR_AnimeSeries>();
 
@@ -1730,50 +1630,55 @@ namespace Shoko.Server
                                 bool foundSummaryRecord = false;
                                 foreach (CL_GroupFileSummary contract in vidQuals)
                                 {
-                                    if (contract.GroupName.Equals(aniFile.Anime_GroupName,
-                                        StringComparison.InvariantCultureIgnoreCase))
-                                    {
-                                        foundSummaryRecord = true;
+                                    if (!contract.GroupName.Equals(aniFile.Anime_GroupName,
+                                        StringComparison.InvariantCultureIgnoreCase)) continue;
 
-                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
+                                    foundSummaryRecord = true;
+
+                                    switch (animeEp.EpisodeTypeEnum)
+                                    {
+                                        case EpisodeType.Episode:
                                             contract.FileCountNormal++;
-                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Special)
+                                            break;
+                                        case EpisodeType.Special:
                                             contract.FileCountSpecials++;
-                                        contract.TotalFileSize += aniFile.FileSize;
-                                        contract.TotalRunningTime += aniFile.File_LengthSeconds;
-
-                                        if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
-                                        {
-                                            if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
-                                                contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
-                                        }
+                                            break;
                                     }
+                                    contract.TotalFileSize += aniFile.FileSize;
+                                    contract.TotalRunningTime += aniFile.File_LengthSeconds;
+
+                                    if (animeEp.EpisodeTypeEnum != EpisodeType.Episode) continue;
+                                    if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+                                        contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
                                 }
-                                if (!foundSummaryRecord)
+                                if (foundSummaryRecord) continue;
+                                CL_GroupFileSummary cl = new CL_GroupFileSummary
                                 {
-                                    CL_GroupFileSummary cl = new CL_GroupFileSummary
-                                    {
-                                        FileCountNormal = 0,
-                                        FileCountSpecials = 0,
-                                        TotalFileSize = 0,
-                                        TotalRunningTime = 0
-                                    };
-                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode) cl.FileCountNormal++;
-                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Special) cl.FileCountSpecials++;
-                                    cl.TotalFileSize += aniFile.FileSize;
-                                    cl.TotalRunningTime += aniFile.File_LengthSeconds;
-
-                                    cl.GroupName = aniFile.Anime_GroupName;
-                                    cl.GroupNameShort = aniFile.Anime_GroupNameShort;
-                                    cl.NormalEpisodeNumbers = new List<int>();
-                                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode)
-                                    {
-                                        if (!cl.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
-                                            cl.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
-                                    }
-
-                                    vidQuals.Add(cl);
+                                    FileCountNormal = 0,
+                                    FileCountSpecials = 0,
+                                    TotalFileSize = 0,
+                                    TotalRunningTime = 0
+                                };
+                                switch (animeEp.EpisodeTypeEnum)
+                                {
+                                    case EpisodeType.Episode:
+                                        cl.FileCountNormal++;
+                                        break;
+                                    case EpisodeType.Special:
+                                        cl.FileCountSpecials++;
+                                        break;
                                 }
+                                cl.TotalFileSize += aniFile.FileSize;
+                                cl.TotalRunningTime += aniFile.File_LengthSeconds;
+
+                                cl.GroupName = aniFile.Anime_GroupName;
+                                cl.GroupNameShort = aniFile.Anime_GroupNameShort;
+                                cl.NormalEpisodeNumbers = new List<int>();
+                                if (animeEp.EpisodeTypeEnum == EpisodeType.Episode &&
+                                    !cl.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+                                    cl.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+
+                                vidQuals.Add(cl);
                             }
                             else
                             {

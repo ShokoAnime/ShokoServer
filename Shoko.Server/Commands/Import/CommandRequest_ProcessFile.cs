@@ -333,6 +333,10 @@ namespace Shoko.Server.Commands
                         }
                     }
                 }
+                else
+                {
+                    logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
+                }
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                 // It imports default unwatched, so we only need it to do anything if we want it watched
