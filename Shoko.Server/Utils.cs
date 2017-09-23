@@ -615,9 +615,9 @@ namespace Shoko.Server
             ret = ret.Replace(@"<", @"‹");
             ret = ret.Replace(@"?", @"﹖");
             ret = ret.Replace(@"...", @"…");
-            if (ret.StartsWith(".")) ret = "․" + ret.Substring(1, ret.Length - 1);
-            while (ret.EndsWith("."))
-                ret = ret.Substring(0, ret.Length - 1) + '․';
+            if (ret.StartsWith(".", StringComparison.Ordinal)) ret = "․" + ret.Substring(1, ret.Length - 1);
+            if (ret.EndsWith(".", StringComparison.Ordinal))
+                ret = ret.Substring(0, ret.Length - 1) + "․";
             return ret.Trim();
         }
 

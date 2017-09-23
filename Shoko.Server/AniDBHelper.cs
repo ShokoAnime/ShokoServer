@@ -1052,7 +1052,10 @@ namespace Shoko.Server
                 getAnimeCmd.Init(animeID, false, forceRefresh, false);
                 var result = getAnimeCmd.Process();
                 if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                {
+                    logger.Error($"Failed get anime info for {animeID}. AniDB ban or No Such Anime returned");
                     return null;
+                }
             }
 
 
@@ -1068,6 +1071,7 @@ namespace Shoko.Server
                 }*/
             }
 
+            logger.Error($"Failed get anime info for {animeID}. Anime was null");
             return null;
         }
 
@@ -1079,10 +1083,14 @@ namespace Shoko.Server
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
-            if (anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
+            if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                downloadRelations)) return null;
+                downloadRelations))
+            {
+                logger.Error($"Failed populate anime info for {animeID}");
+                return null;
+            }
 
             // Request an image download
             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
