@@ -335,6 +335,7 @@
     <Compile Include="API\v2\Models\common\Filters.cs" />
     <Compile Include="API\v2\Models\common\SearchResult.cs" />
     <Compile Include="API\v2\Models\common\Sizes.cs" />
+    <Compile Include="API\v2\Models\core\DatabaseSettings.cs" />
     <Compile Include="API\v2\Models\core\Logs.cs" />
     <Compile Include="API\v2\Models\core\API_Call_Parameters.cs" />
     <Compile Include="API\v2\Models\common\Episode.cs" />

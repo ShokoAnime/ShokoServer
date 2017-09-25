@@ -1,14 +1,21 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.SqlServer.Management.Smo;
 using Nancy;
 using Nancy.ModelBinding;
 using Pri.LongPath;
 using Shoko.Models.Client;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
+using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
+using Settings = Shoko.Server.API.v2.Models.core.Settings;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -48,10 +55,17 @@ namespace Shoko.Server.API.v2.Modules
             // Test AniDB login
             Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
 
-            // TODO Database Setting and Connection Endpoints
-            // set db type
-            // db location and test connection
-            // individual specific db settings
+            // Get Database Settings
+            Get["/database", true] = async (x,ct) => await Task.Factory.StartNew(GetDatabaseSettings, ct);
+
+            // Set Database Settings
+            Post["/database", true] = async (x,ct) => await Task.Factory.StartNew(SetDatabaseSettings, ct);
+
+            // Test Database Connection
+            Get["/database/test", true] = async (x,ct) => await Task.Factory.StartNew(TestDatabaseConnection, ct);
+
+            // Get SQL Server Instances on the Machine
+            Get["/database/sqlserverinstance", true] = async (x,ct) => await Task.Factory.StartNew(GetMSSQLInstances, ct);
 
             // Get the whole settings file
             Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig, ct);
@@ -301,7 +315,123 @@ namespace Shoko.Server.API.v2.Modules
 
         #endregion
 
-        #region 02. Settings
+        #region 02. Database
+
+        /// <summary>
+        /// Get Database Settings
+        /// </summary>
+        /// <returns></returns>
+        private object GetDatabaseSettings()
+        {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
+            var settings = new DatabaseSettings
+            {
+                db_type = ServerSettings.DatabaseType,
+                mysql_hostname = ServerSettings.MySQL_Hostname,
+                mysql_password = ServerSettings.MySQL_Password,
+                mysql_schemaname = ServerSettings.MySQL_SchemaName,
+                mysql_username = ServerSettings.MySQL_Username,
+                sqlite_databasefile = ServerSettings.DatabaseFile,
+                sqlserver_databasename = ServerSettings.DatabaseName,
+                sqlserver_databaseserver = ServerSettings.DatabaseServer,
+                sqlserver_password = ServerSettings.DatabasePassword,
+                sqlserver_username = ServerSettings.DatabaseUsername
+            };
+
+            return settings;
+        }
+
+        /// <summary>
+        /// Set Database Settings
+        /// </summary>
+        /// <returns></returns>
+        private object SetDatabaseSettings()
+        {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
+            DatabaseSettings settings = this.Bind();
+            string dbtype = settings.db_type.Trim();
+            if (dbtype.Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(settings.mysql_hostname) || string.IsNullOrEmpty(settings.mysql_password) ||
+                    string.IsNullOrEmpty(settings.mysql_schemaname) || string.IsNullOrEmpty(settings.mysql_username))
+                    return APIStatus.badRequest("An invalid setting was passed");
+                ServerSettings.DatabaseType = Constants.DatabaseType.MySQL;
+                ServerSettings.MySQL_Hostname = settings.mysql_hostname;
+                ServerSettings.MySQL_Password = settings.mysql_password;
+                ServerSettings.MySQL_SchemaName = settings.mysql_schemaname;
+                ServerSettings.MySQL_Username = settings.mysql_username;
+                return APIStatus.statusOK();
+            }
+            if (dbtype.Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(settings.sqlserver_databasename) || string.IsNullOrEmpty(settings.sqlserver_databaseserver) ||
+                    string.IsNullOrEmpty(settings.sqlserver_password) || string.IsNullOrEmpty(settings.sqlserver_username))
+                    return APIStatus.badRequest("An invalid setting was passed");
+                ServerSettings.DatabaseType = Constants.DatabaseType.SqlServer;
+                ServerSettings.DatabaseServer = settings.sqlserver_databaseserver;
+                ServerSettings.DatabaseName = settings.sqlserver_databasename;
+                ServerSettings.DatabaseUsername = settings.sqlserver_username;
+                ServerSettings.DatabasePassword = settings.sqlserver_password;
+                return APIStatus.statusOK();
+            }
+            if (dbtype.Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(settings.sqlite_databasefile))
+                    return APIStatus.badRequest("An invalid setting was passed");
+                ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
+                ServerSettings.DatabaseFile = settings.sqlite_databasefile;
+                return APIStatus.statusOK();
+            }
+            return APIStatus.badRequest("An invalid setting was passed");
+        }
+
+        /// <summary>
+        /// Test Database Connection with Current Settings
+        /// </summary>
+        /// <returns>200 if connection successful, 400 otherwise</returns>
+        private object TestDatabaseConnection()
+        {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
+            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.MySQL,
+                    StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())
+                return APIStatus.statusOK();
+
+            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.SqlServer,
+                    StringComparison.InvariantCultureIgnoreCase) && new SQLServer().TestConnection())
+                return APIStatus.statusOK();
+
+            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
+                StringComparison.InvariantCultureIgnoreCase))
+                return APIStatus.statusOK();
+
+            return APIStatus.badRequest("Failed to Connect");
+        }
+
+        /// <summary>
+        /// Get SQL Server Instances Running on this Machine
+        /// </summary>
+        /// <returns>List of strings that may be passed as sqlserver_databaseserver</returns>
+        private object GetMSSQLInstances()
+        {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
+            List<string> instances = new List<string>();
+
+            DataTable dt = SmoApplication.EnumAvailableSqlServers();
+            if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
+
+            return instances;
+        }
+        #endregion
+
+        #region 03. Settings
 
         /// <summary>
         /// Return body of current working settings.json - this could act as backup

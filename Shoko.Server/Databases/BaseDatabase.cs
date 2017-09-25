@@ -45,6 +45,12 @@ namespace Shoko.Server.Databases
         protected abstract ArrayList ExecuteReader(T connection, string command);
         public abstract string GetConnectionString();
 
+        public virtual bool TestConnection()
+        {
+            // For SQLite, we assume conection succeeds
+            return true;
+        }
+
         protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
         protected Dictionary<string, Dictionary<string, Versions>> AllVersions { get; set; }

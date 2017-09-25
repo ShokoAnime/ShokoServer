@@ -691,6 +691,26 @@ namespace Shoko.Server.Databases
             }
         }
 
+        public override bool TestConnection()
+        {
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    var query = "select 1";
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    conn.Open();
+                    cmd.ExecuteScalar();
+                    return true;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            return false;
+        }
+
         protected override Tuple<bool, string> ExecuteCommand(MySqlConnection connection, string command)
         {
             try
