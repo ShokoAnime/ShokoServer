@@ -19,13 +19,16 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Preinit Module for connection testing and setup
         /// Settings will be loaded prior to this starting
+        /// Unless otherwise noted, these will only work before server init
         /// </summary>
         public Init() : base("/api/init")
         {
             // Get version, regardless of server status
+            // This will work after init
             Get["/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion, ct);
 
             // Get the startup state
+            // This will work after init
             Get["/status", true] = async (x, ct) => await Task.Factory.StartNew(GetServerStatus, ct);
 
             // Get the Default User Credentials
@@ -38,26 +41,37 @@ namespace Shoko.Server.API.v2.Modules
             // Set AniDB user/pass
             // Pass this a Credentials object
             Post["/anidb", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct);
+
             // Get existing AniDB user, don't provide pass
             Get["/anidb", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct);
+
             // Test AniDB login
             Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
 
+            // TODO Database Setting and Connection Endpoints
+            // set db type
+            // db location and test connection
+            // individual specific db settings
+
             // Get the whole settings file
             Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig, ct);
+
             // Replace the whole settings file
             Post["/config", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig, ct);
+
             // Get a single setting value
             Get["/setting", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting, ct);
+
             // Set a single setting value
             Patch["/setting", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting, ct);
 
-            // Start the server, or do nothing
+            // Start the server
             Get["/startserver", true] = async (x, ct) => await Task.Factory.StartNew(StartServer, ct);
         }
 
         /// <summary>
         /// Return current version of ShokoServer
+        /// This will work after init
         /// </summary>
         /// <returns></returns>
         private object GetVersion()
@@ -140,6 +154,7 @@ namespace Shoko.Server.API.v2.Modules
 
         /// <summary>
         /// Gets various information about the startup status of the server
+        /// This will work after init
         /// </summary>
         /// <returns></returns>
         private object GetServerStatus()
@@ -162,7 +177,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetDefaultUserCredentials()
         {
             if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only request the user's credentials on first run");
+                return APIStatus.badRequest("You may only request the default user's credentials on first run");
 
             return new Credentials
             {
@@ -177,6 +192,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetDefaultUserCredentials()
         {
+            if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only set the default user's credentials on first run");
+
             try
             {
                 Credentials credentials = this.Bind();
@@ -210,6 +228,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetAniDB()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             Credentials cred = this.Bind();
             if (string.IsNullOrEmpty(cred.login) || string.IsNullOrEmpty(cred.password))
                 return new APIMessage(400, "Login and Password missing");
@@ -232,6 +253,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object TestAniDB()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             ShokoService.AnidbProcessor.ForceLogout();
             ShokoService.AnidbProcessor.CloseConnections();
 
@@ -255,6 +279,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetAniDB()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             try
             {
                 Credentials cred = new Credentials
@@ -282,6 +309,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object ExportConfig()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             try
             {
                 return ServerSettings.appSettings;
@@ -298,6 +328,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object ImportConfig()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
 
@@ -323,6 +356,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetSetting()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
@@ -357,6 +393,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetSetting()
         {
+            if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+                return APIStatus.badRequest("You may only do this before server init");
+
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
