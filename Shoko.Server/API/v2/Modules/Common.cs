@@ -31,8 +31,6 @@ namespace Shoko.Server.API.v2.Modules
     {
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
 
-        public static int version = 2;
-
         public Common() : base("/api")
         {
             // its a setting per module, so every call made to this module requires apikey

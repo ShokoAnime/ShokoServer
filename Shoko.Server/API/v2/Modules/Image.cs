@@ -18,8 +18,6 @@ namespace Shoko.Server.API.v2.Modules
 {
     public class Image : Nancy.NancyModule
     {
-        public static int version = 1;
-
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public Image() : base("/api")
