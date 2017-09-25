@@ -111,19 +111,16 @@ namespace Shoko.Server.Databases
 
         internal void PreFillVersions(IEnumerable<DatabaseCommand> commands)
         {
-            if (AllVersions.Count == 1 && AllVersions.Values.ElementAt(0).Count == 1)
+            if (AllVersions.Count != 1 || AllVersions.Values.ElementAt(0).Count != 1) return;
+
+            Versions v = AllVersions.Values.ElementAt(0).Values.ElementAt(0);
+            string value = v.VersionValue;
+            AllVersions.Clear();
+            RepoFactory.Versions.Delete(v);
+            foreach (DatabaseCommand dc in commands)
             {
-                Versions v = AllVersions.Values.ElementAt(0).Values.ElementAt(0);
-                string value = v.VersionValue;
-                AllVersions.Clear();
-                RepoFactory.Versions.Delete(v);
-                foreach (DatabaseCommand dc in commands)
-                {
-                    if (dc.Version <= int.Parse(value))
-                    {
-                        AddVersion(dc.Version.ToString(), dc.Revision.ToString(), dc.CommandName);
-                    }
-                }
+                if (dc.Version <= int.Parse(value))
+                    AddVersion(dc.Version.ToString(), dc.Revision.ToString(), dc.CommandName);
             }
         }
 
@@ -151,12 +148,10 @@ namespace Shoko.Server.Databases
 
         public Tuple<bool, string> ExecuteCommand(T connection, DatabaseCommand cmd)
         {
-            if (cmd.Version != 0 && cmd.Revision != 0)
-            {
-                if (AllVersions.ContainsKey(cmd.Version.ToString()) &&
-                    AllVersions[cmd.Version.ToString()].ContainsKey(cmd.Revision.ToString()))
-                    return new Tuple<bool, string>(true, null);
-            }
+            if (cmd.Version != 0 && cmd.Revision != 0 && AllVersions.ContainsKey(cmd.Version.ToString()) &&
+                AllVersions[cmd.Version.ToString()].ContainsKey(cmd.Revision.ToString()))
+                return new Tuple<bool, string>(true, null);
+
             Tuple<bool, string> ret;
 
             switch (cmd.Type)
@@ -180,9 +175,8 @@ namespace Shoko.Server.Databases
                     break;
             }
             if (cmd.Version != 0 && ret.Item1 && cmd.Type != DatabaseCommandType.PostDatabaseFix)
-            {
                 AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
-            }
+
             return ret;
         }
 
@@ -216,7 +210,7 @@ namespace Shoko.Server.Databases
         {
             // group filters
 
-            if (RepoFactory.GroupFilter.GetAll().Count() > 0) return;
+            if (RepoFactory.GroupFilter.GetAll().Any()) return;
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
@@ -371,7 +365,7 @@ namespace Shoko.Server.Databases
 
         private void CreateInitialUsers()
         {
-            if (RepoFactory.JMMUser.GetAll().Count() > 0) return;
+            if (RepoFactory.JMMUser.GetAll().Any()) return;
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
@@ -382,8 +376,8 @@ namespace Shoko.Server.Databases
                 IsAdmin = 1,
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
-                Password = string.Empty,
-                Username = Commons.Properties.Resources.Users_Default
+                Password = ServerSettings.DefaultUserPassword,
+                Username = ServerSettings.DefaultUserUsername
             };
             RepoFactory.JMMUser.Save(defaultUser, true);
 
@@ -402,7 +396,7 @@ namespace Shoko.Server.Databases
 
         private void CreateInitialRenameScript()
         {
-            if (RepoFactory.RenameScript.GetAll().Count() > 0) return;
+            if (RepoFactory.RenameScript.GetAll().Any()) return;
 
             RenameScript initialScript = new RenameScript();
 

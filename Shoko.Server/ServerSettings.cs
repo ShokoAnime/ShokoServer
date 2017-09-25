@@ -34,9 +34,7 @@ namespace Shoko.Server
         private static bool migrationError;
         private static bool migrationActive;
 
-        public static string Get(string key) => appSettings.ContainsKey(key)
-            ? appSettings[key]
-            : null;
+        public static string Get(string key) => appSettings.ContainsKey(key) ? appSettings[key] : null;
 
         public static bool Set(string key, string value)
         {
@@ -859,6 +857,9 @@ namespace Shoko.Server
         #endregion
 
         #region Database
+
+        public static string DefaultUserUsername { get; set; } = Commons.Properties.Resources.Users_Default;
+        public static string DefaultUserPassword { get; set; } = string.Empty;
 
         public static string DatabaseType
         {
@@ -1777,39 +1778,6 @@ namespace Shoko.Server
                 return ScheduledUpdateFrequency.Never; // default value
             }
             set => Set("Trakt_SyncFrequency", ((int) value).ToString());
-        }
-
-        public static bool Trakt_DownloadFanart
-        {
-            get
-            {
-                if (!bool.TryParse(Get("Trakt_DownloadFanart"), out bool val))
-                    val = true; // default
-                return val;
-            }
-            set => Set("Trakt_DownloadFanart", value.ToString());
-        }
-
-        public static bool Trakt_DownloadPosters
-        {
-            get
-            {
-                if (!bool.TryParse(Get("Trakt_DownloadPosters"), out bool val))
-                    val = true; // default
-                return val;
-            }
-            set => Set("Trakt_DownloadPosters", value.ToString());
-        }
-
-        public static bool Trakt_DownloadEpisodes
-        {
-            get
-            {
-                if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out bool val))
-                    val = true; // default
-                return val;
-            }
-            set => Set("Trakt_DownloadEpisodes", value.ToString());
         }
 
         #endregion
