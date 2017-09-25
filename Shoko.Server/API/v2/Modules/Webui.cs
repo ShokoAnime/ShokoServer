@@ -86,7 +86,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -149,7 +149,7 @@ namespace Shoko.Server.API.v2.Modules
                         }
                         File.AppendAllText("webui\\index.ver", channel + ">" + version);
 
-                        return APIStatus.statusOK();
+                        return APIStatus.OK();
                     }
                     catch
                     {
@@ -302,12 +302,12 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 catch
                 {
-                    return APIStatus.internalError("error while reading webui settings");
+                    return APIStatus.InternalError("error while reading webui settings");
                 }
             }
             else
             {
-                return APIStatus.notFound404();
+                return APIStatus.NotFound();
             }
         }
 
@@ -323,11 +323,11 @@ namespace Shoko.Server.API.v2.Modules
                 try
                 {
                     ServerSettings.WebUI_Settings = JsonConvert.SerializeObject(settings);
-                    return APIStatus.statusOK();
+                    return APIStatus.OK();
                 }
                 catch
                 {
-                    return APIStatus.internalError("error at saving webui settings");
+                    return APIStatus.InternalError("error at saving webui settings");
                 }
             }
             else
