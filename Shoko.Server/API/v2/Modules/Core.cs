@@ -21,8 +21,6 @@ namespace Shoko.Server.API.v2.Modules
 {
     public class Core : Nancy.NancyModule
     {
-        public static int version = 1;
-
         public Core() : base("/api")
         {
             // As this module requireAuthentication all request need to have apikey in header.

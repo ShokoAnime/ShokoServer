@@ -8,8 +8,6 @@ namespace Shoko.Server.API.v2.Modules
 {
     public class Auth : NancyModule
     {
-        public static int version = 1;
-
         /// <summary>
         /// Authentication module
         /// </summary>

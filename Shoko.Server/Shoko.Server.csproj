@@ -349,7 +349,6 @@
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />
     <Compile Include="API\v2\Modules\Core.cs" />
-    <Compile Include="API\v2\Modules\Database.cs" />
     <Compile Include="API\v2\Modules\Dev.cs" />
     <Compile Include="API\v2\Modules\Image.cs" />
     <Compile Include="API\v2\Modules\Init.cs" />
@@ -379,7 +378,6 @@
     <Compile Include="API\v2\Models\core\ComponentVersion.cs" />
     <Compile Include="API\v2\Models\core\Counter.cs" />
     <Compile Include="API\v2\Models\core\Credentials.cs" />
-    <Compile Include="API\v2\Models\core\Database.cs" />
     <Compile Include="API\v2\Models\core\ImagePath.cs" />
     <Compile Include="API\v2\Models\core\OSFolder.cs" />
     <Compile Include="API\v2\Models\core\QueueInfo.cs" />

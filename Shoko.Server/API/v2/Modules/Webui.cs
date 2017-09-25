@@ -11,8 +11,6 @@ namespace Shoko.Server.API.v2.Modules
 {
     public class Webui : Nancy.NancyModule
     {
-        public static int version = 1;
-
         public Webui() : base("/api/webui")
         {
             this.RequiresAuthentication();
