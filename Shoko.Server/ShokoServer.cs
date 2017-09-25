@@ -176,6 +176,9 @@ namespace Shoko.Server
 
             ServerState.Instance.DatabaseAvailable = false;
             ServerState.Instance.ServerOnline = false;
+            ServerState.Instance.ServerStarting = false;
+            ServerState.Instance.StartupFailed = false;
+            ServerState.Instance.StartupFailedMessage = string.Empty;
             ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
 
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
@@ -605,6 +608,7 @@ namespace Shoko.Server
         public event EventHandler DBSetupCompleted;
         void WorkerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            ServerState.Instance.ServerStarting = false;
             bool setupComplete = bool.Parse(e.Result.ToString());
             if (setupComplete)
             {
@@ -716,6 +720,9 @@ namespace Shoko.Server
             try
             {
                 ServerState.Instance.ServerOnline = false;
+                ServerState.Instance.ServerStarting = true;
+                ServerState.Instance.StartupFailed = false;
+                ServerState.Instance.StartupFailedMessage = string.Empty;
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_Cleaning;
 
                 StopWatchingFiles();
@@ -749,7 +756,7 @@ namespace Shoko.Server
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
-                if (!DatabaseFactory.InitDB())
+                if (!DatabaseFactory.InitDB(out string errorMessage))
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
@@ -757,6 +764,8 @@ namespace Shoko.Server
                         ServerState.Instance.CurrentSetupStatus =
                             Resources.Server_DatabaseConfig;
                     e.Result = false;
+                    ServerState.Instance.StartupFailed = true;
+                    ServerState.Instance.StartupFailedMessage = errorMessage;
                     return;
                 }
                 ServerState.Instance.DatabaseAvailable = true;
@@ -815,6 +824,8 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
                 ServerState.Instance.CurrentSetupStatus = ex.Message;
+                ServerState.Instance.StartupFailed = true;
+                ServerState.Instance.StartupFailedMessage = $"Startup Failed: {ex}";
                 e.Result = false;
             }
         }
