@@ -65,7 +65,7 @@ namespace Shoko.Server.Databases
             set { _instance = value; }
         }
 
-        public static bool InitDB()
+        public static bool InitDB(out string errorMessage)
         {
             try
             {
@@ -86,6 +86,7 @@ namespace Shoko.Server.Databases
                 {
                     ServerState.Instance.CurrentSetupStatus =
                         Commons.Properties.Resources.Database_NotSupportedVersion;
+                    errorMessage = Commons.Properties.Resources.Database_NotSupportedVersion;
                     return false;
                 }
                 if (version != 0 && version < Instance.RequiredVersion)
@@ -109,28 +110,33 @@ namespace Shoko.Server.Databases
                     if (ex is DatabaseCommandException)
                     {
                         logger.Error(ex, ex.ToString());
-                        Utils.ShowErrorMessage("Database Error :\n\r " + ex.ToString() +
+                        Utils.ShowErrorMessage("Database Error :\n\r " + ex +
                             "\n\rNotify developers about this error, it will be logged in your logs", "Database Error");
                         ServerState.Instance.CurrentSetupStatus =
                             Commons.Properties.Resources.Server_DatabaseFail;
+                        errorMessage = "Database Error :\n\r " + ex +
+                                       "\n\rNotify developers about this error, it will be logged in your logs";
                         return false;
                     }
                     if (ex is TimeoutException)
                     {
-                        logger.Error(ex, "Database TimeOut: " + ex.ToString());
+                        logger.Error(ex, $"Database Timeout: {ex}");
                         ServerState.Instance.CurrentSetupStatus =
                             Commons.Properties.Resources.Server_DatabaseTimeOut;
+                        errorMessage = Commons.Properties.Resources.Server_DatabaseTimeOut + "\n\r" + ex;
                         return false;
                     }
                     // throw to the outer try/catch
                     throw;
                 }
 
+                errorMessage = string.Empty;
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Could not init database: " + ex.ToString());
+                errorMessage = $"Could not init database: {ex}";
+                logger.Error(ex, errorMessage);
                 ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_DatabaseFail;
                 return false;
             }

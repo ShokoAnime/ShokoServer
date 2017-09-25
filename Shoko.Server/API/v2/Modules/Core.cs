@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Threading;
@@ -137,7 +138,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetPort()
         {
-            Creditentials cred = this.Bind();
+            Credentials cred = this.Bind();
             if (cred.port != 0)
             {
                 ServerSettings.JMMServerPort = cred.port.ToString();
@@ -255,32 +256,23 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Return given setting
         /// </summary>
-        /// <param name="setting">parameter you want to read</param>
         /// <returns></returns>
         private object GetSetting()
         {
             try
             {
+                // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
                 Settings setting = this.Bind();
-                if (setting != null)
+                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.badRequest("An invalid setting was passed");
+                var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
+                if (value == null) return APIStatus.badRequest("An invalid setting was passed");
+
+                Settings return_setting = new Settings
                 {
-                    var config = ServerSettings.Get(setting.setting);
-                    if (config != null)
-                    {
-                        Settings return_setting = new Settings();
-                        return_setting.setting = setting.setting;
-                        return_setting.value = config;
-                        return return_setting;
-                    }
-                    else
-                    {
-                        return APIStatus.notFound404("Parameter not found.");
-                    }
-                }
-                else
-                {
-                    return APIStatus.badRequest("Setting was null.");
-                }
+                    setting = setting.setting,
+                    value = value.ToString()
+                };
+                return return_setting;
             }
             catch
             {
@@ -291,27 +283,42 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Set given setting
         /// </summary>
-        /// <param name="setting">parameter you want to write</param>
-        /// <param name="value">value of the parameter</param>
         /// <returns></returns>
         private object SetSetting()
         {
+            // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
                 Settings setting = this.Bind();
-                if (setting.setting != null & setting.value != null)
+                if (string.IsNullOrEmpty(setting.setting))
+                    return APIStatus.badRequest("An invalid setting was passed");
+
+                if (setting.value == null) return APIStatus.badRequest("An invalid value was passed");
+
+                var property = typeof(ServerSettings).GetProperty(setting.setting);
+                if (property == null) return APIStatus.badRequest("An invalid setting was passed");
+                if (!property.CanWrite) return APIStatus.badRequest("An invalid setting was passed");
+                var settingType = property.PropertyType;
+                try
                 {
-                    return ServerSettings.Set(setting.setting, setting.value)
-                        ? APIStatus.statusOK() 
-                        : APIStatus.badRequest("Setting not saved.");
+                    var converter = TypeDescriptor.GetConverter(settingType);
+                    if (!converter.CanConvertFrom(typeof(string)))
+                        return APIStatus.badRequest("An invalid value was passed");
+                    var value = converter.ConvertFromInvariantString(setting.value);
+                    if (value == null) return APIStatus.badRequest("An invalid value was passed");
+                    property.SetValue(null, value);
                 }
-                return APIStatus.badRequest("Setting/Value was null.");
+                catch
+                {
+                }
+
+                return APIStatus.badRequest("An invalid value was passed");
             }
             catch
             {
                 return APIStatus.internalError();
             }
-}
+        }
 
         #endregion
 
@@ -323,7 +330,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetAniDB()
         {
-            Creditentials cred = this.Bind();
+            Credentials cred = this.Bind();
             if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
                 cred.password != string.Empty)
             {
@@ -371,7 +378,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetAniDB()
         {
-            Creditentials cred = new Creditentials
+            Credentials cred = new Credentials
             {
                 login = ServerSettings.AniDB_Username,
                 password = ServerSettings.AniDB_Password,
@@ -422,7 +429,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetMAL()
         {
-            Creditentials cred = this.Bind();
+            Credentials cred = this.Bind();
             if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
                 cred.password != string.Empty)
             {
@@ -440,7 +447,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetMAL()
         {
-            Creditentials cred = new Creditentials
+            Credentials cred = new Credentials
             {
                 login = ServerSettings.MAL_Username,
                 password = ServerSettings.MAL_Password
@@ -501,7 +508,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetTraktPIN()
         {
-            Creditentials cred = this.Bind();
+            Credentials cred = this.Bind();
             if (!String.IsNullOrEmpty(cred.token) && cred.token != string.Empty)
             {
                 ServerSettings.Trakt_PIN = cred.token;
@@ -528,7 +535,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetTrakt()
         {
-            Creditentials cred = new Creditentials
+            Credentials cred = new Credentials
             {
                 token = ServerSettings.Trakt_AuthToken,
                 refresh_token = ServerSettings.Trakt_RefreshToken

@@ -31,174 +31,180 @@ namespace Shoko.Server
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
         }
 
-
         private bool databaseAvailable = false;
 
         public bool DatabaseAvailable
         {
-            get { return databaseAvailable; }
-            set { this.SetField(() => databaseAvailable, value); }
+            get => databaseAvailable;
+            set => this.SetField(() => databaseAvailable, value);
         }
 
         private bool serverOnline = false;
 
         public bool ServerOnline
         {
-            get { return serverOnline; }
-            set { this.SetField(() => serverOnline, value); }
+            get => serverOnline;
+            set => this.SetField(() => serverOnline, value);
         }
 
+        private bool serverStarting = false;
+
+        public bool ServerStarting
+        {
+            get => serverStarting;
+            set => this.SetField(() => serverStarting, value);
+        }
 
         private string currentSetupStatus = string.Empty;
 
         public string CurrentSetupStatus
         {
-            get { return currentSetupStatus; }
-            set { this.SetField(() => currentSetupStatus, value); }
+            get => currentSetupStatus;
+            set => this.SetField(() => currentSetupStatus, value);
         }
 
         private bool databaseIsSQLite = false;
 
         public bool DatabaseIsSQLite
         {
-            get { return databaseIsSQLite; }
-            set { this.SetField(() => databaseIsSQLite, value); }
+            get => databaseIsSQLite;
+            set => this.SetField(() => databaseIsSQLite, value);
         }
 
         private bool databaseIsSQLServer = false;
 
         public bool DatabaseIsSQLServer
         {
-            get { return databaseIsSQLServer; }
-            set { this.SetField(() => databaseIsSQLServer, value); }
+            get => databaseIsSQLServer;
+            set => this.SetField(() => databaseIsSQLServer, value);
         }
 
         private bool databaseIsMySQL = false;
 
         public bool DatabaseIsMySQL
         {
-            get { return databaseIsMySQL; }
-            set { this.SetField(() => databaseIsMySQL, value); }
+            get => databaseIsMySQL;
+            set => this.SetField(() => databaseIsMySQL, value);
         }
 
         private string baseImagePath = string.Empty;
 
         public string BaseImagePath
         {
-            get { return baseImagePath; }
-            set { this.SetField(() => baseImagePath, value); }
+            get => baseImagePath;
+            set => this.SetField(() => baseImagePath, value);
         }
 
         private bool newVersionAvailable = false;
 
         public bool NewVersionAvailable
         {
-            get { return newVersionAvailable; }
-            set { this.SetField(() => newVersionAvailable, value); }
+            get => newVersionAvailable;
+            set => this.SetField(() => newVersionAvailable, value);
         }
 
         private string newVersionNumber = string.Empty;
 
         public string NewVersionNumber
         {
-            get { return newVersionNumber; }
-            set { this.SetField(() => newVersionNumber, value); }
+            get => newVersionNumber;
+            set => this.SetField(() => newVersionNumber, value);
         }
 
         private string newVersionDownloadLink = string.Empty;
 
         public string NewVersionDownloadLink
         {
-            get { return newVersionDownloadLink; }
-            set { this.SetField(() => newVersionDownloadLink, value); }
+            get => newVersionDownloadLink;
+            set => this.SetField(() => newVersionDownloadLink, value);
         }
 
         private string applicationVersion = string.Empty;
 
         public string ApplicationVersion
         {
-            get { return applicationVersion; }
-            set { this.SetField(() => applicationVersion, value); }
+            get => applicationVersion;
+            set => this.SetField(() => applicationVersion, value);
         }
 
         private string applicationVersionExtra = string.Empty;
 
         public string ApplicationVersionExtra
         {
-            get { return applicationVersionExtra; }
-            set { this.SetField(() => applicationVersionExtra, value); }
+            get => applicationVersionExtra;
+            set => this.SetField(() => applicationVersionExtra, value);
         }
 
         private string applicationVersionLatest = string.Empty;
 
         public string ApplicationVersionLatest
         {
-            get { return applicationVersionLatest; }
-            set { this.SetField(() => applicationVersionLatest, value); }
+            get => applicationVersionLatest;
+            set => this.SetField(() => applicationVersionLatest, value);
         }
 
         private string aniDB_Username = string.Empty;
 
         public string AniDB_Username
         {
-            get { return aniDB_Username; }
-            set { this.SetField(() => aniDB_Username, value); }
+            get => aniDB_Username;
+            set => this.SetField(() => aniDB_Username, value);
         }
 
         private string aniDB_Password = string.Empty;
 
         public string AniDB_Password
         {
-            get { return aniDB_Password; }
-            set { this.SetField(() => aniDB_Password, value); }
+            get => aniDB_Password;
+            set => this.SetField(() => aniDB_Password, value);
         }
 
         private string aniDB_ServerAddress = string.Empty;
 
         public string AniDB_ServerAddress
         {
-            get { return aniDB_ServerAddress; }
-            set { this.SetField(() => aniDB_ServerAddress, value); }
+            get => aniDB_ServerAddress;
+            set => this.SetField(() => aniDB_ServerAddress, value);
         }
 
         private string aniDB_ServerPort = string.Empty;
 
         public string AniDB_ServerPort
         {
-            get { return aniDB_ServerPort; }
-            set { this.SetField(() => aniDB_ServerPort, value); }
+            get => aniDB_ServerPort;
+            set => this.SetField(() => aniDB_ServerPort, value);
         }
 
         private string aniDB_ClientPort = string.Empty;
 
         public string AniDB_ClientPort
         {
-            get { return aniDB_ClientPort; }
-            set { this.SetField(() => aniDB_ClientPort, value); }
+            get => aniDB_ClientPort;
+            set => this.SetField(() => aniDB_ClientPort, value);
         }
 
         private string aniDB_TestStatus = string.Empty;
 
         public string AniDB_TestStatus
         {
-            get { return aniDB_TestStatus; }
-            set { this.SetField(() => aniDB_TestStatus, value); }
+            get => aniDB_TestStatus;
+            set => this.SetField(() => aniDB_TestStatus, value);
         }
 
         private bool minOnStartup = false;
 
         public bool MinOnStartup
         {
-            get { return minOnStartup; }
-            set { this.SetField(() => minOnStartup, value); }
+            get => minOnStartup;
+            set => this.SetField(() => minOnStartup, value);
         }
 
         private bool maxOnStartup = true;
 
         public bool MaxOnStartup
         {
-            get { return maxOnStartup; }
-            set { this.SetField(() => maxOnStartup, value); }
+            get => maxOnStartup;
+            set => this.SetField(() => maxOnStartup, value);
         }
 
 
@@ -206,24 +212,40 @@ namespace Shoko.Server
 
         public string VLCLocation
         {
-            get { return vLCLocation; }
-            set { this.SetField(() => vLCLocation, value); }
+            get => vLCLocation;
+            set => this.SetField(() => vLCLocation, value);
         }
 
         private bool isAutostartEnabled = false;
 
         public bool IsAutostartEnabled
         {
-            get { return isAutostartEnabled; }
-            set { this.SetField(() => isAutostartEnabled, value); }
+            get => isAutostartEnabled;
+            set => this.SetField(() => isAutostartEnabled, value);
         }
 
         private bool isAutostartDisabled = false;
 
         public bool IsAutostartDisabled
         {
-            get { return isAutostartDisabled; }
-            set { this.SetField(() => isAutostartDisabled, value); }
+            get => isAutostartDisabled;
+            set => this.SetField(() => isAutostartDisabled, value);
+        }
+
+        private bool startupFailed = false;
+
+        public bool StartupFailed
+        {
+            get => startupFailed;
+            set => this.SetField(() => startupFailed, value);
+        }
+
+        private string startupFailedMessage = string.Empty;
+
+        public string StartupFailedMessage
+        {
+            get => startupFailedMessage;
+            set => this.SetField(() => startupFailedMessage, value);
         }
 
         /* Swith this to "Registry" when we no longer need elevated run level */
@@ -233,10 +255,7 @@ namespace Shoko.Server
 
         public readonly string autostartKey = "JMMServer";
 
-        public RegistryKey AutostartRegistryKey
-        {
-            get { return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true); }
-        }
+        public RegistryKey AutostartRegistryKey => Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
 
         public Dictionary<string, IFileSystem> ConnectedFileSystems { get; private set; }
