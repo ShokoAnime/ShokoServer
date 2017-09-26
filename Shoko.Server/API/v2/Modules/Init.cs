@@ -207,7 +207,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetDefaultUserCredentials()
         {
             if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only request the default user's credentials on first run");
+                return APIStatus.BadRequest("You may only request the default user's credentials on first run");
 
             return new Credentials
             {
@@ -223,18 +223,18 @@ namespace Shoko.Server.API.v2.Modules
         private object SetDefaultUserCredentials()
         {
             if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only set the default user's credentials on first run");
+                return APIStatus.BadRequest("You may only set the default user's credentials on first run");
 
             try
             {
                 Credentials credentials = this.Bind();
                 ServerSettings.DefaultUserUsername = credentials.login;
                 ServerSettings.DefaultUserPassword = credentials.password;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -244,10 +244,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object StartServer()
         {
-            if (ServerState.Instance.ServerOnline) return APIStatus.badRequest("Already Running");
-            if (ServerState.Instance.ServerStarting) return APIStatus.badRequest("Already Starting");
+            if (ServerState.Instance.ServerOnline) return APIStatus.BadRequest("Already Running");
+            if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
             ShokoServer.RunWorkSetupDB();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #region 01. AniDB
@@ -259,7 +259,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetAniDB()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             Credentials cred = this.Bind();
             if (string.IsNullOrEmpty(cred.login) || string.IsNullOrEmpty(cred.password))
@@ -274,7 +274,7 @@ namespace Shoko.Server.API.v2.Modules
             if (cred.apiport != 0)
                 ServerSettings.AniDB_AVDumpClientPort = cred.apiport.ToString();
 
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -284,7 +284,7 @@ namespace Shoko.Server.API.v2.Modules
         private object TestAniDB()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             ShokoService.AnidbProcessor.ForceLogout();
             ShokoService.AnidbProcessor.CloseConnections();
@@ -297,10 +297,10 @@ namespace Shoko.Server.API.v2.Modules
                 ServerSettings.AniDB_ServerAddress,
                 ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
 
-            if (!ShokoService.AnidbProcessor.Login()) return APIStatus.unauthorized();
+            if (!ShokoService.AnidbProcessor.Login()) return APIStatus.Unauthorized();
             ShokoService.AnidbProcessor.ForceLogout();
 
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -310,7 +310,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetAniDB()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             try
             {
@@ -324,7 +324,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             catch
             {
-                return APIStatus.internalError(
+                return APIStatus.InternalError(
                     "The ports are not set as integers. Set them and try again.\n\rThe default values are:\n\rAniDB Client Port: 4556\n\rAniDB AVDump Client Port: 4557");
             }
         }
@@ -340,7 +340,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetDatabaseSettings()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             var settings = new DatabaseSettings
             {
@@ -366,7 +366,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetDatabaseSettings()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             DatabaseSettings settings = this.Bind();
             string dbtype = settings.db_type.Trim();
@@ -374,35 +374,35 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (string.IsNullOrEmpty(settings.mysql_hostname) || string.IsNullOrEmpty(settings.mysql_password) ||
                     string.IsNullOrEmpty(settings.mysql_schemaname) || string.IsNullOrEmpty(settings.mysql_username))
-                    return APIStatus.badRequest("An invalid setting was passed");
+                    return APIStatus.BadRequest("An invalid setting was passed");
                 ServerSettings.DatabaseType = Constants.DatabaseType.MySQL;
                 ServerSettings.MySQL_Hostname = settings.mysql_hostname;
                 ServerSettings.MySQL_Password = settings.mysql_password;
                 ServerSettings.MySQL_SchemaName = settings.mysql_schemaname;
                 ServerSettings.MySQL_Username = settings.mysql_username;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             if (dbtype.Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (string.IsNullOrEmpty(settings.sqlserver_databasename) || string.IsNullOrEmpty(settings.sqlserver_databaseserver) ||
                     string.IsNullOrEmpty(settings.sqlserver_password) || string.IsNullOrEmpty(settings.sqlserver_username))
-                    return APIStatus.badRequest("An invalid setting was passed");
+                    return APIStatus.BadRequest("An invalid setting was passed");
                 ServerSettings.DatabaseType = Constants.DatabaseType.SqlServer;
                 ServerSettings.DatabaseServer = settings.sqlserver_databaseserver;
                 ServerSettings.DatabaseName = settings.sqlserver_databasename;
                 ServerSettings.DatabaseUsername = settings.sqlserver_username;
                 ServerSettings.DatabasePassword = settings.sqlserver_password;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             if (dbtype.Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (string.IsNullOrEmpty(settings.sqlite_databasefile))
-                    return APIStatus.badRequest("An invalid setting was passed");
+                    return APIStatus.BadRequest("An invalid setting was passed");
                 ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
                 ServerSettings.DatabaseFile = settings.sqlite_databasefile;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            return APIStatus.badRequest("An invalid setting was passed");
+            return APIStatus.BadRequest("An invalid setting was passed");
         }
 
         /// <summary>
@@ -412,21 +412,21 @@ namespace Shoko.Server.API.v2.Modules
         private object TestDatabaseConnection()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.MySQL,
                     StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())
-                return APIStatus.statusOK();
+                return APIStatus.OK();
 
             if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.SqlServer,
                     StringComparison.InvariantCultureIgnoreCase) && new SQLServer().TestConnection())
-                return APIStatus.statusOK();
+                return APIStatus.OK();
 
             if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
                 StringComparison.InvariantCultureIgnoreCase))
-                return APIStatus.statusOK();
+                return APIStatus.OK();
 
-            return APIStatus.badRequest("Failed to Connect");
+            return APIStatus.BadRequest("Failed to Connect");
         }
 
         /// <summary>
@@ -436,7 +436,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetMSSQLInstances()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             List<string> instances = new List<string>();
 
@@ -456,7 +456,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ExportConfig()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             try
             {
@@ -464,7 +464,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             catch
             {
-                return APIStatus.internalError("Error while reading settings.");
+                return APIStatus.InternalError("Error while reading settings.");
             }
         }
 
@@ -475,24 +475,24 @@ namespace Shoko.Server.API.v2.Modules
         private object ImportConfig()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
 
             if (raw_settings.Length == new CL_ServerSettings().ToJSON().Length)
-                return APIStatus.badRequest("Empty settings are not allowed");
+                return APIStatus.BadRequest("Empty settings are not allowed");
 
             string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
             File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);
             try
             {
                 ServerSettings.LoadSettingsFromFile(path, true);
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch
             {
-                return APIStatus.internalError("Error while importing settings");
+                return APIStatus.InternalError("Error while importing settings");
             }
         }
 
@@ -503,17 +503,17 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSetting()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
                 Settings setting = this.Bind();
-                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.badRequest("An invalid setting was passed");
+                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 try
                 {
                     var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
-                    if (value == null) return APIStatus.badRequest("An invalid setting was passed");
+                    if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
                     Settings return_setting = new Settings
                     {
@@ -524,12 +524,12 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 catch
                 {
-                    return APIStatus.badRequest("An invalid setting was passed");
+                    return APIStatus.BadRequest("An invalid setting was passed");
                 }
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -540,28 +540,28 @@ namespace Shoko.Server.API.v2.Modules
         private object SetSetting()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
-                return APIStatus.badRequest("You may only do this before server init");
+                return APIStatus.BadRequest("You may only do this before server init");
 
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
                 Settings setting = this.Bind();
                 if (string.IsNullOrEmpty(setting.setting))
-                    return APIStatus.badRequest("An invalid setting was passed");
+                    return APIStatus.BadRequest("An invalid setting was passed");
 
-                if (setting.value == null) return APIStatus.badRequest("An invalid value was passed");
+                if (setting.value == null) return APIStatus.BadRequest("An invalid value was passed");
 
                 var property = typeof(ServerSettings).GetProperty(setting.setting);
-                if (property == null) return APIStatus.badRequest("An invalid setting was passed");
-                if (!property.CanWrite) return APIStatus.badRequest("An invalid setting was passed");
+                if (property == null) return APIStatus.BadRequest("An invalid setting was passed");
+                if (!property.CanWrite) return APIStatus.BadRequest("An invalid setting was passed");
                 var settingType = property.PropertyType;
                 try
                 {
                     var converter = TypeDescriptor.GetConverter(settingType);
                     if (!converter.CanConvertFrom(typeof(string)))
-                        return APIStatus.badRequest("An invalid value was passed");
+                        return APIStatus.BadRequest("An invalid value was passed");
                     var value = converter.ConvertFromInvariantString(setting.value);
-                    if (value == null) return APIStatus.badRequest("An invalid value was passed");
+                    if (value == null) return APIStatus.BadRequest("An invalid value was passed");
                     property.SetValue(null, value);
                 }
                 catch
@@ -569,11 +569,11 @@ namespace Shoko.Server.API.v2.Modules
                     // ignore, we are returning the error below
                 }
 
-                return APIStatus.badRequest("An invalid value was passed");
+                return APIStatus.BadRequest("An invalid value was passed");
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 

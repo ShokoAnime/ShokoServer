@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/image/validateall", true] = async (x,ct) => await Task.Factory.StartNew(() =>
             {
                 Importer.ValidateAllImages();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }, ct);
         }
 
@@ -105,14 +105,14 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (string.IsNullOrEmpty(name))
             {
-                return APIStatus.notFound404();
+                return APIStatus.NotFound();
             }
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
             {
-                return APIStatus.notFound404();
+                return APIStatus.NotFound();
             }
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
@@ -124,7 +124,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (string.IsNullOrEmpty(name))
             {
-                return APIStatus.notFound404();
+                return APIStatus.NotFound();
             }
 
             ratio = ratio.Replace(',', '.');
@@ -136,7 +136,7 @@ namespace Shoko.Server.API.v2.Modules
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
             {
-                return APIStatus.notFound404();
+                return APIStatus.NotFound();
             }
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
