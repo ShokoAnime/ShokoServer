@@ -1,10 +1,11 @@
-using System;
 using System.Collections.Generic;
+using System;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.Smo;
@@ -13,6 +14,7 @@ using Nancy.ModelBinding;
 using Pri.LongPath;
 using Shoko.Commons;
 using Shoko.Models.Client;
+using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
@@ -96,35 +98,45 @@ namespace Shoko.Server.API.v2.Modules
 
             ComponentVersion version = new ComponentVersion
             {
-                version = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString(),
+                version = Utils.GetApplicationVersion(),
                 name = "server"
             };
             list.Add(version);
 
+            string versionExtra = Utils.GetApplicationExtraVersion();
+
+            if (!string.IsNullOrEmpty(versionExtra))
+            {
+                version = new ComponentVersion
+                {
+                    version = versionExtra,
+                    name = "servercommit"
+                };
+                list.Add(version);
+            }
+
             version = new ComponentVersion
             {
-                version = System.Reflection.Assembly.GetAssembly(typeof(FolderMappings)).GetName().Version.ToString(),
+                version = Assembly.GetAssembly(typeof(FolderMappings)).GetName().Version.ToString(),
                 name = "commons"
             };
             list.Add(version);
 
             version = new ComponentVersion
             {
-                version = System.Reflection.Assembly.GetAssembly(typeof(Shoko.Models.Server.AniDB_Anime)).GetName()
-                    .Version.ToString(),
+                version = Assembly.GetAssembly(typeof(AniDB_Anime)).GetName().Version.ToString(),
                 name = "models"
             };
             list.Add(version);
 
             version = new ComponentVersion
             {
-                version = System.Reflection.Assembly.GetAssembly(typeof(INancyModule)).GetName()
-                    .Version.ToString(),
+                version = Assembly.GetAssembly(typeof(INancyModule)).GetName().Version.ToString(),
                 name = "Nancy"
             };
             list.Add(version);
 
-            string dllpath = System.Reflection.Assembly.GetEntryAssembly().Location;
+            string dllpath = Assembly.GetEntryAssembly().Location;
             dllpath = Path.GetDirectoryName(dllpath);
             dllpath = Path.Combine(dllpath, "x86");
             dllpath = Path.Combine(dllpath, "MediaInfo.dll");
@@ -140,7 +152,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             else
             {
-                dllpath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                dllpath = Assembly.GetEntryAssembly().Location;
                 dllpath = Path.GetDirectoryName(dllpath);
                 dllpath = Path.Combine(dllpath, "x64");
                 dllpath = Path.Combine(dllpath, "MediaInfo.dll");
