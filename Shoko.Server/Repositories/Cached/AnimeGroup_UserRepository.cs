@@ -29,9 +29,12 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                if (!Changes.ContainsKey(cr.JMMUserID))
-                    Changes[cr.JMMUserID] = new ChangeTracker<int>();
-                Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
+                lock (Changes)
+                {
+                    if (!Changes.ContainsKey(cr.JMMUserID))
+                        Changes[cr.JMMUserID] = new ChangeTracker<int>();
+                    Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
+                }
                 logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
                     cr.AnimeGroupID);
                 cr.DeleteFromFilters();
@@ -65,13 +68,6 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-        public override void Save(IReadOnlyCollection<SVR_AnimeGroup_User> objs)
-        {
-            foreach (SVR_AnimeGroup_User grp in objs)
-                Save(grp);
-        }
-
-
         public override void Save(SVR_AnimeGroup_User obj)
         {
             lock (obj)
@@ -85,9 +81,12 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 HashSet<GroupFilterConditionType> types = SVR_AnimeGroup_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
-                if (!Changes.ContainsKey(obj.JMMUserID))
-                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
-                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
+                lock (Changes)
+                {
+                    if (!Changes.ContainsKey(obj.JMMUserID))
+                        Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                    Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
+                }
                 obj.UpdateGroupFilter(types);
             }
         }
@@ -112,16 +111,20 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
-                session.Insert(groupUser);
-
-
-                if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
+                lock (globalDBLock)
                 {
-                    changeTracker = new ChangeTracker<int>();
-                    Changes[groupUser.JMMUserID] = changeTracker;
+                    session.Insert(groupUser);
                 }
 
-                changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+                lock (Changes)
+                {
+                    if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
+                    {
+                        changeTracker = new ChangeTracker<int>();
+                        Changes[groupUser.JMMUserID] = changeTracker;
+                    }
+                    changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+                }
             }
         }
 
@@ -144,16 +147,21 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
-                session.Update(groupUser);
-
-
-                if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
+                lock (globalDBLock)
                 {
-                    changeTracker = new ChangeTracker<int>();
-                    Changes[groupUser.JMMUserID] = changeTracker;
+                    session.Update(groupUser);
                 }
 
-                changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+                lock (Changes)
+                {
+                    if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
+                    {
+                        changeTracker = new ChangeTracker<int>();
+                        Changes[groupUser.JMMUserID] = changeTracker;
+                    }
+
+                    changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+                }
             }
         }
 
@@ -174,22 +182,27 @@ namespace Shoko.Server.Repositories.Cached
             var usrGrpMap = GetAll()
                 .GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
-            // Then, actually delete the AnimeGroup_Users
-            session.CreateQuery("delete SVR_AnimeGroup_User agu")
-                .ExecuteUpdate();
+            lock (globalDBLock)
+            {
+                // Then, actually delete the AnimeGroup_Users
+                session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdate();
+            }
 
             // Now, update the change trackers with all removed records
             foreach (var grp in usrGrpMap)
             {
                 int jmmUserId = grp.Key;
 
-                if (!Changes.TryGetValue(jmmUserId, out ChangeTracker<int> changeTracker))
+                lock (Changes)
                 {
-                    changeTracker = new ChangeTracker<int>();
-                    Changes[jmmUserId] = changeTracker;
-                }
+                    if (!Changes.TryGetValue(jmmUserId, out ChangeTracker<int> changeTracker))
+                    {
+                        changeTracker = new ChangeTracker<int>();
+                        Changes[jmmUserId] = changeTracker;
+                    }
 
-                changeTracker.RemoveRange(grp);
+                    changeTracker.RemoveRange(grp);
+                }
             }
 
             // Finally, we need to clear the cache so that it is in sync with the database
@@ -198,23 +211,35 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            return UsersGroups.GetOne(userid, groupid);
+            lock (Cache)
+            {
+                    return UsersGroups.GetOne(userid, groupid);
+            }
         }
 
         public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
-            return Users.GetMultiple(userid);
+            lock (Cache)
+            {
+                    return Users.GetMultiple(userid);
+            }
         }
 
         public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
-            return Groups.GetMultiple(groupid);
+            lock (Cache)
+            {
+                    return Groups.GetMultiple(groupid);
+            }
         }
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            if (Changes.ContainsKey(userid))
-                return Changes[userid];
+            lock (Changes)
+            {
+                if (Changes.ContainsKey(userid))
+                    return Changes[userid];
+            }
             return new ChangeTracker<int>();
         }
     }

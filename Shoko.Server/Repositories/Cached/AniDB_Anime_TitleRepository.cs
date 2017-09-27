@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
@@ -45,53 +46,45 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            return Animes.GetMultiple(id);
+            lock (Cache)
+            {
+                return Animes.GetMultiple(id);
+            }
         }
 
-        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs([NotNull] ISessionWrapper session, ICollection<int> ids)
         {
             if (session == null)
-                throw new ArgumentNullException("session");
+                throw new ArgumentNullException(nameof(session));
             if (ids == null)
-                throw new ArgumentNullException("ids");
+                throw new ArgumentNullException(nameof(ids));
 
             if (ids.Count == 0)
             {
                 return EmptyLookup<int, AniDB_Anime_Title>.Instance;
             }
 
-            var titles = session.CreateCriteria<AniDB_Anime_Title>()
-                .Add(Restrictions.InG(nameof(AniDB_Anime_Title.AnimeID), ids))
-                .List<AniDB_Anime_Title>()
-                .ToLookup(t => t.AnimeID);
+            lock (globalDBLock)
+            {
+                var titles = session.CreateCriteria<AniDB_Anime_Title>()
+                    .Add(Restrictions.InG(nameof(AniDB_Anime_Title.AnimeID), ids))
+                    .List<AniDB_Anime_Title>()
+                    .ToLookup(t => t.AnimeID);
 
-            return titles;
+                return titles;
+            }
         }
 
         public List<AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType,
             string titleValue)
         {
-            return
-                Animes.GetMultiple(animeID)
-                    .Where(
-                        a =>
-                            a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase) &&
-                            a.Title.Equals(titleValue, StringComparison.InvariantCultureIgnoreCase) &&
-                            a.TitleType.Equals(titleType, StringComparison.InvariantCultureIgnoreCase))
-                    .ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var titles = session
-                    .CreateCriteria(typeof(AniDB_Anime_Title))
-                    .Add(Restrictions.Eq("AnimeID", animeID))
-                    .Add(Restrictions.Eq("TitleType", titleType))
-                    .Add(Restrictions.Eq("Language", language))
-                    .Add(Restrictions.Eq("Title", titleValue))
-                    .List<AniDB_Anime_Title>();
-
-                return new List<AniDB_Anime_Title>(titles);
-            }*/
+                return Animes.GetMultiple(animeID).Where(a =>
+                    a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase) &&
+                    a.Title.Equals(titleValue, StringComparison.InvariantCultureIgnoreCase) &&
+                    a.TitleType.Equals(titleType, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            }
         }
 
         /// <summary>
@@ -100,22 +93,8 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public List<AniDB_Anime_Title> GetAllForLocalSeries()
         {
-            return
-                RepoFactory.AnimeSeries.GetAll()
-                    .SelectMany(a => GetByAnimeID(a.AniDB_ID))
-                    .Where(a => a != null)
-                    .Distinct()
-                    .ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var titles =
-                    session.CreateQuery(
-                        "FROM AniDB_Anime_Title aat WHERE aat.AnimeID IN (Select aser.AniDB_ID From AnimeSeries aser)")
-                        .List<AniDB_Anime_Title>();
-
-                return new List<AniDB_Anime_Title>(titles);
-            }*/
+            return RepoFactory.AnimeSeries.GetAll().SelectMany(a => GetByAnimeID(a.AniDB_ID)).Where(a => a != null)
+                .Distinct().ToList();
         }
     }
 }

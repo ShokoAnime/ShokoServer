@@ -56,63 +56,38 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Episode GetByEpisodeID(int id)
         {
-            return EpisodesIds.GetOne(id);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                AniDB_Episode cr = session
-                    .CreateCriteria(typeof(AniDB_Episode))
-                    .Add(Restrictions.Eq("EpisodeID", id))
-                    .UniqueResult<AniDB_Episode>();
-                return cr;
-            }*/
+                return EpisodesIds.GetOne(id);
+            }
         }
 
         public List<AniDB_Episode> GetByAnimeID(int id)
         {
-            return Animes.GetMultiple(id);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                return GetByAnimeID(session, id);
-            }*/
+                return Animes.GetMultiple(id);
+            }
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            return Animes.GetMultiple(animeid)
-                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
-                .ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var eps = session
-                    .CreateCriteria(typeof(AniDB_Episode))
-                    .Add(Restrictions.Eq("AnimeID", animeid))
-                    .Add(Restrictions.Eq("EpisodeNumber", epnumber))
-                    .Add(Restrictions.Eq("EpisodeType", (int) enEpisodeType.Episode))
-                    .List<AniDB_Episode>();
-
-                return new List<AniDB_Episode>(eps);
-            }*/
+                return Animes.GetMultiple(animeid)
+                    .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
+                    .ToList();
+            }
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
         {
-            return Animes.GetMultiple(animeid)
-                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
-                .ToList();
-/*            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var eps = session
-                    .CreateCriteria(typeof(AniDB_Episode))
-                    .Add(Restrictions.Eq("AnimeID", animeid))
-                    .Add(Restrictions.Eq("EpisodeNumber", epnumber))
-                    .Add(Restrictions.Eq("EpisodeType", (int) epType))
-                    .List<AniDB_Episode>();
-
-                return new List<AniDB_Episode>(eps);
-            }*/
+                return Animes.GetMultiple(animeid)
+                    .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
+                    .ToList();
+            }
         }
 
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
@@ -123,16 +98,6 @@ namespace Shoko.Server.Repositories
                     .Where(a => a.Count() > 1)
                     .Select(a => GetByEpisodeID(a.Key))
                     .ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var eps =
-                    session.CreateQuery(
-                        "FROM AniDB_Episode x WHERE x.EpisodeID IN (Select xref.EpisodeID FROM CrossRef_File_Episode xref GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)")
-                        .List<AniDB_Episode>();
-
-                return new List<AniDB_Episode>(eps);
-            }*/
         }
     }
 }

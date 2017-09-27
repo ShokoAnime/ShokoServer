@@ -46,6 +46,7 @@ namespace Shoko.Server.Repositories
 
         public override void PopulateIndexes()
         {
+            // Only populated from main thread before these are accessible, so no lock
             Hashes = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.Hash);
             SHA1s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.SHA1);
             MD5s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.MD5);
@@ -59,19 +60,9 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(SVR_AniDB_File obj)
         {
-            throw new NotSupportedException();
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_AniDB_File> objs)
-        {
-            throw new NotSupportedException();
+            Save(obj, true);
         }
 
         public void Save(SVR_AniDB_File obj, bool updateStats)
@@ -87,122 +78,82 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            return Hashes.GetOne(hash);
-            /*            AniDB_File cr = session
-                .CreateCriteria(typeof(AniDB_File))
-                .Add(Restrictions.Eq("Hash", hash))
-                .UniqueResult<AniDB_File>();
-            return cr;*/
+            lock (Cache)
+            {
+                return Hashes.GetOne(hash);
+            }
         }
 
         public SVR_AniDB_File GetBySHA1(string hash)
         {
-            return SHA1s.GetOne(hash);
-            /*
-            AniDB_File cr = session
-                .CreateCriteria(typeof(AniDB_File))
-                .Add(Restrictions.Eq("SHA1", hash))
-                .UniqueResult<AniDB_File>();
-            return cr;*/
+            lock (Cache)
+            {
+                return SHA1s.GetOne(hash);
+            }
         }
 
         public SVR_AniDB_File GetByMD5(string hash)
         {
-            return MD5s.GetOne(hash);
-            /*
-            AniDB_File cr = session
-                .CreateCriteria(typeof(AniDB_File))
-                .Add(Restrictions.Eq("MD5", hash))
-                .UniqueResult<AniDB_File>();
-            return cr;*/
+            lock (Cache)
+            {
+                return MD5s.GetOne(hash);
+            }
         }
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            return InternalVersions.GetMultiple(version);
-            /*
-            AniDB_File cr = session
-                .CreateCriteria(typeof(AniDB_File))
-                .Add(Restrictions.Eq("MD5", hash))
-                .UniqueResult<AniDB_File>();
-            return cr;*/
+            lock (Cache)
+            {
+                return InternalVersions.GetMultiple(version);
+            }
         }
 
         public List<SVR_AniDB_File> GetWithWithMissingChapters()
         {
-            // the only containers that support chapters (and will have data on anidb)
-            List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
-                .CreateSQLQuery(
-                    @"SELECT FileID FROM AniDB_File WHERE IsChaptered = -1 AND (File_FileExtension = 'mkv' OR File_FileExtension = 'ogm')")
-                .List<int>()
-                .Select(GetByFileID)
-                .ToList();
-            return list;
-            /*
-            AniDB_File cr = session
-                .CreateCriteria(typeof(AniDB_File))
-                .Add(Restrictions.Eq("MD5", hash))
-                .UniqueResult<AniDB_File>();
-            return cr;*/
+            lock (globalDBLock)
+            {
+                // the only containers that support chapters (and will have data on anidb)
+                List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
+                    .CreateSQLQuery(
+                        @"SELECT FileID FROM AniDB_File WHERE IsChaptered = -1 AND (File_FileExtension = 'mkv' OR File_FileExtension = 'ogm')")
+                    .List<int>()
+                    .Select(GetByFileID)
+                    .ToList();
+                return list;
+            }
         }
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
-            /*using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                AniDB_File cr = session
-                    .CreateCriteria(typeof(AniDB_File))
-                    .Add(Restrictions.Eq("Hash", hash))
-                    .Add(Restrictions.Eq("FileSize", fsize))
-                    .UniqueResult<AniDB_File>();
-                return cr;
-            }*/
+                return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
+            }
         }
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            return FileIds.GetOne(fileID);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                AniDB_File cr = session
-                    .CreateCriteria(typeof(AniDB_File))
-                    .Add(Restrictions.Eq("FileID", fileID))
-                    .UniqueResult<AniDB_File>();
-                return cr;
-            }*/
+                return FileIds.GetOne(fileID);
+            }
         }
 
 
         public List<SVR_AniDB_File> GetByAnimeID(int animeID)
         {
-            return Animes.GetMultiple(animeID);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var objs = session
-                    .CreateCriteria(typeof(AniDB_File))
-                    .Add(Restrictions.Eq("AnimeID", animeID))
-                    .List<AniDB_File>();
-
-                return new List<AniDB_File>(objs);
-            }*/
+                return Animes.GetMultiple(animeID);
+            }
         }
 
         public List<SVR_AniDB_File> GetByResolution(string res)
         {
-            return Resolutions.GetMultiple(res);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var objs = session
-                    .CreateCriteria(typeof(AniDB_File))
-                    .Add(Restrictions.Eq("File_VideoResolution", res))
-                    .List<AniDB_File>();
-
-                return new List<AniDB_File>(objs);
-            }*/
+                return Resolutions.GetMultiple(res);
+            }
         }
     }
 }

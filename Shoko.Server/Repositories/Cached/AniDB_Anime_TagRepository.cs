@@ -41,33 +41,19 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {
-            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                AniDB_Anime_Tag cr = session
-                    .CreateCriteria(typeof(AniDB_Anime_Tag))
-                    .Add(Restrictions.Eq("AnimeID", animeid))
-                    .Add(Restrictions.Eq("TagID", tagid))
-                    .UniqueResult<AniDB_Anime_Tag>();
-                return cr;
-            }*/
+                return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
+            }
         }
 
 
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
-            return Animes.GetMultiple(id);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var tags = session
-                    .CreateCriteria(typeof(AniDB_Anime_Tag))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .List<AniDB_Anime_Tag>();
-
-                return new List<AniDB_Anime_Tag>(tags);
-            }*/
+                return Animes.GetMultiple(id);
+            }
         }
 
 
@@ -81,7 +67,10 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
             }
 
-            return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
+            lock (Cache)
+            {
+                return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
+            }
         }
 
         /// <summary>
@@ -95,16 +84,6 @@ namespace Shoko.Server.Repositories
                 .Where(a => a != null)
                 .Distinct()
                 .ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var tags =
-                    session.CreateQuery(
-                        "FROM AniDB_Anime_Tag tag WHERE tag.AnimeID in (Select aser.AniDB_ID From AnimeSeries aser)")
-                        .List<AniDB_Anime_Tag>();
-
-                return new List<AniDB_Anime_Tag>(tags);
-            }*/
         }
     }
 }

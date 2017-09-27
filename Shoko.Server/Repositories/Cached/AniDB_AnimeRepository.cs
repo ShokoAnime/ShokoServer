@@ -86,75 +86,70 @@ namespace Shoko.Server.Repositories
             }
         }
 
-
-        public override void Save(IReadOnlyCollection<SVR_AniDB_Anime> objs)
-        {
-            foreach (SVR_AniDB_Anime o in objs)
-                Save(o);
-        }
-
         public override void Save(SVR_AniDB_Anime obj)
         {
-            lock (obj)
+            lock (globalDBLock)
             {
-                if (obj.AniDB_AnimeID == 0)
+                lock (obj)
                 {
-                    obj.Contract = null;
+                    if (obj.AniDB_AnimeID == 0)
+                    {
+                        obj.Contract = null;
+                        base.Save(obj);
+                    }
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    {
+                        obj.UpdateContractDetailed(session.Wrap());
+                    }
+                    // populate the database
                     base.Save(obj);
                 }
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    obj.UpdateContractDetailed(session.Wrap());
-                }
-                // populate the database
-                base.Save(obj);
             }
         }
 
 
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
-            return Animes.GetOne(id);
+            lock (Cache)
+            {
+                return Animes.GetOne(id);
+            }
         }
 
         public SVR_AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
         {
-            return Animes.GetOne(id);
+            lock (Cache)
+            {
+                return Animes.GetOne(id);
+            }
         }
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            return Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate &&
-                                           a.AirDate.Value <= endDate)
-                .ToList();
-        }
-
-        public List<SVR_AniDB_Anime> GetForDate(ISession session, DateTime startDate, DateTime endDate)
-        {
-            return Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate &&
-                                           a.AirDate.Value <= endDate)
-                .ToList();
-        }
-
-        public List<SVR_AniDB_Anime> SearchByName(ISession session, string queryText)
-        {
-            return Cache.Values
-                .Where(a => a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
-                .ToList();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a =>
+                    a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
+            }
         }
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
-            return Cache.Values
-                .Where(a => a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
-                .ToList();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a =>
+                    a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
+            }
         }
 
         public List<SVR_AniDB_Anime> SearchByTag(string queryText)
         {
-            return Cache.Values.Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >=
-                                           0)
-                .ToList();
+            lock (Cache)
+            {
+                return Cache.Values
+                    .Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    .ToList();
+            }
         }
 
         public Dictionary<int, DefaultAnimeImages> GetDefaultImagesByAnime(ISessionWrapper session, int[] animeIds)
@@ -166,13 +161,12 @@ namespace Shoko.Server.Repositories
 
             var defImagesByAnime = new Dictionary<int, DefaultAnimeImages>();
 
-            if (animeIds.Length == 0)
-            {
-                return defImagesByAnime;
-            }
+            if (animeIds.Length == 0) return defImagesByAnime;
 
-            // TODO: Determine if joining on the correct columns
-            var results = session.CreateSQLQuery(@"
+            lock (globalDBLock)
+            {
+                // TODO: Determine if joining on the correct columns
+                var results = session.CreateSQLQuery(@"
                 SELECT {defImg.*}, {tvWide.*}, {tvPoster.*}, {tvFanart.*}, {movPoster.*}, {movFanart.*}
                     FROM AniDB_Anime_DefaultImage defImg
                         LEFT OUTER JOIN TvDB_ImageWideBanner AS tvWide
@@ -186,68 +180,69 @@ namespace Shoko.Server.Repositories
                         LEFT OUTER JOIN MovieDB_Fanart AS movFanart
                             ON movFanart.MovieDB_FanartID = defImg.ImageParentID AND defImg.ImageParentType = :movdbFanartType
                     WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType)")
-                .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
-                .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
-                .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
-                .AddEntity("tvFanart", typeof(TvDB_ImageFanart))
-                .AddEntity("movPoster", typeof(MovieDB_Poster))
-                .AddEntity("movFanart", typeof(MovieDB_Fanart))
-                .SetParameterList("animeIds", animeIds)
-                .SetInt32("tvdbBannerType", (int) ImageEntityType.TvDB_Banner)
-                .SetInt32("tvdbCoverType", (int) ImageEntityType.TvDB_Cover)
-                .SetInt32("tvdbFanartType", (int) ImageEntityType.TvDB_FanArt)
-                .SetInt32("movdbPosterType", (int) ImageEntityType.MovieDB_Poster)
-                .SetInt32("movdbFanartType", (int) ImageEntityType.MovieDB_FanArt)
-                .List<object[]>();
+                    .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
+                    .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
+                    .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
+                    .AddEntity("tvFanart", typeof(TvDB_ImageFanart))
+                    .AddEntity("movPoster", typeof(MovieDB_Poster))
+                    .AddEntity("movFanart", typeof(MovieDB_Fanart))
+                    .SetParameterList("animeIds", animeIds)
+                    .SetInt32("tvdbBannerType", (int) ImageEntityType.TvDB_Banner)
+                    .SetInt32("tvdbCoverType", (int) ImageEntityType.TvDB_Cover)
+                    .SetInt32("tvdbFanartType", (int) ImageEntityType.TvDB_FanArt)
+                    .SetInt32("movdbPosterType", (int) ImageEntityType.MovieDB_Poster)
+                    .SetInt32("movdbFanartType", (int) ImageEntityType.MovieDB_FanArt)
+                    .List<object[]>();
 
-            foreach (object[] result in results)
-            {
-                var aniDbDefImage = (AniDB_Anime_DefaultImage) result[0];
-                IImageEntity parentImage = null;
-
-                switch ((ImageEntityType) aniDbDefImage.ImageParentType)
+                foreach (object[] result in results)
                 {
-                    case ImageEntityType.TvDB_Banner:
-                        parentImage = (IImageEntity) result[1];
-                        break;
-                    case ImageEntityType.TvDB_Cover:
-                        parentImage = (IImageEntity) result[2];
-                        break;
-                    case ImageEntityType.TvDB_FanArt:
-                        parentImage = (IImageEntity) result[3];
-                        break;
-                    case ImageEntityType.MovieDB_Poster:
-                        parentImage = (IImageEntity) result[4];
-                        break;
-                    case ImageEntityType.MovieDB_FanArt:
-                        parentImage = (IImageEntity) result[5];
-                        break;
-                }
+                    var aniDbDefImage = (AniDB_Anime_DefaultImage) result[0];
+                    IImageEntity parentImage = null;
 
-                if (parentImage == null)
-                {
-                    continue;
-                }
+                    switch ((ImageEntityType) aniDbDefImage.ImageParentType)
+                    {
+                        case ImageEntityType.TvDB_Banner:
+                            parentImage = (IImageEntity) result[1];
+                            break;
+                        case ImageEntityType.TvDB_Cover:
+                            parentImage = (IImageEntity) result[2];
+                            break;
+                        case ImageEntityType.TvDB_FanArt:
+                            parentImage = (IImageEntity) result[3];
+                            break;
+                        case ImageEntityType.MovieDB_Poster:
+                            parentImage = (IImageEntity) result[4];
+                            break;
+                        case ImageEntityType.MovieDB_FanArt:
+                            parentImage = (IImageEntity) result[5];
+                            break;
+                    }
 
-                DefaultAnimeImage defImage = new DefaultAnimeImage(aniDbDefImage, parentImage);
+                    if (parentImage == null)
+                    {
+                        continue;
+                    }
 
-                if (!defImagesByAnime.TryGetValue(aniDbDefImage.AnimeID, out DefaultAnimeImages defImages))
-                {
-                    defImages = new DefaultAnimeImages {AnimeID = aniDbDefImage.AnimeID};
-                    defImagesByAnime.Add(defImages.AnimeID, defImages);
-                }
+                    DefaultAnimeImage defImage = new DefaultAnimeImage(aniDbDefImage, parentImage);
 
-                switch (defImage.AniDBImageSizeType)
-                {
-                    case ImageSizeType.Poster:
-                        defImages.Poster = defImage;
-                        break;
-                    case ImageSizeType.WideBanner:
-                        defImages.WideBanner = defImage;
-                        break;
-                    case ImageSizeType.Fanart:
-                        defImages.Fanart = defImage;
-                        break;
+                    if (!defImagesByAnime.TryGetValue(aniDbDefImage.AnimeID, out DefaultAnimeImages defImages))
+                    {
+                        defImages = new DefaultAnimeImages {AnimeID = aniDbDefImage.AnimeID};
+                        defImagesByAnime.Add(defImages.AnimeID, defImages);
+                    }
+
+                    switch (defImage.AniDBImageSizeType)
+                    {
+                        case ImageSizeType.Poster:
+                            defImages.Poster = defImage;
+                            break;
+                        case ImageSizeType.WideBanner:
+                            defImages.WideBanner = defImage;
+                            break;
+                        case ImageSizeType.Fanart:
+                            defImages.Fanart = defImage;
+                            break;
+                    }
                 }
             }
 
