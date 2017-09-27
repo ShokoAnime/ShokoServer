@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Models.Server;
@@ -27,10 +28,15 @@ namespace Shoko.Server.Repositories.Direct
 
         public CommandRequest GetByCommandID(ISession session, string cmdid)
         {
-            CommandRequest cr = session
+            var crs = session
                 .CreateCriteria(typeof(CommandRequest))
                 .Add(Restrictions.Eq("CommandID", cmdid))
-                .UniqueResult<CommandRequest>();
+                .List<CommandRequest>().ToList();
+            var cr = crs.FirstOrDefault();
+            if (crs.Count <= 1) return cr;
+
+            crs.Remove(cr);
+            foreach(var crd in crs) Delete(crd);
             return cr;
         }
 
