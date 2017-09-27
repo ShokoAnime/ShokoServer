@@ -448,8 +448,7 @@ namespace Shoko.Server
         
         public static string GetApplicationVersion(Assembly a)
         {
-            AssemblyName an = a.GetName();
-            return an.Version.ToString();
+            return a.GetName().Version.ToString();
         }
 
         public static string GetApplicationExtraVersion(Assembly a)
@@ -462,6 +461,16 @@ namespace Shoko.Server
                 return string.Empty;
             }
             return version.InformationalVersion;
+        }
+
+        public static string GetApplicationVersion()
+        {
+            return GetApplicationVersion(Assembly.GetExecutingAssembly());
+        }
+
+        public static string GetApplicationExtraVersion()
+        {
+            return GetApplicationExtraVersion(Assembly.GetExecutingAssembly());
         }
 
         public static long GetCurrentUTCTime()
