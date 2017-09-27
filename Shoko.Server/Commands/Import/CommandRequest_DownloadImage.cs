@@ -11,6 +11,7 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.AniDB_API;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
@@ -96,6 +97,7 @@ namespace Shoko.Server.Commands
         {
             logger.Info("Processing CommandRequest_DownloadImage: {0}", EntityID);
             string downloadURL = string.Empty;
+            
             try
             {
                 ImageDownloadRequest req = null;
@@ -172,6 +174,7 @@ namespace Shoko.Server.Commands
                             logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {EntityID}");
                             return;
                         }
+                        AniDbImageRateLimiter.Instance.EnsureRate();
                         req = new ImageDownloadRequest(EntityTypeEnum, anime, ForceDownload);
                         break;
 
@@ -182,6 +185,7 @@ namespace Shoko.Server.Commands
                             logger.Warn($"AniDB Character image failed to download: Can't find AniDB Character with ID: {EntityID}");
                             return;
                         }
+                        AniDbImageRateLimiter.Instance.EnsureRate();
                         req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
                         break;
 
@@ -192,6 +196,7 @@ namespace Shoko.Server.Commands
                             logger.Warn($"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {EntityID}");
                             return;
                         }
+                        AniDbImageRateLimiter.Instance.EnsureRate();
                         req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
                         break;
                 }
