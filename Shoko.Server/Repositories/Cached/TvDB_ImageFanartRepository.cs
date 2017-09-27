@@ -31,12 +31,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
-            return TvDBIDs.GetOne(id);
+            lock (Cache)
+            {
+                return TvDBIDs.GetOne(id);
+            }
         }
 
         public List<TvDB_ImageFanart> GetBySeriesID(int seriesID)
         {
-            return SeriesIDs.GetMultiple(seriesID);
+            lock (Cache)
+            {
+                return SeriesIDs.GetMultiple(seriesID);
+            }
         }
 
         public ILookup<int, TvDB_ImageFanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
@@ -51,19 +57,22 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, TvDB_ImageFanart>.Instance;
             }
 
-            var fanartByAnime = session.CreateSQLQuery(@"
+            lock (globalDBLock)
+            {
+                var fanartByAnime = session.CreateSQLQuery(@"
                 SELECT DISTINCT crAdbTvTb.AnimeID, {tvdbFanart.*}
                    FROM CrossRef_AniDB_TvDBV2 AS crAdbTvTb
                       INNER JOIN TvDB_ImageFanart AS tvdbFanart
                          ON tvdbFanart.SeriesID = crAdbTvTb.TvDBID
                    WHERE crAdbTvTb.AnimeID IN (:animeIds)")
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddEntity("tvdbFanart", typeof(TvDB_ImageFanart))
-                .SetParameterList("animeIds", animeIds)
-                .List<object[]>()
-                .ToLookup(r => (int) r[0], r => (TvDB_ImageFanart) r[1]);
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .AddEntity("tvdbFanart", typeof(TvDB_ImageFanart))
+                    .SetParameterList("animeIds", animeIds)
+                    .List<object[]>()
+                    .ToLookup(r => (int) r[0], r => (TvDB_ImageFanart) r[1]);
 
-            return fanartByAnime;
+                return fanartByAnime;
+            }
         }
 
         public override void RegenerateDb()

@@ -249,6 +249,7 @@
     <Compile Include="AniDBHelper.cs" />
     <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
     <Compile Include="AniDB_API\AniDBLib.cs" />
+    <Compile Include="AniDB_API\AniDBImageRateLimiter.cs" />
     <Compile Include="AniDB_API\AniDBRateLimiter.cs" />
     <Compile Include="AniDB_API\Calendar.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_AddFile.cs" />
