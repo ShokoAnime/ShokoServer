@@ -235,36 +235,10 @@ namespace Shoko.Server.Repositories.Cached
             list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
         }
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(IReadOnlyCollection<SVR_VideoLocal> objs)
-        {
-            throw new NotSupportedException();
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(int id)
-        {
-            throw new NotSupportedException();
-        }
-
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(SVR_VideoLocal obj)
         {
-            throw new NotSupportedException();
+            Save(obj, true);
         }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_VideoLocal> objs)
-        {
-            throw new NotSupportedException();
-        }
-
 
         public void Save(SVR_VideoLocal obj, bool updateEpisodes)
         {
@@ -280,10 +254,7 @@ namespace Shoko.Server.Repositories.Cached
             }
             if (updateEpisodes)
             {
-                foreach (SVR_AnimeEpisode ep in obj.GetAnimeEpisodes())
-                {
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
+                RepoFactory.AnimeEpisode.Save(obj.GetAnimeEpisodes());
             }
         }
 

@@ -19,23 +19,41 @@ namespace Shoko.Server.Repositories.Cached
 
         public AuthTokens GetByToken(string token)
         {
-            if (string.IsNullOrEmpty(token)) return null;
-            var tokens = Tokens.GetMultiple(token).ToList();
-            var auth = tokens.FirstOrDefault();
-            if (tokens.Count <= 1) return auth;
-            tokens.Remove(auth);
-            tokens.ForEach(Delete);
-            return auth;
+            lock (Cache)
+            {
+                if (string.IsNullOrEmpty(token)) return null;
+                var tokens = Tokens.GetMultiple(token).ToList();
+                var auth = tokens.FirstOrDefault();
+                if (tokens.Count <= 1) return auth;
+                tokens.Remove(auth);
+                tokens.ForEach(Delete);
+                return auth;
+            }
         }
 
-        public void DeleteAllWithUserID(int id) => UserIDs.GetMultiple(id).ToList().ForEach(Delete);
+        public void DeleteAllWithUserID(int id)
+        {
+            lock (Cache)
+            {
+                UserIDs.GetMultiple(id).ToList().ForEach(Delete);
+            }
+        }
 
         public void DeleteWithToken(string token)
         {
-            if (!string.IsNullOrEmpty(token)) Tokens.GetMultiple(token).ToList().ForEach(Delete);
+            lock (Cache)
+            {
+                if (!string.IsNullOrEmpty(token)) Tokens.GetMultiple(token).ToList().ForEach(Delete);
+            }
         }
 
-        public List<AuthTokens> GetByUserID(int userID) => UserIDs.GetMultiple(userID).ToList();
+        public List<AuthTokens> GetByUserID(int userID)
+        {
+            lock (Cache)
+            {
+                return UserIDs.GetMultiple(userID).ToList();
+            }
+        }
 
         protected override int SelectKey(AuthTokens entity) => entity.AuthID;
 

@@ -47,34 +47,44 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
-            List<AniDB_Vote> cr = EntityIDs.GetMultiple(entID)?.Where(a => a.VoteType == (int) voteType).ToList();
-
-            if (cr.Count <= 1) return cr.FirstOrDefault();
-
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                bool first = true;
-                foreach (AniDB_Vote dbVote in cr)
+                List<AniDB_Vote> cr = EntityIDs.GetMultiple(entID)?.Where(a => a.VoteType == (int) voteType).ToList();
+
+                if (cr == null) return null;
+                if (cr.Count <= 1) return cr.FirstOrDefault();
+
+                lock (globalDBLock)
                 {
-                    if (first)
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        first = false;
-                        continue;
-                    }
-                    using (var transact = session.BeginTransaction())
-                    {
-                        RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
-                        transact.Commit();
+                        bool first = true;
+                        foreach (AniDB_Vote dbVote in cr)
+                        {
+                            if (first)
+                            {
+                                first = false;
+                                continue;
+                            }
+                            using (var transact = session.BeginTransaction())
+                            {
+                                RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
+                                transact.Commit();
+                            }
+                        }
+
+                        return cr.FirstOrDefault();
                     }
                 }
-
-                return cr.FirstOrDefault();
             }
         }
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            return EntityIDs.GetMultiple(entID)?.ToList();
+            lock (Cache)
+            {
+                return EntityIDs.GetMultiple(entID)?.ToList();
+            }
         }
 
         public AniDB_Vote GetByAnimeID(int animeID)

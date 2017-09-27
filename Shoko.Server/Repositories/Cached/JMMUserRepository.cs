@@ -31,20 +31,9 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(SVR_JMMUser obj)
         {
-            throw new NotSupportedException();
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_JMMUser> objs)
-        {
-            throw new NotSupportedException();
+            Save(obj, true);
         }
 
         public void Save(SVR_JMMUser obj, bool updateGroupFilters)
@@ -75,23 +64,50 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-        public SVR_JMMUser GetByUsername(string username) => Cache.Values.FirstOrDefault(x =>
-            x.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+        public SVR_JMMUser GetByUsername(string username)
+        {
+            lock (Cache)
+            {
+                return Cache.Values.FirstOrDefault(x =>
+                    x.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+            }
+        }
 
 
-        public List<SVR_JMMUser> GetAniDBUsers() => Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
+        public List<SVR_JMMUser> GetAniDBUsers()
+        {
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
+            }
+        }
 
-        public List<SVR_JMMUser> GetTraktUsers() => Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
+        public List<SVR_JMMUser> GetTraktUsers()
+        {
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
+            }
+        }
 
         public SVR_JMMUser AuthenticateUser(string userName, string password)
         {
             if (password == null) password = string.Empty;
             string hashedPassword = Digest.Hash(password);
-            return Cache.Values.FirstOrDefault(a =>
-                a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
-                a.Password.Equals(hashedPassword));
+            lock (Cache)
+            {
+                return Cache.Values.FirstOrDefault(a =>
+                    a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
+                    a.Password.Equals(hashedPassword));
+            }
         }
 
-        public long GetTotalRecordCount() => Cache.Keys.Count;
+        public long GetTotalRecordCount()
+        {
+            lock (Cache)
+            {
+                return Cache.Keys.Count;
+            }
+        }
     }
 }

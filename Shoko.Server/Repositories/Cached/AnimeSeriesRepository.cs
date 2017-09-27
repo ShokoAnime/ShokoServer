@@ -29,7 +29,10 @@ namespace Shoko.Server.Repositories.Cached
             BeginDeleteCallback = (cr) =>
             {
                 RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-                Changes.Remove(cr.AnimeSeriesID);
+                lock (Changes)
+                {
+                    Changes.Remove(cr.AnimeSeriesID);
+                }
             };
             EndDeleteCallback = (cr) =>
             {
@@ -105,27 +108,15 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-
         public ChangeTracker<int> GetChangeTracker()
         {
             return Changes;
         }
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(SVR_AnimeSeries obj)
         {
-            throw new NotSupportedException();
+            Save(obj, false);
         }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_AnimeSeries> objs)
-        {
-            throw new NotSupportedException();
-        }
-
 
         public void Save(SVR_AnimeSeries obj, bool onlyupdatestats)
         {
@@ -148,7 +139,10 @@ namespace Shoko.Server.Repositories.Cached
                     SVR_AnimeSeries oldSeries;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
+                        lock (globalDBLock)
+                        {
+                            oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
+                        }
                     }
                     if (oldSeries != null)
                     {
@@ -185,7 +179,10 @@ namespace Shoko.Server.Repositories.Cached
                     //This call will create extra years or tags if the Group have a new year or tag
                     obj.UpdateGroupFilters(types, null);
                 }
-                Changes.AddOrUpdate(obj.AnimeSeriesID);
+                lock (Changes)
+                {
+                    Changes.AddOrUpdate(obj.AnimeSeriesID);
+                }
             }
             if (updateGroups && !isMigrating)
             {
@@ -222,14 +219,23 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeSeries series in seriesBatch)
             {
-                session.Update(series);
-                Changes.AddOrUpdate(series.AnimeSeriesID);
+                lock (globalDBLock)
+                {
+                    session.Update(series);
+                }
+                lock (Changes)
+                {
+                    Changes.AddOrUpdate(series.AnimeSeriesID);
+                }
             }
         }
 
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            return AniDBIds.GetOne(id);
+            lock (Cache)
+            {
+                return AniDBIds.GetOne(id);
+            }
         }
 
 
