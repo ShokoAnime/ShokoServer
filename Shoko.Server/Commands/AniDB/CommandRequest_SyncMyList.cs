@@ -98,7 +98,7 @@ namespace Shoko.Server.Commands
                         Raw_AniDB_MyListFile file = onlineFiles[fileID];
 
                         // Update file state if deleted
-                        if (file.State == (int) AniDBFile_State.Deleted)
+                        if (file.State != (int) ServerSettings.AniDB_MyList_StorageState)
                         {
                             int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
                             CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
