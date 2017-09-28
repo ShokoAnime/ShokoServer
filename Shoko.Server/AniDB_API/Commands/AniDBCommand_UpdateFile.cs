@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Commons.Utils;
 using Shoko.Models.Interfaces;
 using Shoko.Server;
 
@@ -9,8 +10,8 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_UpdateFile : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public IHash FileData = null;
-        public bool IsWatched = false;
+        public IHash FileData;
+        public bool IsWatched;
 
         public string GetKey()
         {
@@ -57,19 +58,6 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.UpdateFile;
         }
 
-        /*public void Init(IHash fileData, bool watched)
-		{
-			FileData = fileData;
-			IsWatched = watched;
-
-			commandID = fileData.Info;
-
-			commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
-			commandText += "&ed2k=" + fileData.ED2KHash;
-			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-			commandText += "&edit=1";
-		}*/
-
         public void Init(IHash fileData, bool watched, DateTime? watchedDate, bool isEdit, AniDBFile_State? fileState)
         {
             FileData = fileData;
@@ -77,14 +65,13 @@ namespace AniDBAPI.Commands
 
             commandID = fileData.Info;
 
-            commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
+            commandText = "MYLISTADD size=" + fileData.FileSize;
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
             if (fileState.HasValue)
                 commandText += "&state=" + (int) fileState;
             if (watchedDate.HasValue)
-                commandText += "&viewdate=" + Shoko.Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate.Value)
-                                   .ToString();
+                commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
             if (isEdit)
                 commandText += "&edit=1";
         }
@@ -93,9 +80,9 @@ namespace AniDBAPI.Commands
         {
             IsWatched = watched;
 
-            commandText = "MYLISTADD aid=" + animeID.ToString();
+            commandText = "MYLISTADD aid=" + animeID;
             commandText += "&generic=1";
-            commandText += "&epno=" + episodeNumber.ToString();
+            commandText += "&epno=" + episodeNumber;
             commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
             commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
             if (isEdit)
