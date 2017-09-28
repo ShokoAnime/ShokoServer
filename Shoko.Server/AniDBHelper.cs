@@ -545,14 +545,14 @@ namespace Shoko.Server
             }
         }
 
-        public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate)
+        public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate, ref AniDBFile_State? state)
         {
             if (!ServerSettings.AniDB_MyList_AddFiles) return false;
 
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_AddFile cmdAddFile = null;
+            enHelperActivityType ev;
+            AniDBCommand_AddFile cmdAddFile;
 
             lock (lockAniDBConnections)
             {
@@ -564,10 +564,11 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            // if the user already has this file on 
+            // if the user already has this file on
             if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
             {
                 watchedDate = cmdAddFile.WatchedDate;
+                state = cmdAddFile.State;
                 return cmdAddFile.ReturnIsWatched;
             }
 
