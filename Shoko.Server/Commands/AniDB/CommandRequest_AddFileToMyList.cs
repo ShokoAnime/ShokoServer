@@ -90,9 +90,8 @@ namespace Shoko.Server.Commands
                 if (aniDBUsers.Count > 0)
                 {
                     logger.Info($"Adding file to list: {vid.FileName} - {watchedDate}");
-                    bool watched = false;
+                    bool watched = watchedDate != null;
                     if (newWatchedStatus != null) watched = newWatchedStatus.Value;
-                    if (watchedDate != null) watched = true;
 
                     SVR_JMMUser juser = aniDBUsers[0];
                     bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
@@ -114,6 +113,7 @@ namespace Shoko.Server.Commands
                     {
                         int watchedDateSec = Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate);
                         var cmdUpdate = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, watchedDateSec);
+                        cmdUpdate.Save();
                     }
                 }
 
