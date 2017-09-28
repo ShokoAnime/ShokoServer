@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
+using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -73,48 +74,46 @@ namespace Shoko.Server.Commands
                 // mark the video file as watched
                 DateTime? watchedDate = null;
                 bool? newWatchedStatus;
+                AniDBFile_State? state = null;
 
                 if (isManualLink)
                     newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
                         xrefs[0].GetEpisode().EpisodeNumber,
                         ref watchedDate);
                 else
-                    newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
+                    newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
 
                 // do for all AniDB users
                 List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
 
-                if (aniDBUsers.Count > 0 && newWatchedStatus != null)
+                if (aniDBUsers.Count > 0)
                 {
-                    SVR_JMMUser juser = aniDBUsers[0];
-                    vid.ToggleWatchedStatus(newWatchedStatus.Value, false, watchedDate, false, false, juser.JMMUserID,
-                        false, true);
                     logger.Info($"Adding file to list: {vid.FileName} - {watchedDate}");
+                    bool watched = watchedDate != null;
+                    if (newWatchedStatus != null) watched = newWatchedStatus.Value;
 
-                    // if the the episode is watched we may want to set the file to watched as well
-                    if (ServerSettings.Import_UseExistingFileWatchedStatus && !newWatchedStatus.Value)
+                    SVR_JMMUser juser = aniDBUsers[0];
+                    bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
+                    bool watchedChanged = watched != watchedLocally;
+
+                    // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
+                    if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
                     {
-                        if (animeEpisodes.Count > 0)
-                        {
-                            SVR_AnimeEpisode ep = animeEpisodes[0];
-                            SVR_AnimeEpisode_User epUser = null;
+                        vid.ToggleWatchedStatus(true, false, watchedDate, false, false, juser.JMMUserID,
+                            false, false);
+                    }
+                    else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
+                    {
+                        vid.ToggleWatchedStatus(false, false, watchedDate, false, false, juser.JMMUserID,
+                            false, false);
+                    }
 
-                            foreach (SVR_JMMUser tempuser in aniDBUsers)
-                            {
-                                // only find the first user who watched this
-                                if (epUser == null)
-                                    epUser = ep.GetUserRecord(tempuser.JMMUserID);
-                            }
-
-                            if (epUser != null)
-                            {
-                                logger.Info(
-                                    $"Setting file as watched, because episode was already watched: {vid.FileName} - user: {epUser.JMMUserID}");
-                                vid.ToggleWatchedStatus(true, true, epUser.WatchedDate, false, false,
-                                    epUser.JMMUserID, false, true);
-                            }
-                        }
+                    if (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState)
+                    {
+                        int watchedDateSec = Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate);
+                        var cmdUpdate = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, watchedDateSec);
+                        cmdUpdate.Save();
                     }
                 }
 

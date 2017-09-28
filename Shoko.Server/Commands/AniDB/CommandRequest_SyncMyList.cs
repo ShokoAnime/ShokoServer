@@ -81,14 +81,8 @@ namespace Shoko.Server.Commands
                 double pct = 0;
 
                 // Add missing files on AniDB
-                Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = new Dictionary<int, Raw_AniDB_MyListFile>();
-                foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
-                    onlineFiles[myitem.FileID] = myitem;
-
-                Dictionary<string, SVR_AniDB_File> dictAniFiles = new Dictionary<string, SVR_AniDB_File>();
-                IReadOnlyList<SVR_AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
-                foreach (SVR_AniDB_File anifile in allAniFiles)
-                    dictAniFiles[anifile.Hash] = anifile;
+                var onlineFiles = cmd.MyListItems.ToDictionary(a => a.FileID);
+                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToDictionary(a => a.Hash);
 
                 int missingFiles = 0;
                 foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
@@ -104,10 +98,12 @@ namespace Shoko.Server.Commands
                         Raw_AniDB_MyListFile file = onlineFiles[fileID];
 
                         // Update file state if deleted
-                        if (file.State == (int) AniDBFile_State.Deleted)
+                        if (file.State != (int) ServerSettings.AniDB_MyList_StorageState)
                         {
+                            int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
                             CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
-                                new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchedDate.HasValue, false, 0);
+                                new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchedDate.HasValue, false,
+                                    seconds);
                             cmdUpdateFile.Save();
                         }
                         continue;
