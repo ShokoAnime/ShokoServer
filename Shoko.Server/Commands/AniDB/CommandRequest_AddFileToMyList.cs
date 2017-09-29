@@ -89,7 +89,10 @@ namespace Shoko.Server.Commands
 
                 if (aniDBUsers.Count > 0)
                 {
-                    logger.Info($"Adding file to list: {vid.FileName} - {watchedDate}");
+                    string datemessage = watchedDate?.ToShortDateString() ?? "Not Watched";
+                    if (watchedDate?.Equals(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime()) ?? false)
+                        datemessage = "No Watch Date Specified";
+                    logger.Info($"Adding file to list: {vid.FileName} - {datemessage}");
                     bool watched = watchedDate != null;
                     if (newWatchedStatus != null) watched = newWatchedStatus.Value;
 
