@@ -53,6 +53,21 @@ namespace Shoko.Server.Models
         // returns false if we should try again after the timer
         private bool RenameFile()
         {
+            if (ImportFolder == null)
+            {
+                logger.Error(
+                    $"Error: The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: {FilePath}");
+                return false;
+            }
+
+            IFileSystem filesys = ImportFolder.FileSystem;
+            if (filesys == null)
+            {
+                logger.Error(
+                    $"Error: The renamer can't get the filesystem for: {FullServerPath}");
+                return true;
+            }
+
             var renamer = RenameFileHelper.GetRenamer();
             if (renamer == null) return true;
             string renamed = renamer.GetFileName(this);
@@ -68,20 +83,6 @@ namespace Shoko.Server.Models
                 return true;
             }
 
-            if (ImportFolder == null)
-            {
-                logger.Error(
-                    $"Error: The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: {FilePath}");
-                return false;
-            }
-
-            IFileSystem filesys = ImportFolder.FileSystem;
-            if (filesys == null)
-            {
-                logger.Error(
-                    $"Error: The renamer can't get the filesystem for: {FullServerPath}");
-                return true;
-            }
             // actually rename the file
             string fullFileName = FullServerPath;
 
@@ -277,7 +278,7 @@ namespace Shoko.Server.Models
 
         public IFile GetFile()
         {
-            IFileSystem fs = ImportFolder.FileSystem;
+            IFileSystem fs = ImportFolder?.FileSystem;
             FileSystemResult<IObject> fobj = fs?.Resolve(FullServerPath);
             if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory)
                 return null;
@@ -451,7 +452,7 @@ namespace Shoko.Server.Models
             {
                 logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
 
-                IFileSystem fileSystem = ImportFolder.FileSystem;
+                IFileSystem fileSystem = ImportFolder?.FileSystem;
                 if (fileSystem == null)
                 {
                     logger.Error("Unable to delete file, filesystem not found. Removing record.");
@@ -594,6 +595,12 @@ namespace Shoko.Server.Models
 
         public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName, bool force = false)
         {
+            if (FullServerPath == null)
+            {
+                logger.Error("Could not find or access the file to move: {0}",
+                    VideoLocal_Place_ID);
+                return "ERROR: Unable to access file";
+            }
             // check if this file is in the drop folder
             // otherwise we don't need to move it
             if (ImportFolder.IsDropSource == 0 && !force)
@@ -677,7 +684,7 @@ namespace Shoko.Server.Models
                 return "ERROR: The file is already at its desired location";
             }
 
-            IFileSystem f = ImportFolder.FileSystem;
+            IFileSystem f = dropFolder.FileSystem;
             FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
             if (dst != null && dst.IsOk)
             {
