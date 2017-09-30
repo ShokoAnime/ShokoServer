@@ -82,16 +82,17 @@ namespace Shoko.Server.Commands
 
                 // Add missing files on AniDB
                 var onlineFiles = cmd.MyListItems.ToDictionary(a => a.FileID);
-                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToDictionary(a => a.Hash);
+                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
 
                 int missingFiles = 0;
                 foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
                     .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
                 {
                     // Does it have a linked AniFile
-                    if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
+                    if (!dictAniFiles.Contains(vid.Hash)) continue;
 
-                    int fileID = dictAniFiles[vid.Hash].FileID;
+                    int fileID = dictAniFiles[vid.Hash].FirstOrDefault()?.FileID ?? 0;
+                    if (fileID == 0) continue;
                     // Is it in MyList
                     if (onlineFiles.ContainsKey(fileID))
                     {
@@ -126,9 +127,6 @@ namespace Shoko.Server.Commands
                 List<int> filesToRemove = new List<int>();
                 foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                 {
-                    // ignore files mark as deleted by the user
-                    if (myitem.State == (int) AniDBFile_State.Deleted) continue;
-
                     totalItems++;
                     if (myitem.IsWatched) watchedItems++;
 
