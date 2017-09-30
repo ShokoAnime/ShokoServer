@@ -18,8 +18,9 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using Pri.LongPath;
 using NLog;
+using FileInfo = Pri.LongPath.FileInfo;
+using Path = Pri.LongPath.Path;
 
 namespace MediaInfoLib
 {
@@ -115,7 +116,7 @@ namespace MediaInfoLib
                     string curlpath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                         "libcurl.dll");
 
-                    Logger.Info(string.Format("Using MediaInfo at: {0}", fullexepath));
+                    Logger.Info("Using MediaInfo at: {0}", fullexepath);
 
                     moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
                     curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
