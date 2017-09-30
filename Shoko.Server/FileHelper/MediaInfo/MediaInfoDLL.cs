@@ -15,10 +15,12 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 using System;
+using System.IO;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security;
-using Pri.LongPath;
+using FileInfo = Pri.LongPath.FileInfo;
+using Path = Pri.LongPath.Path;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
 
@@ -193,6 +195,7 @@ namespace MediaInfoLib
 
                     moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
                     curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
+                    if (moduleHandle == IntPtr.Zero) throw new FileNotFoundException("Unable to load MediaInfo.dll");
                 }
             }
             try
@@ -203,7 +206,7 @@ namespace MediaInfoLib
             {
                 Handle = (IntPtr) 0;
             }
-            MustUseAnsi = Environment.OSVersion.ToString().IndexOf("Windows") == -1;
+            MustUseAnsi = Environment.OSVersion.ToString().IndexOf("Windows", StringComparison.Ordinal) == -1;
         }
 
         ~MediaInfo()
