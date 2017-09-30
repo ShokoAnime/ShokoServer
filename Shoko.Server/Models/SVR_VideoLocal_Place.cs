@@ -338,6 +338,11 @@ namespace Shoko.Server.Models
                 }
                 if (m == null && FullServerPath != null)
                 {
+                    if (GetFile() == null)
+                    {
+                        logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to read MediaInfo");
+                        return false;
+                    }
                     string name = (ImportFolder.CloudID == null)
                         ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
                         : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
@@ -387,7 +392,7 @@ namespace Shoko.Server.Models
                     info.Media = m;
                     return true;
                 }
-                logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} does not exist, unable to read media information from it");
+                logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to read MediaInfo");
             }
             catch (Exception e)
             {
@@ -570,16 +575,16 @@ namespace Shoko.Server.Models
             succeeded = MoveFileIfRequired();
             if (!succeeded)
             {
-                Thread.Sleep((int)DELAY_IN_USE.FIRST);
-                succeeded = MoveFileIfRequired();
+            Thread.Sleep((int)DELAY_IN_USE.FIRST);
+            succeeded = MoveFileIfRequired();
                 if (!succeeded)
                 {
-                    Thread.Sleep((int)DELAY_IN_USE.SECOND);
-                    succeeded = MoveFileIfRequired();
+            Thread.Sleep((int) DELAY_IN_USE.SECOND);
+            succeeded = MoveFileIfRequired();
                     if (!succeeded)
                     {
-                        Thread.Sleep((int)DELAY_IN_USE.THIRD);
-                        MoveFileIfRequired();
+            Thread.Sleep((int) DELAY_IN_USE.THIRD);
+            MoveFileIfRequired();
                         if (!succeeded) return; //Same as above, but linux permissiosn.
                     }
                 }

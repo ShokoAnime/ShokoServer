@@ -15,6 +15,7 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using Pri.LongPath;
@@ -118,6 +119,7 @@ namespace MediaInfoLib
 
                     moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
                     curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
+                    if (moduleHandle == IntPtr.Zero) throw new FileNotFoundException("Unable to load MediaInfo.dll");
                 }
             }
 

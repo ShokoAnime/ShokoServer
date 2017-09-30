@@ -81,24 +81,25 @@ namespace Shoko.Server.Commands
                 double pct = 0;
 
                 // Add missing files on AniDB
-                var onlineFiles = cmd.MyListItems.ToDictionary(a => a.FileID);
-                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToDictionary(a => a.Hash);
+                var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
+                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
 
                 int missingFiles = 0;
                 foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
                     .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
                 {
                     // Does it have a linked AniFile
-                    if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
+                    if (!dictAniFiles.Contains(vid.Hash)) continue;
 
-                    int fileID = dictAniFiles[vid.Hash].FileID;
+                    int fileID = dictAniFiles[vid.Hash].FirstOrDefault()?.FileID ?? 0;
+                    if (fileID == 0) continue;
                     // Is it in MyList
-                    if (onlineFiles.ContainsKey(fileID))
+                    if (onlineFiles.Contains(fileID))
                     {
-                        Raw_AniDB_MyListFile file = onlineFiles[fileID];
+                        Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null);
 
                         // Update file state if deleted
-                        if (file.State != (int) ServerSettings.AniDB_MyList_StorageState)
+                        if (file != null && file.State != (int) ServerSettings.AniDB_MyList_StorageState)
                         {
                             int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
                             CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
@@ -106,7 +107,10 @@ namespace Shoko.Server.Commands
                                     seconds);
                             cmdUpdateFile.Save();
                         }
-                        continue;
+                        else if (file != null)
+                        {
+                            continue;
+                        }
                     }
 
                     // means we have found a file in our local collection, which is not recorded online
@@ -126,15 +130,8 @@ namespace Shoko.Server.Commands
                 List<int> filesToRemove = new List<int>();
                 foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                 {
-                    // ignore files mark as deleted by the user
-                    if (myitem.State == (int) AniDBFile_State.Deleted) continue;
-
                     totalItems++;
                     if (myitem.IsWatched) watchedItems++;
-
-                    //calculate percentage
-                    pct = totalItems / (double)cmd.MyListItems.Count * 100;
-                    string spct = pct.ToString("#0.0");
 
                     string hash = string.Empty;
 
