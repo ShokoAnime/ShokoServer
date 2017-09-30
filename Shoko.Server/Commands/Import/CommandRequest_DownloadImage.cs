@@ -12,9 +12,9 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.AniDB_API;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
@@ -70,7 +70,7 @@ namespace Shoko.Server.Commands
                         type = string.Empty;
                         break;
                 }
-                return new QueueStateStruct()
+                return new QueueStateStruct
                 {
                     queueState = QueueStateEnum.DownloadImage,
                     extraParams = new[] { type, EntityID.ToString() }
@@ -84,11 +84,11 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_DownloadImage(int entityID, ImageEntityType entityType, bool forced)
         {
-            this.EntityID = entityID;
-            this.EntityType = (int) entityType;
-            this.ForceDownload = forced;
-            this.CommandType = (int) CommandRequestType.ImageDownload;
-            this.Priority = (int) DefaultPriority;
+            EntityID = entityID;
+            EntityType = (int) entityType;
+            ForceDownload = forced;
+            CommandType = (int) CommandRequestType.ImageDownload;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -97,7 +97,7 @@ namespace Shoko.Server.Commands
         {
             logger.Info("Processing CommandRequest_DownloadImage: {0}", EntityID);
             string downloadURL = string.Empty;
-            
+
             try
             {
                 ImageDownloadRequest req = null;
@@ -234,8 +234,9 @@ namespace Shoko.Server.Commands
 
                         bool downloadImage = true;
                         bool fileExists = File.Exists(fileName);
+                        bool imageValid = fileExists && Misc.IsImageValid(fileName);
 
-                        if (fileExists && !req.ForceDownload) downloadImage = false;
+                        if (imageValid && !req.ForceDownload) downloadImage = false;
 
                         if (!downloadImage) continue;
 
@@ -243,15 +244,13 @@ namespace Shoko.Server.Commands
 
                         try
                         {
-                            if (fileExists) File.Delete(fileName);
+                            if (fileExists && !imageValid) File.Delete(fileName);
                         }
                         catch (Exception ex)
                         {
                             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                            string msg = string.Format(Commons.Properties.Resources.Command_DeleteError, fileName,
-                                ex.Message);
-                            logger.Warn(msg);
+                            logger.Warn(Resources.Command_DeleteError, fileName, ex.Message);
                             return;
                         }
 
@@ -477,28 +476,28 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
+            CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.EntityID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityID"));
-                this.EntityType = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityType"));
-                this.ForceDownload =
+                EntityID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityID"));
+                EntityType = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityType"));
+                ForceDownload =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "ForceDownload"));
             }
 
@@ -511,10 +510,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
