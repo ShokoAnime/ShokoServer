@@ -222,7 +222,7 @@ namespace Shoko.Server.Commands
                     ImportFolderID = nshareID,
                     ImportFolderType = folder.ImportFolderType
                 };
-                // Male sure we have an ID
+                // Make sure we have an ID
                 RepoFactory.VideoLocalPlace.Save(vlocalplace);
             }
 
@@ -310,9 +310,13 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
-                    List<SVR_VideoLocal_Place> preps = tlocal.Places.Where(
+                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
+                    changed = tlocal.MergeInfoFrom(vlocal);
+                    vlocal = tlocal;
+
+                    List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
-                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID).ToList();
+                             !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
                     foreach (var prep in preps)
                     {
                         if (prep == null) continue;
@@ -330,13 +334,9 @@ namespace Shoko.Server.Commands
                         }
                     }
 
-                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
-                    changed = tlocal.MergeInfoFrom(vlocal);
-                    vlocal = tlocal;
-
-                    var dupPlace = tlocal.Places.FirstOrDefault(
+                    var dupPlace = vlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
-                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                             !vlocalplace.FullServerPath.Equals(a.FullServerPath));
 
                     if (dupPlace != null)
                     {
