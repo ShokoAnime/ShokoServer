@@ -720,6 +720,31 @@ namespace Shoko.Server.Models
 
             string originalFileName = FullServerPath;
 
+            // Handle Duplicate Files
+            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+
+            foreach (var dup in dups)
+            {
+                // Move source
+                if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                {
+                    dup.FilePathFile1 = newFilePath;
+                    dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                }
+                else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                {
+                    dup.FilePathFile2 = newFilePath;
+                    dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                }
+                // validate the dup file
+                // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                if (!dup.GetFullServerPath1()
+                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                    RepoFactory.DuplicateFile.Save(dup);
+                else
+                    RepoFactory.DuplicateFile.Delete(dup);
+            }
+
             ImportFolderID = destFolder.ImportFolderID;
             FilePath = newFilePath;
             RepoFactory.VideoLocalPlace.Save(this);
@@ -931,6 +956,31 @@ namespace Shoko.Server.Models
                     }
 
                     string originalFileName = FullServerPath;
+
+                    // Handle Duplicate Files
+                    var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+
+                    foreach (var dup in dups)
+                    {
+                        // Move source
+                        if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                        {
+                            dup.FilePathFile1 = newFilePath;
+                            dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                        }
+                        else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                        {
+                            dup.FilePathFile2 = newFilePath;
+                            dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                        }
+                        // validate the dup file
+                        // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                        if (!dup.GetFullServerPath1()
+                            .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                            RepoFactory.DuplicateFile.Save(dup);
+                        else
+                            RepoFactory.DuplicateFile.Delete(dup);
+                    }
 
                     ImportFolderID = destFolder.ImportFolderID;
                     FilePath = newFilePath;
