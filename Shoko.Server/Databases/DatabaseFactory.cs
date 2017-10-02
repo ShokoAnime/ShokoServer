@@ -96,7 +96,10 @@ namespace Shoko.Server.Databases
                 }
                 try
                 {
+                    logger.Info($"{Instance.GetType()}Instance.CreateAndUpdateSchema()");
                     Instance.CreateAndUpdateSchema();
+
+                    logger.Info($"RepoFactory.Init()");
                     RepoFactory.Init();
                     Instance.ExecuteDatabaseFixes();
                     Instance.PopulateInitialData();

@@ -343,8 +343,8 @@ namespace Shoko.Server.Models
                         logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to read MediaInfo");
                         return false;
                     }
-                    string name = (ImportFolder?.CloudID == null)
-                        ? FullServerPath.Replace("/", "\\")
+                    string name = (ImportFolder.CloudID == null)
+                        ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
                         : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
                             VideoLocalID.ToString(), "file", false));
                     m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
@@ -573,15 +573,24 @@ namespace Shoko.Server.Models
                 }
             }
             succeeded = MoveFileIfRequired();
-            if (succeeded) return;
+            if (!succeeded)
+            {
             Thread.Sleep((int)DELAY_IN_USE.FIRST);
             succeeded = MoveFileIfRequired();
-            if (succeeded) return;
+                if (!succeeded)
+                {
             Thread.Sleep((int) DELAY_IN_USE.SECOND);
             succeeded = MoveFileIfRequired();
-            if (succeeded) return;
+                    if (!succeeded)
+                    {
             Thread.Sleep((int) DELAY_IN_USE.THIRD);
             MoveFileIfRequired();
+                        if (!succeeded) return; //Same as above, but linux permissiosn.
+                    }
+                }
+            }
+
+            Utilities.LinuxFS.SetLinuxPermissions(this.FullServerPath, ServerSettings.Linux_UID, ServerSettings.Linux_GID, ServerSettings.Linux_Permission);
         }
 
         // returns false if we should retry

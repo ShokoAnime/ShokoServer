@@ -180,7 +180,7 @@ namespace Shoko.Server
             ServerState.Instance.StartupFailed = false;
             ServerState.Instance.StartupFailedMessage = string.Empty;
             ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
-
+            
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
 
@@ -223,9 +223,9 @@ namespace Shoko.Server
 
             workerSetupDB.DoWork += WorkerSetupDB_DoWork;
             workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
-
+            
             ServerState.Instance.LoadSettings();
-
+            
             InitCulture();
             Instance = this;
 
@@ -240,6 +240,7 @@ namespace Shoko.Server
 
         private bool CheckBlockedFiles()
         {
+            if (Utils.IsRunningOnMono()) return true;
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
             {
                 // do stuff on windows only
@@ -276,26 +277,7 @@ namespace Shoko.Server
 
             return result;
         }
-        /*
-        private void BtnSyncPlexOn_Click(object sender, RoutedEventArgs routedEventArgs)
-        {
-            foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
-            {
-                if (!string.IsNullOrEmpty(user.PlexToken))
-                {
-                    new CommandRequest_PlexSyncWatched(user).Save();
-                }
-            }
-        }
 
-        private void BtnSetDefault_Click(object sender, RoutedEventArgs e)
-        {
-            string imagePath = ServerSettings.DefaultImagePath;
-            if (!Directory.Exists(imagePath))
-                Directory.CreateDirectory(imagePath);
-            ServerSettings.ImagesPath = imagePath;
-        }
-        */
         public bool MigrateProgramDataLocation()
         {
             string oldApplicationPath =
@@ -338,6 +320,7 @@ namespace Shoko.Server
 
         void UninstallJMMServer()
         {
+            if (Utils.IsRunningOnMono()) return; //This will be handled by the OS or user, as we cannot reliably learn what package management system they use.
             try
             {
                 // Check in registry if installed
@@ -349,6 +332,7 @@ namespace Shoko.Server
 
                 if (!string.IsNullOrEmpty(jmmServerUninstallPath))
                 {
+                    
                     // Ask if user wants to uninstall first
                     bool res = Utils.ShowYesNo(Resources.DuplicateInstallDetectedQuestion, Resources.DuplicateInstallDetected);
 
@@ -406,15 +390,15 @@ namespace Shoko.Server
                     }
                     finally
                     {
-                        ApplicationShutdown();
+                        ShutDown();
                     }
                     return false;
                 }
-                Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
-                logger.Error(e);
-                ApplicationShutdown();
-                return false;
-            }
+                    Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
+                    logger.Error(e);
+                    ShutDown();
+                    return false;
+                }
             return true;
         }
 
@@ -424,7 +408,7 @@ namespace Shoko.Server
             {
                 ThreadStart ts = () =>
                 {
-
+                    
                     ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
                     Environment.Exit(0);
                 };
@@ -447,23 +431,7 @@ namespace Shoko.Server
         }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
-        /*
-        private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
-        {
-            SyncHashes();
-            MessageBox.Show(Commons.Properties.Resources.Server_SyncHashesRunning,
-                Commons.Properties.Resources.Success,
-                MessageBoxButton.OK, MessageBoxImage.Information);
-        }
 
-        private void BtnSyncMedias_Click(object sender, RoutedEventArgs e)
-        {
-            SyncMedias();
-            MessageBox.Show(Commons.Properties.Resources.Server_SyncMediasRunning,
-                Commons.Properties.Resources.Success,
-                MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        */
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
             try
@@ -574,30 +542,10 @@ namespace Shoko.Server
                 }
             }
         }
-        /*
-        void BtnUploadAzureCache_Click(object sender, RoutedEventArgs e)
-        {
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
-            int cnt = 0;
-            foreach (SVR_AniDB_Anime anime in allAnime)
-            {
-                cnt++;
-                logger.Info($"Uploading anime {cnt} of {allAnime.Count} - {anime.MainTitle}");
 
-                try
-                {
-                    CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-                    cmdAzure.Save();
-                }
-                catch
-                {
-                }
-            }
-        }
-        */
         void InitCulture()
         {
-
+            
         }
 
 
@@ -605,7 +553,7 @@ namespace Shoko.Server
 
         public event EventHandler LoginFormNeeded;
         public event EventHandler DatabaseSetup;
-        public event EventHandler DBSetupCompleted;
+        public event EventHandler DBSetupCompleted; 
         void WorkerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             ServerState.Instance.ServerStarting = false;
@@ -768,7 +716,7 @@ namespace Shoko.Server
                     ServerState.Instance.StartupFailedMessage = errorMessage;
                     return;
                 }
-                ServerState.Instance.DatabaseAvailable = true;
+                    ServerState.Instance.DatabaseAvailable = true;
                 logger.Info("Initializing Session Factory...");
 
                 Scanner.Instance.Init();
@@ -1026,29 +974,7 @@ namespace Shoko.Server
                 workerMyAnime2.ReportProgress(0, ma2Progress);
             }
         }
-        /*
-        void ImportManualLinks()
-        {
-            if (workerMyAnime2.IsBusy)
-            {
 
-                MessageBox.Show(Commons.Properties.Resources.Server_Import,
-                    Commons.Properties.Resources.Error,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Sqlite Files (*.DB3)|*.db3"
-            };
-            ofd.ShowDialog();
-            if (!string.IsNullOrEmpty(ofd.FileName))
-            {
-                workerMyAnime2.RunWorkerAsync(ofd.FileName);
-            }
-        }
-        */
         private void ImportLinksFromMA2(string databasePath)
         {
         }
@@ -1240,30 +1166,7 @@ namespace Shoko.Server
         }
 
         #region UI events and methods
-        /*
-        private void CommandBinding_ScanFolder(object sender, ExecutedRoutedEventArgs e)
-        {
-            object obj = e.Parameter;
-            if (obj == null) return;
 
-            try
-            {
-                if (obj.GetType() == typeof(SVR_ImportFolder))
-                {
-                    SVR_ImportFolder fldr = (SVR_ImportFolder)obj;
-
-                    ScanFolder(fldr.ImportFolderID);
-                    MessageBox.Show(Commons.Properties.Resources.Server_ScanFolder,
-                        Commons.Properties.Resources.Success,
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-        */
         internal static string GetLocalIPv4(NetworkInterfaceType _type)
         {
             string output = string.Empty;
@@ -1836,8 +1739,8 @@ namespace Shoko.Server
         public void CheckForUpdates()
         {
             Assembly a = Assembly.GetExecutingAssembly();
-            ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
-            ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
+                ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
+                ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
 
             logger.Info("Checking for updates...");
             CheckForUpdatesNew(false);

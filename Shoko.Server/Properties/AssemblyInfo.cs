@@ -22,10 +22,6 @@ using System.Windows;
 
 //[assembly: NeutralResourcesLanguage("en-US", UltimateResourceFallbackLocation.Satellite)]
 
-
-
-
-
 // Version information for an assembly consists of the following four values:
 //
 //      Major Version

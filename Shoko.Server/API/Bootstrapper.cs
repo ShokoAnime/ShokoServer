@@ -175,7 +175,7 @@ namespace Shoko.Server.API
             {
                 try
                 {
-                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui", "index.html");
                     using (var file = File.OpenRead(filename))
                     {
                         file.CopyTo(stream);

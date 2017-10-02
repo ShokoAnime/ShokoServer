@@ -5,6 +5,7 @@ using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
@@ -93,7 +94,7 @@ namespace Shoko.Server.Repositories.Cached
         public SVR_AnimeEpisode GetByFilename(string name)
         {
             return RepoFactory.VideoLocalPlace.GetAll()
-                .Where(v => name.Equals(v.FilePath.Split('\\').LastOrDefault(),
+                .Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                     StringComparison.InvariantCultureIgnoreCase))
                 .Select(a => a.VideoLocal.GetAnimeEpisodes())
                 .FirstOrDefault()

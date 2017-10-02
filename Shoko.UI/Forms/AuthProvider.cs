@@ -6,7 +6,11 @@ namespace Shoko.UI.Forms
 {
     public class AuthProvider : IOAuthProvider
     {
-        public string Name => "WPF";
+        public string Name
+        {
+            get { return "WPF"; }
+        }
+
         private Window _owner;
 
         public async Task<AuthResult> Login(AuthRequest request)
