@@ -9,6 +9,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
+using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
@@ -84,7 +85,7 @@ namespace Shoko.Server.Repositories.Cached
                             //Fix possible paths in filename
                             if (!string.IsNullOrEmpty(a.FileName))
                             {
-                                int b = a.FileName.LastIndexOf("\\", StringComparison.Ordinal);
+                                int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                                 if (b > 0)
                                     a.FileName = a.FileName.Substring(b + 1);
                             }
@@ -108,7 +109,7 @@ namespace Shoko.Server.Repositories.Cached
                 max = list.Count;
                 list.ForEach(a =>
                 {
-                    int b = a.FileName.LastIndexOf("\\", StringComparison.Ordinal);
+                    int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                     a.FileName = a.FileName.Substring(b + 1);
                     Save(a, false);
                     count++;

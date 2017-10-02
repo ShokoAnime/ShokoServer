@@ -85,16 +85,16 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_ImportFolder ifolder in shares)
             {
                 string importLocation = ifolder.ImportFolderLocation;
-                string importLocationFull = importLocation.TrimEnd('\\');
+                string importLocationFull = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
 
                 // add back the trailing back slashes
-                importLocationFull = importLocationFull + "\\";
+                importLocationFull = importLocationFull + $"{System.IO.Path.DirectorySeparatorChar}";
 
-                importLocation = importLocation.TrimEnd('\\');
+                importLocation = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
                 if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
-                    filePath = filePath.TrimStart('\\');
+                    filePath = filePath.TrimStart(System.IO.Path.DirectorySeparatorChar);
                     return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
                 }
             }

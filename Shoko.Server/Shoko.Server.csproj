@@ -522,6 +522,7 @@
     <Compile Include="UI\AuthProvider.cs" />
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utilities\AVDumpHelper.cs" />
+    <Compile Include="Utilities\LinuxFS.cs" />
     <Compile Include="Utilities\TagFilter.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
@@ -796,7 +797,9 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="testing.config">
       <SubType>Designer</SubType>
     </None>

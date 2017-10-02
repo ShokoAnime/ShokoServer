@@ -144,10 +144,13 @@ namespace Shoko.Server
 
         public void AddErrorScan(ScanFile file)
         {
-            Utils.MainThreadDispatch(() => {
+
+            Utils.MainThreadDispatch(() =>
+            {
                 if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
                     ActiveErrorFiles.Add(file);
             });
+       
         }
 
         public void DeleteAllErroredFiles()
