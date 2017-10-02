@@ -9,6 +9,12 @@
         Width="Auto" Height="Auto"
         Title="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=ShokoServer}"
         Name="aboutWindow" Icon="/ShokoServer;component/db.ico">
+    <Window.Resources>
+        <RoutedUICommand x:Key="SelectCommand" Text="" />
+    </Window.Resources>
+    <Window.CommandBindings>
+        <CommandBinding Command="{StaticResource SelectCommand}" Executed="CommandBinding_SelectTextAndCopy" />
+    </Window.CommandBindings>
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -46,11 +52,35 @@
                 <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="20" Foreground="DarkGray"
                            Text="{Binding Source={x:Static server:ServerState.Instance},Path=ApplicationVersion}"
                            VerticalAlignment="Center" />
-                <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="16" Foreground="DarkGray"
-                           Text="{Binding Source={x:Static server:ServerState.Instance},Path=ApplicationVersionExtra}"
-                           VerticalAlignment="Center" />
-
-
+                <Button Command="{DynamicResource SelectCommand}" Margin="10,0,0,0" Background="Transparent" BorderThickness="0"
+                        CommandParameter="{Binding ElementName=CommitBox, Path=Text}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type Button}">
+                                        <Border Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,0" Background="Transparent" Focusable="False">
+                        <TextBox Name="CommitBox" Margin="0,0,0,0" Background="Transparent"
+                                 BorderThickness="0" Focusable="False" IsReadOnly="True"
+                                 FontWeight="DemiBold" FontSize="16" Foreground="DarkGray"
+                                 Text="{Binding Source={x:Static server:ServerState.Instance},
+                                    Path=ApplicationVersionExtra}" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Border>
 
