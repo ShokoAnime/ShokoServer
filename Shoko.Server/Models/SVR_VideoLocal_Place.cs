@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +10,6 @@ using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
-using Pri.LongPath;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
@@ -22,6 +22,8 @@ using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Path = Pri.LongPath.Path;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
 {
@@ -427,17 +429,29 @@ namespace Shoko.Server.Models
                     RemoveRecord();
                     return true;
                 }
-                IFile file = fr.Result as IFile;
-                if (file == null)
+                if (!(fr.Result is IFile file))
                 {
                     logger.Error($"Seems '{FullServerPath}' is a directory.");
                     RemoveRecord();
                     return true;
                 }
-                FileSystemResult fs = file.Delete(false);
-                if (fs == null || !fs.IsOk)
+                try{
+                    FileSystemResult fs = file.Delete(false);
+                    if (fs == null || !fs.IsOk)
+                    {
+                        logger.Error($"Unable to delete file '{FullServerPath}': {fs?.Error ?? "No Error Message"}");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
                 {
-                    logger.Error($"Unable to delete file '{FullServerPath}'");
+                    if (ex is FileNotFoundException)
+                    {
+                        RemoveRecord();
+                        return true;
+                    }
+
+                    logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return false;
                 }
                 RemoveRecord();
@@ -477,17 +491,29 @@ namespace Shoko.Server.Models
                     RemoveRecord();
                     return $"Unable to find file. Removing Record: {FullServerPath}";
                 }
-                IFile file = fr.Result as IFile;
-                if (file == null)
+                if (!(fr.Result is IFile file))
                 {
                     logger.Error($"Seems '{FullServerPath}' is a directory.");
                     RemoveRecord();
                     return $"Seems '{FullServerPath}' is a directory.";
                 }
-                FileSystemResult fs = file.Delete(false);
-                if (fs == null || !fs.IsOk)
+                try{
+                    FileSystemResult fs = file.Delete(false);
+                    if (fs == null || !fs.IsOk)
+                    {
+                        logger.Error($"Unable to delete file '{FullServerPath}'");
+                        return $"Unable to delete file '{FullServerPath}'";
+                    }
+                }
+                catch (Exception ex)
                 {
-                    logger.Error($"Unable to delete file '{FullServerPath}'");
+                    if (ex is FileNotFoundException)
+                    {
+                        RemoveRecord();
+                        return string.Empty;
+                    }
+
+                    logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return $"Unable to delete file '{FullServerPath}'";
                 }
                 RemoveRecord();
@@ -527,17 +553,30 @@ namespace Shoko.Server.Models
                     RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     return;
                 }
-                IFile file = fr.Result as IFile;
-                if (file == null)
+                if (!(fr.Result is IFile file))
                 {
                     logger.Error($"Seems '{FullServerPath}' is a directory.");
                     RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     return;
                 }
-                FileSystemResult fs = file.Delete(false);
-                if (fs == null || !fs.IsOk)
+                try
                 {
-                    logger.Error($"Unable to delete file '{FullServerPath}'");
+                    FileSystemResult fs = file.Delete(false);
+                    if (fs == null || !fs.IsOk)
+                    {
+                        logger.Error($"Unable to delete file '{FullServerPath}'");
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (ex is FileNotFoundException)
+                    {
+                        RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                        return;
+                    }
+
+                    logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return;
                 }
                 RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
