@@ -153,11 +153,11 @@
     <Reference Include="Nancy.Hosting.Self">
       <HintPath>$(SolutionDir)Dependencies\Nancy.Hosting.Self.dll</HintPath>
     </Reference>
-    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.2, Culture=neutral, PublicKeyToken=null">
-      <HintPath>$(SolutionDir)packages\Nancy.Rest.Annotations.1.4.3.2-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
+    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Annotations.1.4.3.7-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
     </Reference>
-    <Reference Include="Nancy.Rest.Module, Version=1.4.3.6, Culture=neutral, PublicKeyToken=null">
-      <HintPath>$(SolutionDir)packages\Nancy.Rest.Module.1.4.3.6-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
+    <Reference Include="Nancy.Rest.Module, Version=1.4.3.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Module.1.4.3.7-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
     </Reference>
     <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
