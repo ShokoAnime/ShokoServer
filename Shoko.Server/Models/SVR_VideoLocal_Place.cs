@@ -476,26 +476,26 @@ namespace Shoko.Server.Models
                 {
                     logger.Error("Unable to delete file, filesystem not found. Removing record.");
                     RemoveRecord();
-                    return "Unable to delete file, filesystem not found. Removing record.";
+                    return string.Empty;
                 }
                 if (FullServerPath == null)
                 {
                     logger.Error("Unable to delete file, fullserverpath is null. Removing record.");
                     RemoveRecord();
-                    return "Unable to delete file, fullserverpath is null. Removing record.";
+                    return string.Empty;
                 }
                 FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
                 if (fr == null || !fr.IsOk)
                 {
                     logger.Error($"Unable to find file. Removing Record: {FullServerPath}");
                     RemoveRecord();
-                    return $"Unable to find file. Removing Record: {FullServerPath}";
+                    return string.Empty;
                 }
                 if (!(fr.Result is IFile file))
                 {
                     logger.Error($"Seems '{FullServerPath}' is a directory.");
                     RemoveRecord();
-                    return $"Seems '{FullServerPath}' is a directory.";
+                    return string.Empty;
                 }
                 try{
                     FileSystemResult fs = file.Delete(false);
