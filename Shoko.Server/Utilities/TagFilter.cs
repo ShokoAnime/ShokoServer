@@ -272,62 +272,58 @@ namespace Shoko.Server
                         }
                         return;
                     }
-                    if (tag.Contains("to be") && tag.Contains("split"))
+                    if (tag.Contains("to be") || tag.Contains("need") || tag.Contains("needs"))
                     {
-                        lock(toRemove)
+                        if (tag.Contains("split"))
                         {
-                            toRemove.Add(a);
+                            lock (toRemove)
+                            {
+                                toRemove.Add(a);
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
-                    {
-                        lock(toRemove)
+                        if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
                         {
-                            toRemove.Add(a);
+                            lock (toRemove)
+                            {
+                                toRemove.Add(a);
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    if (tag.Contains("need") || tag.Contains("needs"))
-                    {
-                        lock(toRemove)
+                        if (tag.Contains("merging") || tag.Contains("merged"))
                         {
-                            toRemove.Add(a);
+                            lock(toRemove)
+                            {
+                                toRemove.Add(a);
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    if (tag.Contains("merging") || tag.Contains("merged"))
-                    {
-                        lock(toRemove)
+                        if (tag.Contains("deleting") || tag.Contains("deleted"))
                         {
-                            toRemove.Add(a);
+                            lock(toRemove)
+                            {
+                                toRemove.Add(a);
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    if (tag.Contains("deleting") || tag.Contains("deleted"))
-                    {
-                        lock(toRemove)
+                        if (tag.Contains("moving") || tag.Contains("moved"))
                         {
-                            toRemove.Add(a);
+                            lock(toRemove)
+                            {
+                                toRemove.Add(a);
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    if (tag.Contains("moving") || tag.Contains("moved"))
-                    {
-                        lock(toRemove)
+                        if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
                         {
-                            toRemove.Add(a);
+                            lock(toRemove)
+                            {
+                                toRemove.Add(a);
+                            }
+                            return;
                         }
-                        return;
                     }
-                    if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
-                    {
-                        lock(toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
+
                     if (tag.Contains("old animetags"))
                     {
                         lock(toRemove)
