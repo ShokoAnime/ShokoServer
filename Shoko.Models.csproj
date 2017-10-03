@@ -31,8 +31,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.2, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Nancy.Rest.Annotations.1.4.3.2-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
+    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nancy.Rest.Annotations.1.4.3.7-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
