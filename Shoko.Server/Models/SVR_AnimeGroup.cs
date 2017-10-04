@@ -580,22 +580,6 @@ namespace Shoko.Server.Models
             return votes ?? GroupVotes.Null;
         }
 
-        /*
-		public string TagsString
-		{
-			get
-			{
-				string temp = string.Empty;
-                foreach (AniDB_Tag tag in Tags)
-                    temp += tag.TagName + "|";
-				if (temp.Length > 2)
-					temp = temp.Substring(0, temp.Length - 2);
-
-				return temp;
-			}
-		}
-		*/
-
         public List<AniDB_Tag> Tags
         {
             get
@@ -604,49 +588,27 @@ namespace Shoko.Server.Models
                 List<int> animeTagIDs = new List<int>();
                 List<AniDB_Anime_Tag> animeTags = new List<AniDB_Anime_Tag>();
 
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                foreach (SVR_AnimeSeries ser in GetAllSeries())
                 {
-                    // get a list of all the unique tags for this all the series in this group
-                    foreach (SVR_AnimeSeries ser in GetAllSeries())
+                    foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags())
                     {
-                        foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags())
+                        if (!animeTagIDs.Contains(aac.AniDB_Anime_TagID))
                         {
-                            if (!animeTagIDs.Contains(aac.AniDB_Anime_TagID))
-                            {
-                                animeTagIDs.Add(aac.AniDB_Anime_TagID);
-                                animeTags.Add(aac);
-                            }
+                            animeTagIDs.Add(aac.AniDB_Anime_TagID);
+                            animeTags.Add(aac);
                         }
                     }
+                }
 
-                    foreach (AniDB_Anime_Tag animeTag in animeTags.OrderByDescending(a => a.Weight))
-                    {
-                        AniDB_Tag tag = RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID);
-                        if (tag != null) tags.Add(tag);
-                    }
+                foreach (AniDB_Anime_Tag animeTag in animeTags.OrderByDescending(a => a.Weight))
+                {
+                    AniDB_Tag tag = RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID);
+                    if (tag != null) tags.Add(tag);
                 }
 
                 return tags;
             }
         }
-
-        /*
-        public string CustomTagsString
-        {
-            get
-            {
-                string temp = string.Empty;
-                foreach (CustomTag tag in CustomTags)
-                {
-                    if (!string.IsNullOrEmpty(temp))
-                        temp += "|"; 
-                    temp += tag.TagName; 
-                }
-                    
-                return temp;
-            }
-        }
-		*/
 
         public List<CustomTag> CustomTags
         {
@@ -1390,10 +1352,8 @@ namespace Shoko.Server.Models
                     }
                 }
             }
-            foreach (SVR_GroupFilter gf in tosave)
-            {
-                RepoFactory.GroupFilter.Save(gf);
-            }
+
+            RepoFactory.GroupFilter.Save(tosave);
         }
 
 

@@ -222,7 +222,7 @@ namespace Shoko.Server.Commands
                     ImportFolderID = nshareID,
                     ImportFolderType = folder.ImportFolderType
                 };
-                // Male sure we have an ID
+                // Make sure we have an ID
                 RepoFactory.VideoLocalPlace.Save(vlocalplace);
             }
 
@@ -289,7 +289,7 @@ namespace Shoko.Server.Commands
                     DateTime start = DateTime.Now;
                     logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, ShokoServer.OnHashProgress,
+                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                         true, true, true);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
@@ -310,9 +310,13 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
-                    List<SVR_VideoLocal_Place> preps = tlocal.Places.Where(
+                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
+                    changed = tlocal.MergeInfoFrom(vlocal);
+                    vlocal = tlocal;
+
+                    List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
-                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID).ToList();
+                             !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
                     foreach (var prep in preps)
                     {
                         if (prep == null) continue;
@@ -330,13 +334,9 @@ namespace Shoko.Server.Commands
                         }
                     }
 
-                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
-                    changed = tlocal.MergeInfoFrom(vlocal);
-                    vlocal = tlocal;
-
-                    var dupPlace = tlocal.Places.FirstOrDefault(
+                    var dupPlace = vlocal.Places.FirstOrDefault(
                         a => a.ImportFolder.CloudID == folder.CloudID &&
-                             vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                             !vlocalplace.FullServerPath.Equals(a.FullServerPath));
 
                     if (dupPlace != null)
                     {
@@ -455,7 +455,7 @@ namespace Shoko.Server.Commands
                     tp.Add("CRC32");
                 logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
                 // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, ShokoServer.OnHashProgress,
+                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                     needcrc32, needmd5, needsha1);
                 TimeSpan ts = DateTime.Now - start;
                 logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),

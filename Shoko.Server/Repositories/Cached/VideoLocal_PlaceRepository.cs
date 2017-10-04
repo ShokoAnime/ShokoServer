@@ -41,17 +41,26 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
-            return ImportFolders.GetMultiple(importFolderID);
+            lock (Cache)
+            {
+                return ImportFolders.GetMultiple(importFolderID);
+            }
         }
 
         public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
         {
-            return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
+            lock (Cache)
+            {
+                return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
+            }
         }
 
         public List<SVR_VideoLocal_Place> GetByFilePathAndImportFolderType(string filePath, int folderType)
         {
-            return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
+            lock (Cache)
+            {
+                return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
+            }
         }
 
         public override void Delete(SVR_VideoLocal_Place obj)
@@ -67,22 +76,6 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(IReadOnlyCollection<SVR_VideoLocal_Place> objs)
-        {
-            throw new NotSupportedException();
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(int id)
-        {
-            throw new NotSupportedException();
-        }
-
-
         public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
         {
             IReadOnlyList<SVR_ImportFolder> shares = RepoFactory.ImportFolder.GetAll();
@@ -92,16 +85,16 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_ImportFolder ifolder in shares)
             {
                 string importLocation = ifolder.ImportFolderLocation;
-                string importLocationFull = importLocation.TrimEnd('\\');
+                string importLocationFull = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
 
                 // add back the trailing back slashes
-                importLocationFull = importLocationFull + "\\";
+                importLocationFull = importLocationFull + $"{System.IO.Path.DirectorySeparatorChar}";
 
-                importLocation = importLocation.TrimEnd('\\');
+                importLocation = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
                 if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
-                    filePath = filePath.TrimStart('\\');
+                    filePath = filePath.TrimStart(System.IO.Path.DirectorySeparatorChar);
                     return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
                 }
             }
@@ -110,7 +103,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
         {
-            return VideoLocals.GetMultiple(videolocalid);
+            lock (Cache)
+            {
+                return VideoLocals.GetMultiple(videolocalid);
+            }
         }
     }
 }

@@ -30,9 +30,12 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                if (!Changes.ContainsKey(cr.JMMUserID))
-                    Changes[cr.JMMUserID] = new ChangeTracker<int>();
-                Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
+                lock (Changes)
+                {
+                    if (!Changes.ContainsKey(cr.JMMUserID))
+                        Changes[cr.JMMUserID] = new ChangeTracker<int>();
+                    Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
+                }
                 cr.DeleteFromFilters();
             };
         }
@@ -59,28 +62,27 @@ namespace Shoko.Server.Repositories.Cached
         }
 
 
-        public override void Save(IReadOnlyCollection<SVR_AnimeSeries_User> objs)
-        {
-            foreach (SVR_AnimeSeries_User s in objs)
-                Save(s);
-        }
-
-
         public override void Save(SVR_AnimeSeries_User obj)
         {
             lock (obj)
             {
                 UpdatePlexKodiContracts(obj);
                 SVR_AnimeSeries_User old;
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                lock (globalDBLock)
                 {
-                    old = session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    {
+                        old = session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
+                    }
                 }
                 HashSet<GroupFilterConditionType> types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
-                if (!Changes.ContainsKey(obj.JMMUserID))
-                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
-                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
+                lock (Changes)
+                {
+                    if (!Changes.ContainsKey(obj.JMMUserID))
+                        Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                    Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
+                }
                 obj.UpdateGroupFilter(types);
             }
             //logger.Trace("Updating group stats by series from AnimeSeries_UserRepository.Save: {0}", obj.AnimeSeriesID);
@@ -89,31 +91,36 @@ namespace Shoko.Server.Repositories.Cached
 
         private void UpdatePlexKodiContracts(SVR_AnimeSeries_User ugrp)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
-                CL_AnimeSeries_User con = ser?.GetUserContract(ugrp.JMMUserID);
-                if (con == null)
-                    return;
-                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(), ugrp.JMMUserID);
-            }
+            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
+            CL_AnimeSeries_User con = ser?.GetUserContract(ugrp.JMMUserID);
+            if (con == null)
+                return;
+            ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(), ugrp.JMMUserID);
         }
 
 
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
-            return UsersSeries.GetOne(userid, seriesid);
+            lock (Cache)
+            {
+                return UsersSeries.GetOne(userid, seriesid);
+            }
         }
-
 
         public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
-            return Users.GetMultiple(userid);
+            lock (Cache)
+            {
+                return Users.GetMultiple(userid);
+            }
         }
 
         public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
-            return Series.GetMultiple(seriesid);
+            lock (Cache)
+            {
+                return Series.GetMultiple(seriesid);
+            }
         }
 
 
@@ -129,8 +136,11 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            if (Changes.ContainsKey(userid))
-                return Changes[userid];
+            lock (Changes)
+            {
+                if (Changes.ContainsKey(userid))
+                    return Changes[userid];
+            }
             return new ChangeTracker<int>();
         }
     }

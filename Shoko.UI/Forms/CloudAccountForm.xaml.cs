@@ -147,8 +147,14 @@ namespace Shoko.UI.Forms
             this.OnPropertyChanged(() => IsConnected, () => IsNotConnected);
         }
 
-        public bool EnableConnect => (comboProvider.SelectedIndex >= 0 &&
-                                      !string.IsNullOrEmpty(txtCloudAccountName.Text));
+        public bool EnableConnect
+        {
+            get
+            {
+                return (comboProvider.SelectedIndex >= 0 &&
+                        !string.IsNullOrEmpty(txtCloudAccountName.Text));
+            }
+        }
 
         private SVR_CloudAccount WorkingAccount;
         private SVR_CloudAccount SaveAccount;

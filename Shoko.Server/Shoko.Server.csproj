@@ -153,11 +153,11 @@
     <Reference Include="Nancy.Hosting.Self">
       <HintPath>$(SolutionDir)Dependencies\Nancy.Hosting.Self.dll</HintPath>
     </Reference>
-    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.2, Culture=neutral, PublicKeyToken=null">
-      <HintPath>$(SolutionDir)packages\Nancy.Rest.Annotations.1.4.3.2-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
+    <Reference Include="Nancy.Rest.Annotations, Version=1.4.3.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Annotations.1.4.3.7-beta\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
     </Reference>
-    <Reference Include="Nancy.Rest.Module, Version=1.4.3.6, Culture=neutral, PublicKeyToken=null">
-      <HintPath>$(SolutionDir)packages\Nancy.Rest.Module.1.4.3.6-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
+    <Reference Include="Nancy.Rest.Module, Version=1.4.3.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Rest.Module.1.4.3.7-beta\lib\net452\Nancy.Rest.Module.dll</HintPath>
     </Reference>
     <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
@@ -249,6 +249,7 @@
     <Compile Include="AniDBHelper.cs" />
     <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
     <Compile Include="AniDB_API\AniDBLib.cs" />
+    <Compile Include="AniDB_API\AniDBImageRateLimiter.cs" />
     <Compile Include="AniDB_API\AniDBRateLimiter.cs" />
     <Compile Include="AniDB_API\Calendar.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_AddFile.cs" />
@@ -335,6 +336,7 @@
     <Compile Include="API\v2\Models\common\Filters.cs" />
     <Compile Include="API\v2\Models\common\SearchResult.cs" />
     <Compile Include="API\v2\Models\common\Sizes.cs" />
+    <Compile Include="API\v2\Models\core\DatabaseSettings.cs" />
     <Compile Include="API\v2\Models\core\Logs.cs" />
     <Compile Include="API\v2\Models\core\API_Call_Parameters.cs" />
     <Compile Include="API\v2\Models\common\Episode.cs" />
@@ -348,7 +350,6 @@
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />
     <Compile Include="API\v2\Modules\Core.cs" />
-    <Compile Include="API\v2\Modules\Database.cs" />
     <Compile Include="API\v2\Modules\Dev.cs" />
     <Compile Include="API\v2\Modules\Image.cs" />
     <Compile Include="API\v2\Modules\Init.cs" />
@@ -378,7 +379,6 @@
     <Compile Include="API\v2\Models\core\ComponentVersion.cs" />
     <Compile Include="API\v2\Models\core\Counter.cs" />
     <Compile Include="API\v2\Models\core\Credentials.cs" />
-    <Compile Include="API\v2\Models\core\Database.cs" />
     <Compile Include="API\v2\Models\core\ImagePath.cs" />
     <Compile Include="API\v2\Models\core\OSFolder.cs" />
     <Compile Include="API\v2\Models\core\QueueInfo.cs" />
@@ -523,6 +523,7 @@
     <Compile Include="UI\AuthProvider.cs" />
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utilities\AVDumpHelper.cs" />
+    <Compile Include="Utilities\LinuxFS.cs" />
     <Compile Include="Utilities\TagFilter.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
@@ -797,7 +798,9 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="testing.config">
       <SubType>Designer</SubType>
     </None>

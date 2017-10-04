@@ -722,10 +722,6 @@ namespace Shoko.Server.FileHelper.MediaInfo
                     return m;
                 }
             }
-            catch (Exception e)
-            {
-                throw new Exception(e.Message, e);
-            }
             finally
             {
                 minstance?.Close();

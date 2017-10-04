@@ -13,7 +13,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.8.0.0
+AppVersion=3.8.1.0
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://shokoanime.com/
@@ -35,6 +35,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.ValueTuple.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.ValueTuple.xml"; DestDir: "{app}"; Flags: ignoreversion
@@ -134,9 +137,6 @@ Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; 
 Source: "..\Shoko.Server\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -149,6 +149,7 @@ Source: "..\Shoko.Server\bin\Release\ru\*"; DestDir: "{app}\ru"; Flags: ignoreve
 Source: "..\Shoko.Server\bin\Release\webui\*"; DestDir: "{app}\webui"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\x86\*"; DestDir: "{app}\x86"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "FixPermissions.bat"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -164,8 +165,9 @@ Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMS
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/ sddl=D:(A;;GA;;;S-1-1-0)"; Flags: runhidden;
+Filename: "{app}\FixPermissions.bat";
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
-Filename: "https://shokoanime.com/shoko-version-3-8-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.8 Release Notes"
+Filename: "https://shokoanime.com/shoko-version-3-8-1-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.8.1 Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
