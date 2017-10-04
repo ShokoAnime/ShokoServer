@@ -6,6 +6,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using NLog;
+using Pri.LongPath;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
@@ -75,7 +76,7 @@ namespace Shoko.Server.Databases
                 if (p != null && !string.IsNullOrEmpty(p.FilePath) && v.Media != null)
                 {
                     v.FileName = p.FilePath;
-                    int a = p.FilePath.LastIndexOf("\\", StringComparison.InvariantCulture);
+                    int a = p.FilePath.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.InvariantCulture);
                     if (a > 0)
                         v.FileName = p.FilePath.Substring(a + 1);
                     SVR_VideoLocal_Place.FillVideoInfoFromMedia(v, v.Media);

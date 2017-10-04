@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
-
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
@@ -66,15 +65,21 @@ namespace Shoko.Server.Models
             }
         }
 
-        public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
+        public bool IsConnected
+        {
+            get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
+        }
 
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         internal bool NeedSave { get; set; } = false;
 
-
-        private static AuthorizationFactory AuthInstance = new AuthorizationFactory("AppGlue.dll");
+        private static AuthorizationFactory _cache; //lazy init, because 
+        private static AuthorizationFactory AuthInstance
+        {
+            get { return new AuthorizationFactory("AppGlue.dll"); }
+        }
 
         public IFileSystem Connect()
         {

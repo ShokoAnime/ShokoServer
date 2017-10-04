@@ -9,6 +9,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Util;
 using NutzCode.InMemoryIndex;
+using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
@@ -84,7 +85,7 @@ namespace Shoko.Server.Repositories.Cached
                             //Fix possible paths in filename
                             if (!string.IsNullOrEmpty(a.FileName))
                             {
-                                int b = a.FileName.LastIndexOf("\\", StringComparison.Ordinal);
+                                int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                                 if (b > 0)
                                     a.FileName = a.FileName.Substring(b + 1);
                             }
@@ -108,7 +109,7 @@ namespace Shoko.Server.Repositories.Cached
                 max = list.Count;
                 list.ForEach(a =>
                 {
-                    int b = a.FileName.LastIndexOf("\\", StringComparison.Ordinal);
+                    int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
                     a.FileName = a.FileName.Substring(b + 1);
                     Save(a, false);
                     count++;
@@ -235,36 +236,10 @@ namespace Shoko.Server.Repositories.Cached
             list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
         }
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(IReadOnlyCollection<SVR_VideoLocal> objs)
-        {
-            throw new NotSupportedException();
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(int id)
-        {
-            throw new NotSupportedException();
-        }
-
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(SVR_VideoLocal obj)
         {
-            throw new NotSupportedException();
+            Save(obj, true);
         }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_VideoLocal> objs)
-        {
-            throw new NotSupportedException();
-        }
-
 
         public void Save(SVR_VideoLocal obj, bool updateEpisodes)
         {
@@ -280,10 +255,7 @@ namespace Shoko.Server.Repositories.Cached
             }
             if (updateEpisodes)
             {
-                foreach (SVR_AnimeEpisode ep in obj.GetAnimeEpisodes())
-                {
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
+                RepoFactory.AnimeEpisode.Save(obj.GetAnimeEpisodes());
             }
         }
 

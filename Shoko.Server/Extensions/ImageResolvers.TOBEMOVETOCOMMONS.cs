@@ -26,7 +26,7 @@ namespace Shoko.Server.Extensions
             //strip out the base URL
             int pos = fanart.URL.IndexOf('/', 0);
             string fname = fanart.URL.Substring(pos + 1, fanart.URL.Length - pos - 1);
-            fname = fname.Replace("/", @"\");
+            fname = fname.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
         }
 
@@ -37,7 +37,7 @@ namespace Shoko.Server.Extensions
             //strip out the base URL
             int pos = movie.URL.IndexOf('/', 0);
             string fname = movie.URL.Substring(pos + 1, movie.URL.Length - pos - 1);
-            fname = fname.Replace("/", @"\");
+            fname = fname.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
         }
 
@@ -46,7 +46,7 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(episode.Filename)) return string.Empty;
 
             string fname = episode.Filename;
-            fname = episode.Filename.Replace("/", @"\");
+            fname = episode.Filename.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
@@ -55,14 +55,14 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(fanart.BannerPath)) return string.Empty;
 
             string fname = fanart.BannerPath;
-            fname = fanart.BannerPath.Replace("/", @"\");
+            fname = fanart.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
         public static string GetFullThumbnailPath(this TvDB_ImageFanart fanart)
         {
             string fname = fanart.ThumbnailPath;
-            fname = fanart.ThumbnailPath.Replace("/", @"\");
+            fname = fanart.ThumbnailPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
@@ -71,7 +71,7 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(poster.BannerPath)) return string.Empty;
 
             string fname = poster.BannerPath;
-            fname = poster.BannerPath.Replace("/", @"\");
+            fname = poster.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
@@ -80,7 +80,7 @@ namespace Shoko.Server.Extensions
             if (String.IsNullOrEmpty(banner.BannerPath)) return string.Empty;
 
             string fname = banner.BannerPath;
-            fname = banner.BannerPath.Replace("/", @"\");
+            fname = banner.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 

@@ -275,6 +275,8 @@ namespace Shoko.Server
 
             VLCLocation = ServerSettings.VLCLocation;
 
+            if (Utils.IsRunningOnMono()) return;
+            
             if (autostartMethod == AutostartMethod.Registry)
             {
                 try

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Dynamic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nancy;
@@ -15,14 +17,14 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.MAL;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Providers.MyAnimeList;
+using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Core : Nancy.NancyModule
+    public class Core : NancyModule
     {
-        public static int version = 1;
-
         public Core() : base("/api")
         {
             // As this module requireAuthentication all request need to have apikey in header.
@@ -142,12 +144,9 @@ namespace Shoko.Server.API.v2.Modules
             if (cred.port != 0)
             {
                 ServerSettings.JMMServerPort = cred.port.ToString();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            else
-            {
-                return new APIMessage(400, "Port Missing");
-            }
+            return new APIMessage(400, "Port Missing");
         }
 
         /// <summary>
@@ -156,7 +155,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetPort()
         {
-            dynamic x = new System.Dynamic.ExpandoObject();
+            dynamic x = new ExpandoObject();
             x.port = int.Parse(ServerSettings.JMMServerPort);
             return x;
         }
@@ -171,27 +170,18 @@ namespace Shoko.Server.API.v2.Modules
             if (imagepath.isdefault)
             {
                 ServerSettings.ImagesPath = ServerSettings.DefaultImagePath;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            else
+            if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != string.Empty)
             {
-                if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != string.Empty)
+                if (Directory.Exists(imagepath.path))
                 {
-                    if (Directory.Exists(imagepath.path))
-                    {
-                        ServerSettings.ImagesPath = imagepath.path;
-                        return APIStatus.statusOK();
-                    }
-                    else
-                    {
-                        return new APIMessage(404, "Directory Not Found on Host");
-                    }
+                    ServerSettings.ImagesPath = imagepath.path;
+                    return APIStatus.OK();
                 }
-                else
-                {
-                    return new APIMessage(400, "Path Missing");
-                }
+                return new APIMessage(404, "Directory Not Found on Host");
             }
+            return new APIMessage(400, "Path Missing");
         }
 
         /// <summary>
@@ -220,7 +210,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             catch
             {
-                return APIStatus.internalError("Error while reading settings.");
+                return APIStatus.InternalError("Error while reading settings.");
             }
         }
 
@@ -236,21 +226,18 @@ namespace Shoko.Server.API.v2.Modules
             if (raw_settings.Length != new CL_ServerSettings().ToJSON().Length)
             {
                 string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-                File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);
+                File.WriteAllText(path, raw_settings, Encoding.UTF8);
                 try
                 {
                     ServerSettings.LoadSettingsFromFile(path, true);
-                    return APIStatus.statusOK();
+                    return APIStatus.OK();
                 }
                 catch
                 {
-                    return APIStatus.internalError("Error while importing settings");
+                    return APIStatus.InternalError("Error while importing settings");
                 }
             }
-            else
-            {
-                return APIStatus.badRequest("Empty settings are not allowed");
-            }
+            return APIStatus.BadRequest("Empty settings are not allowed");
         }
 
         /// <summary>
@@ -263,9 +250,9 @@ namespace Shoko.Server.API.v2.Modules
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
                 Settings setting = this.Bind();
-                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.badRequest("An invalid setting was passed");
+                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
-                if (value == null) return APIStatus.badRequest("An invalid setting was passed");
+                if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
                 Settings return_setting = new Settings
                 {
@@ -276,7 +263,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -291,32 +278,32 @@ namespace Shoko.Server.API.v2.Modules
             {
                 Settings setting = this.Bind();
                 if (string.IsNullOrEmpty(setting.setting))
-                    return APIStatus.badRequest("An invalid setting was passed");
+                    return APIStatus.BadRequest("An invalid setting was passed");
 
-                if (setting.value == null) return APIStatus.badRequest("An invalid value was passed");
+                if (setting.value == null) return APIStatus.BadRequest("An invalid value was passed");
 
                 var property = typeof(ServerSettings).GetProperty(setting.setting);
-                if (property == null) return APIStatus.badRequest("An invalid setting was passed");
-                if (!property.CanWrite) return APIStatus.badRequest("An invalid setting was passed");
+                if (property == null) return APIStatus.BadRequest("An invalid setting was passed");
+                if (!property.CanWrite) return APIStatus.BadRequest("An invalid setting was passed");
                 var settingType = property.PropertyType;
                 try
                 {
                     var converter = TypeDescriptor.GetConverter(settingType);
                     if (!converter.CanConvertFrom(typeof(string)))
-                        return APIStatus.badRequest("An invalid value was passed");
+                        return APIStatus.BadRequest("An invalid value was passed");
                     var value = converter.ConvertFromInvariantString(setting.value);
-                    if (value == null) return APIStatus.badRequest("An invalid value was passed");
+                    if (value == null) return APIStatus.BadRequest("An invalid value was passed");
                     property.SetValue(null, value);
                 }
                 catch
                 {
                 }
 
-                return APIStatus.badRequest("An invalid value was passed");
+                return APIStatus.BadRequest("An invalid value was passed");
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -340,9 +327,9 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     ServerSettings.AniDB_ClientPort = cred.port.ToString();
                 }
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            
+
             return new APIMessage(400, "Login and Password missing");
         }
 
@@ -366,10 +353,10 @@ namespace Shoko.Server.API.v2.Modules
             if (ShokoService.AnidbProcessor.Login())
             {
                 ShokoService.AnidbProcessor.ForceLogout();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            
-            return APIStatus.unauthorized();
+
+            return APIStatus.Unauthorized();
         }
 
         /// <summary>
@@ -396,7 +383,7 @@ namespace Shoko.Server.API.v2.Modules
             //TODO APIv2: Command should be split into AniDb/MAL sepereate
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
             cmdVotes.Save();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -406,7 +393,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SyncAniDBList()
         {
             ShokoServer.SyncMyList();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -416,7 +403,7 @@ namespace Shoko.Server.API.v2.Modules
         private object UpdateAllAniDB()
         {
             Importer.RunImport_UpdateAllAniDB();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -435,9 +422,9 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ServerSettings.MAL_Username = cred.login;
                 ServerSettings.MAL_Password = cred.password;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            
+
             return new APIMessage(400, "Login and Password missing");
         }
 
@@ -461,9 +448,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object TestMAL()
         {
-            return Providers.MyAnimeList.MALHelper.VerifyCredentials() 
-                ? APIStatus.statusOK() 
-                : APIStatus.unauthorized();
+            return MALHelper.VerifyCredentials()
+                ? APIStatus.OK()
+                : APIStatus.Unauthorized();
         }
 
         /// <summary>
@@ -473,7 +460,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ScanMAL()
         {
             Importer.RunImport_ScanMAL();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -484,7 +471,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
             cmd.Save();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -495,7 +482,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
             cmd.Save();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -512,9 +499,9 @@ namespace Shoko.Server.API.v2.Modules
             if (!String.IsNullOrEmpty(cred.token) && cred.token != string.Empty)
             {
                 ServerSettings.Trakt_PIN = cred.token;
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            
+
             return new APIMessage(400, "Token missing");
         }
 
@@ -524,9 +511,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object CreateTrakt()
         {
-            return Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success" 
-                ? APIStatus.statusOK() 
-                : APIStatus.unauthorized();
+            return TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success"
+                ? APIStatus.OK()
+                : APIStatus.Unauthorized();
         }
 
         /// <summary>
@@ -553,9 +540,9 @@ namespace Shoko.Server.API.v2.Modules
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            
+
             return new APIMessage(204, "Trak is not enabled or you missing authtoken");
         }
 
@@ -566,7 +553,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ScanTrakt()
         {
             Importer.RunImport_ScanTrakt();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -580,7 +567,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ScanTvDB()
         {
             Importer.RunImport_ScanTvDB();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -594,7 +581,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ScanMovieDB()
         {
             Importer.RunImport_ScanMovieDB();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -616,20 +603,19 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object CreateUser()
         {
-            Request request = this.Request;
-            SVR_JMMUser _user = (SVR_JMMUser) this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 JMMUser user = this.Bind();
                 user.Password = Digest.Hash(user.Password);
                 user.HideCategories = string.Empty;
                 user.PlexUsers = string.Empty;
-                return new ShokoServiceImplementation().SaveUser(user) == string.Empty 
-                    ? APIStatus.statusOK() 
-                    : APIStatus.internalError();
+                return new ShokoServiceImplementation().SaveUser(user) == string.Empty
+                    ? APIStatus.OK()
+                    : APIStatus.InternalError();
             }
-            
-            return APIStatus.adminNeeded();
+
+            return APIStatus.AdminNeeded();
         }
 
         /// <summary>
@@ -638,8 +624,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object ChangePassword()
         {
-            Request request = this.Request;
-            SVR_JMMUser user = (SVR_JMMUser) this.Context.CurrentUser;
+            SVR_JMMUser user = this.Bind();
             return ChangePassword(user.JMMUserID);
         }
 
@@ -649,17 +634,18 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object ChangePassword(int uid)
         {
-            Request request = this.Request;
-            SVR_JMMUser _user = (SVR_JMMUser) this.Context.CurrentUser;
-            if (_user.IsAdmin == 1)
-            {
-                SVR_JMMUser user = this.Bind();
-                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty 
-                    ? APIStatus.statusOK() 
-                    : APIStatus.internalError();
-            }
-            
-            return APIStatus.adminNeeded();
+            SVR_JMMUser thisuser = (SVR_JMMUser) Context.CurrentUser;
+            SVR_JMMUser user = this.Bind();
+            if (thisuser.IsAdmin == 1)
+                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
+                    ? APIStatus.OK()
+                    : APIStatus.InternalError();
+            if (thisuser.JMMUserID == user.JMMUserID)
+                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
+                    ? APIStatus.OK()
+                    : APIStatus.InternalError();
+
+            return APIStatus.AdminNeeded();
         }
 
         /// <summary>
@@ -668,17 +654,16 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object DeleteUser()
         {
-            Request request = this.Request;
-            SVR_JMMUser _user = (SVR_JMMUser) this.Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser;
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
-                return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty 
-                    ? APIStatus.statusOK() 
-                    : APIStatus.internalError();
+                return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty
+                    ? APIStatus.OK()
+                    : APIStatus.InternalError();
             }
-            
-            return APIStatus.adminNeeded();
+
+            return APIStatus.AdminNeeded();
         }
 
         #endregion
@@ -695,7 +680,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 full_path = Environment.CurrentDirectory
             };
-            System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
+            DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
             dir.dir = dir_info.Name;
             dir.subdir = new List<OSFolder>();
 
@@ -712,7 +697,7 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
-        /// Return OSFolder object of directory that was given via 
+        /// Return OSFolder object of directory that was given via
         /// </summary>
         /// <param name="folder"></param>
         /// <returns></returns>
@@ -721,7 +706,7 @@ namespace Shoko.Server.API.v2.Modules
             OSFolder dir = this.Bind();
             if (!String.IsNullOrEmpty(dir.full_path))
             {
-                System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
+                DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
                 dir.dir = dir_info.Name;
                 dir.subdir = new List<OSFolder>();
 
@@ -736,7 +721,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 return dir;
             }
-            
+
             return new APIMessage(400, "full_path missing");
         }
 
@@ -746,7 +731,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetOSDrives()
         {
-            string[] drives = System.IO.Directory.GetLogicalDrives();
+            string[] drives = Directory.GetLogicalDrives();
             OSFolder dir = new OSFolder
             {
                 dir = "/",
@@ -773,31 +758,31 @@ namespace Shoko.Server.API.v2.Modules
         private object GetCloudAccounts()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object GetCloudAccountsCount()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object AddCloudAccount()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object DeleteCloudAccount()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object RunCloudImport()
         {
             ShokoServer.RunImport();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -811,7 +796,7 @@ namespace Shoko.Server.API.v2.Modules
         private object StartRotateLogs()
         {
             ShokoServer.logrotator.Start();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -820,8 +805,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetRotateLogs()
         {
-            Request request = this.Request;
-            SVR_JMMUser user = (SVR_JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            SVR_JMMUser user = (SVR_JMMUser) Context.CurrentUser;
             Logs rotator = this.Bind();
 
             if (user.IsAdmin == 1)
@@ -831,10 +816,10 @@ namespace Shoko.Server.API.v2.Modules
                 ServerSettings.RotateLogs_Delete = rotator.delete;
                 ServerSettings.RotateLogs_Delete_Days = rotator.days.ToString();
 
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            
-            return APIStatus.adminNeeded();
+
+            return APIStatus.AdminNeeded();
         }
 
         /// <summary>
@@ -871,16 +856,16 @@ namespace Shoko.Server.API.v2.Modules
             string log_file = LogRotator.GetCurrentLogFile();
             if (string.IsNullOrEmpty(log_file))
             {
-                return APIStatus.notFound404("Could not find current log name. Sorry");
+                return APIStatus.NotFound("Could not find current log name. Sorry");
             }
 
             if (!File.Exists(log_file))
             {
-                return APIStatus.notFound404();
+                return APIStatus.NotFound();
             }
 
             Dictionary<string, object> result = new Dictionary<string, object>();
-            FileStream fs = File.OpenRead(@log_file);
+            FileStream fs = File.OpenRead(log_file);
 
             if (position >= fs.Length)
             {
@@ -912,9 +897,9 @@ namespace Shoko.Server.API.v2.Modules
             Importer.RunImport_UpdateTvDB(true);
             ShokoServer.Instance.DownloadAllImages();
 
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
-        
+
         #endregion
     }
 }

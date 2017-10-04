@@ -13,7 +13,7 @@ namespace Shoko.Server.Commands
 {
     public abstract class CommandRequestImplementation
     {
-        protected static Logger logger = LogManager.GetCurrentClassLogger();
+        protected static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         // ignoring the base properties so that when we serialize we only get the properties
         // defined in the concrete class
@@ -80,30 +80,35 @@ namespace Shoko.Server.Commands
                 // we will always mylist watched state changes
                 // this is because the user may be toggling the status in the client, and we need to process
                 // them all in the order they were requested
-                if (CommandType != (int) CommandRequestType.AniDB_UpdateWatchedUDP)
-                {
-                    //logger.Trace("Command already in queue with identifier so skipping: {0}", this.CommandID);
+                if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
+                    RepoFactory.CommandRequest.Delete(crTemp);
+                else
                     return;
-                }
             }
 
-            CommandRequest cri = this.ToDatabaseObject();
+            CommandRequest cri = ToDatabaseObject();
             RepoFactory.CommandRequest.Save(cri);
 
-            if (CommandType == (int) CommandRequestType.HashFile)
-                ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
-            else if (CommandType == (int) CommandRequestType.ImageDownload ||
-                     CommandType == (int) CommandRequestType.ValidateAllImages)
-                ShokoService.CmdProcessorImages.NotifyOfNewCommand();
-            else
-                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+            switch (CommandType)
+            {
+                case (int) CommandRequestType.HashFile:
+                    ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
+                    break;
+                case (int) CommandRequestType.ImageDownload:
+                case (int) CommandRequestType.ValidateAllImages:
+                    ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+                    break;
+                default:
+                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+                    break;
+            }
         }
 
         protected string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
         {
             try
             {
-                string prop = doc[keyName][propertyName].InnerText.Trim();
+                string prop = doc?[keyName]?[propertyName]?.InnerText.Trim() ?? string.Empty;
                 return prop;
             }
             catch

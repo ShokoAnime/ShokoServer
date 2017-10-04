@@ -33,13 +33,25 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndSaveCallback = (obj) =>
             {
-                Types[obj.GroupFilterID] = obj.Types;
-                Changes.AddOrUpdate(obj.GroupFilterID);
+                lock (Types)
+                {
+                    lock (Changes)
+                    {
+                        Types[obj.GroupFilterID] = obj.Types;
+                        Changes.AddOrUpdate(obj.GroupFilterID);
+                    }
+                }
             };
             EndDeleteCallback = (obj) =>
             {
-                Types.Remove(obj.GroupFilterID);
-                Changes.Remove(obj.GroupFilterID);
+                lock (Types)
+                {
+                    lock (Changes)
+                    {
+                        Types.Remove(obj.GroupFilterID);
+                        Changes.Remove(obj.GroupFilterID);
+                    }
+                }
             };
         }
 
@@ -66,18 +78,14 @@ namespace Shoko.Server.Repositories.Cached
         public override void RegenerateDb()
         {
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
-            {
                 if (g.GroupFilterID != 0 && g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     g.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
                 {
                     if (g.GroupConditionsVersion == 0)
-                    {
                         g.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(g.GroupFilterID);
-                    }
                     Save(g, true);
                     PostProcessFilters.Add(g);
                 }
-            }
         }
 
 
@@ -87,15 +95,11 @@ namespace Shoko.Server.Repositories.Cached
             ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
                 t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
-            {
                 if (g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     g.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
                     g.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION)
-                {
                     if (!PostProcessFilters.Contains(g))
                         PostProcessFilters.Add(g);
-                }
-            }
             int max = PostProcessFilters.Count;
             int cnt = 0;
             foreach (SVR_GroupFilter gf in PostProcessFilters)
@@ -109,9 +113,7 @@ namespace Shoko.Server.Repositories.Cached
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
                     gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
-                {
                     gf.CalculateGroupsAndSeries();
-                }
                 Save(gf);
             }
 
@@ -121,15 +123,12 @@ namespace Shoko.Server.Repositories.Cached
                 " " + Commons.Properties.Resources.GroupFilter_Cleanup);
             IReadOnlyList<SVR_GroupFilter> all = GetAll();
             HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
-            List<SVR_GroupFilter> notin = all.Except(set)?.ToList();
+            List<SVR_GroupFilter> notin = all.Except(set).ToList();
             Delete(notin);
 
             // Remove orphaned group filter conditions
-            List<GroupFilterCondition> toremove = new List<GroupFilterCondition>();
-            foreach (GroupFilterCondition condition in RepoFactory.GroupFilterCondition.GetAll().ToList())
-            {
-                if (RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null) toremove.Add(condition);
-            }
+            List<GroupFilterCondition> toremove = RepoFactory.GroupFilterCondition.GetAll().ToList()
+                .Where(condition => RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null).ToList();
             RepoFactory.GroupFilterCondition.Delete(toremove);
 
             CleanUpEmptyDirectoryFilters();
@@ -137,22 +136,14 @@ namespace Shoko.Server.Repositories.Cached
             PostProcessFilters = null;
         }
 
-
-        //TODO Cleanup function for Empty Tags and Empty Years
         public void CleanUpEmptyDirectoryFilters()
         {
-            List<SVR_GroupFilter> toremove = new List<SVR_GroupFilter>();
-            foreach (SVR_GroupFilter gf in GetAll())
-            {
-                if (gf.GroupsIds.Count == 0 && string.IsNullOrEmpty(gf.GroupsIdsString) && gf.SeriesIds.Count == 0 &&
-                    string.IsNullOrEmpty(gf.SeriesIdsString))
-                {
-                    toremove.Add(gf);
-                }
-            }
+            List<SVR_GroupFilter> toremove = GetAll()
+                .Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory).Where(
+                    gf => gf.GroupsIds.Count == 0 && string.IsNullOrEmpty(gf.GroupsIdsString) &&
+                          gf.SeriesIds.Count == 0 && string.IsNullOrEmpty(gf.SeriesIdsString)).ToList();
             Delete(toremove);
         }
-
 
         public void CreateOrVerifyLockedFilters()
         {
@@ -290,202 +281,189 @@ namespace Shoko.Server.Repositories.Cached
         public void CreateOrVerifyDirectoryFilters(bool frominit = false, HashSet<string> tags = null,
             HashSet<int> airdate = null, SortedSet<string> season = null)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            string t = "GroupFilter";
+
+            List<SVR_GroupFilter> lockedGFs = GetLockedGroupFilters();
+
+
+            SVR_GroupFilter tagsdirec = lockedGFs.FirstOrDefault(
+                a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
+            if (tagsdirec != null)
             {
-                string t = "GroupFilter";
+                HashSet<string> alltags;
+                if (tags == null)
+                    alltags = new HashSet<string>(
+                        RepoFactory.AniDB_Tag.GetAll()
+                            .Select(a => a.TagName)
+                            .Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        StringComparer.InvariantCultureIgnoreCase);
+                else
+                    alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        StringComparer.InvariantCultureIgnoreCase);
+                HashSet<string> notin =
+                    new HashSet<string>(
+                        lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag)
+                            .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
+                        StringComparer.InvariantCultureIgnoreCase);
+                alltags.ExceptWith(notin);
 
-                List<SVR_GroupFilter> lockedGFs = GetLockedGroupFilters();
-
-
-                SVR_GroupFilter tagsdirec = lockedGFs.FirstOrDefault(
-                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
-                if (tagsdirec != null)
+                int max = alltags.Count;
+                int cnt = 0;
+                //AniDB Tags are in english so we use en-us culture
+                TextInfo tinfo = new CultureInfo("en-US", false).TextInfo;
+                foreach (string s in alltags)
                 {
-                    HashSet<string> alltags;
-                    if (tags == null)
-                        alltags = new HashSet<string>(
-                            RepoFactory.AniDB_Tag.GetAll()
-                                .Select(a => a.TagName)
-                                .Distinct(StringComparer.InvariantCultureIgnoreCase),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    else
-                        alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    HashSet<string> notin =
-                        new HashSet<string>(
-                            lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag)
-                                .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    alltags.ExceptWith(notin);
-
-                    int max = alltags.Count;
-                    int cnt = 0;
-                    //AniDB Tags are in english so we use en-us culture
-                    TextInfo tinfo = new CultureInfo("en-US", false).TextInfo;
-                    foreach (string s in alltags)
+                    cnt++;
+                    if (frominit)
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Cache, t,
+                            Commons.Properties.Resources.Filter_CreatingTag + " " +
+                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                    SVR_GroupFilter yf = new SVR_GroupFilter
                     {
-                        cnt++;
-                        if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Commons.Properties.Resources.Database_Cache, t,
-                                Commons.Properties.Resources.Filter_CreatingTag + " " +
-                                Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
-                        SVR_GroupFilter yf = new SVR_GroupFilter
-                        {
-                            ParentGroupFilterID = tagsdirec.GroupFilterID,
-                            InvisibleInClients = 0,
-                            GroupFilterName = tinfo.ToTitleCase(s.Replace("`", "'")),
-                            BaseCondition = 1,
-                            Locked = 1,
-                            SortingCriteria = "5;1",
-                            FilterType = (int) GroupFilterType.Tag
-                        };
-                        GroupFilterCondition gfc = new GroupFilterCondition
-                        {
-                            ConditionType = (int)GroupFilterConditionType.Tag,
-                            ConditionOperator = (int)GroupFilterOperator.In,
-                            ConditionParameter = s,
-                            GroupFilterID = yf.GroupFilterID
-                        };
-                        yf.Conditions.Add(gfc);
-                        yf.CalculateGroupsAndSeries();
-                        Save(yf);
-                    }
+                        ParentGroupFilterID = tagsdirec.GroupFilterID,
+                        InvisibleInClients = 0,
+                        GroupFilterName = tinfo.ToTitleCase(s.Replace("`", "'")),
+                        BaseCondition = 1,
+                        Locked = 1,
+                        SortingCriteria = "5;1",
+                        FilterType = (int) GroupFilterType.Tag
+                    };
+                    GroupFilterCondition gfc = new GroupFilterCondition
+                    {
+                        ConditionType = (int)GroupFilterConditionType.Tag,
+                        ConditionOperator = (int)GroupFilterOperator.In,
+                        ConditionParameter = s,
+                        GroupFilterID = yf.GroupFilterID
+                    };
+                    yf.Conditions.Add(gfc);
+                    yf.CalculateGroupsAndSeries();
+                    Save(yf);
                 }
-                SVR_GroupFilter yearsdirec = lockedGFs.FirstOrDefault(
-                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
-                if (yearsdirec != null)
-                {
-                    HashSet<string> allyears;
-                    if (airdate == null || airdate.Count == 0)
-                    {
-                        List<CL_AnimeSeries_User> grps =
-                            RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
-
-                        allyears = new HashSet<string>(StringComparer.Ordinal);
-                        foreach (CL_AnimeSeries_User ser in grps)
-                        {
-                            int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
-                            int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
-                            if (endyear == 0) endyear = DateTime.Today.Year;
-                            if (startyear != 0)
-                                allyears.UnionWith(Enumerable.Range(startyear,
-                                        endyear - startyear + 1)
-                                    .Select(a => a.ToString()));
-                        }
-                    }
-                    else
-                    {
-                        allyears = new HashSet<string>(airdate.Select(a => a.ToString()), StringComparer.Ordinal);
-                    }
-                    HashSet<string> notin =
-                        new HashSet<string>(
-                            lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Year)
-                                .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    allyears.ExceptWith(notin);
-                    int max = allyears.Count;
-                    int cnt = 0;
-                    foreach (string s in allyears)
-                    {
-                        cnt++;
-                        if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Commons.Properties.Resources.Database_Cache, t,
-                                Commons.Properties.Resources.Filter_CreatingYear + " " +
-                                Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
-                        SVR_GroupFilter yf = new SVR_GroupFilter
-                        {
-                            ParentGroupFilterID = yearsdirec.GroupFilterID,
-                            InvisibleInClients = 0,
-                            GroupFilterName = s,
-                            BaseCondition = 1,
-                            Locked = 1,
-                            SortingCriteria = "5;1",
-                            FilterType = (int) GroupFilterType.Year,
-                            ApplyToSeries = 1
-                        };
-                        GroupFilterCondition gfc = new GroupFilterCondition
-                        {
-                            ConditionType = (int)GroupFilterConditionType.Year,
-                            ConditionOperator = (int)GroupFilterOperator.Include,
-                            ConditionParameter = s,
-                            GroupFilterID = yf.GroupFilterID
-                        };
-                        yf.Conditions.Add(gfc);
-                        yf.CalculateGroupsAndSeries();
-                        Save(yf);
-                    }
-                }
-                SVR_GroupFilter seasonsdirectory = lockedGFs.FirstOrDefault(
-                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
-                if (seasonsdirectory != null)
-                {
-                    SortedSet<string> allseasons;
-                    if (season == null || season.Count == 0)
-                    {
-                        List<CL_AnimeSeries_User> grps =
-                            RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
-
-                        allseasons = new SortedSet<string>(new SeasonComparator());
-                        foreach (CL_AnimeSeries_User ser in grps)
-                        {
-                            allseasons.UnionWith(ser.AniDBAnime.Stat_AllSeasons);
-                        }
-                    }
-                    else
-                    {
-                        allseasons = season;
-                    }
-                    HashSet<string> notin =
-                        new HashSet<string>(
-                            lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Season)
-                                .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    allseasons.ExceptWith(notin);
-                    int max = allseasons.Count;
-                    int cnt = 0;
-                    foreach (string s in allseasons)
-                    {
-                        cnt++;
-                        if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Commons.Properties.Resources.Database_Cache, t,
-                                Commons.Properties.Resources.Filter_CreatingSeason + " " +
-                                Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
-                        SVR_GroupFilter yf = new SVR_GroupFilter
-                        {
-                            ParentGroupFilterID = seasonsdirectory.GroupFilterID,
-                            InvisibleInClients = 0,
-                            GroupFilterName = s,
-                            BaseCondition = 1,
-                            Locked = 1,
-                            SortingCriteria = "5;1",
-                            FilterType = (int) GroupFilterType.Season,
-                            ApplyToSeries = 1
-                        };
-                        GroupFilterCondition gfc = new GroupFilterCondition
-                        {
-                            ConditionType = (int)GroupFilterConditionType.Season,
-                            ConditionOperator = (int)GroupFilterOperator.In,
-                            ConditionParameter = s,
-                            GroupFilterID = yf.GroupFilterID
-                        };
-                        yf.Conditions.Add(gfc);
-                        yf.CalculateGroupsAndSeries();
-                        Save(yf);
-                    }
-                }
-                CleanUpEmptyDirectoryFilters();
             }
-        }
+            SVR_GroupFilter yearsdirec = lockedGFs.FirstOrDefault(
+                a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
+            if (yearsdirec != null)
+            {
+                HashSet<string> allyears;
+                if (airdate == null || airdate.Count == 0)
+                {
+                    List<CL_AnimeSeries_User> grps =
+                        RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(IReadOnlyCollection<SVR_GroupFilter> objs)
-        {
-            throw new NotSupportedException();
+                    allyears = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (CL_AnimeSeries_User ser in grps)
+                    {
+                        int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
+                        int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
+                        if (endyear == 0) endyear = DateTime.Today.Year;
+                        if (startyear != 0)
+                            allyears.UnionWith(Enumerable.Range(startyear,
+                                    endyear - startyear + 1)
+                                .Select(a => a.ToString()));
+                    }
+                }
+                else
+                {
+                    allyears = new HashSet<string>(airdate.Select(a => a.ToString()), StringComparer.Ordinal);
+                }
+                HashSet<string> notin =
+                    new HashSet<string>(
+                        lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Year)
+                            .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
+                        StringComparer.InvariantCultureIgnoreCase);
+                allyears.ExceptWith(notin);
+                int max = allyears.Count;
+                int cnt = 0;
+                foreach (string s in allyears)
+                {
+                    cnt++;
+                    if (frominit)
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Cache, t,
+                            Commons.Properties.Resources.Filter_CreatingYear + " " +
+                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                    SVR_GroupFilter yf = new SVR_GroupFilter
+                    {
+                        ParentGroupFilterID = yearsdirec.GroupFilterID,
+                        InvisibleInClients = 0,
+                        GroupFilterName = s,
+                        BaseCondition = 1,
+                        Locked = 1,
+                        SortingCriteria = "5;1",
+                        FilterType = (int) GroupFilterType.Year,
+                        ApplyToSeries = 1
+                    };
+                    GroupFilterCondition gfc = new GroupFilterCondition
+                    {
+                        ConditionType = (int)GroupFilterConditionType.Year,
+                        ConditionOperator = (int)GroupFilterOperator.Include,
+                        ConditionParameter = s,
+                        GroupFilterID = yf.GroupFilterID
+                    };
+                    yf.Conditions.Add(gfc);
+                    yf.CalculateGroupsAndSeries();
+                    Save(yf);
+                }
+            }
+            SVR_GroupFilter seasonsdirectory = lockedGFs.FirstOrDefault(
+                a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
+            if (seasonsdirectory != null)
+            {
+                SortedSet<string> allseasons;
+                if (season == null || season.Count == 0)
+                {
+                    List<CL_AnimeSeries_User> grps =
+                        RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+
+                    allseasons = new SortedSet<string>(new SeasonComparator());
+                    foreach (CL_AnimeSeries_User ser in grps)
+                        allseasons.UnionWith(ser.AniDBAnime.Stat_AllSeasons);
+                }
+                else
+                {
+                    allseasons = season;
+                }
+                HashSet<string> notin =
+                    new HashSet<string>(
+                        lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Season)
+                            .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
+                        StringComparer.InvariantCultureIgnoreCase);
+                allseasons.ExceptWith(notin);
+                int max = allseasons.Count;
+                int cnt = 0;
+                foreach (string s in allseasons)
+                {
+                    cnt++;
+                    if (frominit)
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Cache, t,
+                            Commons.Properties.Resources.Filter_CreatingSeason + " " +
+                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                    SVR_GroupFilter yf = new SVR_GroupFilter
+                    {
+                        ParentGroupFilterID = seasonsdirectory.GroupFilterID,
+                        InvisibleInClients = 0,
+                        GroupFilterName = s,
+                        BaseCondition = 1,
+                        Locked = 1,
+                        SortingCriteria = "5;1",
+                        FilterType = (int) GroupFilterType.Season,
+                        ApplyToSeries = 1
+                    };
+                    GroupFilterCondition gfc = new GroupFilterCondition
+                    {
+                        ConditionType = (int)GroupFilterConditionType.Season,
+                        ConditionOperator = (int)GroupFilterOperator.In,
+                        ConditionParameter = s,
+                        GroupFilterID = yf.GroupFilterID
+                    };
+                    yf.Conditions.Add(gfc);
+                    yf.CalculateGroupsAndSeries();
+                    Save(yf);
+                }
+            }
+            CleanUpEmptyDirectoryFilters();
         }
 
         public override void Save(SVR_GroupFilter obj)
@@ -498,9 +476,7 @@ namespace Shoko.Server.Repositories.Cached
             lock (obj)
             {
                 if (!onlyconditions)
-                {
                     obj.UpdateEntityReferenceStrings();
-                }
                 bool resaveConditions = obj.GroupFilterID == 0;
                 obj.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(obj._conditions);
                 obj.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
@@ -529,20 +505,30 @@ namespace Shoko.Server.Repositories.Cached
             if (groupFilters == null)
                 throw new ArgumentNullException(nameof(groupFilters));
 
-            foreach (SVR_GroupFilter groupFilter in groupFilters)
+            lock (globalDBLock)
             {
-                session.Update(groupFilter);
+                foreach (SVR_GroupFilter groupFilter in groupFilters)
+                    lock (groupFilter)
+                    {
+                        session.Update(groupFilter);
+                    }
             }
         }
 
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
-            return Parents.GetMultiple(parentid);
+            lock (Cache)
+            {
+                return Parents.GetMultiple(parentid);
+            }
         }
 
         public List<SVR_GroupFilter> GetTopLevel()
         {
-            return Parents.GetMultiple(0);
+            lock (Cache)
+            {
+                return Parents.GetMultiple(0);
+            }
         }
 
         /// <summary>
@@ -556,7 +542,9 @@ namespace Shoko.Server.Repositories.Cached
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
 
-            var groupsByFilter = session.CreateSQLQuery(@"
+            lock (globalDBLock)
+            {
+                var groupsByFilter = session.CreateSQLQuery(@"
                 SELECT DISTINCT grpFilter.GroupFilterID, grp.AnimeGroupID
                     FROM AnimeGroup grp
                         INNER JOIN AnimeSeries series
@@ -569,45 +557,55 @@ namespace Shoko.Server.Repositories.Cached
                             ON grpFilter.GroupFilterName = tag.TagName
                                 AND grpFilter.FilterType = :tagType
                     ORDER BY grpFilter.GroupFilterID, grp.AnimeGroupID")
-                .AddScalar("GroupFilterID", NHibernateUtil.Int32)
-                .AddScalar("AnimeGroupID", NHibernateUtil.Int32)
-                .SetInt32("tagType", (int) GroupFilterType.Tag)
-                .List<object[]>()
-                .ToLookup(r => (int) r[0], r => (int) r[1]);
+                    .AddScalar("GroupFilterID", NHibernateUtil.Int32)
+                    .AddScalar("AnimeGroupID", NHibernateUtil.Int32)
+                    .SetInt32("tagType", (int) GroupFilterType.Tag)
+                    .List<object[]>()
+                    .ToLookup(r => (int) r[0], r => (int) r[1]);
 
-            return groupsByFilter;
+                return groupsByFilter;
+            }
         }
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()
         {
-            return Cache.Values.Where(a => a.Locked == 1).ToList();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.Locked == 1).ToList();
+            }
         }
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            HashSet<int> filters = new HashSet<int>(Cache.Values.Where(a => a.FilterType == (int) GroupFilterType.All)
-                .Select(a => a.GroupFilterID));
-            foreach (GroupFilterConditionType t in types)
+            lock (Cache)
             {
-                filters.UnionWith(Types.FindInverse(t));
-            }
+                HashSet<int> filters = new HashSet<int>(Cache.Values
+                    .Where(a => a.FilterType == (int) GroupFilterType.All)
+                    .Select(a => a.GroupFilterID));
+                foreach (GroupFilterConditionType t in types)
+                    filters.UnionWith(Types.FindInverse(t));
 
-            return filters.Select(a => Cache.Get(a)).ToList();
+                return filters.Select(a => Cache.Get(a)).ToList();
+            }
         }
 
         public List<SVR_GroupFilter> GetWithConditionsTypes(HashSet<GroupFilterConditionType> types)
         {
-            HashSet<int> filters = new HashSet<int>();
-            foreach (GroupFilterConditionType t in types)
+            lock (Cache)
             {
-                filters.UnionWith(Types.FindInverse(t));
+                HashSet<int> filters = new HashSet<int>();
+                foreach (GroupFilterConditionType t in types)
+                    filters.UnionWith(Types.FindInverse(t));
+                return filters.Select(a => Cache.Get(a)).ToList();
             }
-            return filters.Select(a => Cache.Get(a)).ToList();
         }
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            return Changes;
+            lock (Changes)
+            {
+                return Changes;
+            }
         }
     }
 }

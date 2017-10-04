@@ -54,7 +54,14 @@ namespace Shoko.Server.API
                     if (string.IsNullOrEmpty(apiKey))
                     {
                         //take out value of "apikey" from query that was pass in request and check for User
-                        apiKey = (string) nancyContext.Request.Query.apikey.Value;
+                        try
+                        {
+                            apiKey = (string) nancyContext.Request.Query.apikey.Value;
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
                     }
                     AuthTokens auth = RepoFactory.AuthTokens.GetByToken(apiKey);
                     return auth != null
@@ -168,7 +175,7 @@ namespace Shoko.Server.API
             {
                 try
                 {
-                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui", "index.html");
                     using (var file = File.OpenRead(filename))
                     {
                         file.CopyTo(stream);
