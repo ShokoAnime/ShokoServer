@@ -3082,7 +3082,7 @@ namespace Shoko.Server
                     SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return null;
 
-                    CL_GroupFilterExtended contract = gf.ToClientExtended(session, user);
+                    CL_GroupFilterExtended contract = gf.ToClientExtended(user);
 
                     return contract;
                 }
