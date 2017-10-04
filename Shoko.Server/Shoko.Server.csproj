@@ -392,6 +392,7 @@
     <Compile Include="Databases\DatabaseFactory.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
+    <Compile Include="FileHelper\NativeHasher.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Import\FileQualityFilter.cs" />
     <Compile Include="Import\Importer.cs" />
