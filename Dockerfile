@@ -5,7 +5,7 @@ FROM mono:5.2
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y --force-yes libmediainfo0 sqlite.interop
+RUN apt-get update && apt-get install -y --force-yes libmediainfo0 librhash0 sqlite.interop
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source

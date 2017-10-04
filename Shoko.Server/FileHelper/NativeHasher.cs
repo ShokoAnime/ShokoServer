@@ -36,16 +36,16 @@ namespace Shoko.Server.FileHelper
             IntPtr output = Marshal.AllocHGlobal(200);
 
             Native.rhash_print(output, ctx, RHashIds.RHASH_ED2K, RhashPrintSumFlags.RHPR_DEFAULT);
-            e2dk = Marshal.PtrToStringAuto(output);
+            e2dk = Marshal.PtrToStringAnsi(output);
 
             Native.rhash_print(output, ctx, RHashIds.RHASH_CRC32, RhashPrintSumFlags.RHPR_DEFAULT);
-            crc32 = Marshal.PtrToStringAuto(output);
+            crc32 = Marshal.PtrToStringAnsi(output);
 
             Native.rhash_print(output, ctx, RHashIds.RHASH_MD5, RhashPrintSumFlags.RHPR_DEFAULT);
-            md5 = Marshal.PtrToStringAuto(output);
+            md5 = Marshal.PtrToStringAnsi(output);
 
             Native.rhash_print(output, ctx, RHashIds.RHASH_SHA1, RhashPrintSumFlags.RHPR_DEFAULT);
-            sha1 = Marshal.PtrToStringAuto(output);
+            sha1 = Marshal.PtrToStringAnsi(output);
 
             Marshal.FreeHGlobal(output);
 
