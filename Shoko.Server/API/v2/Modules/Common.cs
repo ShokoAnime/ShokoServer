@@ -69,6 +69,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct);
             Get["/rehashunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RehashUnlinked, ct);
             Get["/rehashmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RehashManualLinks, ct);
+            Get["/avdumpmismatchedfiles", true] = async (x,ct) => await Task.Factory.StartNew(AVDumpMismatchedFiles, ct);
 
             #endregion
 
@@ -943,6 +944,39 @@ namespace Shoko.Server.API.v2.Modules
                 .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
                 .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
                 .Select(_tuple => GetFileById(_tuple.vid.VideoLocalID, para.level, user.JMMUserID)).ToList();
+        }
+
+        /// <summary>
+        /// Gets files whose data does not match AniDB
+        /// </summary>
+        /// <returns></returns>
+        private object AVDumpMismatchedFiles()
+        {
+            JMMUser user = (JMMUser) Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+                .ToDictionary(a => a, a => a.GetAniDBFile());
+            Logger logger = LogManager.GetCurrentClassLogger();
+            Task.Factory.StartNew(() =>
+            {
+                var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
+                    .Where(_tuple => _tuple.anidb != null)
+                    .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
+                    .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
+                    .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace().FullServerPath).ToList();
+                int index = 0;
+                foreach (var path in list)
+                {
+                    logger.Info($"AVDump Start {index + 1}/{list.Count}: {path}");
+                    AVDumpHelper.DumpFile(path);
+                    logger.Info($"AVDump Finished {index + 1}/{list.Count}: {path}");
+                    index++;
+                    logger.Info($"AVDump Progress: {list.Count - index} remaining");
+                }
+            });
+
+            return APIStatus.OK();
         }
 
         /// <summary>
