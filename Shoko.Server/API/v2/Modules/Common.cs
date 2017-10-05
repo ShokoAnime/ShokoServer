@@ -109,6 +109,8 @@ namespace Shoko.Server.API.v2.Modules
             Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
             Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct);
             Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct);
+            Get["/file/needsavdumped", true] = async (x,ct) => await Task.Factory.StartNew(GetFilesWithMismatchedInfo, ct);
+            Get["/file/deprecated", true] = async (x,ct) => await Task.Factory.StartNew(GetDeprecatedFiles, ct);
 
             #endregion
 
@@ -923,6 +925,38 @@ namespace Shoko.Server.API.v2.Modules
             return para.id == 0 
                 ? GetAllFiles(para.limit, para.level, user.JMMUserID) 
                 : GetFileById(para.id, para.level, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// Gets files whose data does not match AniDB
+        /// </summary>
+        /// <returns></returns>
+        private object GetFilesWithMismatchedInfo()
+        {
+            JMMUser user = (JMMUser) Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+                .ToDictionary(a => a, a => a.GetAniDBFile());
+            return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
+                .Where(_tuple => _tuple.anidb != null)
+                .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
+                .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
+                .Select(_tuple => GetFileById(_tuple.vid.VideoLocalID, para.level, user.JMMUserID)).ToList();
+        }
+
+        /// <summary>
+        /// Gets files that are deprecated on AniDB
+        /// </summary>
+        /// <returns></returns>
+        private object GetDeprecatedFiles()
+        {
+            JMMUser user = (JMMUser) Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            var allvids = RepoFactory.VideoLocal.GetAll()
+                .Where(a => !a.IsEmpty() && a.GetAniDBFile() != null && a.GetAniDBFile().IsDeprecated == 1).ToList();
+            return allvids.Select(vid => GetFileById(vid.VideoLocalID, para.level, user.JMMUserID)).ToList();
         }
 
         /// <summary>
