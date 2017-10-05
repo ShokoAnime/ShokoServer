@@ -2345,6 +2345,27 @@ namespace Shoko.Server
                         ser.Populate(anime);
                         ser.AnimeGroupID = animeGroupID.Value;
                         RepoFactory.AnimeSeries.Save(ser, false);
+
+                        // check for TvDB associations
+                        if (anime.Restricted == 0)
+                        {
+                            CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(anime.AnimeID, forced: false);
+                            cmd.Save();
+
+                            // check for Trakt associations
+                            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                            {
+                                CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(anime.AnimeID, forced: false);
+                                cmd2.Save();
+                            }
+
+                            if (anime.AnimeType == (int) Shoko.Models.Enums.AnimeType.Movie)
+                            {
+                                CommandRequest_MovieDBSearchAnime cmd3 =
+                                    new CommandRequest_MovieDBSearchAnime(anime.AnimeID, false);
+                                cmd3.Save();
+                            }
+                        }
                     }
                     else
                     {
@@ -2362,26 +2383,13 @@ namespace Shoko.Server
                         cmdStatus.Save(session);
                     }
 
+                    ser.UpdateStats(true, true, false);
+                    RepoFactory.AnimeSeries.Save(ser, false, false);
 
-                    ser.UpdateStats(true, true, true);
-
-                    // check for TvDB associations
-                    CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(anime.AnimeID, false);
-                    cmd.Save(session);
-
-                    if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
                     {
-                        // check for Trakt associations
-                        CommandRequest_TraktSearchAnime cmd2 =
-                            new CommandRequest_TraktSearchAnime(anime.AnimeID, false);
-                        cmd2.Save(session);
-                    }
-
-                    if (anime.AnimeType == (int) AnimeType.Movie)
-                    {
-                        CommandRequest_MovieDBSearchAnime cmd3 =
-                            new CommandRequest_MovieDBSearchAnime(anime.AnimeID, false);
-                        cmd3.Save(session);
+                        grp.EpisodeAddedDate = DateTime.Now;
+                        RepoFactory.AnimeGroup.Save(grp, true, false);
                     }
 
                     response.Result = ser.GetUserContract(userID);
@@ -3074,7 +3082,7 @@ namespace Shoko.Server
                     SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return null;
 
-                    CL_GroupFilterExtended contract = gf.ToClientExtended(session, user);
+                    CL_GroupFilterExtended contract = gf.ToClientExtended(user);
 
                     return contract;
                 }

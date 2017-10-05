@@ -33,8 +33,7 @@ namespace Shoko.Server.Databases
                          fullfilename.Replace("'", "''") + "'";
 
 
-            using (SqlConnection tmpConn =
-                new SqlConnection(GetConnectionString()))
+            using (SqlConnection tmpConn = new SqlConnection(GetConnectionString()))
             {
                 tmpConn.Open();
 
@@ -44,6 +43,29 @@ namespace Shoko.Server.Databases
                     command.ExecuteNonQuery();
                 }
             }
+        }
+
+        public override bool TestConnection()
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    var query = "select 1";
+
+                    var command = new SqlCommand(query, connection);
+
+                    connection.Open();
+
+                    command.ExecuteScalar();
+                    return true;
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+            return false;
         }
 
 

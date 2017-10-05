@@ -19,23 +19,41 @@ namespace Shoko.Server.Repositories.Cached
 
         public AuthTokens GetByToken(string token)
         {
-            if (string.IsNullOrEmpty(token)) return null;
-            var tokens = Tokens.GetMultiple(token).ToList();
-            var auth = tokens.FirstOrDefault();
-            if (tokens.Count <= 1) return auth;
-            tokens.Remove(auth);
-            tokens.ForEach(Delete);
-            return auth;
+            lock (Cache)
+            {
+                if (string.IsNullOrEmpty(token)) return null;
+                var tokens = Tokens.GetMultiple(token).ToList();
+                var auth = tokens.FirstOrDefault();
+                if (tokens.Count <= 1) return auth;
+                tokens.Remove(auth);
+                tokens.ForEach(Delete);
+                return auth;
+            }
         }
 
-        public void DeleteAllWithUserID(int id) => UserIDs.GetMultiple(id).ToList().ForEach(Delete);
+        public void DeleteAllWithUserID(int id)
+        {
+            lock (Cache)
+            {
+                UserIDs.GetMultiple(id).ToList().ForEach(Delete);
+            }
+        }
 
         public void DeleteWithToken(string token)
         {
-            if (!string.IsNullOrEmpty(token)) Tokens.GetMultiple(token).ToList().ForEach(Delete);
+            lock (Cache)
+            {
+                if (!string.IsNullOrEmpty(token)) Tokens.GetMultiple(token).ToList().ForEach(Delete);
+            }
         }
 
-        public List<AuthTokens> GetByUserID(int userID) => UserIDs.GetMultiple(userID).ToList();
+        public List<AuthTokens> GetByUserID(int userID)
+        {
+            lock (Cache)
+            {
+                return UserIDs.GetMultiple(userID).ToList();
+            }
+        }
 
         protected override int SelectKey(AuthTokens entity) => entity.AuthID;
 
@@ -55,26 +73,30 @@ namespace Shoko.Server.Repositories.Cached
 
             if (userrecord == null) return string.Empty;
 
-            int uid = userrecord.JMMUserID;
-            var tokens = UserIDs
-                .GetMultiple(uid).ToList();
-            var auth = tokens.FirstOrDefault(a =>
-                a.DeviceName.Equals(device, StringComparison.InvariantCultureIgnoreCase) &&
-                !string.IsNullOrEmpty(a.Token));
-            if (tokens.Count > 1)
+            lock (Cache)
             {
-                tokens.Remove(auth);
-                tokens.ForEach(Delete);
+                int uid = userrecord.JMMUserID;
+                var tokens = UserIDs
+                    .GetMultiple(uid).ToList();
+                var auth = tokens.FirstOrDefault(a =>
+                    a.DeviceName.Equals(device, StringComparison.InvariantCultureIgnoreCase) &&
+                    !string.IsNullOrEmpty(a.Token));
+                if (tokens.Count > 1)
+                {
+                    tokens.Remove(auth);
+                    tokens.ForEach(Delete);
+                }
+                var apiKey = auth?.Token ?? string.Empty;
+
+                if (!string.IsNullOrEmpty(apiKey)) return apiKey;
+
+                apiKey = Guid.NewGuid().ToString();
+                AuthTokens token =
+                    new AuthTokens {UserID = uid, DeviceName = device.ToLowerInvariant(), Token = apiKey};
+                Save(token);
+
+                return apiKey;
             }
-            var apiKey = auth?.Token ?? string.Empty;
-
-            if (!string.IsNullOrEmpty(apiKey)) return apiKey;
-
-            apiKey = Guid.NewGuid().ToString();
-            AuthTokens token = new AuthTokens { UserID = uid, DeviceName = device.ToLowerInvariant(), Token = apiKey };
-            RepoFactory.AuthTokens.Save(token);
-
-            return apiKey;
         }
     }
 }

@@ -512,7 +512,7 @@ namespace Shoko.Server
                     DateTime? endDate = AniDB.GetAniDBDateAsDate(endDateSecs);
 
                     List<SVR_AniDB_Anime> animes =
-                        RepoFactory.AniDB_Anime.GetForDate(session, startDate.Value, endDate.Value);
+                        RepoFactory.AniDB_Anime.GetForDate(startDate.Value, endDate.Value);
                     foreach (SVR_AniDB_Anime anidb_anime in animes)
                     {
                         if (!user.AllowedAnime(anidb_anime)) continue;
@@ -569,7 +569,7 @@ namespace Shoko.Server
                     if (user == null) return retAnime;
 
 
-                    List<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.SearchByName(session, queryText);
+                    List<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.SearchByName(queryText);
                     foreach (SVR_AniDB_Anime anidb_anime in animes)
                     {
                         if (!user.AllowedAnime(anidb_anime)) continue;

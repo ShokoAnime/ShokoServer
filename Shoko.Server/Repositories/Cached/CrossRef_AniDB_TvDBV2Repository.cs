@@ -29,14 +29,20 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
         {
-            return AnimeIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
-                .ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList();
+            lock (Cache)
+            {
+                return AnimeIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
+                    .ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList();
+            }
         }
 
         public List<CrossRef_AniDB_TvDBV2> GetByTvDBID(int id)
         {
-            return TvDBIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
-                .ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList();
+            lock (Cache)
+            {
+                return TvDBIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
+                    .ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList();
+            }
         }
 
         public ILookup<int, CrossRef_AniDB_TvDBV2> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
@@ -49,27 +55,36 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TvDBV2>.Instance;
             }
 
-            return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                .OrderBy(xref => xref.AniDBStartEpisodeType).ThenBy(xref => xref.AniDBStartEpisodeNumber)
-                .ToLookup(xref => xref.AnimeID);
+            lock (Cache)
+            {
+                return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+                    .OrderBy(xref => xref.AniDBStartEpisodeType).ThenBy(xref => xref.AniDBStartEpisodeNumber)
+                    .ToLookup(xref => xref.AnimeID);
+            }
         }
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeIDEpTypeEpNumber(int id, int aniEpType, int aniEpisodeNumber)
         {
-            return AnimeIDs.GetMultiple(id)
-                .Where(xref => xref.AniDBStartEpisodeType == aniEpType &&
-                               xref.AniDBStartEpisodeNumber <= aniEpisodeNumber)
-                .OrderByDescending(xref => xref.AniDBStartEpisodeNumber).ToList();
+            lock (Cache)
+            {
+                return AnimeIDs.GetMultiple(id)
+                    .Where(xref => xref.AniDBStartEpisodeType == aniEpType &&
+                                   xref.AniDBStartEpisodeNumber <= aniEpisodeNumber)
+                    .OrderByDescending(xref => xref.AniDBStartEpisodeNumber).ToList();
+            }
         }
 
         public CrossRef_AniDB_TvDBV2 GetByTvDBID(int id, int season, int episodeNumber, int animeID,
             int aniEpType, int aniEpisodeNumber)
         {
-            return TvDBIDs.GetMultiple(id).FirstOrDefault(xref => xref.TvDBSeasonNumber == season &&
-                                                       xref.TvDBStartEpisodeNumber == episodeNumber &&
-                                                       xref.AnimeID == animeID &&
-                                                       xref.AniDBStartEpisodeType == aniEpType &&
-                                                       xref.AniDBStartEpisodeNumber == aniEpisodeNumber);
+            lock (Cache)
+            {
+                return TvDBIDs.GetMultiple(id).FirstOrDefault(xref => xref.TvDBSeasonNumber == season &&
+                                                                      xref.TvDBStartEpisodeNumber == episodeNumber &&
+                                                                      xref.AnimeID == animeID &&
+                                                                      xref.AniDBStartEpisodeType == aniEpType &&
+                                                                      xref.AniDBStartEpisodeNumber == aniEpisodeNumber);
+            }
         }
 
         public override void RegenerateDb()

@@ -512,7 +512,7 @@ namespace Shoko.UI
                     if (result != System.Windows.Forms.DialogResult.OK) return;
 
                     System.Windows.Forms.Application.Restart();
-                    ShokoServer.Instance.ApplicationShutdown();
+                    //ShokoServer.Instance.s();
                 }
             }
             catch (Exception ex)
@@ -1078,7 +1078,10 @@ namespace Shoko.UI
                 Show();
         }
 
-        void TippuTrayNotify_MouseDoubleClick(object sender, MouseEventArgs e) => Show();
+        void TippuTrayNotify_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            this.Show();
+        }
 
         private void CreateMenus()
         {

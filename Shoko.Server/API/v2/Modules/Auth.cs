@@ -8,8 +8,6 @@ namespace Shoko.Server.API.v2.Modules
 {
     public class Auth : NancyModule
     {
-        public static int version = 1;
-
         /// <summary>
         /// Authentication module
         /// </summary>
@@ -21,22 +19,20 @@ namespace Shoko.Server.API.v2.Modules
             {
                 //Bind POST body
                 AuthUser auth = this.Bind();
-                if (!string.IsNullOrEmpty(auth.user))
-                {
-                    if (auth.pass == null) auth.pass = string.Empty;
-                    if (!string.IsNullOrEmpty(auth.device) && auth.pass != null)
-                    {
-                        //create and save new token for authenticated user or return known one
-                        string apiKey = RepoFactory.AuthTokens.ValidateUser(auth.user, auth.pass, auth.device);
+                if (string.IsNullOrEmpty(auth.user.Trim()))
+                    return new Response {StatusCode = HttpStatusCode.BadRequest};
 
-                        if (!string.IsNullOrEmpty(apiKey)) return Response.AsJson(new {apikey = apiKey});
+                if (auth.pass == null) auth.pass = string.Empty;
+                //if password or device is missing
+                if (string.IsNullOrEmpty(auth.device) || auth.pass == null)
+                    return new Response {StatusCode = HttpStatusCode.BadRequest};
 
-                        return new Response { StatusCode = HttpStatusCode.Unauthorized };
-                    }
-                    //if password or device is missing
-                    return new Response { StatusCode = HttpStatusCode.BadRequest };
-                }
-                return new Response { StatusCode = HttpStatusCode.ExpectationFailed };
+                //create and save new token for authenticated user or return known one
+                string apiKey = RepoFactory.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
+
+                if (!string.IsNullOrEmpty(apiKey)) return Response.AsJson(new {apikey = apiKey});
+
+                return new Response { StatusCode = HttpStatusCode.Unauthorized };
             }, ct);
 
             //remove apikey from database
@@ -45,7 +41,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 var apiKey = (string) Request.Query.apikey;
                 RepoFactory.AuthTokens.DeleteWithToken(apiKey);
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }, ct);
         }
     }

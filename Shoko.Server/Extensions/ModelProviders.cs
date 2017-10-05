@@ -719,9 +719,9 @@ namespace Shoko.Server.Extensions
             episode.EpisodeNumber = epInfo.EpisodeNumber;
             episode.EpisodeType = epInfo.EpisodeType;
             episode.LengthSeconds = epInfo.LengthSeconds;
-            episode.Rating = epInfo.Rating.ToString();
+            episode.Rating = epInfo.Rating.ToString(CultureInfo.InvariantCulture);
             episode.RomajiName = epInfo.RomajiName;
-            episode.Votes = epInfo.Votes.ToString();
+            episode.Votes = epInfo.Votes.ToString(CultureInfo.InvariantCulture);
         }
 
         public static void Populate(this AniDB_GroupStatus grpstatus, Raw_AniDB_GroupStatus raw)

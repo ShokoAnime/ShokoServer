@@ -5,12 +5,12 @@ using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
-using Shoko.Models.Server;
-using Shoko.Server.Commands.AniDB;
-using NutzCode.CloudFileSystem;
 using Pri.LongPath;
 using Shoko.Commons.Queue;
+using Shoko.Models.Azure;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
@@ -23,29 +23,25 @@ namespace Shoko.Server.Commands
         public int VideoLocalID { get; set; }
         public bool ForceAniDB { get; set; }
 
-        private SVR_VideoLocal vlocal = null;
+        private SVR_VideoLocal vlocal;
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority3; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
         public QueueStateStruct PrettyDescription
         {
             get
             {
                 if (vlocal != null)
-                    return new QueueStateStruct()
+                    return new QueueStateStruct
                     {
                         queueState = QueueStateEnum.FileInfo,
                         extraParams = new[] {vlocal.FileName}
                     };
-                else
-                    return new QueueStateStruct()
-                    {
-                        queueState = QueueStateEnum.FileInfo,
-                        extraParams = new[] {VideoLocalID.ToString()}
-                    };
+                return new QueueStateStruct
+                {
+                    queueState = QueueStateEnum.FileInfo,
+                    extraParams = new[] {VideoLocalID.ToString()}
+                };
             }
         }
 
@@ -55,17 +51,17 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_ProcessFile(int vidLocalID, bool forceAniDB)
         {
-            this.VideoLocalID = vidLocalID;
-            this.ForceAniDB = forceAniDB;
-            this.CommandType = (int) CommandRequestType.ProcessFile;
-            this.Priority = (int) DefaultPriority;
+            VideoLocalID = vidLocalID;
+            ForceAniDB = forceAniDB;
+            CommandType = (int) CommandRequestType.ProcessFile;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
 
         public override void ProcessCommand()
         {
-            logger.Trace("Processing File: {0}", VideoLocalID);
+            logger.Trace($"Processing File: {VideoLocalID}");
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
@@ -79,18 +75,13 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_ProcessFile: {0} - {1}", VideoLocalID, ex.ToString());
-                return;
+                logger.Error($"Error processing CommandRequest_ProcessFile: {VideoLocalID} - {ex}");
             }
-
-            // TODO update stats for group and series
-
-            // TODO check for TvDB
         }
 
         private void ProcessFile_AniDB(SVR_VideoLocal vidLocal)
         {
-            logger.Trace("Checking for AniDB_File record for: {0} --- {1}", vidLocal.Hash, vidLocal.FileName);
+            logger.Trace($"Checking for AniDB_File record for: {vidLocal.Hash} --- {vidLocal.FileName}");
             // check if we already have this AniDB_File info in the database
 
             lock (vidLocal)
@@ -173,20 +164,19 @@ namespace Shoko.Server.Commands
                         // lets see if we can find the episode/anime info from the web cache
                         if (ServerSettings.WebCache_XRefFileEpisode_Get)
                         {
-                            List<Shoko.Models.Azure.Azure_CrossRef_File_Episode> xrefs =
+                            List<Azure_CrossRef_File_Episode> xrefs =
                                 AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
 
                             crossRefs = new List<CrossRef_File_Episode>();
                             if (xrefs == null || xrefs.Count == 0)
                             {
                                 logger.Debug(
-                                    "Cannot find AniDB_File record or get cross ref from web cache record so exiting: {0}",
-                                    vidLocal.ED2KHash);
+                                    $"Cannot find AniDB_File record or get cross ref from web cache record so exiting: {vidLocal.ED2KHash}");
                                 return;
                             }
                             string fileName = vidLocal.GetBestVideoLocalPlace().FullServerPath;
                             fileName = !string.IsNullOrEmpty(fileName) ? Path.GetFileName(fileName) : vidLocal.FileName;
-                            foreach (Shoko.Models.Azure.Azure_CrossRef_File_Episode xref in xrefs)
+                            foreach (Azure_CrossRef_File_Episode xref in xrefs)
                             {
                                 CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
                                 {
@@ -219,7 +209,7 @@ namespace Shoko.Server.Commands
                         }
                         else
                         {
-                            logger.Debug("Cannot get AniDB_File record so exiting: {0}", vidLocal.ED2KHash);
+                            logger.Debug($"Cannot get AniDB_File record so exiting: {vidLocal.ED2KHash}");
                             return;
                         }
                     }
@@ -243,7 +233,7 @@ namespace Shoko.Server.Commands
                         animeID = aniFile.AnimeID;
 
                         // if we have the anidb file, but no cross refs it means something has been broken
-                        logger.Debug("Could not find any cross ref records for: {0}", vidLocal.ED2KHash);
+                        logger.Debug($"Could not find any cross ref records for: {vidLocal.ED2KHash}");
                         missingEpisodes = true;
                     }
                     else
@@ -333,16 +323,11 @@ namespace Shoko.Server.Commands
                         }
                     }
                 }
-                vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
-
-                // It imports default unwatched, so we only need it to do anything if we want it watched
-                if (aniFile != null && ServerSettings.AniDB_MyList_ReadWatched)
+                else
                 {
-                    CommandRequest_GetFileMyListStatus mylistcmd =
-                        new CommandRequest_GetFileMyListStatus(aniFile.AniDB_FileID, vidLocal.FileName);
-                    mylistcmd.Save();
+                    logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                 }
-
+                vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                 // update stats for groups and series
                 // update all the groups above this series in the heirarchy
@@ -364,27 +349,27 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_ProcessFile_{VideoLocalID}";
+            CommandID = $"CommandRequest_ProcessFile_{VideoLocalID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
-                this.ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
+                VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
+                ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
                 vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             }
 
@@ -397,10 +382,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

@@ -904,7 +904,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return true;
         }
 
-        public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
+        public bool PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
             List<Raw_AniDB_Anime_Title> titles,
             List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
@@ -923,7 +923,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                              "This is not an error on our end. It is AniDB's issue, " +
                              "as they did not return either an ID or a title for the anime.");
                 totalTimer.Stop();
-                return;
+                return false;
             }
 
             // save now for FK purposes
@@ -970,6 +970,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             totalTimer.Stop();
             logger.Trace("TOTAL TIME in : " + totalTimer.ElapsedMilliseconds);
             logger.Trace("------------------------------------------------");
+            return true;
         }
 
         /// <summary>

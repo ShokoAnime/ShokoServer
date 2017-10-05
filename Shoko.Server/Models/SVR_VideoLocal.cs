@@ -4,35 +4,28 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using AniDBAPI;
 using FluentNHibernate.Utils;
+using NLog;
+using NutzCode.CloudFileSystem;
+using Pri.LongPath;
 using Shoko.Commons.Utils;
-using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.MAL;
-using NLog;
 using Shoko.Server.Extensions;
-using NutzCode.CloudFileSystem;
 using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Pri.LongPath;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
 {
     public class SVR_VideoLocal : VideoLocal, IHash
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        public SVR_VideoLocal()
-        {
-        }
 
         #region DB columns
 
@@ -50,7 +43,7 @@ namespace Shoko.Server.Models
         public const int MEDIA_VERSION = 3;
 
 
-        internal Media _media = null;
+        internal Media _media;
 
         public virtual Media Media
         {
@@ -82,7 +75,7 @@ namespace Shoko.Server.Models
         {
             StringBuilder sb = new StringBuilder("");
             sb.Append(Environment.NewLine);
-            sb.Append("VideoLocalID: " + VideoLocalID.ToString());
+            sb.Append("VideoLocalID: " + VideoLocalID);
 
             sb.Append(Environment.NewLine);
             sb.Append("FileName: " + FileName);
@@ -91,7 +84,7 @@ namespace Shoko.Server.Models
             sb.Append(Environment.NewLine);
             sb.Append("Hash: " + Hash);
             sb.Append(Environment.NewLine);
-            sb.Append("FileSize: " + FileSize.ToString());
+            sb.Append("FileSize: " + FileSize);
             sb.Append(Environment.NewLine);
             /*
             try
@@ -165,7 +158,7 @@ namespace Shoko.Server.Models
                     vidUserRecord = new VideoLocal_User();
                 vidUserRecord.WatchedDate = DateTime.Now;
                 vidUserRecord.JMMUserID = userID;
-                vidUserRecord.VideoLocalID = this.VideoLocalID;
+                vidUserRecord.VideoLocalID = VideoLocalID;
 
                 if (watchedDate.HasValue)
                 {
@@ -278,7 +271,7 @@ namespace Shoko.Server.Models
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(this.Hash);
+                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(Hash);
                 if (aniFile != null)
                 {
                     aniFile.IsWatched = mywatched;
@@ -303,7 +296,7 @@ namespace Shoko.Server.Models
                         (!watched && ServerSettings.AniDB_MyList_SetUnwatched))
                     {
                         CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
-                            this.Hash, watched, false,
+                            Hash, watched, false,
                             watchedDate.HasValue ? AniDB.GetAniDBDateAsSeconds(watchedDate) : 0);
                         cmd.Save();
                     }
@@ -317,7 +310,7 @@ namespace Shoko.Server.Models
 
             SVR_AnimeSeries ser = null;
             // get all files associated with this episode
-            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
+            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
             Dictionary<int, SVR_AnimeSeries> toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
             if (watched)
             {
@@ -457,21 +450,21 @@ namespace Shoko.Server.Models
         {
             CL_VideoLocal cl = new CL_VideoLocal
             {
-                CRC32 = this.CRC32,
-                DateTimeUpdated = this.DateTimeUpdated,
-                FileName = this.FileName,
-                FileSize = this.FileSize,
-                Hash = this.Hash,
-                HashSource = this.HashSource,
-                IsIgnored = this.IsIgnored,
-                IsVariation = this.IsVariation,
-                Duration = this.Duration,
-                MD5 = this.MD5,
-                SHA1 = this.SHA1,
-                VideoLocalID = this.VideoLocalID,
+                CRC32 = CRC32,
+                DateTimeUpdated = DateTimeUpdated,
+                FileName = FileName,
+                FileSize = FileSize,
+                Hash = Hash,
+                HashSource = HashSource,
+                IsIgnored = IsIgnored,
+                IsVariation = IsVariation,
+                Duration = Duration,
+                MD5 = MD5,
+                SHA1 = SHA1,
+                VideoLocalID = VideoLocalID,
                 Places = Places.Select(a => a.ToClient()).ToList()
             };
-            VideoLocal_User userRecord = this.GetUserRecord(userID);
+            VideoLocal_User userRecord = GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.IsWatched = 0;
@@ -563,7 +556,7 @@ namespace Shoko.Server.Models
             CL_VideoDetailed cl = new CL_VideoDetailed();
 
             // get the cross ref episode
-            List<CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
+            List<CrossRef_File_Episode> xrefs = EpisodeCrossRefs;
             if (xrefs.Count == 0) return null;
 
             cl.Percentage = xrefs[0].Percentage;
@@ -571,20 +564,20 @@ namespace Shoko.Server.Models
             cl.CrossRefSource = xrefs[0].CrossRefSource;
             cl.AnimeEpisodeID = xrefs[0].EpisodeID;
 
-            cl.VideoLocal_FileName = this.FileName;
-            cl.VideoLocal_Hash = this.Hash;
-            cl.VideoLocal_FileSize = this.FileSize;
-            cl.VideoLocalID = this.VideoLocalID;
-            cl.VideoLocal_IsIgnored = this.IsIgnored;
-            cl.VideoLocal_IsVariation = this.IsVariation;
+            cl.VideoLocal_FileName = FileName;
+            cl.VideoLocal_Hash = Hash;
+            cl.VideoLocal_FileSize = FileSize;
+            cl.VideoLocalID = VideoLocalID;
+            cl.VideoLocal_IsIgnored = IsIgnored;
+            cl.VideoLocal_IsVariation = IsVariation;
             cl.Places = Places.Select(a => a.ToClient()).ToList();
 
-            cl.VideoLocal_MD5 = this.MD5;
-            cl.VideoLocal_SHA1 = this.SHA1;
-            cl.VideoLocal_CRC32 = this.CRC32;
-            cl.VideoLocal_HashSource = this.HashSource;
+            cl.VideoLocal_MD5 = MD5;
+            cl.VideoLocal_SHA1 = SHA1;
+            cl.VideoLocal_CRC32 = CRC32;
+            cl.VideoLocal_HashSource = HashSource;
 
-            VideoLocal_User userRecord = this.GetUserRecord(userID);
+            VideoLocal_User userRecord = GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.VideoLocal_IsWatched = 0;
@@ -608,7 +601,7 @@ namespace Shoko.Server.Models
             cl.VideoInfo_VideoResolution = VideoResolution;
 
             // AniDB File
-            SVR_AniDB_File anifile = this.GetAniDBFile(); // to prevent multiple db calls
+            SVR_AniDB_File anifile = GetAniDBFile(); // to prevent multiple db calls
             if (anifile != null)
             {
                 cl.AniDB_Anime_GroupName = anifile.Anime_GroupName;
@@ -660,7 +653,7 @@ namespace Shoko.Server.Models
             }
 
 
-            AniDB_ReleaseGroup relGroup = this.ReleaseGroup; // to prevent multiple db calls
+            AniDB_ReleaseGroup relGroup = ReleaseGroup; // to prevent multiple db calls
             if (relGroup != null)
                 cl.ReleaseGroup = relGroup;
             else
@@ -673,20 +666,20 @@ namespace Shoko.Server.Models
         {
             CL_VideoLocal_ManualLink cl = new CL_VideoLocal_ManualLink
             {
-                CRC32 = this.CRC32,
-                DateTimeUpdated = this.DateTimeUpdated,
-                FileName = this.FileName,
-                FileSize = this.FileSize,
-                Hash = this.Hash,
-                HashSource = this.HashSource,
-                IsIgnored = this.IsIgnored,
-                IsVariation = this.IsVariation,
-                MD5 = this.MD5,
-                SHA1 = this.SHA1,
-                VideoLocalID = this.VideoLocalID,
+                CRC32 = CRC32,
+                DateTimeUpdated = DateTimeUpdated,
+                FileName = FileName,
+                FileSize = FileSize,
+                Hash = Hash,
+                HashSource = HashSource,
+                IsIgnored = IsIgnored,
+                IsVariation = IsVariation,
+                MD5 = MD5,
+                SHA1 = SHA1,
+                VideoLocalID = VideoLocalID,
                 Places = Places.Select(a => a.ToClient()).ToList()
             };
-            VideoLocal_User userRecord = this.GetUserRecord(userID);
+            VideoLocal_User userRecord = GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.IsWatched = 0;

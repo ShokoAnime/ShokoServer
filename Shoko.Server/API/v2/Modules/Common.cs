@@ -1,37 +1,36 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
-using AniDBAPI;
+using System.Threading.Tasks;
+using System.Web;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using Newtonsoft.Json;
-using NHibernate.Util;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using System.Threading.Tasks;
-using Shoko.Commons.Utils;
-using Shoko.Server.Databases;
 
 namespace Shoko.Server.API.v2.Modules
 {
     //As responds for this API we throw object that will be converted to json/xml
-    public class Common : Nancy.NancyModule
+    public class Common : NancyModule
     {
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
-
-        public static int version = 2;
 
         public Common() : base("/api")
         {
@@ -65,7 +64,11 @@ namespace Shoko.Server.API.v2.Modules
             Get["/mediainfo_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo, ct);
             Get["/hash/sync", true] = async (x,ct) => await Task.Factory.StartNew(HashSync, ct);
             Get["/rescan", true] = async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal, ct);
+            Get["/rescanunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RescanUnlinked, ct);
+            Get["/rescanmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RescanManualLinks, ct);
             Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct);
+            Get["/rehashunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RehashUnlinked, ct);
+            Get["/rehashmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RehashManualLinks, ct);
 
             #endregion
 
@@ -211,22 +214,16 @@ namespace Shoko.Server.API.v2.Modules
 
                         if (string.IsNullOrEmpty(response.ErrorMessage))
                         {
-                            return APIStatus.statusOK();
+                            return APIStatus.OK();
                         }
-                        else
-                        {
-                            return new APIMessage(500, response.ErrorMessage);
-                        }
+                        return new APIMessage(500, response.ErrorMessage);
                     }
                     catch
                     {
-                        return APIStatus.internalError();
+                        return APIStatus.InternalError();
                     }
                 }
-                else
-                {
-                    return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
-                }
+                return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
             }
             catch (ModelBindingException)
             {
@@ -250,36 +247,24 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         return new APIMessage(409, "The Folder Can't be both Destination and Source Simultaneously");
                     }
-                    else
+                    if (folder.ImportFolderID != 0)
                     {
-                        if (folder.ImportFolderID != 0)
+                        CL_Response<ImportFolder> response =
+                            new ShokoServiceImplementation().SaveImportFolder(folder);
+                        if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
-                            CL_Response<ImportFolder> response =
-                                new ShokoServiceImplementation().SaveImportFolder(folder);
-                            if (!string.IsNullOrEmpty(response.ErrorMessage))
-                            {
-                                return new APIMessage(500, response.ErrorMessage);
-                            }
-                            else
-                            {
-                                return APIStatus.statusOK();
-                            }
+                            return new APIMessage(500, response.ErrorMessage);
                         }
-                        else
-                        {
-                            return new APIMessage(409, "The Import Folder must have an ID");
-                        }
+                        return APIStatus.OK();
                     }
+                    return new APIMessage(409, "The Import Folder must have an ID");
                 }
                 catch
                 {
-                    return APIStatus.internalError();
+                    return APIStatus.InternalError();
                 }
             }
-            else
-            {
-                return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
-            }
+            return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
         }
 
         /// <summary>
@@ -295,17 +280,11 @@ namespace Shoko.Server.API.v2.Modules
                 string res = Importer.DeleteImportFolder(folder.ImportFolderID);
                 if (res == string.Empty)
                 {
-                    return APIStatus.statusOK();
+                    return APIStatus.OK();
                 }
-                else
-                {
-                    return new APIMessage(500, res);
-                }
+                return new APIMessage(500, res);
             }
-            else
-            {
-                return new APIMessage(400, "ImportFolderID missing");
-            }
+            return new APIMessage(400, "ImportFolderID missing");
         }
 
         /// <summary>
@@ -316,7 +295,7 @@ namespace Shoko.Server.API.v2.Modules
         private object RunImport()
         {
             ShokoServer.RunImport();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -327,7 +306,7 @@ namespace Shoko.Server.API.v2.Modules
         private object ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -337,19 +316,19 @@ namespace Shoko.Server.API.v2.Modules
         private object ListUPNP()
         {
             //TODO APIv2 ListUPNP: Need a tweak as this now should return it as list?
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object AddUPNP()
         {
             //TODO APIv2 AddUPNP: implement this
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object DeleteUPNP()
         {
             //TODO APIv2 DeleteUPN: implement this
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         #endregion
@@ -364,7 +343,7 @@ namespace Shoko.Server.API.v2.Modules
         private object RemoveMissingFiles()
         {
             ShokoServer.RemoveMissingFiles();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -375,7 +354,7 @@ namespace Shoko.Server.API.v2.Modules
         private object UpdateStats()
         {
             Importer.UpdateAllStats();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -386,7 +365,7 @@ namespace Shoko.Server.API.v2.Modules
         private object UpdateMediaInfo()
         {
             ShokoServer.RefreshAllMediaInfo();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -397,7 +376,7 @@ namespace Shoko.Server.API.v2.Modules
         private object HashSync()
         {
             ShokoServer.SyncHashes();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -407,37 +386,71 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object RescanVideoLocal()
         {
-            Request request = this.Request;
             API_Call_Parameters para = this.Bind();
 
-            if (para.id != 0)
+            if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
+            try
             {
-                try
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
+                if (vid == null) return APIStatus.NotFound();
+                if (string.IsNullOrEmpty(vid.Hash))
+                    return APIStatus.BadRequest("Could not Update a cloud file without hash, hash it locally first");
+                CommandRequest_ProcessFile cmd =
+                    new CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                cmd.Save();
+                return APIStatus.OK();
+            }
+            catch (Exception ex)
+            {
+                return APIStatus.InternalError(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Handle /api/rescanunlinked
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object RescanUnlinked()
+        {
+            try
+            {
+                // files which have been hashed, but don't have an associated episode
+                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+
+                foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
-                    if (vid == null)
-                    {
-                        return APIStatus.notFound404();
-                    }
-                    if (string.IsNullOrEmpty(vid.Hash))
-                    {
-                        return APIStatus.badRequest(
-                            "Could not Update a cloud file without hash, hash it locally first");
-                    }
-                    Commands.CommandRequest_ProcessFile cmd =
-                        new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
                     cmd.Save();
                 }
-                catch (Exception ex)
-                {
-                    return APIStatus.internalError(ex.Message);
-                }
-
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            else
+            catch (Exception ex)
             {
-                return APIStatus.badRequest("missing 'id'");
+                return APIStatus.InternalError(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Handle /api/rescanmanuallinks
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object RescanManualLinks()
+        {
+            try
+            {
+                // files which have been hashed, but don't have an associated episode
+                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+
+                foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
+                {
+                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+                    cmd.Save();
+                }
+                return APIStatus.OK();
+            }
+            catch (Exception ex)
+            {
+                return APIStatus.InternalError(ex.Message);
             }
         }
 
@@ -448,34 +461,67 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object RehashVideoLocal()
         {
-            Request request = this.Request;
             API_Call_Parameters para = this.Bind();
 
-            if (para.id != 0)
+            if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
+            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
+            if (vl == null) return APIStatus.NotFound("VideoLocal Not Found");
+            SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+            if (pl?.FullServerPath == null) return APIStatus.NotFound("videolocal_place not found");
+            CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+            cr_hashfile.Save();
+
+            return APIStatus.OK();
+        }
+
+        /// <summary>
+        /// Handle /api/rehashunlinked
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object RehashUnlinked()
+        {
+            try
             {
-                SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
-                if (vl != null)
+                // files which have been hashed, but don't have an associated episode
+                foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
-                    if (pl?.FullServerPath == null)
-                    {
-                        return APIStatus.notFound404("videolocal_place not found");
-                    }
-                    Commands.CommandRequest_HashFile cr_hashfile =
-                        new Commands.CommandRequest_HashFile(pl.FullServerPath, true);
+                    if (pl?.FullServerPath == null) continue;
+                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
                     cr_hashfile.Save();
-
-                    return APIStatus.statusOK();
-                }
-                else
-                {
-                    return APIStatus.notFound404();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                return APIStatus.badRequest("missing 'id'");
+                return APIStatus.InternalError(ex.Message);
             }
+
+            return APIStatus.OK();
+        }
+
+        /// <summary>
+        /// Handle /api/rehashmanuallinks
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object RehashManualLinks()
+        {
+            try
+            {
+                // files which have been hashed, but don't have an associated episode
+                foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                {
+                    SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                    if (pl?.FullServerPath == null) continue;
+                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    cr_hashfile.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                return APIStatus.InternalError(ex.Message);
+            }
+
+            return APIStatus.OK();
         }
 
         #endregion
@@ -488,19 +534,16 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>userid = int</returns>
         private object MyID()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
-            dynamic x = new System.Dynamic.ExpandoObject();
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
+            dynamic x = new ExpandoObject();
             if (user != null)
             {
                 x.userid = user.JMMUserID;
                 return x;
             }
-            else
-            {
-                x.userid = 0;
-                return x;
-            }
+            x.userid = 0;
+            return x;
         }
 
         /// <summary>
@@ -509,7 +552,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<WebNews></returns>
         private object GetNews(int max)
         {
-            var client = new System.Net.WebClient();
+            var client = new WebClient();
             client.Headers.Add("User-Agent", "jmmserver");
             client.Headers.Add("Accept", "application/json");
             var response = client.DownloadString(new Uri("http://shokoanime.com/wp-json/wp/v2/posts"));
@@ -524,7 +567,7 @@ namespace Shoko.Server.API.v2.Modules
                     author = post.author,
                     date = post.date,
                     link = post.link,
-                    title = System.Web.HttpUtility.HtmlDecode((string)post.title.rendered),
+                    title = HttpUtility.HtmlDecode((string)post.title.rendered),
                     description = post.excerpt.rendered
                 };
                 news.Add(wn);
@@ -556,8 +599,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Filter or APIStatu</returns>
         private object BigSearch()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             string query = para.query.ToLowerInvariant();
@@ -587,10 +630,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 return search_filter;
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'query'");
-            }
+            return APIStatus.BadRequest("missing 'query'");
         }
 
         /// <summary>
@@ -599,8 +639,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Filter or APIStatu</returns>
         private object SearchStartsWith()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             string query = para.query.ToLowerInvariant();
@@ -630,7 +670,7 @@ namespace Shoko.Server.API.v2.Modules
                 return search_filter;
             }
 
-            return APIStatus.badRequest("missing 'query'");
+            return APIStatus.BadRequest("missing 'query'");
         }
 
         #endregion
@@ -659,7 +699,7 @@ namespace Shoko.Server.API.v2.Modules
             ShokoService.CmdProcessorHasher.Paused = true;
             ShokoService.CmdProcessorGeneral.Paused = true;
             ShokoService.CmdProcessorImages.Paused = true;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -671,7 +711,7 @@ namespace Shoko.Server.API.v2.Modules
             ShokoService.CmdProcessorHasher.Paused = false;
             ShokoService.CmdProcessorGeneral.Paused = false;
             ShokoService.CmdProcessorImages.Paused = false;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -729,7 +769,7 @@ namespace Shoko.Server.API.v2.Modules
         private object PauseHasherQueue()
         {
             ShokoService.CmdProcessorHasher.Paused = true;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -739,7 +779,7 @@ namespace Shoko.Server.API.v2.Modules
         private object PauseGeneralQueue()
         {
             ShokoService.CmdProcessorGeneral.Paused = true;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -749,7 +789,7 @@ namespace Shoko.Server.API.v2.Modules
         private object PauseImagesQueue()
         {
             ShokoService.CmdProcessorImages.Paused = true;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -759,7 +799,7 @@ namespace Shoko.Server.API.v2.Modules
         private object StartHasherQueue()
         {
             ShokoService.CmdProcessorHasher.Paused = false;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -769,7 +809,7 @@ namespace Shoko.Server.API.v2.Modules
         private object StartGeneralQueue()
         {
             ShokoService.CmdProcessorGeneral.Paused = false;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -779,7 +819,7 @@ namespace Shoko.Server.API.v2.Modules
         private object StartImagesQueue()
         {
             ShokoService.CmdProcessorImages.Paused = false;
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -802,11 +842,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 ShokoService.CmdProcessorHasher.Init();
 
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -830,11 +870,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 ShokoService.CmdProcessorGeneral.Init();
 
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -858,11 +898,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 ShokoService.CmdProcessorImages.Init();
 
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -876,8 +916,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<RawFile> or RawFile or APIStatus</returns>
         private object GetFile()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             return para.id == 0 
@@ -891,7 +931,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetMultipleFiles()
         {
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             int userID = user.JMMUserID;
@@ -959,8 +999,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<RawFile></returns>
         private object GetRecentFiles(int limit = 0, int level = 0)
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (limit == 0)
@@ -994,8 +1034,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<RawFile></returns>
         private List<RawFile> GetUnsort()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             List<RawFile> lst = new List<RawFile>();
@@ -1031,22 +1071,22 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object SetFileOffset()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             // allow to offset be 0 to reset position
             if (para.id == 0 || para.offset < 0)
             {
-                return APIStatus.badRequest("Invalid arguments");
+                return APIStatus.BadRequest("Invalid arguments");
             }
             SVR_VideoLocal vlu = RepoFactory.VideoLocal.GetByID(para.id);
             if (vlu != null)
             {
                 vlu.SetResumePosition(para.offset, user.JMMUserID);
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
-            return APIStatus.notFound404();
+            return APIStatus.NotFound();
         }
 
         #region internal function
@@ -1066,10 +1106,7 @@ namespace Shoko.Server.API.v2.Modules
                 RawFile rawfile = new RawFile(Context, vl, level, uid);
                 return rawfile;
             }
-            else
-            {
-                return APIStatus.notFound404();
-            }
+            return APIStatus.NotFound();
         }
 
         /// <summary>
@@ -1113,18 +1150,15 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Episode> or Episode</returns>
         private object GetEpisode()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
             {
                 return GetAllEpisodes(user.JMMUserID, para.limit, (int) para.offset, para.level, para.all != 0);
             }
-            else
-            {
-                return GetEpisodeById(para.id, user.JMMUserID, para.level);
-            }
+            return GetEpisodeById(para.id, user.JMMUserID, para.level);
         }
 
         /// <summary>
@@ -1133,20 +1167,17 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Episode or APIStatis</returns>
         private object GetEpisodeFromName()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
-            if (String.IsNullOrEmpty(para.filename)) return APIStatus.badRequest("missing 'filename'");
+            if (String.IsNullOrEmpty(para.filename)) return APIStatus.BadRequest("missing 'filename'");
 
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(para.filename);
             if (aep != null)
             {
                 return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0);
             }
-            else
-            {
-                return APIStatus.notFound404();
-            }
+            return APIStatus.NotFound();
         }
 
         /// <summary>
@@ -1155,8 +1186,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Episode></returns>
         private object GetRecentEpisodes()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -1189,17 +1220,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object MarkEpisodeAsWatched()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return MarkEpisode(true, para.id, user.JMMUserID);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1208,17 +1236,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object MarkEpisodeAsUnwatched()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return MarkEpisode(false, para.id, user.JMMUserID);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1227,8 +1252,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object VoteOnEpisode()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1237,15 +1262,9 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     return EpisodeVote(para.id, para.score, user.JMMUserID);
                 }
-                else
-                {
-                    return APIStatus.badRequest("missing 'score'");
-                }
+                return APIStatus.BadRequest("missing 'score'");
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1256,7 +1275,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                Request request = this.Request;
+                Request request = Request;
                 API_Call_Parameters para = this.Bind();
 
                 // statys 1-start, 2-pause, 3-stop
@@ -1277,21 +1296,18 @@ namespace Shoko.Server.API.v2.Modules
                     switch (impl.TraktScrobble(para.id, type, para.progress, para.status))
                     {
                         case 200:
-                            return APIStatus.statusOK();
+                            return APIStatus.OK();
                         case 404:
-                            return APIStatus.notFound404();
+                            return APIStatus.NotFound();
                         default:
-                            return APIStatus.internalError();
+                            return APIStatus.InternalError();
                     }
                 }
-                else
-                {
-                    return APIStatus.badRequest();
-                }
+                return APIStatus.BadRequest();
             }
             catch
             {
-                return APIStatus.internalError();
+                return APIStatus.InternalError();
             }
         }
 
@@ -1311,15 +1327,15 @@ namespace Shoko.Server.API.v2.Modules
                 SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (ep == null)
                 {
-                    return APIStatus.notFound404();
+                    return APIStatus.NotFound();
                 }
                 ep.ToggleWatchedStatus(status, true, DateTime.Now, false, false, uid, true);
                 ep.GetAnimeSeries()?.UpdateStats(true, false, true);
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch (Exception ex)
             {
-                return APIStatus.internalError(ex.Message);
+                return APIStatus.InternalError(ex.Message);
             }
         }
 
@@ -1377,20 +1393,11 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         return ep;
                     }
-                    else
-                    {
-                        return APIStatus.notFound404("episode not found");
-                    }
+                    return APIStatus.NotFound("episode not found");
                 }
-                else
-                {
-                    return APIStatus.notFound404();
-                }
+                return APIStatus.NotFound();
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1428,17 +1435,11 @@ namespace Shoko.Server.API.v2.Modules
                     //CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
                     //cmdVote.Save();
 
-                    return APIStatus.statusOK();
+                    return APIStatus.OK();
                 }
-                else
-                {
-                    return APIStatus.badRequest("'score' value is wrong");
-                }
+                return APIStatus.BadRequest("'score' value is wrong");
             }
-            else
-            {
-                return APIStatus.badRequest("'id' value is wrong");
-            }
+            return APIStatus.BadRequest("'id' value is wrong");
         }
 
         #endregion
@@ -1453,8 +1454,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or Serie</returns>
         private object GetSerie()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1462,10 +1463,7 @@ namespace Shoko.Server.API.v2.Modules
                 return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
                     para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
-            }
+            return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
         }
 
         /// <summary>
@@ -1474,8 +1472,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Counter</returns>
         private object CountSerie()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             Counter count = new Counter
             {
                 count = RepoFactory.AnimeSeries.GetAll().Count
@@ -1489,7 +1487,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or Serie</returns>
         private object SeriesToday()
         {
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             // 1. get series airing
@@ -1512,14 +1510,14 @@ namespace Shoko.Server.API.v2.Modules
                 return DateTime.Now.DayOfWeek == ser.AirsOn.Value;
             }).Select(ser => Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID, para.nocast == 1,
                 para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).OrderBy(a => a.name).ToList();
-            Group group = new Group()
+            Group group = new Group
             {
                 id = 0,
                 name = "Airing Today",
                 series = result,
                 size = result.Count,
                 summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
-                url = Request.Url,
+                url = Request.Url
             };
             return group;
         }
@@ -1530,8 +1528,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or APIStatus</returns>
         private object GetSeriesByFolderId()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1539,10 +1537,7 @@ namespace Shoko.Server.API.v2.Modules
                 return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
                     para.all != 0, para.limit, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return APIStatus.internalError("missing 'id'");
-            }
+            return APIStatus.InternalError("missing 'id'");
         }
 
         /// <summary>
@@ -1551,18 +1546,15 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<ObjectList> or APIStatus</returns>
         private object GetSeriesInfoByFolderId()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser)Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
             {
                 return GetSeriesInfoByFolder(para.id, user.JMMUserID, para.limit, para.tagfilter);
             }
-            else
-            {
-                return APIStatus.internalError("missing 'id'");
-            }
+            return APIStatus.InternalError("missing 'id'");
         }
 
         /// <summary>
@@ -1571,8 +1563,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie></returns>
         private object GetSeriesRecent()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             List<object> allseries = new List<object>();
@@ -1598,17 +1590,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object MarkSerieAsWatched()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return MarkSerieWatchStatus(para.id, true, user.JMMUserID);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1617,17 +1606,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object MarkSerieAsUnwatched()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return MarkSerieWatchStatus(para.id, false, user.JMMUserID);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1636,8 +1622,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object VoteOnSerie()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1646,15 +1632,9 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     return SerieVote(para.id, para.score, user.JMMUserID);
                 }
-                else
-                {
-                    return APIStatus.badRequest("missing 'score'");
-                }
+                return APIStatus.BadRequest("missing 'score'");
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -1663,8 +1643,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or APIStatus</returns>
         private object SearchForSerie()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -1677,10 +1657,7 @@ namespace Shoko.Server.API.v2.Modules
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
                     para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'query'");
-            }
+            return APIStatus.BadRequest("missing 'query'");
         }
 
         /// <summary>
@@ -1689,8 +1666,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or APIStatus</returns>
         private object SearchForTag()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -1704,10 +1681,7 @@ namespace Shoko.Server.API.v2.Modules
                     para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'query'");
-            }
+            return APIStatus.BadRequest("missing 'query'");
         }
 
         /// <summary>
@@ -1717,18 +1691,15 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Serie or APIStatus</returns>
         private object GetSeriesFromEpisode()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
                     para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         #region internal function
@@ -1842,10 +1813,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return Serie.GenerateFromAnimeSeries(Context, aep.GetAnimeSeries(), uid, nocast, notag, level, all, allpic, pic, tagfilter);
             }
-            else
-            {
-                return APIStatus.notFound404("serie not found");
-            }
+            return APIStatus.NotFound("serie not found");
         }
 
         /// <summary>
@@ -1857,8 +1825,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie></returns>
         internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
 
             List<Serie> allseries = new List<Serie>();
 
@@ -1892,8 +1860,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             Serie ser = Serie.GenerateFromAnimeSeries(Context, RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
                 nocast, notag, level, all, allpic, pic, tagfilter);
             return ser;
@@ -1911,7 +1879,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
-                if (ser == null) return APIStatus.badRequest("Series not Found");
+                if (ser == null) return APIStatus.BadRequest("Series not Found");
 
                 foreach (SVR_AnimeEpisode ep in ser.GetAnimeEpisodes())
                 {
@@ -1934,11 +1902,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 ser.UpdateStats(true, true, true);
 
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch (Exception ex)
             {
-                return APIStatus.internalError(ex.Message);
+                return APIStatus.InternalError(ex.Message);
             }
         }
 
@@ -1992,7 +1960,7 @@ namespace Shoko.Server.API.v2.Modules
                 if (string.IsNullOrEmpty(title)) continue;
                 int k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
                 if (query.Length <= 4 || title.Length <= 4) k = 0;
-                if (Shoko.Commons.Utils.Misc.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
+                if (Misc.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
                 if (newDist < dist)
                 {
                     match = title;
@@ -2027,7 +1995,7 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     if (string.IsNullOrEmpty(tag)) continue;
                     int k = Math.Min((int)(tag.Length / 6D), (int)(query.Length / 6D));
-                    if (Shoko.Commons.Utils.Misc.BitapFuzzySearch(tag, query, k, out int newDist) == -1) continue;
+                    if (Misc.BitapFuzzySearch(tag, query, k, out int newDist) == -1) continue;
                     if (newDist < dist)
                     {
                         match = tag;
@@ -2050,7 +2018,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (string.IsNullOrEmpty(customTag)) continue;
                 int k = Math.Min((int)(customTag.Length / 6D), (int)(query.Length / 6D));
-                if (Shoko.Commons.Utils.Misc.BitapFuzzySearch(customTag, query, k, out int newDist) == -1) continue;
+                if (Misc.BitapFuzzySearch(customTag, query, k, out int newDist) == -1) continue;
                 if (newDist < dist)
                 {
                     match = customTag;
@@ -2085,7 +2053,7 @@ namespace Shoko.Server.API.v2.Modules
             query = query.ToLowerInvariant();
 
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
-            if (user == null) return APIStatus.unauthorized();
+            if (user == null) return APIStatus.Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
             Dictionary<SVR_AnimeSeries, string> series = new Dictionary<SVR_AnimeSeries, string>();
@@ -2325,7 +2293,7 @@ namespace Shoko.Server.API.v2.Modules
             query = query.ToLowerInvariant();
 
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
-            if (user == null) return APIStatus.unauthorized();
+            if (user == null) return APIStatus.Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
             Dictionary<SVR_AnimeSeries, string> series = new Dictionary<SVR_AnimeSeries, string>();
@@ -2367,16 +2335,16 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (id <= 0)
             {
-                return APIStatus.badRequest("'id' value is wrong");
+                return APIStatus.BadRequest("'id' value is wrong");
             }
 
             if (score <= 0 || score > 1000)
             {
-                return APIStatus.badRequest("'score' value is wrong");
+                return APIStatus.BadRequest("'score' value is wrong");
             }
 
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
-            if (ser == null) return APIStatus.badRequest($"Series with id {id} was not found");
+            if (ser == null) return APIStatus.BadRequest($"Series with id {id} was not found");
             int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
                 ? (int) AniDBVoteType.Anime
                 : (int) AniDBVoteType.AnimeTemp;
@@ -2403,10 +2371,10 @@ namespace Shoko.Server.API.v2.Modules
 
             RepoFactory.AniDB_Vote.Save(thisVote);
 
-            Commands.CommandRequest_VoteAnime cmdVote =
-                new Commands.CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
+            CommandRequest_VoteAnime cmdVote =
+                new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
             cmdVote.Save();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -2418,31 +2386,31 @@ namespace Shoko.Server.API.v2.Modules
         private object GetCloudAccounts()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object GetCloudAccountsCount()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object AddCloudAccount()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object DeleteCloudAccount()
         {
             // TODO APIv2: Cloud
-            return APIStatus.notImplemented();
+            return APIStatus.NotImplemented();
         }
 
         private object RunCloudImport()
         {
             ShokoServer.RunImport();
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
 
         #endregion
@@ -2456,19 +2424,16 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Filter or List<Filter></returns>
         private object GetFilters()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
             {
                 return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
-                ;
-            }
+            return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
+            ;
         }
 
         #region internal function
@@ -2512,13 +2477,13 @@ namespace Shoko.Server.API.v2.Modules
                     url = APIHelper.ConstructUnsortUrl(Context),
                     name = "Unsort"
                 };
-                filter.art.fanart.Add(new Art()
+                filter.art.fanart.Add(new Art
                 {
                     url = APIHelper.ConstructSupportImageLink(Context, "plex_unsort.png"),
                     index = 0
                 });
                 filter.art.thumb.Add(
-                    new Art() {url = APIHelper.ConstructSupportImageLink(Context, "plex_unsort.png"), index = 0});
+                    new Art {url = APIHelper.ConstructSupportImageLink(Context, "plex_unsort.png"), index = 0});
                 filter.size = vids.Count;
                 filter.viewed = 0;
 
@@ -2568,19 +2533,16 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Group or List<Group> or APIStatus</returns>
         public object GetGroups()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
             {
                 return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            else
-            {
-                return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
-                    para.filter, para.allpics != 0, para.pic, para.tagfilter);
-            }
+            return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+                para.filter, para.allpics != 0, para.pic, para.tagfilter);
         }
 
         /// <summary>
@@ -2589,17 +2551,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object MarkGroupAsWatched()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return MarkWatchedStatusOnGroup(para.id, user.JMMUserID, true);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         /// <summary>
@@ -2608,17 +2567,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object MarkGroupAsUnwatched()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
                 return MarkWatchedStatusOnGroup(para.id, user.JMMUserID, false);
             }
-            else
-            {
-                return APIStatus.badRequest("missing 'id'");
-            }
+            return APIStatus.BadRequest("missing 'id'");
         }
 
         #region internal function
@@ -2638,7 +2594,7 @@ namespace Shoko.Server.API.v2.Modules
             List<SVR_AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
             foreach (SVR_AnimeGroup_User gr in allGrps)
             {
-                SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
+                SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
                 Group grp = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, 0, allpics, pic, tagfilter);
                 grps.Add(grp);
             }
@@ -2658,16 +2614,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Group or APIStatus</returns>
         internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics, int pic, byte tagfilter)
         {
-            SVR_AnimeGroup ag = Repositories.RepoFactory.AnimeGroup.GetByID(id);
+            SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(id);
             if (ag != null)
             {
                 Group gr = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, filterid, allpics, pic, tagfilter);
                 return gr;
             }
-            else
-            {
-                return APIStatus.notFound404("group not found");
-            }
+            return APIStatus.NotFound("group not found");
         }
 
         /// <summary>
@@ -2684,7 +2637,7 @@ namespace Shoko.Server.API.v2.Modules
                 SVR_AnimeGroup group = RepoFactory.AnimeGroup.GetByID(groupid);
                 if (group == null)
                 {
-                    return APIStatus.notFound404("Group not Found");
+                    return APIStatus.NotFound("Group not Found");
                 }
 
                 foreach (SVR_AnimeSeries series in group.GetAllSeries())
@@ -2700,14 +2653,14 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
 
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             }
             catch (Exception ex)
             {
-                APIStatus.internalError("Internal Error : " + ex);
+                APIStatus.InternalError("Internal Error : " + ex);
                 LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
             }
-            return APIStatus.badRequest();
+            return APIStatus.BadRequest();
         }
 
         #endregion
@@ -2716,8 +2669,8 @@ namespace Shoko.Server.API.v2.Modules
 
         public object GetLinks()
         {
-            Request request = this.Request;
-            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            Request request = Request;
+            JMMUser user = (JMMUser)Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
             Dictionary<string, object> links = new Dictionary<string, object>();
