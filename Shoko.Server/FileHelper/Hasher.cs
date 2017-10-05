@@ -130,7 +130,7 @@ namespace Shoko.Server.FileHelper
                 int rval = -1;
                 try
                 {
-                    string filename = strPath.StartsWith(@"\\") ? strPath : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
+                    string filename = strPath.StartsWith(@"\\") && !Utils.IsLinux ? strPath : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
 
                     (string e2Dk, string crc32, string md5, string sha1) = NativeHasher.GetHash(filename);
                     rhash.ED2K = e2Dk;
