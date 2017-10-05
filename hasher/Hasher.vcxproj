@@ -132,13 +132,13 @@
     </ResourceCompile>
     <PreLinkEvent>
       <Message>build assemblies</Message>
-      <Command>ml.exe md4_asm.asm /c /Cx /coff &amp;&amp; ^
-ml.exe md5_asm.asm /c /Cx /coff &amp;&amp; ^
-ml.exe sha_asm.asm /c /Cx /coff &amp;&amp; ^
+      <Command>ml.exe md4x86.asm /c /Cx /coff &amp;&amp; ^
+ml.exe md5x86.asm /c /Cx /coff &amp;&amp; ^
+ml.exe sha1x86.asm /c /Cx /coff &amp;&amp; ^
 ml.exe crc32x86.asm /c /Cx /coff</Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>MD4_asm.obj;MD5_asm.obj;SHA_asm.obj;crc32x86.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>MD4x86.obj;MD5x86.obj;SHA1x86.obj;crc32x86.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Debug\hasher.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -171,7 +171,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;HASHER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;HASHLIB_USE_ASM;HASHER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -189,7 +189,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
       <Culture>0x0813</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>crc32x64.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>crc32x64.obj;MD5x64.obj;MD4x64.obj;sha1x64.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Debug_x64\hasher.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -209,7 +209,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
       </Command>
     </PostBuildEvent>
     <PreLinkEvent>
-      <Command>ml64.exe crc32x64.asm /c /nologo  /W3 /Zi</Command>
+      <Command>ml64.exe crc32x64.asm /c /nologo  /W3 /Zi &amp;&amp; ^ml64.exe MD5x64.asm /c /nologo /W3 /Zi &amp;&amp; ^ml64.exe MD4x64.asm /c /nologo /W3 /Zi &amp;&amp; ^ml64.exe sha1x64.asm /c /nologo /W3 /Zi</Command>
     </PreLinkEvent>
     <PreLinkEvent>
       <Message>build assemblies</Message>
@@ -249,13 +249,13 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
     </ResourceCompile>
     <PreLinkEvent>
       <Message>build assemblies</Message>
-      <Command>ml.exe md4_asm.asm /c /Cx /coff &amp;&amp; ^
-ml.exe md5_asm.asm /c /Cx /coff &amp;&amp; ^
-ml.exe sha_asm.asm /c /Cx /coff &amp;&amp; ^
+      <Command>ml.exe md4x86.asm /c /Cx /coff &amp;&amp; ^
+ml.exe md5x86.asm /c /Cx /coff &amp;&amp; ^
+ml.exe sha1x86.asm /c /Cx /coff &amp;&amp; ^
 ml.exe crc32x86.asm /c /Cx /coff</Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>MD4_asm.obj;MD5_asm.obj;SHA_asm.obj;crc32x86.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>MD4x86.obj;MD5x86.obj;SHA1x86.obj;crc32x86.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Release\hasher.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/hasher.pdb</ProgramDatabaseFile>
@@ -286,7 +286,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
     <ClCompile>
       <Optimization>Full</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;x64;_USRDLL;HASHER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;x64;_USRDLL;HASHER_EXPORTS;HASHLIB_USE_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -306,7 +306,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
       <Culture>0x0813</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>crc32x64.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>crc32x64.obj;MD5x64.obj;MD4x64.obj;sha1x64.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Release_x64\hasher.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release_x64/hasher.pdb</ProgramDatabaseFile>
@@ -325,7 +325,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
       </Command>
     </PostBuildEvent>
     <PreLinkEvent>
-      <Command>ml64.exe crc32x64.asm /c /nologo  /W3 /Zi</Command>
+      <Command>ml64.exe crc32x64.asm /c /nologo  /W3 /Zi &amp;&amp; ^ml64.exe MD5x64.asm /c /nologo /W3 /Zi &amp;&amp; ^ml64.exe MD4x64.asm /c /nologo /W3 /Zi &amp;&amp; ^ml64.exe sha1x64.asm /c /nologo /W3 /Zi</Command>
     </PreLinkEvent>
     <PreLinkEvent>
       <Message>build assemblies</Message>
@@ -336,14 +336,14 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
     <ClCompile Include="hash_md5.cpp" />
     <ClCompile Include="hash_sha.cpp" />
     <ClCompile Include="hasher.cpp" />
-    <ClCompile Include="md4.cpp">
+    <ClCompile Include="MD4.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="MD5.cpp" />
-    <ClCompile Include="SHA.cpp" />
+    <ClCompile Include="SHA1.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -367,9 +367,12 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
   <ItemGroup>
     <None Include="crc32x86.asm" />
     <None Include="crc32x64.asm" />
-    <None Include="MD4_asm.asm" />
-    <None Include="MD5_asm.asm" />
-    <None Include="SHA_asm.asm" />
+    <None Include="MD4x86.asm" />
+    <None Include="MD4x64.asm" />
+    <None Include="MD5x86.asm" />
+    <None Include="MD5x64.asm" />
+    <None Include="SHA1x64.asm" />
+    <None Include="SHA1x86.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

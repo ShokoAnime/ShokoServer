@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#ifdef _WIN64
+#ifdef _WIN64 || __x86_64__
 extern "C" void __fastcall crcCalc(DWORD *pdwCrc32, DWORD *ptrCrc32Table, BYTE *bufferAsm, DWORD dwBytesReadAsm);
 #else
 extern "C" void crcCalc(DWORD *pdwCrc32, DWORD *ptrCrc32Table, BYTE *bufferAsm, DWORD dwBytesReadAsm);

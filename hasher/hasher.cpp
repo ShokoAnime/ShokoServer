@@ -299,6 +299,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 		iReaderPos++;
 		iPos += dwBytesRead;
 
+	
 		//report progress
 		int nProgress = (int)(iPos / (float)statFile.st_size * 100);
 		if (pHashProgress && nLastProgress != nProgress)
