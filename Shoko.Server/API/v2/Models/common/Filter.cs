@@ -62,28 +62,35 @@ namespace Shoko.Server.API.v2.Models.common
                     if (arts.Count == 0)
                         arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup).ToList();
                     if (arts.Count == 0)
-                        arts = groupsList.Select(GetAnimeContractFromGroup).ToList();
+                        arts = groupsList.Where(a => (a.Anime?.Count ?? 0) > 0).Select(GetAnimeContractFromGroup)
+                            .ToList();
 
                     if (arts.Count > 0)
                     {
                         Random rand = new Random();
                         var anime = arts[rand.Next(arts.Count)];
 
-                        var fanart = anime.Fanarts[rand.Next(anime.Fanarts.Count)];
-                        filter.art.fanart.Add(new Art()
+                        if (anime.Fanarts?.Count > 0)
                         {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType,
-                                fanart.AniDB_Anime_DefaultImageID)
-                        });
+                            var fanart = anime.Fanarts[rand.Next(anime.Fanarts.Count)];
+                            filter.art.fanart.Add(new Art
+                            {
+                                index = 0,
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType,
+                                    fanart.AniDB_Anime_DefaultImageID)
+                            });
+                        }
 
-                        var banner = anime.Banners[rand.Next(anime.Banners.Count)];
-                        filter.art.banner.Add(new Art()
+                        if (anime.Banners?.Count > 0)
                         {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType,
-                                banner.AniDB_Anime_DefaultImageID)
-                        });
+                            var banner = anime.Banners[rand.Next(anime.Banners.Count)];
+                            filter.art.banner.Add(new Art()
+                            {
+                                index = 0,
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType,
+                                    banner.AniDB_Anime_DefaultImageID)
+                            });
+                        }
 
                         filter.art.thumb.Add(new Art()
                         {
