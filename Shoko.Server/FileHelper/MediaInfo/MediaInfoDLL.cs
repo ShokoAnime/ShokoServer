@@ -77,6 +77,8 @@ namespace MediaInfoLib
 
     public class MediaInfo : IDisposable
     {
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         #region SHOKO
 
         [Flags]
@@ -210,11 +212,12 @@ namespace MediaInfoLib
             {
                 Handle = MediaInfo_New();
             }
-            catch
+            catch (Exception ex)
             {
+                logger.Error($"Unable to initialize MediaInfo: {ex}");
                 Handle = (IntPtr) 0;
             }
-            if (Environment.OSVersion.ToString().IndexOf("Windows") == -1)
+            if (Environment.OSVersion.ToString().IndexOf("Windows", StringComparison.OrdinalIgnoreCase) == -1)
                 MustUseAnsi = true;
             else
                 MustUseAnsi = false;
