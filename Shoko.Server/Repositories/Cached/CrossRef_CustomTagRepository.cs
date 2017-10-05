@@ -43,47 +43,28 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
-            return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
-
-            /*
-            var tags = session
-                .CreateCriteria(typeof(CrossRef_CustomTag))
-                .Add(Restrictions.Eq("CrossRefID", id))
-                .Add(Restrictions.Eq("CrossRefType", (int) CustomTagCrossRefType.Anime))
-                .List<CrossRef_CustomTag>();
-
-            return new List<CrossRef_CustomTag>(tags);*/
+            lock (Cache)
+            {
+                return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
+            }
         }
 
 
         public List<CrossRef_CustomTag> GetByCustomTagID(int id)
         {
-            return Tags.GetMultiple(id);
-            /*
-            var tags = session
-                .CreateCriteria(typeof(CrossRef_CustomTag))
-                .Add(Restrictions.Eq("CustomTagID", id))
-                .List<CrossRef_CustomTag>();
-
-            return new List<CrossRef_CustomTag>(tags);*/
+            lock (Cache)
+            {
+                return Tags.GetMultiple(id);
+            }
         }
 
 
         public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
         {
-            return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (Cache)
             {
-                var tags = session
-                    .CreateCriteria(typeof(CrossRef_CustomTag))
-                    .Add(Restrictions.Eq("CustomTagID", customTagID))
-                    .Add(Restrictions.Eq("CrossRefType", crossRefType))
-                    .Add(Restrictions.Eq("CrossRefID", crossRefID))
-                    .List<CrossRef_CustomTag>();
-
-                return new List<CrossRef_CustomTag>(tags);
-            }*/
+                return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
+            }
         }
     }
 }

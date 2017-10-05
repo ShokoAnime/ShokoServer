@@ -6,8 +6,6 @@ namespace Shoko.Server.API.v2.Modules
 {
     public class Dev : Nancy.NancyModule
     {
-        public static int version = 1;
-
         public Dev() : base("/api/dev")
         {
 #if DEBUG

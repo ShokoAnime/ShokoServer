@@ -60,22 +60,13 @@ namespace Shoko.Server.Repositories.Cached
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
-                {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
                         Commons.Properties.Resources.Database_Cache, typeof(AnimeEpisode_User).Name,
                         " DbRegen - " + cnt + "/" + max);
-                }
             }
             ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
                 typeof(AnimeEpisode_User).Name,
                 " DbRegen - " + max + "/" + max);
-        }
-
-
-        public override void Save(IReadOnlyCollection<SVR_AnimeEpisode_User> objs)
-        {
-            foreach (SVR_AnimeEpisode_User e in objs)
-                Save(e);
         }
 
         public override void Save(SVR_AnimeEpisode_User obj)
@@ -83,9 +74,7 @@ namespace Shoko.Server.Repositories.Cached
             lock (obj)
             {
                 if (obj.AnimeEpisode_UserID == 0)
-                {
                     base.Save(obj);
-                }
                 UpdateContract(obj);
                 base.Save(obj);
             }
@@ -96,9 +85,7 @@ namespace Shoko.Server.Repositories.Cached
             lock (obj)
             {
                 if (obj.AnimeEpisode_UserID == 0)
-                {
                     base.SaveWithOpenTransaction(session, obj);
-                }
                 UpdateContract(obj);
                 base.SaveWithOpenTransaction(session, obj);
             }
@@ -106,53 +93,68 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
         {
-            return Series.GetMultiple(seriesid);
+            lock (Cache)
+            {
+                return Series.GetMultiple(seriesid);
+            }
         }
 
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            return UsersEpisodes.GetOne(userid, epid);
+            lock (Cache)
+            {
+                return UsersEpisodes.GetOne(userid, epid);
+            }
         }
 
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            return Users.GetMultiple(userid);
+            lock (Cache)
+            {
+                return Users.GetMultiple(userid);
+            }
         }
 
         public List<SVR_AnimeEpisode_User> GetMostRecentlyWatched(int userid, int maxresults = 100)
         {
-            return
-                GetByUserID(userid)
-                    .Where(a => a.WatchedCount > 0)
-                    .OrderByDescending(a => a.WatchedDate)
-                    .Take(maxresults)
-                    .ToList();
+            return GetByUserID(userid).Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
+                .Take(maxresults).ToList();
         }
 
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisode()
         {
-            return Cache.Values.Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate).FirstOrDefault();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
+                    .FirstOrDefault();
+            }
         }
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
         {
-            return
-                UsersSeries.GetMultiple(userid, seriesid)
-                    .Where(a => a.WatchedCount > 0)
-                    .OrderByDescending(a => a.WatchedDate)
-                    .FirstOrDefault();
+            lock (Cache)
+            {
+                return UsersSeries.GetMultiple(userid, seriesid).Where(a => a.WatchedCount > 0)
+                    .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
+            }
         }
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            return Episodes.GetMultiple(epid);
+            lock (Cache)
+            {
+                return Episodes.GetMultiple(epid);
+            }
         }
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            return UsersSeries.GetMultiple(userid, seriesid);
+            lock (Cache)
+            {
+                return UsersSeries.GetMultiple(userid, seriesid);
+            }
         }
 
 

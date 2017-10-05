@@ -127,13 +127,7 @@ namespace Shoko.Server.Commands
                             }
                         }
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                        if (anime != null)
-                        {
-                            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                            {
-                                RepoFactory.AniDB_Anime.Save(anime);
-                            }
-                        }
+                        if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
                         SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(false, true, true);
 //                  StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);

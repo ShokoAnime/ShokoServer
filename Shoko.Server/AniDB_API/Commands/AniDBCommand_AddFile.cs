@@ -11,6 +11,7 @@ namespace AniDBAPI.Commands
         public IHash FileData = null;
         public bool ReturnIsWatched = false;
         public DateTime? WatchedDate = null;
+        public AniDBFile_State? State = null;
 
         public string GetKey()
         {
@@ -46,13 +47,23 @@ namespace AniDBAPI.Commands
                     if (arrResult.Length >= 2)
                     {
                         string[] arrStatus = arrResult[1].Split('|');
+                        int state = int.Parse(arrStatus[6]);
+                        State = (AniDBFile_State) state;
+
                         int viewdate = int.Parse(arrStatus[7]);
                         ReturnIsWatched = viewdate > 0;
 
-                        DateTime utcDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                        utcDate = utcDate.AddSeconds(viewdate);
+                        if (ReturnIsWatched)
+                        {
+                            DateTime utcDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                            utcDate = utcDate.AddSeconds(viewdate);
 
-                        WatchedDate = utcDate.ToLocalTime();
+                            WatchedDate = utcDate.ToLocalTime();
+                        }
+                        else
+                        {
+                            WatchedDate = null;
+                        }
                     }
                 }
                     return enHelperActivityType.FileAlreadyExists;

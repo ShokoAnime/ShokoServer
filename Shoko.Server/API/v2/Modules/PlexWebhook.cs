@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
             }
 
-            return APIStatus.statusOK();
+            return APIStatus.OK();
         }
         #region Plex events
 
@@ -218,21 +218,21 @@ namespace Shoko.Server.API.v2.Modules
             Get["/sync", true] = async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             });
             Get["/sync/all", true] = async (x, ct) => await Task.Factory.StartNew(() =>
             {
-                if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.adminNeeded();
+                if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
                 ShokoServer.Instance.SyncPlex();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             });
 
             Get["/sync/{id}", true] = async (x, ct) => await Task.Factory.StartNew(() =>
             {
-                if (((JMMUser)this.Context.CurrentUser).IsAdmin != 1) return APIStatus.adminNeeded();
+                if (((JMMUser)this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
                 JMMUser user = RepoFactory.JMMUser.GetByID(x.id);
                 ShokoServer.Instance.SyncPlex();
-                return APIStatus.statusOK();
+                return APIStatus.OK();
             });
 #if DEBUG
             Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id)));

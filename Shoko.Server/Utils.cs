@@ -10,6 +10,10 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
+
+using System.Threading;
+using Shoko.Models.Server;
+
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
@@ -39,6 +43,8 @@ namespace Shoko.Server
 
         public static bool GrantAccess(string path)
         {
+            if (IsLinux) return true; //TODO: Implement properly, but as linux uses $HOME for the path, we should be fine.
+
             if (Directory.Exists(path))
             {
                 List<string> perms = Misc.RecursiveGetDirectoriesWithoutEveryonePermission(path);
@@ -69,7 +75,7 @@ namespace Shoko.Server
             }
             return true;
         }
-
+  
         public static string CalculateSHA1(string text, Encoding enc)
         {
             byte[] buffer = enc.GetBytes(text);
@@ -365,7 +371,7 @@ namespace Shoko.Server
             public string Message { get; internal set; }
 
             public string Title { get; internal set; }
-
+            
             public bool IsError { get; internal set; }=true;
         }
 
@@ -380,6 +386,7 @@ namespace Shoko.Server
             public string Reason { get; }
             public string FormTitle { get; }
         }
+        
         public static event EventHandler<ErrorEventArgs> ErrorMessage;
         public static event EventHandler<CancelReasonEventArgs> YesNoRequired;
 
@@ -391,7 +398,7 @@ namespace Shoko.Server
 
         public static void DoEvents()
         {
-
+  
             OnEvents?.Invoke(null,null);
         }
 
@@ -424,22 +431,24 @@ namespace Shoko.Server
             ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg });
             logger.Error(msg);
         }
+
         public static void ShowErrorMessage(string title, string msg)
         {
             //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg , Title=title });
             logger.Error(msg);
         }
+
         public static void ShowMessage(string title, string msg)
         {
             //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg, Title = title, IsError=false});
             logger.Error(msg);
         }
+        
         public static string GetApplicationVersion(Assembly a)
         {
-            AssemblyName an = a.GetName();
-            return an.Version.ToString();
+            return a.GetName().Version.ToString();
         }
 
         public static string GetApplicationExtraVersion(Assembly a)
@@ -452,6 +461,16 @@ namespace Shoko.Server
                 return string.Empty;
             }
             return version.InformationalVersion;
+        }
+
+        public static string GetApplicationVersion()
+        {
+            return GetApplicationVersion(Assembly.GetExecutingAssembly());
+        }
+
+        public static string GetApplicationExtraVersion()
+        {
+            return GetApplicationExtraVersion(Assembly.GetExecutingAssembly());
         }
 
         public static long GetCurrentUTCTime()
@@ -569,7 +588,7 @@ namespace Shoko.Server
 
             if (t.Hours > 0)
                 return $"{t.Hours}:{t.Minutes.ToString().PadLeft(2, '0')}:{t.Seconds.ToString().PadLeft(2, '0')}";
-            return $"{t.Minutes}:{t.Seconds.ToString().PadLeft(2, '0')}";
+                return $"{t.Minutes}:{t.Seconds.ToString().PadLeft(2, '0')}";
         }
 
         public static string FormatAniDBRating(double rat)
@@ -584,7 +603,7 @@ namespace Shoko.Server
         {
             if (string.IsNullOrEmpty(sint))
                 return null;
-            return int.Parse(sint);
+                return int.Parse(sint);
         }
 
         public static string RemoveInvalidFolderNameCharacters(string folderName)
@@ -615,9 +634,9 @@ namespace Shoko.Server
             ret = ret.Replace(@"<", @"‹");
             ret = ret.Replace(@"?", @"﹖");
             ret = ret.Replace(@"...", @"…");
-            if (ret.StartsWith(".")) ret = "․" + ret.Substring(1, ret.Length - 1);
-            while (ret.EndsWith("."))
-                ret = ret.Substring(0, ret.Length - 1) + '․';
+            if (ret.StartsWith(".", StringComparison.Ordinal)) ret = "․" + ret.Substring(1, ret.Length - 1);
+            if (ret.EndsWith(".", StringComparison.Ordinal))
+                ret = ret.Substring(0, ret.Length - 1) + "․";
             return ret.Trim();
         }
 
@@ -729,19 +748,19 @@ namespace Shoko.Server
 
         public static string GetMd5Hash(MD5 md5Hash, string input)
         {
-            // Convert the input string to a byte array and compute the hash.
+            // Convert the input string to a byte array and compute the hash. 
             byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
 
-            // Create a new Stringbuilder to collect the bytes
+            // Create a new Stringbuilder to collect the bytes 
             // and create a string.
             StringBuilder sBuilder = new StringBuilder();
 
-            // Loop through each byte of the hashed data
-            // and format each one as a hexadecimal string.
+            // Loop through each byte of the hashed data  
+            // and format each one as a hexadecimal string. 
             for (int i = 0; i < data.Length; i++)
                 sBuilder.Append(data[i].ToString("x2"));
 
-            // Return the hexadecimal string.
+            // Return the hexadecimal string. 
             return sBuilder.ToString();
         }
 
@@ -780,9 +799,61 @@ namespace Shoko.Server
 
         public static string FormatByteSize(long fileSize)
         {
+            if (IsRunningOnMono()) return GetBytesReadable(fileSize);
+
             StringBuilder sbBuffer = new StringBuilder(20);
             StrFormatByteSize(fileSize, sbBuffer, 20);
             return sbBuffer.ToString();
+        }
+
+        // Returns the human-readable file size for an arbitrary, 64-bit file size 
+        // The default format is "0.### XB", e.g. "4.2 KB" or "1.434 GB"
+        // http://www.somacon.com/p576.php
+        public static string GetBytesReadable(long i)
+        {
+            // Get absolute value
+            long absolute_i = (i < 0 ? -i : i);
+            // Determine the suffix and readable value
+            string suffix;
+            double readable;
+            if (absolute_i >= 0x1000000000000000) // Exabyte
+            {
+                suffix = "EB";
+                readable = (i >> 50);
+            }
+            else if (absolute_i >= 0x4000000000000) // Petabyte
+            {
+                suffix = "PB";
+                readable = (i >> 40);
+            }
+            else if (absolute_i >= 0x10000000000) // Terabyte
+            {
+                suffix = "TB";
+                readable = (i >> 30);
+            }
+            else if (absolute_i >= 0x40000000) // Gigabyte
+            {
+                suffix = "GB";
+                readable = (i >> 20);
+            }
+            else if (absolute_i >= 0x100000) // Megabyte
+            {
+                suffix = "MB";
+                readable = (i >> 10);
+            }
+            else if (absolute_i >= 0x400) // Kilobyte
+            {
+                suffix = "KB";
+                readable = i;
+            }
+            else
+            {
+                return i.ToString("0 B"); // Byte
+            }
+            // Divide by 1024 to get fractional value
+            readable = (readable / 1024);
+            // Return formatted number with suffix
+            return readable.ToString("0.### ") + suffix;
         }
 
         #endregion
@@ -971,6 +1042,8 @@ namespace Shoko.Server
 
         public static void RestartAsAdmin()
         {
+            if (Utils.IsRunningOnMono()) return; //Again, mono cannot handle this.
+
             string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "RestartAsAdmin.bat");
             var exeName = Process.GetCurrentProcess().MainModule.FileName;
 
@@ -1001,7 +1074,7 @@ namespace Shoko.Server
                 }
 
                 proc.Start();
-                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
+                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());         
                 Environment.Exit(0);
             }
             catch (Exception ex)
@@ -1023,7 +1096,7 @@ namespace Shoko.Server
             {
                 if (throwIfFails)
                     throw;
-                return false;
+                    return false;
             }
         }
 

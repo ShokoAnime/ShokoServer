@@ -34,9 +34,7 @@ namespace Shoko.Server
         private static bool migrationError;
         private static bool migrationActive;
 
-        public static string Get(string key) => appSettings.ContainsKey(key)
-            ? appSettings[key]
-            : null;
+        public static string Get(string key) => appSettings.ContainsKey(key) ? appSettings[key] : null;
 
         public static bool Set(string key, string value)
         {
@@ -58,8 +56,19 @@ namespace Shoko.Server
         public static string DefaultInstance { get; set; } =
             Assembly.GetEntryAssembly().GetName().Name;
 
-        public static string ApplicationPath => Path.Combine(
+        public static string ApplicationPath
+        {
+            get
+            {
+                if (Utils.IsRunningOnMono())
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        ".shoko",
+                        DefaultInstance);
+
+                return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
+            }
+        }
 
         public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
 
@@ -140,11 +149,15 @@ namespace Shoko.Server
                         }
                     }
                     // Check and see if we have old JMMServer installation and add to migration if needed
-                    string jmmServerInstallLocation =
-                        (string)
+                    string jmmServerInstallLocation = null;
+                    if (!Utils.IsRunningOnMono())
+                    {
+                        jmmServerInstallLocation = (string)
                         Registry.GetValue(
                             @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
                             "InstallLocation", null);
+                    }
+
 
                     if (!string.IsNullOrEmpty(jmmServerInstallLocation))
                     {
@@ -381,7 +394,7 @@ namespace Shoko.Server
                     SaveSettings();
 
                     // Just in case start once for new configurations as admin to set permissions if needed
-                    if (startedWithFreshConfig && !Utils.IsAdministrator())
+                    if (startedWithFreshConfig && !Utils.IsAdministrator() && !Utils.IsRunningOnMono())
                     {
                         logger.Info("User has fresh config, restarting once as admin.");
                         Utils.RestartAsAdmin();
@@ -450,7 +463,8 @@ namespace Shoko.Server
                 if (locateAutomatically)
                 {
                     // First try to locate it from old JMM Server installer entry
-                    string jmmServerInstallLocation = (string) Registry.GetValue(
+                    string jmmServerInstallLocation = null;
+                    if (!Utils.IsRunningOnMono()) jmmServerInstallLocation = (string) Registry.GetValue(
                         @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
                         "InstallLocation", null);
 
@@ -529,6 +543,7 @@ namespace Shoko.Server
                 var col = ConfigurationManager.AppSettings;
                 appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
                 logger.Error($"Error occured during LoadSettingsManuallyFromFile: {ex.Message}");
+                logger.Fatal(ex.StackTrace);
             }
         }
 
@@ -859,6 +874,9 @@ namespace Shoko.Server
         #endregion
 
         #region Database
+
+        public static string DefaultUserUsername { get; set; } = Commons.Properties.Resources.Users_Default;
+        public static string DefaultUserPassword { get; set; } = string.Empty;
 
         public static string DatabaseType
         {
@@ -1779,39 +1797,6 @@ namespace Shoko.Server
             set => Set("Trakt_SyncFrequency", ((int) value).ToString());
         }
 
-        public static bool Trakt_DownloadFanart
-        {
-            get
-            {
-                if (!bool.TryParse(Get("Trakt_DownloadFanart"), out bool val))
-                    val = true; // default
-                return val;
-            }
-            set => Set("Trakt_DownloadFanart", value.ToString());
-        }
-
-        public static bool Trakt_DownloadPosters
-        {
-            get
-            {
-                if (!bool.TryParse(Get("Trakt_DownloadPosters"), out bool val))
-                    val = true; // default
-                return val;
-            }
-            set => Set("Trakt_DownloadPosters", value.ToString());
-        }
-
-        public static bool Trakt_DownloadEpisodes
-        {
-            get
-            {
-                if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out bool val))
-                    val = true; // default
-                return val;
-            }
-            set => Set("Trakt_DownloadEpisodes", value.ToString());
-        }
-
         #endregion
 
         #region MAL
@@ -1915,6 +1900,32 @@ namespace Shoko.Server
         }
 
         #endregion
+
+        public static int Linux_UID
+        {
+            get
+            {
+                if (!Int32.TryParse(Get(nameof(Linux_UID)), out int val)) return -1;
+                return val;
+            }
+            set { Set(nameof(Linux_UID), value.ToString()); }
+        }
+
+        public static int Linux_GID
+        {
+            get
+            {
+                if (!Int32.TryParse(Get(nameof(Linux_GID)), out int val)) return -1;
+                return val;
+            }
+            set { Set(nameof(Linux_GID), value.ToString()); }
+        }
+
+        public static int Linux_Permission
+        {
+            get { return Convert.ToInt32(Get(nameof(Linux_Permission)), 8); }
+            set { Set(nameof(Linux_Permission), Convert.ToString(value, 8)); }
+        }
 
         public static CL_ServerSettings ToContract()
         {

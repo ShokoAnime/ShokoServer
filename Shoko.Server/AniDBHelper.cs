@@ -7,29 +7,31 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Timers;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using NHibernate;
 using NLog;
-using System.Windows;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
 {
     public class AniDBHelper
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         // we use this lock to make don't try and access AniDB too much (UDP and HTTP)
-        private object lockAniDBConnections = new object();
+        private readonly object lockAniDBConnections = new object();
 
         private IPEndPoint localIpEndPoint;
         private IPEndPoint remoteIpEndPoint;
@@ -41,23 +43,16 @@ namespace Shoko.Server
         private string serverName = string.Empty;
         private string serverPort = string.Empty;
         private string clientPort = string.Empty;
-        private Encoding encoding;
 
-        System.Timers.Timer logoutTimer = null;
+        private Timer logoutTimer;
 
-        private DateTime? banTime = null;
+        public DateTime? BanTime { get; set; }
 
-        public DateTime? BanTime
-        {
-            get { return banTime; }
-            set { banTime = value; }
-        }
-
-        private bool isBanned = false;
+        private bool isBanned;
 
         public bool IsBanned
         {
-            get { return isBanned; }
+            get => isBanned;
 
             set
             {
@@ -79,7 +74,7 @@ namespace Shoko.Server
 
         public string BanOrigin
         {
-            get { return banOrigin; }
+            get => banOrigin;
             set
             {
                 banOrigin = value;
@@ -87,11 +82,11 @@ namespace Shoko.Server
             }
         }
 
-        private bool isInvalidSession = false;
+        private bool isInvalidSession;
 
         public bool IsInvalidSession
         {
-            get { return isInvalidSession; }
+            get => isInvalidSession;
 
             set
             {
@@ -100,56 +95,25 @@ namespace Shoko.Server
             }
         }
 
-        private bool isLoggedOn = false;
+        private bool isLoggedOn;
 
         public bool IsLoggedOn
         {
-            get { return isLoggedOn; }
-            set { isLoggedOn = value; }
+            get => isLoggedOn;
+            set => isLoggedOn = value;
         }
 
-        private bool waitingOnResponse = false;
+        public bool WaitingOnResponse { get; set; }
 
-        public bool WaitingOnResponse
-        {
-            get { return waitingOnResponse; }
-            set { waitingOnResponse = value; }
-        }
+        public DateTime? WaitingOnResponseTime { get; set; }
 
-        private DateTime? waitingOnResponseTime = null;
+        public int? ExtendPauseSecs { get; set; }
 
-        public DateTime? WaitingOnResponseTime
-        {
-            get { return waitingOnResponseTime; }
-            set { waitingOnResponseTime = value; }
-        }
+        public bool IsNetworkAvailable { private set; get; }
 
-        private int? extendPauseSecs = null;
-
-        public int? ExtendPauseSecs
-        {
-            get { return extendPauseSecs; }
-            set { extendPauseSecs = value; }
-        }
-
-        private string extendPauseReason = string.Empty;
-        private bool networkAvailable;
-        public bool IsNetworkAvailable
-        {
-            get => networkAvailable;
-        }
-
-        public string ExtendPauseReason
-        {
-            get { return extendPauseReason; }
-            set { extendPauseReason = value; }
-        }
+        public string ExtendPauseReason { get; set; } = string.Empty;
 
         public static event EventHandler LoginFailed;
-
-        public AniDBHelper()
-        {
-        }
 
         public void ExtendPause(int secsToPause, string pauseReason)
         {
@@ -157,7 +121,7 @@ namespace Shoko.Server
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
-            ServerInfo.Instance.ExtendedPauseString = string.Format(Commons.Properties.Resources.AniDB_Paused,
+            ServerInfo.Instance.ExtendedPauseString = string.Format(Resources.AniDB_Paused,
                 secsToPause,
                 pauseReason);
             ServerInfo.Instance.HasExtendedPause = true;
@@ -181,13 +145,13 @@ namespace Shoko.Server
             this.serverPort = serverPort;
             this.clientPort = clientPort;
 
-            this.isLoggedOn = false;
+            isLoggedOn = false;
 
-            if (!BindToLocalPort()) networkAvailable = false;
-            if (!BindToRemotePort()) networkAvailable = false;
+            if (!BindToLocalPort()) IsNetworkAvailable = false;
+            if (!BindToRemotePort()) IsNetworkAvailable = false;
 
-            logoutTimer = new System.Timers.Timer();
-            logoutTimer.Elapsed += new System.Timers.ElapsedEventHandler(LogoutTimer_Elapsed);
+            logoutTimer = new Timer();
+            logoutTimer.Elapsed += LogoutTimer_Elapsed;
             logoutTimer.Interval = 5000; // Set the Interval to 5 seconds.
             logoutTimer.Enabled = true;
             logoutTimer.AutoReset = true;
@@ -213,7 +177,7 @@ namespace Shoko.Server
             soUdp = null;
         }
 
-        void LogoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        void LogoutTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             TimeSpan tsAniDBUDPTemp = DateTime.Now - ShokoService.LastAniDBUDPMessage;
             if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
@@ -232,7 +196,7 @@ namespace Shoko.Server
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                            string.Format(Commons.Properties.Resources.AniDB_ResponseWaitSeconds,
+                            string.Format(Resources.AniDB_ResponseWaitSeconds,
                                 ts.TotalSeconds);
                     }
                 }
@@ -261,7 +225,7 @@ namespace Shoko.Server
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                string msg = string.Format(Commons.Properties.Resources.AniDB_LastMessage,
+                string msg = string.Format(Resources.AniDB_LastMessage,
                     tsAniDBUDP.TotalSeconds);
 
                 if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
@@ -280,9 +244,9 @@ namespace Shoko.Server
 
             if (isWaiting)
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                    Commons.Properties.Resources.AniDB_ResponseWait;
+                    Resources.AniDB_ResponseWait;
             else
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Commons.Properties.Resources.Command_Idle;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
 
             if (isWaiting)
                 WaitingOnResponseTime = DateTime.Now;
@@ -328,12 +292,11 @@ namespace Shoko.Server
             else
             {
                 curSessionID = login.SessionID;
-                encoding = login.Encoding;
-                this.isLoggedOn = true;
-                this.IsInvalidSession = false;
+                isLoggedOn = true;
+                IsInvalidSession = false;
                 return true;
             }
-            
+
             return false;
         }
 
@@ -373,7 +336,7 @@ namespace Shoko.Server
             {
                 try
                 {
-                    logger.Trace("ProcessResult_GetEpisodeInfo: {0}", getInfoCmd.EpisodeInfo.ToString());
+                    logger.Trace("ProcessResult_GetEpisodeInfo: {0}", getInfoCmd.EpisodeInfo);
                     return getInfoCmd.EpisodeInfo;
                 }
                 catch (Exception ex)
@@ -407,7 +370,7 @@ namespace Shoko.Server
             {
                 try
                 {
-                    logger.Trace("ProcessResult_GetFileInfo: {0}", getInfoCmd.fileInfo.ToString());
+                    logger.Trace("ProcessResult_GetFileInfo: {0}", getInfoCmd.fileInfo);
 
                     if (ServerSettings.AniDB_DownloadReleaseGroups)
                     {
@@ -495,12 +458,12 @@ namespace Shoko.Server
             }
         }
 
-        public bool GetUpdated(ref List<int> updatedAnimeIDs, ref long startTime)
+        public void GetUpdated(ref List<int> updatedAnimeIDs, ref long startTime)
         {
             //startTime = 0;
             updatedAnimeIDs = new List<int>();
 
-            if (!Login()) return false;
+            if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
@@ -511,16 +474,12 @@ namespace Shoko.Server
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
 
-                if (ev == enHelperActivityType.GotUpdated && cmdUpdated != null && cmdUpdated.RecordCount > 0)
+                if (ev == enHelperActivityType.GotUpdated && cmdUpdated.RecordCount > 0)
                 {
                     startTime = long.Parse(cmdUpdated.StartTime);
                     updatedAnimeIDs = cmdUpdated.AnimeIDList;
-
-                    return true;
                 }
             }
-
-            return false;
         }
 
         public void UpdateMyListFileStatus(IHash fileDataLocal, bool watched, DateTime? watchedDate)
@@ -532,7 +491,7 @@ namespace Shoko.Server
             lock (lockAniDBConnections)
             {
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-                cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, true, null);
+                cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, true, ServerSettings.AniDB_MyList_StorageState);
                 SetWaitingOnResponse(true);
                 enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -544,8 +503,10 @@ namespace Shoko.Server
                     cmdUpdateFile = new AniDBCommand_UpdateFile();
                     cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, false,
                         ServerSettings.AniDB_MyList_StorageState);
-                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    SetWaitingOnResponse(true);
+                    cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                         new UnicodeEncoding(true, false));
+                    SetWaitingOnResponse(false);
                 }
             }
         }
@@ -576,20 +537,22 @@ namespace Shoko.Server
                     // we do this by issueing the same command without the edit flag
                     cmdUpdateFile = new AniDBCommand_UpdateFile();
                     cmdUpdateFile.Init(animeID, episodeNumber, watched, false);
-                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    SetWaitingOnResponse(true);
+                    cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                         new UnicodeEncoding(true, false));
+                    SetWaitingOnResponse(false);
                 }
             }
         }
 
-        public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate)
+        public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate, ref AniDBFile_State? state)
         {
             if (!ServerSettings.AniDB_MyList_AddFiles) return false;
 
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_AddFile cmdAddFile = null;
+            enHelperActivityType ev;
+            AniDBCommand_AddFile cmdAddFile;
 
             lock (lockAniDBConnections)
             {
@@ -601,10 +564,11 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            // if the user already has this file on 
+            // if the user already has this file on
             if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
             {
                 watchedDate = cmdAddFile.WatchedDate;
+                state = cmdAddFile.State;
                 return cmdAddFile.ReturnIsWatched;
             }
 
@@ -615,8 +579,8 @@ namespace Shoko.Server
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_AddFile cmdAddFile = null;
+            enHelperActivityType ev;
+            AniDBCommand_AddFile cmdAddFile;
 
             lock (lockAniDBConnections)
             {
@@ -628,7 +592,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            // if the user already has this file on 
+            // if the user already has this file on
             if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
             {
                 watchedDate = cmdAddFile.WatchedDate;
@@ -639,108 +603,83 @@ namespace Shoko.Server
             return null;
         }
 
-        internal bool MarkFileAsExternalStorage(string Hash, long FileSize)
+        internal void MarkFileAsExternalStorage(string Hash, long FileSize)
         {
-            if (!Login()) return false;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_MarkFileAsExternal cmdMarkFileExternal = null;
+            if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
-                cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
+                var cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
                 cmdMarkFileExternal.Init(Hash, FileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
-
-            return true;
         }
 
-        internal bool MarkFileAsUnknown(string Hash, long FileSize)
+        internal void MarkFileAsUnknown(string Hash, long FileSize)
         {
-            if (!Login()) return false;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_MarkFileAsUnknown cmdMarkFileUnknown = null;
+            if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
-                cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
+                var cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
                 cmdMarkFileUnknown.Init(Hash, FileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
-
-            return true;
         }
 
-        public bool MarkFileAsDeleted(string hash, long fileSize)
+        public void MarkFileAsDeleted(string hash, long fileSize)
         {
-            if (!Login()) return false;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_MarkFileAsDeleted cmdDelFile = null;
+            if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
-                cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
+                var cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
                 cmdDelFile.Init(hash, fileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
-
-            return true;
         }
 
-        public bool DeleteFileFromMyList(string hash, long fileSize)
+        public void DeleteFileFromMyList(string hash, long fileSize)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return false;
+            if (!ServerSettings.AniDB_MyList_AddFiles) return;
 
-            if (!Login()) return false;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_DeleteFile cmdDelFile = null;
+            if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
-                cmdDelFile = new AniDBCommand_DeleteFile();
+                var cmdDelFile = new AniDBCommand_DeleteFile();
                 cmdDelFile.Init(hash, fileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
-
-            return true;
         }
 
-        public bool DeleteFileFromMyList(int fileID)
+        public void DeleteFileFromMyList(int fileID)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return false;
+            if (!ServerSettings.AniDB_MyList_AddFiles) return;
 
-            if (!Login()) return false;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
-            AniDBCommand_DeleteFile cmdDelFile = null;
+            if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
-                cmdDelFile = new AniDBCommand_DeleteFile();
+                var cmdDelFile = new AniDBCommand_DeleteFile();
                 cmdDelFile.Init(fileID);
                 SetWaitingOnResponse(true);
-                ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
-
-            return true;
         }
 
         public SVR_AniDB_Anime GetAnimeInfoUDP(int animeID, bool forceRefresh)
@@ -758,12 +697,7 @@ namespace Shoko.Server
 
             //TODO: Skip AND null Anime? or Skip OR null Anime?
             if (skip)
-            {
-                if (anime == null)
-                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-
                 return anime;
-            }
 
             if (!Login()) return null;
 
@@ -821,12 +755,12 @@ namespace Shoko.Server
             return chr;
         }
 
-        public AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
+        public void GetReleaseGroupUDP(int groupID)
         {
-            if (!Login()) return null;
+            if (!Login()) return;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchGroup;
-            AniDBCommand_GetGroup getCmd = null;
+            enHelperActivityType ev;
+            AniDBCommand_GetGroup getCmd;
             lock (lockAniDBConnections)
             {
                 getCmd = new AniDBCommand_GetGroup();
@@ -836,25 +770,19 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            AniDB_ReleaseGroup relGroup = null;
-            if (ev == enHelperActivityType.GotGroup && getCmd.Group != null)
-            {
-                relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID);
-                if (relGroup == null) relGroup = new AniDB_ReleaseGroup();
+            if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
+            var relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID) ?? new AniDB_ReleaseGroup();
 
-                relGroup.Populate(getCmd.Group);
-                RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
-            }
-
-            return relGroup;
+            relGroup.Populate(getCmd.Group);
+            RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
         }
 
         public GroupStatusCollection GetReleaseGroupStatusUDP(int animeID)
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchCreator;
-            AniDBCommand_GetGroupStatus getCmd = null;
+            enHelperActivityType ev;
+            AniDBCommand_GetGroupStatus getCmd;
             lock (lockAniDBConnections)
             {
                 getCmd = new AniDBCommand_GetGroupStatus();
@@ -864,57 +792,43 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev == enHelperActivityType.GotGroupStatus && getCmd.GrpStatusCollection != null)
+            if (ev != enHelperActivityType.GotGroupStatus || getCmd.GrpStatusCollection == null)
+                return getCmd.GrpStatusCollection;
+
+            // delete existing records
+            RepoFactory.AniDB_GroupStatus.DeleteForAnime(animeID);
+
+            // save the records
+            foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
             {
-                // delete existing records
+                AniDB_GroupStatus grpstat = new AniDB_GroupStatus();
+                grpstat.Populate(raw);
+                RepoFactory.AniDB_GroupStatus.Save(grpstat);
+            }
 
-
-                RepoFactory.AniDB_GroupStatus.DeleteForAnime(animeID);
-
-                // save the records
-                foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
+            if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
+            {
+                // update the anime with a record of the latest subbed episode
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                if (anime != null)
                 {
-                    AniDB_GroupStatus grpstat = new AniDB_GroupStatus();
-                    grpstat.Populate(raw);
-                    RepoFactory.AniDB_GroupStatus.Save(grpstat);
-                }
+                    anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
+                    RepoFactory.AniDB_Anime.Save(anime);
 
-                // updated cached stats
-                // we don't do it in the save method as it would be too many unecessary updates
-                logger.Trace("Updating group stats by anime from GetReleaseGroupStatusUDP: {0}", animeID);
-
-
-                // StatsCache.Instance.UpdateUsingAnime(animeID); 
-                //Removed QueueUpdateStatus will Update Groups
-
-
-                if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
-                {
-                    // update the anime with a record of the latest subbed episode
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime != null)
+                    // check if we have this episode in the database
+                    // if not get it now by updating the anime record
+                    List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                        getCmd.GrpStatusCollection.LatestEpisodeNumber);
+                    if (eps.Count == 0)
                     {
-                        anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
-                        RepoFactory.AniDB_Anime.Save(anime);
-
-                        // check if we have this episode in the database
-                        // if not get it now by updating the anime record
-                        List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
-                            getCmd.GrpStatusCollection.LatestEpisodeNumber);
-                        if (eps.Count == 0)
-                        {
-                            CommandRequest_GetAnimeHTTP cr_anime =
-                                new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                            cr_anime.Save();
-                        }
-                        // update the missing episode stats on groups and children
-                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                        if (series != null)
-                        {
-                            series.QueueUpdateStats();
-                            //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-                        }
+                        CommandRequest_GetAnimeHTTP cr_anime =
+                            new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        cr_anime.Save();
                     }
+                    // update the missing episode stats on groups and children
+                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                    series?.QueueUpdateStats();
+                    //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
             }
 
@@ -971,39 +885,28 @@ namespace Shoko.Server
             return review;
         }
 
-        public bool VoteAnime(int animeID, decimal voteValue, AniDBVoteType voteType)
+        public void VoteAnime(int animeID, decimal voteValue, AniDBVoteType voteType)
         {
-            if (!Login()) return false;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchVote;
-            AniDBCommand_Vote cmdVote = null;
+            if (!Login()) return;
 
 
             lock (lockAniDBConnections)
             {
-                cmdVote = new AniDBCommand_Vote();
+                var cmdVote = new AniDBCommand_Vote();
                 cmdVote.Init(animeID, voteValue, voteType);
                 SetWaitingOnResponse(true);
-                ev = cmdVote.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                var ev = cmdVote.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
-                if (ev == enHelperActivityType.Voted || ev == enHelperActivityType.VoteUpdated)
+                if (ev != enHelperActivityType.Voted && ev != enHelperActivityType.VoteUpdated) return;
+                AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType) ?? new AniDB_Vote
                 {
-                    AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType);
+                    EntityID = cmdVote.EntityID
+                };
 
-                    if (thisVote == null)
-                    {
-                        thisVote = new AniDB_Vote
-                        {
-                            EntityID = cmdVote.EntityID
-                        };
-                    }
-                    thisVote.VoteType = (int) cmdVote.VoteType;
-                    thisVote.VoteValue = cmdVote.VoteValue;
-                    RepoFactory.AniDB_Vote.Save(thisVote);
-                }
+                thisVote.VoteType = (int) cmdVote.VoteType;
+                thisVote.VoteValue = cmdVote.VoteValue;
+                RepoFactory.AniDB_Vote.Save(thisVote);
             }
-
-            return false;
         }
 
         public void VoteAnimeRevoke(int animeID, AniDBVoteType voteType)
@@ -1025,10 +928,9 @@ namespace Shoko.Server
         {
             //if (!Login()) return null;
 
-            SVR_AniDB_Anime anime;
             ISessionWrapper sessionWrapper = session.Wrap();
 
-            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
             bool skip = true;
             bool animeRecentlyUpdated = false;
             if (anime != null)
@@ -1056,7 +958,10 @@ namespace Shoko.Server
                 getAnimeCmd.Init(animeID, false, forceRefresh, false);
                 var result = getAnimeCmd.Process();
                 if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                {
+                    logger.Error($"Failed get anime info for {animeID}. AniDB ban or No Such Anime returned");
                     return null;
+                }
             }
 
 
@@ -1072,22 +977,26 @@ namespace Shoko.Server
                 }*/
             }
 
+            logger.Error($"Failed get anime info for {animeID}. Anime was null");
             return null;
         }
 
         private SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
-            SVR_AniDB_Anime anime = null;
             ISessionWrapper sessionWrapper = session.Wrap();
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-            anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
-            anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
+            if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                downloadRelations);
+                downloadRelations))
+            {
+                logger.Error($"Failed populate anime info for {animeID}");
+                return null;
+            }
 
             // Request an image download
             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
@@ -1144,9 +1053,9 @@ namespace Shoko.Server
 
         public bool ValidAniDBCredentials()
         {
-            if (string.IsNullOrEmpty(this.userName) || string.IsNullOrEmpty(this.password) ||
-                string.IsNullOrEmpty(this.serverName)
-                || string.IsNullOrEmpty(this.serverPort) || string.IsNullOrEmpty(this.clientPort))
+            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password) ||
+                string.IsNullOrEmpty(serverName)
+                || string.IsNullOrEmpty(serverPort) || string.IsNullOrEmpty(clientPort))
             {
                 //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.OtherError, "ERROR: Please enter valid AniDB credentials via Configuration first"));
                 return false;
@@ -1162,7 +1071,7 @@ namespace Shoko.Server
             localIpEndPoint = null;
 
             // Dont send Expect 100 requests. These requests arnt always supported by remote internet devices, in which case can cause failure.
-            System.Net.ServicePointManager.Expect100Continue = false;
+            ServicePointManager.Expect100Continue = false;
 
             try
             {
@@ -1177,7 +1086,7 @@ namespace Shoko.Server
                 soUdp.ReceiveTimeout = 30000; // 30 seconds
 
                 logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})",
-                    localIpEndPoint.ToString(),
+                    localIpEndPoint,
                     clientPort,
                     localIpEndPoint.AddressFamily);
 
@@ -1201,9 +1110,9 @@ namespace Shoko.Server
                 IPHostEntry remoteHostEntry = Dns.GetHostEntry(serverName);
                 remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], Convert.ToInt32(serverPort));
 
-                logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address.ToString() +
+                logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address +
                             " : " +
-                            remoteIpEndPoint.Port.ToString());
+                            remoteIpEndPoint.Port);
 
                 return true;
             }
