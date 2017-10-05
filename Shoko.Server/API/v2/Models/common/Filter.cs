@@ -59,6 +59,10 @@ namespace Shoko.Server.API.v2.Models.common
                         .ToList();
 
                     var arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
+                    if (arts.Count == 0)
+                        arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup).ToList();
+                    if (arts.Count == 0)
+                        arts = groupsList.Select(GetAnimeContractFromGroup).ToList();
 
                     if (arts.Count > 0)
                     {
@@ -130,6 +134,18 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         private static bool GroupHasCompleteArt(SVR_AnimeGroup grp)
+        {
+            var anime = grp.Anime.OrderBy(a => a.BeginYear)
+                .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+                .FirstOrDefault();
+            var fanarts = anime?.Contract.AniDBAnime.Fanarts;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            fanarts = anime.Contract.AniDBAnime.Banners;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            return true;
+        }
+
+        private static bool GroupHasMostlyCompleteArt(SVR_AnimeGroup grp)
         {
             var anime = grp.Anime.OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
