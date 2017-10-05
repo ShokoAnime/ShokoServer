@@ -44,6 +44,9 @@ namespace Shoko.Server.API.v2.Models.common
             foreach (SVR_GroupFilter cgf in allGfs)
             {
                 // any level higher than 1 can drain cpu
+                if ((cgf.FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag &&
+                    TagFilter.ProcessTags(tagfilter, new List<string> {cgf.GroupFilterName}).Count == 0) continue;
+
                 filters.Add(Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic, tagfilter));
             }
 
