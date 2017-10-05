@@ -123,7 +123,7 @@ namespace Shoko.Server.FileHelper
             bool getSHA1)
         {
             Hashes rhash = new Hashes();
-            if (Finalise.ModuleHandle != IntPtr.Zero)
+            if (Finalise.ModuleHandle != IntPtr.Zero || Utils.IsLinux)
             {
                 byte[] hash = new byte[56];
                 bool gotHash = false;
