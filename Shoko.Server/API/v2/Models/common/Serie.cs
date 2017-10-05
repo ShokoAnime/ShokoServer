@@ -6,8 +6,11 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
+using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -57,35 +60,44 @@ namespace Shoko.Server.API.v2.Models.common
         {
             Serie sr = new Serie();
 
-            Video nv = ser.GetPlexContract(uid);
-
             List<SVR_AnimeEpisode> ael = ser.GetAnimeEpisodes();
+            var contract = ser.Contract;
+            if (contract == null) ser.UpdateContract();
 
             sr.id = ser.AnimeSeriesID;
-            sr.summary = nv.Summary;
-            sr.year = nv.Year;
-            sr.air = nv.AirDate.ToString("dd-MM-yyyy");
+            sr.summary = contract.AniDBAnime.AniDBAnime.Description;
+            sr.year = contract.AniDBAnime.AniDBAnime.BeginYear.ToString();
+            sr.air = ser.AirDate.ToPlexDate();
 
             GenerateSizes(sr, ael, uid);
 
-            sr.rating = nv.Rating;
-            sr.userrating = nv.UserRating;
-            sr.titles = nv.Titles;
-            sr.name = nv.Title;
-            sr.season = nv.Season;
-            if (nv.IsMovie)
-            {
-                sr.ismovie = 1;
-            }
+            sr.rating = Math.Round(contract.AniDBAnime.AniDBAnime.Rating / 100D, 1)
+                .ToString(CultureInfo.InvariantCulture);
+            AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.Anime) ??
+                              RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp);
+            if (vote != null)
+                sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
+            sr.titles = ser.GetAnime().GetTitles().Select(title =>
+                new AnimeTitle {Language = title.Language, Title = title.Title, Type = title.TitleType}).ToList();
+            sr.name = ser.GetSeriesNameFromContract(contract);
+
+            var ls = contract.CrossRefAniDBTvDBV2?.OrderBy(a => a.TvDBSeasonNumber).FirstOrDefault();
+            if ((ls?.TvDBSeasonNumber ?? 0) != 0) sr.season = ls.TvDBSeasonNumber.ToString();
+
+            if (contract.AniDBAnime.AniDBAnime.AnimeType == (int) AnimeType.Movie) sr.ismovie = 1;
 
             #region Images
+
             var anime = ser.GetAnime();
             if (anime != null)
             {
                 Random rand = new Random();
                 if (allpics || pic > 1)
                 {
-                    if (allpics) { pic = 999; }
+                    if (allpics)
+                    {
+                        pic = 999;
+                    }
                     int pic_index = 0;
                     if (anime.AllPosters != null)
                         foreach (var cont_image in anime.AllPosters)
@@ -180,10 +192,12 @@ namespace Shoko.Server.API.v2.Models.common
                     }
                 }
             }
+
             #endregion
 
             if (!nocast)
             {
+                Video nv = ser.GetPlexContract(uid);
                 if (nv.Roles != null)
                 {
                     foreach (RoleTag rtg in nv.Roles)
@@ -207,17 +221,9 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (!notag)
             {
-                if (nv.Genres != null)
-                {
-                    foreach (Shoko.Models.PlexAndKodi.Tag otg in nv.Genres)
-                    {
-                        Tag new_tag = new Tag
-                        {
-                            tag = otg.Value
-                        };
-                        sr.tags.Add(new_tag);
-                    }
-                }
+                var tags = ser.Contract.AniDBAnime.AniDBAnime.GetAllTags();
+                if (tags != null)
+                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList()).Select(a => new Tag {tag = a}).ToList();
             }
 
             if (level > 0)

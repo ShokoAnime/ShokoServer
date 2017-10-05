@@ -792,7 +792,7 @@ namespace Shoko.Server.Models
                     contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
                 }
 
-                contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.Cast<CrossRef_AniDB_TvDBV2>().ToList();
+                contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.ToList();
 
 
                 contract.TvDB_Series = sers;
@@ -802,8 +802,7 @@ namespace Shoko.Server.Models
                     contract.CrossRefAniDBMovieDB = movieDBCrossRef;
                     contract.MovieDB_Movie = movie;
                 }
-                contract.CrossRefAniDBMAL = CrossRefMAL?.Cast<Shoko.Models.Server.CrossRef_AniDB_MAL>()?.ToList() ??
-                                            new List<Shoko.Models.Server.CrossRef_AniDB_MAL>();
+                contract.CrossRefAniDBMAL = CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
                 HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
                 Contract = contract;
                 return types;
