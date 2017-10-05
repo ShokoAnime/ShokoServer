@@ -105,10 +105,12 @@ namespace Shoko.Server.Models
             get { return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID); }
         }
 
+        private TvDB_Episode tvDbEpisode;
         public TvDB_Episode TvDBEpisode
         {
             get
             {
+                if (tvDbEpisode != null) return tvDbEpisode;
                 AniDB_Episode aep = AniDB_Episode;
                 List<CrossRef_AniDB_TvDBV2> xref_tvdb =
                     RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
@@ -124,7 +126,7 @@ namespace Shoko.Server.Models
                     foreach (var xref in xref_tvdb)
                     {
                         tvep = RepoFactory.TvDB_Episode.GetBySeriesIDAndDate(xref.TvDBID, airdate.Value);
-                        if (tvep != null) return tvep;
+                        if (tvep != null) return tvDbEpisode = tvep;
                     }
                 }
 
@@ -134,7 +136,7 @@ namespace Shoko.Server.Models
                 tvep =
                     RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref_tvdb2.TvDBID, season,
                         epnumber);
-                if (tvep != null) return tvep;
+                if (tvep != null) return tvDbEpisode = tvep;
 
                 int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
                 int previousSeasonsCount = 0;
@@ -152,14 +154,22 @@ namespace Shoko.Server.Models
                         epnumber - previousSeasonsCount);
 
                     if (tvep != null)
-                    {
                         break;
-                    }
                     previousSeasonsCount +=
                         RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
                     season++;
                 } while (true);
-                return tvep;
+                return tvDbEpisode = tvep;
+            }
+        }
+
+        public double UserRating
+        {
+            get
+            {
+                AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(AnimeEpisodeID, AniDBVoteType.Episode);
+                if (vote != null) return vote.VoteValue / 100D;
+                return -1;
             }
         }
 

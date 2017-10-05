@@ -184,7 +184,7 @@ namespace Shoko.Server
                         return;
                     }
                 }
-                if ((flags & 0b00100) == 0b00100)
+                if ((flags & 0b00100) == 0b00100) // if source excluded
                 {
                     readdOriginal = false;
                     if (TagBlackListSource.Contains(tag))

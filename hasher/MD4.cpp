@@ -25,9 +25,6 @@
 #include "MD4.h"
 
 
-#ifdef HASHLIB_USE_ASM
-extern "C" void __stdcall MD4_Add_p5(CMD4::MD4State*, const void* pData, std::size_t nLength);
-#endif
 
 const unsigned char hashPadding[64] = {
 	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -68,13 +65,55 @@ void CMD4::Finish()
 	Add(&bits, sizeof(bits));
 }
 
+
+
 #ifdef HASHLIB_USE_ASM
+
+#if defined(_WIN64) || defined(__x86_64__)
+extern "C" void __fastcall MD4_x64(const void *, const void* pData, std::size_t nLength);
+#else
+extern "C" void __stdcall MD4_Add_p5(CMD4::MD4State*, const void* pData, std::size_t nLength);
+#endif
 
 void CMD4::Add(const void* pData, std::size_t nLength)
 {
+#if defined(_WIN64) || defined(__x86_64__)
+	// Update number of bytes
+	const char* input = static_cast< const char* >(pData);
+	{
+		uint32 index = static_cast< uint32 >(m_State.m_nCount % m_State.blockSize);
+		m_State.m_nCount += nLength;
+		if (index)
+		{
+			// buffer has some data already - lets fill it
+			// before doing the rest of the transformation on the original data
+			if (index + nLength < m_State.blockSize)
+			{
+				std::memcpy(m_State.m_oBuffer + index, input, nLength);
+				return;
+			}
+			std::memcpy(m_State.m_oBuffer + index, input, m_State.blockSize - index);
+			nLength -= m_State.blockSize - index;
+			input += m_State.blockSize - index;
+			MD4_x64(&(m_State.m_nState[0]), m_State.m_oBuffer, 1);
+		}
+	}
+	// Transform as many times as possible using the original data stream
+	const char* const end = input + nLength - nLength % m_State.blockSize;
+	size_t abs = nLength / m_State.blockSize;
+	MD4_x64(&(m_State.m_nState[0]), input, abs);
+	abs *= m_State.blockSize;
+	input += abs;
+	nLength %= m_State.blockSize;
+	// Buffer remaining input
+	if (nLength)
+		std::memcpy(m_State.m_oBuffer, input, nLength);
+#else
 	MD4_Add_p5(&m_State, pData, nLength);
-}
+#endif
 
+
+}
 #else // HASHLIB_USE_ASM
 
 namespace
@@ -189,13 +228,12 @@ void CMD4::Transform(const uint32* data)
 	m_State.m_nState[2] += c;
 	m_State.m_nState[3] += d;
 }
-
 void CMD4::Add(const void* pData, std::size_t nLength)
 {
 	// Update number of bytes
-	const char* input = static_cast< const char* >(pData);
+	const char* input = static_cast<const char*>(pData);
 	{
-		uint32 index = static_cast< uint32 >(m_State.m_nCount % m_State.blockSize);
+		uint32 index = static_cast<uint32>(m_State.m_nCount % m_State.blockSize);
 		m_State.m_nCount += nLength;
 		if (index)
 		{
@@ -209,18 +247,19 @@ void CMD4::Add(const void* pData, std::size_t nLength)
 			std::memcpy(m_State.m_oBuffer + index, input, m_State.blockSize - index);
 			nLength -= m_State.blockSize - index;
 			input += m_State.blockSize - index;
-			Transform(reinterpret_cast< const uint32* >(m_State.m_oBuffer));
+			Transform(reinterpret_cast<const uint32*>(m_State.m_oBuffer));
 		}
 	}
 	// Transform as many times as possible using the original data stream
 	const char* const end = input + nLength - nLength % m_State.blockSize;
 	nLength %= m_State.blockSize;
 	for (; input != end; input += m_State.blockSize)
-		Transform(reinterpret_cast< const uint32* >(input));
+		Transform(reinterpret_cast<const uint32*>(input));
 	// Buffer remaining input
 	if (nLength)
 		std::memcpy(m_State.m_oBuffer, input, nLength);
 }
+
 
 #endif // HASHLIB_USE_ASM
 
