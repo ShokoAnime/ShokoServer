@@ -118,13 +118,12 @@ namespace Shoko.Commons.Utils
                     selector = c => c.GroupName;
                     break;
             }
-            if (lst is IOrderedQueryable<T>)
+            if (lst.GetType().IsAssignableFrom(typeof(IOrderedQueryable<T>)))
             {
                 IOrderedQueryable<T> n = (IOrderedQueryable<T>) lst;
                 if (sortDirection != GroupFilterSortDirection.Asc)
                     return n.ThenByDescending(selector);
                 return n.ThenBy(selector);
-
             }
             if (sortDirection != GroupFilterSortDirection.Asc)
                 return lst.OrderByDescending(selector);
