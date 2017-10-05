@@ -25,9 +25,7 @@
 #include "SHA.h"
 
 
-#ifdef HASHLIB_USE_ASM
-extern "C" void __stdcall SHA1_Add_p5(CSHA::SHA1State*, const void* pData, std::size_t nLength);
-#endif
+
 
 const unsigned char hashPadding[64] = {
 	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -70,11 +68,50 @@ void CSHA::Finish()
 
 #ifdef HASHLIB_USE_ASM
 
+#ifdef _WIN64 || __x86_64__
+extern "C" void __fastcall sha1_block_asm_data_order(const void *, const void* pData, std::size_t nLength);
+#else
+extern "C" void __stdcall SHA1_Add_p5(CSHA::SHA1State*, const void* pData, std::size_t nLength);
+#endif
 void CSHA::Add(const void* pData, std::size_t nLength)
 {
+#ifdef _WIN64 || __x86_64__
+	// Update number of bytes
+	const char* input = static_cast< const char* >(pData);
+	{
+		uint32 index = static_cast< uint32 >(m_State.m_nCount % m_State.blockSize);
+		m_State.m_nCount += nLength;
+		if (index)
+		{
+			// buffer has some data already - lets fill it
+			// before doing the rest of the transformation on the original data
+			if (index + nLength < m_State.blockSize)
+			{
+				std::memcpy(m_State.m_oBuffer + index, input, nLength);
+				return;
+			}
+			std::memcpy(m_State.m_oBuffer + index, input, m_State.blockSize - index);
+			nLength -= m_State.blockSize - index;
+			input += m_State.blockSize - index;
+			sha1_block_asm_data_order(&(m_State.m_nState[0]), m_State.m_oBuffer, 1);
+		}
+	}
+	// Transform as many times as possible using the original data stream
+	const char* const end = input + nLength - nLength % m_State.blockSize;
+	size_t abs = nLength / m_State.blockSize;
+	sha1_block_asm_data_order(&(m_State.m_nState[0]), input, abs);
+	abs *= m_State.blockSize;
+	input += abs;
+	nLength %= m_State.blockSize;
+	// Buffer remaining input
+	if (nLength)
+		std::memcpy(m_State.m_oBuffer, input, nLength);
+#else
 	SHA1_Add_p5(&m_State, pData, nLength);
-}
+#endif
 
+
+}
 #else // HASHLIB_USE_ASM
 
 CSHA::TransformArray::TransformArray(const uint32* const buffer)
@@ -300,6 +337,7 @@ void CSHA::Transform(TransformArray w)
 	m_State.m_nState[3] += d;
 	m_State.m_nState[4] += e;
 }
+
 
 void CSHA::Add(const void* pData, std::size_t nLength)
 {

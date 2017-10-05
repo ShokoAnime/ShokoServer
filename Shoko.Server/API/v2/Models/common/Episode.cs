@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
 using Nancy;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 
@@ -12,10 +14,7 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class Episode : BaseDirectory
     {
-        public override string type
-        {
-            get { return "ep"; }
-        }
+        public override string type => string.Intern("ep");
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
@@ -58,16 +57,18 @@ namespace Shoko.Server.API.v2.Models.common
             CL_AnimeEpisode_User cae = aep?.GetUserContract(uid);
             if (cae != null)
             {
-                var contract = aep.PlexContract;
+                TvDB_Episode tvep = aep.TvDBEpisode;
                 ep.id = aep.AnimeEpisodeID;
                 ep.art = new ArtCollection();
-                ep.name = contract?.Title;
-                ep.summary = contract?.Summary;
-                ep.year = contract?.Year;
-                ep.air = contract?.AirDate.ToPlexDate();
+                ep.name = cae.AniDB_EnglishName;
+
+                ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture);
+                ep.air = cae.AniDB_AirDate?.ToPlexDate();
+
                 ep.votes = cae.AniDB_Votes;
-                ep.rating = contract?.Rating;
-                ep.userrating = contract?.UserRating;
+                ep.rating = cae.AniDB_Rating;
+                var userrating = aep.UserRating;
+                if (userrating > 0) ep.userrating = userrating.ToString(CultureInfo.InvariantCulture);
                 if (double.TryParse(ep.rating, out double rating))
                 {
                     // 0.1 should be the absolute lowest rating
@@ -78,25 +79,35 @@ namespace Shoko.Server.API.v2.Models.common
                 ep.epnumber = cae.EpisodeNumber;
                 ep.eptype = aep.EpisodeTypeEnum.ToString();
 
-                ep.season = contract?.Season;
+                ep.art = new ArtCollection();
 
-                // until fanart refactor this will be good for start
-                if (contract?.Thumb != null)
+                if (tvep != null)
                 {
-                    ep.art.thumb.Add(new Art()
+                    ep.name = tvep.EpisodeName;
+                    ep.art.thumb.Add(new Art {index = 0, url = tvep.GenPoster(null)});
+                    ep.art.fanart.Add(new Art {index = 0, url = tvep.GenPoster(null)});
+                    ep.summary = tvep.Overview;
+                    ep.season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:00#}";
+                    var airdate = tvep.AirDate;
+                    if (airdate != null)
                     {
-                        url = APIHelper.ConstructImageLinkFromRest(ctx, contract?.Thumb),
-                        index = 0
+                        ep.air = airdate.Value.ToPlexDate();
+                        ep.year = airdate.Value.Year.ToString(CultureInfo.InvariantCulture);
+                    }
+                }
+                if (string.IsNullOrEmpty(ep.summary)) ep.summary = string.Intern("Episode Overview not Available");
+                if (ep.art.thumb.Count == 0)
+                {
+                    ep.art.thumb.Add(
+                        new Art {index = 0, url = APIHelper.ConstructSupportImageLink(ctx, "plex_404.png")});
+                    ep.art.fanart.Add(new Art
+                    {
+                        index = 0,
+                        url = APIHelper.ConstructSupportImageLink(ctx, "plex_404.png")
                     });
                 }
-                if (contract?.Art != null)
-                {
-                    ep.art.fanart.Add(new Art()
-                    {
-                        url = APIHelper.ConstructImageLinkFromRest(ctx, contract?.Art),
-                        index = 0
-                    });
-                }
+                if (string.IsNullOrEmpty(ep.year))
+                    ep.year = aep.GetAnimeSeries().AirDate.Year.ToString(CultureInfo.InvariantCulture);
 
                 if (level > 0)
                 {

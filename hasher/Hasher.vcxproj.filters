@@ -27,16 +27,16 @@
     <ClCompile Include="hasher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="md4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SHA.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="StdAfx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MD5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MD4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SHA1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -64,10 +64,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="MD4_asm.asm" />
-    <None Include="MD5_asm.asm" />
-    <None Include="SHA_asm.asm" />
     <None Include="crc32x86.asm" />
     <None Include="crc32x64.asm" />
+    <None Include="MD4x64.asm" />
+    <None Include="MD4x86.asm" />
+    <None Include="MD5x86.asm" />
+    <None Include="MD5x64.asm" />
+    <None Include="SHA1x86.asm" />
+    <None Include="SHA1x64.asm" />
   </ItemGroup>
 </Project>

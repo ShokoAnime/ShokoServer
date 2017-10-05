@@ -59,27 +59,38 @@ namespace Shoko.Server.API.v2.Models.common
                         .ToList();
 
                     var arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
+                    if (arts.Count == 0)
+                        arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup).ToList();
+                    if (arts.Count == 0)
+                        arts = groupsList.Where(a => (a.Anime?.Count ?? 0) > 0).Select(GetAnimeContractFromGroup)
+                            .ToList();
 
                     if (arts.Count > 0)
                     {
                         Random rand = new Random();
                         var anime = arts[rand.Next(arts.Count)];
 
-                        var fanart = anime.Fanarts[rand.Next(anime.Fanarts.Count)];
-                        filter.art.fanart.Add(new Art()
+                        if (anime.Fanarts?.Count > 0)
                         {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType,
-                                fanart.AniDB_Anime_DefaultImageID)
-                        });
+                            var fanart = anime.Fanarts[rand.Next(anime.Fanarts.Count)];
+                            filter.art.fanart.Add(new Art
+                            {
+                                index = 0,
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, fanart.ImageType,
+                                    fanart.AniDB_Anime_DefaultImageID)
+                            });
+                        }
 
-                        var banner = anime.Banners[rand.Next(anime.Banners.Count)];
-                        filter.art.banner.Add(new Art()
+                        if (anime.Banners?.Count > 0)
                         {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType,
-                                banner.AniDB_Anime_DefaultImageID)
-                        });
+                            var banner = anime.Banners[rand.Next(anime.Banners.Count)];
+                            filter.art.banner.Add(new Art()
+                            {
+                                index = 0,
+                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType,
+                                    banner.AniDB_Anime_DefaultImageID)
+                            });
+                        }
 
                         filter.art.thumb.Add(new Art()
                         {
@@ -130,6 +141,18 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         private static bool GroupHasCompleteArt(SVR_AnimeGroup grp)
+        {
+            var anime = grp.Anime.OrderBy(a => a.BeginYear)
+                .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+                .FirstOrDefault();
+            var fanarts = anime?.Contract.AniDBAnime.Fanarts;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            fanarts = anime.Contract.AniDBAnime.Banners;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            return true;
+        }
+
+        private static bool GroupHasMostlyCompleteArt(SVR_AnimeGroup grp)
         {
             var anime = grp.Anime.OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
