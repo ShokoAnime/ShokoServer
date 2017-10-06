@@ -70,7 +70,7 @@ namespace Shoko.Server.Providers.TvDB
                 logger.Trace($"TvDBRateLimiter#{InstanceID}: Time since last request is {delay} ms, throttling for {currentDelay} ms.");
                 Thread.Sleep(currentDelay);
 
-                logger.Trace("TvDBRateLimiter#{InstanceID}: Sending TvDB command.");
+                logger.Trace($"TvDBRateLimiter#{InstanceID}: Sending TvDB command.");
                 _requestWatch.Restart();
             }
         }
