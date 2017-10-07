@@ -955,7 +955,7 @@ namespace Shoko.Server.Models
                 h.Add(GroupFilterConditionType.Year);
             if (oldcontract?.Stat_AllYears == null || !oldcontract.Stat_AllYears.SetEquals(newcontract.Stat_AllYears))
                 h.Add(GroupFilterConditionType.Year);
-            
+
             if (oldcontract?.Stat_AllSeasons == null || !oldcontract.Stat_AllSeasons.SetEquals(newcontract.Stat_AllSeasons))
                 h.Add(GroupFilterConditionType.Season);
 
@@ -1243,7 +1243,7 @@ namespace Shoko.Server.Models
                         if (endyear == 0) endyear = DateTime.Today.Year;
                         if (anime.BeginYear != 0)
                         {
-                            var years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1);
+                            var years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1).ToList();
                             allYears.UnionWith(years);
                             foreach (int year in years)
                             {

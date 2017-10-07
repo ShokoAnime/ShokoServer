@@ -110,7 +110,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            return Changes;
+            lock (Changes)
+            {
+                return Changes;
+            }
         }
 
         public override void Save(SVR_AnimeSeries obj)
@@ -222,6 +225,10 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Update(series);
+                    lock (Cache)
+                    {
+                        Cache.Update(series);
+                    }
                 }
                 lock (Changes)
                 {
@@ -241,21 +248,30 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            return Groups.GetMultiple(groupid);
+            lock (Cache)
+            {
+                return Groups.GetMultiple(groupid);
+            }
         }
 
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            return
-                Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
-                    .OrderByDescending(a => a.EpisodeAddedDate)
-                    .ToList();
+            lock (Cache)
+            {
+                return
+                    Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
+                        .OrderByDescending(a => a.EpisodeAddedDate)
+                        .ToList();
+            }
         }
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
-            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+            lock (Cache)
+            {
+                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+            }
         }
     }
 }
