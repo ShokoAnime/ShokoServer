@@ -97,7 +97,6 @@ namespace Shoko.Server.Repositories.Cached
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
-                HashSet<GroupFilterConditionType> types;
                 lock (globalDBLock)
                 {
                     lock (grp)
@@ -112,7 +111,7 @@ namespace Shoko.Server.Repositories.Cached
                                 transaction.Commit();
                             }
                         }
-                        types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
+                        var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
                         //Types will contains the affected GroupFilterConditionTypes
                         using (var transaction = session.BeginTransaction())
                         {
@@ -123,14 +122,15 @@ namespace Shoko.Server.Repositories.Cached
                         {
                             Changes.AddOrUpdate(grp.AnimeGroupID);
                         }
+
+                        if (verifylockedFilters)
+                        {
+                            RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract.Stat_AllTags,
+                                grp.Contract.Stat_AllYears, grp.Contract.Stat_AllSeasons);
+                            //This call will create extra years or tags if the Group have a new year or tag
+                            grp.UpdateGroupFilters(types, null);
+                        }
                     }
-                }
-                if (verifylockedFilters)
-                {
-                    RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract.Stat_AllTags,
-                        grp.Contract.Stat_AllYears);
-                    //This call will create extra years or tags if the Group have a new year or tag
-                    grp.UpdateGroupFilters(types, null);
                 }
                 if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
@@ -157,6 +157,10 @@ namespace Shoko.Server.Repositories.Cached
                     lock (group)
                     {
                         session.Insert(group);
+                        lock (Cache)
+                        {
+                            Cache.Update(group);
+                        }
                     }
                 }
             }
@@ -181,6 +185,10 @@ namespace Shoko.Server.Repositories.Cached
                     lock (group)
                     {
                         session.Update(group);
+                        lock (Cache)
+                        {
+                            Cache.Update(group);
+                        }
                     }
                 }
             }

@@ -74,6 +74,10 @@ namespace Shoko.Server.Tasks
 
             // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
             session.Insert(tempGroup);
+            lock (RepoFactory.AnimeGroup.Cache)
+            {
+                RepoFactory.AnimeGroup.Cache.Update(tempGroup);
+            }
 
             return tempGroup;
         }

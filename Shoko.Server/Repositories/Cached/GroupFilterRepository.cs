@@ -507,11 +507,15 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (globalDBLock)
             {
-                foreach (SVR_GroupFilter groupFilter in groupFilters)
-                    lock (groupFilter)
-                    {
-                        session.Update(groupFilter);
-                    }
+                lock (Cache)
+                {
+                    foreach (SVR_GroupFilter groupFilter in groupFilters)
+                        lock (groupFilter)
+                        {
+                            session.Update(groupFilter);
+                            Cache.Update(groupFilter);
+                        }
+                }
             }
         }
 

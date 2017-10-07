@@ -114,6 +114,10 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Insert(groupUser);
+                    lock (Cache)
+                    {
+                        Cache.Update(groupUser);
+                    }
                 }
 
                 lock (Changes)
@@ -150,6 +154,10 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Update(groupUser);
+                    lock (Cache)
+                    {
+                        Cache.Update(groupUser);
+                    }
                 }
 
                 lock (Changes)
