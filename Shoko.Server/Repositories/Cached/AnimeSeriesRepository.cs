@@ -167,38 +167,40 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
                 base.Save(obj);
+
+                if (updateGroups && !isMigrating)
+                {
+                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
+                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                    if (grp != null)
+                        RepoFactory.AnimeGroup.Save(grp, true, true);
+
+                    if (oldGroup != null)
+                    {
+                        logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",
+                            oldGroup.AnimeGroupID);
+                        RepoFactory.AnimeGroup.Save(oldGroup, true, true);
+                    }
+                }
                 if (!skipgroupfilters && !isMigrating)
                 {
-                    int endyear = obj.Contract.AniDBAnime.AniDBAnime.EndYear;
+                    int endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
                     if (endyear == 0) endyear = DateTime.Today.Year;
                     HashSet<int> allyears = null;
-                    if (obj.Contract.AniDBAnime.AniDBAnime.BeginYear != 0)
+                    if ((obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0) != 0)
                     {
                         allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
                             endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
                     }
                     RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
-                        obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears);
+                        obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears,
+                        obj.Contract?.AniDBAnime?.Stat_AllSeasons);
                     //This call will create extra years or tags if the Group have a new year or tag
                     obj.UpdateGroupFilters(types, null);
                 }
                 lock (Changes)
                 {
                     Changes.AddOrUpdate(obj.AnimeSeriesID);
-                }
-            }
-            if (updateGroups && !isMigrating)
-            {
-                logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
-                SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
-                if (grp != null)
-                    RepoFactory.AnimeGroup.Save(grp, true, true);
-
-                if (oldGroup != null)
-                {
-                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",
-                        oldGroup.AnimeGroupID);
-                    RepoFactory.AnimeGroup.Save(oldGroup, true, true);
                 }
             }
             if (alsoupdateepisodes)

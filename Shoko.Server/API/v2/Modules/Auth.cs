@@ -19,7 +19,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 //Bind POST body
                 AuthUser auth = this.Bind();
-                if (string.IsNullOrEmpty(auth.user.Trim()))
+                if (string.IsNullOrEmpty(auth.user?.Trim()))
                     return new Response {StatusCode = HttpStatusCode.BadRequest};
 
                 if (auth.pass == null) auth.pass = string.Empty;

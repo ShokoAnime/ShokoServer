@@ -381,7 +381,9 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("You may only do this before server init");
 
             DatabaseSettings settings = this.Bind();
-            string dbtype = settings.db_type.Trim();
+            string dbtype = settings?.db_type?.Trim();
+            if (string.IsNullOrEmpty(dbtype))
+                return APIStatus.BadRequest("You must specify database type and use valid xml or json.");
             if (dbtype.Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (string.IsNullOrEmpty(settings.mysql_hostname) || string.IsNullOrEmpty(settings.mysql_password) ||
@@ -408,10 +410,9 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (dbtype.Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
             {
-                if (string.IsNullOrEmpty(settings.sqlite_databasefile))
-                    return APIStatus.BadRequest("An invalid setting was passed");
                 ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
-                ServerSettings.DatabaseFile = settings.sqlite_databasefile;
+                if (!string.IsNullOrEmpty(settings.sqlite_databasefile))
+                    ServerSettings.DatabaseFile = settings.sqlite_databasefile;
                 return APIStatus.OK();
             }
             return APIStatus.BadRequest("An invalid setting was passed");

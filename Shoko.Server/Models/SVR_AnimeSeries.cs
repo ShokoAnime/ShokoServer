@@ -550,10 +550,7 @@ namespace Shoko.Server.Models
                     }
                 }
             }
-            foreach (SVR_GroupFilter gf in tosave)
-            {
-                RepoFactory.GroupFilter.Save(gf);
-            }
+            RepoFactory.GroupFilter.Save(tosave);
         }
 
         public void DeleteFromFilters()
