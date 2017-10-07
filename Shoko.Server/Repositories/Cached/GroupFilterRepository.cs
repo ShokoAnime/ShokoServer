@@ -484,7 +484,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (resaveConditions)
                 {
                     obj.Conditions.ForEach(a => a.GroupFilterID = obj.GroupFilterID);
-                    Save(obj);
+                    Save(obj, true);
                 }
             }
         }

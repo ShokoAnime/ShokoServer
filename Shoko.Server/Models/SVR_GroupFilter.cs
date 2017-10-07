@@ -1206,9 +1206,8 @@ namespace Shoko.Server.Models
 
         public override bool Equals(object obj)
         {
-            if (!(obj is SVR_GroupFilter)) return false;
             SVR_GroupFilter other = obj as SVR_GroupFilter;
-            if (other.ApplyToSeries != ApplyToSeries) return false;
+            if (other?.ApplyToSeries != ApplyToSeries) return false;
             if (other.BaseCondition != BaseCondition) return false;
             if (other.FilterType != FilterType) return false;
             if (other.InvisibleInClients != InvisibleInClients) return false;
