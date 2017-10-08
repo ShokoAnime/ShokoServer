@@ -342,7 +342,7 @@ namespace Shoko.Server.Models
                 {
                     if (GetFile() == null)
                     {
-                        logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to read MediaInfo");
+                        logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                         return false;
                     }
                     string name = (ImportFolder.CloudID == null)
