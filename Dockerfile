@@ -22,4 +22,4 @@ VOLUME /root/.shoko/
 VOLUME /usr/src/app/build/webui
 
 EXPOSE 8111
-ENTRYPOINT mono Shoko.CLI.exe
+ENTRYPOINT mono --debug Shoko.CLI.exe
