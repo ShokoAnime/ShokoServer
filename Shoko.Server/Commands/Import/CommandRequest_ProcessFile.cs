@@ -138,7 +138,7 @@ namespace Shoko.Server.Commands
                     if (aniFile != null)
                     {
                         //overwrite with local file name
-                        string localFileName = vidLocal.GetBestVideoLocalPlace().FullServerPath;
+                        string localFileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
                         localFileName = !string.IsNullOrEmpty(localFileName)
                             ? Path.GetFileName(localFileName)
                             : vidLocal.FileName;
