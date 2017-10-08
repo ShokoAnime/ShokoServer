@@ -174,7 +174,7 @@ namespace Shoko.Server.Commands
                                     $"Cannot find AniDB_File record or get cross ref from web cache record so exiting: {vidLocal.ED2KHash}");
                                 return;
                             }
-                            string fileName = vidLocal.GetBestVideoLocalPlace().FullServerPath;
+                            string fileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
                             fileName = !string.IsNullOrEmpty(fileName) ? Path.GetFileName(fileName) : vidLocal.FileName;
                             foreach (Azure_CrossRef_File_Episode xref in xrefs)
                             {
