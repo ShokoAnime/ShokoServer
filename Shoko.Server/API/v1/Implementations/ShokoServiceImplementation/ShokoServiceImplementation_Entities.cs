@@ -2267,7 +2267,7 @@ namespace Shoko.Server
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 if (anime == null)
                 {
-                    contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
+                    contractout.ErrorMessage = $"Could not find anime record with ID: {ser.AniDB_ID}";
                     return contractout;
                 }
 
@@ -2282,10 +2282,7 @@ namespace Shoko.Server
                 if (oldGroupID.HasValue)
                 {
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(oldGroupID.Value);
-                    if (grp != null)
-                    {
-                        grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-                    }
+                    grp?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
                 contractout.Result = ser.GetUserContract(userID);
                 return contractout;
@@ -2296,11 +2293,6 @@ namespace Shoko.Server
                 contractout.ErrorMessage = ex.Message;
                 return contractout;
             }
-        }
-
-        public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID)
-        {
-            return CreateSeriesFromAnime(animeID, animeGroupID, userID, false);
         }
 
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite)
