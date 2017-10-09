@@ -56,18 +56,20 @@ namespace Shoko.Server
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null) return result;
 
+                    var xrefs = anime.GetCrossRefTvDBV2().ToList();
 
                     // TvDB
-                    foreach (CrossRef_AniDB_TvDBV2 xref in anime.GetCrossRefTvDBV2().DistinctBy(a => a.TvDBID).ToList())
-                    {
+                    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
                         result.CrossRef_AniDB_TvDB.Add(xref);
 
+                    foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
+                        result.TvDBEpisodes.Add(ep);
+
+                    foreach (var xref in xrefs.DistinctBy(a => a.TvDBID))
+                    {
                         TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
                         if (ser != null)
                             result.TvDBSeries.Add(ser);
-
-                        foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
-                            result.TvDBEpisodes.Add(ep);
 
                         foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
                             result.TvDBImageFanarts.Add(fanart);
