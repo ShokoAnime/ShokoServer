@@ -96,9 +96,6 @@ namespace Shoko.Models.Interfaces
 
         #region Series
 
-        [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}", Verbs.Post)]
-        CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID);
-
         [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}", Verbs.Post)]
         CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite);
 
