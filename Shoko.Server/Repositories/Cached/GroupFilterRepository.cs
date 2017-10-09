@@ -131,8 +131,6 @@ namespace Shoko.Server.Repositories.Cached
                 .Where(condition => RepoFactory.GroupFilter.GetByID(condition.GroupFilterID) == null).ToList();
             RepoFactory.GroupFilterCondition.Delete(toremove);
 
-            CleanUpEmptyDirectoryFilters();
-
             PostProcessFilters = null;
         }
 
@@ -147,133 +145,130 @@ namespace Shoko.Server.Repositories.Cached
 
         public void CreateOrVerifyLockedFilters()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            string t = "GroupFilter";
+
+            List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+            //Continue Watching
+            // check if it already exists
+
+            // TODO Replace with a "Validating Default Filters"
+            ServerState.Instance.CurrentSetupStatus = string.Format(
+                Commons.Properties.Resources.Database_Cache, t,
+                " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
+
+            SVR_GroupFilter cwatching =
+                lockedGFs.FirstOrDefault(
+                    a =>
+                        a.FilterType == (int) GroupFilterType.ContinueWatching);
+            if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
             {
-                string t = "GroupFilter";
-
-                List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
-                //Continue Watching
-                // check if it already exists
-
-                // TODO Replace with a "Validating Default Filters"
                 ServerState.Instance.CurrentSetupStatus = string.Format(
                     Commons.Properties.Resources.Database_Cache, t,
                     " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
-
-                SVR_GroupFilter cwatching =
-                    lockedGFs.FirstOrDefault(
-                        a =>
-                            a.FilterType == (int) GroupFilterType.ContinueWatching);
-                if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
+                cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
+                Save(cwatching);
+            }
+            else if (cwatching == null)
+            {
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Commons.Properties.Resources.Database_Cache, t,
+                    " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
+                SVR_GroupFilter gf = new SVR_GroupFilter
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, t,
-                        " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
-                    cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
-                    Save(cwatching);
-                }
-                else if (cwatching == null)
+                    GroupFilterName = Constants.GroupFilterName.ContinueWatching,
+                    Locked = 1,
+                    SortingCriteria = "4;2", // by last watched episode desc
+                    ApplyToSeries = 0,
+                    BaseCondition = 1, // all
+                    FilterType = (int)GroupFilterType.ContinueWatching,
+                    InvisibleInClients = 0,
+                    Conditions = new List<GroupFilterCondition>()
+                };
+                GroupFilterCondition gfc = new GroupFilterCondition
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, t,
-                        " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
-                    SVR_GroupFilter gf = new SVR_GroupFilter
-                    {
-                        GroupFilterName = Constants.GroupFilterName.ContinueWatching,
-                        Locked = 1,
-                        SortingCriteria = "4;2", // by last watched episode desc
-                        ApplyToSeries = 0,
-                        BaseCondition = 1, // all
-                        FilterType = (int)GroupFilterType.ContinueWatching,
-                        InvisibleInClients = 0,
-                        Conditions = new List<GroupFilterCondition>()
-                    };
-                    GroupFilterCondition gfc = new GroupFilterCondition
-                    {
-                        ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes,
-                        ConditionOperator = (int)GroupFilterOperator.Include,
-                        ConditionParameter = string.Empty,
-                        GroupFilterID = gf.GroupFilterID
-                    };
-                    gf.Conditions.Add(gfc);
-                    gfc = new GroupFilterCondition
-                    {
-                        ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
-                        ConditionOperator = (int)GroupFilterOperator.Include,
-                        ConditionParameter = string.Empty,
-                        GroupFilterID = gf.GroupFilterID
-                    };
-                    gf.Conditions.Add(gfc);
-                    gf.CalculateGroupsAndSeries();
-                    Save(gf); //Get ID
-                }
-                //Create All filter
-                SVR_GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
-                if (allfilter == null)
+                    ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes,
+                    ConditionOperator = (int)GroupFilterOperator.Include,
+                    ConditionParameter = string.Empty,
+                    GroupFilterID = gf.GroupFilterID
+                };
+                gf.Conditions.Add(gfc);
+                gfc = new GroupFilterCondition
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, t,
-                        " " + Commons.Properties.Resources.Filter_CreateAll);
-                    SVR_GroupFilter gf = new SVR_GroupFilter
-                    {
-                        GroupFilterName = Commons.Properties.Resources.Filter_All,
-                        Locked = 1,
-                        InvisibleInClients = 0,
-                        FilterType = (int) GroupFilterType.All,
-                        BaseCondition = 1,
-                        SortingCriteria = "5;1"
-                    };
-                    gf.CalculateGroupsAndSeries();
-                    Save(gf);
-                }
-                SVR_GroupFilter tagsdirec =
-                    lockedGFs.FirstOrDefault(
-                        a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
-                if (tagsdirec == null)
+                    ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
+                    ConditionOperator = (int)GroupFilterOperator.Include,
+                    ConditionParameter = string.Empty,
+                    GroupFilterID = gf.GroupFilterID
+                };
+                gf.Conditions.Add(gfc);
+                gf.CalculateGroupsAndSeries();
+                Save(gf); //Get ID
+            }
+            //Create All filter
+            SVR_GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
+            if (allfilter == null)
+            {
+                ServerState.Instance.CurrentSetupStatus = string.Format(
+                    Commons.Properties.Resources.Database_Cache, t,
+                    " " + Commons.Properties.Resources.Filter_CreateAll);
+                SVR_GroupFilter gf = new SVR_GroupFilter
                 {
-                    tagsdirec = new SVR_GroupFilter
-                    {
-                        GroupFilterName = Commons.Properties.Resources.Filter_Tags,
-                        InvisibleInClients = 0,
-                        FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Tag),
-                        BaseCondition = 1,
-                        Locked = 1,
-                        SortingCriteria = "13;1"
-                    };
-                    Save(tagsdirec);
-                }
-                SVR_GroupFilter yearsdirec =
-                    lockedGFs.FirstOrDefault(
-                        a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
-                if (yearsdirec == null)
+                    GroupFilterName = Commons.Properties.Resources.Filter_All,
+                    Locked = 1,
+                    InvisibleInClients = 0,
+                    FilterType = (int) GroupFilterType.All,
+                    BaseCondition = 1,
+                    SortingCriteria = "5;1"
+                };
+                gf.CalculateGroupsAndSeries();
+                Save(gf);
+            }
+            SVR_GroupFilter tagsdirec =
+                lockedGFs.FirstOrDefault(
+                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
+            if (tagsdirec == null)
+            {
+                tagsdirec = new SVR_GroupFilter
                 {
-                    yearsdirec = new SVR_GroupFilter
-                    {
-                        GroupFilterName = Commons.Properties.Resources.Filter_Years,
-                        InvisibleInClients = 0,
-                        FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Year),
-                        BaseCondition = 1,
-                        Locked = 1,
-                        SortingCriteria = "13;1"
-                    };
-                    Save(yearsdirec);
-                }
-                SVR_GroupFilter seasonsdirec =
-                    lockedGFs.FirstOrDefault(
-                        a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
-                if (seasonsdirec == null)
+                    GroupFilterName = Commons.Properties.Resources.Filter_Tags,
+                    InvisibleInClients = 0,
+                    FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Tag),
+                    BaseCondition = 1,
+                    Locked = 1,
+                    SortingCriteria = "13;1"
+                };
+                Save(tagsdirec);
+            }
+            SVR_GroupFilter yearsdirec =
+                lockedGFs.FirstOrDefault(
+                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
+            if (yearsdirec == null)
+            {
+                yearsdirec = new SVR_GroupFilter
                 {
-                    seasonsdirec = new SVR_GroupFilter
-                    {
-                        GroupFilterName = Commons.Properties.Resources.Filter_Seasons,
-                        InvisibleInClients = 0,
-                        FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Season),
-                        BaseCondition = 1,
-                        Locked = 1,
-                        SortingCriteria = "13;1"
-                    };
-                    Save(seasonsdirec);
-                }
+                    GroupFilterName = Commons.Properties.Resources.Filter_Years,
+                    InvisibleInClients = 0,
+                    FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Year),
+                    BaseCondition = 1,
+                    Locked = 1,
+                    SortingCriteria = "13;1"
+                };
+                Save(yearsdirec);
+            }
+            SVR_GroupFilter seasonsdirec =
+                lockedGFs.FirstOrDefault(
+                    a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
+            if (seasonsdirec == null)
+            {
+                seasonsdirec = new SVR_GroupFilter
+                {
+                    GroupFilterName = Commons.Properties.Resources.Filter_Seasons,
+                    InvisibleInClients = 0,
+                    FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Season),
+                    BaseCondition = 1,
+                    Locked = 1,
+                    SortingCriteria = "13;1"
+                };
+                Save(seasonsdirec);
             }
             CreateOrVerifyDirectoryFilters(true);
         }
@@ -281,7 +276,7 @@ namespace Shoko.Server.Repositories.Cached
         public void CreateOrVerifyDirectoryFilters(bool frominit = false, HashSet<string> tags = null,
             HashSet<int> airdate = null, SortedSet<string> season = null)
         {
-            string t = "GroupFilter";
+            const string t = "GroupFilter";
 
             List<SVR_GroupFilter> lockedGFs = GetLockedGroupFilters();
 
@@ -411,14 +406,21 @@ namespace Shoko.Server.Repositories.Cached
             if (seasonsdirectory != null)
             {
                 SortedSet<string> allseasons;
-                if (season == null || season.Count == 0)
+                if (season == null)
                 {
-                    List<CL_AnimeSeries_User> grps =
-                        RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+                    List<SVR_AnimeSeries> grps =
+                        RepoFactory.AnimeSeries.GetAll().ToList();
 
                     allseasons = new SortedSet<string>(new SeasonComparator());
-                    foreach (CL_AnimeSeries_User ser in grps)
-                        allseasons.UnionWith(ser.AniDBAnime.Stat_AllSeasons);
+                    foreach (SVR_AnimeSeries ser in grps)
+                    {
+                        if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0)
+                        {
+                            ser.UpdateContract();
+                        }
+                        if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0) continue;
+                        allseasons.UnionWith(ser.Contract.AniDBAnime.Stat_AllSeasons);
+                    }
                 }
                 else
                 {
