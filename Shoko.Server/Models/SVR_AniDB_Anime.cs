@@ -1783,6 +1783,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             SVR_AnimeSeries series = new SVR_AnimeSeries();
 
             series.Populate(this);
+            // Populate before making a group to ensure IDs and stats are set for group filters.
+            RepoFactory.AnimeSeries.Save(series, false, false);
 
             SVR_AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
 
