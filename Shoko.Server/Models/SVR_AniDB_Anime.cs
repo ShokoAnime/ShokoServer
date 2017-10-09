@@ -1769,15 +1769,15 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return contract;
         }
 
-        public SVR_AnimeSeries CreateAnimeSeriesAndGroup()
+        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(int? existingGroupID = null)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return CreateAnimeSeriesAndGroup(session.Wrap());
+                return CreateAnimeSeriesAndGroup(session.Wrap(), existingGroupID);
             }
         }
 
-        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session)
+        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session, int? existingGroupID = null)
         {
             // Create a new AnimeSeries record
             SVR_AnimeSeries series = new SVR_AnimeSeries();
@@ -1786,9 +1786,18 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             // Populate before making a group to ensure IDs and stats are set for group filters.
             RepoFactory.AnimeSeries.Save(series, false, false);
 
-            SVR_AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
+            if (existingGroupID == null)
+            {
+                SVR_AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
+                series.AnimeGroupID = grp.AnimeGroupID;
+            }
+            else
+            {
+                SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(existingGroupID.Value) ??
+                                     new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
+                series.AnimeGroupID = grp.AnimeGroupID;
+            }
 
-            series.AnimeGroupID = grp.AnimeGroupID;
             RepoFactory.AnimeSeries.Save(series, false, false);
 
             // check for TvDB associations

@@ -266,7 +266,8 @@ namespace Shoko.Server.Commands
                 if (missingEpisodes && !animeRecentlyUpdated)
                 {
                     logger.Debug("Getting Anime record from AniDB....");
-                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
+                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
+                        ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
                 }
 
                 // create the group/series/episode records if needed

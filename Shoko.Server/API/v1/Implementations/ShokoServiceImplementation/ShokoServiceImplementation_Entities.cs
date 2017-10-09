@@ -2300,6 +2300,11 @@ namespace Shoko.Server
 
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID)
         {
+            return CreateSeriesFromAnime(animeID, animeGroupID, userID, false);
+        }
+
+        public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite)
+        {
             CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>
             {
                 Result = null,
@@ -2307,9 +2312,6 @@ namespace Shoko.Server
             };
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    ISessionWrapper sessionWrapper = session.Wrap();
                     if (animeGroupID.HasValue)
                     {
                         SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
@@ -2322,16 +2324,30 @@ namespace Shoko.Server
 
                     // make sure a series doesn't already exists for this anime
                     SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    if (ser != null)
+                    if (ser != null && !forceOverwrite)
                     {
                         response.ErrorMessage = "A series already exists for this anime";
                         return response;
                     }
 
                     // make sure the anime exists first
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
-                    if (anime == null)
-                        anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, false, false);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                    bool animeRecentlyUpdated = false;
+
+                    if (anime != null)
+                    {
+                        TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                        if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+                    }
+
+                    // even if we are missing episode info, don't get data  more than once every 4 hours
+                    // this is to prevent banning
+                    if (!animeRecentlyUpdated)
+                    {
+                        logger.Debug("Getting Anime record from AniDB....");
+                        anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
+                            ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
+                    }
 
                     if (anime == null)
                     {
@@ -2339,40 +2355,10 @@ namespace Shoko.Server
                         return response;
                     }
 
-                    if (animeGroupID.HasValue)
-                    {
-                        ser = new SVR_AnimeSeries();
-                        ser.Populate(anime);
-                        ser.AnimeGroupID = animeGroupID.Value;
-                        RepoFactory.AnimeSeries.Save(ser, false);
+                    logger.Debug("Creating groups, series and episodes....");
+                    if (ser == null) ser = anime.CreateAnimeSeriesAndGroup(animeGroupID);
 
-                        // check for TvDB associations
-                        if (anime.Restricted == 0)
-                        {
-                            CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(anime.AnimeID, forced: false);
-                            cmd.Save();
-
-                            // check for Trakt associations
-                            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                            {
-                                CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(anime.AnimeID, forced: false);
-                                cmd2.Save();
-                            }
-
-                            if (anime.AnimeType == (int) Shoko.Models.Enums.AnimeType.Movie)
-                            {
-                                CommandRequest_MovieDBSearchAnime cmd3 =
-                                    new CommandRequest_MovieDBSearchAnime(anime.AnimeID, false);
-                                cmd3.Save();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        ser = anime.CreateAnimeSeriesAndGroup(sessionWrapper);
-                    }
-
-                    ser.CreateAnimeEpisodes(session);
+                    ser.CreateAnimeEpisodes();
 
                     // check if we have any group status data for this associated anime
                     // if not we will download it now
@@ -2380,21 +2366,19 @@ namespace Shoko.Server
                     {
                         CommandRequest_GetReleaseGroupStatus cmdStatus =
                             new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                        cmdStatus.Save(session);
+                        cmdStatus.Save();
                     }
 
-                    ser.UpdateStats(true, true, false);
+                    // update stats
                     RepoFactory.AnimeSeries.Save(ser, false, false);
 
                     foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
                     {
-                        grp.EpisodeAddedDate = DateTime.Now;
                         RepoFactory.AnimeGroup.Save(grp, true, false);
                     }
 
                     response.Result = ser.GetUserContract(userID);
                     return response;
-                }
             }
             catch (Exception ex)
             {
