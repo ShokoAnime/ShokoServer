@@ -417,19 +417,15 @@ namespace Shoko.Server.Models
         {
             get
             {
-                if (GetAnime() != null)
-                    if (GetAnime().AirDate.HasValue)
-                        return GetAnime().AirDate.Value;
+                var anime = GetAnime();
+                if (anime?.AirDate != null)
+                    return anime.AirDate.Value;
                 // This will be slower, but hopefully more accurate
-                List<SVR_AnimeEpisode> eps = GetAnimeEpisodes();
-                if (eps != null && eps.Count > 0)
-                {
-                    // Should be redundant, but just in case, as resharper warned me
-                    eps = eps.OrderBy(a => a.AniDB_Episode.GetAirDateAsDate() ?? DateTime.MaxValue).ToList();
-                    SVR_AnimeEpisode ep = eps.Find(a => a.AniDB_Episode.GetAirDateAsDate() != null);
-                    if (ep != null)
-                        return ep.AniDB_Episode.GetAirDateAsDate().Value;
-                }
+                DateTime? ep = GetAnimeEpisodes()
+                    .Select(a => a.AniDB_Episode.GetAirDateAsDate()).Where(a => a != null).OrderBy(a => a)
+                    .FirstOrDefault();
+                if (ep != null)
+                    return ep.Value;
                 return DateTime.MinValue;
             }
         }
