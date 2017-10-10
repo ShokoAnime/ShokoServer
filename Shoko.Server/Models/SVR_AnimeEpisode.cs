@@ -112,16 +112,19 @@ namespace Shoko.Server.Models
             {
                 if (tvDbEpisode != null) return tvDbEpisode;
                 AniDB_Episode aep = AniDB_Episode;
+
                 List<CrossRef_AniDB_TvDBV2> xref_tvdb =
                     RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
                         aep.EpisodeNumber);
-                if (xref_tvdb.Count <= 0) xref_tvdb = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(aep.AnimeID);
+                TvDB_Episode tvep;
+
+                if (aep.EpisodeType == (int) EpisodeType.Episode && xref_tvdb.Count <= 0)
+                    xref_tvdb = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(aep.AnimeID);
                 if (xref_tvdb.Count <= 0) return null;
                 CrossRef_AniDB_TvDBV2 xref_tvdb2 = xref_tvdb[0];
 
-                TvDB_Episode tvep;
                 DateTime? airdate = aep.GetAirDateAsDate();
-                if (airdate != null)
+                if (aep.EpisodeType == (int) EpisodeType.Episode && airdate != null)
                 {
                     foreach (var xref in xref_tvdb)
                     {
