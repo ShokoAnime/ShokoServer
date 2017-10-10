@@ -87,7 +87,13 @@ namespace Shoko.Server.API.v2.Models.common
                     ep.art.thumb.Add(new Art {index = 0, url = tvep.GenPoster(null)});
                     ep.art.fanart.Add(new Art {index = 0, url = tvep.GenPoster(null)});
                     ep.summary = tvep.Overview;
-                    ep.season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:00#}";
+
+                    int zeroPadding = tvep.EpisodeNumber.ToString().Length;
+                    string episodeNumber = tvep.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
+                    zeroPadding = tvep.SeasonNumber.ToString().Length;
+                    string seasonNumber = tvep.SeasonNumber.ToString().PadLeft(zeroPadding, '0');
+
+                    ep.season = $"{seasonNumber}x{episodeNumber}";
                     var airdate = tvep.AirDate;
                     if (airdate != null)
                     {

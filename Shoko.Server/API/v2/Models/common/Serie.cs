@@ -67,7 +67,9 @@ namespace Shoko.Server.API.v2.Models.common
             sr.id = ser.AnimeSeriesID;
             sr.summary = contract.AniDBAnime.AniDBAnime.Description;
             sr.year = contract.AniDBAnime.AniDBAnime.BeginYear.ToString();
-            sr.air = ser.AirDate.ToPlexDate();
+            var airdate = ser.AirDate;
+            if (airdate != DateTime.MinValue)
+                sr.air = airdate.ToPlexDate();
 
             GenerateSizes(sr, ael, uid);
 
