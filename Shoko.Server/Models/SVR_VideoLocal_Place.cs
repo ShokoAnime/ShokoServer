@@ -435,7 +435,9 @@ namespace Shoko.Server.Models
                     RemoveRecord();
                     return true;
                 }
-                try{
+                FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
+                try
+                {
                     FileSystemResult fs = file.Delete(false);
                     if (fs == null || !fs.IsOk)
                     {
@@ -447,6 +449,8 @@ namespace Shoko.Server.Models
                 {
                     if (ex is FileNotFoundException)
                     {
+                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                         RemoveRecord();
                         return true;
                     }
@@ -454,6 +458,8 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return false;
                 }
+                if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
                 return true;
@@ -497,7 +503,9 @@ namespace Shoko.Server.Models
                     RemoveRecord();
                     return string.Empty;
                 }
-                try{
+                FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
+                try
+                {
                     FileSystemResult fs = file.Delete(false);
                     if (fs == null || !fs.IsOk)
                     {
@@ -509,6 +517,8 @@ namespace Shoko.Server.Models
                 {
                     if (ex is FileNotFoundException)
                     {
+                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                         RemoveRecord();
                         return string.Empty;
                     }
@@ -516,6 +526,8 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return $"Unable to delete file '{FullServerPath}'";
                 }
+                if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
                 return string.Empty;
@@ -559,6 +571,7 @@ namespace Shoko.Server.Models
                     RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     return;
                 }
+                FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
                 try
                 {
                     FileSystemResult fs = file.Delete(false);
@@ -572,6 +585,8 @@ namespace Shoko.Server.Models
                 {
                     if (ex is FileNotFoundException)
                     {
+                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                         RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                         return;
                     }
@@ -579,6 +594,8 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return;
                 }
+                if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                 RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                 // For deletion of files from Trakt, we will rely on the Daily sync
             }
@@ -979,6 +996,7 @@ namespace Shoko.Server.Models
                     {
                         logger.Error("Unable to DELETE file: {0} error {1}", FullServerPath,
                             fr?.Error ?? string.Empty);
+                        return true;
                     }
                 }
                 else
@@ -1068,7 +1086,6 @@ namespace Shoko.Server.Models
                         if (dd != null && dd.IsOk && dd.Result is IDirectory)
                             RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                     }
-                    ShokoServer.StartWatchingFiles(false);
                 }
             }
             catch (Exception ex)
@@ -1076,33 +1093,43 @@ namespace Shoko.Server.Models
                 string msg = $"Could not MOVE file: {FullServerPath ?? VideoLocal_Place_ID.ToString()} -- {ex}";
                 logger.Error(ex, msg);
             }
+            ShokoServer.StartWatchingFiles(false);
             return true;
         }
 
         private void RecursiveDeleteEmptyDirectories(IDirectory dir, bool importfolder)
         {
-            FileSystemResult fr = dir.Populate();
-            if (fr.IsOk)
+            try
             {
-                if (dir.Files.Count > 0 && dir.Directories.Count == 0)
-                    return;
-                foreach (IDirectory d in dir.Directories)
-                    RecursiveDeleteEmptyDirectories(d, false);
-            }
-            if (importfolder)
-                return;
-            fr = dir.Populate();
-            if (fr.IsOk)
-            {
-                if (dir.Files.Count == 0 && dir.Directories.Count == 0)
+                FileSystemResult fr = dir.Populate();
+                if (fr.IsOk)
                 {
-                    fr = dir.Delete(true);
-                    if (!fr.IsOk)
+                    if (dir.Files.Count > 0 && dir.Directories.Count == 0)
+                        return;
+                    foreach (IDirectory d in dir.Directories)
+                        RecursiveDeleteEmptyDirectories(d, false);
+                }
+                if (importfolder)
+                    return;
+                fr = dir.Populate();
+                if (fr.IsOk)
+                {
+                    if (dir.Files.Count == 0 && dir.Directories.Count == 0)
                     {
-                        logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
-                            fr?.Error ?? String.Empty);
+                        fr = dir.Delete(true);
+                        if (!fr.IsOk)
+                        {
+                            logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
+                                fr?.Error ?? String.Empty);
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                if (e is FileNotFoundException)
+                    return;
+                logger.Error($"There was an error removing the empty directory: {dir.FullName}\r\n{e}");
             }
         }
     }
