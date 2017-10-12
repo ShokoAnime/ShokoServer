@@ -1,11 +1,12 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.Smo;
@@ -38,55 +39,55 @@ namespace Shoko.Server.API.v2.Modules
         {
             // Get version, regardless of server status
             // This will work after init
-            Get["/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion, ct);
+            Get["/version"] = ctx => GetVersion();
 
             // Get the startup state
             // This will work after init
-            Get["/status", true] = async (x, ct) => await Task.Factory.StartNew(GetServerStatus, ct);
+            Get["/status"] = ctx => GetServerStatus();
 
             // Get the Default User Credentials
-            Get["/defaultuser", true] = async (x, ct) => await Task.Factory.StartNew(GetDefaultUserCredentials, ct);
+            Get["/defaultuser"] = ctx => GetDefaultUserCredentials();
 
             // Set the Default User Credentials
             // Pass this a Credentials object
-            Post["/defaultuser", true] = async (x, ct) => await Task.Factory.StartNew(SetDefaultUserCredentials, ct);
+            Post["/defaultuser"] = ctx => SetDefaultUserCredentials();
 
             // Set AniDB user/pass
             // Pass this a Credentials object
-            Post["/anidb", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct);
+            Post["/anidb"] = ctx => SetAniDB();
 
             // Get existing AniDB user, don't provide pass
-            Get["/anidb", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct);
+            Get["/anidb"] = ctx => GetAniDB();
 
             // Test AniDB login
-            Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
+            Get["/anidb/test"] = ctx => TestAniDB();
 
             // Get Database Settings
-            Get["/database", true] = async (x,ct) => await Task.Factory.StartNew(GetDatabaseSettings, ct);
+            Get["/database"] = ctx => GetDatabaseSettings();
 
             // Set Database Settings
-            Post["/database", true] = async (x,ct) => await Task.Factory.StartNew(SetDatabaseSettings, ct);
+            Post["/database"] = ctx => SetDatabaseSettings();
 
             // Test Database Connection
-            Get["/database/test", true] = async (x,ct) => await Task.Factory.StartNew(TestDatabaseConnection, ct);
+            Get["/database/test"] = ctx => TestDatabaseConnection();
 
             // Get SQL Server Instances on the Machine
-            Get["/database/sqlserverinstance", true] = async (x,ct) => await Task.Factory.StartNew(GetMSSQLInstances, ct);
+            Get["/database/sqlserverinstance"] = ctx => GetMSSQLInstances();
 
             // Get the whole settings file
-            Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig, ct);
+            Get["/config"] = ctx => ExportConfig();
 
             // Replace the whole settings file
-            Post["/config", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig, ct);
+            Post["/config"] = ctx => ImportConfig();
 
             // Get a single setting value
-            Get["/setting", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting, ct);
+            Get["/setting"] = ctx => GetSetting();
 
             // Set a single setting value
-            Patch["/setting", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting, ct);
+            Patch["/setting"] = ctx => SetSetting();
 
             // Start the server
-            Get["/startserver", true] = async (x, ct) => await Task.Factory.StartNew(StartServer, ct);
+            Get["/startserver"] = ctx => StartServer();
         }
 
         /// <summary>
@@ -507,7 +508,7 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("Empty settings are not allowed");
 
             string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-            File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);
+            File.WriteAllText(path, raw_settings, Encoding.UTF8);
             try
             {
                 ServerSettings.LoadSettingsFromFile(path, true);
