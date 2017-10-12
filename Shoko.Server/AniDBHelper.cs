@@ -172,12 +172,21 @@ namespace Shoko.Server
             logoutTimer?.Stop();
             logoutTimer = null;
             if (soUdp == null) return;
-            soUdp.Shutdown(SocketShutdown.Both);
-            if (soUdp.Connected) {
-                soUdp.Disconnect(false);
+            try{
+                soUdp.Shutdown(SocketShutdown.Both);
+                if (soUdp.Connected) {
+                    soUdp.Disconnect(false);
+                }
             }
-            soUdp.Close();
-            soUdp = null;
+            catch (SocketException ex) {
+                logger.Error(ex.ToString(), $"Failed to Shutdown and Disconnect the connection to AniDB: {0}");
+            }
+            finally {
+                logger.Info("CLOSING ANIDB CONNECTION...");
+                soUdp.Close();
+                logger.Info("CLOSED ANIDB CONNECTION");
+                soUdp = null;
+            }
         }
 
         void LogoutTimer_Elapsed(object sender, ElapsedEventArgs e)
