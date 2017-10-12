@@ -716,9 +716,12 @@ namespace Shoko.UI
 
         private void ShowDatabaseSetup()
         {
-            if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE") cboDatabaseType.SelectedIndex = 0;
-            if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER") cboDatabaseType.SelectedIndex = 1;
-            if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL") cboDatabaseType.SelectedIndex = 2;
+            if (ServerSettings.DatabaseType.Trim().Equals("SQLite", StringComparison.InvariantCultureIgnoreCase))
+                cboDatabaseType.SelectedIndex = 0;
+            if (ServerSettings.DatabaseType.Trim().Equals("SQLServer", StringComparison.InvariantCultureIgnoreCase))
+                cboDatabaseType.SelectedIndex = 1;
+            if (ServerSettings.DatabaseType.Trim().Equals("MySQL", StringComparison.InvariantCultureIgnoreCase))
+                cboDatabaseType.SelectedIndex = 2;
             cboDatabaseType.IsEnabled = true;
             btnSaveDatabaseSettings.IsEnabled = true;
         }

@@ -180,7 +180,7 @@ namespace Shoko.Server
             ServerState.Instance.StartupFailed = false;
             ServerState.Instance.StartupFailedMessage = string.Empty;
             ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
-            
+
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
 
@@ -223,9 +223,9 @@ namespace Shoko.Server
 
             workerSetupDB.DoWork += WorkerSetupDB_DoWork;
             workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
-            
+
             ServerState.Instance.LoadSettings();
-            
+
             InitCulture();
             Instance = this;
 
@@ -332,7 +332,7 @@ namespace Shoko.Server
 
                 if (!string.IsNullOrEmpty(jmmServerUninstallPath))
                 {
-                    
+
                     // Ask if user wants to uninstall first
                     bool res = Utils.ShowYesNo(Resources.DuplicateInstallDetectedQuestion, Resources.DuplicateInstallDetected);
 
@@ -408,7 +408,7 @@ namespace Shoko.Server
             {
                 ThreadStart ts = () =>
                 {
-                    
+
                     ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
                     Environment.Exit(0);
                 };
@@ -545,7 +545,7 @@ namespace Shoko.Server
 
         void InitCulture()
         {
-            
+
         }
 
 
@@ -553,7 +553,7 @@ namespace Shoko.Server
 
         public event EventHandler LoginFormNeeded;
         public event EventHandler DatabaseSetup;
-        public event EventHandler DBSetupCompleted; 
+        public event EventHandler DBSetupCompleted;
         void WorkerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             ServerState.Instance.ServerStarting = false;
@@ -716,7 +716,9 @@ namespace Shoko.Server
                     ServerState.Instance.StartupFailedMessage = errorMessage;
                     return;
                 }
-                    ServerState.Instance.DatabaseAvailable = true;
+
+                ServerState.Instance.DatabaseAvailable = true;
+
                 logger.Info("Initializing Session Factory...");
 
                 Scanner.Instance.Init();
@@ -756,7 +758,6 @@ namespace Shoko.Server
                 StartFileWorker();
 
                 StartWatchingFiles();
-                _pauseFileWatchDog.Set();
 
                 DownloadAllImages();
 

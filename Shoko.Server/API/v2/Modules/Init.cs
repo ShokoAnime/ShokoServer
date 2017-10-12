@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.Smo;
 using Nancy;
 using Nancy.ModelBinding;
+using NLog;
 using Pri.LongPath;
 using Shoko.Commons;
 using Shoko.Models.Client;
@@ -26,6 +27,7 @@ namespace Shoko.Server.API.v2.Modules
     // ReSharper disable once UnusedMember.Global
     public class Init : NancyModule
     {
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
         /// <inheritdoc />
         /// <summary>
         /// Preinit Module for connection testing and setup
@@ -258,7 +260,15 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (ServerState.Instance.ServerOnline) return APIStatus.BadRequest("Already Running");
             if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
-            ShokoServer.RunWorkSetupDB();
+            try
+            {
+                ShokoServer.RunWorkSetupDB();
+            }
+            catch (Exception e)
+            {
+                logger.Error($"There was an error starting the server: {e}");
+                return APIStatus.InternalError($"There was an error starting the server: {e}");
+            }
             return APIStatus.OK();
         }
 

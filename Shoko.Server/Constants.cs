@@ -24,9 +24,9 @@
 
         public struct DatabaseType
         {
-            public static readonly string SqlServer = "SQLSERVER";
-            public static readonly string Sqlite = "SQLITE";
-            public static readonly string MySQL = "MYSQL";
+            public static readonly string SqlServer = "SQLServer";
+            public static readonly string Sqlite = "SQLite";
+            public static readonly string MySQL = "MySQL";
         }
 
         public struct DBLogType
