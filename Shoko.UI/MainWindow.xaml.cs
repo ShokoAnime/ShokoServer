@@ -216,12 +216,16 @@ namespace Shoko.UI
 
             ServerSettings.MigrationStarted += (a, e) =>
             {
-                // Display the migration form.
-                var migrationForm = new MigrationForm();
-                migrationForm.Show();
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Display the migration form.
+                    var migrationForm = new MigrationForm();
+                    migrationForm.Show();
+                });
             };
 
-            ShokoServer.Instance.DBSetupCompleted += DBSetupCompleted;
+            ShokoServer.Instance.
+                DBSetupCompleted += DBSetupCompleted;
             ShokoServer.Instance.DatabaseSetup += (sender, args) => ShowDatabaseSetup();
         }
         public void DoEvents()
@@ -679,10 +683,13 @@ namespace Shoko.UI
 
         void  DBSetupCompleted(object sender, EventArgs e)
         {
-            btnSaveDatabaseSettings.IsEnabled = true;
-            cboDatabaseType.IsEnabled = true;
-            btnRefreshMSSQLServerList.IsEnabled = true;
-            cboLanguages.IsEnabled = true;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                btnSaveDatabaseSettings.IsEnabled = true;
+                cboDatabaseType.IsEnabled = true;
+                btnRefreshMSSQLServerList.IsEnabled = true;
+                cboLanguages.IsEnabled = true;
+            });
         }
 
         void btnRefreshMSSQLServerList_Click(object sender, RoutedEventArgs e)
