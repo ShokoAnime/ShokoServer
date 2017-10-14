@@ -221,6 +221,8 @@ namespace Shoko.Server
             workerDeleteImportFolder.WorkerSupportsCancellation = true;
             workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
 
+            workerSetupDB.WorkerReportsProgress = true;
+            workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
             workerSetupDB.DoWork += WorkerSetupDB_DoWork;
             workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
 
@@ -560,12 +562,13 @@ namespace Shoko.Server
             bool setupComplete = bool.Parse(e.Result.ToString());
             if (setupComplete)
             {
-                ServerInfo.Instance.RefreshImportFolders();
-                ServerInfo.Instance.RefreshCloudAccounts();
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
-                ServerState.Instance.ServerOnline = true;
-                ServerSettings.FirstRun = false;
-                ServerSettings.SaveSettings();
+                workerSetupDB.ReportProgress(100);
+                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
+                    string.IsNullOrEmpty(ServerSettings.AniDB_Password))
+                {
+                    LoginFormNeeded?.Invoke(Instance, null);
+                }
+                DBSetupCompleted?.Invoke(Instance, null);
             }
             else
             {
@@ -576,15 +579,16 @@ namespace Shoko.Server
                     ShowDatabaseSetup();
                 }
             }
-            if (setupComplete)
-            {
-                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
-                    string.IsNullOrEmpty(ServerSettings.AniDB_Password))
-                {
-                    LoginFormNeeded?.Invoke(Instance, null);
-                }
-                DBSetupCompleted?.Invoke(Instance, null);
-            }
+        }
+
+        void WorkerSetupDB_ReportProgress()
+        {
+            ServerInfo.Instance.RefreshImportFolders();
+            ServerInfo.Instance.RefreshCloudAccounts();
+            ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
+            ServerState.Instance.ServerOnline = true;
+            ServerSettings.FirstRun = false;
+            ServerSettings.SaveSettings();
         }
 
         private void ShowDatabaseSetup() => DatabaseSetup?.Invoke(Instance, null);
