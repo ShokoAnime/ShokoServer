@@ -208,9 +208,6 @@ namespace Shoko.UI
                     LoginWindow.Focus();
                     return;
                 }
-                MessageBox.Show(Commons.Properties.Resources.InitialSetup_LoginFail,
-                    Commons.Properties.Resources.Error,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
 
                 LoginWindow = new InitialSetupForm();
                 LoginWindow.Owner = this;
