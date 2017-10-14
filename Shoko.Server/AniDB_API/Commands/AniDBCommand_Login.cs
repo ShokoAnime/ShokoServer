@@ -31,7 +31,7 @@ namespace AniDBAPI.Commands
                 case 555: return enHelperActivityType.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.LoginFailed;
+            if (errorOccurred) return enHelperActivityType.OtherError;
 
             // Process Response
             string sMsgType = socketResponse.Substring(0, 3);
@@ -39,17 +39,12 @@ namespace AniDBAPI.Commands
 
             // 200 {str session_key} LOGIN ACCEPTED
             // 203 LOGGED OUT
-            // 500 LOGIN FAILED 
-            
-            /*if (sMsgType.Equals("500") || sMsgType.Equals("598"))
-            {
+            // 500 LOGIN FAILED
+            if (sMsgType.Equals("500"))
                 return enHelperActivityType.LoginFailed;
-            }*/
 
             if (!sMsgType.Equals("200") && !sMsgType.Equals("201"))
-            {
-                return enHelperActivityType.LoginFailed;
-            }
+                return enHelperActivityType.OtherError;
 
             // Get the session ID
             string sMessage = socketResponse.Substring(4);

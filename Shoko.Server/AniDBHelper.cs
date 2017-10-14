@@ -287,26 +287,24 @@ namespace Shoko.Server
             if (login.errorOccurred)
                 logger.Trace("error in login: {0}", login.errorMessage);
             //else
-            //	logger.Info("socketResponse: {0}", login.socketResponse);
+            //  logger.Info("socketResponse: {0}", login.socketResponse);
 
             Thread.Sleep(2200);
 
-            if (ev != enHelperActivityType.LoggedIn)
+            switch (ev)
             {
-                LoginFailed?.Invoke(this, null);
-
-                //BaseConfig.MyAnimeLog.Write("ProcessCommands: Login Failed!");
-                //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.LoginFailed, string.Empty));
-                //aniDBCommands.Clear();
-                //OnQueueUpdateEvent(new QueueUpdateEventArgs(this.QueueCount));
-                // this will exit the thread
-            }
-            else
-            {
-                curSessionID = login.SessionID;
-                isLoggedOn = true;
-                IsInvalidSession = false;
-                return true;
+                case enHelperActivityType.LoginFailed:
+                    logger.Error("AniDB Login Failed: invalid credentials");
+                    LoginFailed?.Invoke(this, null);
+                    break;
+                case enHelperActivityType.LoggedIn:
+                    curSessionID = login.SessionID;
+                    isLoggedOn = true;
+                    IsInvalidSession = false;
+                    return true;
+                default:
+                    logger.Error($"AniDB Login Failed: error connecting to AniDB: {login.errorMessage}");
+                    break;
             }
 
             return false;
