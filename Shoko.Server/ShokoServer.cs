@@ -562,12 +562,9 @@ namespace Shoko.Server
             bool setupComplete = bool.Parse(e.Result.ToString());
             if (setupComplete)
             {
-                workerSetupDB.ReportProgress(100);
                 if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
                     string.IsNullOrEmpty(ServerSettings.AniDB_Password))
-                {
                     LoginFormNeeded?.Invoke(Instance, null);
-                }
                 DBSetupCompleted?.Invoke(Instance, null);
             }
             else
@@ -771,6 +768,7 @@ namespace Shoko.Server
                 if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
 
                 ServerState.Instance.ServerOnline = true;
+                workerSetupDB.ReportProgress(100);
                 e.Result = true;
             }
             catch (Exception ex)
