@@ -560,21 +560,12 @@ namespace Shoko.Server
         {
             ServerState.Instance.ServerStarting = false;
             bool setupComplete = bool.Parse(e.Result.ToString());
-            if (setupComplete)
-            {
-                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
-                    string.IsNullOrEmpty(ServerSettings.AniDB_Password))
-                    LoginFormNeeded?.Invoke(Instance, null);
-                DBSetupCompleted?.Invoke(Instance, null);
-            }
-            else
+            if (!setupComplete)
             {
                 ServerState.Instance.ServerOnline = false;
-                if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
-                {
-                    ServerSettings.DatabaseType = "SQLite";
-                    ShowDatabaseSetup();
-                }
+                if (!string.IsNullOrEmpty(ServerSettings.DatabaseType)) return;
+                ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
+                ShowDatabaseSetup();
             }
         }
 
@@ -586,6 +577,10 @@ namespace Shoko.Server
             ServerState.Instance.ServerOnline = true;
             ServerSettings.FirstRun = false;
             ServerSettings.SaveSettings();
+            if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
+                string.IsNullOrEmpty(ServerSettings.AniDB_Password))
+                LoginFormNeeded?.Invoke(Instance, null);
+            DBSetupCompleted?.Invoke(Instance, null);
         }
 
         private void ShowDatabaseSetup() => DatabaseSetup?.Invoke(Instance, null);

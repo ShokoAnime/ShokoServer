@@ -46,6 +46,8 @@ namespace Shoko.UI
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static InitialSetupForm LoginWindow;
+        public static bool AniDBLoginOpen;
 
         public MainWindow()
         {
@@ -199,20 +201,32 @@ namespace Shoko.UI
                 {
                     Application.Current.Dispatcher.Invoke(action);
                 };
-            bool anidbLoginOpen = false;
             AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
             {
-                if (anidbLoginOpen) return;
+                if (AniDBLoginOpen && LoginWindow != null)
+                {
+                    LoginWindow.Focus();
+                    return;
+                }
                 MessageBox.Show(Commons.Properties.Resources.InitialSetup_LoginFail,
                     Commons.Properties.Resources.Error,
                     MessageBoxButton.OK, MessageBoxImage.Error);
 
-                InitialSetupForm frm = new InitialSetupForm();
-                anidbLoginOpen = true;
-                frm.ShowDialog();
-                anidbLoginOpen = false;
+                LoginWindow = new InitialSetupForm();
+                LoginWindow.Owner = this;
+                LoginWindow.ShowDialog();
             });
-            ShokoServer.Instance.LoginFormNeeded += (a, e) => Application.Current.Dispatcher.Invoke(() => new InitialSetupForm().ShowDialog());
+            ShokoServer.Instance.LoginFormNeeded += (a, e) => Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (AniDBLoginOpen && LoginWindow != null)
+                {
+                    LoginWindow.Focus();
+                    return;
+                }
+                LoginWindow = new InitialSetupForm();
+                LoginWindow.Owner = this;
+                LoginWindow.ShowDialog();
+            });
 
             ServerSettings.MigrationStarted += (a, e) =>
             {
@@ -457,9 +471,14 @@ namespace Shoko.UI
 
         void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
         {
-            InitialSetupForm frm = new InitialSetupForm();
-            frm.Owner = this;
-            frm.ShowDialog();
+            if (AniDBLoginOpen && LoginWindow != null)
+            {
+                LoginWindow.Focus();
+                return;
+            }
+            LoginWindow = new InitialSetupForm();
+            LoginWindow.Owner = this;
+            LoginWindow.ShowDialog();
         }
 
         void cboLanguages_SelectionChanged(object sender, SelectionChangedEventArgs e)

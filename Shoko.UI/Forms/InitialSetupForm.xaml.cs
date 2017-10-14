@@ -147,6 +147,7 @@ namespace Shoko.UI.Forms
         void btnClose_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = false;
+            MainWindow.AniDBLoginOpen = false;
             this.Close();
         }
     }
