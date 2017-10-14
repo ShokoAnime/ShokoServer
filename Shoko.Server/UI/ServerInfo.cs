@@ -44,11 +44,11 @@ namespace Shoko.Server
 
         private ServerInfo()
         {
-            ImportFolders = new ObservableCollection<SVR_ImportFolder>();
-            CloudAccounts = new ObservableCollection<SVR_CloudAccount>();
-            AdminMessages = new ObservableCollection<Azure_AdminMessage>();
-            CloudProviders = new ObservableCollection<CloudProvider>();
-            FolderProviders = new ObservableCollection<SVR_CloudAccount>();
+            ImportFolders = new AsyncObservableCollection<SVR_ImportFolder>();
+            CloudAccounts = new AsyncObservableCollection<SVR_CloudAccount>();
+            AdminMessages = new AsyncObservableCollection<Azure_AdminMessage>();
+            CloudProviders = new AsyncObservableCollection<CloudProvider>();
+            FolderProviders = new AsyncObservableCollection<SVR_CloudAccount>();
         }
 
         private void Init()
@@ -68,7 +68,7 @@ namespace Shoko.Server
             //Populate Cloud Providers
             foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
             {
-                if (plugin.Name != "Local File System")
+                if (plugin.Name.Equals("Local File System", StringComparison.InvariantCultureIgnoreCase))
                 {
                     CloudProvider p = new CloudProvider
                     {
@@ -113,7 +113,7 @@ namespace Shoko.Server
 
         #region Observable Properties
 
-        public ObservableCollection<Azure_AdminMessage> AdminMessages { get; set; }
+        public AsyncObservableCollection<Azure_AdminMessage> AdminMessages { get; set; }
 
         public void RefreshAdminMessages()
         {
@@ -325,11 +325,11 @@ namespace Shoko.Server
             set => this.SetField(() => hasExtendedPause, value);
         }
 
-        public ObservableCollection<SVR_ImportFolder> ImportFolders { get; set; }
+        public AsyncObservableCollection<SVR_ImportFolder> ImportFolders { get; set; }
 
-        public ObservableCollection<SVR_CloudAccount> FolderProviders { get; set; }
+        public AsyncObservableCollection<SVR_CloudAccount> FolderProviders { get; set; }
 
-        public ObservableCollection<CloudProvider> CloudProviders { get; set; }
+        public AsyncObservableCollection<CloudProvider> CloudProviders { get; set; }
 
         public class CloudProvider
         {
@@ -339,7 +339,7 @@ namespace Shoko.Server
         }
 
 
-        public ObservableCollection<SVR_CloudAccount> CloudAccounts { get; set; }
+        public AsyncObservableCollection<SVR_CloudAccount> CloudAccounts { get; set; }
 
         public void RefreshImportFolders()
         {

@@ -522,6 +522,7 @@
     <Compile Include="Databases\MySQL.cs" />
     <Compile Include="UI\AuthProvider.cs" />
     <Compile Include="UI\ServerInfo.cs" />
+    <Compile Include="Utilities\AsyncObservableCollection.cs" />
     <Compile Include="Utilities\AVDumpHelper.cs" />
     <Compile Include="Utilities\LinuxFS.cs" />
     <Compile Include="Utilities\TagFilter.cs" />
