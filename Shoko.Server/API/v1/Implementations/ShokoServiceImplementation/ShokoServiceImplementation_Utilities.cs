@@ -1566,8 +1566,8 @@ namespace Shoko.Server
                 List<SVR_AnimeEpisode> eps = videoLocals.Select(a => a.GetAnimeEpisodes().FirstOrDefault()).ToList();
                 SVR_AniDB_File ani = videoLocals.First().GetAniDBFile();
                 contract.AudioStreamCount = videoLocals.First()
-                    .Media.Parts.SelectMany(a => a.Streams)
-                    .Count(a => a.StreamType.Equals("2"));
+                    .Media?.Parts.SelectMany(a => a.Streams)
+                    .Count(a => a.StreamType.Equals("2")) ?? 0;
                 contract.IsChaptered =
                     (ani?.IsChaptered ?? ((videoLocals.First().Media?.Chaptered ?? false) ? 1 : 0)) == 1;
                 contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Episode);
