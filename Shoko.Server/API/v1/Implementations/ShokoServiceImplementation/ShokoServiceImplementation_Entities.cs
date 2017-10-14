@@ -2304,7 +2304,7 @@ namespace Shoko.Server
             };
             try
             {
-                    if (animeGroupID.HasValue)
+                    if (animeGroupID.HasValue && animeGroupID.Value > 0)
                     {
                         SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
                         if (grp == null)
