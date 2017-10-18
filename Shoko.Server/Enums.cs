@@ -32,7 +32,7 @@ namespace Shoko.Server
         AniDB_SyncVotes = 27,
         AniDB_VoteAnime = 28,
         AniDB_VoteEpisode = 29,
-        TvDB_SeriesEpisodes = 30,
+        TvDB_UpdateSeries = 30,
         TvDB_DownloadImages = 31,
         TvDB_SearchAnime = 32,
         ImageDownload = 33,
@@ -72,6 +72,7 @@ namespace Shoko.Server
         LinkFileManually = 94,
         AniDB_GetMyListFile = 95,
         ValidateAllImages = 96,
+        TvDB_UpdateEpisode = 97,
     }
 
     public enum CommandRequestPriority

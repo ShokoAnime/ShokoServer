@@ -1178,8 +1178,8 @@ namespace Shoko.Server
                 {
                     // download and update series info, episode info and episode images
                     // will also download fanart, posters and wide banners
-                    CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps =
-                        new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvid,
+                    CommandRequest_TvDBUpdateSeries cmdSeriesEps =
+                        new CommandRequest_TvDBUpdateSeries(tvid,
                             false);
                     cmdSeriesEps.Save();
                 }

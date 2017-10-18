@@ -289,9 +289,9 @@ namespace Shoko.Server.Commands
                     cr_TvDB_DownloadImages.LoadFromDBCommand(crdb);
                     return cr_TvDB_DownloadImages;
 
-                case CommandRequestType.TvDB_SeriesEpisodes:
-                    CommandRequest_TvDBUpdateSeriesAndEpisodes cr_TvDB_Episodes =
-                        new CommandRequest_TvDBUpdateSeriesAndEpisodes();
+                case CommandRequestType.TvDB_UpdateSeries:
+                    CommandRequest_TvDBUpdateSeries cr_TvDB_Episodes =
+                        new CommandRequest_TvDBUpdateSeries();
                     cr_TvDB_Episodes.LoadFromDBCommand(crdb);
                     return cr_TvDB_Episodes;
 

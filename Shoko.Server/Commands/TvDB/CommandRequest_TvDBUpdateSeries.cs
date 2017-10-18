@@ -11,7 +11,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBUpdateSeriesAndEpisodes : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation, ICommandRequest
     {
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -28,21 +28,21 @@ namespace Shoko.Server.Commands
             {
                 return new QueueStateStruct()
                 {
-                    queueState = QueueStateEnum.GettingTvDB,
+                    queueState = QueueStateEnum.GettingTvDBSeries,
                     extraParams = new string[] {$"{SeriesTitle} ({TvDBSeriesID})"}
                 };
             }
         }
 
-        public CommandRequest_TvDBUpdateSeriesAndEpisodes()
+        public CommandRequest_TvDBUpdateSeries()
         {
         }
 
-        public CommandRequest_TvDBUpdateSeriesAndEpisodes(int tvDBSeriesID, bool forced)
+        public CommandRequest_TvDBUpdateSeries(int tvDBSeriesID, bool forced)
         {
             this.TvDBSeriesID = tvDBSeriesID;
             this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.TvDB_SeriesEpisodes;
+            this.CommandType = (int) CommandRequestType.TvDB_UpdateSeries;
             this.Priority = (int) DefaultPriority;
             this.SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
 
@@ -55,7 +55,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TvDBApiHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh, true);
+                TvDBApiHelper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
             }
             catch (Exception ex)
             {

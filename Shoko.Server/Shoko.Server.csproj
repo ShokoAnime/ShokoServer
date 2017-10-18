@@ -370,6 +370,7 @@
     <Compile Include="Commands\MovieDB\CommandRequest_MovieDBSearchAnime.cs" />
     <Compile Include="Commands\Plex\CommandRequest_PlexSyncWatched.cs" />
     <Compile Include="Commands\Plex\PlexHelper.cs" />
+    <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateEpisode.cs" />
     <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
     <Compile Include="Extensions\ModelDatabase.cs" />
     <Compile Include="Extensions\ModelClients.cs" />
@@ -502,7 +503,7 @@
     <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateInfoAndImages.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateAllSeries.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBDownloadImages.cs" />
-    <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateSeriesAndEpisodes.cs" />
+    <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateSeries.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBSearchAnime.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListFileStatus.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_VoteAnime.cs" />
