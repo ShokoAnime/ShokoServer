@@ -244,7 +244,7 @@ namespace Shoko.Server.Commands
 
                         try
                         {
-                            if (fileExists && !imageValid) File.Delete(fileName);
+                            if (fileExists) File.Delete(fileName);
                         }
                         catch (Exception ex)
                         {
