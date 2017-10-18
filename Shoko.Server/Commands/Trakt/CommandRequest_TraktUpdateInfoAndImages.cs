@@ -38,7 +38,7 @@ namespace Shoko.Server.Commands
         public CommandRequest_TraktUpdateInfoAndImages(string traktID)
         {
             this.TraktID = traktID;
-            this.CommandType = (int) CommandRequestType.Trakt_UpdateInfoImages;
+            this.CommandType = (int) CommandRequestType.Trakt_UpdateInfo;
             this.Priority = (int) DefaultPriority;
 
             GenerateCommandID();

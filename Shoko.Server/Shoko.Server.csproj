@@ -405,6 +405,7 @@
     <Compile Include="Renamer\RenamerAttribute.cs" />
     <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
     <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
+    <Compile Include="Repositories\Cached\CommandRequestRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\TvDB_EpisodeRepository.cs" />
@@ -647,8 +648,6 @@
     <Compile Include="Models\SVR_AnimeGroup_User.cs" />
     <Compile Include="Models\SVR_AnimeSeries.cs" />
     <Compile Include="Models\SVR_AnimeSeries_User.cs" />
-    <Compile Include="Obsolete\CrossRef_AniDB_Trakt.cs" />
-    <Compile Include="Obsolete\CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Models\SVR_GroupFilter.cs" />
     <Compile Include="Models\SVR_ImportFolder.cs" />
     <Compile Include="Models\SVR_JMMUser.cs" />
@@ -684,8 +683,6 @@
     <Compile Include="Mappings\AnimeSeries_UserMap.cs" />
     <Compile Include="Mappings\CommandRequestMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_OtherMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TraktMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TvDBMap.cs" />
     <Compile Include="Mappings\CrossRef_File_EpisodeMap.cs" />
     <Compile Include="Mappings\CrossRef_Languages_AniDB_FileMap.cs" />
     <Compile Include="Mappings\CrossRef_Subtitles_AniDB_FileMap.cs" />
@@ -738,10 +735,7 @@
     <Compile Include="Repositories\Cached\AnimeGroup_UserRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeSeriesRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeSeries_UserRepository.cs" />
-    <Compile Include="Repositories\Direct\CommandRequestRepository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_AniDB_OtherRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_TraktRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_TvDBRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_File_EpisodeRepository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_Languages_AniDB_FileRepository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_Subtitles_AniDB_FileRepository.cs" />

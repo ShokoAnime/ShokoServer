@@ -31,6 +31,7 @@ namespace Shoko.Server.Repositories
         public static CustomTagRepository CustomTag { get; } = CreateCachedRepository(CustomTagRepository.Create());
         public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; } = CreateCachedRepository(CrossRef_CustomTagRepository.Create());
         public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; } = CreateCachedRepository(CrossRef_File_EpisodeRepository.Create());
+        public static CommandRequestRepository CommandRequest { get; } = CreateCachedRepository(CommandRequestRepository.Create());
         public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = CreateCachedRepository(VideoLocal_PlaceRepository.Create());
         public static VideoLocalRepository VideoLocal { get; } = CreateCachedRepository(VideoLocalRepository.Create());
         public static VideoLocal_UserRepository VideoLocalUser { get; } = CreateCachedRepository(VideoLocal_UserRepository.Create());
@@ -83,7 +84,6 @@ namespace Shoko.Server.Repositories
             CrossRef_AniDB_OtherRepository.Create();
 
         public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; } = CrossRef_AniDB_MALRepository.Create();
-        public static CommandRequestRepository CommandRequest { get; } = CommandRequestRepository.Create();
         public static BookmarkedAnimeRepository BookmarkedAnime { get; } = BookmarkedAnimeRepository.Create();
         public static AniDB_SeiyuuRepository AniDB_Seiyuu { get; } = AniDB_SeiyuuRepository.Create();
         public static AniDB_ReviewRepository AniDB_Review { get; } = AniDB_ReviewRepository.Create();
@@ -130,12 +130,6 @@ namespace Shoko.Server.Repositories
 
         public static GroupFilterConditionRepository GroupFilterCondition { get; } =
             GroupFilterConditionRepository.Create();
-
-        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; } =
-            CrossRef_AniDB_TvDBRepository.Create();
-
-        public static CrossRef_AniDB_TraktRepository CrossRef_AniDB_Trakt { get; } =
-            CrossRef_AniDB_TraktRepository.Create();
 
         public static T CreateCachedRepository<T>(T repo) where T : ICachedRepository
         {

@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using Shoko.Server.Repositories.Direct;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -13,14 +12,14 @@ namespace Shoko.Server.Commands
 {
     public class CommandProcessorHasher
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        private BackgroundWorker workerCommands = new BackgroundWorker();
-        private bool processingCommands = false;
-        private DateTime? pauseTime = null;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly BackgroundWorker workerCommands = new BackgroundWorker();
+        private bool processingCommands;
+        private DateTime? pauseTime;
 
-        private object lockQueueCount = new object();
-        private object lockQueueState = new object();
-        private object lockPaused = new object();
+        private readonly object lockQueueCount = new object();
+        private readonly object lockQueueState = new object();
+        private readonly object lockPaused = new object();
 
         public delegate void QueueCountChangedHandler(QueueCountEventArgs ev);
 
@@ -30,7 +29,7 @@ namespace Shoko.Server.Commands
 
         public event QueueStateChangedHandler OnQueueStateChangedEvent;
 
-        private bool paused = false;
+        private bool paused;
 
         public bool Paused
         {
@@ -51,13 +50,13 @@ namespace Shoko.Server.Commands
                     if (paused)
                     {
                         QueueState =
-                            new QueueStateStruct() {queueState = QueueStateEnum.Paused, extraParams = new string[0]};
+                            new QueueStateStruct {queueState = QueueStateEnum.Paused, extraParams = new string[0]};
                         pauseTime = DateTime.Now;
                     }
                     else
                     {
                         QueueState =
-                            new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
+                            new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
                         pauseTime = null;
                     }
 
@@ -67,7 +66,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private int queueCount = 0;
+        private int queueCount;
 
         public int QueueCount
         {
@@ -83,13 +82,13 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
+                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
-                OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
             }
         }
 
         private QueueStateStruct queueState =
-            new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
+            new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
         public QueueStateStruct QueueState
         {
@@ -105,22 +104,19 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
+                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
                 }
-                OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
             }
         }
 
-        public bool ProcessingCommands
-        {
-            get { return processingCommands; }
-        }
+        public bool ProcessingCommands => processingCommands;
 
         public CommandProcessorHasher()
         {
             workerCommands.WorkerReportsProgress = true;
             workerCommands.WorkerSupportsCancellation = true;
-            workerCommands.DoWork += new DoWorkEventHandler(WorkerCommands_DoWork);
-            workerCommands.RunWorkerCompleted += new RunWorkerCompletedEventHandler(WorkerCommands_RunWorkerCompleted);
+            workerCommands.DoWork += WorkerCommands_DoWork;
+            workerCommands.RunWorkerCompleted += WorkerCommands_RunWorkerCompleted;
         }
 
         void WorkerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -129,8 +125,7 @@ namespace Shoko.Server.Commands
 
             processingCommands = false;
             paused = false;
-            //logger.Trace("Stopping command worker (hasher)...");
-            QueueState = new QueueStateStruct() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
+            QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
             QueueCount = 0;
         }
 
@@ -139,13 +134,12 @@ namespace Shoko.Server.Commands
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             processingCommands = true;
-            //logger.Trace("Starting command worker (hasher)...");
-            QueueState = new QueueStateStruct()
+            QueueState = new QueueStateStruct
             {
                 queueState = QueueStateEnum.StartingHasher,
                 extraParams = new string[0]
             };
-            this.workerCommands.RunWorkerAsync();
+            workerCommands.RunWorkerAsync();
         }
 
         public void Stop()
@@ -158,20 +152,16 @@ namespace Shoko.Server.Commands
         /// </summary>
         public void NotifyOfNewCommand()
         {
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
             // if the worker is busy, it will pick up the next command from the DB
             // do not pick new command if cancellation is requested
             if (processingCommands || workerCommands.CancellationPending)
-            {
-                //logger.Trace("NotifyOfNewCommand (hasher) exiting, worker already busy");
                 return;
-            }
 
             // otherwise need to start the worker again
-            //logger.Trace("Restarting command worker (hasher)...");
-
             processingCommands = true;
             if (!workerCommands.IsBusy)
-                this.workerCommands.RunWorkerAsync();
+                workerCommands.RunWorkerAsync();
         }
 
         void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
@@ -196,22 +186,17 @@ namespace Shoko.Server.Commands
                             e.Cancel = true;
                             return;
                         }
-
-                        //logger.Trace("Hasher Queue is paused: {0}", pauseTime.Value);
                         TimeSpan ts = DateTime.Now - pauseTime.Value;
                         if (ts.TotalHours >= 6)
-                        {
                             Paused = false;
-                        }
                     }
                     catch
                     {
+                        // ignore
                     }
                     Thread.Sleep(200);
                     continue;
                 }
-
-                //logger.Trace("Looking for next command request (hasher)...");
 
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
                 if (crdb == null) return;
@@ -221,11 +206,6 @@ namespace Shoko.Server.Commands
                     e.Cancel = true;
                     return;
                 }
-
-                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
-                //logger.Trace("{0} commands remaining in queue (hasher)", QueueCount);
-
-                //logger.Trace("Next command request (hasher): {0}", crdb.CommandID);
 
                 ICommandRequest icr = CommandHelper.GetCommand(crdb);
                 if (icr == null)
@@ -242,10 +222,8 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                //logger.Trace("Processing command request (hasher): {0}", crdb.CommandID);
                 icr.ProcessCommand();
 
-                //logger.Trace("Deleting command request (hasher): {0}", crdb.CommandID);
                 RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
                 QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
             }
