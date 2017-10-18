@@ -164,8 +164,8 @@ namespace Shoko.Server.Providers.TvDB
 
                 // download and update series info, episode info and episode images
                 // will also download fanart, posters and wide banners
-                CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps =
-                    new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID,
+                CommandRequest_TvDBUpdateSeries cmdSeriesEps =
+                    new CommandRequest_TvDBUpdateSeries(tvDBID,
                         false);
                 //Optimize for batch updates, if there are a lot of LinkAniDBTvDB commands queued 
                 //this will cause only one updateSeriesAndEpisodes command to be created
@@ -741,9 +741,9 @@ namespace Shoko.Server.Providers.TvDB
             return apiEpisodes;
         }
 
-        static EpisodeRecord GetEpisodeDetails(int episodeID)
+        public static void UpdateEpisode(int episodeID, bool downloadImages, bool forceRefresh)
         {
-            return Task.Run(async () => await GetEpisodeDetailsAsync(episodeID)).Result;
+            Task.Run(async () => await QueueEpisodeImageDownloadAsync(episodeID, downloadImages, forceRefresh)).Wait();
         }
 
         static async Task<EpisodeRecord> GetEpisodeDetailsAsync(int episodeID)
@@ -778,18 +778,14 @@ namespace Shoko.Server.Providers.TvDB
             return null;
         }
 
-        public static async Task QueueEpisodeImageDownloadAsync(BasicEpisode item, List<int> existingEpIds, bool downloadImages, bool forceRefresh)
+        public static async Task QueueEpisodeImageDownloadAsync(int tvDBEpisodeID, bool downloadImages, bool forceRefresh)
         {
             try
             {
-                // the episode id
-                int id = item.Id;
-                existingEpIds.Add(id);
-
-                TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(id);
+                TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(tvDBEpisodeID);
                 if (ep == null || forceRefresh)
                 {
-                    EpisodeRecord episode = await GetEpisodeDetailsAsync(id);
+                    EpisodeRecord episode = await GetEpisodeDetailsAsync(tvDBEpisodeID);
                     if (episode == null)
                         return;
 
@@ -822,7 +818,7 @@ namespace Shoko.Server.Providers.TvDB
                     await CheckAuthorizationAsync();
                     if (!string.IsNullOrEmpty(client.Authentication.Token))
                     {
-                        await QueueEpisodeImageDownloadAsync(item, existingEpIds, downloadImages, forceRefresh);
+                        await QueueEpisodeImageDownloadAsync(tvDBEpisodeID, downloadImages, forceRefresh);
                         return;
                     }
                     // suppress 404 and move on
@@ -837,12 +833,7 @@ namespace Shoko.Server.Providers.TvDB
             }
         }
 
-        public static void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
-        {
-            Task.Run(() => UpdateAllInfoAndImagesAsync(seriesID, forceRefresh, downloadImages)).Wait();
-        }
-
-        public static async Task UpdateAllInfoAndImagesAsync(int seriesID, bool forceRefresh, bool downloadImages)
+        public static void UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
             try
             {
@@ -861,7 +852,13 @@ namespace Shoko.Server.Providers.TvDB
                 List<int> existingEpIds = new List<int>();
                 foreach (BasicEpisode item in episodeItems)
                 {
-                    await QueueEpisodeImageDownloadAsync(item, existingEpIds, downloadImages, forceRefresh);
+                    if (!existingEpIds.Contains(item.Id))
+                        existingEpIds.Add(item.Id);
+
+                    string infoString = $"{tvSeries.SeriesName} - Episode {item.AbsoluteNumber?.ToString() ?? "X"}";
+                    CommandRequest_TvDBUpdateEpisode epcmd =
+                        new CommandRequest_TvDBUpdateEpisode(item.Id, infoString, downloadImages, forceRefresh);
+                    epcmd.Save();
                 }
 
                 // get all the existing tvdb episodes, to see if any have been deleted
@@ -871,17 +868,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (!existingEpIds.Contains(oldEp.Id))
                         RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
                 }
-
-                var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(seriesID).FirstOrDefault();
-                if (xref == null) return;
-                var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                if (anime == null) return;
-                var episodes = RepoFactory.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
-                foreach (SVR_AnimeEpisode episode in episodes)
-                {
-                    RepoFactory.AnimeEpisode.Save(episode);
-                }
-                SVR_AniDB_Anime.UpdateStatsByAnimeID(xref.AnimeID);
+                // Not updating stats as it will happen with the episodes
             }
             catch (Exception ex)
             {
@@ -961,8 +948,8 @@ namespace Shoko.Server.Providers.TvDB
             IReadOnlyList<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
             foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
             {
-                CommandRequest_TvDBUpdateSeriesAndEpisodes cmd =
-                    new CommandRequest_TvDBUpdateSeriesAndEpisodes(xref.TvDBID, force);
+                CommandRequest_TvDBUpdateSeries cmd =
+                    new CommandRequest_TvDBUpdateSeries(xref.TvDBID, force);
                 cmd.Save();
             }
         }

@@ -92,7 +92,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PostProcess()
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
                 t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
                 if (g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
@@ -106,7 +106,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 cnt++;
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, t,
+                    Commons.Properties.Resources.Database_Validating, t,
                     Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
                     gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
@@ -118,7 +118,7 @@ namespace Shoko.Server.Repositories.Cached
             }
 
             // Clean up. This will populate empty conditions and remove duplicate filters
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
                 t,
                 " " + Commons.Properties.Resources.GroupFilter_Cleanup);
             IReadOnlyList<SVR_GroupFilter> all = GetAll();
@@ -153,7 +153,7 @@ namespace Shoko.Server.Repositories.Cached
 
             // TODO Replace with a "Validating Default Filters"
             ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_Cache, t,
+                Commons.Properties.Resources.Database_Validating, t,
                 " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
 
             SVR_GroupFilter cwatching =
@@ -162,17 +162,11 @@ namespace Shoko.Server.Repositories.Cached
                         a.FilterType == (int) GroupFilterType.ContinueWatching);
             if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
             {
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, t,
-                    " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
                 cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                 Save(cwatching);
             }
             else if (cwatching == null)
             {
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, t,
-                    " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
                 SVR_GroupFilter gf = new SVR_GroupFilter
                 {
                     GroupFilterName = Constants.GroupFilterName.ContinueWatching,
@@ -207,9 +201,6 @@ namespace Shoko.Server.Repositories.Cached
             SVR_GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
             if (allfilter == null)
             {
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, t,
-                    " " + Commons.Properties.Resources.Filter_CreateAll);
                 SVR_GroupFilter gf = new SVR_GroupFilter
                 {
                     GroupFilterName = Commons.Properties.Resources.Filter_All,
@@ -311,7 +302,7 @@ namespace Shoko.Server.Repositories.Cached
                     cnt++;
                     if (frominit)
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Cache, t,
+                            Commons.Properties.Resources.Database_Validating, t,
                             Commons.Properties.Resources.Filter_CreatingTag + " " +
                             Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                     SVR_GroupFilter yf = new SVR_GroupFilter
@@ -375,7 +366,7 @@ namespace Shoko.Server.Repositories.Cached
                     cnt++;
                     if (frominit)
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Cache, t,
+                            Commons.Properties.Resources.Database_Validating, t,
                             Commons.Properties.Resources.Filter_CreatingYear + " " +
                             Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                     SVR_GroupFilter yf = new SVR_GroupFilter
@@ -439,7 +430,7 @@ namespace Shoko.Server.Repositories.Cached
                     cnt++;
                     if (frominit)
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Cache, t,
+                            Commons.Properties.Resources.Database_Validating, t,
                             Commons.Properties.Resources.Filter_CreatingSeason + " " +
                             Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                     SVR_GroupFilter yf = new SVR_GroupFilter

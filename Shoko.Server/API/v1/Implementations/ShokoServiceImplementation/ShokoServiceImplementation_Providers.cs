@@ -403,7 +403,7 @@ namespace Shoko.Server
         {
             try
             {
-                TvDBApiHelper.UpdateAllInfoAndImages(seriesID, false, true);
+                TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, false, true);
             }
             catch (Exception ex)
             {
@@ -490,7 +490,7 @@ namespace Shoko.Server
             try
             {
                 // refresh data from TvDB
-                TvDBApiHelper.UpdateAllInfoAndImages(seriesID, true, false);
+                TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, true, false);
 
                 seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
 

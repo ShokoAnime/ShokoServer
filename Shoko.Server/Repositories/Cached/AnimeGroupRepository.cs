@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Cached
                 .ToList();
             int max = grps.Count;
             int cnt = 0;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
                 typeof(AnimeGroup).Name, " DbRegen");
             if (max <= 0) return;
             foreach (SVR_AnimeGroup g in grps)
@@ -77,11 +77,11 @@ namespace Shoko.Server.Repositories.Cached
                 if (cnt % 10 == 0)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name,
+                        Commons.Properties.Resources.Database_Validating, typeof(AnimeGroup).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Cache,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
                 typeof(AnimeGroup).Name,
                 " DbRegen - " + max + "/" + max);
         }
