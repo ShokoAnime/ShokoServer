@@ -627,8 +627,8 @@
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Getting review info from UDP API for Anime: {0}</value>
   </data>
-  <data name="Command_GettingTvDB" xml:space="preserve">
-    <value>Getting episodes from The TvDB: {0}</value>
+  <data name="Command_GettingTvDBSeries" xml:space="preserve">
+    <value>Updating TvDB Series: {0}</value>
   </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Getting list of updated anime from UDP API</value>
@@ -4487,7 +4487,7 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>Creating All filter</value>
   </data>
   <data name="Filter_CreateContinueWatching" xml:space="preserve">
-    <value>Creating Continue Watching filter</value>
+    <value>Validating Filters</value>
   </data>
   <data name="Filter_CreatingTag" xml:space="preserve">
     <value>Creating Tag</value>
@@ -5243,5 +5243,11 @@ Please link to plex via Desktop under settings -&gt;users to use this.</value>
   </data>
   <data name="Download_RecommendPrompt" xml:space="preserve">
     <value>This utility shows you a list of recommended anime which are not in your collection based on your own ratings and feedback from AniDB users</value>
+  </data>
+  <data name="Command_GettingTvDBEpisode" xml:space="preserve">
+    <value>Updating TvDB Episode: {0}</value>
+  </data>
+  <data name="Database_Validating" xml:space="preserve">
+    <value>Database - Validating - {0}{1}...</value>
   </data>
 </root>

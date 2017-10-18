@@ -45,8 +45,10 @@ namespace Shoko.Commons.Queue
                     return Resources.Command_GetReleaseInfo;
                 case QueueStateEnum.GetReviewInfo:
                     return Resources.Command_GetReviewInfo;
-                case QueueStateEnum.GettingTvDB:
-                    return Resources.Command_GettingTvDB;
+                case QueueStateEnum.GettingTvDBSeries:
+                    return Resources.Command_GettingTvDBSeries;
+                case QueueStateEnum.GettingTvDBEpisode:
+                    return Resources.Command_GettingTvDBEpisode;
                 case QueueStateEnum.GetUpdatedAnime:
                     return Resources.Command_GetUpdatedAnime;
                 case QueueStateEnum.HashingFile:

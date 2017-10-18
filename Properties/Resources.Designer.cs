@@ -19,7 +19,7 @@ namespace Shoko.Commons.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -1987,11 +1987,20 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting episodes from The TvDB: {0}.
+        ///   Looks up a localized string similar to Updating TvDB Episode: {0}.
         /// </summary>
-        public static string Command_GettingTvDB {
+        public static string Command_GettingTvDBEpisode {
             get {
-                return ResourceManager.GetString("Command_GettingTvDB", resourceCulture);
+                return ResourceManager.GetString("Command_GettingTvDBEpisode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating TvDB Series: {0}.
+        /// </summary>
+        public static string Command_GettingTvDBSeries {
+            get {
+                return ResourceManager.GetString("Command_GettingTvDBSeries", resourceCulture);
             }
         }
         
@@ -3508,6 +3517,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database - Validating - {0}{1}....
+        /// </summary>
+        public static string Database_Validating {
+            get {
+                return ResourceManager.GetString("Database_Validating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Days.
         /// </summary>
         public static string Days {
@@ -4417,7 +4435,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Creating Continue Watching filter.
+        ///   Looks up a localized string similar to Validating Filters.
         /// </summary>
         public static string Filter_CreateContinueWatching {
             get {

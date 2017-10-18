@@ -627,9 +627,6 @@
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Sempre rivedere informazioni dall'API di UDP per Anime: {0}</value>
   </data>
-  <data name="Command_GettingTvDB" xml:space="preserve">
-    <value>Sempre episodi da The TvDB: {0}</value>
-  </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Come ottenere l'elenco di anime aggiornato dall'API di UDP</value>
   </data>
@@ -4469,9 +4466,6 @@ Mark Unknown - lascia il file nel tuo elenco, ma cambia lo stato sconosciuto.</v
   <data name="Filter_CreateAll" xml:space="preserve">
     <value>Creazione di tutti i filtri</value>
   </data>
-  <data name="Filter_CreateContinueWatching" xml:space="preserve">
-    <value>Creazione di un filtro di continuare a guardare</value>
-  </data>
   <data name="Filter_CreatingTag" xml:space="preserve">
     <value>Creazione di Tag</value>
   </data>
@@ -5241,5 +5235,17 @@ Si prega di link a plex tramite Desktop sotto impostazioni-&gt; agli utenti di u
   </data>
   <data name="Download_RecommendPrompt" xml:space="preserve">
     <value>Questa utility ti mostra un elenco degli anime consigliati che non sono nella vostra collezione basata sul proprio valutazioni e feedback degli utenti AniDB</value>
+  </data>
+  <data name="Command_GettingTvDBSeries" xml:space="preserve">
+    <value>L'aggiornamento di serie TvDB: {0}</value>
+  </data>
+  <data name="Command_GettingTvDBEpisode" xml:space="preserve">
+    <value>Aggiornamento TvDB episodio: {0}</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Convalida di filtri</value>
+  </data>
+  <data name="Database_Validating" xml:space="preserve">
+    <value>Database - convalida - {0} {1}...</value>
   </data>
 </root>

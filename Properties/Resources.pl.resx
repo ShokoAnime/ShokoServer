@@ -627,9 +627,6 @@
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Pobieranie recenzji z UDP API dla Anime: {0}</value>
   </data>
-  <data name="Command_GettingTvDB" xml:space="preserve">
-    <value>Pobieranie informacji o odcinkach z The TvDB: {0}</value>
-  </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Pobieranie listy zaktualizowanych anime z UDP API</value>
   </data>
@@ -4471,9 +4468,6 @@
   <data name="Filter_CreateAll" xml:space="preserve">
     <value>Tworzenie filtru wszystkie</value>
   </data>
-  <data name="Filter_CreateContinueWatching" xml:space="preserve">
-    <value>Tworzenie filtru kontynuować oglądanie</value>
-  </data>
   <data name="Filter_CreatingTag" xml:space="preserve">
     <value>Tworzenie etykiety</value>
   </data>
@@ -5243,5 +5237,17 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   </data>
   <data name="Download_RecommendPrompt" xml:space="preserve">
     <value>To narzędzie pokazuje listę zalecanych anime, które nie są w kolekcji oparta na własnych ocen i opinii od użytkowników AniDB</value>
+  </data>
+  <data name="Command_GettingTvDBSeries" xml:space="preserve">
+    <value>Aktualizowanie serii TvDB: {0}</value>
+  </data>
+  <data name="Command_GettingTvDBEpisode" xml:space="preserve">
+    <value>Aktualizowanie TvDB odcinek: {0}</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Sprawdzanie poprawności filtry</value>
+  </data>
+  <data name="Database_Validating" xml:space="preserve">
+    <value>Bazy danych - sprawdzanie poprawności - {0} {1}...</value>
   </data>
 </root>

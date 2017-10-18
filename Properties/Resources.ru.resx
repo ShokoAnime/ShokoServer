@@ -627,9 +627,6 @@
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Получение обзоров от UDP API для аниме: {0}</value>
   </data>
-  <data name="Command_GettingTvDB" xml:space="preserve">
-    <value>Получение эпизодов TvDB : {0}</value>
-  </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Получение списка Обновлено аниме от UDP API</value>
   </data>
@@ -4469,9 +4466,6 @@
   <data name="Filter_CreateAll" xml:space="preserve">
     <value>Создание всех фильтра</value>
   </data>
-  <data name="Filter_CreateContinueWatching" xml:space="preserve">
-    <value>Создание фильтра продолжать смотреть</value>
-  </data>
   <data name="Filter_CreatingTag" xml:space="preserve">
     <value>Создание метки</value>
   </data>
@@ -5241,5 +5235,17 @@
   </data>
   <data name="Download_RecommendPrompt" xml:space="preserve">
     <value>Эта утилита показывает список рекомендованных аниме которых нет в вашей коллекции. Список составлен на основе ваших рейтингов и отзывов пользователей AniDB</value>
+  </data>
+  <data name="Command_GettingTvDBSeries" xml:space="preserve">
+    <value>Обновление TvDB серия: {0}</value>
+  </data>
+  <data name="Command_GettingTvDBEpisode" xml:space="preserve">
+    <value>Обновление TvDB эпизод: {0}</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Проверка фильтров</value>
+  </data>
+  <data name="Database_Validating" xml:space="preserve">
+    <value>База данных - проверка - {0} {1}...</value>
   </data>
 </root>
