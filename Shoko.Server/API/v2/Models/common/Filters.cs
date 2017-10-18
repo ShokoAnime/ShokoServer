@@ -35,20 +35,18 @@ namespace Shoko.Server.API.v2.Models.common
                 id = gf.GroupFilterID,
                 name = gf.GroupFilterName
             };
-            List<Filter> filters = new List<Filter>();
             List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(f.id)
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                              (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))
                 .ToList();
-            foreach (SVR_GroupFilter cgf in allGfs)
-            {
-                // any level higher than 1 can drain cpu
-                if ((cgf.FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag &&
-                    TagFilter.ProcessTags(tagfilter, new List<string> {cgf.GroupFilterName}).Count == 0) continue;
-
-                filters.Add(Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic, tagfilter));
-            }
+            List<Filter> filters = allGfs
+                .Where(cgf =>
+                    (cgf.FilterType & (int) GroupFilterType.Tag) != (int) GroupFilterType.Tag ||
+                    TagFilter.ProcessTags(tagfilter, new List<string> {cgf.GroupFilterName}).Count != 0)
+                .Select(cgf =>
+                    Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic,
+                        tagfilter)).ToList();
 
             if (gf.FilterType == ((int)GroupFilterType.Season | (int)GroupFilterType.Directory))
                 f.filters = filters.OrderBy(a => a.name, new SeasonComparator()).ToList();

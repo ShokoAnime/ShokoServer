@@ -5,7 +5,6 @@ using System.Runtime.Serialization;
 using Nancy;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -14,10 +13,7 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class Filter : BaseDirectory
     {
-        public override string type
-        {
-            get { return "filter"; }
-        }
+        public override string type => "filter";
 
         // We need to rethink this
         // There is too much duplicated info.
@@ -54,16 +50,36 @@ namespace Shoko.Server.API.v2.Models.common
                     filter.size = groupsh.Count;
 
                     // Populate Random Art
-                    List<SVR_AnimeGroup> groupsList = groupsh.Select(a => RepoFactory.AnimeGroup.GetByID(a))
-                        .Where(a => a != null)
-                        .ToList();
+                    List<SVR_AnimeGroup> groupsList;
 
-                    var arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
-                    if (arts.Count == 0)
-                        arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup).ToList();
-                    if (arts.Count == 0)
-                        arts = groupsList.Where(a => (a.Anime?.Count ?? 0) > 0).Select(GetAnimeContractFromGroup)
+                    List<CL_AniDB_Anime> arts;
+                    if (gf.ApplyToSeries == 1 && gf.SeriesIds.ContainsKey(uid))
+                    {
+                        var seriesList = gf.SeriesIds[uid].Select(RepoFactory.AnimeSeries.GetByID).ToList();
+                        groupsList = seriesList.Select(a => a.AnimeGroupID).Distinct()
+                            .Select(RepoFactory.AnimeGroup.GetByID).ToList();
+                        arts = seriesList.Where(SeriesHasCompleteArt).Select(a => a?.GetAnime()?.Contract?.AniDBAnime)
+                            .Where(a => a != null).ToList();
+                        if (arts.Count == 0)
+                            arts = seriesList.Where(SeriesHasMostlyCompleteArt)
+                                .Select(a => a?.GetAnime()?.Contract?.AniDBAnime).Where(a => a != null).ToList();
+                        if (arts.Count == 0)
+                            arts = seriesList.Select(a => a?.GetAnime()?.Contract?.AniDBAnime).Where(a => a != null)
+                                .ToList();
+                    }
+                    else
+                    {
+                        groupsList = groupsh.Select(a => RepoFactory.AnimeGroup.GetByID(a))
+                            .Where(a => a != null)
                             .ToList();
+                        arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
+                        if (arts.Count == 0)
+                            arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup)
+                                .ToList();
+                        if (arts.Count == 0)
+                            arts = groupsList.Where(a => (a.Anime?.Count ?? 0) > 0).Select(GetAnimeContractFromGroup)
+                                .ToList();
+                    }
 
                     if (arts.Count > 0)
                     {
@@ -140,9 +156,9 @@ namespace Shoko.Server.API.v2.Models.common
             return anime?.Contract.AniDBAnime;
         }
 
-        private static bool GroupHasCompleteArt(SVR_AnimeGroup grp)
+        private static bool GroupHasCompleteArt(SVR_AnimeGroup series)
         {
-            var anime = grp.Anime.OrderBy(a => a.BeginYear)
+            var anime = series.Anime.OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
                 .FirstOrDefault();
             var fanarts = anime?.Contract.AniDBAnime.Fanarts;
@@ -157,6 +173,26 @@ namespace Shoko.Server.API.v2.Models.common
             var anime = grp.Anime.OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
                 .FirstOrDefault();
+            var fanarts = anime?.Contract.AniDBAnime.Fanarts;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            fanarts = anime.Contract.AniDBAnime.Banners;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            return true;
+        }
+
+        private static bool SeriesHasCompleteArt(SVR_AnimeSeries series)
+        {
+            var anime = series?.GetAnime();
+            var fanarts = anime?.Contract.AniDBAnime.Fanarts;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            fanarts = anime.Contract.AniDBAnime.Banners;
+            if (fanarts == null || fanarts.Count <= 0) return false;
+            return true;
+        }
+
+        private static bool SeriesHasMostlyCompleteArt(SVR_AnimeSeries series)
+        {
+            var anime = series?.GetAnime();
             var fanarts = anime?.Contract.AniDBAnime.Fanarts;
             if (fanarts == null || fanarts.Count <= 0) return false;
             fanarts = anime.Contract.AniDBAnime.Banners;

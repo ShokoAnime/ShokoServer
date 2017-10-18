@@ -41,21 +41,34 @@ namespace Shoko.Server.API.v2.Models.common
                 edited = ag.DateTimeUpdated
             };
 
-            var animes = ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
+            SVR_GroupFilter filter = null;
+            if (filterid > 0)
+            {
+                filter = RepoFactory.GroupFilter.GetByID(filterid);
+                if (filter?.ApplyToSeries == 0)
+                    filter = null;
+            }
+
+            List<SVR_AniDB_Anime> animes;
+            if (filter != null)
+                animes = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                    .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).Select(ser => ser.GetAnime())
+                    .Where(a => a != null).OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+                    .ToList();
+            else
+                animes = ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
+
             if (animes != null && animes.Count > 0)
             {
+                var anime = animes?.FirstOrDefault();
                 Random rand = new Random();
                 if (allpic || pic > 1)
                 {
-                    if (allpic)
-                    {
-                        pic = 999;
-                    }
+                    if (allpic) pic = 999;
                     int pic_index = 0;
-                    foreach (var anime in animes)
+                    foreach (var ani in animes)
                     {
-                        foreach (var cont_image in anime.AllPosters)
-                        {
+                        foreach (var cont_image in ani.AllPosters)
                             if (pic_index < pic)
                             {
                                 g.art.thumb.Add(new Art
@@ -70,11 +83,9 @@ namespace Shoko.Server.API.v2.Models.common
                             {
                                 break;
                             }
-                        }
 
                         pic_index = 0;
-                        foreach (var cont_image in anime.Contract.AniDBAnime.Fanarts)
-                        {
+                        foreach (var cont_image in ani.Contract.AniDBAnime.Fanarts)
                             if (pic_index < pic)
                             {
                                 g.art.fanart.Add(new Art
@@ -89,11 +100,9 @@ namespace Shoko.Server.API.v2.Models.common
                             {
                                 break;
                             }
-                        }
 
                         pic_index = 0;
-                        foreach (var cont_image in anime.Contract.AniDBAnime.Banners)
-                        {
+                        foreach (var cont_image in ani.Contract.AniDBAnime.Banners)
                             if (pic_index < pic)
                             {
                                 g.art.banner.Add(new Art
@@ -108,12 +117,10 @@ namespace Shoko.Server.API.v2.Models.common
                             {
                                 break;
                             }
-                        }
                     }
                 }
                 else
                 {
-                    var anime = animes.FirstOrDefault();
                     if (anime != null)
                     {
                         g.art.thumb.Add(new Art
@@ -148,26 +155,33 @@ namespace Shoko.Server.API.v2.Models.common
                         }
                     }
                 }
+
+                List<SVR_AnimeEpisode> ael;
+                if (filter != null)
+                    ael = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                        .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).SelectMany(ser => ser.GetAnimeEpisodes())
+                        .ToList();
+                else
+                    ael = ag.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
+
+                GenerateSizes(g, ael, uid);
+
+                g.air = anime?.AirDate?.ToPlexDate() ?? string.Empty;
+
+                g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
+                g.summary = anime?.Description ?? string.Empty;
+                g.titles = anime?.GetTitles().ToAPIContract();
+                g.year = anime?.BeginYear.ToString();
+
+                if (!notag && ag.Contract.Stat_AllTags != null)
+                    g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList())
+                        .Select(value => new Tag {tag = value}).ToList();
             }
-            List<SVR_AnimeEpisode> ael = ag.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
-            GenerateSizes(g, ael, uid);
-
-            g.air = (ag.Contract.Stat_AirDate_Min ?? animes?.FirstOrDefault()?.AirDate)?.ToPlexDate() ?? string.Empty;
-
-            g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
-            g.summary = ag.Contract.Description;
-            g.titles = ag.Titles.ToAPIContract();
-            g.year = ag.Contract.Stat_AllYears.Min().ToString(NumberFormatInfo.InvariantInfo);
-
-            if (!notag && ag.Contract.Stat_AllTags != null)
-                g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList())
-                    .Select(value => new Tag {tag = value}).ToList();
 
             if (!nocast)
             {
                 Video vag = ag.GetPlexContract(uid);
                 if (vag?.Roles != null)
-                {
                     g.roles = vag.Roles?.Select(rtg => new Role
                     {
                         name = !string.IsNullOrEmpty(rtg.Value) ? rtg.Value : string.Empty,
@@ -182,21 +196,13 @@ namespace Shoko.Server.API.v2.Models.common
                             ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture)
                             : string.Empty
                     }).ToList();
-                }
             }
 
             if (level > 0)
             {
                 List<int> series = null;
-                if (filterid > 0)
-                {
-                    SVR_GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterid);
-                    if (filter?.ApplyToSeries > 0)
-                    {
-                        if (filter.SeriesIds.ContainsKey(uid))
-                            series = filter.SeriesIds[uid].ToList();
-                    }
-                }
+                if (filter?.SeriesIds.ContainsKey(uid) == true)
+                    series = filter.SeriesIds[uid].ToList();
                 foreach (SVR_AnimeSeries ada in ag.GetSeries())
                 {
                     if (series != null && series.Count > 0 && !series.Contains(ada.AnimeSeriesID)) continue;
