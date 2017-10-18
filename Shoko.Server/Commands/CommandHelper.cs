@@ -215,7 +215,7 @@ namespace Shoko.Server.Commands
                     cr_Trakt_EpisodeHistory.LoadFromDBCommand(crdb);
                     return cr_Trakt_EpisodeHistory;
 
-                case CommandRequestType.Trakt_UpdateInfoImages:
+                case CommandRequestType.Trakt_UpdateInfo:
                     CommandRequest_TraktUpdateInfoAndImages cr_Trakt_UpdateInfoImages =
                         new CommandRequest_TraktUpdateInfoAndImages();
                     cr_Trakt_UpdateInfoImages.LoadFromDBCommand(crdb);

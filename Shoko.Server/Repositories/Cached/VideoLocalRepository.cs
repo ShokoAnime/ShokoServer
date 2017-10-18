@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
 using System.Linq;
 using FluentNHibernate.Utils;
-using Nancy.Extensions;
 using Shoko.Models.Server;
-using NHibernate;
 using NHibernate.Util;
+using NLog;
 using NutzCode.InMemoryIndex;
 using Pri.LongPath;
 using Shoko.Server.Databases;
@@ -18,6 +15,7 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
         private PocoIndex<int, SVR_VideoLocal, string> Hashes;
         private PocoIndex<int, SVR_VideoLocal, string> SHA1;
         private PocoIndex<int, SVR_VideoLocal, string> MD5;
@@ -47,7 +45,6 @@ namespace Shoko.Server.Repositories.Cached
         {
             //Fix null hashes
             foreach (SVR_VideoLocal l in Cache.Values)
-            {
                 if (l.MD5 == null || l.SHA1 == null || l.Hash == null || l.FileName == null)
                 {
                     l.MediaVersion = 0;
@@ -60,7 +57,6 @@ namespace Shoko.Server.Repositories.Cached
                     if (l.FileName == null)
                         l.FileName = string.Empty;
                 }
-            }
             Hashes = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
             SHA1 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.SHA1);
             MD5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
@@ -98,6 +94,7 @@ namespace Shoko.Server.Repositories.Cached
             }
             catch
             {
+                // ignore
             }
             //Fix possible paths in filename
             try
@@ -109,17 +106,25 @@ namespace Shoko.Server.Repositories.Cached
                 max = list.Count;
                 list.ForEach(a =>
                 {
-                    int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                    a.FileName = a.FileName.Substring(b + 1);
-                    Save(a, false);
-                    count++;
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Cache, typeof(VideoLocal).Name,
-                        " Cleaning File Paths - " + count + "/" + max);
+                    try
+                    {
+                        int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                        a.FileName = a.FileName.Substring(b + 1);
+                        Save(a, false);
+                        count++;
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Cache, typeof(VideoLocal).Name,
+                            " Cleaning File Paths - " + count + "/" + max);
+                        }
+                    catch(Exception e)
+                    {
+                        logger.Error($"Error cleaning path on file: {a.FileName}\r\n{e}");
+                    }
                 });
             }
             catch
             {
+                // ignore
             }
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -182,9 +187,7 @@ namespace Shoko.Server.Repositories.Cached
                 using (var transaction = session.BeginTransaction())
                 {
                     foreach (SVR_VideoLocal remove in toRemove)
-                    {
                         DeleteWithOpenTransaction(session, remove);
-                    }
                     transaction.Commit();
                 }
 
@@ -254,9 +257,7 @@ namespace Shoko.Server.Repositories.Cached
                 base.Save(obj);
             }
             if (updateEpisodes)
-            {
                 RepoFactory.AnimeEpisode.Save(obj.GetAnimeEpisodes());
-            }
         }
 
 
@@ -340,13 +341,8 @@ namespace Shoko.Server.Repositories.Cached
 
         public class UniqueRandoms : IEnumerable<int>
         {
-            Random _rand = new Random();
-            List<int> _candidates;
-
-            public UniqueRandoms(int maxInclusive)
-                : this(1, maxInclusive)
-            {
-            }
+            private readonly Random _rand = new Random();
+            private readonly List<int> _candidates;
 
             public UniqueRandoms(int minInclusive, int maxInclusive)
             {
@@ -374,7 +370,7 @@ namespace Shoko.Server.Repositories.Cached
         /// <summary>
         /// returns all the VideoLocal records associate with an AnimeEpisode Record
         /// </summary>
-        /// <param name="animeEpisodeID"></param>
+        /// <param name="episodeID"></param>
         /// <returns></returns>
         /// 
         public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID)
@@ -425,7 +421,7 @@ namespace Shoko.Server.Repositories.Cached
         /// <summary>
         /// returns all the VideoLocal records associate with an AniDB_Anime Record
         /// </summary>
-        /// <param name="animeEpisodeID"></param>
+        /// <param name="animeID"></param>
         /// <returns></returns>
         public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID)
         {

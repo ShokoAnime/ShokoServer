@@ -2,11 +2,9 @@
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using Shoko.Server.Repositories.Direct;
 using NHibernate;
 using NLog;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -52,7 +50,7 @@ namespace Shoko.Server.Commands
             XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
             ns.Add("", string.Empty);
 
-            XmlSerializer serializer = new XmlSerializer(this.GetType());
+            XmlSerializer serializer = new XmlSerializer(GetType());
             XmlWriterSettings settings = new XmlWriterSettings
             {
                 OmitXmlDeclaration = true // Remove the <?xml version="1.0" encoding="utf-8"?>
@@ -64,17 +62,41 @@ namespace Shoko.Server.Commands
             return sb.ToString();
         }
 
-        public void Save()
+        public void Save(ISession session)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
+            if (crTemp != null)
             {
-                Save(session);
+                // we will always mylist watched state changes
+                // this is because the user may be toggling the status in the client, and we need to process
+                // them all in the order they were requested
+                if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
+                    RepoFactory.CommandRequest.Delete(crTemp);
+                else
+                    return;
+            }
+
+            CommandRequest cri = ToDatabaseObject();
+            RepoFactory.CommandRequest.SaveWithOpenTransaction(session, cri);
+
+            switch (CommandType)
+            {
+                case (int) CommandRequestType.HashFile:
+                    ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
+                    break;
+                case (int) CommandRequestType.ImageDownload:
+                case (int) CommandRequestType.ValidateAllImages:
+                    ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+                    break;
+                default:
+                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+                    break;
             }
         }
 
-        public void Save(ISession session)
+        public void Save()
         {
-            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(session, this.CommandID);
+            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
             if (crTemp != null)
             {
                 // we will always mylist watched state changes

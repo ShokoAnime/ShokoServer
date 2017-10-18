@@ -43,7 +43,7 @@ namespace Shoko.Server
         Trakt_SearchAnime = 38,
         WebCache_SendXRefAniDBTrakt = 39,
         WebCache_DeleteXRefAniDBTrakt = 40,
-        Trakt_UpdateInfoImages = 41,
+        Trakt_UpdateInfo = 41,
         Trakt_EpisodeHistory = 42,
         Trakt_SyncCollection = 43,
         Trakt_SyncCollectionSeries = 44,

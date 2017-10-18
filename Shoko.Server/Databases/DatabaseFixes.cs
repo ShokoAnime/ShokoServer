@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using AniDBAPI;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using NLog;
 using Pri.LongPath;
-using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
-using Shoko.Server.Obsolete;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Databases
 {
@@ -73,7 +67,7 @@ namespace Shoko.Server.Databases
             foreach (SVR_VideoLocal v in locals)
             {
                 SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
-                if (p != null && !string.IsNullOrEmpty(p.FilePath) && v.Media != null)
+                if (!string.IsNullOrEmpty(p?.FilePath) && v.Media != null)
                 {
                     v.FileName = p.FilePath;
                     int a = p.FilePath.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.InvariantCulture);
@@ -94,7 +88,7 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Could not RemoveOldMovieDBImageRecords: " + ex.ToString());
+                logger.Error(ex, "Could not RemoveOldMovieDBImageRecords: " + ex);
             }
         }
 
@@ -103,253 +97,39 @@ namespace Shoko.Server.Databases
         {
             // group filters
 
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                // check if it already exists
-                List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+            // check if it already exists
+            List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
 
-                if (lockedGFs != null)
-                {
-                    // if it already exists we can leave
-                    foreach (SVR_GroupFilter gf in lockedGFs)
+            if (lockedGFs != null)
+                foreach (SVR_GroupFilter gf in lockedGFs)
+                    if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
+                        StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                            StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            gf.FilterType = (int) GroupFilterType.ContinueWatching;
-                            RepoFactory.GroupFilter.Save(gf);
-                        }
+                        gf.FilterType = (int) GroupFilterType.ContinueWatching;
+                        RepoFactory.GroupFilter.Save(gf);
                     }
-                }
-            }
         }
-#pragma warning disable CS0612 // Type or member is obsolete
+
         public static void MigrateTraktLinks_V1_to_V2()
         {
-            try
-            {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
-                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
-                    {
-                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2
-                        {
-                            AnimeID = xrefTrakt.AnimeID,
-                            CrossRefSource = xrefTrakt.CrossRefSource,
-                            TraktID = xrefTrakt.TraktID,
-                            TraktSeasonNumber = xrefTrakt.TraktSeasonNumber
-                        };
-                        Trakt_Show show = xrefTrakt.GetByTraktShow(session);
-                        if (show != null)
-                            xrefNew.TraktTitle = show.Title;
-
-                        // determine start ep type
-                        if (xrefTrakt.TraktSeasonNumber == 0)
-                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Special;
-                        else
-                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Episode;
-
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-                        xrefNew.TraktStartEpisodeNumber = 1;
-
-                        RepoFactory.CrossRef_AniDB_TraktV2.Save(xrefNew);
-                    }
-
-                    // create cross ref's for specials
-                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
-                    {
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTrakt.AnimeID);
-                        if (anime == null) continue;
-
-                        Trakt_Show show = xrefTrakt.GetByTraktShow(session);
-                        if (show == null) continue;
-
-                        // this anime has specials
-                        if (anime.EpisodeCountSpecial <= 0) continue;
-
-                        // this Trakt series has a season 0 (specials)
-                        List<int> seasons = RepoFactory.Trakt_Episode.GetSeasonNumbersForSeries(show.Trakt_ShowID);
-                        if (!seasons.Contains(0)) continue;
-
-                        //make sure we are not doubling up
-                        CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID,
-                            0, 1,
-                            xrefTrakt.AnimeID,
-                            (int) EpisodeType.Special, 1);
-                        if (temp != null) continue;
-
-                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2
-                        {
-                            AnimeID = xrefTrakt.AnimeID,
-                            CrossRefSource = xrefTrakt.CrossRefSource,
-                            TraktID = xrefTrakt.TraktID,
-                            TraktSeasonNumber = 0,
-                            TraktStartEpisodeNumber = 1,
-                            AniDBStartEpisodeType = (int)EpisodeType.Special,
-                            AniDBStartEpisodeNumber = 1,
-                            TraktTitle = show.Title
-                        };
-                        RepoFactory.CrossRef_AniDB_TraktV2.Save(xrefNew);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString());
-            }
+            // Empty to preserve version info
         }
 
         public static void MigrateTvDBLinks_V1_to_V2()
         {
-            try
-            {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-                    foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
-                    {
-                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2
-                        {
-                            AnimeID = xrefTvDB.AnimeID,
-                            CrossRefSource = xrefTvDB.CrossRefSource,
-                            TvDBID = xrefTvDB.TvDBID,
-                            TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber
-                        };
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries();
-                        if (ser != null)
-                            xrefNew.TvDBTitle = ser.SeriesName;
-
-                        // determine start ep type
-                        if (xrefTvDB.TvDBSeasonNumber == 0)
-                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Special;
-                        else
-                            xrefNew.AniDBStartEpisodeType = (int) EpisodeType.Episode;
-
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-                        xrefNew.TvDBStartEpisodeNumber = 1;
-
-                        RepoFactory.CrossRef_AniDB_TvDBV2.Save(xrefNew);
-                    }
-
-                    // create cross ref's for specials
-                    foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
-                    {
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTvDB.AnimeID);
-                        if (anime == null) continue;
-
-                        // this anime has specials
-                        if (anime.EpisodeCountSpecial <= 0) continue;
-
-                        // this tvdb series has a season 0 (specials)
-                        List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(xrefTvDB.TvDBID);
-                        if (!seasons.Contains(0)) continue;
-
-                        //make sure we are not doubling up
-                        CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0,
-                            1,
-                            xrefTvDB.AnimeID,
-                            (int) EpisodeType.Special, 1);
-                        if (temp != null) continue;
-
-                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2
-                        {
-                            AnimeID = xrefTvDB.AnimeID,
-                            CrossRefSource = xrefTvDB.CrossRefSource,
-                            TvDBID = xrefTvDB.TvDBID,
-                            TvDBSeasonNumber = 0,
-                            TvDBStartEpisodeNumber = 1,
-                            AniDBStartEpisodeType = (int)EpisodeType.Special,
-                            AniDBStartEpisodeNumber = 1
-                        };
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries();
-                        if (ser != null)
-                            xrefNew.TvDBTitle = ser.SeriesName;
-
-                        RepoFactory.CrossRef_AniDB_TvDBV2.Save(xrefNew);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString());
-            }
+            // Empty to preserve version info
         }
+
         public static void FixDuplicateTraktLinks()
         {
-            // delete all Trakt link duplicates
-            List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
-            List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
-
-            IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
-            foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
-            {
-                bool deleteXref = false;
-                foreach (CrossRef_AniDB_Trakt xref in xrefsTraktProcessed)
-                {
-                    if (xref.TraktID == xrefTrakt.TraktID && xref.TraktSeasonNumber == xrefTrakt.TraktSeasonNumber)
-                    {
-                        xrefsTraktToBeDeleted.Add(xrefTrakt);
-                        deleteXref = true;
-                    }
-                }
-                if (!deleteXref)
-                    xrefsTraktProcessed.Add(xrefTrakt);
-            }
-
-
-            foreach (CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
-            {
-                string msg = string.Empty;
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
-                if (anime != null) msg = anime.MainTitle;
-
-                logger.Warn("Deleting Trakt Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg,
-                    xref.TraktID,
-                    xref.TraktSeasonNumber);
-                RepoFactory.CrossRef_AniDB_Trakt.Delete(xref.CrossRef_AniDB_TraktID);
-            }
+            // Empty to preserve version info
         }
 
         public static void FixDuplicateTvDBLinks()
         {
-            // delete all TvDB link duplicates
-
-
-            List<CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<CrossRef_AniDB_TvDB>();
-            List<CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<CrossRef_AniDB_TvDB>();
-
-            IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-            foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
-            {
-                bool deleteXref = false;
-                foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBProcessed)
-                {
-                    if (xref.TvDBID == xrefTvDB.TvDBID && xref.TvDBSeasonNumber == xrefTvDB.TvDBSeasonNumber)
-                    {
-                        xrefsTvDBToBeDeleted.Add(xrefTvDB);
-                        deleteXref = true;
-                    }
-                }
-                if (!deleteXref)
-                    xrefsTvDBProcessed.Add(xrefTvDB);
-            }
-
-
-            foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
-            {
-                string msg = string.Empty;
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
-                if (anime != null) msg = anime.MainTitle;
-
-                logger.Warn("Deleting TvDB Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg,
-                    xref.TvDBID,
-                    xref.TvDBSeasonNumber);
-                RepoFactory.CrossRef_AniDB_TvDB.Delete(xref.CrossRef_AniDB_TvDBID);
-            }
+            // Empty to preserve version info
         }
-#pragma warning restore CS0612 // Type or member is obsolete
+
         public static void PopulateTagWeight()
         {
             try
@@ -362,7 +142,7 @@ namespace Shoko.Server.Databases
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Could not PopulateTagWeight: " + ex.ToString());
+                logger.Error(ex, "Could not PopulateTagWeight: " + ex);
             }
         }
 
@@ -386,7 +166,6 @@ namespace Shoko.Server.Databases
                         {
                             gfc.ConditionOperator = (int) GroupFilterOperator.NotIn;
                             RepoFactory.GroupFilterCondition.Save(gfc);
-                            continue;
                         }
                     }
                     gf.CalculateGroupsAndSeries();
