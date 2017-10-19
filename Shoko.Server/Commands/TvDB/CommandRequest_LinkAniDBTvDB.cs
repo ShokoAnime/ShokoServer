@@ -4,7 +4,6 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Models.TvDB;
 using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands.TvDB
@@ -30,10 +29,10 @@ namespace Shoko.Server.Commands.TvDB
         {
             get
             {
-                return new QueueStateStruct()
+                return new QueueStateStruct
                 {
                     queueState = QueueStateEnum.LinkAniDBTvDB,
-                    extraParams = new string[] {animeID.ToString()}
+                    extraParams = new[] {animeID.ToString()}
                 };
             }
         }
@@ -54,8 +53,8 @@ namespace Shoko.Server.Commands.TvDB
             this.excludeFromWebCache = excludeFromWebCache;
             this.additiveLink = additiveLink;
 
-            this.CommandType = (int) CommandRequestType.LinkAniDBTvDB;
-            this.Priority = (int) DefaultPriority;
+            CommandType = (int) CommandRequestType.LinkAniDBTvDB;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -72,44 +71,43 @@ namespace Shoko.Server.Commands.TvDB
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", animeID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_LinkAniDBTvDB{0}{1}{2}{3}{4}{5}", this.animeID,
-                this.aniEpType, this.aniEpNumber, this.tvDBID, this.tvSeasonNumber, this.tvEpNumber);
+            CommandID =
+                $"CommandRequest_LinkAniDBTvDB_{animeID}_{aniEpType}_{aniEpNumber}_{tvDBID}_{tvSeasonNumber}_{tvEpNumber}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-                this.aniEpType = (EpisodeType) Enum.Parse(typeof(EpisodeType),
+                animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
+                aniEpType = (EpisodeType) Enum.Parse(typeof(EpisodeType),
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
-                this.aniEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpNumber"));
-                this.tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
-                this.tvSeasonNumber = int.Parse(
+                aniEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpNumber"));
+                tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
+                tvSeasonNumber = int.Parse(
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvSeasonNumber"));
-                this.tvEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvEpNumber"));
-                this.excludeFromWebCache = bool.Parse(
+                tvEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvEpNumber"));
+                excludeFromWebCache = bool.Parse(
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "excludeFromWebCache"));
-                this.additiveLink = bool.Parse(
+                additiveLink = bool.Parse(
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
             }
 
@@ -122,10 +120,10 @@ namespace Shoko.Server.Commands.TvDB
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

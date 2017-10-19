@@ -736,8 +736,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     {
                         string titleType = title.TitleType.Trim().ToUpper();
                         // first try the  Main title
-                        if (titleType == Shoko.Models.Constants.AnimeTitleType.Main.ToUpper() &&
-                            title.Language.Trim().ToUpper() == thisLanguage)
+                        if (titleType.Trim().Equals(Shoko.Models.Constants.AnimeTitleType.Main,
+                                StringComparison.OrdinalIgnoreCase) &&
+                            title.Language.Trim().Equals(thisLanguage, StringComparison.OrdinalIgnoreCase))
                             return title.Title;
                     }
                 }
@@ -745,9 +746,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 // now try the official title
                 foreach (AniDB_Anime_Title title in titles)
                 {
-                    string titleType = title.TitleType.Trim().ToUpper();
-                    if (titleType == Shoko.Models.Constants.AnimeTitleType.Official.ToUpper() &&
-                        title.Language.Trim().ToUpper() == thisLanguage)
+                    string titleType = title.TitleType.Trim();
+                    if (titleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official,
+                            StringComparison.OrdinalIgnoreCase) &&
+                        title.Language.Trim().Equals(thisLanguage, StringComparison.OrdinalIgnoreCase))
                         return title.Title;
                 }
 
