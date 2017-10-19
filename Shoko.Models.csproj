@@ -219,7 +219,6 @@
     <Compile Include="Server\CrossRef\CrossRef_File_Episode.cs" />
     <Compile Include="Server\CrossRef\CrossRef_Languages_AniDB_File.cs" />
     <Compile Include="Server\CrossRef\CrossRef_Subtitles_AniDB_File.cs" />
-    <Compile Include="Server\FileQualityPreferences.cs" />
     <Compile Include="Interfaces\IShokoServer.cs" />
     <Compile Include="Metro\Metro_AniDB_Character.cs" />
     <Compile Include="Metro\Metro_Anime_Detail.cs" />
@@ -232,9 +231,9 @@
     <Compile Include="Enums\ScanFileStatus.cs" />
     <Compile Include="Enums\ScanStatus.cs" />
     <Compile Include="Azure\Azure_AdminMessage.cs" />
-    <Compile Include="Server\MovieDB_Fanart.cs" />
-    <Compile Include="Server\MovieDB_Movie.cs" />
-    <Compile Include="Server\MovieDB_Poster.cs" />
+    <Compile Include="Server\MovieDB\MovieDB_Fanart.cs" />
+    <Compile Include="Server\MovieDB\MovieDB_Movie.cs" />
+    <Compile Include="Server\MovieDB\MovieDB_Poster.cs" />
     <Compile Include="Server\ShokoInternal\AnimeEpisode.cs" />
     <Compile Include="Server\ShokoInternal\AnimeEpisode_User.cs" />
     <Compile Include="Server\ShokoInternal\AnimeGroup.cs" />
@@ -249,6 +248,7 @@
     <Compile Include="Server\ShokoInternal\DuplicateFile.cs" />
     <Compile Include="Server\ShokoInternal\FileFfdshowPreset.cs" />
     <Compile Include="Server\ShokoInternal\FileNameHash.cs" />
+    <Compile Include="Server\ShokoInternal\FileQualityPreferences.cs" />
     <Compile Include="Server\ShokoInternal\GroupFilter.cs" />
     <Compile Include="Server\ShokoInternal\GroupFilterCondition.cs" />
     <Compile Include="Server\ShokoInternal\Hashes.cs" />
@@ -265,15 +265,15 @@
     <Compile Include="Server\ShokoInternal\VideoLocal.cs" />
     <Compile Include="Server\ShokoInternal\VideoLocal_Place.cs" />
     <Compile Include="Server\ShokoInternal\VideoLocal_User.cs" />
-    <Compile Include="Server\Trakt_Episode.cs" />
-    <Compile Include="Server\Trakt_Friend.cs" />
-    <Compile Include="Server\Trakt_Season.cs" />
-    <Compile Include="Server\Trakt_Show.cs" />
-    <Compile Include="Server\TvDB_Episode.cs" />
-    <Compile Include="Server\TvDB_ImageFanart.cs" />
-    <Compile Include="Server\TvDB_ImagePoster.cs" />
-    <Compile Include="Server\TvDB_ImageWideBanner.cs" />
-    <Compile Include="Server\TvDB_Series.cs" />
+    <Compile Include="Server\Trakt\Trakt_Episode.cs" />
+    <Compile Include="Server\Trakt\Trakt_Friend.cs" />
+    <Compile Include="Server\Trakt\Trakt_Season.cs" />
+    <Compile Include="Server\Trakt\Trakt_Show.cs" />
+    <Compile Include="Server\TvDB\TvDB_Episode.cs" />
+    <Compile Include="Server\TvDB\TvDB_ImageFanart.cs" />
+    <Compile Include="Server\TvDB\TvDB_ImagePoster.cs" />
+    <Compile Include="Server\TvDB\TvDB_ImageWideBanner.cs" />
+    <Compile Include="Server\TvDB\TvDB_Series.cs" />
     <Compile Include="TvDB\TvDB_Language.cs" />
     <Compile Include="TvDB\TVDB_Series_Search_Response.cs" />
   </ItemGroup>

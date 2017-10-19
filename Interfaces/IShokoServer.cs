@@ -582,11 +582,11 @@ namespace Shoko.Models.Interfaces
         [Rest("TvDB/CrossRef/{animeID}", Verbs.Delete)]
         string RemoveLinkAniDBTvDBForAnime(int animeID);
 
-        [Rest("TvDB/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{tvDBID}/{tvSeasonNumber}/{tvEpNumber}/{crossRef_AniDB_TvDBV2ID?}", Verbs.Post)]
-        string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, int? crossRef_AniDB_TvDBV2ID);
+        [Rest("TvDB/CrossRef", Verbs.Post)]
+        string LinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link);
 
-        [Rest("TvDB/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{tvDBID}/{tvSeasonNumber}/{tvEpNumber}", Verbs.Delete)]
-        string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber);
+        [Rest("TvDB/CrossRef", Verbs.Delete)]
+        string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link);
 
         [Rest("TvDB/Search/{criteria}", Verbs.Get)]
         List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria);
