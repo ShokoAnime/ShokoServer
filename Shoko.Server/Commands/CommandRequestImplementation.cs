@@ -6,6 +6,7 @@ using NHibernate;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Commands
 {
@@ -79,17 +80,16 @@ namespace Shoko.Server.Commands
             CommandRequest cri = ToDatabaseObject();
             RepoFactory.CommandRequest.SaveWithOpenTransaction(session, cri);
 
-            switch (CommandType)
+            switch (CommandRequestRepository.GetQueueIndex(cri))
             {
-                case (int) CommandRequestType.HashFile:
+                case 0:
+                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+                    break;
+                case 1:
                     ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
                     break;
-                case (int) CommandRequestType.ImageDownload:
-                case (int) CommandRequestType.ValidateAllImages:
+                case 2:
                     ShokoService.CmdProcessorImages.NotifyOfNewCommand();
-                    break;
-                default:
-                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
                     break;
             }
         }
@@ -111,18 +111,16 @@ namespace Shoko.Server.Commands
             CommandRequest cri = ToDatabaseObject();
             RepoFactory.CommandRequest.Save(cri);
 
-            switch (CommandType)
+            switch (CommandRequestRepository.GetQueueIndex(cri))
             {
-                case (int) CommandRequestType.HashFile:
-                case (int) CommandRequestType.ReadMediaInfo:
+                case 0:
+                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+                    break;
+                case 1:
                     ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
                     break;
-                case (int) CommandRequestType.ImageDownload:
-                case (int) CommandRequestType.ValidateAllImages:
+                case 2:
                     ShokoService.CmdProcessorImages.NotifyOfNewCommand();
-                    break;
-                default:
-                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
                     break;
             }
         }

@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 
@@ -9,6 +11,8 @@ namespace Shoko.Server.Repositories.Cached
     {
         private PocoIndex<int, CommandRequest, string> CommandIDs;
         private PocoIndex<int, CommandRequest, int> CommandTypes;
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         private CommandRequestRepository()
         {
         }
@@ -33,7 +37,7 @@ namespace Shoko.Server.Repositories.Cached
         /// 1 = Hasher
         /// 2 = Images
         /// </returns>
-        private static int GetQueueIndex(CommandRequest req)
+        public static int GetQueueIndex(CommandRequest req)
         {
             switch ((CommandRequestType) req.CommandType)
             {
@@ -85,8 +89,9 @@ namespace Shoko.Server.Repositories.Cached
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }
             }
-            catch
+            catch (Exception e)
             {
+                logger.Error($"There was an error retrieving the next command for the General Queue: {e}");
                 return null;
             }
         }
@@ -109,8 +114,9 @@ namespace Shoko.Server.Repositories.Cached
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }
             }
-            catch
+            catch (Exception e)
             {
+                logger.Error($"There was an error retrieving the next command for the Hasher Queue: {e}");
                 return null;
             }
         }
@@ -133,8 +139,9 @@ namespace Shoko.Server.Repositories.Cached
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }
             }
-            catch
+            catch (Exception e)
             {
+                logger.Error($"There was an error retrieving the next command for the Image Queue: {e}");
                 return null;
             }
         }

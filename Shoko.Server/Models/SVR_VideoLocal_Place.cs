@@ -89,6 +89,11 @@ namespace Shoko.Server.Models
             string fullFileName = FullServerPath;
 
             // check if the file exists
+            if (string.IsNullOrEmpty(fullFileName))
+            {
+                logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
+                return false;
+            }
 
             FileSystemResult<IObject> re = filesys.Resolve(fullFileName);
             if ((re == null) || (!re.IsOk))
@@ -191,8 +196,9 @@ namespace Shoko.Server.Models
             List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
             List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
             SVR_VideoLocal v = VideoLocal;
-            List<DuplicateFile> dupFiles =
-                RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+            List<DuplicateFile> dupFiles = null;
+            if (!string.IsNullOrEmpty(FilePath))
+                dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -217,7 +223,7 @@ namespace Shoko.Server.Models
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                        dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                        dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                 }
@@ -248,8 +254,9 @@ namespace Shoko.Server.Models
             logger.Info("Removing VideoLocal_Place recoord for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
 
-            List<DuplicateFile> dupFiles =
-                RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+            List<DuplicateFile> dupFiles = null;
+            if (!string.IsNullOrEmpty(FilePath))
+                dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             if (v?.Places?.Count <= 1)
             {
@@ -260,7 +267,7 @@ namespace Shoko.Server.Models
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                    dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
                 }
                 CommandRequest_DeleteFileFromMyList cmdDel =
@@ -272,7 +279,7 @@ namespace Shoko.Server.Models
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                    dupFiles.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
                 }
             }
