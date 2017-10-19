@@ -404,6 +404,13 @@ namespace Shoko.Server
                 else
                 {
                     ret.VideoLocal = null;
+                    if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace()?.FullServerPath))
+                    {
+                        ret.VideoLocal = null;
+                        ret.Success = false;
+                        ret.NewFileName = "ERROR: The file could not be found.";
+                        return ret;
+                    }
                     ret.NewFileName = RenameFileHelper.GetRenamer(Shoko.Models.Constants.Renamer.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
 
                     if (string.IsNullOrEmpty(ret.NewFileName))
