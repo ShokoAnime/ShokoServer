@@ -114,6 +114,7 @@ namespace Shoko.Server.Commands
             switch (CommandType)
             {
                 case (int) CommandRequestType.HashFile:
+                case (int) CommandRequestType.ReadMediaInfo:
                     ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
                     break;
                 case (int) CommandRequestType.ImageDownload:

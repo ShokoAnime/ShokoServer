@@ -149,79 +149,73 @@ namespace Shoko.Server.Providers.TvDB
             return results;
         }
 
-        public static string LinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
-            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
+        public static void LinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            if (!additiveLink)
             {
-                if (!additiveLink)
-                    // remove all current links
-                    RemoveAllAniDBTvDBLinks(animeID, -1, false);
-
-                // check if we have this information locally
-                // if not download it now
-                TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID) ?? GetSeriesInfoOnline(tvDBID);
-
-                // download and update series info, episode info and episode images
-                // will also download fanart, posters and wide banners
-                CommandRequest_TvDBUpdateSeries cmdSeriesEps =
-                    new CommandRequest_TvDBUpdateSeries(tvDBID,
-                        false);
-                //Optimize for batch updates, if there are a lot of LinkAniDBTvDB commands queued 
-                //this will cause only one updateSeriesAndEpisodes command to be created
-                if (RepoFactory.CommandRequest.GetByCommandID(cmdSeriesEps.CommandID) == null)
-                {
-                    cmdSeriesEps.Save();
-                }
-
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
-                                                 tvEpNumber, animeID, (int) aniEpType, aniEpNumber) ??
-                                             new CrossRef_AniDB_TvDBV2();
-
-                xref.AnimeID = animeID;
-                xref.AniDBStartEpisodeType = (int)aniEpType;
-                xref.AniDBStartEpisodeNumber = aniEpNumber;
-
-                xref.TvDBID = tvDBID;
-                xref.TvDBSeasonNumber = tvSeasonNumber;
-                xref.TvDBStartEpisodeNumber = tvEpNumber;
-                if (tvSeries != null)
-                    xref.TvDBTitle = tvSeries.SeriesName;
-
-                if (excludeFromWebCache)
-                    xref.CrossRefSource = (int)CrossRefSource.WebCache;
-                else
-                    xref.CrossRefSource = (int)CrossRefSource.User;
-
-                RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
-
-                logger.Trace($"Changed tvdb association: {animeID}");
-
-                if (!excludeFromWebCache)
-                {
-                    var req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
-                    req.Save();
-                }
-
-                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                {
-                    // check for Trakt associations
-                    List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
-                    if (trakt.Count != 0)
-                    {
-                        // remove them and rescan
-                        foreach (CrossRef_AniDB_TraktV2 a in trakt)
-                        {
-                            RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
-                        }
-                    }
-
-                    var cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
-                    cmd2.Save(session);
-                }
+                // remove all current links
+                logger.Info($"Removing All TvDB Links for: {animeID}");
+                RemoveAllAniDBTvDBLinks(animeID, -1, false);
             }
 
-            return string.Empty;
+            // check if we have this information locally
+            // if not download it now
+            TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID) ?? GetSeriesInfoOnline(tvDBID);
+
+            // download and update series info, episode info and episode images
+            // will also download fanart, posters and wide banners
+            CommandRequest_TvDBUpdateSeries cmdSeriesEps =
+                new CommandRequest_TvDBUpdateSeries(tvDBID,
+                    false);
+            cmdSeriesEps.Save();
+
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
+                                             tvEpNumber, animeID, (int) aniEpType, aniEpNumber) ??
+                                         new CrossRef_AniDB_TvDBV2();
+
+            xref.AnimeID = animeID;
+            xref.AniDBStartEpisodeType = (int)aniEpType;
+            xref.AniDBStartEpisodeNumber = aniEpNumber;
+
+            xref.TvDBID = tvDBID;
+            xref.TvDBSeasonNumber = tvSeasonNumber;
+            xref.TvDBStartEpisodeNumber = tvEpNumber;
+            if (tvSeries != null)
+                xref.TvDBTitle = tvSeries.SeriesName;
+
+            if (excludeFromWebCache)
+                xref.CrossRefSource = (int)CrossRefSource.WebCache;
+            else
+                xref.CrossRefSource = (int)CrossRefSource.User;
+
+            RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
+
+            logger.Info(
+                $"Adding TvDB Link: AniDB(ID:{animeID}|Type:{aniEpType}|Number:{aniEpNumber}) -> TvDB(ID:{tvDBID}|Season:{tvSeasonNumber}|Number:{tvEpNumber})");
+            if (!excludeFromWebCache)
+            {
+                var req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
+                req.Save();
+            }
+
+            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            {
+                // check for Trakt associations
+                List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                if (trakt.Count != 0)
+                {
+                    // remove them and rescan
+                    foreach (CrossRef_AniDB_TraktV2 a in trakt)
+                    {
+                        RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                    }
+                }
+
+                var cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
+                cmd2.Save();
+            }
+
+            return;
         }
 
         public static void RemoveAllAniDBTvDBLinks(int animeID, int aniEpType = -1, bool updateStats = true)

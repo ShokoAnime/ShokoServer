@@ -503,33 +503,29 @@ namespace Shoko.Server
             }
         }
 
-        public string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber,
-            int tvEpNumber, int? crossRef_AniDB_TvDBV2ID)
+        public string LinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
         {
             try
             {
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
-                    tvEpNumber, animeID, aniEpType,
-                    aniEpNumber);
-                if (xref != null && !crossRef_AniDB_TvDBV2ID.HasValue)
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(link.TvDBID,
+                    link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, link.AnimeID, link.AniDBStartEpisodeType,
+                    link.AniDBStartEpisodeNumber);
+                bool additive = link.CrossRef_AniDB_TvDBV2ID != 0;
+
+                if (xref != null && !additive)
                 {
-                    string msg = string.Format("You have already linked Anime ID {0} to this TvDB show/season/ep",
-                        xref.AnimeID);
+                    string msg = $"You have already linked Anime ID {xref.AnimeID} to this TvDB show/season/ep";
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                     if (anime != null)
-                    {
-                        msg = string.Format("You have already linked Anime {0} ({1}) to this TvDB show/season/ep",
-                            anime.MainTitle,
-                            xref.AnimeID);
-                    }
+                        msg =
+                            $"You have already linked Anime {anime.MainTitle} ({xref.AnimeID}) to this TvDB show/season/ep";
                     return msg;
                 }
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-
-                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID,
-                    (EpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber, false, !crossRef_AniDB_TvDBV2ID.HasValue);
+                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(link.AnimeID,
+                    (EpisodeType) link.AniDBStartEpisodeType, link.AniDBStartEpisodeNumber, link.TvDBID,
+                    link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, false, additive);
                 cmdRequest.Save();
 
                 return string.Empty;
@@ -601,30 +597,29 @@ namespace Shoko.Server
             }
         }
 
-        public string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber,
-            int tvEpNumber)
+        public string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.AnimeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
+                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(link.AnimeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) ImageEntityType.TvDB_Banner ||
                         image.ImageParentType == (int) ImageEntityType.TvDB_Cover ||
                         image.ImageParentType == (int) ImageEntityType.TvDB_FanArt)
                     {
-                        if (image.ImageParentID == tvDBID)
+                        if (image.ImageParentID == link.TvDBID)
                             RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
-                TvDBApiHelper.RemoveLinkAniDBTvDB(animeID, (EpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber);
+                TvDBApiHelper.RemoveLinkAniDBTvDB(link.AnimeID, (EpisodeType) link.AniDBStartEpisodeType,
+                    link.AniDBStartEpisodeNumber, link.TvDBID, link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber);
 
                 return string.Empty;
             }
