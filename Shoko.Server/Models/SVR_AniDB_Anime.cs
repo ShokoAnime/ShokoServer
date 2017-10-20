@@ -1867,7 +1867,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 // Update more than just stats in case the xrefs have changed
                 series.UpdateStats(true, true, false);
-                RepoFactory.AnimeSeries.Save(series, true, false);
+                RepoFactory.AnimeSeries.Save(series, true, false, alsoupdateepisodes: true);
             }
         }
     }

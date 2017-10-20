@@ -181,6 +181,7 @@ namespace Shoko.Server.Commands
                             season, tvser?.SeriesName ?? string.Empty);
                     }
                 }
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
                 return true;
             }
             else if (results.Count > 1)

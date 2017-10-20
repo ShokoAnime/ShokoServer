@@ -107,7 +107,7 @@ namespace Shoko.Server.Repositories.Cached
             lock (Cache)
             {
                 return SeriesIDs.GetMultiple(seriesID).FirstOrDefault(a =>
-                    a.SeasonNumber > 0 && a.AirDate != null && Math.Abs((a.AirDate.Value - date).TotalDays) < 1.5D);
+                    a.SeasonNumber > 0 && a.AirDate != null && Math.Abs((a.AirDate.Value - date).TotalDays) <= 2D);
             }
         }
 

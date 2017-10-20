@@ -164,6 +164,7 @@ namespace Shoko.Server.Models
                 } while (true);
                 return tvDbEpisode = tvep;
             }
+            set => tvDbEpisode = value;
         }
 
         public double UserRating
