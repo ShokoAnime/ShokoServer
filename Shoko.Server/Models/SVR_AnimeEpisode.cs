@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
-using Shoko.Server.LZ4;
-using NHibernate;
-using Shoko.Commons.Extensions;
-using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
@@ -19,12 +14,8 @@ namespace Shoko.Server.Models
 {
     public class SVR_AnimeEpisode : AnimeEpisode
     {
-        public SVR_AnimeEpisode()
-        {
-        }
-
         private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract = null;
+        private Video _plexContract;
 
         public virtual Video PlexContract
         {
@@ -50,24 +41,13 @@ namespace Shoko.Server.Models
         }
 
 
-        public EpisodeType EpisodeTypeEnum
-        {
-            get { return (EpisodeType) AniDB_Episode.EpisodeType; }
-        }
+        public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 
-        public AniDB_Episode AniDB_Episode
-        {
-            get { return RepoFactory.AniDB_Episode.GetByEpisodeID(this.AniDB_EpisodeID); }
-        }
+        public AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
         public SVR_AnimeEpisode_User GetUserRecord(int userID)
         {
-            return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
-        }
-
-        public SVR_AnimeEpisode_User GetUserRecord(ISession session, int userID)
-        {
-            return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
+            return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
         }
 
 
@@ -76,34 +56,15 @@ namespace Shoko.Server.Models
         /// </summary>
         public SVR_AnimeSeries GetAnimeSeries()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetAnimeSeries(session.Wrap());
-            }
-        }
-
-        public SVR_AnimeSeries GetAnimeSeries(ISessionWrapper session)
-        {
-            return RepoFactory.AnimeSeries.GetByID(this.AnimeSeriesID);
+            return RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
         }
 
         public List<SVR_VideoLocal> GetVideoLocals()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetVideoLocals(session);
-            }
-        }
-
-        public List<SVR_VideoLocal> GetVideoLocals(ISession session)
-        {
             return RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
-        public List<CrossRef_File_Episode> FileCrossRefs
-        {
-            get { return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID); }
-        }
+        public List<CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
         private TvDB_Episode tvDbEpisode;
         public TvDB_Episode TvDBEpisode
@@ -125,13 +86,11 @@ namespace Shoko.Server.Models
 
                 DateTime? airdate = aep.GetAirDateAsDate();
                 if (aep.EpisodeType == (int) EpisodeType.Episode && airdate != null)
-                {
                     foreach (var xref in xref_tvdb)
                     {
                         tvep = RepoFactory.TvDB_Episode.GetBySeriesIDAndDate(xref.TvDBID, airdate.Value);
                         if (tvep != null) return tvDbEpisode = tvep;
                     }
-                }
 
                 int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
                                (xref_tvdb2.AniDBStartEpisodeNumber - 1);
@@ -179,41 +138,31 @@ namespace Shoko.Server.Models
 
         public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
-            SVR_AnimeEpisode_User epUserRecord = this.GetUserRecord(userID);
+            SVR_AnimeEpisode_User epUserRecord = GetUserRecord(userID);
 
             if (watched)
             {
                 // lets check if an update is actually required
-                if (epUserRecord != null)
-                {
-                    if (epUserRecord.WatchedDate.HasValue && watchedDate.HasValue &&
-                        epUserRecord.WatchedDate.Value.Equals(watchedDate.Value))
-                    {
-                        // this will happen when we are adding a new file for an episode where we already had another file
-                        // and the file/episode was watched already
-                        return;
-                    }
-                }
+                if (epUserRecord?.WatchedDate != null && watchedDate != null &&
+                    epUserRecord.WatchedDate.Equals(watchedDate.Value) ||
+                    (epUserRecord?.WatchedDate == null && watchedDate == null))
+                    return;
 
                 if (epUserRecord == null)
-                {
                     epUserRecord = new SVR_AnimeEpisode_User
                     {
                         PlayedCount = 0,
                         StoppedCount = 0,
                         WatchedCount = 0
                     };
-                }
-                epUserRecord.AnimeEpisodeID = this.AnimeEpisodeID;
-                epUserRecord.AnimeSeriesID = this.AnimeSeriesID;
+                epUserRecord.AnimeEpisodeID = AnimeEpisodeID;
+                epUserRecord.AnimeSeriesID = AnimeSeriesID;
                 epUserRecord.JMMUserID = userID;
                 epUserRecord.WatchedCount++;
 
                 if (watchedDate.HasValue)
-                {
                     if (updateWatchedDate)
                         epUserRecord.WatchedDate = watchedDate.Value;
-                }
 
                 if (!epUserRecord.WatchedDate.HasValue) epUserRecord.WatchedDate = DateTime.Now;
 
@@ -229,64 +178,48 @@ namespace Shoko.Server.Models
 
         public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
         {
-            List<CL_VideoDetailed> contracts = new List<CL_VideoDetailed>();
-
             // get all the cross refs
-            foreach (CrossRef_File_Episode xref in FileCrossRefs)
-            {
-                SVR_VideoLocal v = RepoFactory.VideoLocal.GetByHash(xref.Hash);
-                if (v != null)
-                    contracts.Add(v.ToClientDetailed(userID));
-            }
-
-
-            return contracts;
+            return FileCrossRefs.Select(xref => RepoFactory.VideoLocal.GetByHash(xref.Hash))
+                .Where(v => v != null)
+                .Select(v => v.ToClientDetailed(userID)).ToList();
         }
-
-        private static object _lock = new object();
 
         public CL_AnimeEpisode_User GetUserContract(int userid, ISessionWrapper session = null)
         {
-            lock (_lock) //Make it atomic on creation
-            {
-                SVR_AnimeEpisode_User rr = GetUserRecord(userid);
-                if (rr != null)
-                    return rr.Contract;
-                rr = new SVR_AnimeEpisode_User
-                {
-                    PlayedCount = 0,
-                    StoppedCount = 0,
-                    WatchedCount = 0,
-                    AnimeEpisodeID = this.AnimeEpisodeID,
-                    AnimeSeriesID = this.AnimeSeriesID,
-                    JMMUserID = userid,
-                    WatchedDate = null
-                };
-                if (session != null)
-                {
-                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
-                }
-                else
-                {
-                    RepoFactory.AnimeEpisode_User.Save(rr);
-                }
-
+            SVR_AnimeEpisode_User rr = GetUserRecord(userid);
+            if (rr != null)
                 return rr.Contract;
-            }
+            rr = new SVR_AnimeEpisode_User
+            {
+                PlayedCount = 0,
+                StoppedCount = 0,
+                WatchedCount = 0,
+                AnimeEpisodeID = AnimeEpisodeID,
+                AnimeSeriesID = AnimeSeriesID,
+                JMMUserID = userid,
+                WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid))
+                    .FirstOrDefault(vid => vid.WatchedDate != null)?.WatchedDate
+            };
+            if (session != null)
+                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
+            else
+                RepoFactory.AnimeEpisode_User.Save(rr);
+
+            return rr.Contract;
         }
 
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID,
             bool syncTrakt)
         {
-            ToggleWatchedStatus(watched, updateOnline, watchedDate, true, true, userID, syncTrakt);
+            ToggleWatchedStatus(watched, updateOnline, watchedDate, true, userID, syncTrakt);
         }
 
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats,
-            bool updateStatsCache, int userID, bool syncTrakt)
+            int userID, bool syncTrakt)
         {
             foreach (SVR_VideoLocal vid in GetVideoLocals())
             {
-                vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID,
+                vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, userID,
                     syncTrakt, true);
                 vid.SetResumePosition(0, userID);
             }

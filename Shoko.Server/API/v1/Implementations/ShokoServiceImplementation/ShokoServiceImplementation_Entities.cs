@@ -547,7 +547,7 @@ namespace Shoko.Server
 
                         foreach (SVR_AnimeEpisode ep in vid.GetAnimeEpisodes())
                         {
-                            if (user.AllowedSeries(ep.GetAnimeSeries(sessionWrapper)))
+                            if (user.AllowedSeries(ep.GetAnimeSeries()))
                             {
                                 CL_AnimeEpisode_User epContract = ep.GetUserContract(jmmuserID);
                                 if (epContract != null)
@@ -1408,7 +1408,7 @@ namespace Shoko.Server
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video local record";
-                vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true, true);
+                vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, userID, true, true);
                 return string.Empty;
             }
             catch (Exception ex)
@@ -1436,7 +1436,7 @@ namespace Shoko.Server
                     return response;
                 }
 
-                ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
+                ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
                 ep.GetAnimeSeries().UpdateStats(true, false, true);
                 //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
@@ -1707,7 +1707,7 @@ namespace Shoko.Server
                         if (currentStatus != watchedStatus)
                         {
                             logger.Info("Updating episode: {0} to {1}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
-                            ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, false);
+                            ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, false);
                         }
                     }
 

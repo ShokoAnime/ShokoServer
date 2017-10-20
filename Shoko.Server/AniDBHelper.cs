@@ -434,7 +434,7 @@ namespace Shoko.Server
                 {
                     foreach (var user in RepoFactory.JMMUser.GetAniDBUsers())
                     {
-                        vid.ToggleWatchedStatus(true, false, cmdGetFileStatus.MyListFile.WatchedDate, true, true,
+                        vid.ToggleWatchedStatus(true, false, cmdGetFileStatus.MyListFile.WatchedDate, true,
                             user.JMMUserID, false, true);
                     }
                 }

@@ -78,7 +78,7 @@ namespace Shoko.Server.API.v2.Modules
             if (user == null)
                 return; //At this point in time, we don't want to scrobble for unknown users.
 
-            episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, false, user.JMMUserID,
+            episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
                 true);
             anime.UpdateStats(true, false, true);
         }

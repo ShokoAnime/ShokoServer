@@ -189,13 +189,13 @@ namespace Shoko.Server.Commands
                             {
                                 modifiedItems++;
                                 vl.ToggleWatchedStatus(false, false, watchedDate,
-                                    false, false, jmmUserID, false,
+                                    false, jmmUserID, false,
                                     true);
                                 action = "Used AniDB Status";
                             }
                             else if (ServerSettings.AniDB_MyList_SetWatched)
                             {
-                                vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, false, jmmUserID,
+                                vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, jmmUserID,
                                     false, true);
                             }
                         }
@@ -205,13 +205,13 @@ namespace Shoko.Server.Commands
                             if (ServerSettings.AniDB_MyList_ReadWatched)
                             {
                                 modifiedItems++;
-                                vl.ToggleWatchedStatus(true, false, watchedDate, false, false,
+                                vl.ToggleWatchedStatus(true, false, watchedDate, false,
                                     jmmUserID, false, true);
                                 action = "Updated Local record to Watched";
                             }
                             else if (ServerSettings.AniDB_MyList_SetUnwatched)
                             {
-                                vl.ToggleWatchedStatus(false, true, watchedDate, false, false, jmmUserID,
+                                vl.ToggleWatchedStatus(false, true, watchedDate, false, jmmUserID,
                                     false, true);
                             }
                         }
