@@ -62,6 +62,7 @@ namespace Shoko.Server.Commands
                     {
                         // Save
                         if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
+                        episode.TvDBEpisode = null;
                         RepoFactory.AnimeEpisode.Save(episode);
                     }
                     anime.QueueUpdateStats();
@@ -103,7 +104,7 @@ namespace Shoko.Server.Commands
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateEpisode",
                         "DownloadImages"));
                 InfoString =
-                    TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes",
+                    TryGetProperty(docCreator, "CommandRequest_TvDBUpdateEpisode",
                         "InfoString");
             }
 

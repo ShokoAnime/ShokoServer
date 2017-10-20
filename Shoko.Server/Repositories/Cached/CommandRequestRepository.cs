@@ -25,7 +25,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PopulateIndexes()
         {
             CommandIDs = new PocoIndex<int, CommandRequest, string>(Cache, a => a.CommandID);
-            CommandTypes = new PocoIndex<int, CommandRequest, int>(Cache, GetQueueIndex);
+            CommandTypes = new PocoIndex<int, CommandRequest, int>(Cache, a => GetQueueIndex(a));
         }
 
         /// <summary>
@@ -39,18 +39,15 @@ namespace Shoko.Server.Repositories.Cached
         /// </returns>
         public static int GetQueueIndex(CommandRequest req)
         {
-            switch ((CommandRequestType) req.CommandType)
-            {
-                case CommandRequestType.TvDB_DownloadImages:
-                case CommandRequestType.ImageDownload:
-                case CommandRequestType.ValidateAllImages:
-                    return 2;
-                case CommandRequestType.HashFile:
-                case CommandRequestType.ReadMediaInfo:
-                    return 1;
-                default:
-                    return 0;
-            }
+            if (req.CommandType == (int) CommandRequestType.TvDB_DownloadImages ||
+                req.CommandType == (int) CommandRequestType.ImageDownload ||
+                req.CommandType == (int) CommandRequestType.ValidateAllImages)
+                return 2;
+            if (req.CommandType == (int) CommandRequestType.HashFile ||
+                     req.CommandType == (int) CommandRequestType.ReadMediaInfo)
+                return 1;
+
+            return 0;
         }
 
         public override void RegenerateDb()

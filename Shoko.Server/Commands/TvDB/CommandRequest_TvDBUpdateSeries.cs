@@ -51,7 +51,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info("Processing CommandRequest_TvDBUpdateSeriesAndEpisodes: {0}", TvDBSeriesID);
+            logger.Info("Processing CommandRequest_TvDBUpdateSeries: {0}", TvDBSeriesID);
 
             try
             {
@@ -59,7 +59,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBUpdateSeriesAndEpisodes: {0} - {1}", TvDBSeriesID,
+                logger.Error("Error processing CommandRequest_TvDBUpdateSeries: {0} - {1}", TvDBSeriesID,
                     ex.ToString());
                 return;
             }
@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_TvDBUpdateSeriesAndEpisodes{this.TvDBSeriesID}";
+            this.CommandID = $"CommandRequest_TvDBUpdateSeries{this.TvDBSeriesID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -87,12 +87,12 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 this.TvDBSeriesID =
-                    int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes", "TvDBSeriesID"));
+                    int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries", "TvDBSeriesID"));
                 this.ForceRefresh =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes",
+                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
                         "ForceRefresh"));
                 this.SeriesTitle =
-                    TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeriesAndEpisodes",
+                    TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
                         "SeriesTitle");
                 if (string.IsNullOrEmpty(SeriesTitle))
                 {
