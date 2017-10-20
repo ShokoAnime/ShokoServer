@@ -56,22 +56,25 @@ namespace Shoko.Server.Providers.TvDB
             }
         }
 
-        public static TvDB_Series GetSeriesInfoOnline(int seriesID)
+        public static TvDB_Series GetSeriesInfoOnline(int seriesID, bool forceRefresh)
         {
-            return Task.Run(async () => await GetSeriesInfoOnlineAsync(seriesID)).Result;
+            return Task.Run(async () => await GetSeriesInfoOnlineAsync(seriesID, forceRefresh)).Result;
         }
 
-        public static async Task<TvDB_Series> GetSeriesInfoOnlineAsync(int seriesID)
+        public static async Task<TvDB_Series> GetSeriesInfoOnlineAsync(int seriesID, bool forceRefresh)
         {
             try
             {
+                TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(seriesID);
+                if (tvSeries != null && !forceRefresh)
+                    return tvSeries;
                 await CheckAuthorizationAsync();
 
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Series.GetAsync(seriesID);
                 Series series = response.Data;
 
-                TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(seriesID) ?? new TvDB_Series();
+                tvSeries = tvSeries ?? new TvDB_Series();
 
                 tvSeries.PopulateFromSeriesInfo(series);
                 RepoFactory.TvDB_Series.Save(tvSeries);
@@ -85,7 +88,7 @@ namespace Shoko.Server.Providers.TvDB
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
                     if (!string.IsNullOrEmpty(client.Authentication.Token))
-                        return await GetSeriesInfoOnlineAsync(seriesID);
+                        return await GetSeriesInfoOnlineAsync(seriesID, forceRefresh);
                     // suppress 404 and move on
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
 
@@ -160,7 +163,7 @@ namespace Shoko.Server.Providers.TvDB
 
             // check if we have this information locally
             // if not download it now
-            TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID) ?? GetSeriesInfoOnline(tvDBID);
+            TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID) ?? GetSeriesInfoOnline(tvDBID, false);
 
             // download and update series info, episode info and episode images
             // will also download fanart, posters and wide banners
@@ -832,7 +835,7 @@ namespace Shoko.Server.Providers.TvDB
             try
             {
                 // update the series info
-                TvDB_Series tvSeries = GetSeriesInfoOnline(seriesID);
+                TvDB_Series tvSeries = GetSeriesInfoOnline(seriesID, forceRefresh);
                 if (tvSeries == null) return;
 
                 if (downloadImages)

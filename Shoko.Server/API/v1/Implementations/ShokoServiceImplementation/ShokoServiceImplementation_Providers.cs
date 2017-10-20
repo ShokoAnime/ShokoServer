@@ -403,7 +403,7 @@ namespace Shoko.Server
         {
             try
             {
-                TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, false, true);
+                TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, true, true);
             }
             catch (Exception ex)
             {
