@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
@@ -19,10 +20,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public AuthTokens GetByToken(string token)
         {
+            if (string.IsNullOrEmpty(token)) return null;
             lock (Cache)
             {
-                if (string.IsNullOrEmpty(token)) return null;
-                var tokens = Tokens.GetMultiple(token).ToList();
+                var tokens = Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList();
                 var auth = tokens.FirstOrDefault();
                 if (tokens.Count <= 1) return auth;
                 tokens.Remove(auth);
@@ -77,23 +78,24 @@ namespace Shoko.Server.Repositories.Cached
             {
                 int uid = userrecord.JMMUserID;
                 var tokens = UserIDs
-                    .GetMultiple(uid).ToList();
-                var auth = tokens.FirstOrDefault(a =>
-                    a.DeviceName.Equals(device, StringComparison.InvariantCultureIgnoreCase) &&
-                    !string.IsNullOrEmpty(a.Token));
+                    .GetMultiple(uid).Where(a => string.IsNullOrEmpty(a.Token) ||
+                        a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
+                    .ToList();
+                var auth = tokens.FirstOrDefault(a => !string.IsNullOrEmpty(a.Token) &&
+                    a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase));
                 if (tokens.Count > 1)
                 {
-                    tokens.Remove(auth);
+                    if (auth != null) tokens.Remove(auth);
                     tokens.ForEach(Delete);
                 }
-                var apiKey = auth?.Token ?? string.Empty;
+                string apiKey = auth?.Token.ToLowerInvariant().Trim() ?? string.Empty;
 
                 if (!string.IsNullOrEmpty(apiKey)) return apiKey;
 
-                apiKey = Guid.NewGuid().ToString();
-                AuthTokens token =
-                    new AuthTokens {UserID = uid, DeviceName = device.ToLowerInvariant(), Token = apiKey};
-                Save(token);
+                apiKey = Guid.NewGuid().ToString().ToLowerInvariant().Trim();
+                AuthTokens newToken =
+                    new AuthTokens {UserID = uid, DeviceName = device.Trim().ToLowerInvariant(), Token = apiKey};
+                Save(newToken);
 
                 return apiKey;
             }

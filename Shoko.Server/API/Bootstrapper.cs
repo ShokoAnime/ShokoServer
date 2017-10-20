@@ -48,12 +48,14 @@ namespace Shoko.Server.API
             var configuration =
                 new StatelessAuthenticationConfiguration(nancyContext =>
                 {
+                    // If the server isn't up yet, we can't access the db for users
                     if (!(ServerState.Instance?.ServerOnline ?? false)) return null;
-                    //try to take "apikey" from header
-                    string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault();
+                    // get apikey from header
+                    string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault()?.Trim();
+                    // if not in header
                     if (string.IsNullOrEmpty(apiKey))
                     {
-                        //take out value of "apikey" from query that was pass in request and check for User
+                        // try from query string instead
                         try
                         {
                             apiKey = (string) nancyContext.Request.Query.apikey.Value;
