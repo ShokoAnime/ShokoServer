@@ -25,7 +25,7 @@ namespace Shoko.Server.Models
 {
     public class SVR_VideoLocal : VideoLocal, IHash
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         #region DB columns
 
@@ -79,34 +79,19 @@ namespace Shoko.Server.Models
 
             sb.Append(Environment.NewLine);
             sb.Append("FileName: " + FileName);
-/*            sb.Append(Environment.NewLine);
-            sb.Append("ImportFolderID: " + ImportFolderID.ToString());*/
             sb.Append(Environment.NewLine);
             sb.Append("Hash: " + Hash);
             sb.Append(Environment.NewLine);
             sb.Append("FileSize: " + FileSize);
             sb.Append(Environment.NewLine);
-            /*
-            try
-            {
-                if (ImportFolder != null)
-                    sb.Append("ImportFolderLocation: " + ImportFolder.ImportFolderLocation);
-            }
-            catch (Exception ex)
-            {
-                sb.Append("ImportFolderLocation: " + ex.ToString());
-            }
-
-            sb.Append(Environment.NewLine);
-            */
             return sb.ToString();
         }
 
         [ScriptIgnore]
         public string ED2KHash
         {
-            get { return Hash; }
-            set { Hash = value; }
+            get => Hash;
+            set => Hash = value;
         }
 
 
@@ -160,11 +145,7 @@ namespace Shoko.Server.Models
                 vidUserRecord.JMMUserID = userID;
                 vidUserRecord.VideoLocalID = VideoLocalID;
 
-                if (watchedDate.HasValue)
-                {
-                    if (updateWatchedDate)
-                        vidUserRecord.WatchedDate = watchedDate.Value;
-                }
+                if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
 
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
             }
@@ -203,47 +184,39 @@ namespace Shoko.Server.Models
             IFile file = null;
             foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
-                if (p != null)
-                {
-                    file = ResolveFile(p.FullServerPath);
-                    if (file != null)
-                        break;
-                }
+                file = ResolveFile(p.FullServerPath);
+                if (file != null)
+                    break;
             }
             return file;
         }
 
         public SVR_VideoLocal_Place GetBestVideoLocalPlace()
         {
-            return Places.Where(p => p?.FullServerPath != null && p?.ImportFolder != null).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p?.FullServerPath) != null);
+            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
         }
 
         public void SetResumePosition(long resumeposition, int userID)
         {
             VideoLocal_User vuser = GetUserRecord(userID);
             if (vuser == null)
-            {
                 vuser = new VideoLocal_User
                 {
                     JMMUserID = userID,
                     VideoLocalID = VideoLocalID,
                     ResumePosition = resumeposition
                 };
-            }
             else
-            {
                 vuser.ResumePosition = resumeposition;
-            }
             RepoFactory.VideoLocalUser.Save(vuser);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
         {
-            ToggleWatchedStatus(watched, true, null, true, true, userID, true, true);
+            ToggleWatchedStatus(watched, true, null, true, userID, true, true);
         }
 
-        public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats,
-            bool updateStatsCache, int userID,
+        public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
             bool syncTrakt, bool updateWatchedDate)
         {
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
@@ -257,15 +230,9 @@ namespace Shoko.Server.Models
             if (user.IsAniDBUser == 0)
                 SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
             else
-            {
-                // if the user is AniDB user we also want to update any other AniDB
-                // users to keep them in sync
                 foreach (SVR_JMMUser juser in aniDBUsers)
-                {
                     if (juser.IsAniDBUser == 1)
                         SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate);
-                }
-            }
 
 
             // now lets find all the associated AniDB_File record if there is one
@@ -277,12 +244,7 @@ namespace Shoko.Server.Models
                     aniFile.IsWatched = mywatched;
 
                     if (watched)
-                    {
-                        if (watchedDate.HasValue)
-                            aniFile.WatchedDate = watchedDate;
-                        else
-                            aniFile.WatchedDate = DateTime.Now;
-                    }
+                        aniFile.WatchedDate = watchedDate ?? DateTime.Now;
                     else
                         aniFile.WatchedDate = null;
 
@@ -291,7 +253,6 @@ namespace Shoko.Server.Models
                 }
 
                 if (updateOnline)
-                {
                     if ((watched && ServerSettings.AniDB_MyList_SetWatched) ||
                         (!watched && ServerSettings.AniDB_MyList_SetUnwatched))
                     {
@@ -300,7 +261,6 @@ namespace Shoko.Server.Models
                             watchedDate.HasValue ? AniDB.GetAniDBDateAsSeconds(watchedDate) : 0);
                         cmd.Save();
                     }
-                }
             }
 
             // now find all the episode records associated with this video file
@@ -327,11 +287,8 @@ namespace Shoko.Server.Models
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser != null && vidUser.WatchedDate.HasValue)
-                        {
-                            // if not null means it is watched
+                        if (vidUser?.WatchedDate != null)
                             epPercentWatched += filexref.Percentage;
-                        }
 
                         if (epPercentWatched > 95) break;
                     }
@@ -344,15 +301,9 @@ namespace Shoko.Server.Models
                         if (user.IsAniDBUser == 0)
                             ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
                         else
-                        {
-                            // if the user is AniDB user we also want to update any other AniDB
-                            // users to keep them in sync
                             foreach (SVR_JMMUser juser in aniDBUsers)
-                            {
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
-                            }
-                        }
 
                         if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
                             !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
@@ -387,7 +338,7 @@ namespace Shoko.Server.Models
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser != null && vidUser.WatchedDate.HasValue)
+                        if (vidUser?.WatchedDate != null)
                             epPercentWatched += filexref.Percentage;
 
                         if (epPercentWatched > 95) break;
@@ -398,15 +349,9 @@ namespace Shoko.Server.Models
                         if (user.IsAniDBUser == 0)
                             ep.SaveWatchedStatus(false, userID, watchedDate, true);
                         else
-                        {
-                            // if the user is AniDB user we also want to update any other AniDB
-                            // users to keep them in sync
                             foreach (SVR_JMMUser juser in aniDBUsers)
-                            {
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
-                            }
-                        }
 
                         if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
                             !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
@@ -429,20 +374,14 @@ namespace Shoko.Server.Models
 
             // update stats for groups and series
             if (toUpdateSeries.Count > 0 && updateStats)
-            {
                 foreach (SVR_AnimeSeries s in toUpdateSeries.Values)
                     // update all the groups above this series in the heirarchy
                     s.UpdateStats(true, true, true);
-                //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-            }
-
-            //if (ser != null && updateStatsCache)
-            //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
         }
 
         public override string ToString()
         {
-            return string.Format("{0} --- {1}", FileName, Hash);
+            return $"{FileName} --- {Hash}";
         }
 
 
@@ -493,14 +432,14 @@ namespace Shoko.Server.Models
             return true;
         }
 
-        private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
+        private static readonly Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
             RegexOptions.Compiled);
 
-        private static Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
+        private static readonly Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
 
         public Media GetMediaFromUser(int userID)
         {
-            Media n = null;
+            Media n;
             if (Media == null)
             {
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
@@ -509,12 +448,8 @@ namespace Shoko.Server.Models
                     IFileSystem f = pl.ImportFolder.FileSystem;
                     FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
                     if (src != null && src.IsOk && src.Result is IFile)
-                    {
                         if (pl.RefreshMediaInfo())
-                        {
                             RepoFactory.VideoLocal.Save(pl.VideoLocal, true);
-                        }
-                    }
                 }
             }
             if (Media == null) return null;
@@ -542,11 +477,9 @@ namespace Shoko.Server.Models
                     ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                 if (p.Streams == null) continue;
                 foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3").ToList())
-                {
                     s.Key =
                         ((IProvider) null).ReplaceSchemeHost(
                             ((IProvider) null).ConstructFileStream(userID, s.File, false));
-                }
             }
             return n;
         }
@@ -586,7 +519,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                cl.VideoLocal_IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
+                cl.VideoLocal_IsWatched = 1;
                 cl.VideoLocal_WatchedDate = userRecord.WatchedDate;
             }
             if (userRecord != null)
@@ -654,10 +587,7 @@ namespace Shoko.Server.Models
 
 
             AniDB_ReleaseGroup relGroup = ReleaseGroup; // to prevent multiple db calls
-            if (relGroup != null)
-                cl.ReleaseGroup = relGroup;
-            else
-                cl.ReleaseGroup = null;
+            cl.ReleaseGroup = relGroup;
             cl.Media = GetMediaFromUser(userID);
             return cl;
         }
@@ -688,7 +618,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                cl.IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
+                cl.IsWatched = 1;
                 cl.WatchedDate = userRecord.WatchedDate;
             }
             if (userRecord != null)

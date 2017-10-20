@@ -103,12 +103,12 @@ namespace Shoko.Server.Commands
                     // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                     if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
                     {
-                        vid.ToggleWatchedStatus(true, false, watchedDate, false, false, juser.JMMUserID,
+                        vid.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID,
                             false, false);
                     }
                     else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
                     {
-                        vid.ToggleWatchedStatus(false, false, watchedDate, false, false, juser.JMMUserID,
+                        vid.ToggleWatchedStatus(false, false, watchedDate, false, juser.JMMUserID,
                             false, false);
                     }
 

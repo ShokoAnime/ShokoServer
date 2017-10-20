@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands.Plex
                         if (alreadyWatched && !isWatched)
                             episode.Scrobble();
                         if (isWatched && !alreadyWatched)
-                            video.ToggleWatchedStatus(true, true, lastWatched, true, true,
+                            video.ToggleWatchedStatus(true, true, lastWatched, true,
                                 _jmmuser.JMMUserID, true, true);
                     }
                 }

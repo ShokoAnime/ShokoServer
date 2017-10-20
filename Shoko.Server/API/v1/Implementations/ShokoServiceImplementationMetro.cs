@@ -754,7 +754,7 @@ namespace Shoko.Server
                                     // now refresh from the database to get file count
                                     SVR_AnimeEpisode epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
 
-                                    int fileCount = epFresh.GetVideoLocals(session).Count;
+                                    int fileCount = epFresh.GetVideoLocals().Count;
                                     if (fileCount > 0)
                                     {
                                         Metro_Anime_Episode contract = new Metro_Anime_Episode
@@ -1376,7 +1376,7 @@ namespace Shoko.Server
                     return response;
                 }
 
-                ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
+                ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
                 ep.GetAnimeSeries().UpdateStats(true, false, true);
                 //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 

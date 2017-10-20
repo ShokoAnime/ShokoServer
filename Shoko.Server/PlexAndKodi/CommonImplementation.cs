@@ -212,7 +212,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
                             var anime = RepoFactory.AnimeEpisode.GetByID(episodeID)
-                                .GetAnimeSeries(sessionWrapper)
+                                .GetAnimeSeries()
                                 .GetAnime();
                             dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster(prov);
                             dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt(prov);
@@ -647,7 +647,7 @@ namespace Shoko.Server.PlexAndKodi
                     rsp.Message = "Episode Not Found";
                     return rsp;
                 }
-                ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+                ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
                 ep.GetAnimeSeries().UpdateStats(true, false, true);
                 rsp.Code = "200";
                 rsp.Message = null;
@@ -690,7 +690,7 @@ namespace Shoko.Server.PlexAndKodi
                     if (ep.EpisodeTypeEnum == EpisodeType.Credits) continue;
                     if (ep.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
-                    ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+                    ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
                 }
 
                 series.UpdateStats(true, false, true);
@@ -736,7 +736,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (ep.EpisodeTypeEnum == EpisodeType.Credits) continue;
                         if (ep.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
-                        ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+                        ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
                     }
                     series.UpdateStats(true, false, false);
                 }

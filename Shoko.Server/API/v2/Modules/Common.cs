@@ -1397,7 +1397,7 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     return APIStatus.NotFound();
                 }
-                ep.ToggleWatchedStatus(status, true, DateTime.Now, false, false, uid, true);
+                ep.ToggleWatchedStatus(status, true, DateTime.Now, false, uid, true);
                 ep.GetAnimeSeries()?.UpdateStats(true, false, true);
                 return APIStatus.OK();
             }
@@ -1956,13 +1956,13 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         if (epUser.WatchedCount <= 0 && watched)
                         {
-                            ep.ToggleWatchedStatus(watched, true, DateTime.Now, false, false, uid, false);
+                            ep.ToggleWatchedStatus(watched, true, DateTime.Now, false, uid, false);
                         }
                         else
                         {
                             if (epUser.WatchedCount > 0 && !watched)
                             {
-                                ep.ToggleWatchedStatus(watched, true, DateTime.Now, false, false, uid, false);
+                                ep.ToggleWatchedStatus(watched, true, DateTime.Now, false, uid, false);
                             }
                         }
                     }
@@ -2715,7 +2715,7 @@ namespace Shoko.Server.API.v2.Modules
                         if (ep?.EpisodeTypeEnum == EpisodeType.Credits) continue;
                         if (ep?.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
-                        ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, false, userid, true);
+                        ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, userid, true);
                     }
                     series.UpdateStats(true, false, false);
                 }
