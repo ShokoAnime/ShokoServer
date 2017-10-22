@@ -198,7 +198,7 @@ namespace Shoko.Server.Models
                 AnimeSeriesID = AnimeSeriesID,
                 JMMUserID = userid,
                 WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid))
-                    .FirstOrDefault(vid => vid.WatchedDate != null)?.WatchedDate
+                    .FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate
             };
             if (session != null)
                 RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
