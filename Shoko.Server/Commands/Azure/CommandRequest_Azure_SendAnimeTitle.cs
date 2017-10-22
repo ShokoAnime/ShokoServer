@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -16,22 +14,13 @@ namespace Shoko.Server.Commands.Azure
         public string MainTitle { get; set; }
         public string Titles { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority11; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.SendAnimeTitle,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.SendAnimeTitle,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_Azure_SendAnimeTitle()
         {
@@ -39,11 +28,11 @@ namespace Shoko.Server.Commands.Azure
 
         public CommandRequest_Azure_SendAnimeTitle(int animeID, string main, string titles)
         {
-            this.AnimeID = animeID;
-            this.MainTitle = main;
-            this.Titles = titles;
-            this.CommandType = (int) CommandRequestType.Azure_SendAnimeTitle;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            MainTitle = main;
+            Titles = titles;
+            CommandType = (int) CommandRequestType.Azure_SendAnimeTitle;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -69,35 +58,34 @@ namespace Shoko.Server.Commands.Azure
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_Azure_SendAnimeTitle: {0} - {1}", AnimeID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_Azure_SendAnimeTitle: {0} - {1}", AnimeID, ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_Azure_SendAnimeTitle_{0}", this.AnimeID);
+            CommandID = $"CommandRequest_Azure_SendAnimeTitle_{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "AnimeID"));
-                this.MainTitle = TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "MainTitle");
-                this.Titles = TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "Titles");
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "AnimeID"));
+                MainTitle = TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "MainTitle");
+                Titles = TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "Titles");
             }
 
             return true;
@@ -109,10 +97,10 @@ namespace Shoko.Server.Commands.Azure
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -17,22 +15,13 @@ namespace Shoko.Server.Commands
         public bool ForceRefresh { get; set; }
         public string SeriesTitle { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.GettingTvDBSeries,
-                    extraParams = new string[] {$"{SeriesTitle} ({TvDBSeriesID})"}
-                };
-            }
-        }
+            queueState = QueueStateEnum.GettingTvDBSeries,
+            extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})"}
+        };
 
         public CommandRequest_TvDBUpdateSeries()
         {
@@ -40,11 +29,11 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TvDBUpdateSeries(int tvDBSeriesID, bool forced)
         {
-            this.TvDBSeriesID = tvDBSeriesID;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.TvDB_UpdateSeries;
-            this.Priority = (int) DefaultPriority;
-            this.SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
+            TvDBSeriesID = tvDBSeriesID;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.TvDB_UpdateSeries;
+            Priority = (int) DefaultPriority;
+            SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
 
             GenerateCommandID();
         }
@@ -60,43 +49,42 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_TvDBUpdateSeries: {0} - {1}", TvDBSeriesID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_TvDBUpdateSeries{this.TvDBSeriesID}";
+            CommandID = $"CommandRequest_TvDBUpdateSeries{TvDBSeriesID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.TvDBSeriesID =
+                TvDBSeriesID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries", "TvDBSeriesID"));
-                this.ForceRefresh =
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
                         "ForceRefresh"));
-                this.SeriesTitle =
+                SeriesTitle =
                     TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
                         "SeriesTitle");
                 if (string.IsNullOrEmpty(SeriesTitle))
                 {
-                    this.SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
+                    SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
                                        string.Intern("Name not Available");
                 }
             }
@@ -110,10 +98,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

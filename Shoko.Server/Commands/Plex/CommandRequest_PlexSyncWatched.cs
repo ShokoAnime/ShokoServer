@@ -5,6 +5,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Plex
 {
@@ -18,7 +19,7 @@ namespace Shoko.Server.Commands.Plex
 
         public CommandRequest_PlexSyncWatched(JMMUser jmmUser)
         {
-            this.CommandType = (int) CommandRequestType.Plex_Sync;
+            CommandType = (int) CommandRequestType.Plex_Sync;
             _jmmuser = jmmUser;
         }
 
@@ -56,10 +57,14 @@ namespace Shoko.Server.Commands.Plex
             }
         }
 
-        public override void GenerateCommandID() => CommandID = $"SyncPlex_{_jmmuser.JMMUserID}";
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Default;
+        public override void GenerateCommandID()
+        {
+            CommandID = $"SyncPlex_{_jmmuser.JMMUserID}";
+        }
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct()
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SyncPlex,
             extraParams = new[] {_jmmuser.Username}
@@ -73,7 +78,7 @@ namespace Shoko.Server.Commands.Plex
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
-            _jmmuser = Repositories.RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+            _jmmuser = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
             return true;
         }
 
@@ -92,7 +97,10 @@ namespace Shoko.Server.Commands.Plex
             return cq;
         }
 
-        public DateTime FromUnixTime(long unixTime) => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            .AddSeconds(unixTime);
+        public DateTime FromUnixTime(long unixTime)
+        {
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                .AddSeconds(unixTime);
+        }
     }
 }

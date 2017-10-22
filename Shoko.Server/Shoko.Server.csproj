@@ -469,7 +469,7 @@
     <Compile Include="BlockingList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetEpisode.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListStats.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeTitle.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
@@ -500,7 +500,7 @@
     <Compile Include="Commands\Trakt\CommandRequest_TraktHistoryEpisode.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollection.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollectionSeries.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateInfoAndImages.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateInfo.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateAllSeries.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBDownloadImages.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateSeries.cs" />

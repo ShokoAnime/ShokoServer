@@ -1,22 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Commons.Queue;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Models.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
-using Shoko.Models.TvDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
@@ -26,22 +21,13 @@ namespace Shoko.Server.Commands
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.SearchTvDB,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.SearchTvDB,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_TvDBSearchAnime()
         {
@@ -49,10 +35,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TvDBSearchAnime(int animeID, bool forced)
         {
-            this.AnimeID = animeID;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.TvDB_SearchAnime;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.TvDB_SearchAnime;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -91,17 +77,6 @@ namespace Shoko.Server.Commands
                                             xref.AniDBStartEpisodeNumber,
                                             xref.TvDBID, xref.TvDBSeasonNumber,
                                             xref.TvDBStartEpisodeNumber, true, true);
-                                    }
-                                    else
-                                    {
-                                        //if we got a TvDB ID from the web cache, but couldn't find it on TheTvDB.com, it could mean 2 things
-                                        //1. thetvdb.com is offline
-                                        //2. the id is no longer valid
-                                        // if the id is no longer valid we should remove it from the web cache
-                                        /*if (TvDBHelper.ConfirmTvDBOnline())
-										{
-											
-										}*/
                                     }
                                 }
                                 return;
@@ -153,8 +128,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
             }
         }
 
@@ -184,7 +158,7 @@ namespace Shoko.Server.Commands
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
                 return true;
             }
-            else if (results.Count > 1)
+            if (results.Count > 1)
             {
                 logger.Trace("Found multiple ({0}) tvdb results for search on so checking for english results {1}",
                     results.Count,
@@ -245,27 +219,27 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TvDBSearchAnime{0}", this.AnimeID);
+            CommandID = $"CommandRequest_TvDBSearchAnime{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBSearchAnime", "AnimeID"));
-                this.ForceRefresh =
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBSearchAnime", "AnimeID"));
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBSearchAnime", "ForceRefresh"));
             }
 
@@ -278,10 +252,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

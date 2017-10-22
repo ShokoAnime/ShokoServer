@@ -15,8 +15,8 @@ namespace Shoko.Server.Commands
         {
             GroupFilterID = groupFilterID;
 
-            this.CommandType = (int) CommandRequestType.Refresh_GroupFilter;
-            this.Priority = (int) DefaultPriority;
+            CommandType = (int) CommandRequestType.Refresh_GroupFilter;
+            Priority = (int) DefaultPriority;
             GenerateCommandID();
         }
 
@@ -25,22 +25,13 @@ namespace Shoko.Server.Commands
         }
 
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority6; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.RefreshGroupFilter,
-                    extraParams = new string[] {GroupFilterID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.RefreshGroupFilter,
+            extraParams = new[] {GroupFilterID.ToString()}
+        };
 
         public override void ProcessCommand()
         {
@@ -52,17 +43,17 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_RefreshGroupFilter_{0}", this.GroupFilterID);
+            CommandID = $"CommandRequest_RefreshGroupFilter_{GroupFilterID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
             GroupFilterID = int.Parse(cq.CommandDetails);
             return true;
         }
@@ -73,9 +64,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
                 CommandDetails = GroupFilterID.ToString(),
                 DateTimeUpdated = DateTime.Now
             };

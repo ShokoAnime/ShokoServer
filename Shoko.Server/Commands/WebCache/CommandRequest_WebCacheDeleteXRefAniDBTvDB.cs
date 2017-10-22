@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
@@ -17,22 +16,13 @@ namespace Shoko.Server.Commands
         public int TvDBSeasonNumber { get; set; }
         public int TvDBStartEpisodeNumber { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTvDB,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTvDB,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_WebCacheDeleteXRefAniDBTvDB()
         {
@@ -43,14 +33,14 @@ namespace Shoko.Server.Commands
             int tvDBID,
             int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
         {
-            this.AnimeID = animeID;
-            this.AniDBStartEpisodeType = aniDBStartEpisodeType;
-            this.AniDBStartEpisodeNumber = aniDBStartEpisodeNumber;
-            this.TvDBID = tvDBID;
-            this.TvDBSeasonNumber = tvDBSeasonNumber;
-            this.TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
-            this.CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBTvDB;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            AniDBStartEpisodeType = aniDBStartEpisodeType;
+            AniDBStartEpisodeNumber = aniDBStartEpisodeNumber;
+            TvDBID = tvDBID;
+            TvDBSeasonNumber = tvDBSeasonNumber;
+            TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
+            CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBTvDB;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -65,48 +55,47 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error(ex,
-                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex.ToString());
-                return;
+                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBTvDB{0}", AnimeID);
+            CommandID = $"CommandRequest_WebCacheDeleteXRefAniDBTvDB{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
             try
             {
-                this.CommandID = cq.CommandID;
-                this.CommandRequestID = cq.CommandRequestID;
-                this.CommandType = cq.CommandType;
-                this.Priority = cq.Priority;
-                this.CommandDetails = cq.CommandDetails;
-                this.DateTimeUpdated = cq.DateTimeUpdated;
+                CommandID = cq.CommandID;
+                CommandRequestID = cq.CommandRequestID;
+                CommandType = cq.CommandType;
+                Priority = cq.Priority;
+                CommandDetails = cq.CommandDetails;
+                DateTimeUpdated = cq.DateTimeUpdated;
 
                 // read xml to get parameters
-                if (this.CommandDetails.Trim().Length > 0)
+                if (CommandDetails.Trim().Length > 0)
                 {
                     XmlDocument docCreator = new XmlDocument();
-                    docCreator.LoadXml(this.CommandDetails);
+                    docCreator.LoadXml(CommandDetails);
 
                     // populate the fields
-                    this.AnimeID =
+                    AnimeID =
                         int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AnimeID"));
-                    this.AniDBStartEpisodeType =
+                    AniDBStartEpisodeType =
                         int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
                             "AniDBStartEpisodeType"));
-                    this.AniDBStartEpisodeNumber =
+                    AniDBStartEpisodeNumber =
                         int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
                             "AniDBStartEpisodeNumber"));
-                    this.TvDBID =
+                    TvDBID =
                         int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBID"));
-                    this.TvDBSeasonNumber =
+                    TvDBSeasonNumber =
                         int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
                             "TvDBSeasonNumber"));
-                    this.TvDBStartEpisodeNumber =
+                    TvDBStartEpisodeNumber =
                         int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
                             "TvDBStartEpisodeNumber"));
                 }
@@ -114,7 +103,7 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error(ex,
-                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex.ToString());
+                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex);
                 return true;
             }
 
@@ -127,10 +116,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

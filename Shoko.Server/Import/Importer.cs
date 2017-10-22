@@ -1332,7 +1332,7 @@ namespace Shoko.Server
                 }
             }
 
-            CommandRequest_UpdateMylistStats cmd = new CommandRequest_UpdateMylistStats(forceRefresh);
+            CommandRequest_UpdateMyListStats cmd = new CommandRequest_UpdateMyListStats(forceRefresh);
             cmd.Save();
         }
 

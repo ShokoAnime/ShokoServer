@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -21,22 +18,13 @@ namespace Shoko.Server.Commands.MAL
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.SearchMal,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.SearchMal,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_MALSearchAnime()
         {
@@ -44,10 +32,10 @@ namespace Shoko.Server.Commands.MAL
 
         public CommandRequest_MALSearchAnime(int animeID, bool forced)
         {
-            this.AnimeID = animeID;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.MAL_SearchAnime;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.MAL_SearchAnime;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -122,34 +110,33 @@ namespace Shoko.Server.Commands.MAL
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_MALSearchAnime: {0} - {1}", AnimeID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_MALSearchAnime: {0} - {1}", AnimeID, ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_MALSearchAnime{0}", this.AnimeID);
+            CommandID = $"CommandRequest_MALSearchAnime{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MALSearchAnime", "AnimeID"));
-                this.ForceRefresh =
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MALSearchAnime", "AnimeID"));
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_MALSearchAnime", "ForceRefresh"));
             }
 
@@ -162,10 +149,10 @@ namespace Shoko.Server.Commands.MAL
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

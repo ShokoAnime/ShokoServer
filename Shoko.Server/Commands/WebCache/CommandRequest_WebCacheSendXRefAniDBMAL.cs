@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
@@ -14,22 +12,13 @@ namespace Shoko.Server.Commands.WebCache
     {
         public int CrossRef_AniDB_MALID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.WebCacheSendXRefAniDBMAL,
-                    extraParams = new string[] {CrossRef_AniDB_MALID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.WebCacheSendXRefAniDBMAL,
+            extraParams = new[] {CrossRef_AniDB_MALID.ToString()}
+        };
 
         public CommandRequest_WebCacheSendXRefAniDBMAL()
         {
@@ -37,9 +26,9 @@ namespace Shoko.Server.Commands.WebCache
 
         public CommandRequest_WebCacheSendXRefAniDBMAL(int xrefID)
         {
-            this.CrossRef_AniDB_MALID = xrefID;
-            this.CommandType = (int) CommandRequestType.WebCache_SendXRefAniDBMAL;
-            this.Priority = (int) DefaultPriority;
+            CrossRef_AniDB_MALID = xrefID;
+            CommandType = (int) CommandRequestType.WebCache_SendXRefAniDBMAL;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -56,33 +45,32 @@ namespace Shoko.Server.Commands.WebCache
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_WebCacheSendXRefAniDBMAL: {0}" + ex.ToString());
-                return;
+                logger.Error(ex, "Error processing CommandRequest_WebCacheSendXRefAniDBMAL: {0}" + ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheSendXRefAniDBMAL{0}", CrossRef_AniDB_MALID);
+            CommandID = $"CommandRequest_WebCacheSendXRefAniDBMAL{CrossRef_AniDB_MALID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.CrossRef_AniDB_MALID =
+                CrossRef_AniDB_MALID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDBMAL",
                         "CrossRef_AniDB_MALID"));
             }
@@ -96,10 +84,10 @@ namespace Shoko.Server.Commands.WebCache
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

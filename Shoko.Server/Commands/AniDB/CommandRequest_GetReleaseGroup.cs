@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -17,22 +13,13 @@ namespace Shoko.Server.Commands
         public int GroupID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.GetReleaseInfo,
-                    extraParams = new string[] {GroupID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.GetReleaseInfo,
+            extraParams = new[] {GroupID.ToString()}
+        };
 
         public CommandRequest_GetReleaseGroup()
         {
@@ -40,10 +27,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_GetReleaseGroup(int grpid, bool forced)
         {
-            this.GroupID = grpid;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.AniDB_GetReleaseGroup;
-            this.Priority = (int) DefaultPriority;
+            GroupID = grpid;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.AniDB_GetReleaseGroup;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -64,34 +51,33 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetReleaseGroup: {0} - {1}", GroupID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_GetReleaseGroup: {0} - {1}", GroupID, ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_GetReleaseGroup_{0}", this.GroupID);
+            CommandID = $"CommandRequest_GetReleaseGroup_{GroupID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.GroupID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "GroupID"));
-                this.ForceRefresh =
+                GroupID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "GroupID"));
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "ForceRefresh"));
             }
 
@@ -104,10 +90,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

@@ -1,63 +1,58 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
+using Shoko.Server.Providers.TraktTV;
 
-namespace Shoko.Server.Commands.MAL
+namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_MALUploadStatusToMAL : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation, ICommandRequest
     {
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public string TraktID { get; set; }
+
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.UploadMALWatched,
-            extraParams = new string[0]
+            queueState = QueueStateEnum.UpdateTraktData,
+            extraParams = new[] {TraktID}
         };
 
-
-        public CommandRequest_MALUploadStatusToMAL()
+        public CommandRequest_TraktUpdateInfo()
         {
-            CommandType = (int) CommandRequestType.MAL_UploadWatchedStates;
+        }
+
+        public CommandRequest_TraktUpdateInfo(string traktID)
+        {
+            TraktID = traktID;
+            CommandType = (int) CommandRequestType.Trakt_UpdateInfo;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
 
+
         public override void ProcessCommand()
         {
-            logger.Info("Processing CommandRequest_MALUploadStatusToMAL");
+            logger.Info("Processing CommandRequest_TraktUpdateInfoAndImages: {0}", TraktID);
 
             try
             {
-                if (string.IsNullOrEmpty(ServerSettings.MAL_Username) ||
-                    string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                    return;
-
-                // find the latest eps to update
-                IReadOnlyList<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
-
-                foreach (SVR_AniDB_Anime anime in animes)
-                {
-                    CommandRequest_MALUpdatedWatchedStatus cmd =
-                        new CommandRequest_MALUpdatedWatchedStatus(anime.AnimeID);
-                    cmd.Save();
-                }
+                TraktTVHelper.UpdateAllInfo(TraktID, false);
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_MALUploadStatusToMAL: {0}", ex);
+                logger.Error("Error processing CommandRequest_TraktUpdateInfoAndImages: {0} - {1}", TraktID,
+                    ex);
             }
         }
 
+
         public override void GenerateCommandID()
         {
-            CommandID = "CommandRequest_MALUploadStatusToMAL";
+            CommandID = $"CommandRequest_TraktUpdateInfoAndImages{TraktID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -74,6 +69,9 @@ namespace Shoko.Server.Commands.MAL
             {
                 XmlDocument docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
+
+                // populate the fields
+                TraktID = TryGetProperty(docCreator, "CommandRequest_TraktUpdateInfoAndImages", "TraktID");
             }
 
             return true;

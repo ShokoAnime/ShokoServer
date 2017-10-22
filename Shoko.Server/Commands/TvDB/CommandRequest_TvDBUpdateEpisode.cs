@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Xml;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
@@ -19,7 +18,7 @@ namespace Shoko.Server.Commands
         public bool DownloadImages { get; set; }
         public string InfoString { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {

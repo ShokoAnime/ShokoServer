@@ -403,7 +403,8 @@ namespace Shoko.Server
         {
             try
             {
-                TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, true, true);
+                CommandRequest_TvDBUpdateSeries updateseries = new CommandRequest_TvDBUpdateSeries(seriesID, true);
+                updateseries.Save();
             }
             catch (Exception ex)
             {

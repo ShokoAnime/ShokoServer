@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Threading;
 using System.Xml;
+using ICSharpCode.SharpZipLib.GZip;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Azure;
 
@@ -18,27 +16,18 @@ namespace Shoko.Server.Commands
     [Serializable]
     public class CommandRequest_GetAniDBTitles : CommandRequestImplementation, ICommandRequest
     {
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority10; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.AniDB_GetTitles,
-                    extraParams = new string[0]
-                };
-            }
-        }
+            queueState = QueueStateEnum.AniDB_GetTitles,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_GetAniDBTitles()
         {
-            this.CommandType = (int) CommandRequestType.AniDB_GetTitles;
-            this.Priority = (int) DefaultPriority;
+            CommandType = (int) CommandRequestType.AniDB_GetTitles;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -65,7 +54,7 @@ namespace Shoko.Server.Commands
                 StringBuilder b = new StringBuilder();
                 UTF8Encoding enc = new UTF8Encoding();
 
-                ICSharpCode.SharpZipLib.GZip.GZipInputStream zis = new ICSharpCode.SharpZipLib.GZip.GZipInputStream(s);
+                GZipInputStream zis = new GZipInputStream(s);
 
                 while ((bytes = zis.Read(data, 0, data.Length)) > 0)
                     b.Append(enc.GetString(data, 0, bytes));
@@ -125,8 +114,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetAniDBTitles: {0}", ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_GetAniDBTitles: {0}", ex);
             }
         }
 
@@ -136,23 +124,23 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_GetAniDBTitles_{0}", DateTime.Now.ToString());
+            CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString()}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
             }
 
             return true;
@@ -164,10 +152,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

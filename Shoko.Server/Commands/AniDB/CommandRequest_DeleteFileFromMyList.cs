@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -16,22 +14,13 @@ namespace Shoko.Server.Commands
         public long FileSize { get; set; }
         public int FileID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.AniDB_MyListDelete,
-                    extraParams = new string[] {Hash, FileID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.AniDB_MyListDelete,
+            extraParams = new[] {Hash, FileID.ToString()}
+        };
 
         public CommandRequest_DeleteFileFromMyList()
         {
@@ -39,22 +28,22 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
         {
-            this.Hash = hash;
-            this.FileSize = fileSize;
-            this.FileID = -1;
-            this.CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
-            this.Priority = (int) DefaultPriority;
+            Hash = hash;
+            FileSize = fileSize;
+            FileID = -1;
+            CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
 
         public CommandRequest_DeleteFileFromMyList(int fileID)
         {
-            this.Hash = string.Empty;
-            this.FileSize = 0;
-            this.FileID = fileID;
-            this.CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
-            this.Priority = (int) DefaultPriority;
+            Hash = string.Empty;
+            FileSize = 0;
+            FileID = fileID;
+            CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -134,8 +123,7 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
@@ -145,35 +133,34 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_DeleteFileFromMyList_{0}_{1}", Hash, FileID);
+            CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{FileID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
-                this.FileSize = long.Parse(
+                Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
+                FileSize = long.Parse(
                     TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
-                this.FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
+                FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
             }
 
-            if (this.Hash.Trim().Length > 0)
+            if (Hash.Trim().Length > 0)
                 return true;
-            else
-                return false;
+            return false;
         }
 
         public override CommandRequest ToDatabaseObject()
@@ -182,10 +169,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

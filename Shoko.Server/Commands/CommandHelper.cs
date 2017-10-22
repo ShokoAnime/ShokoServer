@@ -1,5 +1,4 @@
-﻿using Shoko.Models.Queue;
-using Shoko.Models.Server;
+﻿using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.Commands.MAL;
@@ -11,7 +10,15 @@ namespace Shoko.Server.Commands
 {
     public class CommandHelper
     {
-        // List of Default priorities for commands
+        // List of priorities for commands
+        // Order is as such:
+        //    Get Max Priority
+        //    Get/Update
+        //    Set Internal
+        //    Recalculate Internal (stats, contracts, etc)
+        //    Sync External
+        //    Set External
+        //
         // Pri 1
         //------
         // Reserved for commands user manually initiates from UI
@@ -24,75 +31,77 @@ namespace Shoko.Server.Commands
         //------
         // CommandRequest_ProcessFile
         // CommandRequest_GetFile
+        // CommandRequest_LinkFileManually
         //------
         // Pri 4
         //------
         // CommandRequest_GetUpdated
-        // CommandRequest_ReadMediaInfo
         // CommandRequest_GetEpsode
         //------
         // Pri 5
         //------
+        // CommandRequest_GetCalendar
+        // CommandRequest_GetReleaseGroup
         // CommandRequest_GetReleaseGroupStatus
+        // CommandRequest_GetReviews
+        // CommandRequest_LinkAniDBTvDB
         //------
         // Pri 6
         //------
-        // CommandRequest_SyncMyList
-        // CommandRequest_SyncMyVotes
+        // CommandRequest_AddFileToMyList #This also updates watched state from AniDB, so it has priority
+        // CommandRequest_GetMyListFileStatus
+        // CommandRequest_MALDownloadStatusFromMAL
+        // CommandRequest_MALSearchAnime
+        // CommandRequest_MALUpdatedWatchedStatus
+        // CommandRequest_MovieDBSearchAnime
+        // CommandRequest_TraktSearchAnime
+        // CommandRequest_TraktUpdateAllSeries
+        // CommandRequest_TraktUpdateInfo
+        // CommandRequest_TvDBSearchAnime
+        // CommandRequest_TvDBUpdateEpisodes
+        // CommandRequest_TvDBUpdateSeries
+        // CommandRequest_UpdateMyListFileStatus
+        // CommandRequest_VoteAnime
         //------
         // Pri 7
         //------
-        // CommandRequest_GetCalendar
+        // CommandRequest_PlexSyncWatched
+        // CommandRequest_SyncMyList
+        // CommandRequest_SyncMyVotes
+        // CommandRequest_TraktShowEpisodeUnseen
+        // CommandRequest_TraktSyncCollection
+        // CommandRequest_TraktSyncCollectionSeries
+        // CommandRequest_UpdateMylistStats
         //------
         // Pri 8
         //------
-        // CommandRequest_UpdateMyListFileStatus
-        // CommandRequest_GetCharactersCreators
-        // CommandRequest_TraktSyncCollection
-        // CommandRequest_TvDBUpdateSeriesAndEpisodes
-        // CommandRequest_TvDBDownloadImages
-        // CommandRequest_TvDBSearchAnime
-        // CommandRequest_MovieDBSearchAnime
-        // CommandRequest_TraktSearchAnime
-        // CommandRequest_MALSearchAnime
-        // CommandRequest_LinkFileManually
+        // CommandRequest_RefreshAnime
         //------
         // Pri 9
         //------
-        // CommandRequest_WebCacheSendFileHash
-        // CommandRequest_GetReviews
-        // CommandRequest_GetReleaseGroup
-        // CommandRequest_WebCacheSendXRefFileEpisode
-        // CommandRequest_WebCacheDeleteXRefFileEpisode
-        // CommandRequest_AddFileToMyList
-        // CommandRequest_DeleteFileFromMyList
-        // CommandRequest_VoteAnime
-        // CommandRequest_WebCacheDeleteXRefAniDBTvDB
-        // CommandRequest_WebCacheDeleteXRefAniDBTvDBAll
-        // CommandRequest_WebCacheSendXRefAniDBTvDB
-        // CommandRequest_WebCacheSendXRefAniDBOther
-        // CommandRequest_WebCacheDeleteXRefAniDBOther
-        // CommandRequest_WebCacheDeleteXRefAniDBTrakt
-        // CommandRequest_WebCacheSendXRefAniDBTrakt
-        // CommandRequest_TraktUpdateInfoAndImages
-        // CommandRequest_TraktSyncCollectionSeries
-        // CommandRequest_TraktShowEpisodeUnseen
-        // CommandRequest_DownloadImage
-        // CommandRequest_TraktUpdateAllSeries
-        // CommandRequest_MALUpdatedWatchedStatus
-        // CommandRequest_MALUploadStatusToMAL
-        // CommandRequest_MALDownloadStatusFromMAL
-        // CommandRequest_WebCacheSendAniDB_File
-        // CommandRequest_Azure_SendAnimeFull
+        // CommandRequest_RefreshGroupFilter
         //------
         // Pri 10
         //------
-        // CommandRequest_UpdateMylistStats
+        // CommandRequest_Azure_SendAnimeFull
+        // CommandRequest_Azure_SendAnimeTitle
         // CommandRequest_Azure_SendAnimeXML
+        // CommandRequest_DeleteFileFromMyList
+        // CommandRequest_MALUploadStatusToMAL
+        // CommandRequest_WebCacheDeleteXRefAniDBOther
+        // CommandRequest_WebCacheDeleteXRefAniDBTrakt
+        // CommandRequest_WebCacheDeleteXRefAniDBTvDB
+        // CommandRequest_WebCacheDeleteXRefAniDBTvDBAll
+        // CommandRequest_WebCacheDeleteXRefFileEpisode
+        // CommandRequest_WebCacheSendAniDB_File
+        // CommandRequest_WebCacheSendFileHash
+        // CommandRequest_WebCacheSendXRefAniDBOther
+        // CommandRequest_WebCacheSendXRefAniDBTrakt
+        // CommandRequest_WebCacheSendXRefAniDBTvDB
+        // CommandRequest_WebCacheSendXRefFileEpisode
         //------
         // Pri 11
         //------
-        // CommandRequest_Azure_SendAnimeTitle
 
         public static ICommandRequest GetCommand(CommandRequest crdb)
         {
@@ -173,10 +182,10 @@ namespace Shoko.Server.Commands
                     return cr_SyncVotes;
 
                 case CommandRequestType.AniDB_UpdateMylistStats:
-                    CommandRequest_UpdateMylistStats cr_AniDB_UpdateMylistStats =
-                        new CommandRequest_UpdateMylistStats();
-                    cr_AniDB_UpdateMylistStats.LoadFromDBCommand(crdb);
-                    return cr_AniDB_UpdateMylistStats;
+                    CommandRequest_UpdateMyListStats crAniDbUpdateMyListStats =
+                        new CommandRequest_UpdateMyListStats();
+                    crAniDbUpdateMyListStats.LoadFromDBCommand(crdb);
+                    return crAniDbUpdateMyListStats;
 
                 case CommandRequestType.AniDB_UpdateWatchedUDP:
                     CommandRequest_UpdateMyListFileStatus cr_umlf = new CommandRequest_UpdateMyListFileStatus();
@@ -322,8 +331,8 @@ namespace Shoko.Server.Commands
                     return cr_Trakt_UpdateAllSeries;
 
                 case CommandRequestType.Trakt_UpdateInfo:
-                    CommandRequest_TraktUpdateInfoAndImages cr_Trakt_UpdateInfoImages =
-                        new CommandRequest_TraktUpdateInfoAndImages();
+                    CommandRequest_TraktUpdateInfo cr_Trakt_UpdateInfoImages =
+                        new CommandRequest_TraktUpdateInfo();
                     cr_Trakt_UpdateInfoImages.LoadFromDBCommand(crdb);
                     return cr_Trakt_UpdateInfoImages;
 

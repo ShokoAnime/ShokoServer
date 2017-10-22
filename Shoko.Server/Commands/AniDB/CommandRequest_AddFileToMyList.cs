@@ -20,7 +20,7 @@ namespace Shoko.Server.Commands
         [NonSerialized]
         private SVR_VideoLocal vid;
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
         public QueueStateStruct PrettyDescription
         {

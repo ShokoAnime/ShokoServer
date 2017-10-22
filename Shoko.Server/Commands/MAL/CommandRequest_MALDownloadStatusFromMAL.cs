@@ -1,45 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Repositories;
-
 
 namespace Shoko.Server.Commands.MAL
 {
     [Serializable]
     public class CommandRequest_MALDownloadStatusFromMAL : CommandRequestImplementation, ICommandRequest
     {
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.DownloadMalWatched,
-                    extraParams = new string[0]
-                };
-            }
-        }
+            queueState = QueueStateEnum.DownloadMalWatched,
+            extraParams = new string[0]
+        };
 
 
         public CommandRequest_MALDownloadStatusFromMAL()
         {
-            this.CommandType = (int) CommandRequestType.MAL_DownloadWatchedStates;
-            this.Priority = (int) DefaultPriority;
+            CommandType = (int) CommandRequestType.MAL_DownloadWatchedStates;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -120,8 +106,7 @@ namespace Shoko.Server.Commands.MAL
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_MALDownloadStatusFromMAL: {0}", ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_MALDownloadStatusFromMAL: {0}", ex);
             }
         }
 
@@ -138,23 +123,23 @@ namespace Shoko.Server.Commands.MAL
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_MALDownloadStatusFromMAL");
+            CommandID = "CommandRequest_MALDownloadStatusFromMAL";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
             }
 
             return true;
@@ -166,10 +151,10 @@ namespace Shoko.Server.Commands.MAL
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

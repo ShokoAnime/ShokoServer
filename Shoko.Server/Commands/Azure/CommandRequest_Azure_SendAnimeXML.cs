@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -17,22 +15,13 @@ namespace Shoko.Server.Commands.Azure
     {
         public int AnimeID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority10; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.SendAnimeAzure,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.SendAnimeAzure,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_Azure_SendAnimeXML()
         {
@@ -40,9 +29,9 @@ namespace Shoko.Server.Commands.Azure
 
         public CommandRequest_Azure_SendAnimeXML(int animeID)
         {
-            this.AnimeID = animeID;
-            this.CommandType = (int) CommandRequestType.Azure_SendAnimeXML;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            CommandType = (int) CommandRequestType.Azure_SendAnimeXML;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -65,7 +54,7 @@ namespace Shoko.Server.Commands.Azure
                 if (!Directory.Exists(filePath))
                     Directory.CreateDirectory(filePath);
 
-                string fileName = string.Format("AnimeDoc_{0}.xml", AnimeID);
+                string fileName = $"AnimeDoc_{AnimeID}.xml";
                 string fileNameWithPath = Path.Combine(filePath, fileName);
 
                 string rawXML = string.Empty;
@@ -88,33 +77,32 @@ namespace Shoko.Server.Commands.Azure
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_Azure_SendAnimeXML_{0}", this.AnimeID);
+            CommandID = $"CommandRequest_Azure_SendAnimeXML_{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeXML", "AnimeID"));
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeXML", "AnimeID"));
             }
 
             return true;
@@ -126,10 +114,10 @@ namespace Shoko.Server.Commands.Azure
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

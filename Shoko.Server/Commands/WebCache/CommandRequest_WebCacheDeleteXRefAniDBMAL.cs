@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
@@ -14,22 +13,13 @@ namespace Shoko.Server.Commands.WebCache
         public int StartEpisodeType { get; set; }
         public int StartEpisodeNumber { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.WebCacheDeleteXRefAniDBMAL,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.WebCacheDeleteXRefAniDBMAL,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_WebCacheDeleteXRefAniDBMAL()
         {
@@ -37,11 +27,11 @@ namespace Shoko.Server.Commands.WebCache
 
         public CommandRequest_WebCacheDeleteXRefAniDBMAL(int animeID, int epType, int epNumber)
         {
-            this.AnimeID = animeID;
-            this.StartEpisodeType = epType;
-            this.StartEpisodeNumber = epNumber;
-            this.CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBMAL;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            StartEpisodeType = epType;
+            StartEpisodeNumber = epNumber;
+            CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBMAL;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -55,38 +45,37 @@ namespace Shoko.Server.Commands.WebCache
             catch (Exception ex)
             {
                 logger.Error(ex,
-                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBMAL: {0}" + ex.ToString());
-                return;
+                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBMAL: {0}" + ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBMAL{0}", AnimeID);
+            CommandID = $"CommandRequest_WebCacheDeleteXRefAniDBMAL{AnimeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID =
+                AnimeID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "AnimeID"));
-                this.StartEpisodeType =
+                StartEpisodeType =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL",
                         "StartEpisodeType"));
-                this.StartEpisodeNumber =
+                StartEpisodeNumber =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL",
                         "StartEpisodeNumber"));
             }
@@ -100,10 +89,10 @@ namespace Shoko.Server.Commands.WebCache
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

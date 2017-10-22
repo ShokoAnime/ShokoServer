@@ -20,22 +20,13 @@ namespace Shoko.Server.Commands.TvDB
         public bool excludeFromWebCache;
         public bool additiveLink;
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct
-                {
-                    queueState = QueueStateEnum.LinkAniDBTvDB,
-                    extraParams = new[] {animeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.LinkAniDBTvDB,
+            extraParams = new[] {animeID.ToString()}
+        };
 
         public CommandRequest_LinkAniDBTvDB()
         {

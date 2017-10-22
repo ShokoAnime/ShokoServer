@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
@@ -18,22 +15,13 @@ namespace Shoko.Server.Commands
         public int AnimeSeriesID { get; set; }
         public string SeriesName { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.SyncTraktSeries,
-                    extraParams = new string[] {SeriesName}
-                };
-            }
-        }
+            queueState = QueueStateEnum.SyncTraktSeries,
+            extraParams = new[] {SeriesName}
+        };
 
         public CommandRequest_TraktSyncCollectionSeries()
         {
@@ -41,10 +29,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktSyncCollectionSeries(int animeSeriesID, string seriesName)
         {
-            this.AnimeSeriesID = animeSeriesID;
-            this.SeriesName = seriesName;
-            this.CommandType = (int) CommandRequestType.Trakt_SyncCollectionSeries;
-            this.Priority = (int) DefaultPriority;
+            AnimeSeriesID = animeSeriesID;
+            SeriesName = seriesName;
+            CommandType = (int) CommandRequestType.Trakt_SyncCollectionSeries;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -68,8 +56,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex);
             }
         }
 
@@ -79,28 +66,28 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TraktSyncCollectionSeries_{0}", AnimeSeriesID);
+            CommandID = $"CommandRequest_TraktSyncCollectionSeries_{AnimeSeriesID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeSeriesID =
+                AnimeSeriesID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSyncCollectionSeries", "AnimeSeriesID"));
-                this.SeriesName = TryGetProperty(docCreator, "CommandRequest_TraktSyncCollectionSeries", "SeriesName");
+                SeriesName = TryGetProperty(docCreator, "CommandRequest_TraktSyncCollectionSeries", "SeriesName");
             }
 
             return true;
@@ -112,10 +99,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;

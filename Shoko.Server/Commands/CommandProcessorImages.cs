@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Pri.LongPath;
-using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
@@ -9,7 +8,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -19,7 +17,7 @@ namespace Shoko.Server.Commands
     {
         public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct()
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.ValidateAllImages,
             extraParams = new[] {string.Empty}
@@ -27,8 +25,8 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_ValidateAllImages()
         {
-            this.CommandType = (int) CommandRequestType.ValidateAllImages;
-            this.Priority = (int) DefaultPriority;
+            CommandType = (int) CommandRequestType.ValidateAllImages;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -411,17 +409,17 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_ValidateAllImages";
+            CommandID = $"CommandRequest_ValidateAllImages";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             return true;
         }
@@ -432,10 +430,10 @@ namespace Shoko.Server.Commands
 
             CommandRequest cq = new CommandRequest
             {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
