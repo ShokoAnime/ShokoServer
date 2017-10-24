@@ -9,7 +9,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.Plex
+namespace Shoko.Server.Commands
 {
     internal class PlexHelper
     {

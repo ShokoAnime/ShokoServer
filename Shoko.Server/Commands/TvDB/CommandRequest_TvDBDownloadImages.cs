@@ -2,20 +2,19 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TvDBDownloadImages : CommandRequest_TvDBBase
     {
-        public int TvDBSeriesID { get; set; }
-        public bool ForceRefresh { get; set; }
+        public virtual int TvDBSeriesID { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.DownloadTvDBImages,
             extraParams = new[] {TvDBSeriesID.ToString()}
@@ -58,7 +57,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TvDBDownloadImages_{TvDBSeriesID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -81,21 +80,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

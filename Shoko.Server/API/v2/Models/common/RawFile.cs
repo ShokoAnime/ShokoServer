@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Shoko.Server.Models;
 using System.Runtime.Serialization;
 using Nancy;
-using Shoko.Models.Server;
 
 namespace Shoko.Server.API.v2.Models.common
 {

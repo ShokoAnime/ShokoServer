@@ -6,15 +6,15 @@ using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.WebCache
+namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheSendXRefAniDBMAL : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_WebCacheSendXRefAniDBMAL : CommandRequest
     {
-        public int CrossRef_AniDB_MALID { get; set; }
+        public virtual int CrossRef_AniDB_MALID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheSendXRefAniDBMAL,
             extraParams = new[] {CrossRef_AniDB_MALID.ToString()}
@@ -54,7 +54,7 @@ namespace Shoko.Server.Commands.WebCache
             CommandID = $"CommandRequest_WebCacheSendXRefAniDBMAL{CrossRef_AniDB_MALID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -76,21 +76,6 @@ namespace Shoko.Server.Commands.WebCache
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

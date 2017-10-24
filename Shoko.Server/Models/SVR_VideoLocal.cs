@@ -14,7 +14,6 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.MAL;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;

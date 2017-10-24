@@ -6,15 +6,15 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Repositories;
 
-namespace JMMServer.Commands
+namespace Shoko.Server.Commands
 {
 	[Serializable]
-	public class CommandRequest_GetCharactersCreators : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_GetCharactersCreators : CommandRequest_AniDBBase
 	{
 		public int AnimeID { get; set; }
 		public bool ForceRefresh { get; set; }
 
-		public CommandRequestPriority DefaultPriority 
+		public override CommandRequestPriority DefaultPriority 
 		{
 			get { return CommandRequestPriority.Priority8; }
 		}

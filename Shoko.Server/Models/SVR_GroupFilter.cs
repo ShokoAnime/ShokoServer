@@ -11,10 +11,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Models
 {

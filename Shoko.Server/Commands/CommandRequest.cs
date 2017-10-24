@@ -4,13 +4,13 @@ using System.Xml;
 using System.Xml.Serialization;
 using NHibernate;
 using NLog;
-using Shoko.Models.Server;
+using Shoko.Commons.Queue;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Commands
 {
-    public abstract class CommandRequestImplementation
+    public abstract class CommandRequest
     {
         protected static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -18,35 +18,49 @@ namespace Shoko.Server.Commands
         // defined in the concrete class
 
         [XmlIgnore]
-        public int CommandRequestID { get; set; }
+        public virtual int CommandRequestID { get; set; }
 
         [XmlIgnore]
-        public int Priority { get; set; }
+        public virtual int Priority { get; set; }
 
         [XmlIgnore]
-        public int CommandType { get; set; }
+        public virtual int CommandType { get; set; }
 
         [XmlIgnore]
-        public string CommandID { get; set; }
+        public virtual string CommandID { get; set; }
 
         [XmlIgnore]
-        public string CommandDetails { get; set; }
+        public virtual string CommandDetails { get; set; }
 
         [XmlIgnore]
-        public DateTime DateTimeUpdated { get; set; }
+        public virtual DateTime DateTimeUpdated { get; set; }
+
+        [XmlIgnore]
+        public abstract CommandRequestPriority DefaultPriority { get; }
+
+        [XmlIgnore]
+        public abstract QueueStateStruct PrettyDescription { get; }
+
+        [XmlIgnore]
+        public virtual CommandLimiterType CommandLimiterType => CommandLimiterType.None;
 
         /// <summary>
         /// Inherited classes to provide the implemenation of how to process this command
         /// </summary>
-        public abstract void ProcessCommand();
+        public virtual void ProcessCommand()
+        {
+        }
 
-        public abstract void GenerateCommandID();
+        public virtual void GenerateCommandID()
+        {
+        }
 
-        public abstract bool LoadFromDBCommand(CommandRequest cq);
+        public virtual bool InitFromDB(CommandRequest cq)
+        {
+            return false;
+        }
 
-        public abstract CommandRequest ToDatabaseObject();
-
-        public string ToXML()
+        public virtual string ToXML()
         {
             XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
             ns.Add("", string.Empty);
@@ -63,7 +77,7 @@ namespace Shoko.Server.Commands
             return sb.ToString();
         }
 
-        public void Save(ISession session)
+        public virtual void Save(ISession session)
         {
             CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
             if (crTemp != null)
@@ -77,10 +91,11 @@ namespace Shoko.Server.Commands
                     return;
             }
 
-            CommandRequest cri = ToDatabaseObject();
-            RepoFactory.CommandRequest.SaveWithOpenTransaction(session, cri);
+            CommandDetails = ToXML();
+            DateTimeUpdated = DateTime.Now;
+            RepoFactory.CommandRequest.SaveWithOpenTransaction(session, this);
 
-            switch (CommandRequestRepository.GetQueueIndex(cri))
+            switch (CommandRequestRepository.GetQueueIndex(this))
             {
                 case 0:
                     ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
@@ -94,7 +109,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public void Save()
+        public virtual void Save()
         {
             CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
             if (crTemp != null)
@@ -108,10 +123,11 @@ namespace Shoko.Server.Commands
                     return;
             }
 
-            CommandRequest cri = ToDatabaseObject();
-            RepoFactory.CommandRequest.Save(cri);
+            CommandDetails = ToXML();
+            DateTimeUpdated = DateTime.Now;
+            RepoFactory.CommandRequest.Save(this);
 
-            switch (CommandRequestRepository.GetQueueIndex(cri))
+            switch (CommandRequestRepository.GetQueueIndex(this))
             {
                 case 0:
                     ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
@@ -125,7 +141,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        protected string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
+        protected virtual string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
         {
             try
             {

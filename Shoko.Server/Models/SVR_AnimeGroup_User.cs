@@ -1,10 +1,8 @@
 ﻿using System.Collections.Generic;
 using NLog;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;

@@ -5,16 +5,16 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.AniDB
+namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_UpdateMyListStats : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_UpdateMyListStats : CommandRequest_AniDBBase
     {
-        public bool ForceRefresh { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.UpdateMyListStats,
             extraParams = new string[0]
@@ -79,7 +79,7 @@ namespace Shoko.Server.Commands.AniDB
             CommandID = "CommandRequest_UpdateMylistStats";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -100,21 +100,6 @@ namespace Shoko.Server.Commands.AniDB
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

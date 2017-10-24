@@ -24,8 +24,6 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.Azure;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;

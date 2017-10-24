@@ -1,15 +1,15 @@
-﻿using System;
-using Shoko.Commons.Queue;
+﻿using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_RefreshAnime : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_RefreshAnime : CommandRequest
     {
-        public int AnimeID { get; set; }
+        public virtual int AnimeID { get; set; }
+
+        public override string CommandDetails => AnimeID.ToString();
 
         public CommandRequest_RefreshAnime(int animeID)
         {
@@ -25,9 +25,9 @@ namespace Shoko.Server.Commands
         }
 
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.Refresh,
             extraParams = new[] {AnimeID.ToString()}
@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_RefreshAnime_{AnimeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -54,21 +54,6 @@ namespace Shoko.Server.Commands
             DateTimeUpdated = cq.DateTimeUpdated;
             AnimeID = int.Parse(cq.CommandDetails);
             return true;
-        }
-
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = AnimeID.ToString(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

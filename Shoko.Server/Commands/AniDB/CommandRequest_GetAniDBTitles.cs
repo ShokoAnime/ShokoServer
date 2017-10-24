@@ -8,17 +8,15 @@ using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
-using Shoko.Server.Commands.Azure;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetAniDBTitles : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_GetAniDBTitles : CommandRequest_AniDBBase
     {
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.AniDB_GetTitles,
             extraParams = new string[0]
@@ -127,7 +125,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString()}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -144,21 +142,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

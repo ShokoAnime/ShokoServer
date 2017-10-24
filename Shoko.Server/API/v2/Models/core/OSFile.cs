@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Shoko.Server.API.v2.Models.core
+﻿namespace Shoko.Server.API.v2.Models.core
 {
     class OSFile
     {

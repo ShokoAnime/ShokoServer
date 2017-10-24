@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Shoko.Models;
-using Shoko.Models.Server;
-using NHibernate;
 using NLog;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;

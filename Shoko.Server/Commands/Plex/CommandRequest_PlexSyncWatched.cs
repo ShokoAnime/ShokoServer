@@ -1,17 +1,19 @@
 ﻿using System;
-using System.Globalization;
 using System.Linq;
+using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.Plex
+namespace Shoko.Server.Commands
 {
-    class CommandRequest_PlexSyncWatched : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_PlexSyncWatched : CommandRequest
     {
         private JMMUser _jmmuser;
+
+        public override string CommandDetails => _jmmuser.JMMUserID.ToString();
 
         public CommandRequest_PlexSyncWatched()
         {
@@ -62,15 +64,15 @@ namespace Shoko.Server.Commands.Plex
             CommandID = $"SyncPlex_{_jmmuser.JMMUserID}";
         }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SyncPlex,
             extraParams = new[] {_jmmuser.Username}
         };
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -82,22 +84,7 @@ namespace Shoko.Server.Commands.Plex
             return true;
         }
 
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = _jmmuser.JMMUserID.ToString(CultureInfo.InvariantCulture),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
-        }
-
-        public DateTime FromUnixTime(long unixTime)
+        public virtual DateTime FromUnixTime(long unixTime)
         {
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 .AddSeconds(unixTime);

@@ -20,20 +20,20 @@ using Path = Pri.LongPath.Path;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_HashFile : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_HashFile : CommandRequest
     {
-        public string FileName { get; set; }
-        public bool ForceHash { get; set; }
+        public virtual string FileName { get; set; }
+        public virtual bool ForceHash { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.CheckingFile,
             extraParams = new[] {FileName}
         };
 
-        public QueueStateStruct PrettyDescriptionHashing => new QueueStateStruct
+        public virtual QueueStateStruct PrettyDescriptionHashing => new QueueStateStruct
         {
             queueState = QueueStateEnum.HashingFile,
             extraParams = new[] {FileName}
@@ -616,7 +616,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_HashFile_{FileName}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -639,21 +639,6 @@ namespace Shoko.Server.Commands
             if (FileName.Trim().Length > 0)
                 return true;
             return false;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

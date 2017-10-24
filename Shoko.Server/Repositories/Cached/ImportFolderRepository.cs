@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Pri.LongPath;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached

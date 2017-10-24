@@ -14,7 +14,6 @@ using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.MAL;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.MyAnimeList;

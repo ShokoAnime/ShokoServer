@@ -8,14 +8,14 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.MAL
+namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_MALDownloadStatusFromMAL : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_MALDownloadStatusFromMAL : CommandRequest
     {
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.DownloadMalWatched,
             extraParams = new string[0]
@@ -126,7 +126,7 @@ namespace Shoko.Server.Commands.MAL
             CommandID = "CommandRequest_MALDownloadStatusFromMAL";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -143,21 +143,6 @@ namespace Shoko.Server.Commands.MAL
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

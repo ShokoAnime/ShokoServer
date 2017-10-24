@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using Shoko.Server.Utilities;
 using NHibernate;
 using Shoko.Commons.Collections;
 using Shoko.Server.Databases;

@@ -2,23 +2,22 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequest
     {
-        public int AnimeID { get; set; }
-        public int AniDBStartEpisodeType { get; set; }
-        public int AniDBStartEpisodeNumber { get; set; }
-        public int TvDBID { get; set; }
-        public int TvDBSeasonNumber { get; set; }
-        public int TvDBStartEpisodeNumber { get; set; }
+        public virtual int AnimeID { get; set; }
+        public virtual int AniDBStartEpisodeType { get; set; }
+        public virtual int AniDBStartEpisodeNumber { get; set; }
+        public virtual int TvDBID { get; set; }
+        public virtual int TvDBSeasonNumber { get; set; }
+        public virtual int TvDBStartEpisodeNumber { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTvDB,
             extraParams = new[] {AnimeID.ToString()}
@@ -64,7 +63,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheDeleteXRefAniDBTvDB{AnimeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             try
             {
@@ -108,21 +107,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

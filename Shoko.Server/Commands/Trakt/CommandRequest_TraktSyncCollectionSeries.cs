@@ -2,7 +2,6 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -10,14 +9,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TraktSyncCollectionSeries : CommandRequest
     {
-        public int AnimeSeriesID { get; set; }
-        public string SeriesName { get; set; }
+        public virtual int AnimeSeriesID { get; set; }
+        public virtual string SeriesName { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SyncTraktSeries,
             extraParams = new[] {SeriesName}
@@ -69,7 +68,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TraktSyncCollectionSeries_{AnimeSeriesID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -91,21 +90,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
 using FileSystemWatcher = System.IO.FileSystemWatcher;
 using FileSystemEventHandler = System.IO.FileSystemEventHandler;
@@ -14,7 +13,6 @@ using WatcherChangeTypes = System.IO.WatcherChangeTypes;
 using RenamedEventArgs = System.IO.RenamedEventArgs;
 using SearchOption = System.IO.SearchOption;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Pri.LongPath;

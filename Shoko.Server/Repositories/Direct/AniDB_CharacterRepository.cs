@@ -6,7 +6,6 @@ using NHibernate.Criterion;
 using Shoko.Commons.Collections;
 using Shoko.Models.Client;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.NHibernate;
 

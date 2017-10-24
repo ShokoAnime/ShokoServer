@@ -7,7 +7,6 @@ using NHibernate.Criterion;
 using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct

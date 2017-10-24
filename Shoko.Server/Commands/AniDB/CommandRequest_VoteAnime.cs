@@ -4,21 +4,19 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
-using Shoko.Server.Commands.MAL;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_VoteAnime : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_VoteAnime : CommandRequest_AniDBBase
     {
-        public int AnimeID { get; set; }
-        public int VoteType { get; set; }
-        public decimal VoteValue { get; set; }
+        public virtual int AnimeID { get; set; }
+        public virtual int VoteType { get; set; }
+        public virtual decimal VoteValue { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.VoteAnime,
             extraParams = new[] {AnimeID.ToString(), VoteValue.ToString()}
@@ -70,7 +68,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_Vote_{AnimeID}_{VoteType}_{VoteValue}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -96,21 +94,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -2,19 +2,18 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetFileMyListStatus : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_GetFileMyListStatus : CommandRequest_AniDBBase
     {
-        public int AniFileID { get; set; }
-        public string FileName { get; set; }
+        public virtual int AniFileID { get; set; }
+        public virtual string FileName { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.AniDB_MyListGetFile,
             extraParams = new[] { FileName, AniFileID.ToString() }
@@ -58,7 +57,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetFileMyListStatus_{AniFileID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -82,21 +81,6 @@ namespace Shoko.Server.Commands
 
             }
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

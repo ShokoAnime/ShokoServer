@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
 using System.Runtime;
 using System.Threading;
-using System.Threading.Tasks;
 using Shoko.Models.PlexAndKodi;
 using MediaInfoLib;
 using NutzCode.CloudFileSystem;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-using Pri.LongPath;
 
 
 namespace Shoko.Server.FileHelper.MediaInfo

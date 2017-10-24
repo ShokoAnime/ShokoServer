@@ -9,7 +9,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {

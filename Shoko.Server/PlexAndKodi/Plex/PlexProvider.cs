@@ -1,8 +1,5 @@
 ﻿using System;
-using System.IO;
-using System.ServiceModel.Web;
 using System.Text;
-using System.Xml.Serialization;
 using Shoko.Models.PlexAndKodi;
 using Nancy;
 

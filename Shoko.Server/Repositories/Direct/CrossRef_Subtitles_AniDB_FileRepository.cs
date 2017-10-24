@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Shoko.Server.Models;
 using Shoko.Models.Server;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;

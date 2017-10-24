@@ -4,7 +4,6 @@ using FileStream = System.IO.FileStream;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
 using Pri.LongPath;

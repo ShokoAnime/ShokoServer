@@ -2,18 +2,17 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 
-namespace Shoko.Server.Commands.Azure
+namespace Shoko.Server.Commands
 {
-    public class CommandRequest_Azure_SendUserInfo : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_Azure_SendUserInfo : CommandRequest
     {
-        public string Username { get; set; }
+        public virtual string Username { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SendAnonymousData,
             extraParams = new string[0]
@@ -49,7 +48,7 @@ namespace Shoko.Server.Commands.Azure
             CommandID = $"CommandRequest_Azure_SendUserInfo_{Username}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -69,21 +68,6 @@ namespace Shoko.Server.Commands.Azure
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

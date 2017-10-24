@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 // ReSharper disable InconsistentNaming

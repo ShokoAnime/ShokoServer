@@ -9,8 +9,6 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.MAL;
-using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
