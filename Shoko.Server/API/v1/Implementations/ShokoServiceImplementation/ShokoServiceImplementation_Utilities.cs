@@ -21,6 +21,7 @@ using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Repositories.Cached;
 using Pri.LongPath;
 using Shoko.Commons.Utils;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {

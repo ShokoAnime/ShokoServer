@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using Shoko.Models.Server;
+using NHibernate;
 using NutzCode.InMemoryIndex;
 using Pri.LongPath;
 using Shoko.Server.Databases;

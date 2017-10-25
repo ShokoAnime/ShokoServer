@@ -13,11 +13,11 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_ValidateAllImages : CommandRequest
+    public class CommandRequest_ValidateAllImages : CommandRequestImplementation, ICommandRequest
     {
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.ValidateAllImages,
             extraParams = new[] {string.Empty}
@@ -412,7 +412,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_ValidateAllImages";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -422,6 +422,21 @@ namespace Shoko.Server.Commands
             DateTimeUpdated = cq.DateTimeUpdated;
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

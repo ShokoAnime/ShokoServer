@@ -4,6 +4,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {

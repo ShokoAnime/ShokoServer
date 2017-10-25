@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
+using System.ServiceModel.Description;
 using System.ServiceModel.Web;
+using System.Text;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Plex;
 

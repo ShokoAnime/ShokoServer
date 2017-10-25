@@ -6,6 +6,7 @@ using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
+using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;

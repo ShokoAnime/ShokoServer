@@ -13,20 +13,20 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_LinkFileManually : CommandRequest
+    public class CommandRequest_LinkFileManually : CommandRequestImplementation, ICommandRequest
     {
         private new static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public virtual int VideoLocalID { get; set; }
-        public virtual int EpisodeID { get; set; }
-        public virtual int Percentage { get; set; }
+        public int VideoLocalID { get; set; }
+        public int EpisodeID { get; set; }
+        public int Percentage { get; set; }
 
         private SVR_AnimeEpisode episode;
         private SVR_VideoLocal vlocal;
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
-        public override QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
@@ -134,7 +134,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -163,6 +163,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

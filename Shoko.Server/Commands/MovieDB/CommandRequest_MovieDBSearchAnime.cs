@@ -17,14 +17,14 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_MovieDBSearchAnime : CommandRequest
+    public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SearchTMDb,
             extraParams = new[] {AnimeID.ToString()}
@@ -145,7 +145,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_MovieDBSearchAnime{AnimeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -167,6 +167,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

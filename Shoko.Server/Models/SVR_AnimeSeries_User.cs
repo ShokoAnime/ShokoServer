@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using System;
 using Shoko.Server.PlexAndKodi;

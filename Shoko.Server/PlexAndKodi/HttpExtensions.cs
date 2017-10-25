@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.ServiceModel.Channels;
 using System.ServiceModel.Web;
+using System.Text;
+using System.Threading.Tasks;
+using FluentNHibernate.Mapping;
 using Nancy;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;

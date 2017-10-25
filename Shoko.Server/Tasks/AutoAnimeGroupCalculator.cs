@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NHibernate;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Repositories.NHibernate;
 

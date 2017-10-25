@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Xml.Serialization;
 using Shoko.Server;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 

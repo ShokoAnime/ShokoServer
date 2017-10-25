@@ -1,4 +1,5 @@
 ﻿using Shoko.Models.Server;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {

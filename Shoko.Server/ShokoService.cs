@@ -1,6 +1,9 @@
 ﻿using System;
+using Shoko.Server.Databases;
+using NHibernate;
 using NLog;
 using Shoko.Server.Commands;
+using Shoko.Models.TvDB;
 
 namespace Shoko.Server
 {

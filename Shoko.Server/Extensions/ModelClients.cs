@@ -1,12 +1,25 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
+using AniDBAPI;
+using Force.DeepCloner;
 using NLog;
+using Pri.LongPath;
+using Shoko.Models;
+using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Models.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.ImageDownload;
+using Shoko.Server.LZ4;
+using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
@@ -18,6 +31,7 @@ using CL_AnimeEpisode_User = Shoko.Models.Client.CL_AnimeEpisode_User;
 using CL_AnimeGroup_User = Shoko.Models.Client.CL_AnimeGroup_User;
 using CL_AnimeSeries_User = Shoko.Models.Client.CL_AnimeSeries_User;
 using CL_BookmarkedAnime = Shoko.Models.Client.CL_BookmarkedAnime;
+using File = System.IO.File;
 
 namespace Shoko.Server.Extensions
 {

@@ -2,8 +2,10 @@
 using System.Linq;
 using Shoko.Models.Server;
 using NHibernate.Criterion;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {

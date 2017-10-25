@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Xml.Serialization;
+using Shoko.Server;
 using Shoko.Commons.Utils;
 
 namespace AniDBAPI

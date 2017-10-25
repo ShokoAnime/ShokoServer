@@ -1,4 +1,6 @@
-﻿using Shoko.Models.Enums;
+﻿using AniDBAPI;
+using Shoko.Models;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server.PlexAndKodi
 {

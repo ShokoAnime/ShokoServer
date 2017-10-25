@@ -16,14 +16,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBSearchAnime : CommandRequest_TvDBBase
+    public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SearchTvDB,
             extraParams = new[] {AnimeID.ToString()}
@@ -222,7 +222,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TvDBSearchAnime{AnimeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -244,6 +244,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

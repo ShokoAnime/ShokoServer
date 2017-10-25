@@ -5,6 +5,8 @@ using System.IO.Compression;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Criterion;

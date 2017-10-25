@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using Shoko.Models.Server;
 using NHibernate;
 using NLog;
@@ -9,6 +11,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 

@@ -2,19 +2,20 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_ReadMediaInfo : CommandRequest
+    public class CommandRequest_ReadMediaInfo : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int VideoLocalID { get; set; }
+        public int VideoLocalID { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.ReadingMedia,
             extraParams = new[] {VideoLocalID.ToString()}
@@ -66,7 +67,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_ReadMediaInfo_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -87,6 +88,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

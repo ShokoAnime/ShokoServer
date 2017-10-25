@@ -6,6 +6,7 @@ using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
+using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;

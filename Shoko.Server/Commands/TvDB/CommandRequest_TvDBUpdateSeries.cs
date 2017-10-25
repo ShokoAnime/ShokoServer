@@ -2,21 +2,22 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBUpdateSeries : CommandRequest_TvDBBase
+    public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int TvDBSeriesID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
-        public virtual string SeriesTitle { get; set; }
+        public int TvDBSeriesID { get; set; }
+        public bool ForceRefresh { get; set; }
+        public string SeriesTitle { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GettingTvDBSeries,
             extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})"}
@@ -57,7 +58,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TvDBUpdateSeries{TvDBSeriesID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -89,6 +90,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.ServiceModel.Web;
+using System.Text;
+using AniDBAPI;
+using FluentNHibernate.Conventions;
 using Nancy.Rest.Module;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
+using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;

@@ -5,6 +5,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

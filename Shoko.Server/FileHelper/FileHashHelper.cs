@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Configuration;
+using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
 using Path = Pri.LongPath.Path;

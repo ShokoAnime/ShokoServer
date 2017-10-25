@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Commands;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -11,7 +11,6 @@ namespace Shoko.Server.Repositories.Cached
     {
         private PocoIndex<int, CommandRequest, string> CommandIDs;
         private PocoIndex<int, CommandRequest, int> CommandTypes;
-        //private PocoIndex<int, CommandRequest, CommandLimiterType> CommandLimiterTypes;
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         private CommandRequestRepository()
@@ -26,8 +25,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PopulateIndexes()
         {
             CommandIDs = new PocoIndex<int, CommandRequest, string>(Cache, a => a.CommandID);
-            CommandTypes = new PocoIndex<int, CommandRequest, int>(Cache, GetQueueIndex);
-            //CommandLimiterTypes = new PocoIndex<int, CommandRequest, CommandLimiterType>(Cache, a => a.CommandLimiterType);
+            CommandTypes = new PocoIndex<int, CommandRequest, int>(Cache, a => GetQueueIndex(a));
         }
 
         /// <summary>
@@ -84,9 +82,6 @@ namespace Shoko.Server.Repositories.Cached
             {
                 lock (Cache)
                 {
-                    // TODO Detect if we are waiting on a limiter, and return the next item that:
-                    // TODO Are on the same priority as the first calculated command, not including limiters
-                    // TODO Are not waiting on a limiter
                     return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority)
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }

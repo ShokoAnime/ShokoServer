@@ -8,16 +8,16 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
-    public class CommandRequest_GetEpisode : CommandRequest_AniDBBase
+    public class CommandRequest_GetEpisode : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int EpisodeID { get; set; }
+        public int EpisodeID { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GetEpisodeList,
             extraParams = new[] {EpisodeID.ToString()}
@@ -91,7 +91,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetEpisode_{EpisodeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -111,6 +111,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

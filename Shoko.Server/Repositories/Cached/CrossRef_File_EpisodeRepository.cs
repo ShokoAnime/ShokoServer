@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.NHibernate;
+using NHibernate;
+using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;

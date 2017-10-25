@@ -7,14 +7,14 @@ using System.Xml;
 using JMMServer.Repositories;
 using JMMServer.Providers.TraktTV;
 
-namespace Shoko.Server.Commands
+namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TraktShowEpisodeUnseen : CommandRequestImplementation
+	public class CommandRequest_TraktShowEpisodeUnseen : CommandRequestImplementation, ICommandRequest
 	{
 		public int AnimeEpisodeID { get; set; }
 
-		public override CommandRequestPriority DefaultPriority
+		public CommandRequestPriority DefaultPriority
 		{
 			get { return CommandRequestPriority.Priority9; }
 		}

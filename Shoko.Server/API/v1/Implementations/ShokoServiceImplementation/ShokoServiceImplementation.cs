@@ -15,6 +15,7 @@ using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 
 namespace Shoko.Server

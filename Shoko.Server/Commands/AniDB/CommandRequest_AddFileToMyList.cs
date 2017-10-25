@@ -5,6 +5,7 @@ using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.MAL;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -12,16 +13,16 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_AddFileToMyList : CommandRequest_AniDBBase
+    public class CommandRequest_AddFileToMyList : CommandRequestImplementation, ICommandRequest
     {
-        public virtual string Hash { get; set; }
+        public string Hash { get; set; }
 
         [NonSerialized]
         private SVR_VideoLocal vid;
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public override QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
@@ -162,7 +163,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_AddFileToMyList_{Hash}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -184,6 +185,21 @@ namespace Shoko.Server.Commands
             if (Hash.Trim().Length <= 0) return false;
             vid = RepoFactory.VideoLocal.GetByHash(Hash);
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

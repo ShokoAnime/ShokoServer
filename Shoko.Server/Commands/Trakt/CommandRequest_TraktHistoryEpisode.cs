@@ -2,6 +2,7 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -9,16 +10,16 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktHistoryEpisode : CommandRequest
+    public class CommandRequest_TraktHistoryEpisode : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int AnimeEpisodeID { get; set; }
-        public virtual int Action { get; set; }
+        public int AnimeEpisodeID { get; set; }
+        public int Action { get; set; }
 
-        public virtual TraktSyncAction ActionEnum => (TraktSyncAction) Action;
+        public TraktSyncAction ActionEnum => (TraktSyncAction) Action;
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.TraktAddHistory,
             extraParams = new[] {AnimeEpisodeID.ToString()}
@@ -70,7 +71,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TraktHistoryEpisode{AnimeEpisodeID}-{Action}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -92,6 +93,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

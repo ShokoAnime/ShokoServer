@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.Direct;
 using NLog;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV

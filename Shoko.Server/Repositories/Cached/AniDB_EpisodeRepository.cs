@@ -1,10 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using AniDBAPI;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.NHibernate;
+using NHibernate;
+using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
 {

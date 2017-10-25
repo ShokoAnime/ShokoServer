@@ -2,18 +2,19 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetReviews : CommandRequest_AniDBBase
+    public class CommandRequest_GetReviews : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GetReviewInfo,
             extraParams = new[] {AnimeID.ToString()}
@@ -66,7 +67,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetReviews_{AnimeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -87,6 +88,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

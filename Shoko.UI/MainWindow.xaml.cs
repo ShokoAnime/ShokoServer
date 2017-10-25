@@ -22,6 +22,7 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.Azure;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;

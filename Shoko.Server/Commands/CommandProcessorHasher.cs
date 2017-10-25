@@ -5,6 +5,7 @@ using System.Threading;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -206,7 +207,7 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                CommandRequest icr = CommandHelper.GetCommand(crdb);
+                ICommandRequest icr = CommandHelper.GetCommand(crdb);
                 if (icr == null)
                 {
                     logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);

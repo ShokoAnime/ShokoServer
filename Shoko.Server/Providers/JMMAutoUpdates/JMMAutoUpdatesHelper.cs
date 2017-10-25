@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Xml;
+using System.Xml.Serialization;
 using NLog;
 
 namespace Shoko.Server.Providers.JMMAutoUpdates

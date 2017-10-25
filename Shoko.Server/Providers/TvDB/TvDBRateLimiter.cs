@@ -9,7 +9,7 @@ namespace Shoko.Server.Providers.TvDB
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         private static readonly TvDBRateLimiter instance = new TvDBRateLimiter();
-
+       
         private static int ShortDelay = 500;
         private static int LongDelay = 1000;
 

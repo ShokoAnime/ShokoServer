@@ -1,4 +1,5 @@
-﻿using Shoko.Models.Enums;
+﻿using Shoko.Models;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server
 {

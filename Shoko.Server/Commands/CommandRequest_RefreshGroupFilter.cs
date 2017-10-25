@@ -1,15 +1,15 @@
-﻿using Shoko.Commons.Queue;
+﻿using System;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_RefreshGroupFilter : CommandRequest
+    public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int GroupFilterID { get; set; }
-
-        public override string CommandDetails => GroupFilterID.ToString();
+        public int GroupFilterID { get; set; }
 
         public CommandRequest_RefreshGroupFilter(int groupFilterID)
         {
@@ -25,9 +25,9 @@ namespace Shoko.Server.Commands
         }
 
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.RefreshGroupFilter,
             extraParams = new[] {GroupFilterID.ToString()}
@@ -46,7 +46,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_RefreshGroupFilter_{GroupFilterID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -56,6 +56,21 @@ namespace Shoko.Server.Commands
             DateTimeUpdated = cq.DateTimeUpdated;
             GroupFilterID = int.Parse(cq.CommandDetails);
             return true;
+        }
+
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = GroupFilterID.ToString(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

@@ -2,22 +2,23 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : CommandRequest
+    public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int AnimeID { get; set; }
-        public virtual int AniDBStartEpisodeType { get; set; }
-        public virtual int AniDBStartEpisodeNumber { get; set; }
-        public virtual string TraktID { get; set; }
-        public virtual int TraktSeasonNumber { get; set; }
-        public virtual int TraktStartEpisodeNumber { get; set; }
+        public int AnimeID { get; set; }
+        public int AniDBStartEpisodeType { get; set; }
+        public int AniDBStartEpisodeNumber { get; set; }
+        public string TraktID { get; set; }
+        public int TraktSeasonNumber { get; set; }
+        public int TraktStartEpisodeNumber { get; set; }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTrakt,
             extraParams = new[] {AnimeID.ToString()}
@@ -63,7 +64,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheDeleteXRefAniDBTrakt{AnimeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -97,6 +98,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

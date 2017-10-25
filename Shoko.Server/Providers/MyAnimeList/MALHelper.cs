@@ -9,12 +9,16 @@ using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using AniDBAPI;
+using Shoko.Models;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
+using Shoko.Server.Commands.MAL;
+using Shoko.Server.Commands.WebCache;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 

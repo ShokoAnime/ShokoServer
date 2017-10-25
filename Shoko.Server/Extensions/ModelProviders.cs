@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
 using AniDBAPI;
 using Force.DeepCloner;
 using NHibernate;
 using NLog;
+using Shoko.Models;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;

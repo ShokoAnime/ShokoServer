@@ -3,22 +3,24 @@ using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetFile : CommandRequest_AniDBBase
+    public class CommandRequest_GetFile : CommandRequestImplementation, ICommandRequest
     {
-        public virtual int VideoLocalID { get; set; }
-        public virtual bool ForceAniDB { get; set; }
+        public int VideoLocalID { get; set; }
+        public bool ForceAniDB { get; set; }
 
         private SVR_VideoLocal vlocal;
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
+        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
-        public override QueueStateStruct PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
@@ -139,7 +141,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetFile_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -161,6 +163,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

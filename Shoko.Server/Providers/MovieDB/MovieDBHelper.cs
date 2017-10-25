@@ -6,6 +6,7 @@ using Shoko.Models.Server;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;

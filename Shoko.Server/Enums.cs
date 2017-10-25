@@ -1,4 +1,6 @@
-﻿namespace Shoko.Server
+﻿using System;
+
+namespace Shoko.Server
 {
     public enum CommandRequestType
     {
@@ -87,13 +89,6 @@
         Priority10 = 10,
         Priority11 = 11,
         Default = 99
-    }
-
-    public enum CommandLimiterType
-    {
-        None = -1,
-        AniDB = 0,
-        TvDB = 1
     }
 
     public enum HashSource
