@@ -11,13 +11,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
-    public class CommandRequest_GetEpisode : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_GetEpisodeUDP)]
+    public class CommandRequest_GetEpisode : CommandRequestImplementation
     {
         public int EpisodeID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GetEpisodeList,
             extraParams = new[] {EpisodeID.ToString()}
@@ -30,7 +31,6 @@ namespace Shoko.Server.Commands.AniDB
         public CommandRequest_GetEpisode(int epID)
         {
             EpisodeID = epID;
-            CommandType = (int) CommandRequestType.AniDB_GetEpisodeUDP;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -95,7 +95,6 @@ namespace Shoko.Server.Commands.AniDB
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

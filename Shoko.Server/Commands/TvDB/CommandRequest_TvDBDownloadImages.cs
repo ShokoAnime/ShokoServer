@@ -8,14 +8,15 @@ using Shoko.Server.Providers.TvDB;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.TvDB_DownloadImages)]
+    public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
     {
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.DownloadTvDBImages,
             extraParams = new[] {TvDBSeriesID.ToString()}
@@ -31,7 +32,6 @@ namespace Shoko.Server.Commands
         {
             TvDBSeriesID = tvDBSeriesID;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.TvDB_DownloadImages;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -62,7 +62,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

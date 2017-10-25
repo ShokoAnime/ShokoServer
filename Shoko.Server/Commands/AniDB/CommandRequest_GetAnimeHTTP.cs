@@ -8,15 +8,16 @@ using Shoko.Server.Models;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_GetAnimeHTTP)]
+    public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
         public bool DownloadRelations { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.AnimeInfo,
             extraParams = new[] {AnimeID.ToString()}
@@ -31,7 +32,6 @@ namespace Shoko.Server.Commands
             AnimeID = animeid;
             DownloadRelations = downloadRelations;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetAnimeHTTP;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -76,7 +76,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

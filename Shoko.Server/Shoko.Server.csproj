@@ -527,6 +527,7 @@
     <Compile Include="Utilities\AsyncObservableCollection.cs" />
     <Compile Include="Utilities\AVDumpHelper.cs" />
     <Compile Include="Utilities\LinuxFS.cs" />
+    <Compile Include="Utilities\ReflectionUtils.cs" />
     <Compile Include="Utilities\TagFilter.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />

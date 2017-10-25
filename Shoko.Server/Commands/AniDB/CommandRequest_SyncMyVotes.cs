@@ -13,11 +13,12 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_SyncMyVotes : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_SyncVotes)]
+    public class CommandRequest_SyncMyVotes : CommandRequestImplementation
     {
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.Actions_SyncVotes,
             extraParams = new string[0]
@@ -26,7 +27,6 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_SyncMyVotes()
         {
-            CommandType = (int) CommandRequestType.AniDB_SyncVotes;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -104,7 +104,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

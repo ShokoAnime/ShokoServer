@@ -22,7 +22,8 @@ using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_DownloadImage : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.ImageDownload)]
+    public class CommandRequest_DownloadImage : CommandRequestImplementation
     {
         public int EntityID { get; set; }
         public int EntityType { get; set; }
@@ -30,9 +31,9 @@ namespace Shoko.Server.Commands
 
         public ImageEntityType EntityTypeEnum => (ImageEntityType) EntityType;
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription
         {
             get
             {
@@ -87,7 +88,6 @@ namespace Shoko.Server.Commands
             EntityID = entityID;
             EntityType = (int) entityType;
             ForceDownload = forced;
-            CommandType = (int) CommandRequestType.ImageDownload;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -483,7 +483,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

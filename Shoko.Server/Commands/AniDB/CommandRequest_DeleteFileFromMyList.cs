@@ -8,15 +8,16 @@ using Shoko.Models.Server;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_DeleteFileUDP)]
+    public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
     {
         public string Hash { get; set; }
         public long FileSize { get; set; }
         public int FileID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.AniDB_MyListDelete,
             extraParams = new[] {Hash, FileID.ToString()}
@@ -31,7 +32,6 @@ namespace Shoko.Server.Commands
             Hash = hash;
             FileSize = fileSize;
             FileID = -1;
-            CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -42,7 +42,6 @@ namespace Shoko.Server.Commands
             Hash = string.Empty;
             FileSize = 0;
             FileID = fileID;
-            CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -140,7 +139,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

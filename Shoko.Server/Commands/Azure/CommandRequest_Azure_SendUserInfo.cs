@@ -7,13 +7,14 @@ using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands.Azure
 {
-    public class CommandRequest_Azure_SendUserInfo : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Azure_SendUserInfo)]
+    public class CommandRequest_Azure_SendUserInfo : CommandRequestImplementation
     {
         public string Username { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SendAnonymousData,
             extraParams = new string[0]
@@ -26,7 +27,6 @@ namespace Shoko.Server.Commands.Azure
         public CommandRequest_Azure_SendUserInfo(string username)
         {
             Username = username;
-            CommandType = (int) CommandRequestType.Azure_SendUserInfo;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -53,7 +53,6 @@ namespace Shoko.Server.Commands.Azure
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

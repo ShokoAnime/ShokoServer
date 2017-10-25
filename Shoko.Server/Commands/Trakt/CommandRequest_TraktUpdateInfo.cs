@@ -8,13 +8,14 @@ using Shoko.Server.Providers.TraktTV;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Trakt_UpdateInfo)]
+    public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
     {
         public string TraktID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.UpdateTraktData,
             extraParams = new[] {TraktID}
@@ -27,7 +28,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_TraktUpdateInfo(string traktID)
         {
             TraktID = traktID;
-            CommandType = (int) CommandRequestType.Trakt_UpdateInfo;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -59,7 +59,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

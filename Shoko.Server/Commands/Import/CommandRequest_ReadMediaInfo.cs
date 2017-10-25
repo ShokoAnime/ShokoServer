@@ -9,13 +9,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_ReadMediaInfo : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.ReadMediaInfo)]
+    public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
     {
         public int VideoLocalID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.ReadingMedia,
             extraParams = new[] {VideoLocalID.ToString()}
@@ -28,7 +29,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_ReadMediaInfo(int vidID)
         {
             VideoLocalID = vidID;
-            CommandType = (int) CommandRequestType.ReadMediaInfo;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -71,7 +71,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

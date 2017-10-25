@@ -7,7 +7,8 @@ using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.WebCache_DeleteXRefAniDBTrakt)]
+    public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
         public int AniDBStartEpisodeType { get; set; }
@@ -16,9 +17,9 @@ namespace Shoko.Server.Commands
         public int TraktSeasonNumber { get; set; }
         public int TraktStartEpisodeNumber { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTrakt,
             extraParams = new[] {AnimeID.ToString()}
@@ -39,7 +40,6 @@ namespace Shoko.Server.Commands
             TraktID = traktID;
             TraktSeasonNumber = traktSeasonNumber;
             TraktStartEpisodeNumber = traktStartEpisodeNumber;
-            CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBTrakt;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -68,7 +68,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

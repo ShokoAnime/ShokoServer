@@ -9,7 +9,8 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Plex
 {
-    class CommandRequest_PlexSyncWatched : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Plex_Sync)]
+    class CommandRequest_PlexSyncWatched : CommandRequestImplementation
     {
         private JMMUser _jmmuser;
 
@@ -19,7 +20,6 @@ namespace Shoko.Server.Commands.Plex
 
         public CommandRequest_PlexSyncWatched(JMMUser jmmUser)
         {
-            CommandType = (int) CommandRequestType.Plex_Sync;
             _jmmuser = jmmUser;
         }
 
@@ -62,9 +62,9 @@ namespace Shoko.Server.Commands.Plex
             CommandID = $"SyncPlex_{_jmmuser.JMMUserID}";
         }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SyncPlex,
             extraParams = new[] {_jmmuser.Username}
@@ -74,7 +74,6 @@ namespace Shoko.Server.Commands.Plex
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

@@ -7,15 +7,16 @@ using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands.WebCache
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBMAL : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.WebCache_DeleteXRefAniDBMAL)]
+    public class CommandRequest_WebCacheDeleteXRefAniDBMAL : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
         public int StartEpisodeType { get; set; }
         public int StartEpisodeNumber { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheDeleteXRefAniDBMAL,
             extraParams = new[] {AnimeID.ToString()}
@@ -30,7 +31,6 @@ namespace Shoko.Server.Commands.WebCache
             AnimeID = animeID;
             StartEpisodeType = epType;
             StartEpisodeNumber = epNumber;
-            CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBMAL;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -58,7 +58,6 @@ namespace Shoko.Server.Commands.WebCache
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

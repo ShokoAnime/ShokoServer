@@ -9,7 +9,8 @@ using Shoko.Server.Providers.TvDB;
 namespace Shoko.Server.Commands.TvDB
 {
     [Serializable]
-    public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.LinkAniDBTvDB)]
+    public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
     {
         public int animeID;
         public EpisodeType aniEpType;
@@ -20,9 +21,9 @@ namespace Shoko.Server.Commands.TvDB
         public bool excludeFromWebCache;
         public bool additiveLink;
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.LinkAniDBTvDB,
             extraParams = new[] {animeID.ToString()}
@@ -44,7 +45,6 @@ namespace Shoko.Server.Commands.TvDB
             this.excludeFromWebCache = excludeFromWebCache;
             this.additiveLink = additiveLink;
 
-            CommandType = (int) CommandRequestType.LinkAniDBTvDB;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -76,7 +76,6 @@ namespace Shoko.Server.Commands.TvDB
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

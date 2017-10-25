@@ -20,14 +20,15 @@ using Path = Pri.LongPath.Path;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_HashFile : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.HashFile)]
+    public class CommandRequest_HashFile : CommandRequestImplementation
     {
         public string FileName { get; set; }
         public bool ForceHash { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.CheckingFile,
             extraParams = new[] {FileName}
@@ -47,7 +48,6 @@ namespace Shoko.Server.Commands
         {
             FileName = filename;
             ForceHash = force;
-            CommandType = (int) CommandRequestType.HashFile;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -620,7 +620,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

@@ -10,15 +10,16 @@ using Shoko.Server.Commands.MAL;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_VoteAnime : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_VoteAnime)]
+    public class CommandRequest_VoteAnime : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
         public int VoteType { get; set; }
         public decimal VoteValue { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.VoteAnime,
             extraParams = new[] {AnimeID.ToString(), VoteValue.ToString()}
@@ -33,7 +34,6 @@ namespace Shoko.Server.Commands
             AnimeID = animeID;
             VoteType = voteType;
             VoteValue = voteValue;
-            CommandType = (int) CommandRequestType.AniDB_VoteAnime;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -74,7 +74,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

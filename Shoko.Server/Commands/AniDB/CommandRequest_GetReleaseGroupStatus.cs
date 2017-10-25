@@ -12,14 +12,15 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_GetReleaseGroupStatus)]
+    public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GetReleaseGroup,
             extraParams = new[] {AnimeID.ToString()}
@@ -33,7 +34,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = aid;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetReleaseGroupStatus;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -114,7 +114,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

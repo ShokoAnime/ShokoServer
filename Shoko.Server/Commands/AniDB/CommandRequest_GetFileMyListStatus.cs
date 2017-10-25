@@ -7,14 +7,15 @@ using Shoko.Models.Server;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetFileMyListStatus : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_GetMyListFile)]
+    public class CommandRequest_GetFileMyListStatus : CommandRequestImplementation
     {
         public int AniFileID { get; set; }
         public string FileName { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.AniDB_MyListGetFile,
             extraParams = new[] { FileName, AniFileID.ToString() }
@@ -28,7 +29,6 @@ namespace Shoko.Server.Commands
         {
             AniFileID = aniFileID;
             FileName = fileName;
-            CommandType = (int) CommandRequestType.AniDB_GetMyListFile;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -62,7 +62,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

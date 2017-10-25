@@ -9,13 +9,14 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheSendXRefAniDBTrakt : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.WebCache_SendXRefAniDBTrakt)]
+    public class CommandRequest_WebCacheSendXRefAniDBTrakt : CommandRequestImplementation
     {
         public int CrossRef_AniDB_TraktID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheSendXRefAniDBTrakt,
             extraParams = new[] {CrossRef_AniDB_TraktID.ToString()}
@@ -28,7 +29,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_WebCacheSendXRefAniDBTrakt(int xrefID)
         {
             CrossRef_AniDB_TraktID = xrefID;
-            CommandType = (int) CommandRequestType.WebCache_SendXRefAniDBTrakt;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -68,7 +68,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

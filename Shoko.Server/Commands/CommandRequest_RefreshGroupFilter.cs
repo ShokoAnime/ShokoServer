@@ -7,7 +7,8 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Refresh_GroupFilter)]
+    public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation
     {
         public int GroupFilterID { get; set; }
 
@@ -15,7 +16,6 @@ namespace Shoko.Server.Commands
         {
             GroupFilterID = groupFilterID;
 
-            CommandType = (int) CommandRequestType.Refresh_GroupFilter;
             Priority = (int) DefaultPriority;
             GenerateCommandID();
         }
@@ -25,9 +25,9 @@ namespace Shoko.Server.Commands
         }
 
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.RefreshGroupFilter,
             extraParams = new[] {GroupFilterID.ToString()}
@@ -50,7 +50,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

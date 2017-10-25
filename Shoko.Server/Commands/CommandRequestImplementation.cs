@@ -1,16 +1,27 @@
 ﻿using System;
+using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
+using JetBrains.Annotations;
 using NHibernate;
 using NLog;
+using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Commands
 {
-    public abstract class CommandRequestImplementation
+    public class CommandAttribute : Attribute
+    {
+        [NotNull]
+        public CommandRequestType RequestType { get; }
+
+        public CommandAttribute([NotNull] CommandRequestType requestType) => RequestType = requestType;
+    }
+
+    public abstract class CommandRequestImplementation : ICommandRequest
     {
         protected static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -24,7 +35,7 @@ namespace Shoko.Server.Commands
         public int Priority { get; set; }
 
         [XmlIgnore]
-        public int CommandType { get; set; }
+        public int CommandType => (int) ((int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1);
 
         [XmlIgnore]
         public string CommandID { get; set; }
@@ -43,6 +54,8 @@ namespace Shoko.Server.Commands
         public abstract void GenerateCommandID();
 
         public abstract bool LoadFromDBCommand(CommandRequest cq);
+        public abstract CommandRequestPriority DefaultPriority { get; }
+        public abstract QueueStateStruct PrettyDescription { get; }
 
         public abstract CommandRequest ToDatabaseObject();
 

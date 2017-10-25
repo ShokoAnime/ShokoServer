@@ -10,14 +10,15 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Trakt_SyncCollectionSeries)]
+    public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation
     {
         public int AnimeSeriesID { get; set; }
         public string SeriesName { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SyncTraktSeries,
             extraParams = new[] {SeriesName}
@@ -31,7 +32,6 @@ namespace Shoko.Server.Commands
         {
             AnimeSeriesID = animeSeriesID;
             SeriesName = seriesName;
-            CommandType = (int) CommandRequestType.Trakt_SyncCollectionSeries;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -73,7 +73,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

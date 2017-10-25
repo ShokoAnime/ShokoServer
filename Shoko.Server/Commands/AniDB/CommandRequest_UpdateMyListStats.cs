@@ -8,13 +8,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
-    public class CommandRequest_UpdateMyListStats : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_UpdateMylistStats)]
+    public class CommandRequest_UpdateMyListStats : CommandRequestImplementation
     {
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.UpdateMyListStats,
             extraParams = new string[0]
@@ -27,7 +28,6 @@ namespace Shoko.Server.Commands.AniDB
         public CommandRequest_UpdateMyListStats(bool forced)
         {
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_UpdateMylistStats;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -83,7 +83,6 @@ namespace Shoko.Server.Commands.AniDB
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

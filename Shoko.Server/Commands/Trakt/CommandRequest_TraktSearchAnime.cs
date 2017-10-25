@@ -18,14 +18,15 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSearchAnime : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Trakt_SearchAnime)]
+    public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SearchTrakt,
             extraParams = new[] {AnimeID.ToString()}
@@ -39,7 +40,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = animeID;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.Trakt_SearchAnime;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -211,7 +211,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

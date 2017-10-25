@@ -10,13 +10,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetUpdated : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_GetUpdated)]
+    public class CommandRequest_GetUpdated : CommandRequestImplementation
     {
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GetUpdatedAnime,
             extraParams = new string[0]
@@ -29,7 +30,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_GetUpdated(bool forced)
         {
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetUpdated;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -155,7 +155,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

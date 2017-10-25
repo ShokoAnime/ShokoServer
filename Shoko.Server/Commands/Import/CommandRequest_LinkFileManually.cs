@@ -13,7 +13,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_LinkFileManually : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.LinkFileManually)]
+    public class CommandRequest_LinkFileManually : CommandRequestImplementation
     {
         private new static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -24,9 +25,9 @@ namespace Shoko.Server.Commands
         private SVR_AnimeEpisode episode;
         private SVR_VideoLocal vlocal;
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription
         {
             get
             {
@@ -52,7 +53,6 @@ namespace Shoko.Server.Commands
         {
             VideoLocalID = vidLocalID;
             EpisodeID = episodeID;
-            CommandType = (int) CommandRequestType.LinkFileManually;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -138,7 +138,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

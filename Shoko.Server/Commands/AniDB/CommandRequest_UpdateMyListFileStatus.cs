@@ -12,7 +12,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_UpdateWatchedUDP)]
+    public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation
     {
         public string FullFileName { get; set; }
         public string Hash { get; set; }
@@ -20,9 +21,9 @@ namespace Shoko.Server.Commands
         public bool UpdateSeriesStats { get; set; }
         public int WatchedDateAsSecs { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.UpdateMyListInfo,
             extraParams = new[] {FullFileName}
@@ -37,7 +38,6 @@ namespace Shoko.Server.Commands
         {
             Hash = hash;
             Watched = watched;
-            CommandType = (int) CommandRequestType.AniDB_UpdateWatchedUDP;
             Priority = (int) DefaultPriority;
             UpdateSeriesStats = updateSeriesStats;
             WatchedDateAsSecs = watchedDateSecs;
@@ -112,7 +112,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

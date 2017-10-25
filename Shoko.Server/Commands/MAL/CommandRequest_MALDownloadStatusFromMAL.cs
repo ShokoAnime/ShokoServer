@@ -11,11 +11,12 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands.MAL
 {
     [Serializable]
-    public class CommandRequest_MALDownloadStatusFromMAL : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.MAL_DownloadWatchedStates)]
+    public class CommandRequest_MALDownloadStatusFromMAL : CommandRequestImplementation
     {
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.DownloadMalWatched,
             extraParams = new string[0]
@@ -24,7 +25,6 @@ namespace Shoko.Server.Commands.MAL
 
         public CommandRequest_MALDownloadStatusFromMAL()
         {
-            CommandType = (int) CommandRequestType.MAL_DownloadWatchedStates;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -130,7 +130,6 @@ namespace Shoko.Server.Commands.MAL
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

@@ -9,13 +9,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSyncCollection : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Trakt_SyncCollection)]
+    public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
     {
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]};
 
         public CommandRequest_TraktSyncCollection()
         {
@@ -23,7 +24,6 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktSyncCollection(bool forced)
         {
-            CommandType = (int) CommandRequestType.Trakt_SyncCollection;
             Priority = (int) DefaultPriority;
             ForceRefresh = forced;
 
@@ -83,7 +83,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

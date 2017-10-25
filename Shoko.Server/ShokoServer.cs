@@ -134,6 +134,7 @@ namespace Shoko.Server
             }
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
+            CommandHelper.LoadCommands();
 
             try
             {

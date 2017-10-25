@@ -15,13 +15,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_SyncMyList : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.AniDB_SyncMyList)]
+    public class CommandRequest_SyncMyList : CommandRequestImplementation
     {
         public bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncMyList, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncMyList, extraParams = new string[0]};
 
         public CommandRequest_SyncMyList()
         {
@@ -30,7 +31,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_SyncMyList(bool forced)
         {
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_SyncMyList;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -254,7 +254,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

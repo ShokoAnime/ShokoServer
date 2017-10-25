@@ -8,13 +8,14 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheSendXRefFileEpisode : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.WebCache_SendXRefFileEpisode)]
+    public class CommandRequest_WebCacheSendXRefFileEpisode : CommandRequestImplementation
     {
         public int CrossRef_File_EpisodeID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheSendXRefFileEpisode,
             extraParams = new[] {CrossRef_File_EpisodeID.ToString()}
@@ -27,7 +28,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_WebCacheSendXRefFileEpisode(int crossRef_File_EpisodeID)
         {
             CrossRef_File_EpisodeID = crossRef_File_EpisodeID;
-            CommandType = (int) CommandRequestType.WebCache_SendXRefFileEpisode;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -59,7 +59,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

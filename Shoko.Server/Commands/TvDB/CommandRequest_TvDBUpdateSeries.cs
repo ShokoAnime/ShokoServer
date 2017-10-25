@@ -9,15 +9,16 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.TvDB_UpdateSeries)]
+    public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
     {
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
         public string SeriesTitle { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.GettingTvDBSeries,
             extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})"}
@@ -31,7 +32,6 @@ namespace Shoko.Server.Commands
         {
             TvDBSeriesID = tvDBSeriesID;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.TvDB_UpdateSeries;
             Priority = (int) DefaultPriority;
             SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
 
@@ -62,7 +62,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

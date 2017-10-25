@@ -7,7 +7,8 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_RefreshAnime : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Refresh_AnimeStats)]
+    public class CommandRequest_RefreshAnime : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
 
@@ -15,7 +16,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = animeID;
 
-            CommandType = (int) CommandRequestType.Refresh_AnimeStats;
             Priority = (int) DefaultPriority;
             GenerateCommandID();
         }
@@ -25,9 +25,9 @@ namespace Shoko.Server.Commands
         }
 
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.Refresh,
             extraParams = new[] {AnimeID.ToString()}
@@ -48,7 +48,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;

@@ -9,13 +9,14 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Azure
 {
-    public class CommandRequest_Azure_SendAnimeFull : CommandRequestImplementation, ICommandRequest
+    [Command(CommandRequestType.Azure_SendAnimeFull)]
+    public class CommandRequest_Azure_SendAnimeFull : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.SendAnimeFull,
             extraParams = new[] {AnimeID.ToString()}
@@ -28,7 +29,6 @@ namespace Shoko.Server.Commands.Azure
         public CommandRequest_Azure_SendAnimeFull(int animeID)
         {
             AnimeID = animeID;
-            CommandType = (int) CommandRequestType.Azure_SendAnimeFull;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -68,7 +68,6 @@ namespace Shoko.Server.Commands.Azure
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
