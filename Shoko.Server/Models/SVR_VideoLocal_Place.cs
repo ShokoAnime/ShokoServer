@@ -53,13 +53,15 @@ namespace Shoko.Server.Models
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         // returns false if we should try again after the timer
-        private bool RenameFile()
+        public (bool, string, string) RenameFile(bool preview = false, string scriptName = null)
         {
+            if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+                return (true, string.Empty, "Error: Do not attempt to use a temp file to rename.");
             if (ImportFolder == null)
             {
                 logger.Error(
                     $"Error: The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: {FilePath}");
-                return false;
+                return (true, string.Empty, "Error: Could not find the file");
             }
 
             IFileSystem filesys = ImportFolder.FileSystem;
@@ -67,22 +69,22 @@ namespace Shoko.Server.Models
             {
                 logger.Error(
                     $"Error: The renamer can't get the filesystem for: {FullServerPath}");
-                return true;
+                return (true, string.Empty, "Error: Could not find the file");
             }
 
-            var renamer = RenameFileHelper.GetRenamer();
-            if (renamer == null) return true;
+            var renamer = string.IsNullOrEmpty(scriptName) ? RenameFileHelper.GetRenamer() : RenameFileHelper.GetRenamer(scriptName);
+            if (renamer == null) return (true, String.Empty, "Error: Could not get a valid renamer");
             string renamed = renamer.GetFileName(this);
             if (string.IsNullOrEmpty(renamed))
             {
                 logger.Error("Error: The renamer returned a null or empty name for: " + FilePath);
-                return true;
+                return (true, string.Empty, "Error: The file renamer returned a null or empty value");
             }
 
             if (renamed.StartsWith("*Error: "))
             {
                 logger.Error("Error: The renamer returned an error on file: " + FilePath + "\n            " + renamed);
-                return true;
+                return (true, string.Empty, renamed.Substring(1));
             }
 
             // actually rename the file
@@ -92,14 +94,14 @@ namespace Shoko.Server.Models
             if (string.IsNullOrEmpty(fullFileName))
             {
                 logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
-                return false;
+                return (false, renamed, "Error: Could not access the file");
             }
 
             FileSystemResult<IObject> re = filesys.Resolve(fullFileName);
-            if ((re == null) || (!re.IsOk))
+            if (re == null || !re.IsOk)
             {
                 logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
-                return false;
+                return (false, renamed, "Error: Could not access the file");
             }
             IObject file = re.Result;
             // actually rename the file
@@ -113,15 +115,16 @@ namespace Shoko.Server.Models
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     logger.Info($"Renaming file SKIPPED! no change From ({fullFileName}) to ({newFullName})");
-                    return true;
+                    return (true, renamed, string.Empty);
                 }
 
                 FileSystemResult r = file?.FileSystem?.Resolve(newFullName);
                 if (r != null && r.IsOk)
                 {
                     logger.Info($"Renaming file SKIPPED! Destination Exists ({newFullName})");
-                    return true;
+                    return (true, renamed, "Error: The filename already exists");
                 }
+                if (preview) return (false, renamed, string.Empty);
 
                 ShokoServer.StopWatchingFiles();
 
@@ -131,7 +134,7 @@ namespace Shoko.Server.Models
                     logger.Info(
                         $"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r?.Error ?? "Result is null"}");
                     ShokoServer.StartWatchingFiles(false);
-                    return false;
+                    return (false, renamed, "Error: Failed to rename file");
                 }
 
                 logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
@@ -140,7 +143,7 @@ namespace Shoko.Server.Models
                 {
                     logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
                     ShokoServer.StartWatchingFiles(false);
-                    return false;
+                    return (false, renamed, "Error: Unable to resolve new path");
                 }
 
                 // Before we change all references, remap Duplicate Files
@@ -185,9 +188,10 @@ namespace Shoko.Server.Models
             {
                 logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                 logger.Error(ex, ex.ToString());
+                return (true, string.Empty, $"Error: {ex.Message}");
             }
             ShokoServer.StartWatchingFiles(false);
-            return true;
+            return (true, renamed, string.Empty);
         }
 
         public void RemoveRecord()
@@ -212,11 +216,12 @@ namespace Shoko.Server.Models
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
                         dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+
+                        CommandRequest_DeleteFileFromMyList cmdDel =
+                            new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        cmdDel.Save(session);
                         transaction.Commit();
                     }
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                    cmdDel.Save();
                 }
                 else
                 {
@@ -243,7 +248,7 @@ namespace Shoko.Server.Models
             seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
             {
-                ser.QueueUpdateStats();
+                ser?.QueueUpdateStats();
             }
         }
 
@@ -268,11 +273,12 @@ namespace Shoko.Server.Models
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
                     dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+
+                    CommandRequest_DeleteFileFromMyList cmdDel =
+                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                    cmdDel.Save(session);
                     transaction.Commit();
                 }
-                CommandRequest_DeleteFileFromMyList cmdDel =
-                    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                cmdDel.Save();
             }
             else
             {
@@ -410,7 +416,7 @@ namespace Shoko.Server.Models
             return false;
         }
 
-        public bool RemoveAndDeleteFile()
+        public (bool, string) RemoveAndDeleteFile()
         {
             try
             {
@@ -421,26 +427,26 @@ namespace Shoko.Server.Models
                 {
                     logger.Info("Unable to delete file, filesystem not found. Removing record.");
                     RemoveRecord();
-                    return true;
+                    return (true, string.Empty);
                 }
                 if (FullServerPath == null)
                 {
                     logger.Info("Unable to delete file, fullserverpath is null. Removing record.");
                     RemoveRecord();
-                    return true;
+                    return (true, string.Empty);
                 }
                 FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
                 if (fr == null || !fr.IsOk)
                 {
                     logger.Info($"Unable to find file. Removing Record: {FullServerPath}");
                     RemoveRecord();
-                    return true;
+                    return (true, string.Empty);
                 }
                 if (!(fr.Result is IFile file))
                 {
                     logger.Info($"Seems '{FullServerPath}' is a directory. Removing Record");
                     RemoveRecord();
-                    return true;
+                    return (true, string.Empty);
                 }
                 FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
                 try
@@ -449,7 +455,7 @@ namespace Shoko.Server.Models
                     if (fs == null || !fs.IsOk)
                     {
                         logger.Error($"Unable to delete file '{FullServerPath}': {fs?.Error ?? "No Error Message"}");
-                        return false;
+                        return (false, $"Unable to delete file '{FullServerPath}'");
                     }
                 }
                 catch (Exception ex)
@@ -459,90 +465,22 @@ namespace Shoko.Server.Models
                         if (dd != null && dd.IsOk && dd.Result is IDirectory)
                             RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                         RemoveRecord();
-                        return true;
+                        return (true, string.Empty);
                     }
 
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
-                    return false;
+                    return (false, $"Unable to delete file '{FullServerPath}'");
                 }
                 if (dd != null && dd.IsOk && dd.Result is IDirectory)
                     RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
-                return true;
+                return (true, string.Empty);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return false;
-            }
-        }
-
-        public string RemoveAndDeleteFileWithMessage()
-        {
-            try
-            {
-                logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
-
-                IFileSystem fileSystem = ImportFolder?.FileSystem;
-                if (fileSystem == null)
-                {
-                    logger.Info("Unable to delete file, filesystem not found. Removing record.");
-                    RemoveRecord();
-                    return string.Empty;
-                }
-                if (FullServerPath == null)
-                {
-                    logger.Info("Unable to delete file, fullserverpath is null. Removing record.");
-                    RemoveRecord();
-                    return string.Empty;
-                }
-                FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
-                if (fr == null || !fr.IsOk)
-                {
-                    logger.Info($"Unable to find file. Removing Record: {FullServerPath}");
-                    RemoveRecord();
-                    return string.Empty;
-                }
-                if (!(fr.Result is IFile file))
-                {
-                    logger.Info($"Seems '{FullServerPath}' is a directory. Removing Record");
-                    RemoveRecord();
-                    return string.Empty;
-                }
-                FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
-                try
-                {
-                    FileSystemResult fs = file.Delete(false);
-                    if (fs == null || !fs.IsOk)
-                    {
-                        logger.Error($"Unable to delete file '{FullServerPath}': {fs?.Error ?? "No Error Message"}");
-                        return $"Unable to delete file '{FullServerPath}'";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (ex is FileNotFoundException)
-                    {
-                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
-                        RemoveRecord();
-                        return string.Empty;
-                    }
-
-                    logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
-                    return $"Unable to delete file '{FullServerPath}'";
-                }
-                if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
-                RemoveRecord();
-                // For deletion of files from Trakt, we will rely on the Daily sync
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
+                return (false, ex.Message);
             }
         }
 
@@ -638,16 +576,16 @@ namespace Shoko.Server.Models
             succeeded = MoveFileIfRequired();
             if (!succeeded)
             {
-            Thread.Sleep((int)DELAY_IN_USE.FIRST);
-            succeeded = MoveFileIfRequired();
+                Thread.Sleep((int)DELAY_IN_USE.FIRST);
+                succeeded = MoveFileIfRequired();
                 if (!succeeded)
                 {
-            Thread.Sleep((int) DELAY_IN_USE.SECOND);
-            succeeded = MoveFileIfRequired();
+                    Thread.Sleep((int) DELAY_IN_USE.SECOND);
+                    succeeded = MoveFileIfRequired();
                     if (!succeeded)
                     {
-            Thread.Sleep((int) DELAY_IN_USE.THIRD);
-            MoveFileIfRequired();
+                        Thread.Sleep((int) DELAY_IN_USE.THIRD);
+                        succeeded = MoveFileIfRequired();
                         if (!succeeded) return; //Same as above, but linux permissiosn.
                     }
                 }
@@ -661,7 +599,7 @@ namespace Shoko.Server.Models
         {
             try
             {
-                return RenameFile();
+                return RenameFile().Item1;
             }
             catch (Exception ex)
             {
@@ -670,23 +608,43 @@ namespace Shoko.Server.Models
             }
         }
 
-        public string MoveWithResultString(FileSystemResult<IObject> fileSystemResult, string scriptName, bool force = false)
+        // TODO Merge these, with proper logic depending on the scenario (import, force, etc)
+        public (string, string) MoveWithResultString(string scriptName, bool force = false)
         {
             if (FullServerPath == null)
             {
                 logger.Error("Could not find or access the file to move: {0}",
                     VideoLocal_Place_ID);
-                return "ERROR: Unable to access file";
+                return (string.Empty, "ERROR: Unable to access file");
             }
             // check if this file is in the drop folder
             // otherwise we don't need to move it
             if (ImportFolder.IsDropSource == 0 && !force)
             {
                 logger.Error("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
-                return "ERROR: Not in drop folder";
+                return (string.Empty, "ERROR: Not in drop folder");
+            }
+            IFileSystem sourcefs = ImportFolder.FileSystem;
+            if (sourcefs == null)
+            {
+                logger.Error("Unable to MOVE, filesystem not working: {0}", FullServerPath);
+                return (string.Empty, "ERROR: Source filesystem is null");
+            }
+
+            FileSystemResult<IObject> fileSystemResult = sourcefs.Resolve(FullServerPath);
+            if (fileSystemResult == null || !fileSystemResult.IsOk)
+            {
+                logger.Error("Could not find or access the file to move: {0}", FullServerPath);
+                // this can happen due to file locks, so retry
+                return (string.Empty, "ERROR: Could not access the file");
             }
             IFile source_file = fileSystemResult.Result as IFile;
-            // We checked the above prior, so no error checking
+            if (source_file == null)
+            {
+                logger.Error("Could not move the file (it isn't a file): {0}", FullServerPath);
+                // this means it isn't a file, but something else, so don't retry
+                return (string.Empty, "ERROR: Path is not a file");
+            }
 
             // There is a possibilty of weird logic based on source of the file. Some handling should be made for it....later
             (var destImpl, string newFolderPath) = RenameFileHelper.GetRenamer(scriptName).GetDestinationFolder(this);
@@ -698,10 +656,10 @@ namespace Shoko.Server.Models
                 {
                     logger.Error("Unable to find destination for: {0}", FullServerPath);
                     logger.Error("The error message was: " + newFolderPath);
-                    return "ERROR: " + newFolderPath;
+                    return (string.Empty, "ERROR: " + newFolderPath);
                 }
                 logger.Error("Unable to find destination for: {0}", FullServerPath);
-                return "ERROR: There was an error but no error code returned...";
+                return (string.Empty, "ERROR: There was an error but no error code returned...");
             }
 
             // keep the original drop folder for later (take a copy, not a reference)
@@ -710,7 +668,7 @@ namespace Shoko.Server.Models
             if (string.IsNullOrEmpty(newFolderPath))
             {
                 logger.Error("Unable to find destination for: {0}", FullServerPath);
-                return "ERROR: The returned path was null or empty";
+                return (string.Empty, "ERROR: The returned path was null or empty");
             }
 
             // We've already resolved FullServerPath, so it doesn't need to be checked
@@ -741,8 +699,9 @@ namespace Shoko.Server.Models
                             {
                                 logger.Error(
                                     $"Unable to create directory {part} in {destination.FullName}: {result.Error}");
-                                return
-                                    $"ERROR: Unable to create directory {part} in {destination.FullName}: {result.Error}";
+                                return (string.Empty,
+                                    $"ERROR: Unable to create directory {part} in {destination.FullName}: {result.Error}"
+                                    );
                             }
                             destination = result.Result;
                             continue;
@@ -758,7 +717,7 @@ namespace Shoko.Server.Models
             if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
             {
                 logger.Info($"The file is already at its desired location: {FullServerPath}");
-                return "ERROR: The file is already at its desired location";
+                return (string.Empty, "ERROR: The file is already at its desired location");
             }
 
             IFileSystem f = dropFolder.FileSystem;
@@ -766,7 +725,7 @@ namespace Shoko.Server.Models
             if (dst != null && dst.IsOk)
             {
                 logger.Info($"A file already exists at the desired location for {FullServerPath}");
-                return "ERROR: The File already exists at the destination";
+                return (string.Empty, "ERROR: The File already exists at the destination");
             }
 
             ShokoServer.StopWatchingFiles();
@@ -778,7 +737,7 @@ namespace Shoko.Server.Models
                 logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
                     newFullServerPath, fr?.Error ?? "No Error String");
                 ShokoServer.StartWatchingFiles(false);
-                return "ERROR: " + (fr?.Error ?? "Error moving file, but no error string");
+                return (newFullServerPath, "ERROR: " + (fr?.Error ?? "Error moving file, but no error string"));
             }
 
             string originalFileName = FullServerPath;
@@ -856,7 +815,7 @@ namespace Shoko.Server.Models
                     RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
             }
             ShokoServer.StartWatchingFiles(false);
-            return newFolderPath;
+            return (newFolderPath, string.Empty);
         }
 
         // returns false if we should retry
