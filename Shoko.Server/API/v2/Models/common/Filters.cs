@@ -43,7 +43,7 @@ namespace Shoko.Server.API.v2.Models.common
             List<Filter> filters = allGfs
                 .Where(cgf =>
                     (cgf.FilterType & (int) GroupFilterType.Tag) != (int) GroupFilterType.Tag ||
-                    TagFilter.ProcessTags(tagfilter, new List<string> {cgf.GroupFilterName}).Count != 0)
+                    TagFilter.ProcessTags(tagfilter, new List<string> {cgf.GroupFilterName}, false).Count != 0)
                 .Select(cgf =>
                     Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic,
                         tagfilter)).ToList();

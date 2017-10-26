@@ -121,7 +121,7 @@ namespace Shoko.Server.Commands
                 }
 
                 var ctor = ReflectionUtils.GetActivator<CommandRequestImplementation>(commandType.GetConstructor(Type.EmptyTypes));
-                CommandRequestImpls.Add(attr, ctor);                
+                CommandRequestImpls.Add(attr, ctor);
             }
         }
 

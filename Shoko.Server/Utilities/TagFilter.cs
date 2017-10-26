@@ -155,7 +155,7 @@ namespace Shoko.Server
         ///    :return: The list of strings after filtering
         /// </summary>
         /// <returns></returns>
-        public static List<string> ProcessTags(byte flags, List<string> strings)
+        public static List<string> ProcessTags(byte flags, List<string> strings, bool addOriginal = true)
         {
             HashSet<string> toRemove = new HashSet<string>();
 
@@ -363,7 +363,7 @@ namespace Shoko.Server
                 if (stringsSet.Contains(a)) strings.Remove(a);
             }
 
-            if (readdOriginal) strings.Add("Original Work");
+            if (readdOriginal && addOriginal) strings.Add("Original Work");
 
             return strings;
         }
