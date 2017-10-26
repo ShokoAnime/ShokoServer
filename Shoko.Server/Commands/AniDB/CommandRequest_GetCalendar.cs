@@ -10,6 +10,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
+    [Command(CommandRequestType.AniDB_GetCalendar)]
     public class CommandRequest_GetCalendar : CommandRequestImplementation
     {
         public bool ForceRefresh { get; set; }
