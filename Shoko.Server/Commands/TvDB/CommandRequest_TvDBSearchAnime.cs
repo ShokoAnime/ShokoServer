@@ -16,7 +16,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    [Command(CommandRequestType.TvDB_UpdateEpisode)]
+    [Command(CommandRequestType.TvDB_SearchAnime)]
     public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
