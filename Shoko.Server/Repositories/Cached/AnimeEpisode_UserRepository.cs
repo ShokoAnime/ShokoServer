@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using Shoko.Models.Server;
-using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -15,10 +13,10 @@ namespace Shoko.Server.Repositories.Cached
     public class AnimeEpisode_UserRepository : BaseCachedRepository<SVR_AnimeEpisode_User, int>
     {
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Series;
-        private PocoIndex<int, SVR_AnimeEpisode_User, int, int> UsersEpisodes;
+        private PocoIndex<int, SVR_AnimeEpisode_User, ulong> UsersEpisodes;
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Users;
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Episodes;
-        private PocoIndex<int, SVR_AnimeEpisode_User, int, int> UsersSeries;
+        private PocoIndex<int, SVR_AnimeEpisode_User, ulong> UsersSeries;
 
         private AnimeEpisode_UserRepository()
         {
@@ -37,10 +35,10 @@ namespace Shoko.Server.Repositories.Cached
         public override void PopulateIndexes()
         {
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);
-            UsersEpisodes = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeEpisodeID);
+            UsersEpisodes = Cache.CreateIndex(a => (ulong) (a.JMMUserID << 32 | a.AnimeEpisodeID));
             Users = Cache.CreateIndex(a => a.JMMUserID);
             Episodes = Cache.CreateIndex(a => a.AnimeEpisodeID);
-            UsersSeries = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeSeriesID);
+            UsersSeries = Cache.CreateIndex(a => (ulong) (a.JMMUserID << 32 | a.AnimeSeriesID));
         }
 
         public override void RegenerateDb()
@@ -102,7 +100,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return UsersEpisodes.GetOne(userid, epid);
+                return UsersEpisodes.GetOne((ulong)userid << 32 | (ulong)epid);
             }
         }
 
@@ -135,7 +133,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return UsersSeries.GetMultiple(userid, seriesid).Where(a => a.WatchedCount > 0)
+                return UsersSeries.GetMultiple((ulong)userid << 32 | (ulong)seriesid).Where(a => a.WatchedCount > 0)
                     .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
             }
         }
@@ -152,14 +150,14 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return UsersSeries.GetMultiple(userid, seriesid);
+                return UsersSeries.GetMultiple((ulong)userid << 32 | (ulong)seriesid);
             }
         }
 
 
         public void UpdateContract(SVR_AnimeEpisode_User aeu)
         {
-            Shoko.Models.Client.CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
+            CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
             SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
             if (ep == null)
                 return;
