@@ -171,6 +171,11 @@ namespace Shoko.Server.API.v2.Modules
             #endregion
 
             Get["/links/serie", true] = async (x, ct) => await Task.Factory.StartNew(GetLinks, ct);
+            Get["commands/fix"] = x =>
+            {
+                new CommandRequest_Null().Save();
+                return APIStatus.OK();
+            };
         }
 
         #region 1.Import Folders

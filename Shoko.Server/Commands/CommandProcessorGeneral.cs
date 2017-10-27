@@ -136,6 +136,8 @@ namespace Shoko.Server.Commands
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
+            logger.Info($"{nameof(CommandProcessorGeneral)} has terminated, {QueueCount} commands left.");
+
             QueueCount = 0;
         }
 
@@ -154,6 +156,8 @@ namespace Shoko.Server.Commands
 
         public void Stop()
         {
+
+            logger.Info($"{nameof(CommandProcessorGeneral)} has been stopped, {QueueCount} commands left.");
             workerCommands.CancelAsync();
         }
 
