@@ -110,7 +110,7 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
-                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
+                    System.Threading.Tasks.Task.Run(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
                 }
             }
         }
@@ -135,9 +135,7 @@ namespace Shoko.Server.Commands
             paused = false;
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
-
-            logger.Info($"{nameof(CommandProcessorGeneral)} has terminated, {QueueCount} commands left.");
-
+            
             QueueCount = 0;
         }
 
@@ -156,7 +154,6 @@ namespace Shoko.Server.Commands
 
         public void Stop()
         {
-
             logger.Info($"{nameof(CommandProcessorGeneral)} has been stopped, {QueueCount} commands left.");
             workerCommands.CancelAsync();
         }
