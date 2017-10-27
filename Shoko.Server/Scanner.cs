@@ -150,7 +150,6 @@ namespace Shoko.Server
                 if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
                     ActiveErrorFiles.Add(file);
             });
-       
         }
 
         public void DeleteAllErroredFiles()
@@ -187,7 +186,7 @@ namespace Shoko.Server
                 }
                 foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {
-                    ser.QueueUpdateStats();
+                    ser?.QueueUpdateStats();
                 }
             }
             RepoFactory.ScanFile.Delete(files);

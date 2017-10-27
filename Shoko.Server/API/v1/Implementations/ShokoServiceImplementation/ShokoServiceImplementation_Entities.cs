@@ -1036,7 +1036,7 @@ namespace Shoko.Server
                 if (place?.VideoLocal == null)
                     return "Database entry does not exist";
 
-                return place.RemoveAndDeleteFileWithMessage();
+                return place.RemoveAndDeleteFile().Item2;
             }
             catch (Exception ex)
             {

@@ -118,7 +118,7 @@ namespace Shoko.Server.Commands
 
                 int numAttempts = 0;
 
-                // Wait 1 minute seconds before giving up on trying to access the file
+                // Wait 1 minute before giving up on trying to access the file
                 while ((filesize = CanAccessFile(FileName)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
@@ -154,7 +154,7 @@ namespace Shoko.Server.Commands
             if (vlocalplace != null)
             {
                 vlocal = vlocalplace.VideoLocal;
-                logger.Trace("VideoLocal record found in database: {0}", vlocal.VideoLocalID);
+                logger.Trace("VideoLocal record found in database: {0}", FileName);
 
                 if (vlocalplace.FullServerPath == null)
                 {

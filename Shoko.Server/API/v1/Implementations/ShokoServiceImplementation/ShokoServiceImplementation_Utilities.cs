@@ -183,7 +183,7 @@ namespace Shoko.Server
                 bool result = true;
                 foreach (SVR_VideoLocal toDelete in videosToDelete)
                 {
-                    result &= toDelete.Places.All(a => a.RemoveAndDeleteFile());
+                    result &= toDelete.Places.All(a => a.RemoveAndDeleteFile().Item1);
                 }
                 return result;
             }
@@ -500,120 +500,27 @@ namespace Shoko.Server
                 string errorString = string.Empty;
                 string name = vid.FileName;
 
-                ShokoServer.StopWatchingFiles();
-
                 foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
-                    name = Path.GetFileName(place.FilePath);
-                    // check if the file exists
-                    string fullFileName = place.FullServerPath;
-                    IFileSystem fs = place.ImportFolder.FileSystem;
-                    FileSystemResult<IObject> fileSystemResult = fs.Resolve(fullFileName);
-                    if (fileSystemResult == null || !fileSystemResult.IsOk || fileSystemResult.Result is IDirectory)
-                    {
-                        logger.Error($"Renaming file FAIL From ({fullFileName}): The file could not be accessed");
-                        errorCount++;
-                        errorString = "ERROR: Could not access the original file (it's missing or in use)";
-                        continue;
-                    }
-
                     if (move)
                     {
-                        string moveResult = place.MoveWithResultString(fileSystemResult, scriptName, move);
-                        if (moveResult.StartsWith("ERROR: ")) ret.Success = false;
-
-                        ret.NewDestination = moveResult;
+                        (string, string) resultString = place.MoveWithResultString(scriptName);
+                        if (!string.IsNullOrEmpty(resultString.Item2))
+                        {
+                            errorCount++;
+                            errorString = resultString.Item2;
+                            continue;
+                        }
+                        ret.NewDestination = resultString.Item1;
                     }
 
-                    // actually rename the file
-                    string path = Path.GetDirectoryName(fullFileName);
-                    string newFullName = Path.Combine(path, ret.NewFileName);
-
-                    try
+                    (bool, string, string) output = place.RenameFile(false, scriptName);
+                    string error = output.Item3;
+                    if (string.IsNullOrEmpty(error)) name = output.Item2;
+                    else
                     {
-                        FileSystemResult r = fs?.Resolve(newFullName);
-                        if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            logger.Info(
-                                $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
-                            errorString = "ERROR: No change in file name";
-                            continue;
-                        }
-                        if (r != null && r.IsOk)
-                        {
-                            logger.Error($"Renaming file SKIPPED! Destination Exists ({newFullName})");
-                            errorCount++;
-                            errorString = "ERROR: Destination Exists";
-                            continue;
-                        }
-
-                        logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
-                        var result = ((IFile) fileSystemResult.Result).Rename(ret.NewFileName);
-                        if (result == null || !result.IsOk)
-                        {
-                            logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {result.Error}");
-                            errorCount++;
-                            errorString = $"ERROR: {result.Error}";
-                            continue;
-                        }
-                        logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
-
-                        ret.NewFileName = newFullName;
-                        var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                        if (tup == null)
-                        {
-                            logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
-                            errorCount++;
-                            errorString = "ERROR: Unable to locate file in import folders";
-                            continue;
-                        }
-                        // Before we change all references, remap Duplicate Files
-                        List<DuplicateFile> dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
-                        if (dups != null && dups.Count > 0)
-                        {
-                            foreach (var dup in dups)
-                            {
-                                bool dupchanged = false;
-                                if (dup.FilePathFile1.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                    dup.ImportFolderIDFile1 == place.ImportFolderID)
-                                {
-                                    dup.FilePathFile1 = tup.Item2;
-                                    dupchanged = true;
-                                }
-                                else if (dup.FilePathFile2.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                         dup.ImportFolderIDFile2 == place.ImportFolderID)
-                                {
-                                    dup.FilePathFile2 = tup.Item2;
-                                    dupchanged = true;
-                                }
-                                if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
-                            }
-                        }
-                        // Make FileNameHashes
-                        var filename_hash = RepoFactory.FileNameHash.GetByHash(vid.Hash);
-                        if (!filename_hash.Any(a => a.FileName.Equals(ret.NewFileName)))
-                        {
-                            FileNameHash fnhash = new FileNameHash
-                            {
-                                DateTimeUpdated = DateTime.Now,
-                                FileName = ret.NewFileName,
-                                FileSize = vid.FileSize,
-                                Hash = vid.Hash
-                            };
-                            RepoFactory.FileNameHash.Save(fnhash);
-                        }
-
-                        // Actually change the last internal references
-                        place.FilePath = tup.Item2;
-                        name = Path.GetFileName(tup.Item2);
-                        RepoFactory.VideoLocalPlace.Save(place);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
-                        logger.Error(ex, ex.ToString());
                         errorCount++;
-                        errorString = $"ERROR: {ex.Message}";
+                        errorString = error;
                     }
                 }
                 if (errorCount >= vid.Places.Count) // should never be greater but shit happens
@@ -621,7 +528,6 @@ namespace Shoko.Server
                     ret.VideoLocal = null;
                     ret.Success = false;
                     ret.NewFileName = errorString;
-                    ShokoServer.StartWatchingFiles(false);
                     return ret;
                 }
                 vid.FileName = name;
@@ -629,7 +535,6 @@ namespace Shoko.Server
                     ret.VideoLocal = new CL_VideoLocal() {FileName = name, VideoLocalID = videoLocalID};
                 else
                     ret.VideoLocal.FileName = name;
-                RepoFactory.VideoLocal.Save(vid, true);
             }
             catch (Exception ex)
             {
@@ -638,7 +543,6 @@ namespace Shoko.Server
                 ret.NewFileName = $"ERROR: {ex.Message}";
                 ret.Success = false;
             }
-            ShokoServer.StartWatchingFiles(false);
             return ret;
         }
 
@@ -1293,7 +1197,7 @@ namespace Shoko.Server
                 }
                 if (place == null) return "Unable to get VideoLocal_Place";
 
-                return place.RemoveAndDeleteFileWithMessage();
+                return place.RemoveAndDeleteFile().Item2;
             }
             catch (Exception ex)
             {
