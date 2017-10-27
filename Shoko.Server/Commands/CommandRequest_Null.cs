@@ -13,7 +13,8 @@ namespace Shoko.Server.Commands
     {
         public CommandRequest_Null()
         {
-            
+            DefaultPriority = CommandRequestPriority.Priority5;
+
         }
 
         public override void ProcessCommand()
@@ -36,7 +37,8 @@ namespace Shoko.Server.Commands
                 CommandID = CommandID,
                 CommandType = this.CommandType,
                 Priority = Priority,
-                DateTimeUpdated = DateTime.Now
+                DateTimeUpdated = DateTime.Now,
+                CommandDetails = ""
             };
         }
 
