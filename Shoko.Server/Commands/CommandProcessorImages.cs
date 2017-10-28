@@ -102,7 +102,7 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
-                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
+                    System.Threading.Tasks.Task.Run(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
                 }
             }
         }
