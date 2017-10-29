@@ -50,8 +50,8 @@ namespace Shoko.Server.Repositories
         public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = CreateCachedRepository(TvDB_ImagePosterRepository.Create());
         public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = CreateCachedRepository(TvDB_ImageFanartRepository.Create());
         public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = CreateCachedRepository(TvDB_ImageWideBannerRepository.Create());
-        public static CharacterRepository Character { get; } = CreateCachedRepository(CharacterRepository.Create());
-        public static StaffRepository Staff { get; } = CreateCachedRepository(StaffRepository.Create());
+        public static AnimeCharacterRepository AnimeCharacter { get; } = CreateCachedRepository(AnimeCharacterRepository.Create());
+        public static AnimeStaffRepository AnimeStaff { get; } = CreateCachedRepository(AnimeStaffRepository.Create());
         public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = CreateCachedRepository(CrossRef_Anime_StaffRepository.Create());
 
         //Direct Ones

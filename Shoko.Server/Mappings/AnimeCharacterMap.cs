@@ -3,13 +3,13 @@ using Shoko.Models.Server;
 
 namespace Shoko.Server.Mappings
 {
-    public class StaffMap : ClassMap<Staff>
+    public class AnimeCharacterMap : ClassMap<AnimeCharacter>
     {
-        public StaffMap()
+        public AnimeCharacterMap()
         {
-            Table("Staff");
+            Table("Character");
             Not.LazyLoad();
-            Id(x => x.StaffID);
+            Id(x => x.CharacterID);
             Map(x => x.AniDBID).Not.Nullable();
             Map(x => x.Name).Not.Nullable();
             Map(x => x.AlternateName);

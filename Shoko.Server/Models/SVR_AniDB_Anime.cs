@@ -1154,10 +1154,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (!chr.PopulateFromHTTP(rawchar)) continue;
                 chrsToSave.Add(chr);
 
-                var character = RepoFactory.Character.GetByAniDBID(chr.CharID);
+                var character = RepoFactory.AnimeCharacter.GetByAniDBID(chr.CharID);
                 if (character == null)
                 {
-                    character = new Character
+                    character = new AnimeCharacter
                     {
                         AniDBID = chr.CharID,
                         Name = chr.CharName,
@@ -1166,7 +1166,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         ImagePath = chr.GetPosterPath()
                     };
                     // we need an ID for xref
-                    RepoFactory.Character.Save(character);
+                    RepoFactory.AnimeCharacter.Save(character);
                 }
 
                 // create cross ref's between anime and character, but don't actually download anything
@@ -1198,10 +1198,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
                     seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
 
-                    var staff = RepoFactory.Staff.GetByAniDBID(seiyuu.SeiyuuID);
+                    var staff = RepoFactory.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
                     if (staff == null)
                     {
-                        staff = new Staff
+                        staff = new AnimeStaff
                         {
                             // Unfortunately, most of the info is not provided
                             AniDBID = seiyuu.SeiyuuID,
@@ -1209,7 +1209,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             ImagePath = seiyuu.GetPosterPath()
                         };
                         // we need an ID for xref
-                        RepoFactory.Staff.Save(staff);
+                        RepoFactory.AnimeStaff.Save(staff);
                     }
 
                     var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,

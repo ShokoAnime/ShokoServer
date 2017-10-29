@@ -480,8 +480,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(58, 1, "ALTER TABLE AnimeSeries ADD AirsOn TEXT NULL"),
             new DatabaseCommand(59, 1, "DROP TABLE Trakt_ImageFanart"),
             new DatabaseCommand(59, 2, "DROP TABLE Trakt_ImagePoster"),
-            new DatabaseCommand(60, 1, "CREATE TABLE Character ( CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
-            new DatabaseCommand(60, 2, "CREATE TABLE Staff ( StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
+            new DatabaseCommand(60, 1, "CREATE TABLE AnimeCharacter ( CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
+            new DatabaseCommand(60, 2, "CREATE TABLE AnimeStaff ( StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
             new DatabaseCommand(60, 3, "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_AnimeID INTEGER NOT NULL, StaffID INTEGER NOT NULL, Role TEXT NULL, RoleID INTEGER, RoleType INTEGER NOT NULL, Language TEXT NOT NULL )"),
             new DatabaseCommand(60, 4, DatabaseFixes.PopulateCharactersAndStaff),
         };

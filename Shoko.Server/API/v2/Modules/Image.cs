@@ -322,7 +322,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 case ImageEntityType.Character:
-                    Character character = RepoFactory.Character.GetByID(id);
+                    AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(id);
                     if (character == null)
                         return null;
                     path = character.ImagePath;
@@ -338,7 +338,7 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 case ImageEntityType.Staff:
-                    var staff = RepoFactory.Staff.GetByID(id);
+                    var staff = RepoFactory.AnimeStaff.GetByID(id);
                     if (staff == null)
                         return null;
                     path = staff.ImagePath;

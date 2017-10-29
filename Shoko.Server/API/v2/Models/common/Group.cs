@@ -181,9 +181,9 @@ namespace Shoko.Server.API.v2.Models.common
                     foreach (var xref in xref_animestaff)
                     {
                         if (xref.RoleID == null) continue;
-                        var character = RepoFactory.Character.GetByID(xref.RoleID.Value);
+                        var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
                         if (character == null) continue;
-                        var staff = RepoFactory.Staff.GetByID(xref.StaffID);
+                        var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
                         if (staff == null) continue;
                         var role = new Role
                         {

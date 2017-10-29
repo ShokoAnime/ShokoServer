@@ -138,22 +138,22 @@ namespace Shoko.Server.Databases
             var allanimecharacters = RepoFactory.AniDB_Anime_Character.GetAll().ToLookup(a => a.CharID, b => b);
             var allcharacterstaff = RepoFactory.AniDB_Character_Seiyuu.GetAll();
 
-            var charstosave = allcharacters.Select(character => new Character
+            var charstosave = allcharacters.Select(character => new AnimeCharacter
                 {
                     Name = character.CharName?.Replace("`", "'"),
                     AniDBID = character.CharID,
                     Description = character.CharDescription?.Replace("`", "'"),
                     ImagePath = character.GetPosterPath()
                 }).ToList();
-            RepoFactory.Character.Save(charstosave);
+            RepoFactory.AnimeCharacter.Save(charstosave);
 
-            var stafftosave = allstaff.Select(a => new Staff
+            var stafftosave = allstaff.Select(a => new AnimeStaff
                 {
                     Name = a.SeiyuuName?.Replace("`", "'"),
                     AniDBID = a.SeiyuuID,
                     ImagePath = a.GetPosterPath()
                 }).ToList();
-            RepoFactory.Staff.Save(stafftosave);
+            RepoFactory.AnimeStaff.Save(stafftosave);
 
             // This is not accurate. There was a mistake in DB design
             var xrefstosave = (from xref in allcharacterstaff
@@ -165,8 +165,8 @@ namespace Shoko.Server.Databases
                     Language = "Japanese",
                     RoleType = (int) StaffRoleType.Seiyuu,
                     Role = anime.CharType,
-                    RoleID = RepoFactory.Character.GetByAniDBID(xref.CharID).CharacterID,
-                    StaffID = RepoFactory.Staff.GetByAniDBID(xref.SeiyuuID).StaffID,
+                    RoleID = RepoFactory.AnimeCharacter.GetByAniDBID(xref.CharID).CharacterID,
+                    StaffID = RepoFactory.AnimeStaff.GetByAniDBID(xref.SeiyuuID).StaffID,
                 }).ToList();
             RepoFactory.CrossRef_Anime_Staff.Save(xrefstosave);
         }

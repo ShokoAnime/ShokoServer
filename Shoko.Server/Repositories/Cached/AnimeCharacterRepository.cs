@@ -12,11 +12,11 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
-    public class CharacterRepository : BaseCachedRepository<Character, int>
+    public class AnimeCharacterRepository : BaseCachedRepository<AnimeCharacter, int>
     {
-        private PocoIndex<int, Character, int> AniDBIDs;
+        private PocoIndex<int, AnimeCharacter, int> AniDBIDs;
 
-        private CharacterRepository()
+        private AnimeCharacterRepository()
         {
         }
 
@@ -24,23 +24,23 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        public static CharacterRepository Create()
+        public static AnimeCharacterRepository Create()
         {
-            return new CharacterRepository();
+            return new AnimeCharacterRepository();
         }
 
-        protected override int SelectKey(Character entity)
+        protected override int SelectKey(AnimeCharacter entity)
         {
             return entity.CharacterID;
         }
 
         public override void PopulateIndexes()
         {
-            AniDBIDs = new PocoIndex<int, Character, int>(Cache, a => a.AniDBID);
+            AniDBIDs = new PocoIndex<int, AnimeCharacter, int>(Cache, a => a.AniDBID);
         }
 
 
-        public Character GetByAniDBID(int id)
+        public AnimeCharacter GetByAniDBID(int id)
         {
             lock (Cache)
             {
