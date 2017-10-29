@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using Shoko.Models.Enums;
 
 namespace Shoko.Models
 {
@@ -15,11 +16,11 @@ namespace Shoko.Models
 
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
         [DataMember(Name = "Types")]
-        public FileQualityFilter.FileQualityFilterType[] _types =
+        public FileQualityFilterType[] _types =
         {
-            FileQualityFilter.FileQualityFilterType.SOURCE, FileQualityFilter.FileQualityFilterType.RESOLUTION, FileQualityFilter.FileQualityFilterType.AUDIOSTREAMCOUNT,
-            FileQualityFilter.FileQualityFilterType.SUBSTREAMCOUNT, FileQualityFilter.FileQualityFilterType.SUBGROUP, FileQualityFilter.FileQualityFilterType.CHAPTER,
-            FileQualityFilter.FileQualityFilterType.VIDEOCODEC, FileQualityFilter.FileQualityFilterType.AUDIOCODEC, FileQualityFilter.FileQualityFilterType.VERSION
+            FileQualityFilterType.SOURCE, FileQualityFilterType.RESOLUTION, FileQualityFilterType.AUDIOSTREAMCOUNT,
+            FileQualityFilterType.SUBSTREAMCOUNT, FileQualityFilterType.SUBGROUP, FileQualityFilterType.CHAPTER,
+            FileQualityFilterType.VIDEOCODEC, FileQualityFilterType.AUDIOCODEC, FileQualityFilterType.VERSION
         };
 
         /// Preferred Audio Codecs, in order.
@@ -72,57 +73,57 @@ namespace Shoko.Models
         /// All checks must pass to keep a file.
         /// This is a list, in order, of the operations. Accepts no arguments.
         [DataMember(Name = "RequiredTypes")]
-        public FileQualityFilter.FileQualityFilterType[] _requiredtypes =
+        public FileQualityFilterType[] _requiredtypes =
         {
-            FileQualityFilter.FileQualityFilterType.SOURCE, FileQualityFilter.FileQualityFilterType.CHAPTER, FileQualityFilter.FileQualityFilterType.VERSION
+            FileQualityFilterType.SOURCE, FileQualityFilterType.CHAPTER, FileQualityFilterType.VERSION
         };
 
         /// Required Audio Codec. Default must be FLAC, Dolby, or AAC.
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredAudioCodecs")]
-        public Tuple<string[], FileQualityFilter.FileQualityFilterOperationType> _requiredaudiocodecs =
-            new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(
+        public Tuple<string[], FileQualityFilterOperationType> _requiredaudiocodecs =
+            new Tuple<string[], FileQualityFilterOperationType>(
                 new[] {"flac", "dolby digital plus", "dolby truehd", "dts", "aac"},
-                FileQualityFilter.FileQualityFilterOperationType.IN);
+                FileQualityFilterOperationType.IN);
 
         /// Required Audio Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
         [DataMember(Name = "RequiredAudioStreamCount")]
-        public Tuple<int, FileQualityFilter.FileQualityFilterOperationType> _requiredaudiostreamcount =
-            new Tuple<int, FileQualityFilter.FileQualityFilterOperationType>(1, FileQualityFilter.FileQualityFilterOperationType.GREATER_EQ);
+        public Tuple<int, FileQualityFilterOperationType> _requiredaudiostreamcount =
+            new Tuple<int, FileQualityFilterOperationType>(1, FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Resolution. Default must be 1080p or greater.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ, IN, NOTIN
         [DataMember(Name = "RequiredResolutions")]
-        public Tuple<string[], FileQualityFilter.FileQualityFilterOperationType> _requiredresolutions =
-            new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(new string[] {"1080p"},
-                FileQualityFilter.FileQualityFilterOperationType.GREATER_EQ);
+        public Tuple<string[], FileQualityFilterOperationType> _requiredresolutions =
+            new Tuple<string[], FileQualityFilterOperationType>(new string[] {"1080p"},
+                FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Source. Default must be BD or DVD release.
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredSources")]
-        public Tuple<string[], FileQualityFilter.FileQualityFilterOperationType> _requiredsources =
-            new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(new string[] {"bd", "dvd"},
-                FileQualityFilter.FileQualityFilterOperationType.IN);
+        public Tuple<string[], FileQualityFilterOperationType> _requiredsources =
+            new Tuple<string[], FileQualityFilterOperationType>(new string[] {"bd", "dvd"},
+                FileQualityFilterOperationType.IN);
 
         /// The required Subbing/Release Groups and the operator. Defaulting to not HorribleSubs for example.
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredSubGroups")]
-        public Tuple<string[], FileQualityFilter.FileQualityFilterOperationType> _requiredsubgroups =
-            new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(new string[] { "horriblesubs" }, FileQualityFilter.FileQualityFilterOperationType.NOTIN);
+        public Tuple<string[], FileQualityFilterOperationType> _requiredsubgroups =
+            new Tuple<string[], FileQualityFilterOperationType>(new string[] { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
 
         /// Required Subtitle Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
         [DataMember(Name = "RequiredSubStreamCount")]
-        public Tuple<int, FileQualityFilter.FileQualityFilterOperationType> _requiredsubstreamcount =
-            new Tuple<int, FileQualityFilter.FileQualityFilterOperationType>(1, FileQualityFilter.FileQualityFilterOperationType.GREATER_EQ);
+        public Tuple<int, FileQualityFilterOperationType> _requiredsubstreamcount =
+            new Tuple<int, FileQualityFilterOperationType>(1, FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Video Codec. Default must be H265/HEVC or H264/AVC.
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredVideoCodecs")]
-        public Tuple<string[], FileQualityFilter.FileQualityFilterOperationType> _requiredvideocodecs =
-            new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(new string[] {"hevc", "h264/avc"},
-                FileQualityFilter.FileQualityFilterOperationType.IN);
+        public Tuple<string[], FileQualityFilterOperationType> _requiredvideocodecs =
+            new Tuple<string[], FileQualityFilterOperationType>(new string[] {"hevc", "h264/avc"},
+                FileQualityFilterOperationType.IN);
 
         /// Require 10bit Video when applicable. This will not apply to codecs that don't support.
         [DataMember]
@@ -137,7 +138,7 @@ namespace Shoko.Models
         #region public Getters and Setters
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
         [IgnoreDataMember]
-        public List<FileQualityFilter.FileQualityFilterType> TypePreferences
+        public List<FileQualityFilterType> TypePreferences
         {
             get => _types.ToList();
             set => _types = value.ToArray();
@@ -185,7 +186,7 @@ namespace Shoko.Models
 
 
         [IgnoreDataMember]
-        public List<FileQualityFilter.FileQualityFilterType> RequiredTypes
+        public List<FileQualityFilterType> RequiredTypes
         {
             get => _requiredtypes.ToList();
             set => _requiredtypes = value.ToArray();
@@ -196,17 +197,17 @@ namespace Shoko.Models
         public List<string> RequiredAudioCodecs
         {
             get => _requiredaudiocodecs.Item1.ToList();
-            set => _requiredaudiocodecs = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(
+            set => _requiredaudiocodecs = new Tuple<string[], FileQualityFilterOperationType>(
                 value.Where(a => !string.IsNullOrEmpty(a)).Select(a => a.ToLowerInvariant()).ToArray(),
                 _requiredaudiocodecs.Item2);
         }
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredAudioCodecOperator
+        public FileQualityFilterOperationType RequiredAudioCodecOperator
         {
             get => _requiredaudiocodecs.Item2;
             set => _requiredaudiocodecs =
-                new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(_requiredaudiocodecs.Item1, value);
+                new Tuple<string[], FileQualityFilterOperationType>(_requiredaudiocodecs.Item1, value);
         }
 
         [IgnoreDataMember]
@@ -214,33 +215,33 @@ namespace Shoko.Models
         {
             get => _requiredaudiostreamcount.Item1;
             set => _requiredaudiostreamcount =
-                new Tuple<int, FileQualityFilter.FileQualityFilterOperationType>(value, _requiredaudiocodecs.Item2);
+                new Tuple<int, FileQualityFilterOperationType>(value, _requiredaudiocodecs.Item2);
         }
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredAudioStreamCountOperator
+        public FileQualityFilterOperationType RequiredAudioStreamCountOperator
         {
             get => _requiredaudiostreamcount.Item2;
             set => _requiredaudiostreamcount =
-                new Tuple<int, FileQualityFilter.FileQualityFilterOperationType>(_requiredaudiostreamcount.Item1, value);
+                new Tuple<int, FileQualityFilterOperationType>(_requiredaudiostreamcount.Item1, value);
         }
 
         [IgnoreDataMember]
         public List<string> RequiredResolutions
         {
             get => _requiredresolutions.Item1.ToList();
-            set => _requiredresolutions = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(
+            set => _requiredresolutions = new Tuple<string[], FileQualityFilterOperationType>(
                 value.Where(a => !string.IsNullOrEmpty(a)).Select(a => a.ToLowerInvariant()).ToArray(),
                 _requiredresolutions.Item2);
         }
 
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredResolutionOperator
+        public FileQualityFilterOperationType RequiredResolutionOperator
         {
             get => _requiredresolutions.Item2;
             set => _requiredresolutions =
-                new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(_requiredresolutions.Item1, value);
+                new Tuple<string[], FileQualityFilterOperationType>(_requiredresolutions.Item1, value);
         }
 
 
@@ -248,34 +249,34 @@ namespace Shoko.Models
         public List<string> RequiredSources
         {
             get => _requiredsources.Item1.ToList();
-            set => _requiredsources = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(
+            set => _requiredsources = new Tuple<string[], FileQualityFilterOperationType>(
                 value.Where(a => !string.IsNullOrEmpty(a)).Select(a => a.ToLowerInvariant()).ToArray(),
                 _requiredsources.Item2);
         }
 
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredSourceOperator
+        public FileQualityFilterOperationType RequiredSourceOperator
         {
             get => _requiredsources.Item2;
-            set => _requiredsources = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(_requiredsources.Item1, value);
+            set => _requiredsources = new Tuple<string[], FileQualityFilterOperationType>(_requiredsources.Item1, value);
         }
 
         [IgnoreDataMember]
         public List<string> RequiredSubGroups
         {
             get => _requiredsubgroups.Item1.ToList();
-            set => _requiredsubgroups = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(
+            set => _requiredsubgroups = new Tuple<string[], FileQualityFilterOperationType>(
                 value.Where(a => !string.IsNullOrEmpty(a)).Select(a => a.ToLowerInvariant()).ToArray(),
                 _requiredsubgroups.Item2);
         }
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredSubGroupOperator
+        public FileQualityFilterOperationType RequiredSubGroupOperator
         {
             get => _requiredsubgroups.Item2;
             set => _requiredsubgroups =
-                new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(_requiredsubgroups.Item1, value);
+                new Tuple<string[], FileQualityFilterOperationType>(_requiredsubgroups.Item1, value);
         }
 
         [IgnoreDataMember]
@@ -283,31 +284,31 @@ namespace Shoko.Models
         {
             get => _requiredsubstreamcount.Item1;
             set => _requiredsubstreamcount =
-                new Tuple<int, FileQualityFilter.FileQualityFilterOperationType>(value, _requiredsubstreamcount.Item2);
+                new Tuple<int, FileQualityFilterOperationType>(value, _requiredsubstreamcount.Item2);
         }
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredSubStreamCountOperator
+        public FileQualityFilterOperationType RequiredSubStreamCountOperator
         {
             get => _requiredsubstreamcount.Item2;
             set => _requiredsubstreamcount =
-                new Tuple<int, FileQualityFilter.FileQualityFilterOperationType>(_requiredsubstreamcount.Item1, value);
+                new Tuple<int, FileQualityFilterOperationType>(_requiredsubstreamcount.Item1, value);
         }
 
         [IgnoreDataMember]
         public List<string> RequiredVideoCodecs
         {
             get => _requiredvideocodecs.Item1.ToList();
-            set => _requiredvideocodecs = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(
+            set => _requiredvideocodecs = new Tuple<string[], FileQualityFilterOperationType>(
                 value.Where(a => !string.IsNullOrEmpty(a)).Select(a => a.ToLowerInvariant()).ToArray(),
                 _requiredvideocodecs.Item2);
         }
 
         [IgnoreDataMember]
-        public FileQualityFilter.FileQualityFilterOperationType RequiredVideoCodecOperator
+        public FileQualityFilterOperationType RequiredVideoCodecOperator
         {
             get => _requiredvideocodecs.Item2;
-            set => _requiredvideocodecs = new Tuple<string[], FileQualityFilter.FileQualityFilterOperationType>(_requiredvideocodecs.Item1, value);
+            set => _requiredvideocodecs = new Tuple<string[], FileQualityFilterOperationType>(_requiredvideocodecs.Item1, value);
         }
         #endregion
     }
