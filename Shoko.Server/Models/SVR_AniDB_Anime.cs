@@ -1148,12 +1148,26 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             foreach (Raw_AniDB_Character rawchar in chars)
             {
-                AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharID);
-                if (chr == null)
-                    chr = new AniDB_Character();
+                AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharID) ??
+                                      new AniDB_Character();
 
                 if (!chr.PopulateFromHTTP(rawchar)) continue;
                 chrsToSave.Add(chr);
+
+                var character = RepoFactory.Character.GetByAniDBID(chr.CharID);
+                if (character == null)
+                {
+                    character = new Character
+                    {
+                        AniDBID = chr.CharID,
+                        Name = chr.CharName,
+                        AlternateName = rawchar.CharKanjiName,
+                        Description = chr.CharDescription,
+                        ImagePath = chr.GetPosterPath()
+                    };
+                    // we need an ID for xref
+                    RepoFactory.Character.Save(character);
+                }
 
                 // create cross ref's between anime and character, but don't actually download anything
                 AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
@@ -1183,6 +1197,36 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
                     seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
                     seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
+
+                    var staff = RepoFactory.Staff.GetByAniDBID(seiyuu.SeiyuuID);
+                    if (staff == null)
+                    {
+                        staff = new Staff
+                        {
+                            // Unfortunately, most of the info is not provided
+                            AniDBID = seiyuu.SeiyuuID,
+                            Name = rawSeiyuu.SeiyuuName,
+                            ImagePath = seiyuu.GetPosterPath()
+                        };
+                        // we need an ID for xref
+                        RepoFactory.Staff.Save(staff);
+                    }
+
+                    var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
+                        staff.StaffID, StaffRoleType.Seiyuu);
+                    if (xrefAnimeStaff == null)
+                    {
+                        xrefAnimeStaff = new CrossRef_Anime_Staff
+                        {
+                            AniDB_AnimeID = AnimeID,
+                            Language = "Japanese",
+                            RoleType = (int) StaffRoleType.Seiyuu,
+                            Role = rawchar.CharType,
+                            RoleID = character.CharacterID,
+                            StaffID = staff.StaffID,
+                        };
+                        RepoFactory.CrossRef_Anime_Staff.Save(xrefAnimeStaff);
+                    }
                 }
             }
             RepoFactory.AniDB_Character.Save(chrsToSave);

@@ -1,14 +1,13 @@
-﻿﻿using System;
- using System.Collections.Generic;
- using System.Globalization;
- using System.Linq;
- using System.Runtime.Serialization;
- using Nancy;
- using Shoko.Models.Enums;
- using Shoko.Models.PlexAndKodi;
- using Shoko.Server.Models;
- using Shoko.Server.PlexAndKodi;
- using Shoko.Server.Repositories;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Runtime.Serialization;
+using Nancy;
+using Shoko.Models.Enums;
+using Shoko.Server.Models;
+using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -26,6 +25,7 @@ namespace Shoko.Server.API.v2.Models.common
             series = new List<Serie>();
             art = new ArtCollection();
             tags = new List<Tag>();
+            roles = new List<Role>();
         }
 
         public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
@@ -60,7 +60,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (animes != null && animes.Count > 0)
             {
-                var anime = animes?.FirstOrDefault();
+                var anime = animes.FirstOrDefault();
                 Random rand = new Random();
                 if (allpic || pic > 1)
                 {
@@ -121,38 +121,35 @@ namespace Shoko.Server.API.v2.Models.common
                 }
                 else
                 {
-                    if (anime != null)
+                    g.art.thumb.Add(new Art
                     {
-                        g.art.thumb.Add(new Art
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
+                            anime.AnimeID),
+                        index = 0
+                    });
+
+                    var fanarts = anime.Contract.AniDBAnime.Fanarts;
+                    if (fanarts != null && fanarts.Count > 0)
+                    {
+                        var art = fanarts[rand.Next(fanarts.Count)];
+                        g.art.fanart.Add(new Art
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
-                                anime.AnimeID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
+                                art.AniDB_Anime_DefaultImageID),
                             index = 0
                         });
+                    }
 
-                        var fanarts = anime.Contract.AniDBAnime.Fanarts;
-                        if (fanarts != null && fanarts.Count > 0)
+                    fanarts = anime.Contract.AniDBAnime.Banners;
+                    if (fanarts != null && fanarts.Count > 0)
+                    {
+                        var art = fanarts[rand.Next(fanarts.Count)];
+                        g.art.banner.Add(new Art
                         {
-                            var art = fanarts[rand.Next(fanarts.Count)];
-                            g.art.fanart.Add(new Art
-                            {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
-                                    art.AniDB_Anime_DefaultImageID),
-                                index = 0
-                            });
-                        }
-
-                        fanarts = anime.Contract.AniDBAnime.Banners;
-                        if (fanarts != null && fanarts.Count > 0)
-                        {
-                            var art = fanarts[rand.Next(fanarts.Count)];
-                            g.art.banner.Add(new Art
-                            {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
-                                    art.AniDB_Anime_DefaultImageID),
-                                index = 0
-                            });
-                        }
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
+                                art.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
                     }
                 }
 
@@ -166,36 +163,43 @@ namespace Shoko.Server.API.v2.Models.common
 
                 GenerateSizes(g, ael, uid);
 
-                g.air = anime?.AirDate?.ToPlexDate() ?? string.Empty;
+                g.air = anime.AirDate?.ToPlexDate() ?? string.Empty;
 
                 g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
-                g.summary = anime?.Description ?? string.Empty;
-                g.titles = anime?.GetTitles().ToAPIContract();
-                g.year = anime?.BeginYear.ToString();
+                g.summary = anime.Description ?? string.Empty;
+                g.titles = anime.GetTitles().ToAPIContract();
+                g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)
                     g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList())
                         .Select(value => new Tag {tag = value}).ToList();
-            }
 
-            if (!nocast)
-            {
-                Video vag = ag.GetPlexContract(uid);
-                if (vag?.Roles != null)
-                    g.roles = vag.Roles?.Select(rtg => new Role
+                if (!nocast)
+                {
+                    var xref_animestaff =
+                        RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
+                    foreach (var xref in xref_animestaff)
                     {
-                        name = !string.IsNullOrEmpty(rtg.Value) ? rtg.Value : string.Empty,
-                        namepic = !string.IsNullOrEmpty(rtg.TagPicture)
-                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture)
-                            : string.Empty,
-                        role = !string.IsNullOrEmpty(rtg.Role) ? rtg.Role : string.Empty,
-                        roledesc = !string.IsNullOrEmpty(rtg.RoleDescription)
-                            ? rtg.RoleDescription
-                            : string.Empty,
-                        rolepic = !string.IsNullOrEmpty(rtg.RolePicture)
-                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture)
-                            : string.Empty
-                    }).ToList();
+                        if (xref.RoleID == null) continue;
+                        var character = RepoFactory.Character.GetByID(xref.RoleID.Value);
+                        if (character == null) continue;
+                        var staff = RepoFactory.Staff.GetByID(xref.StaffID);
+                        if (staff == null) continue;
+                        var role = new Role
+                        {
+                            character = character.Name,
+                            character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.Character,
+                                xref.RoleID.Value),
+                            staff = staff.Name,
+                            staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.Staff,
+                                xref.StaffID),
+                            role = xref.Role,
+                            type = ((StaffRoleType) xref.RoleType).ToString()
+                        };
+                        if (g.roles == null) g.roles = new List<Role>();
+                        g.roles.Add(role);
+                    }
+                }
             }
 
             if (level > 0)

@@ -5,6 +5,7 @@ using NLog;
 using Pri.LongPath;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -128,6 +129,46 @@ namespace Shoko.Server.Databases
         public static void FixDuplicateTvDBLinks()
         {
             // Empty to preserve version info
+        }
+
+        public static void PopulateCharactersAndStaff()
+        {
+            var allcharacters = RepoFactory.AniDB_Character.GetAll();
+            var allstaff = RepoFactory.AniDB_Seiyuu.GetAll();
+            var allanimecharacters = RepoFactory.AniDB_Anime_Character.GetAll().ToLookup(a => a.CharID, b => b);
+            var allcharacterstaff = RepoFactory.AniDB_Character_Seiyuu.GetAll();
+
+            var charstosave = allcharacters.Select(character => new Character
+                {
+                    Name = character.CharName?.Replace("`", "'"),
+                    AniDBID = character.CharID,
+                    Description = character.CharDescription?.Replace("`", "'"),
+                    ImagePath = character.GetPosterPath()
+                }).ToList();
+            RepoFactory.Character.Save(charstosave);
+
+            var stafftosave = allstaff.Select(a => new Staff
+                {
+                    Name = a.SeiyuuName?.Replace("`", "'"),
+                    AniDBID = a.SeiyuuID,
+                    ImagePath = a.GetPosterPath()
+                }).ToList();
+            RepoFactory.Staff.Save(stafftosave);
+
+            // This is not accurate. There was a mistake in DB design
+            var xrefstosave = (from xref in allcharacterstaff
+                let animes = allanimecharacters[xref.CharID].ToList()
+                from anime in animes
+                select new CrossRef_Anime_Staff
+                {
+                    AniDB_AnimeID = anime.AnimeID,
+                    Language = "Japanese",
+                    RoleType = (int) StaffRoleType.Seiyuu,
+                    Role = anime.CharType,
+                    RoleID = RepoFactory.Character.GetByAniDBID(xref.CharID).CharacterID,
+                    StaffID = RepoFactory.Staff.GetByAniDBID(xref.SeiyuuID).StaffID,
+                }).ToList();
+            RepoFactory.CrossRef_Anime_Staff.Save(xrefstosave);
         }
 
         public static void PopulateTagWeight()

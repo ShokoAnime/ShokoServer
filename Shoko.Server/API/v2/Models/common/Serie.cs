@@ -199,25 +199,28 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (!nocast)
             {
-                Video nv = ser.GetPlexContract(uid);
-                if (nv.Roles != null)
+                var xref_animestaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(ser.AniDB_ID,
+                    StaffRoleType.Seiyuu);
+                foreach (var xref in xref_animestaff)
                 {
-                    foreach (RoleTag rtg in nv.Roles)
+                    if (xref.RoleID == null) continue;
+                    var character = RepoFactory.Character.GetByID(xref.RoleID.Value);
+                    if (character == null) continue;
+                    var staff = RepoFactory.Staff.GetByID(xref.StaffID);
+                    if (staff == null) continue;
+                    var role = new Role
                     {
-                        Role new_role = new Role();
-                        new_role.name = !string.IsNullOrEmpty(rtg.Value) ? rtg.Value : string.Empty;
-                        new_role.namepic = !string.IsNullOrEmpty(rtg.TagPicture)
-                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.TagPicture)
-                            : string.Empty;
-                        new_role.role = !string.IsNullOrEmpty(rtg.Role) ? rtg.Role : string.Empty;
-                        new_role.roledesc = !string.IsNullOrEmpty(rtg.RoleDescription)
-                            ? rtg.RoleDescription
-                            : string.Empty;
-                        new_role.rolepic = !string.IsNullOrEmpty(rtg.RolePicture)
-                            ? APIHelper.ConstructImageLinkFromRest(ctx, rtg.RolePicture)
-                            : string.Empty;
-                        sr.roles.Add(new_role);
-                    }
+                        character = character.Name,
+                        character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.Character,
+                            xref.RoleID.Value),
+                        staff = staff.Name,
+                        staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.Staff,
+                            xref.StaffID),
+                        role = xref.Role,
+                        type = ((StaffRoleType) xref.RoleType).ToString()
+                    };
+                    if (sr.roles == null) sr.roles = new List<Role>();
+                    sr.roles.Add(role);
                 }
             }
 

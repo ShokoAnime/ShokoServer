@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 63;
+        public int RequiredVersion { get; } = 64;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -543,6 +543,10 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(62, 1, "ALTER TABLE AnimeSeries ADD AirsOn varchar(10) NULL"),
             new DatabaseCommand(63, 1, "DROP TABLE Trakt_ImageFanart"),
             new DatabaseCommand(63, 2, "DROP TABLE Trakt_ImagePoster"),
+            new DatabaseCommand(64, 1, "CREATE TABLE Character ( CharacterID INT IDENTITY(1,1) NOT NULL, AniDBID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, AlternateName NVARCHAR(MAX), Description NVARCHAR(MAX), ImagePath NVARCHAR(MAX) )"),
+            new DatabaseCommand(64, 2, "CREATE TABLE Staff ( StaffID INT IDENTITY(1,1) NOT NULL, AniDBID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, AlternateName NVARCHAR(MAX), Description NVARCHAR(MAX), ImagePath NVARCHAR(MAX) )"),
+            new DatabaseCommand(64, 3, "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INT IDENTITY(1,1) NOT NULL, AniDB_AnimeID INT NOT NULL, StaffID INT NOT NULL, Role NVARCHAR(MAX), RoleID INT, RoleType INT NOT NULL, Language NVARCHAR(MAX) NOT NULL )"),
+            new DatabaseCommand(64, 4, DatabaseFixes.PopulateCharactersAndStaff),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

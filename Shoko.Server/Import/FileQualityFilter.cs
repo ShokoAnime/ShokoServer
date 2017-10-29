@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using static Shoko.Models.FileQualityPreferences;
-using static Shoko.Models.FileQualityFilter;
 
 namespace Shoko.Server
 {
@@ -50,26 +49,30 @@ namespace Shoko.Server
 
         */
 
-        public static Dictionary<int, string> ResolutionArea;
-        public static Dictionary<int, string> ResolutionAreaOld;
+        public static readonly Dictionary<int, string> ResolutionArea;
+        public static readonly Dictionary<int, string> ResolutionAreaOld;
 
         public static FileQualityPreferences Settings = new FileQualityPreferences();
 
         static FileQualityFilter()
         {
-            ResolutionArea = new Dictionary<int, string>();
-            ResolutionArea.Add(3840*2160, "2160p");
-            ResolutionArea.Add(2560*1440, "1440p");
-            ResolutionArea.Add(1920*1080, "1080p");
-            ResolutionArea.Add(1280*720, "720p");
-            ResolutionArea.Add(1024*576, "576p");
-            ResolutionArea.Add(853*480, "480p");
+            ResolutionArea = new Dictionary<int, string>
+            {
+                {3840 * 2160, "2160p"},
+                {2560 * 1440, "1440p"},
+                {1920 * 1080, "1080p"},
+                {1280 * 720, "720p"},
+                {1024 * 576, "576p"},
+                {853 * 480, "480p"}
+            };
 
-            ResolutionAreaOld = new Dictionary<int, string>();
-            ResolutionAreaOld.Add(720*576, "576p");
-            ResolutionAreaOld.Add(720*480, "480p");
-            ResolutionAreaOld.Add(480*360, "360p");
-            ResolutionAreaOld.Add(320*240, "240p");
+            ResolutionAreaOld = new Dictionary<int, string>
+            {
+                {720 * 576, "576p"},
+                {720 * 480, "480p"},
+                {480 * 360, "360p"},
+                {320 * 240, "240p"}
+            };
         }
 
         #region Checks
@@ -544,7 +547,7 @@ namespace Shoko.Server
             if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0")
             {
                 var stream = videoLocal?.Media?.Parts?.SelectMany(a => a.Streams)
-                    ?.FirstOrDefault(a => a.StreamType == "1");
+                    .FirstOrDefault(a => a.StreamType == "1");
                 if (stream != null)
                     res = new[] {stream.Width, stream.Height};
             }

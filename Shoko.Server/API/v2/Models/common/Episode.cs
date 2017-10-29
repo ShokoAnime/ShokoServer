@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
 using Nancy;
+using Pri.LongPath;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 
@@ -89,12 +92,13 @@ namespace Shoko.Server.API.v2.Models.common
             if (tvep != null)
             {
                 ep.name = tvep.EpisodeName;
-                ep.art.thumb.Add(new Art
-                {
-                    index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                        tvep.TvDB_EpisodeID)
-                });
+                if (Misc.IsImageValid(tvep.GetFullImagePath()))
+                    ep.art.thumb.Add(new Art
+                    {
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
+                            tvep.TvDB_EpisodeID)
+                    });
                 var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
                 if (fanarts != null && fanarts.Count > 0)
                 {

@@ -321,6 +321,38 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     break;
 
+                case ImageEntityType.Character:
+                    Character character = RepoFactory.Character.GetByID(id);
+                    if (character == null)
+                        return null;
+                    path = character.ImagePath;
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find Character image: {0}", character.ImagePath);
+                    }
+                    break;
+
+                case ImageEntityType.Staff:
+                    var staff = RepoFactory.Staff.GetByID(id);
+                    if (staff == null)
+                        return null;
+                    path = staff.ImagePath;
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find Staff image: {0}", staff.ImagePath);
+                    }
+                    break;
+
                 default:
                     path = string.Empty;
                     break;
