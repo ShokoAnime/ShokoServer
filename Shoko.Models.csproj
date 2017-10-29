@@ -204,7 +204,7 @@
     <Compile Include="Server\ShokoInternal\AnimeSeries_User.cs" />
     <Compile Include="Server\ShokoInternal\AuthTokens.cs" />
     <Compile Include="Server\ShokoInternal\BookmarkedAnime.cs" />
-    <Compile Include="Server\ShokoInternal\Character.cs" />
+    <Compile Include="Server\ShokoInternal\AnimeCharacter.cs" />
     <Compile Include="Server\ShokoInternal\CloudAccount.cs" />
     <Compile Include="Server\ShokoInternal\CommandRequest.cs" />
     <Compile Include="Server\ShokoInternal\CustomTag.cs" />
@@ -224,7 +224,7 @@
     <Compile Include="Server\ShokoInternal\Scan.cs" />
     <Compile Include="Server\ShokoInternal\ScanFile.cs" />
     <Compile Include="Server\ShokoInternal\ScheduledUpdate.cs" />
-    <Compile Include="Server\ShokoInternal\Staff.cs" />
+    <Compile Include="Server\ShokoInternal\AnimeStaff.cs" />
     <Compile Include="Server\ShokoInternal\Versions.cs" />
     <Compile Include="Server\ShokoInternal\VideoLocal.cs" />
     <Compile Include="Server\ShokoInternal\VideoLocal_Place.cs" />

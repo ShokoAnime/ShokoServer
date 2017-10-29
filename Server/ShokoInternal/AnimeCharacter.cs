@@ -4,7 +4,7 @@
     /// Internal Model for Characters
     /// Using Shiro as an example
     /// </summary>
-    public class Character
+    public class AnimeCharacter
     {
         /// <summary>
         /// Internal ID

@@ -4,7 +4,7 @@
     /// Internal Model for Staff, this can be a seiyuu, composer, director, etc.
     /// Using Sawano Hiroyuki as an example
     /// </summary>
-    public class Staff
+    public class AnimeStaff
     {
         /// <summary>
         /// Internal ID
