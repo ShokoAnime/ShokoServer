@@ -7,7 +7,7 @@ namespace Shoko.Server.Mappings
     {
         public AnimeCharacterMap()
         {
-            Table("Character");
+            Table("AnimeCharacter");
             Not.LazyLoad();
             Id(x => x.CharacterID);
             Map(x => x.AniDBID).Not.Nullable();

@@ -579,8 +579,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(68, 1, "ALTER TABLE `AnimeSeries` ADD `AirsOn` TEXT character set utf8 NULL"),
             new DatabaseCommand(69, 1, "DROP TABLE `Trakt_ImageFanart`"),
             new DatabaseCommand(69, 2, "DROP TABLE `Trakt_ImagePoster`"),
-            new DatabaseCommand(70, 1, "CREATE TABLE `Character` ( `CharacterID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`CharacterID`) )"),
-            new DatabaseCommand(70, 2, "CREATE TABLE `Staff` ( `StaffID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`StaffID`) )"),
+            new DatabaseCommand(70, 1, "CREATE TABLE `AnimeCharacter` ( `CharacterID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`CharacterID`) )"),
+            new DatabaseCommand(70, 2, "CREATE TABLE `AnimeStaff` ( `StaffID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`StaffID`) )"),
             new DatabaseCommand(70, 3, "CREATE TABLE `CrossRef_Anime_Staff` ( `CrossRef_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AniDB_AnimeID` INT NOT NULL, `StaffID` INT NOT NULL, `Role` text character set utf8 NULL, `RoleID` INT, `RoleType` INT NOT NULL, `Language` text character set utf8 NOT NULL, PRIMARY KEY (`CrossRef_Anime_StaffID`) )"),
             new DatabaseCommand(70, 4, DatabaseFixes.PopulateCharactersAndStaff),
         };
