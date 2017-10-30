@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -102,7 +103,7 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
-                    System.Threading.Tasks.Task.Run(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
+                    Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
                 }
             }
         }
@@ -125,7 +126,7 @@ namespace Shoko.Server.Commands
             paused = false;
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
-            QueueCount = 0;
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
         }
 
         public void Init()
