@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                lock (Changes)
+                // lock (Changes)
                 {
                     if (!Changes.ContainsKey(cr.JMMUserID))
                         Changes[cr.JMMUserID] = new ChangeTracker<int>();
@@ -63,11 +63,11 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void Save(SVR_AnimeSeries_User obj)
         {
-            lock (obj)
+            // lock (obj)
             {
                 UpdatePlexKodiContracts(obj);
                 SVR_AnimeSeries_User old;
-                lock (globalDBLock)
+                // lock (globalDBLock)
                 {
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 HashSet<GroupFilterConditionType> types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
-                lock (Changes)
+                // lock (Changes)
                 {
                     if (!Changes.ContainsKey(obj.JMMUserID))
                         Changes[obj.JMMUserID] = new ChangeTracker<int>();
@@ -100,7 +100,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return UsersSeries.GetOne(userid, seriesid);
             }
@@ -108,7 +108,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Users.GetMultiple(userid);
             }
@@ -116,7 +116,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Series.GetMultiple(seriesid);
             }
@@ -135,7 +135,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            lock (Changes)
+            // lock (Changes)
             {
                 if (Changes.ContainsKey(userid))
                     return Changes[userid];

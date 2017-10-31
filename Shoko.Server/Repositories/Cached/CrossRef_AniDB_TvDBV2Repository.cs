@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return AnimeIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
                     .ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList();
@@ -38,7 +38,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDBV2> GetByTvDBID(int id)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return TvDBIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
                     .ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList();
@@ -55,7 +55,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TvDBV2>.Instance;
             }
 
-            lock (Cache)
+            // lock (Cache)
             {
                 return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
                     .OrderBy(xref => xref.AniDBStartEpisodeType).ThenBy(xref => xref.AniDBStartEpisodeNumber)
@@ -65,7 +65,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeIDEpTypeEpNumber(int id, int aniEpType, int aniEpisodeNumber)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return AnimeIDs.GetMultiple(id)
                     .Where(xref => xref.AniDBStartEpisodeType == aniEpType &&
@@ -77,7 +77,7 @@ namespace Shoko.Server.Repositories.Cached
         public CrossRef_AniDB_TvDBV2 GetByTvDBID(int id, int season, int episodeNumber, int animeID,
             int aniEpType, int aniEpisodeNumber)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return TvDBIDs.GetMultiple(id).FirstOrDefault(xref => xref.TvDBSeasonNumber == season &&
                                                                       xref.TvDBStartEpisodeNumber == episodeNumber &&

@@ -68,7 +68,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void Save(SVR_AnimeEpisode_User obj)
         {
-            lock (obj)
+            // lock (obj)
             {
                 if (obj.AnimeEpisode_UserID == 0)
                     base.Save(obj);
@@ -79,7 +79,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void SaveWithOpenTransaction(ISessionWrapper session, SVR_AnimeEpisode_User obj)
         {
-            lock (obj)
+            // lock (obj)
             {
                 if (obj.AnimeEpisode_UserID == 0)
                     base.SaveWithOpenTransaction(session, obj);
@@ -90,7 +90,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Series.GetMultiple(seriesid);
             }
@@ -98,7 +98,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return UsersEpisodes.GetOne((ulong)userid << 48 | (ulong)epid);
             }
@@ -107,7 +107,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Users.GetMultiple(userid);
             }
@@ -122,7 +122,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisode()
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
                     .FirstOrDefault();
@@ -131,7 +131,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return UsersSeries.GetMultiple((ulong)userid << 48 | (ulong)seriesid).Where(a => a.WatchedCount > 0)
                     .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
@@ -140,7 +140,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Episodes.GetMultiple(epid);
             }
@@ -148,7 +148,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return UsersSeries.GetMultiple((ulong)userid << 32 | (ulong)seriesid);
             }

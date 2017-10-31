@@ -38,7 +38,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public void Save(SVR_JMMUser obj, bool updateGroupFilters)
         {
-            lock (obj)
+            // lock (obj)
             {
                 bool isNew = false;
                 if (obj.JMMUserID == 0)
@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_JMMUser GetByUsername(string username)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.FirstOrDefault(x =>
                     x.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_JMMUser> GetAniDBUsers()
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
             }
@@ -84,7 +84,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_JMMUser> GetTraktUsers()
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
             }
@@ -94,7 +94,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             if (password == null) password = string.Empty;
             string hashedPassword = Digest.Hash(password);
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.FirstOrDefault(a =>
                     a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
@@ -104,7 +104,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public long GetTotalRecordCount()
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Keys.Count;
             }

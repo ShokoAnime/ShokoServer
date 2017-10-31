@@ -56,7 +56,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return StaffIDs.GetMultiple(id);
             }
@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByRoleID(int id)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return RoleIDs.GetMultiple(id);
             }
@@ -72,7 +72,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByRoleType(StaffRoleType type)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return RoleTypes.GetMultiple(type);
             }
@@ -80,7 +80,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByAnimeID(int id)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return AnimeIDs.GetMultiple(id);
             }
@@ -88,7 +88,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByAnimeIDAndRoleType(int id, StaffRoleType type)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return AnimeIDs.GetMultiple(id).Where(xref => xref.RoleType == (int) type).ToList();
             }
@@ -96,7 +96,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public CrossRef_Anime_Staff GetByParts(int AnimeID, int? RoleID, int StaffID, StaffRoleType RoleType)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return AnimeIDs.GetMultiple(AnimeID).FirstOrDefault(a =>
                     a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int) RoleType);

@@ -34,7 +34,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.FirstOrDefault(a =>
                     a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
@@ -49,7 +49,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_ImportFolder> GetByCloudId(int cloudid)
         {
-            lock (Cache)
+            // lock (Cache)
             {
                 return Cache.Values.Where(a => a.CloudID.HasValue && a.CloudID.Value == cloudid).ToList();
             }
