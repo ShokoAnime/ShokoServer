@@ -77,15 +77,15 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            foreach (SVR_GroupFilter g in Cache.Values.ToList())
-                if (g.GroupFilterID != 0 && g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
-                    g.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
-                {
-                    if (g.GroupConditionsVersion == 0)
-                        g.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(g.GroupFilterID);
-                    Save(g, true);
-                    PostProcessFilters.Add(g);
-                }
+            foreach (SVR_GroupFilter g in Cache.Values.Where(g =>
+                g.GroupFilterID != 0 && g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
+                g.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION).ToList())
+            {
+                if (g.GroupConditionsVersion == 0)
+                    g.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(g.GroupFilterID);
+                Save(g, true);
+                PostProcessFilters.Add(g);
+            }
         }
 
 

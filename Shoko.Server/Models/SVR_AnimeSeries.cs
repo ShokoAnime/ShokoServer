@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Force.DeepCloner;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
+using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
@@ -23,10 +25,6 @@ namespace Shoko.Server.Models
 {
     public class SVR_AnimeSeries : AnimeSeries
     {
-        public SVR_AnimeSeries()
-        {
-        }
-
         #region DB Columns
 
         public int ContractVersion { get; set; }
@@ -38,7 +36,7 @@ namespace Shoko.Server.Models
         public const int CONTRACT_VERSION = 8;
 
 
-        private CL_AnimeSeries_User _contract = null;
+        private CL_AnimeSeries_User _contract;
 
         public virtual CL_AnimeSeries_User Contract
         {
@@ -63,16 +61,13 @@ namespace Shoko.Server.Models
         }
 
 
-        public string Year
-        {
-            get { return GetAnime().GetYear(); }
-        }
+        public string Year => GetAnime().GetYear();
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public string GetSeriesName()
         {
-            string seriesName = string.Empty;
+            string seriesName;
             if (!string.IsNullOrEmpty(SeriesNameOverride))
                 seriesName = SeriesNameOverride;
             else
@@ -104,7 +99,6 @@ namespace Shoko.Server.Models
                 // we won't use synonyms for these two languages
                 if (thisLanguage.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji) ||
                     thisLanguage.Equals(Shoko.Models.Constants.AniDBLanguageType.English))
-                {
                     foreach (CL_AnimeTitle title in titles)
                     {
                         string titleType = title.TitleType.Trim().ToUpper();
@@ -113,7 +107,6 @@ namespace Shoko.Server.Models
                             title.Language.Trim().ToUpper() == thisLanguage)
                             return title.Title;
                     }
-                }
 
                 // now try the official title
                 foreach (CL_AnimeTitle title in titles)
@@ -126,7 +119,6 @@ namespace Shoko.Server.Models
 
                 // try synonyms
                 if (ServerSettings.LanguageUseSynonyms)
-                {
                     foreach (CL_AnimeTitle title in titles)
                     {
                         string titleType = title.TitleType.Trim().ToUpper();
@@ -134,7 +126,6 @@ namespace Shoko.Server.Models
                             title.Language.Trim().ToUpper() == thisLanguage)
                             return title.Title;
                     }
-                }
             }
 
             return null;
@@ -144,15 +135,12 @@ namespace Shoko.Server.Models
         {
             if (!string.IsNullOrEmpty(con.SeriesNameOverride))
                 return SeriesNameOverride;
-            if (ServerSettings.SeriesNameSource != DataSourceType.AniDB)
-            {
-                if (con.TvDB_Series != null && con.TvDB_Series.Count > 0 &&
-                    !string.IsNullOrEmpty(con.TvDB_Series[0].SeriesName) &&
-                    !con.TvDB_Series[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
-                {
-                    return con.TvDB_Series[0].SeriesName;
-                }
-            }
+            if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
+                return GetFormattedTitle(con.AniDBAnime.AnimeTitles) ?? con.AniDBAnime.AniDBAnime.MainTitle;
+            if (con.TvDB_Series != null && con.TvDB_Series.Count > 0 &&
+                !string.IsNullOrEmpty(con.TvDB_Series[0].SeriesName) &&
+                !con.TvDB_Series[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
+                return con.TvDB_Series[0].SeriesName;
             return GetFormattedTitle(con.AniDBAnime.AnimeTitles) ?? con.AniDBAnime.AniDBAnime.MainTitle;
         }
 
@@ -256,7 +244,7 @@ namespace Shoko.Server.Models
 
         public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
         {
-            return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(this.AniDB_ID);
+            return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AniDB_ID);
         }
 
         public List<TvDB_Series> GetTvDBSeries()
@@ -286,7 +274,7 @@ namespace Shoko.Server.Models
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
         {
-            return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, this.AniDB_ID);
+            return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AniDB_ID);
         }
 
         public List<Trakt_Show> GetTraktShow()
@@ -312,15 +300,9 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public CrossRef_AniDB_Other CrossRefMovieDB
-        {
-            get { return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(this.AniDB_ID, CrossRefType.MovieDB); }
-        }
+        public CrossRef_AniDB_Other CrossRefMovieDB => RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
 
-        public List<CrossRef_AniDB_MAL> CrossRefMAL
-        {
-            get { return RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(this.AniDB_ID); }
-        }
+        public List<CrossRef_AniDB_MAL> CrossRefMAL => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
 
         public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
@@ -337,7 +319,7 @@ namespace Shoko.Server.Models
                 contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
                 return contract;
             }
-            else if (types != null)
+            if (types != null)
             {
                 if (!types.Contains(GroupFilterConditionType.HasUnwatchedEpisodes))
                     types.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
@@ -363,7 +345,7 @@ namespace Shoko.Server.Models
             SVR_AnimeSeries_User rr = GetUserRecord(userid);
             if (rr != null)
                 return rr;
-            rr = new SVR_AnimeSeries_User(userid, this.AnimeSeriesID)
+            rr = new SVR_AnimeSeries_User(userid, AnimeSeriesID)
             {
                 WatchedCount = 0,
                 UnwatchedEpisodeCount = 0,
@@ -404,7 +386,7 @@ namespace Shoko.Server.Models
 
         public SVR_AnimeSeries_User GetUserRecord(int userID)
         {
-            return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, this.AnimeSeriesID);
+            return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
         }
 
 
@@ -442,11 +424,11 @@ namespace Shoko.Server.Models
 
         public void Populate(SVR_AniDB_Anime anime)
         {
-            this.AniDB_ID = anime.AnimeID;
-            this.LatestLocalEpisodeNumber = 0;
-            this.DateTimeUpdated = DateTime.Now;
-            this.DateTimeCreated = DateTime.Now;
-            this.SeriesNameOverride = string.Empty;
+            AniDB_ID = anime.AnimeID;
+            LatestLocalEpisodeNumber = 0;
+            DateTimeUpdated = DateTime.Now;
+            DateTimeCreated = DateTime.Now;
+            SeriesNameOverride = string.Empty;
         }
 
         public void CreateAnimeEpisodes()
@@ -463,18 +445,13 @@ namespace Shoko.Server.Models
             if (anime == null) return;
 
             foreach (AniDB_Episode ep in anime.GetAniDBEpisodes())
-            {
-                ep.CreateAnimeEpisode(session, this.AnimeSeriesID);
-            }
+                ep.CreateAnimeEpisode(session, AnimeSeriesID);
         }
 
         /// <summary>
         /// Gets the direct parent AnimeGroup this series belongs to
         /// </summary>
-        public SVR_AnimeGroup AnimeGroup
-        {
-            get { return RepoFactory.AnimeGroup.GetByID(this.AnimeGroupID); }
-        }
+        public SVR_AnimeGroup AnimeGroup => RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
 
         /// <summary>
         /// Gets the very top level AnimeGroup which this series belongs to
@@ -483,12 +460,10 @@ namespace Shoko.Server.Models
         {
             get
             {
-                SVR_AnimeGroup parentGroup = RepoFactory.AnimeGroup.GetByID(this.AnimeGroupID);
+                SVR_AnimeGroup parentGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
 
                 while (parentGroup?.AnimeGroupParentID != null)
-                {
                     parentGroup = RepoFactory.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
-                }
                 return parentGroup;
             }
         }
@@ -538,13 +513,9 @@ namespace Shoko.Server.Models
                 HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
                 CL_AnimeSeries_User cgrp = GetUserContract(u.JMMUserID, n);
                 foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
-                {
                     if (gf.CalculateGroupFilterSeries(cgrp, u, u.JMMUserID))
-                    {
                         if (!tosave.Contains(gf))
                             tosave.Add(gf);
-                    }
-                }
             }
             RepoFactory.GroupFilter.Save(tosave);
         }
@@ -555,13 +526,11 @@ namespace Shoko.Server.Models
             {
                 bool change = false;
                 foreach (int k in gf.SeriesIds.Keys)
-                {
                     if (gf.SeriesIds[k].Contains(AnimeSeriesID))
                     {
                         gf.SeriesIds[k].Remove(AnimeSeriesID);
                         change = true;
                     }
-                }
                 if (change)
                     RepoFactory.GroupFilter.Save(gf);
             }
@@ -578,9 +547,7 @@ namespace Shoko.Server.Models
             var grpFilterCondTypesPerSeries = new Dictionary<int, HashSet<GroupFilterConditionType>>();
 
             if (seriesBatch.Count == 0)
-            {
                 return grpFilterCondTypesPerSeries;
-            }
 
             var animeIds = new Lazy<int[]>(() => seriesBatch.Select(s => s.AniDB_ID).ToArray(), false);
             var tvDbByAnime = new Lazy<ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>>>(
@@ -637,9 +604,7 @@ namespace Shoko.Server.Models
                         CL_AniDB_Anime aniDbAnime = contract.AniDBAnime.AniDBAnime;
 
                         if (!defImagesByAnime.Value.TryGetValue(animeRec.AnimeID, out DefaultAnimeImages defImages))
-                        {
                             defImages = new DefaultAnimeImages { AnimeID = animeRec.AnimeID };
-                        }
 
                         aniDbAnime.DefaultImagePoster = defImages.GetPosterContractNoBlanks();
                         aniDbAnime.DefaultImageFanart = defImages.GetFanartContractNoBlanks(aniDbAnime);
@@ -651,10 +616,8 @@ namespace Shoko.Server.Models
 
                     foreach (var missingTvDbSeries in tvDbCrossRefs.Where(cr => cr.Item2 == null)
                         .Select(cr => cr.Item1))
-                    {
                         logger.Warn("You are missing database information for TvDB series: {0} - {1}",
                             missingTvDbSeries.TvDBID, missingTvDbSeries.TvDBTitle);
-                    }
 
                     contract.CrossRefAniDBTvDBV2 = tvDbCrossRefs
                         .Select(s => s.Item1)
@@ -702,21 +665,21 @@ namespace Shoko.Server.Models
                     onlystats = false;
                 }
 
-                contract.AniDB_ID = this.AniDB_ID;
-                contract.AnimeGroupID = this.AnimeGroupID;
-                contract.AnimeSeriesID = this.AnimeSeriesID;
-                contract.DateTimeUpdated = this.DateTimeUpdated;
-                contract.DateTimeCreated = this.DateTimeCreated;
-                contract.DefaultAudioLanguage = this.DefaultAudioLanguage;
-                contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
-                contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
-                contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
-                contract.AirsOn = this.AirsOn;
-                contract.EpisodeAddedDate = this.EpisodeAddedDate;
-                contract.MissingEpisodeCount = this.MissingEpisodeCount;
-                contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
-                contract.SeriesNameOverride = this.SeriesNameOverride;
-                contract.DefaultFolder = this.DefaultFolder;
+                contract.AniDB_ID = AniDB_ID;
+                contract.AnimeGroupID = AnimeGroupID;
+                contract.AnimeSeriesID = AnimeSeriesID;
+                contract.DateTimeUpdated = DateTimeUpdated;
+                contract.DateTimeCreated = DateTimeCreated;
+                contract.DefaultAudioLanguage = DefaultAudioLanguage;
+                contract.DefaultSubtitleLanguage = DefaultSubtitleLanguage;
+                contract.LatestLocalEpisodeNumber = LatestLocalEpisodeNumber;
+                contract.LatestEpisodeAirDate = LatestEpisodeAirDate;
+                contract.AirsOn = AirsOn;
+                contract.EpisodeAddedDate = EpisodeAddedDate;
+                contract.MissingEpisodeCount = MissingEpisodeCount;
+                contract.MissingEpisodeCountGroups = MissingEpisodeCountGroups;
+                contract.SeriesNameOverride = SeriesNameOverride;
+                contract.DefaultFolder = DefaultFolder;
                 contract.PlayedCount = 0;
                 contract.StoppedCount = 0;
                 contract.UnwatchedEpisodeCount = 0;
@@ -729,9 +692,9 @@ namespace Shoko.Server.Models
                     Contract = contract;
                     return types2;
                 }
-                SVR_AniDB_Anime animeRec = this.GetAnime();
-                List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = this.GetCrossRefTvDBV2();
-                CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
+                SVR_AniDB_Anime animeRec = GetAnime();
+                List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = GetCrossRefTvDBV2();
+                CrossRef_AniDB_Other movieDBCrossRef = CrossRefMovieDB;
                 MovieDB_Movie movie = null;
                 if (movieDBCrossRef != null)
                     movie = movieDBCrossRef.GetMovieDB_Movie();
@@ -749,38 +712,32 @@ namespace Shoko.Server.Models
                 if (animeRec != null)
                 {
                     if (animeRec.Contract == null)
-                    {
                         using (var session = DatabaseFactory.SessionFactory.OpenSession())
                         {
                             animeRec.UpdateContractDetailed(session.Wrap());
                         }
-                    }
                     contract.AniDBAnime = animeRec.Contract.DeepClone();
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
                     {
                         ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
                         if (im != null)
-                        {
                             contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
                             {
                                 AnimeID = im.ImageID,
                                 ImageType = (int)im.ImageType
                             };
-                        }
                     }
                     contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
                     {
                         ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
                         if (im != null)
-                        {
                             contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
                             {
                                 AnimeID = im.ImageID,
                                 ImageType = (int)im.ImageType
                             };
-                        }
                     }
                     contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
                 }
@@ -937,13 +894,13 @@ namespace Shoko.Server.Models
 
             private AnimeType AnimeType { get; set; }
 
-            System.Text.RegularExpressions.Regex partmatch =
-                new System.Text.RegularExpressions.Regex("part (\\d.*?) of (\\d.*)");
+            readonly Regex partmatch =
+                new Regex("part (\\d.*?) of (\\d.*)");
 
-            System.Text.RegularExpressions.Regex remsymbols = new System.Text.RegularExpressions.Regex("[^A-Za-z0-9 ]");
+            readonly Regex remsymbols = new Regex("[^A-Za-z0-9 ]");
 
-            private System.Text.RegularExpressions.Regex remmultispace =
-                new System.Text.RegularExpressions.Regex("\\s+");
+            private readonly Regex remmultispace =
+                new Regex("\\s+");
 
             public void Add(SVR_AnimeEpisode ep, bool available)
             {
@@ -951,7 +908,7 @@ namespace Shoko.Server.Models
                 {
                     AniDB_Episode aniEp = ep.AniDB_Episode;
                     string ename = aniEp.EnglishName.ToLower();
-                    System.Text.RegularExpressions.Match m = partmatch.Match(ename);
+                    Match m = partmatch.Match(ename);
                     StatEpisodes.StatEpisode s = new StatEpisodes.StatEpisode
                     {
                         Available = available
@@ -991,13 +948,11 @@ namespace Shoko.Server.Models
                     foreach (StatEpisodes k in this)
                     {
                         foreach (StatEpisodes.StatEpisode ss in k)
-                        {
                             if (ss.Match == s.Match)
                             {
                                 fnd = k;
                                 break;
                             }
-                        }
                         if (fnd != null)
                             break;
                     }
@@ -1021,7 +976,7 @@ namespace Shoko.Server.Models
                         Available = available
                     };
                     eps.Add(es);
-                    this.Add(eps);
+                    Add(eps);
                 }
             }
 
@@ -1045,22 +1000,19 @@ namespace Shoko.Server.Models
                 {
                     get
                     {
-                        int maxcnt = 0;
-                        foreach (StatEpisode k in this)
-                        {
-                            if (k.PartCount > maxcnt)
-                                maxcnt = k.PartCount;
-                        }
+                        int maxcnt = this.Select(k => k.PartCount).Concat(new[] {0}).Max();
                         int[] parts = new int[maxcnt + 1];
                         foreach (StatEpisode k in this)
                         {
-                            if ((k.EpisodeType == StatEpisode.EpType.Complete) && k.Available)
-                                return true;
-                            if ((k.EpisodeType == StatEpisode.EpType.Part) && k.Available)
+                            switch (k.EpisodeType)
                             {
-                                parts[k.PartCount]++;
-                                if (parts[k.PartCount] == k.PartCount)
+                                case StatEpisode.EpType.Complete when k.Available:
                                     return true;
+                                case StatEpisode.EpType.Part when k.Available:
+                                    parts[k.PartCount]++;
+                                    if (parts[k.PartCount] == k.PartCount)
+                                        return true;
+                                    break;
                             }
                         }
                         return false;
@@ -1071,16 +1023,15 @@ namespace Shoko.Server.Models
 
         public void QueueUpdateStats()
         {
-            CommandRequest_RefreshAnime cmdRefreshAnime = new CommandRequest_RefreshAnime(this.AniDB_ID);
+            CommandRequest_RefreshAnime cmdRefreshAnime = new CommandRequest_RefreshAnime(AniDB_ID);
             cmdRefreshAnime.Save();
         }
 
         public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
         {
             DateTime start = DateTime.Now;
-            DateTime startOverall = DateTime.Now;
-            logger.Info("Starting Updating STATS for SERIES {0} ({1} - {2} - {3})", this.ToString(), watchedStats,
-                missingEpsStats, updateAllGroupsAbove);
+            logger.Info(
+                $"Starting Updating STATS for SERIES {AnimeSeriesID} ({watchedStats} - {missingEpsStats} - {updateAllGroupsAbove})");
 
 
             IReadOnlyList<SVR_JMMUser> allUsers = RepoFactory.JMMUser.GetAll();
@@ -1088,11 +1039,11 @@ namespace Shoko.Server.Models
             DateTime startEps = DateTime.Now;
             List<SVR_AnimeEpisode> eps = GetAnimeEpisodes();
             TimeSpan tsEps = DateTime.Now - startEps;
-            logger.Trace("Got episodes for SERIES {0} in {1}ms", this.ToString(), tsEps.TotalMilliseconds);
+            logger.Trace("Got episodes for SERIES {0} in {1}ms", ToString(), tsEps.TotalMilliseconds);
 
             DateTime startVids = DateTime.Now;
-            List<SVR_VideoLocal> vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(this.AniDB_ID);
-            List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(this.AniDB_ID);
+            List<SVR_VideoLocal> vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
+            List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
 
             Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs =
                 new Dictionary<int, List<CrossRef_File_Episode>>();
@@ -1105,21 +1056,18 @@ namespace Shoko.Server.Models
 
             Dictionary<string, SVR_VideoLocal> dictVids = new Dictionary<string, SVR_VideoLocal>();
             foreach (SVR_VideoLocal vid in vidsTemp)
-            {
-                //Hashes may be repeated from multiple locations but we don't care
+            //Hashes may be repeated from multiple locations but we don't care
                 dictVids[vid.Hash] = vid;
-            }
             TimeSpan tsVids = DateTime.Now - startVids;
-            logger.Trace("Got video locals for SERIES {0} in {1}ms", this.ToString(), tsVids.TotalMilliseconds);
+            logger.Trace($"Got video locals for SERIES {AnimeSeriesID} in {tsVids.TotalMilliseconds}ms");
 
 
             if (watchedStats)
-            {
                 foreach (SVR_JMMUser juser in allUsers)
                 {
                     //this.WatchedCount = 0;
-                    SVR_AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID);
-                    if (userRecord == null) userRecord = new SVR_AnimeSeries_User(juser.JMMUserID, this.AnimeSeriesID);
+                    SVR_AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID) ??
+                                                      new SVR_AnimeSeries_User(juser.JMMUserID, AnimeSeriesID);
 
                     // reset stats
                     userRecord.UnwatchedEpisodeCount = 0;
@@ -1135,7 +1083,7 @@ namespace Shoko.Server.Models
                     foreach (SVR_AnimeEpisode_User usrec in epUserRecords)
                         dictUserRecords[usrec.AnimeEpisodeID] = usrec;
                     TimeSpan tsUser = DateTime.Now - startUser;
-                    logger.Trace("Got user records for SERIES {0}/{1} in {2}ms", this.ToString(), juser.Username,
+                    logger.Trace("Got user records for SERIES {0}/{1} in {2}ms", ToString(), juser.Username,
                         tsUser.TotalMilliseconds);
 
                     foreach (SVR_AnimeEpisode ep in eps)
@@ -1144,66 +1092,53 @@ namespace Shoko.Server.Models
                         List<SVR_VideoLocal> epVids = new List<SVR_VideoLocal>();
 
                         if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
-                        {
-                            foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
-                            {
-                                if (xref.EpisodeID == ep.AniDB_EpisodeID)
-                                {
-                                    if (dictVids.ContainsKey(xref.Hash))
-                                        epVids.Add(dictVids[xref.Hash]);
-                                }
-                            }
-                        }
+                            epVids.AddRange(dictCrossRefs[ep.AniDB_EpisodeID]
+                                .Where(xref => xref.EpisodeID == ep.AniDB_EpisodeID && dictVids.ContainsKey(xref.Hash))
+                                .Select(xref => dictVids[xref.Hash]));
+
                         if (epVids.Count == 0) continue;
 
-                        if (ep.EpisodeTypeEnum == EpisodeType.Episode ||
-                            ep.EpisodeTypeEnum == EpisodeType.Special)
+                        if (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special)
+                            continue;
+                        SVR_AnimeEpisode_User epUserRecord = null;
+                        if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
+                            epUserRecord = dictUserRecords[ep.AnimeEpisodeID];
+
+                        if (epUserRecord != null && epUserRecord.WatchedDate.HasValue)
+                            userRecord.WatchedEpisodeCount++;
+                        else userRecord.UnwatchedEpisodeCount++;
+
+                        if (epUserRecord == null) continue;
+                        if (userRecord.WatchedDate.HasValue)
                         {
-                            SVR_AnimeEpisode_User epUserRecord = null;
-                            if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
-                                epUserRecord = dictUserRecords[ep.AnimeEpisodeID];
-
-                            if (epUserRecord != null && epUserRecord.WatchedDate.HasValue)
-                                userRecord.WatchedEpisodeCount++;
-                            else userRecord.UnwatchedEpisodeCount++;
-
-                            if (epUserRecord != null)
-                            {
-                                if (userRecord.WatchedDate.HasValue)
-                                {
-                                    if (epUserRecord.WatchedDate > userRecord.WatchedDate)
-                                        userRecord.WatchedDate = epUserRecord.WatchedDate;
-                                }
-                                else
-                                    userRecord.WatchedDate = epUserRecord.WatchedDate;
-
-                                userRecord.WatchedCount += epUserRecord.WatchedCount;
-                            }
+                            if (epUserRecord.WatchedDate > userRecord.WatchedDate)
+                                userRecord.WatchedDate = epUserRecord.WatchedDate;
                         }
+                        else
+                            userRecord.WatchedDate = epUserRecord.WatchedDate;
+
+                        userRecord.WatchedCount += epUserRecord.WatchedCount;
                     }
                     RepoFactory.AnimeSeries_User.Save(userRecord);
                 }
-            }
 
             TimeSpan ts = DateTime.Now - start;
-            logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+            logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", ToString(), ts.TotalMilliseconds);
             start = DateTime.Now;
 
 
             if (missingEpsStats)
             {
                 AnimeType animeType = AnimeType.TVSeries;
-                SVR_AniDB_Anime aniDB_Anime = this.GetAnime();
+                SVR_AniDB_Anime aniDB_Anime = GetAnime();
                 if (aniDB_Anime != null)
-                {
                     animeType = aniDB_Anime.GetAnimeTypeEnum();
-                }
 
                 MissingEpisodeCount = 0;
                 MissingEpisodeCountGroups = 0;
 
                 // get all the group status records
-                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(this.AniDB_ID);
+                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AniDB_ID);
 
                 // find all the episodes for which the user has a file
                 // from this we can determine what their latest episode number is
@@ -1214,25 +1149,16 @@ namespace Shoko.Server.Models
                 {
                     List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
-                    {
-                        foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
-                        {
-                            if (xref.EpisodeID == ep.AniDB_EpisodeID)
-                            {
-                                if (dictVids.ContainsKey(xref.Hash))
-                                    vids.Add(dictVids[xref.Hash]);
-                            }
-                        }
-                    }
+                        vids.AddRange(dictCrossRefs[ep.AniDB_EpisodeID]
+                            .Where(xref => xref.EpisodeID == ep.AniDB_EpisodeID && dictVids.ContainsKey(xref.Hash))
+                            .Select(xref => dictVids[xref.Hash]));
 
                     //List<VideoLocal> vids = ep.VideoLocals;
                     foreach (SVR_VideoLocal vid in vids)
                     {
                         SVR_AniDB_File anifile = vid.GetAniDBFile();
-                        if (anifile != null)
-                        {
-                            if (!userReleaseGroups.Contains(anifile.GroupID)) userReleaseGroups.Add(anifile.GroupID);
-                        }
+                        if (anifile != null && !userReleaseGroups.Contains(anifile.GroupID))
+                            userReleaseGroups.Add(anifile.GroupID);
                     }
                 }
 
@@ -1250,16 +1176,10 @@ namespace Shoko.Server.Models
 
                     List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
-                    {
-                        foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
-                        {
-                            if (xref.EpisodeID == ep.AniDB_EpisodeID)
-                            {
-                                if (dictVids.ContainsKey(xref.Hash))
-                                    vids.Add(dictVids[xref.Hash]);
-                            }
-                        }
-                    }
+                        vids.AddRange(from xref in dictCrossRefs[ep.AniDB_EpisodeID]
+                            where xref.EpisodeID == ep.AniDB_EpisodeID
+                            where dictVids.ContainsKey(xref.Hash)
+                            select dictVids[xref.Hash]);
 
 
                     AniDB_Episode aniEp = ep.AniDB_Episode;
@@ -1268,9 +1188,8 @@ namespace Shoko.Server.Models
                     int thisEpNum = aniEp.EpisodeNumber;
 
                     if (thisEpNum > latestLocalEpNumber && vids.Count > 0)
-                    {
                         latestLocalEpNumber = thisEpNum;
-                    }
+
                     DateTime? airdate = ep.AniDB_Episode.GetAirDateAsDate();
 
                     // Only count episodes that have already aired
@@ -1279,9 +1198,7 @@ namespace Shoko.Server.Models
                         // Only convert if we have time info
                         DateTime airdateLocal;
                         if (airdate.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
-                        {
                             airdateLocal = airdate.Value;
-                        }
                         else
                         {
                             airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
@@ -1291,7 +1208,9 @@ namespace Shoko.Server.Models
 
                         if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
                             daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
+
                         daysofweekcounter[airdateLocal.DayOfWeek]++;
+
                         if (lastEpAirDate < airdate.Value)
                             lastEpAirDate = airdate.Value;
                     }
@@ -1315,55 +1234,82 @@ namespace Shoko.Server.Models
                     }
                     catch (Exception e)
                     {
-                        logger.Trace("Error {0}", e.ToString());
+                        logger.Trace($"Error updating release group stats {e}");
                         throw;
                     }
                 }
                 foreach (EpisodeList.StatEpisodes eplst in epReleasedList)
-                {
                     if (!eplst.Available)
                         MissingEpisodeCount++;
-                }
                 foreach (EpisodeList.StatEpisodes eplst in epGroupReleasedList)
-                {
                     if (!eplst.Available)
                         MissingEpisodeCountGroups++;
-                }
 
-                this.LatestLocalEpisodeNumber = latestLocalEpNumber;
+                LatestLocalEpisodeNumber = latestLocalEpNumber;
                 if (lastEpAirDate != DateTime.MinValue)
-                    this.LatestEpisodeAirDate = lastEpAirDate;
+                    LatestEpisodeAirDate = lastEpAirDate;
                 if (daysofweekcounter.Count > 0)
-                {
                     AirsOn = daysofweekcounter.OrderByDescending(a => a.Value).FirstOrDefault().Key;
-                }
             }
 
             ts = DateTime.Now - start;
-            logger.Trace("Updated MISSING EPS stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
-            start = DateTime.Now;
+            logger.Trace($"Updated MISSING EPS stats for SERIES {AnimeSeriesID} in {ts.TotalMilliseconds}ms");
 
 
             RepoFactory.AnimeSeries.Save(this, false, false);
 
             if (updateAllGroupsAbove)
-            {
                 foreach (SVR_AnimeGroup grp in AllGroupsAbove)
-                {
                     grp.UpdateStats(watchedStats, missingEpsStats);
-                }
-            }
-            /*
-            ts = DateTime.Now - start;
-	        logger.Trace("Updated GROUPS ABOVE stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
-	        start = DateTime.Now;
+        }
 
-	        TimeSpan tsOverall = DateTime.Now - startOverall;
-	        logger.Info("Finished Updating STATS for SERIES {0} in {1}ms ({2} - {3} - {4})", this.ToString(),
-	            tsOverall.TotalMilliseconds,
-	            watchedStats, missingEpsStats, updateAllGroupsAbove);
-                */
-//	        StatsCache.Instance.UpdateUsingSeries(AnimeSeriesID);
+        public static Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff> SearchSeriesByStaff(string staffname, bool fuzzy = false)
+        {
+            var allseries = RepoFactory.AnimeSeries.GetAll();
+            var results = new Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff>();
+            List<string> stringsToSearchFor = new List<string> ();
+            if (staffname.Contains(" "))
+            {
+                stringsToSearchFor.AddRange(staffname.Split(' ').GetPermutations()
+                    .Select(permutation => string.Join(" ", permutation)));
+                stringsToSearchFor.Remove(staffname);
+                stringsToSearchFor.Insert(0, staffname);
+            }
+            else
+                stringsToSearchFor.Add(staffname);
+
+            foreach (SVR_AnimeSeries series in allseries)
+            {
+                List<(CrossRef_Anime_Staff, AnimeStaff)> staff = RepoFactory.CrossRef_Anime_Staff
+                    .GetByAnimeID(series.AniDB_ID).Select(a => (a, RepoFactory.AnimeStaff.GetByID(a.StaffID))).ToList();
+
+                foreach (var animeStaff in staff)
+                    foreach (var search in stringsToSearchFor)
+                    {
+                        if (fuzzy)
+                        {
+                            if (!animeStaff.Item2.Name.FuzzyMatches(search)) continue;
+                        }
+                        else
+                        {
+                            if (!animeStaff.Item2.Name.Equals(search, StringComparison.InvariantCultureIgnoreCase)) continue;
+                        }
+
+                        if (!results.ContainsKey(series))
+                            results.Add(series, animeStaff.Item1);
+                        else
+                        {
+                            if (!Enum.TryParse(results[series].Role, out CharacterAppearanceType type1)) continue;
+                            if (!Enum.TryParse(animeStaff.Item1.Role, out CharacterAppearanceType type2)) continue;
+                            int comparison = ((int) type1).CompareTo((int) type2);
+                            if (comparison == 1) results[series] = animeStaff.Item1;
+                        }
+                        goto label0;
+                    }
+                // People hate goto, but this is a legit use for it.
+                label0: continue;
+            }
+            return results;
         }
     }
 }

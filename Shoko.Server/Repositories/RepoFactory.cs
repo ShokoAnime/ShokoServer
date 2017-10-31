@@ -35,7 +35,6 @@ namespace Shoko.Server.Repositories
         public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = CreateCachedRepository(VideoLocal_PlaceRepository.Create());
         public static VideoLocalRepository VideoLocal { get; } = CreateCachedRepository(VideoLocalRepository.Create());
         public static VideoLocal_UserRepository VideoLocalUser { get; } = CreateCachedRepository(VideoLocal_UserRepository.Create());
-        public static GroupFilterRepository GroupFilter { get; } = CreateCachedRepository(GroupFilterRepository.Create());
         public static AnimeEpisodeRepository AnimeEpisode { get; } = CreateCachedRepository(AnimeEpisodeRepository.Create());
         public static AnimeEpisode_UserRepository AnimeEpisode_User { get; } = CreateCachedRepository(AnimeEpisode_UserRepository.Create());
         public static AnimeSeriesRepository AnimeSeries { get; } = CreateCachedRepository(AnimeSeriesRepository.Create());
@@ -53,6 +52,7 @@ namespace Shoko.Server.Repositories
         public static AnimeCharacterRepository AnimeCharacter { get; } = CreateCachedRepository(AnimeCharacterRepository.Create());
         public static AnimeStaffRepository AnimeStaff { get; } = CreateCachedRepository(AnimeStaffRepository.Create());
         public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = CreateCachedRepository(CrossRef_Anime_StaffRepository.Create());
+        public static GroupFilterRepository GroupFilter { get; } = CreateCachedRepository(GroupFilterRepository.Create());
 
         //Direct Ones
 
@@ -145,7 +145,12 @@ namespace Shoko.Server.Repositories
             // Update Contracts if necessary
             try
             {
-                CachedRepositories.ForEach(repo => repo.RegenerateDb());
+                CachedRepositories.ForEach(repo =>
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Commons.Properties.Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " DbRegen");
+                    repo.RegenerateDb();
+                });
                 CachedRepositories.ForEach(repo => repo.PostProcess());
             }
             catch (Exception e)

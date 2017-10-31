@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
@@ -13,12 +14,35 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, CrossRef_Anime_Staff, int?> RoleIDs;
         private PocoIndex<int, CrossRef_Anime_Staff, StaffRoleType> RoleTypes;
 
+        private static readonly Dictionary<string, CharacterAppearanceType> Roles = new Dictionary<string, CharacterAppearanceType>
+        {
+            {"main character in", CharacterAppearanceType.Main_Character},
+            {"secondary cast in", CharacterAppearanceType.Minor_Character},
+            {"appears in", CharacterAppearanceType.Background_Character},
+            {"cameo appearance in", CharacterAppearanceType.Cameo},
+        };
+
         public override void PopulateIndexes()
         {
             AnimeIDs = new PocoIndex<int, CrossRef_Anime_Staff, int>(Cache, a => a.AniDB_AnimeID);
             StaffIDs = new PocoIndex<int, CrossRef_Anime_Staff, int>(Cache, a => a.StaffID);
             RoleIDs = new PocoIndex<int, CrossRef_Anime_Staff, int?>(Cache, a => a.RoleID);
             RoleTypes = new PocoIndex<int, CrossRef_Anime_Staff, StaffRoleType>(Cache, a => (StaffRoleType) a.RoleType);
+        }
+
+        public override void RegenerateDb()
+        {
+            foreach (var animeStaff in Cache.Values
+                .Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role)).ToList())
+            {
+                animeStaff.Role = Roles[animeStaff.Role].ToString().Replace("_", " ");
+                Save(animeStaff);
+            }
+        }
+
+        protected override int SelectKey(CrossRef_Anime_Staff entity)
+        {
+            return entity.CrossRef_Anime_StaffID;
         }
 
         private CrossRef_Anime_StaffRepository()
@@ -77,15 +101,6 @@ namespace Shoko.Server.Repositories.Cached
                 return AnimeIDs.GetMultiple(AnimeID).FirstOrDefault(a =>
                     a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int) RoleType);
             }
-        }
-
-        public override void RegenerateDb()
-        {
-        }
-
-        protected override int SelectKey(CrossRef_Anime_Staff entity)
-        {
-            return entity.CrossRef_Anime_StaffID;
         }
     }
 }
