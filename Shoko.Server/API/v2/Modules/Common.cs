@@ -2794,8 +2794,8 @@ namespace Shoko.Server.API.v2.Modules
 
         private static int CompareRoleByImportance(Role role1, Role role2)
         {
-            bool succeeded1 = Enum.TryParse(role1.role, out CharacterAppearanceType type1);
-            bool succeeded2 = Enum.TryParse(role2.role, out CharacterAppearanceType type2);
+            bool succeeded1 = Enum.TryParse(role1.role?.Replace(" ", "_"), out CharacterAppearanceType type1);
+            bool succeeded2 = Enum.TryParse(role2.role?.Replace(" ", "_"), out CharacterAppearanceType type2);
             if (!succeeded1 && !succeeded2) return 0;
             if (!succeeded1) return 1;
             if (!succeeded2) return -1;
@@ -2808,8 +2808,8 @@ namespace Shoko.Server.API.v2.Modules
             KeyValuePair<SVR_AnimeSeries, CrossRef_Anime_Staff> staff1,
             KeyValuePair<SVR_AnimeSeries, CrossRef_Anime_Staff> staff2)
         {
-            bool succeeded1 = Enum.TryParse(staff1.Value.Role, out CharacterAppearanceType type1);
-            bool succeeded2 = Enum.TryParse(staff2.Value.Role, out CharacterAppearanceType type2);
+            bool succeeded1 = Enum.TryParse(staff1.Value.Role?.Replace(" ", "_"), out CharacterAppearanceType type1);
+            bool succeeded2 = Enum.TryParse(staff2.Value.Role?.Replace(" ", "_"), out CharacterAppearanceType type2);
             if (!succeeded1 && !succeeded2) return 0;
             if (!succeeded1) return 1;
             if (!succeeded2) return -1;
