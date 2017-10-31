@@ -169,5 +169,15 @@ namespace Shoko.Commons.Extensions
 
             return source.ToList();
         }
+
+        public static IEnumerable<IEnumerable<T>> GetPermutations<T>(this IEnumerable<T> list, int length = -1)
+        {
+            if (length == -1) length = list.Count();
+            if (length == 1) return list.Select(t => new[] { t });
+
+            return GetPermutations(list, length - 1)
+                .SelectMany(t => list.Where(e => !t.Contains(e)),
+                    (t1, t2) => t1.Concat(new[] { t2 }));
+        }
     }
 }

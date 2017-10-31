@@ -418,36 +418,17 @@ namespace Shoko.Commons.Utils
         /// <returns></returns>
         public static int BitapFuzzySearch32(string text, string pattern, int k, out int dist)
         {
-            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
-            // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = text.FilterCharacters(AllowedSearchCharacters);
-            string query = pattern.FilterCharacters(AllowedSearchCharacters);
-            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
-            query = query.Replace('_', ' ').Replace('-', ' ');
-            query = query.CompactWhitespaces();
-            inputString = inputString.CompactWhitespaces();
-            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
-            query = query.ToLowerInvariant();
-            inputString = inputString.ToLowerInvariant();
-
-            // Shortcut
-            if (text.Equals(query))
-            {
-                dist = 0;
-                return 0;
-            }
-
             int result = -1;
-            int m = query.Length;
+            int m = pattern.Length;
             int[] R;
             int[] patternMask = new int[128];
             int i, d;
             dist = k + 1;
 
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
-            int WORD_SIZE = 31;
+            const int WORD_SIZE = 31;
 
-            if (String.IsNullOrEmpty(query)) return -1;
+            if (string.IsNullOrEmpty(pattern)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
             R = new int[(k + 1) * sizeof(int)];
@@ -458,20 +439,20 @@ namespace Shoko.Commons.Utils
                 patternMask[i] = ~0;
 
             for (i = 0; i < m; ++i)
-                patternMask[query[i]] &= ~(1 << i);
+                patternMask[pattern[i]] &= ~(1 << i);
 
-            for (i = 0; i < inputString.Length; ++i)
+            for (i = 0; i < text.Length; ++i)
             {
                 int oldRd1 = R[0];
 
-                R[0] |= patternMask[inputString[i]];
+                R[0] |= patternMask[text[i]];
                 R[0] <<= 1;
 
                 for (d = 1; d <= k; ++d)
                 {
                     int tmp = R[d];
 
-                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
+                    R[d] = (oldRd1 & (R[d] | patternMask[text[i]])) << 1;
                     oldRd1 = tmp;
                 }
 
@@ -488,36 +469,17 @@ namespace Shoko.Commons.Utils
 
         public static int BitapFuzzySearch64(string text, string pattern, int k, out int dist)
         {
-            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
-            // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = text.FilterCharacters(AllowedSearchCharacters);
-            string query = pattern.FilterCharacters(AllowedSearchCharacters);
-            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
-            query = query.Replace('_', ' ').Replace('-', ' ');
-            query = query.CompactWhitespaces();
-            inputString = inputString.CompactWhitespaces();
-            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
-            query = query.ToLowerInvariant();
-            inputString = inputString.ToLowerInvariant();
-
-            // Shortcut
-            if (text.Equals(query))
-            {
-                dist = 0;
-                return 0;
-            }
-
             int result = -1;
-            int m = query.Length;
+            int m = pattern.Length;
             ulong[] R;
             ulong[] patternMask = new ulong[128];
             int i, d;
             dist = text.Length;
 
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
-            int WORD_SIZE = 63;
+            const int WORD_SIZE = 63;
 
-            if (String.IsNullOrEmpty(query)) return -1;
+            if (string.IsNullOrEmpty(pattern)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
             R = new ulong[(k + 1) * sizeof(ulong)];
@@ -528,20 +490,20 @@ namespace Shoko.Commons.Utils
                 patternMask[i] = ~0UL;
 
             for (i = 0; i < m; ++i)
-                patternMask[query[i]] &= ~(1UL << i);
+                patternMask[pattern[i]] &= ~(1UL << i);
 
-            for (i = 0; i < inputString.Length; ++i)
+            for (i = 0; i < text.Length; ++i)
             {
                 ulong oldRd1 = R[0];
 
-                R[0] |= patternMask[inputString[i]];
+                R[0] |= patternMask[text[i]];
                 R[0] <<= 1;
 
                 for (d = 1; d <= k; ++d)
                 {
                     ulong tmp = R[d];
 
-                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
+                    R[d] = (oldRd1 & (R[d] | patternMask[text[i]])) << 1;
                     oldRd1 = tmp;
                 }
 
@@ -558,18 +520,44 @@ namespace Shoko.Commons.Utils
 
         public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
         {
+            // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+            // No it's not perfect, but it works better for those who just want to do lazy searching
+            string inputString = text.FilterCharacters(AllowedSearchCharacters);
+            string query = pattern.FilterCharacters(AllowedSearchCharacters);
+            inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+            query = query.Replace('_', ' ').Replace('-', ' ');
+            query = query.CompactWhitespaces();
+            inputString = inputString.CompactWhitespaces();
+            // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+            query = query.ToLowerInvariant();
+            inputString = inputString.ToLowerInvariant();
+
+            // Shortcut
+            if (inputString.Equals(query))
+            {
+                dist = 0;
+                return 0;
+            }
+
+            if (query.Length > inputString.Length)
+            {
+                string temp = inputString;
+                inputString = query;
+                query = temp;
+            }
+
             if (IntPtr.Size > 4)
             {
-                return BitapFuzzySearch64(text, pattern, k, out dist);
+                return BitapFuzzySearch64(inputString, query, k, out dist);
             }
-            return BitapFuzzySearch32(text, pattern, k, out dist);
+            return BitapFuzzySearch32(inputString, query, k, out dist);
         }
 
         public static bool FuzzyMatches(this string text, string query)
         {
             int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || text.Length <= 4) k = 0;
-            return BitapFuzzySearch(text, query, k, out int dist) > -1;
+            return BitapFuzzySearch(text, query, k, out int _) > -1;
         }
         private static readonly SecurityIdentifier _everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
         public static List<string> RecursiveGetDirectoriesWithoutEveryonePermission(string path)
