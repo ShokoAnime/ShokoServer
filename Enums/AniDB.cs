@@ -74,4 +74,12 @@ namespace Shoko.Models.Enums
         Episode = 2,
         HTTPAPI = 3
     }
+
+    public enum CharacterAppearanceType
+    {
+        Main_Character,
+        Minor_Character,
+        Background_Character,
+        Cameo
+    }
 }
