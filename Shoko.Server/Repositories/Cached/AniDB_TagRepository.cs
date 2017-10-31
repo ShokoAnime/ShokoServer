@@ -62,7 +62,7 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Tag GetByTagID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Tags.GetOne(id);
             }

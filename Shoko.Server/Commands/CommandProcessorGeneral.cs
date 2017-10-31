@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Force.DeepCloner;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -89,8 +90,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value.DeepClone()));
             }
         }
 
@@ -111,8 +112,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueState)
                 {
                     queueState = value;
-                    Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
                 }
+                OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value.DeepClone()));
             }
         }
 
@@ -135,9 +136,17 @@ namespace Shoko.Server.Commands
             processingCommands = false;
             paused = false;
 
+            if (e.Cancelled) logger.Warn($"The General Queue was cancelled with {QueueCount} commands left");
+
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
             QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
+
+            if (QueueCount > 0)
+            {
+                processingCommands = true;
+                workerCommands.RunWorkerAsync();
+            }
         }
 
         public void Init()
@@ -211,7 +220,12 @@ namespace Shoko.Server.Commands
                 }
 
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
-                if (crdb == null) return;
+                if (crdb == null)
+                {
+                    if (QueueCount > 0)
+                        logger.Error($"No command returned from repo, but there are {QueueCount} commands left");
+                    return;
+                }
 
                 if (workerCommands.CancellationPending)
                 {

@@ -48,7 +48,7 @@ namespace Shoko.Server.Repositories
 
         public AnimeCharacter GetByAniDBID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return AniDBIDs.GetOne(id);
             }

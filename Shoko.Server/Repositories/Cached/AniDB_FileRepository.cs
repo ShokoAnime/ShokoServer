@@ -77,7 +77,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Hashes.GetOne(hash);
             }
@@ -85,7 +85,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetBySHA1(string hash)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return SHA1s.GetOne(hash);
             }
@@ -93,7 +93,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByMD5(string hash)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return MD5s.GetOne(hash);
             }
@@ -101,7 +101,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return InternalVersions.GetMultiple(version);
             }
@@ -109,7 +109,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_File> GetWithWithMissingChapters()
         {
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 // the only containers that support chapters (and will have data on anidb)
                 List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
@@ -124,7 +124,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
             }
@@ -132,7 +132,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return FileIds.GetOne(fileID);
             }
@@ -141,7 +141,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_File> GetByAnimeID(int animeID)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetMultiple(animeID);
             }
@@ -149,7 +149,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_File> GetByResolution(string res)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Resolutions.GetMultiple(res);
             }

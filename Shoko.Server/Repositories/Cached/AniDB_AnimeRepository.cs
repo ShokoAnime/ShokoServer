@@ -88,9 +88,9 @@ namespace Shoko.Server.Repositories
 
         public override void Save(SVR_AniDB_Anime obj)
         {
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
-                // lock (obj)
+                lock (obj)
                 {
                     if (obj.AniDB_AnimeID == 0)
                     {
@@ -110,7 +110,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetOne(id);
             }
@@ -118,7 +118,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetOne(id);
             }
@@ -126,7 +126,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Cache.Values.Where(a =>
                     a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
@@ -135,7 +135,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Cache.Values.Where(a =>
                     a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
@@ -144,7 +144,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> SearchByTag(string queryText)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Cache.Values
                     .Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
@@ -163,7 +163,7 @@ namespace Shoko.Server.Repositories
 
             if (animeIds.Length == 0) return defImagesByAnime;
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 // TODO: Determine if joining on the correct columns
                 var results = session.CreateSQLQuery(@"

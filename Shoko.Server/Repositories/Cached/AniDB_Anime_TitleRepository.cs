@@ -48,7 +48,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetMultiple(id);
             }
@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Title>.Instance;
             }
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 var titles = session.CreateCriteria<AniDB_Anime_Title>()
                     .Add(Restrictions.InG(nameof(AniDB_Anime_Title.AnimeID), ids))
@@ -80,7 +80,7 @@ namespace Shoko.Server.Repositories
         public List<AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType,
             string titleValue)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetMultiple(animeID).Where(a =>
                     a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase) &&

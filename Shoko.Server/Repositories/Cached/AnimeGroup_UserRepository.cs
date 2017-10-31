@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                // lock (Changes)
+                lock (Changes)
                 {
                     if (!Changes.ContainsKey(cr.JMMUserID))
                         Changes[cr.JMMUserID] = new ChangeTracker<int>();
@@ -70,7 +70,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void Save(SVR_AnimeGroup_User obj)
         {
-            // lock (obj)
+            lock (obj)
             {
                 obj.UpdatePlexKodiContracts();
                 //Get The previous AnimeGroup_User from db for comparasion;
@@ -81,7 +81,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 HashSet<GroupFilterConditionType> types = SVR_AnimeGroup_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
-                // lock (Changes)
+                lock (Changes)
                 {
                     if (!Changes.ContainsKey(obj.JMMUserID))
                         Changes[obj.JMMUserID] = new ChangeTracker<int>();
@@ -111,16 +111,16 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
-                // lock (globalDBLock)
+                lock (globalDBLock)
                 {
                     session.Insert(groupUser);
-                    // lock (Cache)
+                    lock (Cache)
                     {
                         Cache.Update(groupUser);
                     }
                 }
 
-                // lock (Changes)
+                lock (Changes)
                 {
                     if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                     {
@@ -151,16 +151,16 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
-                // lock (globalDBLock)
+                lock (globalDBLock)
                 {
                     session.Update(groupUser);
-                    // lock (Cache)
+                    lock (Cache)
                     {
                         Cache.Update(groupUser);
                     }
                 }
 
-                // lock (Changes)
+                lock (Changes)
                 {
                     if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                     {
@@ -190,7 +190,7 @@ namespace Shoko.Server.Repositories.Cached
             var usrGrpMap = GetAll()
                 .GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 // Then, actually delete the AnimeGroup_Users
                 session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdate();
@@ -201,7 +201,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 int jmmUserId = grp.Key;
 
-                // lock (Changes)
+                lock (Changes)
                 {
                     if (!Changes.TryGetValue(jmmUserId, out ChangeTracker<int> changeTracker))
                     {
@@ -219,7 +219,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                     return UsersGroups.GetOne(userid, groupid);
             }
@@ -227,7 +227,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                     return Users.GetMultiple(userid);
             }
@@ -235,7 +235,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                     return Groups.GetMultiple(groupid);
             }
@@ -243,7 +243,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            // lock (Changes)
+            lock (Changes)
             {
                 if (Changes.ContainsKey(userid))
                     return Changes[userid];

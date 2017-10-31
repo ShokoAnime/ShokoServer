@@ -40,7 +40,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<VideoLocal_User> GetByVideoLocalID(int vidid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return VideoLocalIDs.GetMultiple(vidid);
             }
@@ -48,7 +48,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<VideoLocal_User> GetByUserID(int userid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Users.GetMultiple(userid);
             }
@@ -56,7 +56,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public VideoLocal_User GetByUserIDAndVideoLocalID(int userid, int vidid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return UsersVideoLocals.GetOne(userid, vidid);
             }

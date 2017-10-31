@@ -31,7 +31,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return TvDBIDs.GetOne(id);
             }
@@ -39,7 +39,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<TvDB_ImageFanart> GetBySeriesID(int seriesID)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return SeriesIDs.GetMultiple(seriesID);
             }
@@ -57,7 +57,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, TvDB_ImageFanart>.Instance;
             }
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 var fanartByAnime = session.CreateSQLQuery(@"
                 SELECT DISTINCT crAdbTvTb.AnimeID, {tvdbFanart.*}

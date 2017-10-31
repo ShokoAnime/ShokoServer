@@ -97,9 +97,9 @@ namespace Shoko.Server.Repositories.Cached
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
-                // lock (globalDBLock)
+                lock (globalDBLock)
                 {
-                    // lock (grp)
+                    lock (grp)
                     {
                         if (grp.AnimeGroupID == 0)
                             //We are creating one, and we need the AnimeGroupID before Update the contracts
@@ -118,7 +118,7 @@ namespace Shoko.Server.Repositories.Cached
                             SaveWithOpenTransaction(session, grp);
                             transaction.Commit();
                         }
-                        // lock (Changes)
+                        lock (Changes)
                         {
                             Changes.AddOrUpdate(grp.AnimeGroupID);
                         }
@@ -152,12 +152,12 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup group in groups)
             {
-                // lock (globalDBLock)
+                lock (globalDBLock)
                 {
-                    // lock (group)
+                    lock (group)
                     {
                         session.Insert(group);
-                        // lock (Cache)
+                        lock (Cache)
                         {
                             Cache.Update(group);
                         }
@@ -165,7 +165,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
             }
 
-            // lock (Changes)
+            lock (Changes)
             {
                 Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
             }
@@ -180,12 +180,12 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup group in groups)
             {
-                // lock (globalDBLock)
+                lock (globalDBLock)
                 {
-                    // lock (group)
+                    lock (group)
                     {
                         session.Update(group);
-                        // lock (Cache)
+                        lock (Cache)
                         {
                             Cache.Update(group);
                         }
@@ -193,7 +193,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
             }
 
-            // lock (Changes)
+            lock (Changes)
             {
                 Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
             }
@@ -216,7 +216,7 @@ namespace Shoko.Server.Repositories.Cached
             // First, get all of the current groups so that we can inform the change tracker that they have been removed later
             var allGrps = GetAll();
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 // Then, actually delete the AnimeGroups
                 if (excludeGroupId != null)
@@ -225,7 +225,7 @@ namespace Shoko.Server.Repositories.Cached
                         .SetInt32("excludeId", excludeGroupId.Value)
                         .ExecuteUpdate();
 
-                    // lock (Changes)
+                    lock (Changes)
                     {
                         Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
                             .Where(id => id != excludeGroupId.Value));
@@ -236,7 +236,7 @@ namespace Shoko.Server.Repositories.Cached
                     session.CreateQuery("delete SVR_AnimeGroup ag")
                         .ExecuteUpdate();
 
-                    // lock (Changes)
+                    lock (Changes)
                     {
                         Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
                     }
@@ -253,7 +253,7 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (excludedGroup != null)
                 {
-                    // lock (Cache)
+                    lock (Cache)
                     {
                         Cache.Update(excludedGroup);
                     }
@@ -263,7 +263,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Parents.GetMultiple(parentid);
             }
@@ -271,7 +271,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup> GetAllTopLevelGroups()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Parents.GetMultiple(0);
             }
@@ -279,7 +279,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            // lock (Changes)
+            lock (Changes)
             {
                 return Changes;
             }

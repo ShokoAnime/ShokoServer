@@ -56,7 +56,7 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Episode GetByEpisodeID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return EpisodesIds.GetOne(id);
             }
@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Episode> GetByAnimeID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetMultiple(id);
             }
@@ -72,7 +72,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetMultiple(animeid)
                     .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
@@ -82,7 +82,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Animes.GetMultiple(animeid)
                     .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)

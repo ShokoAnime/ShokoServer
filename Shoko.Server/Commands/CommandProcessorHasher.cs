@@ -128,6 +128,8 @@ namespace Shoko.Server.Commands
             paused = false;
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
             QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
+
+            if (QueueCount > 0) workerCommands.RunWorkerAsync();
         }
 
         public void Init()
@@ -200,7 +202,12 @@ namespace Shoko.Server.Commands
                 }
 
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
-                if (crdb == null) return;
+                if (crdb == null)
+                {
+                    if (QueueCount > 0)
+                        logger.Error($"No command returned from repo, but there are {QueueCount} commands left");
+                    return;
+                }
 
                 if (workerCommands.CancellationPending)
                 {

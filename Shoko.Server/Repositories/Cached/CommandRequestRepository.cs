@@ -63,7 +63,7 @@ namespace Shoko.Server.Repositories.Cached
         public CommandRequest GetByCommandID(string cmdid)
         {
             if (string.IsNullOrEmpty(cmdid)) return null;
-            // lock (Cache)
+            lock (Cache)
             {
                 var crs = CommandIDs.GetMultiple(cmdid);
                 var cr = crs.FirstOrDefault();
@@ -80,7 +80,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                // lock (Cache)
+                lock (Cache)
                 {
                     return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority)
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
@@ -95,7 +95,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestGeneral()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return CommandTypes.GetMultiple(0);
             }
@@ -105,7 +105,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                // lock (Cache)
+                lock (Cache)
                 {
                     return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
@@ -120,7 +120,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestHasher()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return CommandTypes.GetMultiple(1);
             }
@@ -130,7 +130,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                // lock (Cache)
+                lock (Cache)
                 {
                     return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
@@ -145,7 +145,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestImages()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return CommandTypes.GetMultiple(2);
             }
@@ -153,7 +153,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public int GetQueuedCommandCountGeneral()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return CommandTypes.GetMultiple(0).Count;
             }
@@ -161,7 +161,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public int GetQueuedCommandCountHasher()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return CommandTypes.GetMultiple(1).Count;
             }
@@ -169,7 +169,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public int GetQueuedCommandCountImages()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return CommandTypes.GetMultiple(2).Count;
             }

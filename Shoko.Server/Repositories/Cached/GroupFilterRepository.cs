@@ -33,9 +33,9 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndSaveCallback = (obj) =>
             {
-                // lock (Types)
+                lock (Types)
                 {
-                    // lock (Changes)
+                    lock (Changes)
                     {
                         Types[obj.GroupFilterID] = obj.Types;
                         Changes.AddOrUpdate(obj.GroupFilterID);
@@ -44,9 +44,9 @@ namespace Shoko.Server.Repositories.Cached
             };
             EndDeleteCallback = (obj) =>
             {
-                // lock (Types)
+                lock (Types)
                 {
-                    // lock (Changes)
+                    lock (Changes)
                     {
                         Types.Remove(obj.GroupFilterID);
                         Changes.Remove(obj.GroupFilterID);
@@ -466,7 +466,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public void Save(SVR_GroupFilter obj, bool onlyconditions)
         {
-            // lock (obj)
+            lock (obj)
             {
                 if (!onlyconditions)
                     obj.UpdateEntityReferenceStrings();
@@ -498,12 +498,12 @@ namespace Shoko.Server.Repositories.Cached
             if (groupFilters == null)
                 throw new ArgumentNullException(nameof(groupFilters));
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
-                // lock (Cache)
+                lock (Cache)
                 {
                     foreach (SVR_GroupFilter groupFilter in groupFilters)
-                        // lock (groupFilter)
+                        lock (groupFilter)
                         {
                             session.Update(groupFilter);
                             Cache.Update(groupFilter);
@@ -514,7 +514,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Parents.GetMultiple(parentid);
             }
@@ -522,7 +522,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetTopLevel()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Parents.GetMultiple(0);
             }
@@ -539,7 +539,7 @@ namespace Shoko.Server.Repositories.Cached
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
 
-            // lock (globalDBLock)
+            lock (globalDBLock)
             {
                 var groupsByFilter = session.CreateSQLQuery(@"
                 SELECT DISTINCT grpFilter.GroupFilterID, grp.AnimeGroupID
@@ -566,7 +566,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return Cache.Values.Where(a => a.Locked == 1).ToList();
             }
@@ -574,7 +574,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 HashSet<int> filters = new HashSet<int>(Cache.Values
                     .Where(a => a.FilterType == (int) GroupFilterType.All)
@@ -588,7 +588,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetWithConditionsTypes(HashSet<GroupFilterConditionType> types)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 HashSet<int> filters = new HashSet<int>();
                 foreach (GroupFilterConditionType t in types)
@@ -599,7 +599,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            // lock (Changes)
+            lock (Changes)
             {
                 return Changes;
             }

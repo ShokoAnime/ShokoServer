@@ -131,9 +131,17 @@ namespace Shoko.Server.Commands
             if (!CommandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType,
                 out ReflectionUtils.ObjectActivator<CommandRequestImplementation> ctor)) return null;
 
-            CommandRequestImplementation command = ctor();
-            command.LoadFromDBCommand(crdb);
-            return command;
+            try
+            {
+                CommandRequestImplementation command = ctor();
+                command.LoadFromDBCommand(crdb);
+                return command;
+            }
+            catch (Exception e)
+            {
+                logger.Error($"There was an error loading {(CommandRequestType)crdb.CommandType}: {e}");
+            }
+            return null;
         }
     }
 }

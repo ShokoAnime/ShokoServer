@@ -27,7 +27,7 @@ namespace Shoko.Server.Repositories.Cached
         public CrossRef_AniDB_TvDB_Episode GetByAniDBEpisodeID(int id)
         {
             // TODO Change this when multiple AniDB <=> TvDB Episode mappings
-            // lock (Cache)
+            lock (Cache)
             {
                 return EpisodeIDs.GetOne(id);
             }
@@ -35,7 +35,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB_Episode> GetByAnimeID(int id)
         {
-            // lock (Cache)
+            lock (Cache)
             {
                 return AnimeIDs.GetMultiple(id);
             }
