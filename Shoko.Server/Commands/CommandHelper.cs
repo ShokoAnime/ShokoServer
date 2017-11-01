@@ -139,6 +139,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception e)
             {
+                logger.Error($"There was an error loading {(CommandRequestType)crdb.CommandType}: The XML was {crdb.CommandDetails}");
                 logger.Error($"There was an error loading {(CommandRequestType)crdb.CommandType}: {e}");
             }
             return null;

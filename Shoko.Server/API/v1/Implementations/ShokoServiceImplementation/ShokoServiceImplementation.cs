@@ -678,7 +678,7 @@ namespace Shoko.Server
                 ShokoService.CmdProcessorHasher.Stop();
 
                 // wait until the queue stops
-                while (ShokoService.CmdProcessorHasher.ProcessingCommands)
+                while (ShokoService.CmdProcessorHasher.ProcessingCommands || ShokoService.CmdProcessorHasher.IsWorkerBusy)
                 {
                     Thread.Sleep(200);
                 }
@@ -701,7 +701,7 @@ namespace Shoko.Server
                 ShokoService.CmdProcessorImages.Stop();
 
                 // wait until the queue stops
-                while (ShokoService.CmdProcessorImages.ProcessingCommands)
+                while (ShokoService.CmdProcessorImages.ProcessingCommands || ShokoService.CmdProcessorImages.IsWorkerBusy)
                 {
                     Thread.Sleep(200);
                 }
@@ -723,7 +723,7 @@ namespace Shoko.Server
                 ShokoService.CmdProcessorGeneral.Stop();
 
                 // wait until the queue stops
-                while (ShokoService.CmdProcessorGeneral.ProcessingCommands)
+                while (ShokoService.CmdProcessorGeneral.ProcessingCommands || ShokoService.CmdProcessorGeneral.IsWorkerBusy)
                 {
                     Thread.Sleep(200);
                 }

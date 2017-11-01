@@ -111,6 +111,8 @@ namespace Shoko.Server.Commands
 
         public bool ProcessingCommands => processingCommands;
 
+        public bool IsWorkerBusy => workerCommands.IsBusy;
+
         public CommandProcessorImages()
         {
             workerCommands.WorkerReportsProgress = true;

@@ -120,6 +120,8 @@ namespace Shoko.Server.Commands
 
         public bool ProcessingCommands => processingCommands;
 
+        public bool IsWorkerBusy => workerCommands.IsBusy;
+
         public CommandProcessorGeneral()
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
