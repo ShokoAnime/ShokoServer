@@ -1362,7 +1362,7 @@ namespace Shoko.Server
                             sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
                                 StringComparison.InvariantCultureIgnoreCase);
                             fileGroupName = aniFile.Anime_GroupName;
-                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
+                            if (fileGroupName.Contains("unknown")) fileGroupName = Constants.NO_GROUP_INFO;
                         }
                         // Sometimes, especially with older files, the info doesn't quite match for resution
                         string vidResInfo = vid.VideoResolution;
