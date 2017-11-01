@@ -91,7 +91,7 @@ namespace Shoko.Server.Commands
                 {
                     queueCount = value;
                 }
-                OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value.DeepClone()));
+                Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
@@ -100,20 +100,21 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct QueueState
         {
+            // use copies and never return the object in use
             get
             {
                 lock (lockQueueState)
                 {
-                    return queueState;
+                    return queueState.DeepClone();
                 }
             }
             set
             {
                 lock (lockQueueState)
                 {
-                    queueState = value;
+                    queueState = value.DeepClone();
                 }
-                OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value.DeepClone()));
+                Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
             }
         }
 

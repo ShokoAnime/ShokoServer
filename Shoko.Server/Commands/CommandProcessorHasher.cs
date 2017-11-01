@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Force.DeepCloner;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -83,8 +84,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
@@ -97,16 +98,16 @@ namespace Shoko.Server.Commands
             {
                 lock (lockQueueState)
                 {
-                    return queueState;
+                    return queueState.DeepClone();
                 }
             }
             set
             {
                 lock (lockQueueState)
                 {
-                    queueState = value;
-                    Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
+                    queueState = value.DeepClone();
                 }
+                Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
             }
         }
 
