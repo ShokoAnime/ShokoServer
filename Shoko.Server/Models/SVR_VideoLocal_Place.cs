@@ -209,7 +209,8 @@ namespace Shoko.Server.Models
                 if (v.Places.Count <= 1)
                 {
                     episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
+                        .Select(a => a.GetAnimeSeries()));
 
                     using (var transaction = session.BeginTransaction())
                     {
@@ -245,7 +246,6 @@ namespace Shoko.Server.Models
                     LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
             }
-            seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
             {
                 ser?.QueueUpdateStats();
@@ -267,7 +267,7 @@ namespace Shoko.Server.Models
             {
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
                 eps?.ForEach(episodesToUpdate.Add);
-                eps?.Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
+                eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
