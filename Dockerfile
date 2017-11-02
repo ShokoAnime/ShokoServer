@@ -18,7 +18,8 @@ RUN rm -rf /usr/src/app/source
 RUN rm /usr/src/app/build/System.Net.Http.dll
 
 WORKDIR /usr/src/app/build/webui
-RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases/latest | jq -r '.assets[0].browser_download_url') -o latest.zip
+#RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '. | map(select(.prerelease==false)) | .[0].assets[0].browser_download_url') -o latest.zip
+RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '.[0].assets[0].browser_download_url') -o latest.zip
 RUN unzip -o latest.zip
 RUN rm latest.zip
 
