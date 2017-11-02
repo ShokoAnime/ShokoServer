@@ -1068,28 +1068,24 @@ namespace Shoko.Server.Models
             try
             {
                 FileSystemResult fr = dir.Populate();
-                if (fr.IsOk)
+                if (!fr.IsOk) return;
+                if (dir.IsEmpty)
                 {
-                    if (dir.Files.Count > 0 && dir.Directories.Count == 0)
+                    if (importfolder)
                         return;
-                    foreach (IDirectory d in dir.Directories)
-                        RecursiveDeleteEmptyDirectories(d, false);
-                }
-                if (importfolder)
+                    fr = dir.Delete(true);
+                    if (!fr.IsOk)
+                        logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
+                            fr?.Error ?? string.Empty);
+
                     return;
-                fr = dir.Populate();
-                if (fr.IsOk)
-                {
-                    if (dir.Files.Count == 0 && dir.Directories.Count == 0)
-                    {
-                        fr = dir.Delete(true);
-                        if (!fr.IsOk)
-                        {
-                            logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
-                                fr?.Error ?? String.Empty);
-                        }
-                    }
                 }
+                // Not Empty, so it has files and/or folders
+                // if it has no folders, return
+                if (dir.Directories.Count != 0) return;
+                // If it has folder, recurse
+                foreach (IDirectory d in dir.Directories)
+                    RecursiveDeleteEmptyDirectories(d, false);
             }
             catch (Exception e)
             {
