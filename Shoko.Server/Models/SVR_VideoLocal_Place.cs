@@ -256,7 +256,7 @@ namespace Shoko.Server.Models
         public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeEpisode> episodesToUpdate,
             ICollection<SVR_AnimeSeries> seriesToUpdate)
         {
-            logger.Info("Removing VideoLocal_Place recoord for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
+            logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
 
             List<DuplicateFile> dupFiles = null;
