@@ -1345,36 +1345,40 @@ namespace Shoko.Server
 
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
-                    SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == EpisodeType.Special)
+
+                    bool sourceMatches =
+                        videoSource.Equals(string.Intern("Manual Link"), StringComparison.InvariantCultureIgnoreCase) ||
+                        videoSource.Equals(string.Intern("unknown"), StringComparison.InvariantCultureIgnoreCase);
+                    bool groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
+                        StringComparison.InvariantCultureIgnoreCase);
+                    // get the anibd file info
+                    AniDB_File aniFile = vid.GetAniDBFile();
+                    if (aniFile != null)
                     {
-                        string fileGroupName = Constants.NO_GROUP_INFO;
-
-                        bool sourceMatches =
-                            videoSource.Equals(string.Intern("Manual Link"), StringComparison.InvariantCultureIgnoreCase) ||
-                            videoSource.Equals(string.Intern("unknown"), StringComparison.InvariantCultureIgnoreCase);
-                        // get the anibd file info
-                        AniDB_File aniFile = vid.GetAniDBFile();
-                        if (aniFile != null)
-                        {
-                            videoSource = SimplifyVideoSource(videoSource);
-                            sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
+                        videoSource = SimplifyVideoSource(videoSource);
+                        sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
+                                            StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
+                                        aniFile.File_Source.Contains(string.Intern("unknown"),
+                                            StringComparison.InvariantCultureIgnoreCase) &&
+                                        videoSource.Equals(string.Intern("unknown"),
+                                            StringComparison.InvariantCultureIgnoreCase);
+                        groupMatches =
+                            relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
+                            relGroupName.Equals(aniFile.Anime_GroupNameShort,
                                 StringComparison.InvariantCultureIgnoreCase);
-                            fileGroupName = aniFile.Anime_GroupName;
-                            if (fileGroupName.Contains("unknown")) fileGroupName = Constants.NO_GROUP_INFO;
-                        }
-                        // Sometimes, especially with older files, the info doesn't quite match for resution
-                        string vidResInfo = vid.VideoResolution;
+                        if (aniFile.Anime_GroupName.Contains("unknown") ||
+                            aniFile.Anime_GroupNameShort.Contains("unknown"))
+                            groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
+                                StringComparison.InvariantCultureIgnoreCase);
+                    }
+                    // Sometimes, especially with older files, the info doesn't quite match for resution
+                    string vidResInfo = vid.VideoResolution;
 
-                        // match based on group / video sorce / video res
-                        if (relGroupName.Equals(fileGroupName, StringComparison.InvariantCultureIgnoreCase) &&
-                            sourceMatches &&
-                            resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
-                            thisBitDepth == videoBitDepth)
-                        {
-                            vids.Add(vid.ToClientDetailed(userID));
-                        }
+                    // match based on group / video sorce / video res
+                    if (groupMatches && sourceMatches && thisBitDepth == videoBitDepth &&
+                        resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        vids.Add(vid.ToClientDetailed(userID));
                     }
                 }
                 return vids;
@@ -1399,30 +1403,30 @@ namespace Shoko.Server
                 {
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
-                    SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == EpisodeType.Special)
+                    // get the anibd file info
+                    AniDB_File aniFile = vid.GetAniDBFile();
+                    if (aniFile != null)
                     {
-                        // get the anibd file info
-                        AniDB_File aniFile = vid.GetAniDBFile();
-                        if (aniFile != null)
+                        bool groupMatches =
+                            relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
+                            relGroupName.Equals(aniFile.Anime_GroupNameShort,
+                                StringComparison.InvariantCultureIgnoreCase);
+                        if (aniFile.Anime_GroupName.Contains("unknown") ||
+                            aniFile.Anime_GroupNameShort.Contains("unknown"))
+                            groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
+                                StringComparison.InvariantCultureIgnoreCase);
+                        // match based on group / video sorce / video res
+                        if (groupMatches)
                         {
-                            string fileGroupName = aniFile.Anime_GroupName;
-                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
-                            // match based on group / video sorce / video res
-                            if (relGroupName.Equals(fileGroupName,
-                                StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                vids.Add(vid.ToClientDetailed(userID));
-                            }
+                            vids.Add(vid.ToClientDetailed(userID));
                         }
-                        else
+                    }
+                    else
+                    {
+                        if (relGroupName.Equals(Constants.NO_GROUP_INFO,
+                            StringComparison.InvariantCultureIgnoreCase))
                         {
-                            if (relGroupName.Equals(Constants.NO_GROUP_INFO,
-                                StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                vids.Add(vid.ToClientDetailed(userID));
-                            }
+                            vids.Add(vid.ToClientDetailed(userID));
                         }
                     }
                 }
