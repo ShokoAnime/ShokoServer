@@ -72,25 +72,26 @@ namespace Shoko.Server.Repositories.Cached
             try
             {
                 count = 0;
-                var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList();
+                var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null)
+                    .ToList();
                 max = list.Count;
 
                 list.ForEach(
-                        a =>
+                    a =>
+                    {
+                        //Fix possible paths in filename
+                        if (!string.IsNullOrEmpty(a.FileName))
                         {
-                            //Fix possible paths in filename
-                            if (!string.IsNullOrEmpty(a.FileName))
-                            {
-                                int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                                if (b > 0)
-                                    a.FileName = a.FileName.Substring(b + 1);
-                            }
-                            Save(a, false);
-                            count++;
-                            ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
-                                " Generating Media Info - " + count + "/" + max);
-                        });
+                            int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                            if (b > 0)
+                                a.FileName = a.FileName.Substring(b + 1);
+                        }
+                        Save(a, false);
+                        count++;
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                            " Generating Media Info - " + count + "/" + max);
+                    });
             }
             catch
             {
@@ -115,8 +116,8 @@ namespace Shoko.Server.Repositories.Cached
                         ServerState.Instance.CurrentSetupStatus = string.Format(
                             Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
                             " Cleaning File Paths - " + count + "/" + max);
-                        }
-                    catch(Exception e)
+                    }
+                    catch (Exception e)
                     {
                         logger.Error($"Error cleaning path on file: {a.FileName}\r\n{e}");
                     }
@@ -129,11 +130,13 @@ namespace Shoko.Server.Repositories.Cached
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                Dictionary<string, List<SVR_VideoLocal>> locals = Cache.Values.Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                Dictionary<string, List<SVR_VideoLocal>> locals = Cache.Values
+                    .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                     .GroupBy(a => a.Hash)
                     .ToDictionary(g => g.Key, g => g.ToList());
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Empty Records");
+                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                    " Cleaning Empty Records");
                 using (var transaction = session.BeginTransaction())
                 {
                     var list = Cache.Values.Where(a => a.IsEmpty()).ToList();
@@ -155,7 +158,8 @@ namespace Shoko.Server.Repositories.Cached
                 max = locals.Keys.Count;
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Duplicate Records");
+                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                    " Cleaning Duplicate Records");
 
                 foreach (string hash in locals.Keys)
                 {
@@ -192,7 +196,8 @@ namespace Shoko.Server.Repositories.Cached
                 }
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Fragmented Records");
+                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                    " Cleaning Fragmented Records");
                 using (var transaction = session.BeginTransaction())
                 {
                     var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
@@ -263,80 +268,56 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_VideoLocal GetByHash(string hash)
         {
-            lock (Cache)
-            {
-                return Hashes.GetOne(hash);
-            }
+            return Hashes.GetOne(hash);
         }
 
         public SVR_VideoLocal GetByMD5(string hash)
         {
-            lock (Cache)
-            {
-                return MD5.GetOne(hash);
-            }
+            return MD5.GetOne(hash);
         }
 
         public SVR_VideoLocal GetBySHA1(string hash)
         {
-            lock (Cache)
-            {
-                return SHA1.GetOne(hash);
-            }
+            return SHA1.GetOne(hash);
         }
 
         public long GetTotalRecordCount()
         {
-            lock (Cache)
-            {
-                return Cache.Keys.Count;
-            }
+            return Cache.Keys.Count;
         }
 
         public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
         {
-            lock (Cache)
-            {
-                return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
-            }
+            return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
         }
 
         public List<SVR_VideoLocal> GetByName(string fileName)
         {
-            lock (Cache)
-            {
-                return Cache.Values.Where(p => p.Places.Any(
-                        a => a.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)))
-                    .ToList();
-            }
+            return Cache.Values.Where(p => p.Places.Any(
+                    a => a.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)))
+                .ToList();
         }
 
         public List<SVR_VideoLocal> GetMostRecentlyAdded(int maxResults)
         {
-            lock (Cache)
-            {
-                if (maxResults == -1)
-                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList();
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-            }
+            if (maxResults == -1)
+                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList();
+            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
         }
 
         public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
         {
-            lock (Cache)
+            IEnumerator<int> en = new UniqueRandoms(0, Cache.Values.Count - 1).GetEnumerator();
+            List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
+            if (maxResults > Cache.Values.Count)
+                maxResults = Cache.Values.Count;
+            for (int x = 0; x < maxResults; x++)
             {
-                IEnumerator<int> en = new UniqueRandoms(0, Cache.Values.Count - 1).GetEnumerator();
-                List<SVR_VideoLocal> vids = new List<SVR_VideoLocal>();
-                if (maxResults > Cache.Values.Count)
-                    maxResults = Cache.Values.Count;
-                for (int x = 0; x < maxResults; x++)
-                {
-                    en.MoveNext();
-                    vids.Add(Cache.Values.ElementAt(en.Current));
-                }
-                en.Dispose();
-                return vids;
+                en.MoveNext();
+                vids.Add(Cache.Values.ElementAt(en.Current));
             }
+            en.Dispose();
+            return vids;
         }
 
         public class UniqueRandoms : IEnumerable<int>
@@ -434,35 +415,26 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal> GetVideosWithoutHash()
         {
-            lock (Cache)
-            {
-                return Hashes.GetMultiple("").ToList();
-            }
+            return Hashes.GetMultiple("").ToList();
         }
 
         public List<SVR_VideoLocal> GetVideosWithoutVideoInfo()
         {
-            lock (Cache)
-            {
-                return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION ||
-                                               a.Duration == 0)
-                    .ToList();
-            }
+            return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION ||
+                                           a.Duration == 0)
+                .ToList();
         }
 
         public List<SVR_VideoLocal> GetVideosWithoutEpisode()
         {
-            lock (Cache)
-            {
-                HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll()
-                    .Select(a => a.Hash));
-                HashSet<string> vlocals = new HashSet<string>(Cache.Values.Where(a => a.IsIgnored == 0)
-                    .Select(a => a.Hash));
-                return vlocals.Except(hashes)
-                    .SelectMany(a => Hashes.GetMultiple(a))
-                    .OrderBy(a => a.DateTimeCreated)
-                    .ToList();
-            }
+            HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll()
+                .Select(a => a.Hash));
+            HashSet<string> vlocals = new HashSet<string>(Cache.Values.Where(a => a.IsIgnored == 0)
+                .Select(a => a.Hash));
+            return vlocals.Except(hashes)
+                .SelectMany(a => Hashes.GetMultiple(a))
+                .OrderBy(a => a.DateTimeCreated)
+                .ToList();
         }
 
         public List<SVR_VideoLocal> GetManuallyLinkedVideos()
@@ -477,10 +449,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal> GetIgnoredVideos()
         {
-            lock (Cache)
-            {
-                return Ignored.GetMultiple(1);
-            }
+            return Ignored.GetMultiple(1);
         }
     }
 }

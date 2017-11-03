@@ -118,11 +118,7 @@ namespace Shoko.Server.Repositories.Cached
                             SaveWithOpenTransaction(session, grp);
                             transaction.Commit();
                         }
-                        lock (Changes)
-                        {
-                            Changes.AddOrUpdate(grp.AnimeGroupID);
-                        }
-
+                        Changes.AddOrUpdate(grp.AnimeGroupID);
                         if (verifylockedFilters)
                         {
                             RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract.Stat_AllTags,
@@ -157,18 +153,12 @@ namespace Shoko.Server.Repositories.Cached
                     lock (group)
                     {
                         session.Insert(group);
-                        lock (Cache)
-                        {
-                            Cache.Update(group);
-                        }
+                        Cache.Update(group);
                     }
                 }
             }
 
-            lock (Changes)
-            {
-                Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
-            }
+            Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
         public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
@@ -185,18 +175,12 @@ namespace Shoko.Server.Repositories.Cached
                     lock (group)
                     {
                         session.Update(group);
-                        lock (Cache)
-                        {
-                            Cache.Update(group);
-                        }
+                        Cache.Update(group);
                     }
                 }
             }
 
-            lock (Changes)
-            {
-                Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
-            }
+            Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
         /// <summary>
@@ -225,21 +209,15 @@ namespace Shoko.Server.Repositories.Cached
                         .SetInt32("excludeId", excludeGroupId.Value)
                         .ExecuteUpdate();
 
-                    lock (Changes)
-                    {
-                        Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
-                            .Where(id => id != excludeGroupId.Value));
-                    }
+                    Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
+                        .Where(id => id != excludeGroupId.Value));
                 }
                 else
                 {
                     session.CreateQuery("delete SVR_AnimeGroup ag")
                         .ExecuteUpdate();
 
-                    lock (Changes)
-                    {
-                        Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
-                    }
+                    Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
                 }
             }
 
@@ -253,36 +231,24 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (excludedGroup != null)
                 {
-                    lock (Cache)
-                    {
-                        Cache.Update(excludedGroup);
-                    }
+                    Cache.Update(excludedGroup);
                 }
             }
         }
 
         public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
-            lock (Cache)
-            {
-                return Parents.GetMultiple(parentid);
-            }
+            return Parents.GetMultiple(parentid);
         }
 
         public List<SVR_AnimeGroup> GetAllTopLevelGroups()
         {
-            lock (Cache)
-            {
-                return Parents.GetMultiple(0);
-            }
+            return Parents.GetMultiple(0);
         }
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            lock (Changes)
-            {
-                return Changes;
-            }
+            return Changes;
         }
     }
 }

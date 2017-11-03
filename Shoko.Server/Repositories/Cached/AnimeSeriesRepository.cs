@@ -29,10 +29,7 @@ namespace Shoko.Server.Repositories.Cached
             BeginDeleteCallback = (cr) =>
             {
                 RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-                lock (Changes)
-                {
-                    Changes.Remove(cr.AnimeSeriesID);
-                }
+                Changes.Remove(cr.AnimeSeriesID);
             };
             EndDeleteCallback = (cr) =>
             {
@@ -110,10 +107,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            lock (Changes)
-            {
-                return Changes;
-            }
+            return Changes;
         }
 
         public override void Save(SVR_AnimeSeries obj)
@@ -170,7 +164,8 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (updateGroups && !isMigrating)
                 {
-                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
+                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}",
+                        obj.AnimeSeriesID);
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                     if (grp != null)
                         RepoFactory.AnimeGroup.Save(grp, true, true);
@@ -200,10 +195,7 @@ namespace Shoko.Server.Repositories.Cached
                     // Update other existing filters
                     obj.UpdateGroupFilters(types, null);
                 }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(obj.AnimeSeriesID);
-                }
+                Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
             if (alsoupdateepisodes)
             {
@@ -229,53 +221,35 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Update(series);
-                    lock (Cache)
-                    {
-                        Cache.Update(series);
-                    }
+                    Cache.Update(series);
                 }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(series.AnimeSeriesID);
-                }
+                Changes.AddOrUpdate(series.AnimeSeriesID);
             }
         }
 
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            lock (Cache)
-            {
-                return AniDBIds.GetOne(id);
-            }
+            return AniDBIds.GetOne(id);
         }
 
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            lock (Cache)
-            {
-                return Groups.GetMultiple(groupid);
-            }
+            return Groups.GetMultiple(groupid);
         }
 
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            lock (Cache)
-            {
-                return
-                    Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
-                        .OrderByDescending(a => a.EpisodeAddedDate)
-                        .ToList();
-            }
+            return
+                Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
+                    .OrderByDescending(a => a.EpisodeAddedDate)
+                    .ToList();
         }
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
-            lock (Cache)
-            {
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
-            }
+            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
         }
     }
 }

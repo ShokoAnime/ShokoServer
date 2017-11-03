@@ -48,10 +48,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(id);
-            }
+            return Animes.GetMultiple(id);
         }
 
         public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs([NotNull] ISessionWrapper session, ICollection<int> ids)
@@ -80,13 +77,10 @@ namespace Shoko.Server.Repositories
         public List<AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType,
             string titleValue)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(animeID).Where(a =>
-                    a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase) &&
-                    a.Title.Equals(titleValue, StringComparison.InvariantCultureIgnoreCase) &&
-                    a.TitleType.Equals(titleType, StringComparison.InvariantCultureIgnoreCase)).ToList();
-            }
+            return Animes.GetMultiple(animeID).Where(a =>
+                a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase) &&
+                a.Title.Equals(titleValue, StringComparison.InvariantCultureIgnoreCase) &&
+                a.TitleType.Equals(titleType, StringComparison.InvariantCultureIgnoreCase)).ToList();
         }
 
         /// <summary>

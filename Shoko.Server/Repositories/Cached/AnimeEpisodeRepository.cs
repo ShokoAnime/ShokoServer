@@ -69,20 +69,14 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
-            {
-                return Series.GetMultiple(seriesid);
-            }
+            return Series.GetMultiple(seriesid);
         }
 
 
         public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
-            lock (Cache)
-            {
-                //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
-                return EpisodeIDs.GetOne(epid);
-            }
+            //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
+            return EpisodeIDs.GetOne(epid);
         }
 
 

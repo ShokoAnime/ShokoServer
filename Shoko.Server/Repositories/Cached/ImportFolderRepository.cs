@@ -34,25 +34,19 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            lock (Cache)
-            {
-                return Cache.Values.FirstOrDefault(a =>
-                    a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
-                        .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
-                        .Equals(
-                            importloc?.Replace('\\', Path.DirectorySeparatorChar)
-                                .Replace('/', Path.DirectorySeparatorChar)
-                                .TrimEnd(Path.DirectorySeparatorChar),
-                            StringComparison.InvariantCultureIgnoreCase) ?? false);
-            }
+            return Cache.Values.FirstOrDefault(a =>
+                a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
+                    .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
+                    .Equals(
+                        importloc?.Replace('\\', Path.DirectorySeparatorChar)
+                            .Replace('/', Path.DirectorySeparatorChar)
+                            .TrimEnd(Path.DirectorySeparatorChar),
+                        StringComparison.InvariantCultureIgnoreCase) ?? false);
         }
 
         public List<SVR_ImportFolder> GetByCloudId(int cloudid)
         {
-            lock (Cache)
-            {
-                return Cache.Values.Where(a => a.CloudID.HasValue && a.CloudID.Value == cloudid).ToList();
-            }
+            return Cache.Values.Where(a => a.CloudID.HasValue && a.CloudID.Value == cloudid).ToList();
         }
     }
 }

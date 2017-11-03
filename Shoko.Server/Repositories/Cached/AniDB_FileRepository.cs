@@ -77,34 +77,22 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            lock (Cache)
-            {
-                return Hashes.GetOne(hash);
-            }
+            return Hashes.GetOne(hash);
         }
 
         public SVR_AniDB_File GetBySHA1(string hash)
         {
-            lock (Cache)
-            {
-                return SHA1s.GetOne(hash);
-            }
+            return SHA1s.GetOne(hash);
         }
 
         public SVR_AniDB_File GetByMD5(string hash)
         {
-            lock (Cache)
-            {
-                return MD5s.GetOne(hash);
-            }
+            return MD5s.GetOne(hash);
         }
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            lock (Cache)
-            {
-                return InternalVersions.GetMultiple(version);
-            }
+            return InternalVersions.GetMultiple(version);
         }
 
         public List<SVR_AniDB_File> GetWithWithMissingChapters()
@@ -124,35 +112,23 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            lock (Cache)
-            {
-                return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
-            }
+            return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
         }
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            lock (Cache)
-            {
-                return FileIds.GetOne(fileID);
-            }
+            return FileIds.GetOne(fileID);
         }
 
 
         public List<SVR_AniDB_File> GetByAnimeID(int animeID)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(animeID);
-            }
+            return Animes.GetMultiple(animeID);
         }
 
         public List<SVR_AniDB_File> GetByResolution(string res)
         {
-            lock (Cache)
-            {
-                return Resolutions.GetMultiple(res);
-            }
+            return Resolutions.GetMultiple(res);
         }
     }
 }

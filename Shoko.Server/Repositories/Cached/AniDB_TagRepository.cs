@@ -27,7 +27,8 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            List<AniDB_Tag> tags = Cache.Values.Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`')).ToList();
+            List<AniDB_Tag> tags = Cache.Values
+                .Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`')).ToList();
             foreach (AniDB_Tag tag in tags)
             {
                 tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
@@ -62,10 +63,7 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Tag GetByTagID(int id)
         {
-            lock (Cache)
-            {
-                return Tags.GetOne(id);
-            }
+            return Tags.GetOne(id);
         }
 
 

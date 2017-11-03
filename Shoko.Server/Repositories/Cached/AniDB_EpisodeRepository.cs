@@ -44,7 +44,8 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            List<AniDB_Episode> episodes = Cache.Values.Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
+            List<AniDB_Episode> episodes = Cache.Values
+                .Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
             foreach (AniDB_Episode episode in episodes)
             {
                 episode.EnglishName = episode.EnglishName.Replace('`', '\'');
@@ -56,38 +57,26 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Episode GetByEpisodeID(int id)
         {
-            lock (Cache)
-            {
-                return EpisodesIds.GetOne(id);
-            }
+            return EpisodesIds.GetOne(id);
         }
 
         public List<AniDB_Episode> GetByAnimeID(int id)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(id);
-            }
+            return Animes.GetMultiple(id);
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(animeid)
-                    .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
-                    .ToList();
-            }
+            return Animes.GetMultiple(animeid)
+                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
+                .ToList();
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(animeid)
-                    .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
-                    .ToList();
-            }
+            return Animes.GetMultiple(animeid)
+                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
+                .ToList();
         }
 
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()

@@ -62,28 +62,19 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_File_Episode> GetByHash(string hash)
         {
-            lock (Cache)
-            {
-                return Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList();
-            }
+            return Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList();
         }
 
 
         public List<CrossRef_File_Episode> GetByAnimeID(int animeID)
         {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(animeID);
-            }
+            return Animes.GetMultiple(animeID);
         }
 
 
         public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
         {
-            lock (Cache)
-            {
-                return Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList();
-            }
+            return Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList();
         }
 
         /// <summary>
@@ -94,18 +85,12 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public CrossRef_File_Episode GetByHashAndEpisodeID(string hash, int episodeID)
         {
-            lock (Cache)
-            {
-                return Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID);
-            }
+            return Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID);
         }
 
         public List<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         {
-            lock (Cache)
-            {
-                return Episodes.GetMultiple(episodeID);
-            }
+            return Episodes.GetMultiple(episodeID);
         }
     }
 }

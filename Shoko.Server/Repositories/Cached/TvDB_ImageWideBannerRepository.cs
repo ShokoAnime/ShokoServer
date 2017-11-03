@@ -40,18 +40,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImageWideBanner GetByTvDBID(int id)
         {
-            lock (Cache)
-            {
-                return TvDBIDs.GetOne(id);
-            }
+            return TvDBIDs.GetOne(id);
         }
 
         public List<TvDB_ImageWideBanner> GetBySeriesID(int seriesID)
         {
-            lock (Cache)
-            {
-                return SeriesIDs.GetMultiple(seriesID);
-            }
+            return SeriesIDs.GetMultiple(seriesID);
         }
 
         public ILookup<int, TvDB_ImageWideBanner> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)

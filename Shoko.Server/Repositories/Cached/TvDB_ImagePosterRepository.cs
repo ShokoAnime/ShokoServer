@@ -35,18 +35,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImagePoster GetByTvDBID(int id)
         {
-            lock (Cache)
-            {
-                return TvDBIDs.GetOne(id);
-            }
+            return TvDBIDs.GetOne(id);
         }
 
         public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
         {
-            lock (Cache)
-            {
-                return SeriesIDs.GetMultiple(seriesID);
-            }
+            return SeriesIDs.GetMultiple(seriesID);
         }
     }
 }

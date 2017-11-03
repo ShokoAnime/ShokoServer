@@ -44,7 +44,7 @@ namespace Shoko.Server.Repositories.Cached
                 req.CommandType == (int) CommandRequestType.ValidateAllImages)
                 return 2;
             if (req.CommandType == (int) CommandRequestType.HashFile ||
-                     req.CommandType == (int) CommandRequestType.ReadMediaInfo)
+                req.CommandType == (int) CommandRequestType.ReadMediaInfo)
                 return 1;
 
             return 0;
@@ -52,7 +52,6 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-
         }
 
         public static CommandRequestRepository Create()
@@ -63,16 +62,13 @@ namespace Shoko.Server.Repositories.Cached
         public CommandRequest GetByCommandID(string cmdid)
         {
             if (string.IsNullOrEmpty(cmdid)) return null;
-            lock (Cache)
-            {
-                var crs = CommandIDs.GetMultiple(cmdid);
-                var cr = crs.FirstOrDefault();
-                if (crs.Count <= 1) return cr;
+            var crs = CommandIDs.GetMultiple(cmdid);
+            var cr = crs.FirstOrDefault();
+            if (crs.Count <= 1) return cr;
 
-                crs.Remove(cr);
-                foreach (var crd in crs) Delete(crd);
-                return cr;
-            }
+            crs.Remove(cr);
+            foreach (var crd in crs) Delete(crd);
+            return cr;
         }
 
 
@@ -80,11 +76,8 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                lock (Cache)
-                {
-                    return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority)
-                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
-                }
+                return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority)
+                    .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
             }
             catch (Exception e)
             {
@@ -95,21 +88,15 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestGeneral()
         {
-            lock (Cache)
-            {
-                return CommandTypes.GetMultiple(0);
-            }
+            return CommandTypes.GetMultiple(0);
         }
 
         public CommandRequest GetNextDBCommandRequestHasher()
         {
             try
             {
-                lock (Cache)
-                {
-                    return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
-                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
-                }
+                return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
+                    .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
             }
             catch (Exception e)
             {
@@ -120,21 +107,15 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestHasher()
         {
-            lock (Cache)
-            {
-                return CommandTypes.GetMultiple(1);
-            }
+            return CommandTypes.GetMultiple(1);
         }
 
         public CommandRequest GetNextDBCommandRequestImages()
         {
             try
             {
-                lock (Cache)
-                {
-                    return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
-                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
-                }
+                return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
+                    .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
             }
             catch (Exception e)
             {
@@ -145,34 +126,22 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestImages()
         {
-            lock (Cache)
-            {
-                return CommandTypes.GetMultiple(2);
-            }
+            return CommandTypes.GetMultiple(2);
         }
 
         public int GetQueuedCommandCountGeneral()
         {
-            lock (Cache)
-            {
-                return CommandTypes.GetMultiple(0).Count;
-            }
+            return CommandTypes.GetMultiple(0).Count;
         }
 
         public int GetQueuedCommandCountHasher()
         {
-            lock (Cache)
-            {
-                return CommandTypes.GetMultiple(1).Count;
-            }
+            return CommandTypes.GetMultiple(1).Count;
         }
 
         public int GetQueuedCommandCountImages()
         {
-            lock (Cache)
-            {
-                return CommandTypes.GetMultiple(2).Count;
-            }
+            return CommandTypes.GetMultiple(2).Count;
         }
     }
 }

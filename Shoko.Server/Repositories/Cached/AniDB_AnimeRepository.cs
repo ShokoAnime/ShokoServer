@@ -110,46 +110,31 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
-            lock (Cache)
-            {
-                return Animes.GetOne(id);
-            }
+            return Animes.GetOne(id);
         }
 
         public SVR_AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
         {
-            lock (Cache)
-            {
-                return Animes.GetOne(id);
-            }
+            return Animes.GetOne(id);
         }
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            lock (Cache)
-            {
-                return Cache.Values.Where(a =>
-                    a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
-            }
+            return Cache.Values.Where(a =>
+                a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
         }
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
-            lock (Cache)
-            {
-                return Cache.Values.Where(a =>
-                    a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
-            }
+            return Cache.Values.Where(a =>
+                a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
         }
 
         public List<SVR_AniDB_Anime> SearchByTag(string queryText)
         {
-            lock (Cache)
-            {
-                return Cache.Values
-                    .Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
-                    .ToList();
-            }
+            return Cache.Values
+                .Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                .ToList();
         }
 
         public Dictionary<int, DefaultAnimeImages> GetDefaultImagesByAnime(ISessionWrapper session, int[] animeIds)

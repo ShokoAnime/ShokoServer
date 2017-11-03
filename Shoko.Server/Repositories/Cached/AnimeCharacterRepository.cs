@@ -32,7 +32,8 @@ namespace Shoko.Server.Repositories
                 i++;
                 if (i % 10 == 0)
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AnimeCharacter).Name, $" DbRegen - {i}/{list.Count}");
+                        Commons.Properties.Resources.Database_Validating, typeof(AnimeCharacter).Name,
+                        $" DbRegen - {i}/{list.Count}");
             }
         }
 
@@ -54,10 +55,7 @@ namespace Shoko.Server.Repositories
 
         public AnimeCharacter GetByAniDBID(int id)
         {
-            lock (Cache)
-            {
-                return AniDBIDs.GetOne(id);
-            }
+            return AniDBIDs.GetOne(id);
         }
     }
 }
