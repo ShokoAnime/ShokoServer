@@ -1083,7 +1083,7 @@ namespace Shoko.Server.Models
                 // Not Empty, so it has files and/or folders
                 // if it has no folders, return
                 var directories = dir.Directories;
-                if (directories.Count != 0) return;
+                if (directories.Count == 0) return;
                 // If it has folder, recurse
                 foreach (IDirectory d in directories)
                     RecursiveDeleteEmptyDirectories(d, false);
