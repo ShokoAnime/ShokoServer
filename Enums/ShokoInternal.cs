@@ -160,6 +160,7 @@ namespace Shoko.Models.Enums
         GroupFilterName = 13,
     }
 
+    [Flags]
     public enum GroupFilterType
     {
         UserDefined = 1,
