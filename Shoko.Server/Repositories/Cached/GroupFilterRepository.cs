@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -488,23 +488,32 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (globalDBLock)
             {
-                foreach (SVR_GroupFilter groupFilter in groupFilters)
-                    lock (groupFilter)
-                    {
-                        session.Update(groupFilter);
-                        Cache.Update(groupFilter);
-                    }
+                lock (Cache)
+                {
+                    foreach (SVR_GroupFilter groupFilter in groupFilters)
+                        lock (groupFilter)
+                        {
+                            session.Update(groupFilter);
+                            Cache.Update(groupFilter);
+                        }
+                }
             }
         }
 
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
-            return Parents.GetMultiple(parentid);
+            lock (Cache)
+            {
+                return Parents.GetMultiple(parentid);
+            }
         }
 
         public List<SVR_GroupFilter> GetTopLevel()
         {
-            return Parents.GetMultiple(0);
+            lock (Cache)
+            {
+                return Parents.GetMultiple(0);
+            }
         }
 
         /// <summary>
@@ -545,26 +554,35 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()
         {
-            return Cache.Values.Where(a => a.Locked == 1).ToList();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.Locked == 1).ToList();
+            }
         }
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            HashSet<int> filters = new HashSet<int>(Cache.Values
-                .Where(a => a.FilterType == (int) GroupFilterType.All)
-                .Select(a => a.GroupFilterID));
-            foreach (GroupFilterConditionType t in types)
-                filters.UnionWith(Types.FindInverse(t));
+            lock (Cache)
+            {
+                HashSet<int> filters = new HashSet<int>(Cache.Values
+                    .Where(a => a.FilterType == (int) GroupFilterType.All)
+                    .Select(a => a.GroupFilterID));
+                foreach (GroupFilterConditionType t in types)
+                    filters.UnionWith(Types.FindInverse(t));
 
-            return filters.Select(a => Cache.Get(a)).ToList();
+                return filters.Select(a => Cache.Get(a)).ToList();
+            }
         }
 
         public List<SVR_GroupFilter> GetWithConditionsTypes(HashSet<GroupFilterConditionType> types)
         {
-            HashSet<int> filters = new HashSet<int>();
-            foreach (GroupFilterConditionType t in types)
-                filters.UnionWith(Types.FindInverse(t));
-            return filters.Select(a => Cache.Get(a)).ToList();
+            lock (Cache)
+            {
+                HashSet<int> filters = new HashSet<int>();
+                foreach (GroupFilterConditionType t in types)
+                    filters.UnionWith(Types.FindInverse(t));
+                return filters.Select(a => Cache.Get(a)).ToList();
+            }
         }
 
         public ChangeTracker<int> GetChangeTracker()

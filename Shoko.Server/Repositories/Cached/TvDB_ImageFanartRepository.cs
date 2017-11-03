@@ -31,12 +31,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
-            return TvDBIDs.GetOne(id);
+            lock (Cache)
+            {
+                return TvDBIDs.GetOne(id);
+            }
         }
 
         public List<TvDB_ImageFanart> GetBySeriesID(int seriesID)
         {
-            return SeriesIDs.GetMultiple(seriesID);
+            lock (Cache)
+            {
+                return SeriesIDs.GetMultiple(seriesID);
+            }
         }
 
         public ILookup<int, TvDB_ImageFanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)

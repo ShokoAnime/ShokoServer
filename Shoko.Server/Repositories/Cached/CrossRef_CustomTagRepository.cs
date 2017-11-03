@@ -43,19 +43,28 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
-            return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
+            lock (Cache)
+            {
+                return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
+            }
         }
 
 
         public List<CrossRef_CustomTag> GetByCustomTagID(int id)
         {
-            return Tags.GetMultiple(id);
+            lock (Cache)
+            {
+                return Tags.GetMultiple(id);
+            }
         }
 
 
         public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
         {
-            return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
+            lock (Cache)
+            {
+                return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
+            }
         }
     }
 }

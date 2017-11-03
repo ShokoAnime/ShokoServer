@@ -57,26 +57,38 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Episode GetByEpisodeID(int id)
         {
-            return EpisodesIds.GetOne(id);
+            lock (Cache)
+            {
+                return EpisodesIds.GetOne(id);
+            }
         }
 
         public List<AniDB_Episode> GetByAnimeID(int id)
         {
-            return Animes.GetMultiple(id);
+            lock (Cache)
+            {
+                return Animes.GetMultiple(id);
+            }
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            return Animes.GetMultiple(animeid)
-                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
-                .ToList();
+            lock (Cache)
+            {
+                return Animes.GetMultiple(animeid)
+                    .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
+                    .ToList();
+            }
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
         {
-            return Animes.GetMultiple(animeid)
-                .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
-                .ToList();
+            lock (Cache)
+            {
+                return Animes.GetMultiple(animeid)
+                    .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
+                    .ToList();
+            }
         }
 
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()

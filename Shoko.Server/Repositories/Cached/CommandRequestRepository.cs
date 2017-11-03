@@ -62,13 +62,16 @@ namespace Shoko.Server.Repositories.Cached
         public CommandRequest GetByCommandID(string cmdid)
         {
             if (string.IsNullOrEmpty(cmdid)) return null;
-            var crs = CommandIDs.GetMultiple(cmdid);
-            var cr = crs.FirstOrDefault();
-            if (crs.Count <= 1) return cr;
+            lock (Cache)
+            {
+                var crs = CommandIDs.GetMultiple(cmdid);
+                var cr = crs.FirstOrDefault();
+                if (crs.Count <= 1) return cr;
 
-            crs.Remove(cr);
-            foreach (var crd in crs) Delete(crd);
-            return cr;
+                crs.Remove(cr);
+                foreach (var crd in crs) Delete(crd);
+                return cr;
+            }
         }
 
 
@@ -76,8 +79,11 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority)
-                    .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                lock (Cache)
+                {
+                    return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority)
+                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                }
             }
             catch (Exception e)
             {
@@ -88,15 +94,21 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestGeneral()
         {
-            return CommandTypes.GetMultiple(0);
+            lock (Cache)
+            {
+                return CommandTypes.GetMultiple(0);
+            }
         }
 
         public CommandRequest GetNextDBCommandRequestHasher()
         {
             try
             {
-                return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
-                    .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                lock (Cache)
+                {
+                    return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
+                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                }
             }
             catch (Exception e)
             {
@@ -107,15 +119,21 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestHasher()
         {
-            return CommandTypes.GetMultiple(1);
+            lock (Cache)
+            {
+                return CommandTypes.GetMultiple(1);
+            }
         }
 
         public CommandRequest GetNextDBCommandRequestImages()
         {
             try
             {
-                return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
-                    .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                lock (Cache)
+                {
+                    return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
+                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                }
             }
             catch (Exception e)
             {
@@ -126,22 +144,34 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CommandRequest> GetAllCommandRequestImages()
         {
-            return CommandTypes.GetMultiple(2);
+            lock (Cache)
+            {
+                return CommandTypes.GetMultiple(2);
+            }
         }
 
         public int GetQueuedCommandCountGeneral()
         {
-            return CommandTypes.GetMultiple(0).Count;
+            lock (Cache)
+            {
+                return CommandTypes.GetMultiple(0).Count;
+            }
         }
 
         public int GetQueuedCommandCountHasher()
         {
-            return CommandTypes.GetMultiple(1).Count;
+            lock (Cache)
+            {
+                return CommandTypes.GetMultiple(1).Count;
+            }
         }
 
         public int GetQueuedCommandCountImages()
         {
-            return CommandTypes.GetMultiple(2).Count;
+            lock (Cache)
+            {
+                return CommandTypes.GetMultiple(2).Count;
+            }
         }
     }
 }

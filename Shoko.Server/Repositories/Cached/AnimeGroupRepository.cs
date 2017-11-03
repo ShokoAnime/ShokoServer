@@ -119,6 +119,7 @@ namespace Shoko.Server.Repositories.Cached
                             transaction.Commit();
                         }
                         Changes.AddOrUpdate(grp.AnimeGroupID);
+
                         if (verifylockedFilters)
                         {
                             RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract.Stat_AllTags,
@@ -153,11 +154,13 @@ namespace Shoko.Server.Repositories.Cached
                     lock (group)
                     {
                         session.Insert(group);
-                        Cache.Update(group);
+                        lock (Cache)
+                        {
+                            Cache.Update(group);
+                        }
                     }
                 }
             }
-
             Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
@@ -175,11 +178,13 @@ namespace Shoko.Server.Repositories.Cached
                     lock (group)
                     {
                         session.Update(group);
-                        Cache.Update(group);
+                        lock (Cache)
+                        {
+                            Cache.Update(group);
+                        }
                     }
                 }
             }
-
             Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
@@ -208,7 +213,6 @@ namespace Shoko.Server.Repositories.Cached
                     session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
                         .SetInt32("excludeId", excludeGroupId.Value)
                         .ExecuteUpdate();
-
                     Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
                         .Where(id => id != excludeGroupId.Value));
                 }
@@ -231,19 +235,28 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (excludedGroup != null)
                 {
-                    Cache.Update(excludedGroup);
+                    lock (Cache)
+                    {
+                        Cache.Update(excludedGroup);
+                    }
                 }
             }
         }
 
         public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
-            return Parents.GetMultiple(parentid);
+            lock (Cache)
+            {
+                return Parents.GetMultiple(parentid);
+            }
         }
 
         public List<SVR_AnimeGroup> GetAllTopLevelGroups()
         {
-            return Parents.GetMultiple(0);
+            lock (Cache)
+            {
+                return Parents.GetMultiple(0);
+            }
         }
 
         public ChangeTracker<int> GetChangeTracker()

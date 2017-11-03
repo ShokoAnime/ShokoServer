@@ -41,17 +41,26 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
-            return ImportFolders.GetMultiple(importFolderID);
+            lock (Cache)
+            {
+                return ImportFolders.GetMultiple(importFolderID);
+            }
         }
 
         public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
         {
-            return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
+            lock (Cache)
+            {
+                return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
+            }
         }
 
         public List<SVR_VideoLocal_Place> GetByFilePathAndImportFolderType(string filePath, int folderType)
         {
-            return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
+            lock (Cache)
+            {
+                return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
+            }
         }
 
         public override void Delete(SVR_VideoLocal_Place obj)
@@ -94,7 +103,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
         {
-            return VideoLocals.GetMultiple(videolocalid);
+            lock (Cache)
+            {
+                return VideoLocals.GetMultiple(videolocalid);
+            }
         }
     }
 }

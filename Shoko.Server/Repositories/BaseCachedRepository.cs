@@ -49,44 +49,89 @@ namespace Shoko.Server.Repositories
         {
             lock (globalDBLock)
             {
-                Cache.Clear();
+                lock (Cache)
+                {
+                    Cache.Clear();
+                }
             }
         }
 
         // ReSharper disable once InconsistentNaming
         public virtual T GetByID(S id)
         {
-            return Cache.Get(id);
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Get(id);
+                }
+            }
         }
 
         public T GetByID(ISession session, S id)
         {
-            return Cache.Get(id);
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Get(id);
+                }
+            }
         }
 
         public T GetByID(ISessionWrapper session, S id)
         {
-            return Cache.Get(id);
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Get(id);
+                }
+            }
         }
 
         public virtual IReadOnlyList<T> GetAll()
         {
-            return Cache.Values.ToList();
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Values.ToList();
+                }
+            }
         }
 
         public IReadOnlyList<T> GetAll(int max_limit)
         {
-            return Cache.Values.Take(max_limit).ToList();
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Values.Take(max_limit).ToList();
+                }
+            }
         }
 
         public IReadOnlyList<T> GetAll(ISession session)
         {
-            return Cache.Values.ToList();
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Values.ToList();
+                }
+            }
         }
 
         public IReadOnlyList<T> GetAll(ISessionWrapper session)
         {
-            return Cache.Values.ToList();
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    return Cache.Values.ToList();
+                }
+            }
         }
 
         public virtual void Delete(S id)
@@ -100,14 +145,17 @@ namespace Shoko.Server.Repositories
             BeginDeleteCallback?.Invoke(cr);
             lock (globalDBLock)
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                lock (Cache)
                 {
-                    using (var transaction = session.BeginTransaction())
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                        Cache.Remove(cr);
-                        session.Delete(cr);
-                        transaction.Commit();
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+                            Cache.Remove(cr);
+                            session.Delete(cr);
+                            transaction.Commit();
+                        }
                     }
                 }
             }
@@ -121,17 +169,20 @@ namespace Shoko.Server.Repositories
             foreach (T cr in objs) BeginDeleteCallback?.Invoke(cr);
             lock (globalDBLock)
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                lock (Cache)
                 {
-                    using (var transaction = session.BeginTransaction())
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        foreach (T cr in objs)
+                        using (var transaction = session.BeginTransaction())
                         {
-                            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                            Cache.Remove(cr);
-                            session.Delete(cr);
+                            foreach (T cr in objs)
+                            {
+                                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+                                Cache.Remove(cr);
+                                session.Delete(cr);
+                            }
+                            transaction.Commit();
                         }
-                        transaction.Commit();
                     }
                 }
             }
@@ -150,9 +201,12 @@ namespace Shoko.Server.Repositories
             if (cr == null) return;
             lock (globalDBLock)
             {
-                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                Cache.Remove(cr);
-                session.Delete(cr);
+                lock (Cache)
+                {
+                    DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+                    Cache.Remove(cr);
+                    session.Delete(cr);
+                }
             }
         }
 
@@ -163,11 +217,14 @@ namespace Shoko.Server.Repositories
                 return;
             lock (globalDBLock)
             {
-                foreach (T cr in objs)
+                lock (Cache)
                 {
-                    DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                    Cache.Remove(cr);
-                    session.Delete(cr);
+                    foreach (T cr in objs)
+                    {
+                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
                 }
             }
         }
@@ -188,7 +245,10 @@ namespace Shoko.Server.Repositories
                             transaction.Commit();
                         }
                     }
-                    Cache.Update(obj);
+                    lock (Cache)
+                    {
+                        Cache.Update(obj);
+                    }
                 }
             }
             EndSaveCallback?.Invoke(obj);
@@ -210,11 +270,14 @@ namespace Shoko.Server.Repositories
                     {
                         foreach (T obj in objs)
                         {
-                            lock (obj)
+                            lock (Cache)
                             {
-                                session.SaveOrUpdate(obj);
-                                SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-                                Cache.Update(obj);
+                                lock (obj)
+                                {
+                                    session.SaveOrUpdate(obj);
+                                    SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+                                    Cache.Update(obj);
+                                }
                             }
                         }
                         transaction.Commit();
@@ -240,7 +303,10 @@ namespace Shoko.Server.Repositories
                         session.Update(obj);
 
                     SaveWithOpenTransactionCallback?.Invoke(session, obj);
-                    Cache.Update(obj);
+                    lock (Cache)
+                    {
+                        Cache.Update(obj);
+                    }
                 }
             }
         }
@@ -254,7 +320,29 @@ namespace Shoko.Server.Repositories
                 {
                     session.SaveOrUpdate(obj);
                     SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-                    Cache.Update(obj);
+                    lock (Cache)
+                    {
+                        Cache.Update(obj);
+                    }
+                }
+            }
+        }
+
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public void SaveWithOpenTransaction(ISession session, List<T> objs)
+        {
+            if (objs.Count == 0)
+                return;
+            lock (globalDBLock)
+            {
+                foreach (T obj in objs)
+                {
+                    lock (obj)
+                    {
+                        session.SaveOrUpdate(obj);
+                        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+                        Cache.Update(obj);
+                    }
                 }
             }
         }

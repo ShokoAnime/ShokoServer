@@ -27,7 +27,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_Series GetByTvDBID(int id)
         {
-            return TvDBIDs.GetOne(id);
+            lock (Cache)
+            {
+                return TvDBIDs.GetOne(id);
+            }
         }
 
         public ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session,

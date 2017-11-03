@@ -221,7 +221,10 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Update(series);
-                    Cache.Update(series);
+                    lock (Cache)
+                    {
+                        Cache.Update(series);
+                    }
                 }
                 Changes.AddOrUpdate(series.AnimeSeriesID);
             }
@@ -229,27 +232,39 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            return AniDBIds.GetOne(id);
+            lock (Cache)
+            {
+                return AniDBIds.GetOne(id);
+            }
         }
 
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            return Groups.GetMultiple(groupid);
+            lock (Cache)
+            {
+                return Groups.GetMultiple(groupid);
+            }
         }
 
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            return
-                Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
-                    .OrderByDescending(a => a.EpisodeAddedDate)
-                    .ToList();
+            lock (Cache)
+            {
+                return
+                    Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
+                        .OrderByDescending(a => a.EpisodeAddedDate)
+                        .ToList();
+            }
         }
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
-            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+            lock (Cache)
+            {
+                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+            }
         }
     }
 }

@@ -42,7 +42,10 @@ namespace Shoko.Server.Repositories
 
         public AnimeStaff GetByAniDBID(int id)
         {
-            return AniDBIDs.GetOne(id);
+            lock (Cache)
+            {
+                return AniDBIDs.GetOne(id);
+            }
         }
     }
 }

@@ -66,33 +66,48 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_JMMUser GetByUsername(string username)
         {
-            return Cache.Values.FirstOrDefault(x =>
-                x.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+            lock (Cache)
+            {
+                return Cache.Values.FirstOrDefault(x =>
+                    x.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+            }
         }
 
 
         public List<SVR_JMMUser> GetAniDBUsers()
         {
-            return Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
+            }
         }
 
         public List<SVR_JMMUser> GetTraktUsers()
         {
-            return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
+            }
         }
 
         public SVR_JMMUser AuthenticateUser(string userName, string password)
         {
             if (password == null) password = string.Empty;
             string hashedPassword = Digest.Hash(password);
-            return Cache.Values.FirstOrDefault(a =>
-                a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
-                a.Password.Equals(hashedPassword));
+            lock (Cache)
+            {
+                return Cache.Values.FirstOrDefault(a =>
+                    a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
+                    a.Password.Equals(hashedPassword));
+            }
         }
 
         public long GetTotalRecordCount()
         {
-            return Cache.Keys.Count;
+            lock (Cache)
+            {
+                return Cache.Keys.Count;
+            }
         }
     }
 }

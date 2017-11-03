@@ -32,6 +32,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (!Changes.ContainsKey(cr.JMMUserID))
                     Changes[cr.JMMUserID] = new ChangeTracker<int>();
                 Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
+
                 logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
                     cr.AnimeGroupID);
                 cr.DeleteFromFilters();
@@ -108,13 +109,17 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Insert(groupUser);
-                    Cache.Update(groupUser);
+                    lock (Cache)
+                    {
+                        Cache.Update(groupUser);
+                    }
                 }
 
                 if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                 {
                     changeTracker = new ChangeTracker<int>();
                     Changes[groupUser.JMMUserID] = changeTracker;
+
                     changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
                 }
             }
@@ -142,13 +147,18 @@ namespace Shoko.Server.Repositories.Cached
                 lock (globalDBLock)
                 {
                     session.Update(groupUser);
-                    Cache.Update(groupUser);
+                    lock (Cache)
+                    {
+                        Cache.Update(groupUser);
+                    }
                 }
 
                 if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                 {
                     changeTracker = new ChangeTracker<int>();
                     Changes[groupUser.JMMUserID] = changeTracker;
+
+
                     changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
                 }
             }
@@ -186,6 +196,8 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     changeTracker = new ChangeTracker<int>();
                     Changes[jmmUserId] = changeTracker;
+
+
                     changeTracker.RemoveRange(grp);
                 }
             }
@@ -196,23 +208,33 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            return UsersGroups.GetOne(userid, groupid);
+            lock (Cache)
+            {
+                return UsersGroups.GetOne(userid, groupid);
+            }
         }
 
         public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
-            return Users.GetMultiple(userid);
+            lock (Cache)
+            {
+                return Users.GetMultiple(userid);
+            }
         }
 
         public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
-            return Groups.GetMultiple(groupid);
+            lock (Cache)
+            {
+                return Groups.GetMultiple(groupid);
+            }
         }
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
             if (Changes.ContainsKey(userid))
                 return Changes[userid];
+
             return new ChangeTracker<int>();
         }
     }

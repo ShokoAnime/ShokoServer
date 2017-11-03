@@ -41,13 +41,19 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {
-            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
+            lock (Cache)
+            {
+                return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
+            }
         }
 
 
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
-            return Animes.GetMultiple(id);
+            lock (Cache)
+            {
+                return Animes.GetMultiple(id);
+            }
         }
 
 
@@ -61,7 +67,10 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
             }
 
-            return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
+            lock (Cache)
+            {
+                return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
+            }
         }
 
         /// <summary>
