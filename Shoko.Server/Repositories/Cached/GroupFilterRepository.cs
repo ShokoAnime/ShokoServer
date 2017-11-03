@@ -33,19 +33,13 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndSaveCallback = (obj) =>
             {
-                lock (Types)
-                {
-                    Types[obj.GroupFilterID] = obj.Types;
-                    Changes.AddOrUpdate(obj.GroupFilterID);
-                }
+                Types[obj.GroupFilterID] = obj.Types;
+                Changes.AddOrUpdate(obj.GroupFilterID);
             };
             EndDeleteCallback = (obj) =>
             {
-                lock (Types)
-                {
-                    Types.Remove(obj.GroupFilterID);
-                    Changes.Remove(obj.GroupFilterID);
-                }
+                Types.Remove(obj.GroupFilterID);
+                Changes.Remove(obj.GroupFilterID);
             };
         }
 

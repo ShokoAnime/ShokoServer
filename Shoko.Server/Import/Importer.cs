@@ -1136,6 +1136,8 @@ namespace Shoko.Server
                 .ToList();
             foreach (SVR_GroupFilter g in evalfilters)
                 g.CalculateGroupsAndSeries();
+            RepoFactory.GroupFilter.Save(evalfilters);
+
             if (sched == null)
             {
                 sched = new ScheduledUpdate

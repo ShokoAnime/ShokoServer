@@ -513,7 +513,7 @@ namespace Shoko.Server.Models
                 HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
                 CL_AnimeSeries_User cgrp = GetUserContract(u.JMMUserID, n);
                 foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
-                    if (gf.CalculateGroupFilterSeries(cgrp, u, u.JMMUserID))
+                    if (gf.UpdateGroupFilterFromSeries(cgrp, u))
                         if (!tosave.Contains(gf))
                             tosave.Add(gf);
             }
