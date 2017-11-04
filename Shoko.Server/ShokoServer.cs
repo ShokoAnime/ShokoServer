@@ -91,8 +91,6 @@ namespace Shoko.Server
 
         private Mutex mutex;
 
-        internal static ManualResetEvent _pauseFileWatchDog = new ManualResetEvent(true);
-
         public string[] GetSupportedDatabases()
         {
             return new[]
@@ -467,7 +465,6 @@ namespace Shoko.Server
         void WorkerFileEvents_DoWork(object sender, DoWorkEventArgs e)
         {
             logger.Info("Started thread for processing file events");
-            _pauseFileWatchDog.WaitOne(Timeout.Infinite);
             foreach (FileSystemEventArgs evt in queueFileEvents)
             {
                 try

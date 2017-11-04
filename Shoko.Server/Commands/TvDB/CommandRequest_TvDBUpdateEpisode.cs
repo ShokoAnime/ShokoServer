@@ -75,7 +75,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_TvDBUpdateEpisodes{TvDBEpisodeID}";
+            CommandID = $"CommandRequest_TvDBUpdateEpisode{TvDBEpisodeID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

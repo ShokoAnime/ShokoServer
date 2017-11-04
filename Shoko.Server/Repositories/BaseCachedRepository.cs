@@ -142,11 +142,11 @@ namespace Shoko.Server.Repositories
         public virtual void Delete(T cr)
         {
             if (cr == null) return;
+            BeginDeleteCallback?.Invoke(cr);
             lock (globalDBLock)
             {
                 lock (Cache)
                 {
-                    BeginDeleteCallback?.Invoke(cr);
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         using (var transaction = session.BeginTransaction())
@@ -157,20 +157,20 @@ namespace Shoko.Server.Repositories
                             transaction.Commit();
                         }
                     }
-                    EndDeleteCallback?.Invoke(cr);
                 }
             }
+            EndDeleteCallback?.Invoke(cr);
         }
 
         public void Delete(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;
+            foreach (T cr in objs) BeginDeleteCallback?.Invoke(cr);
             lock (globalDBLock)
             {
                 lock (Cache)
                 {
-                    foreach (T cr in objs) BeginDeleteCallback?.Invoke(cr);
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         using (var transaction = session.BeginTransaction())
@@ -184,9 +184,9 @@ namespace Shoko.Server.Repositories
                             transaction.Commit();
                         }
                     }
-                    foreach (T cr in objs) EndDeleteCallback?.Invoke(cr);
                 }
             }
+            foreach (T cr in objs) EndDeleteCallback?.Invoke(cr);
         }
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -231,11 +231,11 @@ namespace Shoko.Server.Repositories
 
         public virtual void Save(T obj)
         {
+            BeginSaveCallback?.Invoke(obj);
             lock (globalDBLock)
             {
                 lock (obj)
                 {
-                    BeginSaveCallback?.Invoke(obj);
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         using (var transaction = session.BeginTransaction())
@@ -248,16 +248,20 @@ namespace Shoko.Server.Repositories
                     lock (Cache)
                     {
                         Cache.Update(obj);
-                        EndSaveCallback?.Invoke(obj);
                     }
                 }
             }
+            EndSaveCallback?.Invoke(obj);
         }
 
         public void Save(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;
+            foreach (T obj in objs)
+            {
+                BeginSaveCallback?.Invoke(obj);
+            }
             lock (globalDBLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -266,23 +270,23 @@ namespace Shoko.Server.Repositories
                     {
                         foreach (T obj in objs)
                         {
-                            lock (obj)
+                            lock (Cache)
                             {
-                                session.SaveOrUpdate(obj);
-                                SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+                                lock (obj)
+                                {
+                                    session.SaveOrUpdate(obj);
+                                    SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+                                    Cache.Update(obj);
+                                }
                             }
                         }
                         transaction.Commit();
                     }
                 }
-                lock (Cache)
-                {
-                    foreach (T obj in objs)
-                    {
-                        Cache.Update(obj);
-                        EndSaveCallback?.Invoke(obj);
-                    }
-                }
+            }
+            foreach (T obj in objs)
+            {
+                EndSaveCallback?.Invoke(obj);
             }
         }
 

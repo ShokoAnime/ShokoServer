@@ -35,7 +35,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override void ProcessCommand()
         {
-            logger.Info("Processing CommandRequest_UpdateMylistStats");
+            logger.Info("Processing CommandRequest_UpdateMyListStats");
 
             try
             {
@@ -70,13 +70,13 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_UpdateMylistStats: {0}", ex);
+                logger.Error("Error processing CommandRequest_UpdateMyListStats: {0}", ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            CommandID = "CommandRequest_UpdateMylistStats";
+            CommandID = "CommandRequest_UpdateMyListStats";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -95,7 +95,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 // populate the fields
                 ForceRefresh =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMylistStats", "ForceRefresh"));
+                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMyListStats", "ForceRefresh"));
             }
 
             return true;

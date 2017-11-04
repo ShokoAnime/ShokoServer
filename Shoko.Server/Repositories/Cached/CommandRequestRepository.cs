@@ -44,7 +44,7 @@ namespace Shoko.Server.Repositories.Cached
                 req.CommandType == (int) CommandRequestType.ValidateAllImages)
                 return 2;
             if (req.CommandType == (int) CommandRequestType.HashFile ||
-                     req.CommandType == (int) CommandRequestType.ReadMediaInfo)
+                req.CommandType == (int) CommandRequestType.ReadMediaInfo)
                 return 1;
 
             return 0;
@@ -52,7 +52,6 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-
         }
 
         public static CommandRequestRepository Create()

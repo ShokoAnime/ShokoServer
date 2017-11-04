@@ -45,13 +45,10 @@ namespace Shoko.Server.API.v2.Models.common
         {
             Serie sr = new Serie();
 
-            if (vl != null)
-            {
-                foreach (SVR_AnimeEpisode ep in vl.GetAnimeEpisodes())
-                {
-                    sr = GenerateFromAnimeSeries(ctx, ep.GetAnimeSeries(), uid, nocast, notag, level, all, allpics, pic, tagfilter);
-                }
-            }
+            if (vl == null) return sr;
+            var ser = vl.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+            if (ser == null) return sr;
+            sr = GenerateFromAnimeSeries(ctx, ser, uid, nocast, notag, level, all, allpics, pic, tagfilter);
 
             return sr;
         }

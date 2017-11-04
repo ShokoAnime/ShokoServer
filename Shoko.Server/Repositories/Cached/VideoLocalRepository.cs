@@ -72,25 +72,26 @@ namespace Shoko.Server.Repositories.Cached
             try
             {
                 count = 0;
-                var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null).ToList();
+                var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null)
+                    .ToList();
                 max = list.Count;
 
                 list.ForEach(
-                        a =>
+                    a =>
+                    {
+                        //Fix possible paths in filename
+                        if (!string.IsNullOrEmpty(a.FileName))
                         {
-                            //Fix possible paths in filename
-                            if (!string.IsNullOrEmpty(a.FileName))
-                            {
-                                int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                                if (b > 0)
-                                    a.FileName = a.FileName.Substring(b + 1);
-                            }
-                            Save(a, false);
-                            count++;
-                            ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
-                                " Generating Media Info - " + count + "/" + max);
-                        });
+                            int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+                            if (b > 0)
+                                a.FileName = a.FileName.Substring(b + 1);
+                        }
+                        Save(a, false);
+                        count++;
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                            " Generating Media Info - " + count + "/" + max);
+                    });
             }
             catch
             {
@@ -115,8 +116,8 @@ namespace Shoko.Server.Repositories.Cached
                         ServerState.Instance.CurrentSetupStatus = string.Format(
                             Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
                             " Cleaning File Paths - " + count + "/" + max);
-                        }
-                    catch(Exception e)
+                    }
+                    catch (Exception e)
                     {
                         logger.Error($"Error cleaning path on file: {a.FileName}\r\n{e}");
                     }
@@ -129,11 +130,13 @@ namespace Shoko.Server.Repositories.Cached
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                Dictionary<string, List<SVR_VideoLocal>> locals = Cache.Values.Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                Dictionary<string, List<SVR_VideoLocal>> locals = Cache.Values
+                    .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                     .GroupBy(a => a.Hash)
                     .ToDictionary(g => g.Key, g => g.ToList());
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Empty Records");
+                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                    " Cleaning Empty Records");
                 using (var transaction = session.BeginTransaction())
                 {
                     var list = Cache.Values.Where(a => a.IsEmpty()).ToList();
@@ -155,7 +158,8 @@ namespace Shoko.Server.Repositories.Cached
                 max = locals.Keys.Count;
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Duplicate Records");
+                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                    " Cleaning Duplicate Records");
 
                 foreach (string hash in locals.Keys)
                 {
@@ -192,7 +196,8 @@ namespace Shoko.Server.Repositories.Cached
                 }
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Fragmented Records");
+                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                    " Cleaning Fragmented Records");
                 using (var transaction = session.BeginTransaction())
                 {
                     var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))

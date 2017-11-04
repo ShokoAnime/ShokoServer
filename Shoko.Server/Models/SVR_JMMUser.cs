@@ -59,19 +59,13 @@ namespace Shoko.Server.Models
         {
             IReadOnlyList<SVR_GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
             List<SVR_AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
             foreach (SVR_GroupFilter gf in gfs)
             {
                 bool change = false;
                 foreach (SVR_AnimeGroup grp in allGrps)
                 {
-                    CL_AnimeGroup_User cgrp = grp.GetUserContract(this.JMMUserID);
-                    change |= gf.CalculateGroupFilterGroups(cgrp, this, JMMUserID);
-                }
-                foreach (SVR_AnimeSeries ser in allSeries)
-                {
-                    CL_AnimeSeries_User cser = ser.GetUserContract(this.JMMUserID);
-                    change |= gf.CalculateGroupFilterSeries(cser, this, JMMUserID);
+                    CL_AnimeGroup_User cgrp = grp.GetUserContract(JMMUserID);
+                    change |= gf.UpdateGroupFilterFromGroup(cgrp, this);
                 }
                 if (change)
                     RepoFactory.GroupFilter.Save(gf);

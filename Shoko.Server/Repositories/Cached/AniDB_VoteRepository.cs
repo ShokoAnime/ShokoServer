@@ -17,7 +17,8 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndSaveCallback = (cr) =>
             {
-                switch (cr.VoteType) {
+                switch (cr.VoteType)
+                {
                     case (int) AniDBVoteType.Anime:
                     case (int) AniDBVoteType.AnimeTemp:
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
@@ -30,7 +31,8 @@ namespace Shoko.Server.Repositories.Cached
             };
             EndDeleteCallback = (cr) =>
             {
-                switch (cr.VoteType) {
+                switch (cr.VoteType)
+                {
                     case (int) AniDBVoteType.Anime:
                     case (int) AniDBVoteType.AnimeTemp:
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);

@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
+using Force.DeepCloner;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -80,8 +82,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
@@ -94,20 +96,22 @@ namespace Shoko.Server.Commands
             {
                 lock (lockQueueState)
                 {
-                    return queueState;
+                    return queueState.DeepClone();
                 }
             }
             set
             {
                 lock (lockQueueState)
                 {
-                    queueState = value;
-                    System.Threading.Tasks.Task.Run(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
+                    queueState = value.DeepClone();
                 }
+                Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
             }
         }
 
         public bool ProcessingCommands => processingCommands;
+
+        public bool IsWorkerBusy => workerCommands.IsBusy;
 
         public CommandProcessorImages()
         {
@@ -125,7 +129,9 @@ namespace Shoko.Server.Commands
             paused = false;
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
-            QueueCount = 0;
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
+
+            if (QueueCount > 0) workerCommands.RunWorkerAsync();
         }
 
         public void Init()

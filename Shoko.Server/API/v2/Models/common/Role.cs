@@ -4,8 +4,10 @@
     {
         public string character { get; set; }
         public string character_image { get; set; }
+        public string character_description { get; set; }
         public string staff { get; set; }
         public string staff_image { get; set; }
+        public string staff_description { get; set; }
         public string role { get; set; }
         public string type { get; set; }
 

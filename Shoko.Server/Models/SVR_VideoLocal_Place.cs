@@ -209,7 +209,8 @@ namespace Shoko.Server.Models
                 if (v.Places.Count <= 1)
                 {
                     episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
+                        .Select(a => a.GetAnimeSeries()));
 
                     using (var transaction = session.BeginTransaction())
                     {
@@ -245,7 +246,6 @@ namespace Shoko.Server.Models
                     LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
             }
-            seriesToUpdate = seriesToUpdate.DistinctBy(a => a.AnimeSeriesID).ToList();
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
             {
                 ser?.QueueUpdateStats();
@@ -256,7 +256,7 @@ namespace Shoko.Server.Models
         public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeEpisode> episodesToUpdate,
             ICollection<SVR_AnimeSeries> seriesToUpdate)
         {
-            logger.Info("Removing VideoLocal_Place recoord for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
+            logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
 
             List<DuplicateFile> dupFiles = null;
@@ -267,7 +267,7 @@ namespace Shoko.Server.Models
             {
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
                 eps?.ForEach(episodesToUpdate.Add);
-                eps?.Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
+                eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
                 using (var transaction = session.BeginTransaction())
                 {
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -1068,28 +1068,25 @@ namespace Shoko.Server.Models
             try
             {
                 FileSystemResult fr = dir.Populate();
-                if (fr.IsOk)
+                if (!fr.IsOk) return;
+                if (dir.IsEmpty)
                 {
-                    if (dir.Files.Count > 0 && dir.Directories.Count == 0)
+                    if (importfolder)
                         return;
-                    foreach (IDirectory d in dir.Directories)
-                        RecursiveDeleteEmptyDirectories(d, false);
-                }
-                if (importfolder)
+                    fr = dir.Delete(true);
+                    if (!fr.IsOk)
+                        logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
+                            fr?.Error ?? string.Empty);
+
                     return;
-                fr = dir.Populate();
-                if (fr.IsOk)
-                {
-                    if (dir.Files.Count == 0 && dir.Directories.Count == 0)
-                    {
-                        fr = dir.Delete(true);
-                        if (!fr.IsOk)
-                        {
-                            logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
-                                fr?.Error ?? String.Empty);
-                        }
-                    }
                 }
+                // Not Empty, so it has files and/or folders
+                // if it has no folders, return
+                var directories = dir.Directories;
+                if (directories.Count == 0) return;
+                // If it has folder, recurse
+                foreach (IDirectory d in directories)
+                    RecursiveDeleteEmptyDirectories(d, false);
             }
             catch (Exception e)
             {

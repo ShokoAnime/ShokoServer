@@ -79,10 +79,12 @@ namespace Shoko.Server.Repositories.Cached
                 int uid = userrecord.JMMUserID;
                 var tokens = UserIDs
                     .GetMultiple(uid).Where(a => string.IsNullOrEmpty(a.Token) ||
-                        a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
+                                                 a.DeviceName.Trim().Equals(device.Trim(),
+                                                     StringComparison.InvariantCultureIgnoreCase))
                     .ToList();
                 var auth = tokens.FirstOrDefault(a => !string.IsNullOrEmpty(a.Token) &&
-                    a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase));
+                                                      a.DeviceName.Trim().Equals(device.Trim(),
+                                                          StringComparison.InvariantCultureIgnoreCase));
                 if (tokens.Count > 1)
                 {
                     if (auth != null) tokens.Remove(auth);

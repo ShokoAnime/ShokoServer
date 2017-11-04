@@ -29,10 +29,7 @@ namespace Shoko.Server.Repositories.Cached
             BeginDeleteCallback = (cr) =>
             {
                 RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-                lock (Changes)
-                {
-                    Changes.Remove(cr.AnimeSeriesID);
-                }
+                Changes.Remove(cr.AnimeSeriesID);
             };
             EndDeleteCallback = (cr) =>
             {
@@ -110,10 +107,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker()
         {
-            lock (Changes)
-            {
-                return Changes;
-            }
+            return Changes;
         }
 
         public override void Save(SVR_AnimeSeries obj)
@@ -170,7 +164,8 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (updateGroups && !isMigrating)
                 {
-                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
+                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}",
+                        obj.AnimeSeriesID);
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                     if (grp != null)
                         RepoFactory.AnimeGroup.Save(grp, true, true);
@@ -200,10 +195,7 @@ namespace Shoko.Server.Repositories.Cached
                     // Update other existing filters
                     obj.UpdateGroupFilters(types, null);
                 }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(obj.AnimeSeriesID);
-                }
+                Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
             if (alsoupdateepisodes)
             {
@@ -234,10 +226,7 @@ namespace Shoko.Server.Repositories.Cached
                         Cache.Update(series);
                     }
                 }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(series.AnimeSeriesID);
-                }
+                Changes.AddOrUpdate(series.AnimeSeriesID);
             }
         }
 

@@ -955,17 +955,11 @@ namespace Shoko.Server
                 else if (anime == null) skip = false;
             }
 
-            if (skip)
-            {
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
-                return anime;
-            }
-
             AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
             lock (lockAniDBConnections)
             {
                 getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
-                getAnimeCmd.Init(animeID, false, forceRefresh, false);
+                getAnimeCmd.Init(animeID, false, !skip, animeRecentlyUpdated);
                 var result = getAnimeCmd.Process();
                 if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
                 {

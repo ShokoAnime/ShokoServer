@@ -2,6 +2,8 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
+using Force.DeepCloner;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -88,8 +90,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
@@ -98,24 +100,27 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct QueueState
         {
+            // use copies and never return the object in use
             get
             {
                 lock (lockQueueState)
                 {
-                    return queueState;
+                    return queueState.DeepClone();
                 }
             }
             set
             {
                 lock (lockQueueState)
                 {
-                    queueState = value;
-                    System.Threading.Tasks.Task.Run(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState)));
+                    queueState = value.DeepClone();
                 }
+                Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
             }
         }
 
         public bool ProcessingCommands => processingCommands;
+
+        public bool IsWorkerBusy => workerCommands.IsBusy;
 
         public CommandProcessorGeneral()
         {
@@ -134,9 +139,17 @@ namespace Shoko.Server.Commands
             processingCommands = false;
             paused = false;
 
+            if (e.Cancelled) logger.Warn($"The General Queue was cancelled with {QueueCount} commands left");
+
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
-            
-            QueueCount = 0;
+
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
+
+            if (QueueCount > 0)
+            {
+                processingCommands = true;
+                workerCommands.RunWorkerAsync();
+            }
         }
 
         public void Init()
@@ -210,7 +223,12 @@ namespace Shoko.Server.Commands
                 }
 
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
-                if (crdb == null) return;
+                if (crdb == null)
+                {
+                    if (QueueCount > 0)
+                        logger.Error($"No command returned from repo, but there are {QueueCount} commands left");
+                    return;
+                }
 
                 if (workerCommands.CancellationPending)
                 {

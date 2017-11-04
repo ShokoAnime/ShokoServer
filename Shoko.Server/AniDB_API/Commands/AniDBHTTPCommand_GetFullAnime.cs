@@ -194,35 +194,25 @@ namespace AniDBAPI.Commands
                     docAnime = new XmlDocument();
                     docAnime.LoadXml(xmlResult);
                 }
-            }
-            else
-            {
-                if (!ForceFromAniDB)
-                {
-                    //Disable usage of Azure API for this type of data
-                    /*xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
-                    if (string.IsNullOrEmpty(xmlResult))
-                    {
-                        docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
-                    }
-                    else
-                    {
-                        docAnime = new XmlDocument();
-                        docAnime.LoadXml(xmlResult);
-                    }*/
-
-                    //logger.Info("Trying to load Anime HTTP info from cache file...");
-                    docAnime = LoadAnimeHTTPFromFile(animeID);
-                    if (docAnime == null)
-                    {
-                        //logger.Info("No Anime HTTP info found in cache file, loading from HTTP API");
-                        docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
-                    }
-                }
                 else
                 {
+                    docAnime = LoadAnimeHTTPFromFile(animeID);
+                }
+            }
+
+            if (!ForceFromAniDB)
+            {
+                //logger.Info("Trying to load Anime HTTP info from cache file...");
+
+                if (docAnime == null && !CacheOnly)
+                {
+                    //logger.Info("No Anime HTTP info found in cache file, loading from HTTP API");
                     docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
                 }
+            }
+            else if (!CacheOnly)
+            {
+                docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
             }
 
             if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;

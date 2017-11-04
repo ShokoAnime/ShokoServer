@@ -29,12 +29,10 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                lock (Changes)
-                {
-                    if (!Changes.ContainsKey(cr.JMMUserID))
-                        Changes[cr.JMMUserID] = new ChangeTracker<int>();
-                    Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
-                }
+                if (!Changes.ContainsKey(cr.JMMUserID))
+                    Changes[cr.JMMUserID] = new ChangeTracker<int>();
+                Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
+
                 cr.DeleteFromFilters();
             };
         }
@@ -76,12 +74,10 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 HashSet<GroupFilterConditionType> types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
                 base.Save(obj);
-                lock (Changes)
-                {
-                    if (!Changes.ContainsKey(obj.JMMUserID))
-                        Changes[obj.JMMUserID] = new ChangeTracker<int>();
-                    Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
-                }
+                if (!Changes.ContainsKey(obj.JMMUserID))
+                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
+
                 obj.UpdateGroupFilter(types);
             }
             //logger.Trace("Updating group stats by series from AnimeSeries_UserRepository.Save: {0}", obj.AnimeSeriesID);
@@ -135,11 +131,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            lock (Changes)
-            {
-                if (Changes.ContainsKey(userid))
-                    return Changes[userid];
-            }
+            if (Changes.ContainsKey(userid))
+                return Changes[userid];
+
             return new ChangeTracker<int>();
         }
     }
