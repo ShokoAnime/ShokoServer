@@ -420,8 +420,8 @@ namespace Shoko.Commons.Utils
         {
             int result = -1;
             int m = pattern.Length;
-            int[] R;
-            int[] patternMask = new int[128];
+            uint[] R;
+            uint[] patternMask = new uint[128];
             int i, d;
             dist = k + 1;
 
@@ -431,26 +431,26 @@ namespace Shoko.Commons.Utils
             if (string.IsNullOrEmpty(pattern)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
-            R = new int[(k + 1) * sizeof(int)];
+            R = new uint[(k + 1) * sizeof(uint)];
             for (i = 0; i <= k; ++i)
-                R[i] = ~1;
+                R[i] = ~1u;
 
             for (i = 0; i <= 127; ++i)
-                patternMask[i] = ~0;
+                patternMask[i] = ~0u;
 
             for (i = 0; i < m; ++i)
-                patternMask[pattern[i]] &= ~(1 << i);
+                patternMask[pattern[i]] &= ~(1u << i);
 
             for (i = 0; i < text.Length; ++i)
             {
-                int oldRd1 = R[0];
+                uint oldRd1 = R[0];
 
                 R[0] |= patternMask[text[i]];
                 R[0] <<= 1;
 
                 for (d = 1; d <= k; ++d)
                 {
-                    int tmp = R[d];
+                    uint tmp = R[d];
 
                     R[d] = (oldRd1 & (R[d] | patternMask[text[i]])) << 1;
                     oldRd1 = tmp;
@@ -458,7 +458,7 @@ namespace Shoko.Commons.Utils
 
                 if (0 == (R[k] & (1 << m)))
                 {
-                    dist = R[k];
+                    dist = Convert.ToInt32(R[k]);
                     result = (i - m) + 1;
                     break;
                 }
@@ -467,19 +467,19 @@ namespace Shoko.Commons.Utils
             return result;
         }
 
-        public static int BitapFuzzySearch64(string text, string pattern, int k, out int dist)
+        public static int BitapFuzzySearch64(string inputString, string query, int k, out int dist)
         {
             int result = -1;
-            int m = pattern.Length;
+            int m = query.Length;
             ulong[] R;
             ulong[] patternMask = new ulong[128];
             int i, d;
-            dist = text.Length;
+            dist = inputString.Length;
 
             // We are doing bitwise operations, this can be affected by how many bits the CPU is able to process
             const int WORD_SIZE = 63;
 
-            if (string.IsNullOrEmpty(pattern)) return -1;
+            if (string.IsNullOrEmpty(query)) return -1;
             if (m > WORD_SIZE) return -1; //Error: The pattern is too long!
 
             R = new ulong[(k + 1) * sizeof(ulong)];
@@ -490,26 +490,26 @@ namespace Shoko.Commons.Utils
                 patternMask[i] = ~0UL;
 
             for (i = 0; i < m; ++i)
-                patternMask[pattern[i]] &= ~(1UL << i);
+                patternMask[query[i]] &= ~(1UL << i);
 
-            for (i = 0; i < text.Length; ++i)
+            for (i = 0; i < inputString.Length; ++i)
             {
                 ulong oldRd1 = R[0];
 
-                R[0] |= patternMask[text[i]];
+                R[0] |= patternMask[inputString[i]];
                 R[0] <<= 1;
 
                 for (d = 1; d <= k; ++d)
                 {
                     ulong tmp = R[d];
 
-                    R[d] = (oldRd1 & (R[d] | patternMask[text[i]])) << 1;
+                    R[d] = (oldRd1 & (R[d] | patternMask[inputString[i]])) << 1;
                     oldRd1 = tmp;
                 }
 
                 if (0 == (R[k] & (1UL << m)))
                 {
-                    dist = (int)R[k];
+                    dist = Convert.ToInt32(R[k]);
                     result = (i - m) + 1;
                     break;
                 }
@@ -532,18 +532,17 @@ namespace Shoko.Commons.Utils
             query = query.ToLowerInvariant();
             inputString = inputString.ToLowerInvariant();
 
+            if (string.IsNullOrEmpty(query) || string.IsNullOrEmpty(inputString))
+            {
+                dist = text.Length;
+                return -1;
+            }
+
             // Shortcut
             if (inputString.Equals(query))
             {
-                dist = 0;
+                dist = int.MinValue;
                 return 0;
-            }
-
-            if (query.Length > inputString.Length)
-            {
-                string temp = inputString;
-                inputString = query;
-                query = temp;
             }
 
             if (IntPtr.Size > 4)
