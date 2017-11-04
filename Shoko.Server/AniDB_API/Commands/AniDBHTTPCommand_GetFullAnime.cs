@@ -228,9 +228,18 @@ namespace AniDBAPI.Commands
                 titles = AniDBHTTPHelper.ProcessTitles(docAnime, animeID);
                 tags = AniDBHTTPHelper.ProcessTags(docAnime, animeID);
                 characters = AniDBHTTPHelper.ProcessCharacters(docAnime, animeID);
-                relations = AniDBHTTPHelper.ProcessRelations(docAnime, animeID);
-                similarAnime = AniDBHTTPHelper.ProcessSimilarAnime(docAnime, animeID);
-                recommendations = AniDBHTTPHelper.ProcessRecommendations(docAnime, animeID);
+                if (!CacheOnly)
+                {
+                    relations = AniDBHTTPHelper.ProcessRelations(docAnime, animeID);
+                    similarAnime = AniDBHTTPHelper.ProcessSimilarAnime(docAnime, animeID);
+                    recommendations = AniDBHTTPHelper.ProcessRecommendations(docAnime, animeID);
+                }
+                else
+                {
+                    relations = null;
+                    similarAnime = null;
+                    recommendations = null;
+                }
                 return enHelperActivityType.GotAnimeInfoHTTP;
             }
             return enHelperActivityType.NoSuchAnime;
