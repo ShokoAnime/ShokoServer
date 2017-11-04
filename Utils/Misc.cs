@@ -458,7 +458,7 @@ namespace Shoko.Commons.Utils
 
                 if (0 == (R[k] & (1 << m)))
                 {
-                    dist = Convert.ToInt32(R[k]);
+                    dist = R[k] > int.MaxValue ? int.MaxValue : Convert.ToInt32(R[k]);
                     result = (i - m) + 1;
                     break;
                 }
@@ -509,7 +509,7 @@ namespace Shoko.Commons.Utils
 
                 if (0 == (R[k] & (1UL << m)))
                 {
-                    dist = Convert.ToInt32(R[k]);
+                    dist = R[k] > int.MaxValue ? int.MaxValue : Convert.ToInt32(R[k]);
                     result = (i - m) + 1;
                     break;
                 }
@@ -539,7 +539,7 @@ namespace Shoko.Commons.Utils
             }
 
             // Shortcut
-            if (inputString.Equals(query))
+            if (inputString.StartsWith(query))
             {
                 dist = int.MinValue;
                 return 0;
