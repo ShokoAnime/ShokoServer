@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         internal static Filter GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
-            bool all, bool allpic, int pic, byte tagfilter)
+            bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             List<Group> groups = new List<Group>();
             Filter filter = new Filter

@@ -29,7 +29,7 @@ namespace Shoko.Server.API.v2.Models.common
         }
 
         public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
-            bool all, int filterid, bool allpic, int pic, byte tagfilter)
+            bool all, int filterid, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Group g = new Group
             {
@@ -171,7 +171,7 @@ namespace Shoko.Server.API.v2.Models.common
                 g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)
-                    g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList())
+                    g.tags = TagFilter.ProcessTags((TagFilter.Filter)tagfilter, ag.Contract.Stat_AllTags.ToList())
                         .Select(value => new Tag {tag = value}).ToList();
 
                 if (!nocast)
@@ -211,7 +211,7 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     if (series != null && series.Count > 0 && !series.Contains(ada.AnimeSeriesID)) continue;
                     g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic,
-                        pic, tagfilter));
+                        pic, (TagFilter.Filter)tagfilter));
                 }
                 // This should be faster
                 g.series.Sort();

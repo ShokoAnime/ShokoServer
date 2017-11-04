@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Shoko.Server
@@ -142,6 +143,16 @@ namespace Shoko.Server
             "unresolved romance"
         };
 
+        [Flags]
+        public enum Filter : byte
+        {
+            AnidbInternal = 1 << 0,
+            ArtStyle      = 1 << 1,
+            Source        = 1 << 2,
+            Misc          = 1 << 3,
+            Plot   = 1 << 4,
+        }
+
 
         /// <summary>
         /// Filters tags based on settings specified in flags
@@ -155,7 +166,7 @@ namespace Shoko.Server
         ///    :return: The list of strings after filtering
         /// </summary>
         /// <returns></returns>
-        public static List<string> ProcessTags(byte flags, List<string> strings, bool addOriginal = true)
+        public static List<string> ProcessTags(Filter flags, List<string> strings, bool addOriginal = true)
         {
             HashSet<string> toRemove = new HashSet<string>();
 
@@ -165,11 +176,11 @@ namespace Shoko.Server
             strings.AsParallel().ForAll(a =>
             {
                 string tag = a.Trim().ToLowerInvariant();
-                if ((flags & 0b00010) == 0b00010)
+                if (flags.HasFlag(Filter.ArtStyle))
                 {
                     if (TagBlackListArtStyle.Contains(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -177,19 +188,19 @@ namespace Shoko.Server
                     }
                     if (tag.Contains("censor"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
                         return;
                     }
                 }
-                if ((flags & 0b00100) == 0b00100) // if source excluded
+                if (flags.HasFlag(Filter.Source)) // if source excluded
                 {
                     readdOriginal = false;
                     if (TagBlackListSource.Contains(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -197,7 +208,7 @@ namespace Shoko.Server
                     }
                     if ("original work".Equals(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -213,7 +224,7 @@ namespace Shoko.Server
                     }
                     if ("original work".Equals(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -221,11 +232,11 @@ namespace Shoko.Server
                     }
                 }
 
-                if ((flags & 0b01000) == 0b01000)
+                if (flags.HasFlag(Filter.Misc))
                 {
                     if (TagBlackListUsefulHelpers.Contains(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -233,7 +244,7 @@ namespace Shoko.Server
                     }
                     if (tag.StartsWith("preview"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -241,11 +252,11 @@ namespace Shoko.Server
                     }
                 }
 
-                if ((flags & 0b10000) == 0b10000)
+                if (flags.HasFlag(Filter.Plot))
                 {
                     if (TagBlackListPlotSpoilers.Contains(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -254,7 +265,7 @@ namespace Shoko.Server
                     if (tag.StartsWith("plot") || tag.EndsWith(" dies") || tag.EndsWith(" end") ||
                         tag.EndsWith(" ending"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -262,11 +273,11 @@ namespace Shoko.Server
                     }
                 }
 
-                if ((flags & 0b00001) == 0b00001)
+                if (flags.HasFlag(Filter.AnidbInternal))
                 {
                     if (TagBlacklistAniDBHelpers.Contains(tag))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -292,7 +303,7 @@ namespace Shoko.Server
                         }
                         if (tag.Contains("merging") || tag.Contains("merged"))
                         {
-                            lock(toRemove)
+                            lock (toRemove)
                             {
                                 toRemove.Add(a);
                             }
@@ -300,7 +311,7 @@ namespace Shoko.Server
                         }
                         if (tag.Contains("deleting") || tag.Contains("deleted"))
                         {
-                            lock(toRemove)
+                            lock (toRemove)
                             {
                                 toRemove.Add(a);
                             }
@@ -308,7 +319,7 @@ namespace Shoko.Server
                         }
                         if (tag.Contains("moving") || tag.Contains("moved"))
                         {
-                            lock(toRemove)
+                            lock (toRemove)
                             {
                                 toRemove.Add(a);
                             }
@@ -316,7 +327,7 @@ namespace Shoko.Server
                         }
                         if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
                         {
-                            lock(toRemove)
+                            lock (toRemove)
                             {
                                 toRemove.Add(a);
                             }
@@ -326,7 +337,7 @@ namespace Shoko.Server
 
                     if (tag.Contains("old animetags"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -334,7 +345,7 @@ namespace Shoko.Server
                     }
                     if (tag.Contains("missing"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -342,7 +353,7 @@ namespace Shoko.Server
                     }
                     if (tag.StartsWith("predominantly"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }
@@ -350,7 +361,7 @@ namespace Shoko.Server
                     }
                     if (tag.StartsWith("weekly"))
                     {
-                        lock(toRemove)
+                        lock (toRemove)
                         {
                             toRemove.Add(a);
                         }

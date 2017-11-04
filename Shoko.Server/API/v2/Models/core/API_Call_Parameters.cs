@@ -33,7 +33,7 @@
         /// <summary>
         /// byte flags as defined in TagFilter
         /// </summary>
-        public byte tagfilter = 0;
+        public TagFilter.Filter tagfilter = 0;
 
         /// <summary>
         /// For searching, enable or disable fuzzy searching

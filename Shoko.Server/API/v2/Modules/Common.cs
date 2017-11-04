@@ -1788,7 +1788,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all"></param>
         /// <param name="limit"></param>
         /// <returns>List<Serie></returns>
-        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit, bool allpic, int pic, byte tagfilter)
+        internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             List<object> allseries = new List<object>();
             List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
@@ -1820,7 +1820,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="uid">user id</param>
         /// <param name="limit"></param>
         /// <returns>List<ObjectList></returns>
-        internal object GetSeriesInfoByFolder(int id, int uid, int limit, byte tagfilter)
+        internal object GetSeriesInfoByFolder(int id, int uid, int limit, TagFilter.Filter tagfilter)
         {
             Dictionary<string, long> tmp_list = new Dictionary<string, long>();
             List<object> allseries = new List<object>();
@@ -1879,7 +1879,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level">deep level</param>
         /// <param name="all"></param>
         /// <returns></returns>
-        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
+        internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
             if (aep != null)
@@ -1896,7 +1896,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="limit">number of return items</param>
         /// <param name="offset">offset to start from</param>
         /// <returns>List<Serie></returns>
-        internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
+        internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Request request = Request;
             JMMUser user = (JMMUser) Context.CurrentUser;
@@ -1931,7 +1931,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="series_id">serie id</param>
         /// <param name="nocast">disable cast</param>
         /// <returns></returns>
-        internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
+        internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Request request = Request;
             JMMUser user = (JMMUser) Context.CurrentUser;
@@ -2121,7 +2121,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="fuzzy">Disable searching for invalid path characters</param>
         /// <returns>List<Serie></returns>
         internal object Search(string query, int limit, int limit_tag, int offset, int tagSearch, int uid, bool nocast,
-            bool notag, int level, bool all, bool fuzzy, bool allpic, int pic, byte tagfilter)
+            bool notag, int level, bool all, bool fuzzy, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             query = query.ToLowerInvariant();
 
@@ -2361,7 +2361,7 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         internal object StartsWith(string query, int limit, int uid, bool nocast,
-            bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
+            bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             query = query.ToLowerInvariant();
 
@@ -2519,7 +2519,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="notag">disable tag</param>
         /// <param name="level">deep level</param>
         /// <returns>List<Filter></returns>
-        internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
+        internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Filters filters = new Filters
             {
@@ -2579,7 +2579,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level">deep level</param>
         /// <param name="all">include missing episodes</param>
         /// <returns>Filter or Filters</returns>
-        internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
+        internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
 
@@ -2661,7 +2661,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="level"></param>
         /// <param name="all"></param>
         /// <returns>List<Group></returns>
-        internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, byte tagfilter)
+        internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             List<Group> grps = new List<Group>();
             List<SVR_AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
@@ -2685,7 +2685,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="all">add all known episodes</param>
         /// <param name="filterid"></param>
         /// <returns>Group or APIStatus</returns>
-        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics, int pic, byte tagfilter)
+        internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(id);
             if (ag != null)
