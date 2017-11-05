@@ -17,5 +17,7 @@ namespace Shoko.Models.Server
         public string Lastupdated { get; set; }
         public string Poster { get; set; }
 
+        public int? Rating { get; set; } // saved at * 10 to preserve decimal. resulting in 82/100
+
     }
 }

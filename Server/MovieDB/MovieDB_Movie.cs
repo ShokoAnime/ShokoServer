@@ -12,6 +12,7 @@ namespace Shoko.Models.Server
         public string MovieName { get; set; }
         public string OriginalName { get; set; }
         public string Overview { get; set; }
+        public int Rating { get; set; } // saved at * 10 to preserve decimal. resulting in 82/100
 
     }
 }
