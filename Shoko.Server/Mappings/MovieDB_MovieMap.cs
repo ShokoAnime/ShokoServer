@@ -15,6 +15,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.MovieName);
             Map(x => x.OriginalName);
             Map(x => x.Overview).CustomType("StringClob");
+            Map(x => x.Rating).Not.Nullable();
         }
     }
 }

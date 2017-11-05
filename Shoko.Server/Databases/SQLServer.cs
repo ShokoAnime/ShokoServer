@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 64;
+        public int RequiredVersion { get; } = 65;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -547,6 +547,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(64, 2, "CREATE TABLE AnimeStaff ( StaffID INT IDENTITY(1,1) NOT NULL, AniDBID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, AlternateName NVARCHAR(MAX), Description NVARCHAR(MAX), ImagePath NVARCHAR(MAX) )"),
             new DatabaseCommand(64, 3, "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INT IDENTITY(1,1) NOT NULL, AniDB_AnimeID INT NOT NULL, StaffID INT NOT NULL, Role NVARCHAR(MAX), RoleID INT, RoleType INT NOT NULL, Language NVARCHAR(MAX) NOT NULL )"),
             new DatabaseCommand(64, 4, DatabaseFixes.PopulateCharactersAndStaff),
+            new DatabaseCommand(65, 1, "ALTER TABLE MovieDB_Movie ADD Rating INT NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(65, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

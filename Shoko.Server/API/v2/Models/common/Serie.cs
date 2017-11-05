@@ -38,7 +38,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
             art = new ArtCollection();
             roles = new List<Role>();
-            tags = new List<Tag>();
+            tags = new List<string>();
         }
 
         public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
@@ -225,7 +225,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 var tags = ser.Contract.AniDBAnime.AniDBAnime.GetAllTags();
                 if (tags != null)
-                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList()).Select(a => new Tag {tag = a}).ToList();
+                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList());
             }
 
             if (level > 0)

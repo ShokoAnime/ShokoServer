@@ -25,18 +25,7 @@ namespace Shoko.Server.Providers.MovieDB
     public class MovieDBHelper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        private static UTF8Encoding enc = new UTF8Encoding();
         private static string apiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
-
-        public static string SearchURL
-        {
-            get { return @"http://api.themoviedb.org/2.1/Movie.search/en/xml/{0}/{1}"; }
-        }
-
-        public static string InfoURL
-        {
-            get { return @"http://api.themoviedb.org/2.1/Movie.getInfo/en/xml/{0}/{1}"; }
-        }
 
         public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
         {
@@ -165,7 +154,7 @@ namespace Shoko.Server.Providers.MovieDB
                 TMDbClient client = new TMDbClient(apiKey);
                 SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
 
-                Console.WriteLine("Got {0} of {1} results", resultsTemp.Results.Count, resultsTemp.TotalResults);
+                Console.WriteLine($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
                 foreach (SearchMovie result in resultsTemp.Results)
                 {
                     MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();

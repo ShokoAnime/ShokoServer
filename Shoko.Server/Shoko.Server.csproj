@@ -342,7 +342,6 @@
     <Compile Include="API\v2\Models\common\Episode.cs" />
     <Compile Include="API\v2\Models\common\Role.cs" />
     <Compile Include="API\v2\Models\common\Serie.cs" />
-    <Compile Include="API\v2\Models\common\Tag.cs" />
     <Compile Include="API\v2\Models\core\OSFile.cs" />
     <Compile Include="API\v2\Models\core\ServerStatus.cs" />
     <Compile Include="API\v2\Models\core\Settings.cs" />

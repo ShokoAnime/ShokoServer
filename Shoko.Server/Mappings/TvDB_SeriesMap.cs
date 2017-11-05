@@ -19,6 +19,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.Poster);
             Map(x => x.SeriesName);
             Map(x => x.Status);
+            Map(x => x.Rating);
         }
     }
 }

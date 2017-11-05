@@ -63,7 +63,7 @@ namespace Shoko.Server.API.v2.Models
         public List<Role> roles { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public List<Tag> tags { get; set; }
+        public List<string> tags { get; set; }
 
         [DataMember(IsRequired = false)]
         public ArtCollection art { get; set; }

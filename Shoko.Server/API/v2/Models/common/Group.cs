@@ -24,7 +24,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
             series = new List<Serie>();
             art = new ArtCollection();
-            tags = new List<Tag>();
+            tags = new List<string>();
             roles = new List<Role>();
         }
 
@@ -171,8 +171,7 @@ namespace Shoko.Server.API.v2.Models.common
                 g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)
-                    g.tags = TagFilter.ProcessTags((TagFilter.Filter)tagfilter, ag.Contract.Stat_AllTags.ToList())
-                        .Select(value => new Tag {tag = value}).ToList();
+                    g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList());
 
                 if (!nocast)
                 {

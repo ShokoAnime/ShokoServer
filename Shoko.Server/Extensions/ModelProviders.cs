@@ -248,6 +248,7 @@ namespace Shoko.Server.Extensions
             m.MovieName = result.MovieName;
             m.OriginalName = result.OriginalName;
             m.Overview = result.Overview;
+            m.Rating = (int) Math.Round(result.Rating * 10D);
         }
 
         public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
@@ -519,6 +520,7 @@ namespace Shoko.Server.Extensions
             series.Banner = apiSeries.Banner;
             series.Status = apiSeries.Status;
             series.Lastupdated = apiSeries.LastUpdated.ToString();
+            if (apiSeries.SiteRating != null) series.Rating = (int) Math.Round(apiSeries.SiteRating.Value * 10);
         }
 
         [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]

@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 60;
+        public int RequiredVersion { get; } = 61;
 
 
         public void BackupDatabase(string fullfilename)
@@ -484,6 +484,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(60, 2, "CREATE TABLE AnimeStaff ( StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
             new DatabaseCommand(60, 3, "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_AnimeID INTEGER NOT NULL, StaffID INTEGER NOT NULL, Role TEXT NULL, RoleID INTEGER, RoleType INTEGER NOT NULL, Language TEXT NOT NULL )"),
             new DatabaseCommand(60, 4, DatabaseFixes.PopulateCharactersAndStaff),
+            new DatabaseCommand(61, 1, "ALTER TABLE MovieDB_Movie ADD Rating INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(61, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
         };
 
 
