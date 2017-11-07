@@ -708,9 +708,9 @@ namespace Shoko.Server.Providers.TvDB
             return apiEpisodes;
         }
 
-        public static void UpdateEpisode(int episodeID, bool downloadImages, bool forceRefresh)
+        public static TvDB_Episode UpdateEpisode(int episodeID, bool downloadImages, bool forceRefresh)
         {
-            Task.Run(async () => await QueueEpisodeImageDownloadAsync(episodeID, downloadImages, forceRefresh)).Wait();
+            return QueueEpisodeImageDownloadAsync(episodeID, downloadImages, forceRefresh).Result;
         }
 
         static async Task<EpisodeRecord> GetEpisodeDetailsAsync(int episodeID)
@@ -745,7 +745,7 @@ namespace Shoko.Server.Providers.TvDB
             return null;
         }
 
-        public static async Task QueueEpisodeImageDownloadAsync(int tvDBEpisodeID, bool downloadImages, bool forceRefresh)
+        public static async Task<TvDB_Episode> QueueEpisodeImageDownloadAsync(int tvDBEpisodeID, bool downloadImages, bool forceRefresh)
         {
             try
             {
@@ -754,7 +754,7 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     EpisodeRecord episode = await GetEpisodeDetailsAsync(tvDBEpisodeID);
                     if (episode == null)
-                        return;
+                        return null;
 
                     if (ep == null) ep = new TvDB_Episode();
                     ep.Populate(episode);
@@ -773,6 +773,7 @@ namespace Shoko.Server.Providers.TvDB
                             cmd.Save();
                         }
                     }
+                return ep;
             }
             catch (TvDbServerException exception)
             {
@@ -782,12 +783,11 @@ namespace Shoko.Server.Providers.TvDB
                     await CheckAuthorizationAsync();
                     if (!string.IsNullOrEmpty(client.Authentication.Token))
                     {
-                        await QueueEpisodeImageDownloadAsync(tvDBEpisodeID, downloadImages, forceRefresh);
-                        return;
+                        return await QueueEpisodeImageDownloadAsync(tvDBEpisodeID, downloadImages, forceRefresh);
                     }
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return;
+                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
             }
@@ -795,6 +795,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 logger.Error(ex, $"Error in TVDBHelper.GetEpisodes: {ex}");
             }
+            return null;
         }
 
         public static void UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)

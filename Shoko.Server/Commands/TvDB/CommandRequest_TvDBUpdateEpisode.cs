@@ -48,8 +48,8 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TvDBApiHelper.UpdateEpisode(TvDBEpisodeID, DownloadImages, ForceRefresh);
-                var ep = RepoFactory.TvDB_Episode.GetByTvDBID(TvDBEpisodeID);
+                var ep = TvDBApiHelper.UpdateEpisode(TvDBEpisodeID, DownloadImages, ForceRefresh);
+                if (ep == null) return;
                 var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AnimeID);
                 if (xref == null) return;
                 foreach (var crossRefAniDbTvDbv2 in xref)
