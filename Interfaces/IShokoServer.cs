@@ -77,7 +77,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/DefaultSerie/{animeGroupID}", Verbs.Delete)]
         void RemoveDefaultSeriesForGroup(int animeGroupID);
 
-        [Rest("Group/Rename", Verbs.Post)]
+        [Rest("Group/Rename", Verbs.Post, TimeOutSeconds = 180)]
         string RenameAllGroups();
 
         [Rest("Group/{animeGroupID}/{deleteFiles}", Verbs.Delete)]
@@ -86,7 +86,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/ForSerie/{animeSeriesID}/{userID}", Verbs.Get)]
         CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID);
 
-        [Rest("Group/Recreate/{resume}", Verbs.Post)]
+        [Rest("Group/Recreate/{resume}", Verbs.Post, TimeOutSeconds = 300)]
         void RecreateAllGroups(bool resume);
 
         [Rest("Group/Summary/{animeID}", Verbs.Get)]
@@ -96,7 +96,7 @@ namespace Shoko.Models.Interfaces
 
         #region Series
 
-        [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}", Verbs.Post)]
+        [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}", Verbs.Post, TimeOutSeconds = 300)]
         CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite);
 
         [Rest("Serie/{userID}", Verbs.Get)]
