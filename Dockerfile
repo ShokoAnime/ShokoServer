@@ -4,12 +4,18 @@ FROM mono:5.4
 
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
+RUN echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y --force-yes libmediainfo0 librhash0 sqlite.interop jq unzip
+ENV TINI_VERSION v0.16.1
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /bin/tini
+RUN chmod +x /bin/tini
+
+RUN apt update && apt install -y --force-yes libmediainfo0 librhash0 sqlite.interop jq unzip && apt install -t jessie-backports gosu
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
+RUN mv /usr/src/app/source/dockerentry.sh /dockerentry.sh
 
 ADD https://github.com/NuGet/Home/releases/download/3.3/NuGet.exe .
 RUN mono NuGet.exe restore
@@ -31,4 +37,13 @@ VOLUME /usr/src/app/build/webui
 HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/v1/Server' || exit 1
 
 EXPOSE 8111
-ENTRYPOINT mono --debug Shoko.CLI.exe
+
+#RUN mkdir -p /home/shoko 
+#RUN groupadd -r shoko && useradd --no-log-init -r -g shoko shoko 
+#RUN chown -R shoko:shoko /home/shoko
+#RUN chown -R shoko:shoko /usr/src/app/build
+
+#USER shoko:shoko
+
+#ENTRYPOINT mono --debug Shoko.CLI.exe
+ENTRYPOINT /bin/bash /dockerentry.sh 
