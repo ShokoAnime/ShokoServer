@@ -17,6 +17,7 @@ namespace Shoko.Models.Server
         public int EpisodeType { get; set; }
         public string RomajiName { get; set; }
         public string EnglishName { get; set; }
+        public string Description { get; set; }
         public int AirDate { get; set; }
         public DateTime DateTimeUpdated { get; set; }
 

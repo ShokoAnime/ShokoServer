@@ -11,6 +11,7 @@ namespace Shoko.Models.Client
         public int EpisodeNumber { get; set; }
         public string EpisodeNameRomaji { get; set; }
         public string EpisodeNameEnglish { get; set; }
+        public string Description { get; set; }
         public int EpisodeType { get; set; }
         public int LocalFileCount { get; set; }
         public int UnwatchedEpCountSeries { get; set; }
