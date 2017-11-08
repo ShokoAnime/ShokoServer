@@ -171,6 +171,17 @@ namespace Shoko.Server.Databases
             RepoFactory.CrossRef_Anime_Staff.Save(xrefstosave);
         }
 
+        public static void FixCharactersWithGrave()
+        {
+            var list = RepoFactory.AnimeCharacter.GetAll()
+                .Where(character => character.Description != null && character.Description.Contains("`")).ToList();
+            foreach (var character in list)
+            {
+                character.Description = character.Description.Replace("`", "'");
+                RepoFactory.AnimeCharacter.Save(character);
+            }
+        }
+
         public static void PopulateTagWeight()
         {
             try

@@ -22,19 +22,6 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            var list = Cache.Values
-                .Where(character => character.Description != null && character.Description.Contains("`")).ToList();
-            int i = 0;
-            foreach (var character in list)
-            {
-                character.Description = character.Description.Replace("`", "'");
-                Save(character);
-                i++;
-                if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AnimeCharacter).Name,
-                        $" DbRegen - {i}/{list.Count}");
-            }
         }
 
         public static AnimeCharacterRepository Create()

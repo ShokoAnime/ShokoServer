@@ -182,6 +182,7 @@ namespace Shoko.Server.Repositories.Cached
                 caep.EpisodeNumber = aniEp.EpisodeNumber;
                 caep.EpisodeNameRomaji = aniEp.RomajiName;
                 caep.EpisodeNameEnglish = aniEp.EnglishName;
+                caep.Description = aniEp.Description;
                 caep.EpisodeType = aniEp.EpisodeType;
             }
 

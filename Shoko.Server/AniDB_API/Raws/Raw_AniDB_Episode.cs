@@ -14,14 +14,6 @@ namespace AniDBAPI
     [Serializable]
     public class Raw_AniDB_Episode : XMLBase
     {
-        /*
-		
-		[XmlIgnore]
-		public string AirDateFormatted
-		{
-			get { return APIUtils.GetAniDBDate(AirDate, System.Globalization.CultureInfo.CurrentCulture); }
-		}
-        */
 
         public int EpisodeID { get; set; }
 
@@ -45,6 +37,8 @@ namespace AniDBAPI
 
         public string EnglishName { get; set; }
 
+        public string Description { get; set; }
+
         public int AirDate { get; set; }
 
         public DateTime DateTimeUpdated { get; set; }
@@ -65,6 +59,7 @@ namespace AniDBAPI
             RomajiName = string.Empty;
             KanjiName = string.Empty;
             EnglishName = string.Empty;
+            Description = string.Empty;
             AirDate = 0;
             DateTimeUpdated = DateTime.Now;
             IsDoubleEpisode = 0;
@@ -158,6 +153,8 @@ namespace AniDBAPI
             string adate = AniDBHTTPHelper.TryGetProperty(node, "airdate");
 
             AirDate = AniDB.GetAniDBDateAsSeconds(adate, true);
+
+            Description = AniDBHTTPHelper.TryGetProperty(node, "summary")?.Replace('`', '\'');
             IsValid = true;
             return true;
         }
