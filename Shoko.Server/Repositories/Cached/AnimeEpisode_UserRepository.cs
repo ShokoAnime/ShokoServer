@@ -150,7 +150,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return UsersSeries.GetMultiple((ulong) userid << 32 | (ulong) seriesid);
+                return UsersSeries.GetMultiple((ulong) userid << 48 | (ulong) seriesid);
             }
         }
 
