@@ -985,14 +985,14 @@ namespace Shoko.Server
             return null;
         }
 
-        private SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+        public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
             ISessionWrapper sessionWrapper = session.Wrap();
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID) ?? new SVR_AniDB_Anime();
             if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,

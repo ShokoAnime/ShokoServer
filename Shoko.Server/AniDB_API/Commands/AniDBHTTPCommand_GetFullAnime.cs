@@ -188,16 +188,17 @@ namespace AniDBAPI.Commands
 
             if (CacheOnly)
             {
-                xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
-                if (!string.IsNullOrEmpty(xmlResult))
-                {
-                    docAnime = new XmlDocument();
-                    docAnime.LoadXml(xmlResult);
-                }
-                else
-                {
-                    docAnime = LoadAnimeHTTPFromFile(animeID);
-                }
+                // This just throws 404s
+                //xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
+                //if (!string.IsNullOrEmpty(xmlResult))
+                //{
+                //    docAnime = new XmlDocument();
+                //    docAnime.LoadXml(xmlResult);
+                //}
+                //else
+                //{
+                docAnime = LoadAnimeHTTPFromFile(animeID);
+                //}
             }
 
             if (!ForceFromAniDB)

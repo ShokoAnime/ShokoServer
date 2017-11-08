@@ -76,6 +76,7 @@ namespace Shoko.Server.API.v2.Models.common
             if (cae != null)
             {
                 ep.name = cae.AniDB_EnglishName;
+                ep.summary = cae.Description;
 
                 ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture);
                 ep.air = cae.AniDB_AirDate?.ToPlexDate();
@@ -120,7 +121,7 @@ namespace Shoko.Server.API.v2.Models.common
                             tvep.TvDB_EpisodeID)
                     });
                 }
-                ep.summary = tvep.Overview;
+                if (!string.IsNullOrEmpty(tvep.Overview)) ep.summary = tvep.Overview;
 
                 int zeroPadding = tvep.EpisodeNumber.ToString().Length;
                 string episodeNumber = tvep.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');

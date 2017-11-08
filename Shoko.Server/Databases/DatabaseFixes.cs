@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using AniDBAPI;
+using AniDBAPI.Commands;
 using NLog;
 using Pri.LongPath;
 using Shoko.Models.Enums;
@@ -179,6 +181,39 @@ namespace Shoko.Server.Databases
             {
                 character.Description = character.Description.Replace("`", "'");
                 RepoFactory.AnimeCharacter.Save(character);
+            }
+        }
+
+        public static void PopulateAniDBEpisodeDescriptions()
+        {
+            int i = 0;
+            var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
+                .Select(a => a.AnimeID).Distinct().ToList();
+            foreach (var animeID in list)
+            {
+                if (i % 10 == 0)
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Commons.Properties.Resources.Database_Validating, "Populating Episode Descriptions from Cache",
+                        $" {i}/{list.Count}");
+                i++;
+                try
+                {
+                    var getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
+                    getAnimeCmd.Init(animeID, false, false, true);
+                    var result = getAnimeCmd.Process();
+                    if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                        continue;
+                    if (getAnimeCmd.Anime == null) continue;
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    {
+                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, getAnimeCmd);
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.Error(
+                        $"There was an error Populating AniDB_Episode Descriptions for AniDB_Anime {animeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
+                }
             }
         }
 
