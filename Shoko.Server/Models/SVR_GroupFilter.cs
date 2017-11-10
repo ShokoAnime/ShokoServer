@@ -236,13 +236,16 @@ namespace Shoko.Server.Models
                     else
                         break;
                 }
-                if (groupID == null) return result;
+                if (groupID == null) return false;
 
                 var group = RepoFactory.AnimeGroup.GetByID(groupID.Value);
 
-                var contract = group.Contract;
+                var contract = group?.Contract;
                 if (user != null)
-                    contract = group.GetUserContract(user.JMMUserID);
+                    contract = group?.GetUserContract(user.JMMUserID);
+
+                if (contract == null) return false;
+
                 result |= CalculateGroupFilterGroups(contract, user);
                 if (result)
                 {
