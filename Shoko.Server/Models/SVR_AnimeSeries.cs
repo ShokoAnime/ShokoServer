@@ -507,15 +507,20 @@ namespace Shoko.Server.Models
                 users = RepoFactory.JMMUser.GetAll();
             List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
-
-            foreach (SVR_JMMUser u in users)
+            HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
+            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
             {
-                HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
-                CL_AnimeSeries_User cgrp = GetUserContract(u.JMMUserID, n);
-                foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
+                if (gf.UpdateGroupFilterFromSeries(Contract, null))
+                    if (!tosave.Contains(gf))
+                        tosave.Add(gf);
+                foreach (SVR_JMMUser u in users)
+                {
+                    CL_AnimeSeries_User cgrp = GetUserContract(u.JMMUserID, n);
+
                     if (gf.UpdateGroupFilterFromSeries(cgrp, u))
                         if (!tosave.Contains(gf))
                             tosave.Add(gf);
+                }
             }
             RepoFactory.GroupFilter.Save(tosave);
         }

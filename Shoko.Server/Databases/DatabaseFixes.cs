@@ -265,6 +265,27 @@ namespace Shoko.Server.Databases
             }
         }
 
+        public static void MakeTagsApplyToSeries()
+        {
+            try
+            {
+                var filters = RepoFactory.GroupFilter.GetAll();
+                if (filters.Count == 0) return;
+                foreach (SVR_GroupFilter gf in filters)
+                {
+                    if (gf.FilterType != (int) GroupFilterType.Tag) continue;
+                    gf.ApplyToSeries = 1;
+                    gf.CalculateGroupsAndSeries();
+                    RepoFactory.GroupFilter.Save(gf);
+                }
+                RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+            }
+        }
+
         public static void MakeYearsApplyToSeries()
         {
             try

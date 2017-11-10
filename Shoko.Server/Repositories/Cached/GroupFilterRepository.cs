@@ -468,6 +468,14 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
+        public override void Save(IReadOnlyCollection<SVR_GroupFilter> objs)
+        {
+            foreach (var obj in objs)
+            {
+                Save(obj);
+            }
+        }
+
         /// <summary>
         /// Updates a batch of <see cref="SVR_GroupFilter"/>s.
         /// </summary>

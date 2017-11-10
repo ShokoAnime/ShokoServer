@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 73;
+        public int RequiredVersion { get; } = 74;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -588,6 +588,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL DEFAULT ''"),
             new DatabaseCommand(72, 2, DatabaseFixes.FixCharactersWithGrave),
             new DatabaseCommand(73, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
+            new DatabaseCommand(74, 2, Importer.UpdateAllStats),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

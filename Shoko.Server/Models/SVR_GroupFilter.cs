@@ -225,36 +225,31 @@ namespace Shoko.Server.Models
             else
             {
                 result = false;
-                List<SVR_AnimeGroup> grps = new List<SVR_AnimeGroup>();
+                // Top Level Group
                 int? groupID = ser.AnimeGroupID;
-                while (groupID.HasValue)
+                while (true)
                 {
+                    if (groupID == null) break;
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID.Value);
                     if (grp != null)
-                    {
-                        grps.Add(grp);
                         groupID = grp.AnimeGroupParentID;
-                    }
                     else
-                    {
-                        groupID = null;
-                    }
+                        break;
                 }
+                if (groupID == null) return result;
 
-                foreach (var grp in grps)
-                {
-                    var contract = grp.Contract;
-                    if (user != null)
-                        contract = grp.GetUserContract(user.JMMUserID);
-                    result |= CalculateGroupFilterGroups(contract, user);
-                }
+                var group = RepoFactory.AnimeGroup.GetByID(groupID.Value);
+
+                var contract = group.Contract;
+                if (user != null)
+                    contract = group.GetUserContract(user.JMMUserID);
+                result |= CalculateGroupFilterGroups(contract, user);
                 if (result)
                 {
-                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
-                            ?.GetAllSeries()
-                            ?.Select(b => b?.AnimeSeriesID ?? -1))
-                        .Where(a => a != -1)
-                        .ToHashSet();
+                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
+                        .SelectMany(a =>
+                            RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                        .Where(a => a != -1).ToHashSet();
                 }
             }
             return result;
