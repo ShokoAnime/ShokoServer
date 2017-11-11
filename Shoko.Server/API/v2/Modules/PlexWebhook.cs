@@ -78,6 +78,7 @@ namespace Shoko.Server.API.v2.Modules
             if (episode == null)
             {
                 logger.Info("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
+                return;
             }
 
             logger.Trace($"Got anime: {anime}, ep: {episode.PlexContract.EpisodeNumber}");
