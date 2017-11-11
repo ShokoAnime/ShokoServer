@@ -20,6 +20,7 @@ using Nancy.Hosting.Self;
 using Nancy.Json;
 using NHibernate;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -488,42 +489,37 @@ namespace Shoko.Server
                             // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
                             // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
 
-                            FileAttributes attr = File.GetAttributes(evt.FullPath); // sometimes throws, sometimes not
-                            if (attr.HasFlag(FileAttributes.Directory))
+                            // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
+                            if (Directory.Exists(evt.FullPath)) // filter out invalid events
                             {
-                                if (Directory.Exists(evt.FullPath)) // filter out invalid events
+                                logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                                string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+
+                                foreach (string file in files)
                                 {
-                                    logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                    string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                                    foreach (string file in files)
+                                    if (FileHashHelper.IsVideo(file))
                                     {
-                                        if (FileHashHelper.IsVideo(file))
-                                        {
-                                            logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+                                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
-                                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                            cmd.Save();
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (File.Exists(evt.FullPath)) // filter out invalid events
-                                {
-                                    logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                    if (FileHashHelper.IsVideo(evt.FullPath))
-                                    {
-                                        logger.Info("Found file {0}", evt.FullPath);
-
-                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
                                         cmd.Save();
                                     }
                                 }
                             }
+                            else if (File.Exists(evt.FullPath))
+                            {
+                                logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                {
+                                    logger.Info("Found file {0}", evt.FullPath);
+
+                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                    cmd.Save();
+                                }
+                            }
+                            // else it was deleted before we got here
                         }
                     }
                     if (queueFileEvents.Contains(evt))

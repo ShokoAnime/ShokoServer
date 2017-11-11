@@ -160,6 +160,13 @@ namespace Shoko.Server.Databases
 
             Tuple<bool, string> ret;
 
+            string message = cmd.CommandName;
+            if (message.Length > 42)
+                message = message.Substring(0, 42) + "...";
+            ServerState.Instance.CurrentSetupStatus = ServerState.Instance.CurrentSetupStatus = string.Format(
+                Commons.Properties.Resources.Database_ApplySchema, cmd.Version + "-" + cmd.Revision,
+                message);
+
             switch (cmd.Type)
             {
                 case DatabaseCommandType.CodedCommand:

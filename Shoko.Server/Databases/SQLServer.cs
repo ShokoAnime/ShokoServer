@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 66;
+        public int RequiredVersion { get; } = 68;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -551,6 +551,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(65, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
             new DatabaseCommand(66, 1, "ALTER TABLE AniDB_Episode ADD Description nvarchar(max) NOT NULL DEFAULT('')"),
             new DatabaseCommand(66, 2, DatabaseFixes.FixCharactersWithGrave),
+            new DatabaseCommand(67, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(68, 1, DatabaseFixes.MakeTagsApplyToSeries),
+            new DatabaseCommand(68, 2, Importer.UpdateAllStats),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

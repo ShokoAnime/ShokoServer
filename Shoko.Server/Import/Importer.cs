@@ -1056,6 +1056,8 @@ namespace Shoko.Server
             {
                 gf.QueueUpdate();
             }
+
+            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
         }
 
 

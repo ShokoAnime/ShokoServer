@@ -254,7 +254,7 @@ namespace Shoko.Server.Repositories
             EndSaveCallback?.Invoke(obj);
         }
 
-        public void Save(IReadOnlyCollection<T> objs)
+        public virtual void Save(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;
@@ -269,17 +269,7 @@ namespace Shoko.Server.Repositories
                     using (var transaction = session.BeginTransaction())
                     {
                         foreach (T obj in objs)
-                        {
-                            lock (Cache)
-                            {
-                                lock (obj)
-                                {
-                                    session.SaveOrUpdate(obj);
-                                    SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-                                    Cache.Update(obj);
-                                }
-                            }
-                        }
+                            SaveWithOpenTransaction(session, obj);
                         transaction.Commit();
                     }
                 }
