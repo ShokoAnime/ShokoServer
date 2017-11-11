@@ -33,6 +33,7 @@ namespace Shoko.Server.API.v2.Modules
             PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
                 new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});
 
+            logger.Trace($"{eventData.Event}: {eventData.Metadata.Guid}");
             switch (eventData.Event)
             {
                 case "media.scrobble":
@@ -97,7 +98,6 @@ namespace Shoko.Server.API.v2.Modules
 
         private static (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
         {
-            logger.Trace(metadata.Guid);
             if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
 
             string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
