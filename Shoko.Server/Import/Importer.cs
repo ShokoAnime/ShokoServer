@@ -792,6 +792,7 @@ namespace Shoko.Server
 
         public static void RemoveRecordsWithoutPhysicalFiles()
         {
+            logger.Info("Remove Missing Files: Start");
             HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -880,7 +881,8 @@ namespace Shoko.Server
                                 if (!string.IsNullOrWhiteSpace(place?.FullServerPath)) continue;
                                 logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
                                 episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
-                                seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+                                seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
+                                    .DistinctBy(a => a.AnimeSeriesID));
                                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
                             }
                             transaction.Commit();
@@ -906,7 +908,8 @@ namespace Shoko.Server
                     // delete video local record
                     logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
                     episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
-                    seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()));
+                    seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
+                        .DistinctBy(a => a.AnimeSeriesID));
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
@@ -954,6 +957,7 @@ namespace Shoko.Server
                     ser.QueueUpdateStats();
                 }
             }
+            logger.Info("Remove Missing Files: Finished");
         }
 
         public static string DeleteCloudAccount(int cloudaccountID)
