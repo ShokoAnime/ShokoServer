@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using NHibernate;
 using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
@@ -78,6 +79,17 @@ namespace Shoko.Server.Repositories.Cached
         }
 
         public override void SaveWithOpenTransaction(ISessionWrapper session, SVR_AnimeEpisode_User obj)
+        {
+            lock (obj)
+            {
+                if (obj.AnimeEpisode_UserID == 0)
+                    base.SaveWithOpenTransaction(session, obj);
+                UpdateContract(obj);
+                base.SaveWithOpenTransaction(session, obj);
+            }
+        }
+
+        public override void SaveWithOpenTransaction(ISession session, SVR_AnimeEpisode_User obj)
         {
             lock (obj)
             {
