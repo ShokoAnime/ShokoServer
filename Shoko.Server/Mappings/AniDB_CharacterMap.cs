@@ -17,7 +17,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.PicName).Not.Nullable();
             Map(x => x.CharKanjiName).Not.Nullable();
             Map(x => x.CharName).Not.Nullable();
-            Map(x => x.CreatorListRaw).Not.Nullable();
+            Map(x => x.CreatorListRaw).Not.Nullable().CustomType("StringClob");
         }
     }
 }
