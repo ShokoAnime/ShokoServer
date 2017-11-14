@@ -246,6 +246,7 @@ namespace Shoko.Server.API.v2.Modules
             });
 #if DEBUG
             Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id)));
+            Get["/test/libs"] = o => Response.AsJson(CallPlexHelper(h => h.GetLibraries()));
 #endif
         }
 

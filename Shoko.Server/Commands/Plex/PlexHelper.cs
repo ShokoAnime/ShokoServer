@@ -51,6 +51,20 @@ namespace Shoko.Server.Commands.Plex
             _user = user;
         }
 
+        public IEnumerable<(int key, string name)> GetLibraries()
+        {
+            XmlDocument xml = GetXml($"http://{ServerSettings.Plex_Server}/library/sections/");
+            XmlNodeList keys = xml.SelectNodes("/MediaContainer/Directory");
+
+            if (keys == null) yield break;
+
+            for (int i = 0; i < keys.Count; i++)
+            {
+                XmlAttributeCollection attributes = keys[i].Attributes;
+                if (attributes != null)
+                    yield return (Convert.ToInt32(attributes["key"].Value), attributes["title"].Value);
+            }
+        }
 
         public PlexSeries[] GetPlexSeries(int section)
         {
