@@ -270,12 +270,12 @@ namespace Shoko.Server.Repositories
                     {
                         foreach (T obj in objs)
                         {
-                            lock (Cache)
+                            lock (obj)
                             {
-                                lock (obj)
+                                session.SaveOrUpdate(obj);
+                                SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+                                lock (Cache)
                                 {
-                                    session.SaveOrUpdate(obj);
-                                    SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                                     Cache.Update(obj);
                                 }
                             }

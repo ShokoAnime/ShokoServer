@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using Shoko.Models.Server;
 using NHibernate;
 using NLog;
@@ -11,7 +9,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -25,9 +22,9 @@ namespace Shoko.Server.Repositories.Cached
 
         private BiDictionaryManyToMany<int, GroupFilterConditionType> Types;
 
-        private ChangeTracker<int> Changes = new ChangeTracker<int>();
+        private readonly ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        public List<SVR_GroupFilter> PostProcessFilters { get; set; } = new List<SVR_GroupFilter>();
+        public List<SVR_GroupFilter> PostProcessFilters { get; set; }
 
         private GroupFilterRepository()
         {
@@ -79,7 +76,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void PostProcess()
         {
-            string t = "GroupFilter";
+            const string t = "GroupFilter";
             ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
                 t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
@@ -124,16 +121,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public void CleanUpEmptyDirectoryFilters()
         {
-            List<SVR_GroupFilter> toremove = GetAll()
-                .Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory).Where(
-                    gf => gf.GroupsIds.Count == 0 && string.IsNullOrEmpty(gf.GroupsIdsString) &&
-                          gf.SeriesIds.Count == 0 && string.IsNullOrEmpty(gf.SeriesIdsString)).ToList();
+            List<SVR_GroupFilter> toremove = GetAll().Where(a => (a.FilterType & (int) GroupFilterType.Directory) != 0)
+                .Where(gf => gf.GroupsIdsVersion == SVR_GroupFilter.GROUPFILTER_VERSION &&
+                             gf.SeriesIdsVersion == SVR_GroupFilter.SERIEFILTER_VERSION && gf.GroupsIds.Count == 0 &&
+                             string.IsNullOrEmpty(gf.GroupsIdsString) && gf.SeriesIds.Count == 0 &&
+                             string.IsNullOrEmpty(gf.SeriesIdsString)).ToList();
             Delete(toremove);
         }
 
         public void CreateOrVerifyLockedFilters()
         {
-            string t = "GroupFilter";
+            const string t = "GroupFilter";
 
             List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
 
