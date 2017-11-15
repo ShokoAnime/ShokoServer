@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Shoko.Models.Server;
-using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models;
@@ -389,11 +388,8 @@ namespace Shoko.Server.Repositories.Cached
                     allseasons = new SortedSet<string>(new SeasonComparator());
                     foreach (SVR_AnimeSeries ser in grps)
                     {
-                        if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0)
-                        {
-                            ser.UpdateContract();
-                        }
-                        if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0) continue;
+                        if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0) ser?.UpdateContract();
+                        if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons?.Count ?? 0) == 0) continue;
                         allseasons.UnionWith(ser.Contract.AniDBAnime.Stat_AllSeasons);
                     }
                 }
@@ -533,24 +529,27 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (globalDBLock)
             {
-                var groupsByFilter = session.CreateSQLQuery(@"
-                SELECT DISTINCT grpFilter.GroupFilterID, series.AnimeSeriesID
-                    FROM AnimeSeries series
-                        INNER JOIN AniDB_Anime_Tag anidbTag
-                            ON anidbTag.AnimeID = series.AniDB_ID
-                        INNER JOIN AniDB_Tag tag
-                            ON tag.TagID = anidbTag.TagID
-                        INNER JOIN GroupFilter grpFilter
-                            ON grpFilter.GroupFilterName = tag.TagName
-                                AND grpFilter.FilterType = :tagType
-                    ORDER BY grpFilter.GroupFilterID, series.AnimeSeriesID")
-                    .AddScalar("GroupFilterID", NHibernateUtil.Int32)
-                    .AddScalar("AnimeSeriesID", NHibernateUtil.Int32)
-                    .SetInt32("tagType", (int) GroupFilterType.Tag)
-                    .List<object[]>()
-                    .ToLookup(r => (int) r[0], r => (int) r[1]);
-
-                return groupsByFilter;
+                Dictionary<int, HashSet<int>> somethingDictionary = new Dictionary<int, HashSet<int>>();
+                var filters = GetAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+                foreach (var series in RepoFactory.AnimeSeries.GetAll())
+                {
+                    foreach (var tag in RepoFactory.AniDB_Tag.GetByAnimeID(series.AniDB_ID))
+                    {
+                        var grpFilters = filters.Where(a =>
+                            a.GroupFilterName.Equals(tag.TagName, StringComparison.InvariantCultureIgnoreCase));
+                        foreach (var grpFilter in grpFilters)
+                        {
+                            if (somethingDictionary.ContainsKey(grpFilter.GroupFilterID))
+                                somethingDictionary[grpFilter.GroupFilterID].Add(series.AnimeSeriesID);
+                            else
+                                somethingDictionary.Add(grpFilter.GroupFilterID,
+                                    new HashSet<int> {series.AnimeSeriesID});
+                        }
+                    }
+                }
+                return somethingDictionary
+                    .SelectMany(p => p.Value, Tuple.Create)
+                    .ToLookup(p => p.Item1.Key, p => p.Item2);
             }
         }
 
