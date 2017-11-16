@@ -125,7 +125,8 @@ namespace Shoko.Server.Repositories.Cached
                              gf.SeriesIdsVersion == SVR_GroupFilter.SERIEFILTER_VERSION && gf.GroupsIds.Count == 0 &&
                              string.IsNullOrEmpty(gf.GroupsIdsString) && gf.SeriesIds.Count == 0 &&
                              string.IsNullOrEmpty(gf.SeriesIdsString)).ToList();
-            Delete(toremove);
+            if (toremove.Count > 0)
+                Delete(toremove);
         }
 
         public void CreateOrVerifyLockedFilters()

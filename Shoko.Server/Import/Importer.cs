@@ -1370,6 +1370,7 @@ namespace Shoko.Server
 
         public static void CheckForTraktSyncUpdate(bool forceRefresh)
         {
+            if (!ServerSettings.Trakt_IsEnabled) return;
             if (ServerSettings.Trakt_SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
             int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
 
@@ -1396,6 +1397,7 @@ namespace Shoko.Server
 
         public static void CheckForTraktAllSeriesUpdate(bool forceRefresh)
         {
+            if (!ServerSettings.Trakt_IsEnabled) return;
             if (ServerSettings.Trakt_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
             int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
 

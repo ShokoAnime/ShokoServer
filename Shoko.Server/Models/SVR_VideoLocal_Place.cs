@@ -206,21 +206,23 @@ namespace Shoko.Server.Models
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                if (v.Places.Count <= 1)
+                if ((v?.Places?.Count ?? 0) <= 1)
                 {
-                    episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
-                        .Select(a => a.GetAnimeSeries()));
-
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                        dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                        cmdDel.Save(session);
+                        if (v != null)
+                        {
+                            episodesToUpdate.AddRange(v.GetAnimeEpisodes());
+                            seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
+                                .Select(a => a.GetAnimeSeries()));
+                            RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                            CommandRequest_DeleteFileFromMyList cmdDel =
+                                new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            cmdDel.Save(session);
+                        }
+                        dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                 }
@@ -346,6 +348,11 @@ namespace Shoko.Server.Models
             {
                 logger.Trace("Getting media info for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
                 Media m = null;
+                if (VideoLocal == null)
+                {
+                    logger.Error($"VideoLocal for {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
+                    return false;
+                }
                 List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
                 if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
                 {
