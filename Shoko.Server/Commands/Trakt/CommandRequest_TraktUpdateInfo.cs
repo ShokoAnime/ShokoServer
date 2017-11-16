@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TraktTVHelper.UpdateAllInfo(TraktID, false);
+                TraktTVHelper.UpdateAllInfo(TraktID);
             }
             catch (Exception ex)
             {

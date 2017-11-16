@@ -1041,7 +1041,7 @@ namespace Shoko.Server
         {
             try
             {
-                TraktTVHelper.UpdateAllInfo(traktD, true);
+                TraktTVHelper.UpdateAllInfo(traktD);
             }
             catch (Exception ex)
             {
