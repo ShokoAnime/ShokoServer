@@ -102,7 +102,7 @@ namespace Shoko.Commons.Utils
         {
             if (dtDate == null) return 0;
 
-            DateTime startDate = new DateTime(1970, 1, 1, 0, 0, 0);
+            DateTime startDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             TimeSpan ts = dtDate.Value - startDate;
 
             return (int) ts.TotalSeconds;
@@ -110,7 +110,7 @@ namespace Shoko.Commons.Utils
 
         public static string AniDBDate(DateTime date)
         {
-            TimeSpan sp = date.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
+            TimeSpan sp = date - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return ((long) sp.TotalSeconds).ToString();
         }
     }
