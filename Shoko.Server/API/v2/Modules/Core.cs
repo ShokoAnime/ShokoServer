@@ -543,7 +543,7 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.OK();
             }
 
-            return new APIMessage(204, "Trak is not enabled or you missing authtoken");
+            return new APIMessage(204, "Trakt is not enabled or you are missing the authtoken");
         }
 
         /// <summary>

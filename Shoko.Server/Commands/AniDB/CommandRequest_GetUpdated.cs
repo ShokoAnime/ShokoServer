@@ -80,7 +80,6 @@ namespace Shoko.Server.Commands
                     webUpdateTime = long.Parse(sched.UpdateDetails);
                     webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
-                    DateTime timeNow = DateTime.Now.ToUniversalTime();
                     logger.Info(
                         $"{Utils.FormatSecondsToDisplayTime(int.Parse((webUpdateTimeNew - webUpdateTime).ToString()))} since last UPDATED command");
                 }

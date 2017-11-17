@@ -411,7 +411,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-            if (ServerSettings.WebCache_Trakt_Send)
+            if (ServerSettings.Trakt_IsEnabled && ServerSettings.WebCache_Trakt_Send)
             {
                 CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
                     new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,
@@ -423,6 +423,8 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void ScanForMatches()
         {
+            if (!ServerSettings.Trakt_IsEnabled) return;
+
             IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
             IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
@@ -1253,6 +1255,8 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void UpdateAllInfo()
         {
+            if (!ServerSettings.Trakt_IsEnabled) return;
+
             IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {

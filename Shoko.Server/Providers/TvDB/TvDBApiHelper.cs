@@ -29,9 +29,9 @@ namespace Shoko.Server.Providers.TvDB
         {
             get
             {
-                DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0).ToLocalTime();
-                TimeSpan span = (new DateTime().ToLocalTime() - epoch);
-                return span.TotalSeconds.ToString(CultureInfo.InvariantCulture);
+                DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+                TimeSpan span = DateTime.Now - epoch;
+                return ((long)span.TotalSeconds).ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -915,26 +915,53 @@ namespace Shoko.Server.Providers.TvDB
             }
         }
 
-        public static List<int> GetUpdatedSeriesList(string serverTime)
+        public static List<int> GetUpdatedSeriesList(long serverTime)
         {
-            return Task.Run(async () => await GetUpdatedSeriesListAsync(serverTime)).Result;
+            return GetUpdatedSeriesListAsync(serverTime).Result;
         }
 
-        public static async Task<List<int>> GetUpdatedSeriesListAsync(string serverTime)
+        public static async Task<List<int>> GetUpdatedSeriesListAsync(long lasttimeseconds)
         {
             List<int> seriesList = new List<int>();
             try
             {
                 // Unix timestamp is seconds past epoch
                 DateTime lastUpdateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                lastUpdateTime = lastUpdateTime.AddSeconds(long.Parse(serverTime)).ToLocalTime();
-                TvDBRateLimiter.Instance.EnsureRate();
-                var response = await client.Updates.GetAsync(lastUpdateTime);
+                lastUpdateTime = lastUpdateTime.AddSeconds(lasttimeseconds).ToLocalTime();
 
-                Update[] updates = response?.Data;
-                if (updates == null) return seriesList;
+                // api limits this to a week at a time, so split it up
+                List<(DateTime, DateTime)> spans = new List<(DateTime, DateTime)>();
+                if (lastUpdateTime.AddDays(7) < DateTime.Now)
+                {
+                    DateTime time = lastUpdateTime;
+                    while (time < DateTime.Now)
+                    {
+                        var nextTime = time.AddDays(7);
+                        if (nextTime > DateTime.Now) nextTime = DateTime.Now;
+                        spans.Add((time, nextTime));
+                        time = time.AddDays(7);
+                    }
+                }
+                else
+                {
+                    spans.Add((lastUpdateTime, DateTime.Now));
+                }
 
-                seriesList.AddRange(updates.Where(item => item != null).Select(item => item.Id));
+                int i = 1;
+                int count = spans.Count;
+                foreach (var span in spans)
+                {
+                    TvDBRateLimiter.Instance.EnsureRate();
+                    // this may take a while if you don't keep shoko running, so log info
+                    logger.Info($"Getting updates from TvDB, part {i} of {count}");
+                    i++;
+                    var response = await client.Updates.GetAsync(span.Item1, span.Item2);
+
+                    Update[] updates = response?.Data;
+                    if (updates == null) continue;
+
+                    seriesList.AddRange(updates.Where(item => item != null).Select(item => item.Id));
+                }
 
                 return seriesList;
             }
@@ -945,7 +972,7 @@ namespace Shoko.Server.Providers.TvDB
                     client.Authentication.Token = null;
                     await CheckAuthorizationAsync();
                     if (!string.IsNullOrEmpty(client.Authentication.Token))
-                        return await GetUpdatedSeriesListAsync(serverTime);
+                        return await GetUpdatedSeriesListAsync(lasttimeseconds);
                     // suppress 404 and move on
                 }
                 else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return seriesList;
@@ -1012,7 +1039,13 @@ namespace Shoko.Server.Providers.TvDB
                 // get a list of updates from TvDB since that time
                 if (lastServerTime.Length > 0)
                 {
-                    List<int> seriesList = GetUpdatedSeriesList(lastServerTime);
+                    if (!long.TryParse(lastServerTime, out long lasttimeseconds)) lasttimeseconds = -1;
+                    if (lasttimeseconds < 0)
+                    {
+                        tvDBIDs = allTvDBIDs;
+                        return CurrentServerTime;
+                    }
+                    List<int> seriesList = GetUpdatedSeriesList(lasttimeseconds);
                     logger.Trace($"{seriesList.Count} series have been updated since last download");
                     logger.Trace($"{allTvDBIDs.Count} TvDB series locally");
 
@@ -1026,7 +1059,7 @@ namespace Shoko.Server.Providers.TvDB
                     tvDBIDs = allTvDBIDs;
                 }
 
-                return currentTvDBServerTime;
+                return CurrentServerTime;
             }
             catch (Exception ex)
             {

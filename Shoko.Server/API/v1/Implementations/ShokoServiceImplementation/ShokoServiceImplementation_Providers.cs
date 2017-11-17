@@ -1054,6 +1054,8 @@ namespace Shoko.Server
         {
             try
             {
+                if (!ServerSettings.Trakt_IsEnabled) return string.Empty;
+
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) return "Could not find Anime Series";
 

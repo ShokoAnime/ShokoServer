@@ -1422,6 +1422,7 @@ namespace Shoko.Server
         {
             try
             {
+                if (!ServerSettings.Trakt_IsEnabled) return;
                 // by updating the Trakt token regularly, the user won't need to authorize again
                 int freqHours = 24; // we need to update this daily
 
