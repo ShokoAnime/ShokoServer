@@ -57,7 +57,7 @@ namespace Shoko.Server.Providers.TvDB
 
         public static TvDB_Series GetSeriesInfoOnline(int seriesID, bool forceRefresh)
         {
-            return Task.Run(async () => await GetSeriesInfoOnlineAsync(seriesID, forceRefresh)).Result;
+            return GetSeriesInfoOnlineAsync(seriesID, forceRefresh).Result;
         }
 
         public static async Task<TvDB_Series> GetSeriesInfoOnlineAsync(int seriesID, bool forceRefresh)

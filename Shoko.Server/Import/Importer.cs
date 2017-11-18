@@ -1188,7 +1188,7 @@ namespace Shoko.Server
                     // will also download fanart, posters and wide banners
                     CommandRequest_TvDBUpdateSeries cmdSeriesEps =
                         new CommandRequest_TvDBUpdateSeries(tvid,
-                            false);
+                            true);
                     cmdSeriesEps.Save();
                 }
             }
