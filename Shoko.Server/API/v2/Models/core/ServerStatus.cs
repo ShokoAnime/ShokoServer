@@ -6,6 +6,8 @@ namespace Shoko.Server.API.v2.Models.core
         public string startup_state { get; set; }
         // Is the server running
         public bool server_started { get; set; }
+        // Uptime in hh:mm:ss or null if not started. Uses total hours with no days.
+        public string server_uptime { get; set; }
         // Is the first run setting flag marked
         public bool first_run { get; set; }
         // Did the server fail to start

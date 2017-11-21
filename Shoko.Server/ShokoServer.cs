@@ -55,6 +55,10 @@ namespace Shoko.Server
         private static DateTime lastTraktInfoUpdate = DateTime.Now;
         private static DateTime lastVersionCheck = DateTime.Now;
 
+        public static DateTime? StartTime = null;
+
+        public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
+
         internal static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
 
@@ -758,6 +762,9 @@ namespace Shoko.Server
 
                 ServerState.Instance.ServerOnline = true;
                 workerSetupDB.ReportProgress(100);
+
+                StartTime = DateTime.Now;
+
                 e.Result = true;
             }
             catch (Exception ex)

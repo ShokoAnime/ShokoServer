@@ -203,10 +203,15 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetServerStatus()
         {
+            TimeSpan? uptime = ShokoServer.UpTime;
+            string uptimemsg = uptime == null
+                ? null
+                : $"{(int) uptime.Value.TotalHours:00}:{uptime.Value.Minutes:00}:{uptime.Value.Seconds:00}";
             ServerStatus status = new ServerStatus
             {
                 server_started = ServerState.Instance.ServerOnline,
                 startup_state = ServerState.Instance.CurrentSetupStatus,
+                server_uptime = uptimemsg,
                 first_run = ServerSettings.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
                 startup_failed_error_message = ServerState.Instance.StartupFailedMessage

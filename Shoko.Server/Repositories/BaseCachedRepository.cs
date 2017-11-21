@@ -162,7 +162,7 @@ namespace Shoko.Server.Repositories
             EndDeleteCallback?.Invoke(cr);
         }
 
-        public void Delete(IReadOnlyCollection<T> objs)
+        public virtual void Delete(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;
