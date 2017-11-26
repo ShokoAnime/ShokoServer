@@ -9,7 +9,7 @@ using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 
 namespace Shoko.Server.Commands
 {

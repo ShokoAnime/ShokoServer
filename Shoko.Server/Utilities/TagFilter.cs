@@ -44,7 +44,7 @@ namespace Shoko.Server
             "season",
             "sentai",
             "setting",
-            "some weird shit goin` on", // these are some grave accents in use...
+            "some weird shit goin' on", // these are some grave accents in use...
             "storytelling",
             "tales",
             "target audience",

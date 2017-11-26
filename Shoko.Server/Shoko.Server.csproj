@@ -410,7 +410,6 @@
     <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
     <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeCharacterRepository.cs" />
-    <Compile Include="Repositories\Cached\CommandRequestRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_Anime_StaffRepository.cs" />
@@ -420,6 +419,7 @@
     <Compile Include="Repositories\Cached\TvDB_ImagePosterRepository.cs" />
     <Compile Include="Repositories\Cached\TvDB_ImageWideBannerRepository.cs" />
     <Compile Include="Repositories\Cached\TvDB_SeriesRepository.cs" />
+    <Compile Include="Repositories\Direct\CommandRequestRepository.cs" />
     <Compile Include="Repositories\ICachedRepository.cs" />
     <Compile Include="ShokoServer.cs" />
     <Compile Include="Models\SVR_CloudAccount.cs" />

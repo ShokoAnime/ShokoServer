@@ -31,7 +31,6 @@ namespace Shoko.Server.Repositories
         public static CustomTagRepository CustomTag { get; } = CreateCachedRepository(CustomTagRepository.Create());
         public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; } = CreateCachedRepository(CrossRef_CustomTagRepository.Create());
         public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; } = CreateCachedRepository(CrossRef_File_EpisodeRepository.Create());
-        public static CommandRequestRepository CommandRequest { get; } = CreateCachedRepository(CommandRequestRepository.Create());
         public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = CreateCachedRepository(VideoLocal_PlaceRepository.Create());
         public static VideoLocalRepository VideoLocal { get; } = CreateCachedRepository(VideoLocalRepository.Create());
         public static VideoLocal_UserRepository VideoLocalUser { get; } = CreateCachedRepository(VideoLocal_UserRepository.Create());
@@ -58,6 +57,7 @@ namespace Shoko.Server.Repositories
 
         public static VersionsRepository Versions { get; } = VersionsRepository.Create();
 
+        public static CommandRequestRepository CommandRequest { get; } = CommandRequestRepository.Create();
         public static Trakt_ShowRepository Trakt_Show { get; } = Trakt_ShowRepository.Create();
         public static Trakt_SeasonRepository Trakt_Season { get; } = Trakt_SeasonRepository.Create();
         public static Trakt_FriendRepository Trakt_Friend { get; } = Trakt_FriendRepository.Create();
