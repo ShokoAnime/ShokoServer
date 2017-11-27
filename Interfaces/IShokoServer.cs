@@ -310,7 +310,7 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Rehash/{videoLocalID}", Verbs.Post)]
         void RehashFile(int videoLocalID);
 
-        [Rest("File/Unrecognised/{userID}", Verbs.Get)]
+        [Rest("File/Unrecognised/{userID}", Verbs.Get, TimeOutSeconds = 300)]
         List<CL_VideoLocal> GetUnrecognisedFiles(int userID);
 
         [Rest("File/ManuallyLinked/{userID}", Verbs.Get)]
