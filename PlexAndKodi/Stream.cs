@@ -8,7 +8,7 @@ namespace Shoko.Models.PlexAndKodi
     [XmlType("Stream")]
     [DataContract]
     [Serializable]
-    public class Stream
+    public class Stream : ICloneable
     {
         [DataMember(EmitDefaultValue = false, Order = 1)]
         [XmlAttribute("title")]
@@ -177,5 +177,55 @@ namespace Shoko.Models.PlexAndKodi
         [XmlIgnore]
         [Ignore]
         public float PA { get; set; }
+
+        public object Clone()
+        {
+            Stream newStream = new Stream
+            {
+                idx = idx,
+                Title = Title,
+                Language = Language,
+                Key = Key,
+                Duration = Duration,
+                Height = Height,
+                Width = Width,
+                Bitrate = Bitrate,
+                SubIndex = SubIndex,
+                Id = Id,
+                ScanType = ScanType,
+                RefFrames = RefFrames,
+                Profile = Profile,
+                Level = Level,
+                HeaderStripping = HeaderStripping,
+                HasScalingMatrix = HasScalingMatrix,
+                FrameRateMode = FrameRateMode,
+                File = File,
+                FrameRate = FrameRate,
+                ColorSpace = ColorSpace,
+                CodecID = CodecID,
+                ChromaSubsampling = ChromaSubsampling,
+                Cabac = Cabac,
+                BitDepth = BitDepth,
+                Index = Index,
+                Codec = Codec,
+                StreamType = StreamType,
+                Orientation = Orientation,
+                QPel = QPel,
+                GMC = GMC,
+                BVOP = BVOP,
+                SamplingRate = SamplingRate,
+                LanguageCode = LanguageCode,
+                Channels = Channels,
+                Selected = Selected,
+                DialogNorm = DialogNorm,
+                BitrateMode = BitrateMode,
+                Format = Format,
+                Default = Default,
+                Forced = Forced,
+                PixelAspectRatio = PixelAspectRatio,
+                PA = PA
+            };
+            return newStream;
+        }
     }
 }

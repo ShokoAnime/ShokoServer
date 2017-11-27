@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
 
@@ -8,7 +9,7 @@ namespace Shoko.Models.PlexAndKodi
     [XmlType("Media")]
     [DataContract]
     [Serializable]
-    public class Media
+    public class Media : ICloneable
     {
         [DataMember(EmitDefaultValue = false, Order = 1)]
         [XmlElement("Part")]
@@ -69,5 +70,28 @@ namespace Shoko.Models.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 15)]
         [XmlAttribute("chaptered")]
         public bool Chaptered { get; set; }
+
+        public object Clone()
+        {
+            Media newMedia = new Media
+            {
+                Parts = Parts?.Select(a => (Part)a.Clone()).ToList(),
+                Duration = Duration,
+                VideoFrameRate = VideoFrameRate,
+                Container = Container,
+                VideoCodec = VideoCodec,
+                AudioCodec = AudioCodec,
+                AudioChannels = AudioChannels,
+                AspectRatio = AspectRatio,
+                Height = Height,
+                Width = Width,
+                Bitrate = Bitrate,
+                Id = Id,
+                VideoResolution = VideoResolution,
+                OptimizedForStreaming = OptimizedForStreaming,
+                Chaptered = Chaptered
+            };
+            return newMedia;
+        }
     }
 }

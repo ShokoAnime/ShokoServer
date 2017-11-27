@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
 using Nancy.Rest.Annotations.Atributes;
@@ -9,7 +10,7 @@ namespace Shoko.Models.PlexAndKodi
     [Serializable]
     [XmlType("Part")]
     [DataContract]
-    public class Part
+    public class Part : ICloneable
     {
         [DataMember(EmitDefaultValue = false, Order = 1)]
         [XmlAttribute("accessible")]
@@ -62,5 +63,26 @@ namespace Shoko.Models.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 12)]
         [XmlAttribute("has64bitOffsets")]
         public string Has64bitOffsets { get; set; }
+
+        public object Clone()
+        {
+            Part newPart = new Part
+            {
+                Accessible = Accessible,
+                Exists = Exists,
+                Size = Size,
+                Duration = Duration,
+                Key = Key,
+                LocalKey = LocalKey,
+                Container = Container,
+                Id = Id,
+                File = File,
+                OptimizedForStreaming = OptimizedForStreaming,
+                Extension = Extension,
+                Has64bitOffsets = Has64bitOffsets,
+                Streams = Streams?.Select(a => (Stream)a.Clone()).ToList()
+            };
+            return newPart;
+        }
     }
 }
