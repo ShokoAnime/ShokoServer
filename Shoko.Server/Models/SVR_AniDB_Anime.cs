@@ -1238,6 +1238,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
             RepoFactory.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
 
+            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
+            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
             foreach (Raw_AniDB_Character rawchar in chars)
             {
                 AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharID) ??
@@ -1255,7 +1257,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         Name = chr.CharName,
                         AlternateName = rawchar.CharKanjiName,
                         Description = chr.CharDescription,
-                        ImagePath = chr.GetPosterPath()
+                        ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
                     };
                     // we need an ID for xref
                     RepoFactory.AnimeCharacter.Save(character);
@@ -1298,7 +1300,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             // Unfortunately, most of the info is not provided
                             AniDBID = seiyuu.SeiyuuID,
                             Name = rawSeiyuu.SeiyuuName,
-                            ImagePath = seiyuu.GetPosterPath()
+                            ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
                         };
                         // we need an ID for xref
                         RepoFactory.AnimeStaff.Save(staff);

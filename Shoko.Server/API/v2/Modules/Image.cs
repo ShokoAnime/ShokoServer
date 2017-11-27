@@ -12,6 +12,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
+using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
@@ -325,7 +326,7 @@ namespace Shoko.Server.API.v2.Modules
                     AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(id);
                     if (character == null)
                         return null;
-                    path = character.ImagePath;
+                    path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator + character.ImagePath;
                     if (File.Exists(path))
                     {
                         return path;
@@ -333,7 +334,8 @@ namespace Shoko.Server.API.v2.Modules
                     else
                     {
                         path = string.Empty;
-                        logger.Trace("Could not find Character image: {0}", character.ImagePath);
+                        logger.Trace("Could not find Character image: {0}",
+                            ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator + character.ImagePath);
                     }
                     break;
 
@@ -341,7 +343,7 @@ namespace Shoko.Server.API.v2.Modules
                     var staff = RepoFactory.AnimeStaff.GetByID(id);
                     if (staff == null)
                         return null;
-                    path = staff.ImagePath;
+                    path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator + staff.ImagePath;
                     if (File.Exists(path))
                     {
                         return path;
@@ -349,7 +351,8 @@ namespace Shoko.Server.API.v2.Modules
                     else
                     {
                         path = string.Empty;
-                        logger.Trace("Could not find Staff image: {0}", staff.ImagePath);
+                        logger.Trace("Could not find Staff image: {0}",
+                            ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator + staff.ImagePath);
                     }
                     break;
 

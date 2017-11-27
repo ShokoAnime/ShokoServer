@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 68;
+        public int RequiredVersion { get; } = 69;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -554,6 +554,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(67, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
             new DatabaseCommand(68, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(68, 2, Importer.UpdateAllStats),
+            new DatabaseCommand(69, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

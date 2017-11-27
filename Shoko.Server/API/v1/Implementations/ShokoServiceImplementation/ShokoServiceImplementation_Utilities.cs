@@ -404,7 +404,7 @@ namespace Shoko.Server
                 else
                 {
                     ret.VideoLocal = null;
-                    if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace()?.FullServerPath))
+                    if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace(true)?.FullServerPath))
                     {
                         ret.VideoLocal = null;
                         ret.Success = false;
@@ -1100,10 +1100,7 @@ namespace Shoko.Server
             List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
-                {
-                    contracts.Add(vid.ToClient(userID));
-                }
+                contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(vid => vid.ToClient(userID)));
             }
             catch (Exception ex)
             {

@@ -49,7 +49,7 @@ namespace Shoko.Server
             foreach (SVR_VideoLocal vl in filesToHash)
             {
                 dictFilesToHash[vl.VideoLocalID] = vl;
-                SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace(true);
                 if (p != null)
                 {
                     CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
@@ -67,7 +67,7 @@ namespace Shoko.Server
                 {
                     try
                     {
-                        SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace();
+                        SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace(true);
                         if (p != null)
                         {
                             CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
@@ -197,7 +197,7 @@ namespace Shoko.Server
                 {
                     try
                     {
-                        SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
+                        SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace(true);
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
                             ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()

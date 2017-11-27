@@ -482,7 +482,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
             SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
             if (vl == null) return APIStatus.NotFound("VideoLocal Not Found");
-            SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+            SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
             if (pl?.FullServerPath == null) return APIStatus.NotFound("videolocal_place not found");
             CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
             cr_hashfile.Save();
@@ -501,7 +501,7 @@ namespace Shoko.Server.API.v2.Modules
                 // files which have been hashed, but don't have an associated episode
                 foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
                 {
-                    SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                    SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
                     CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
                     cr_hashfile.Save();
@@ -526,7 +526,7 @@ namespace Shoko.Server.API.v2.Modules
                 // files which have been hashed, but don't have an associated episode
                 foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
                 {
-                    SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                    SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
                     CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
                     cr_hashfile.Save();
@@ -977,7 +977,8 @@ namespace Shoko.Server.API.v2.Modules
                     .Where(_tuple => _tuple.anidb != null)
                     .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
                     .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
-                    .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace().FullServerPath).ToList();
+                    .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
+                    .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;
                 foreach (var path in list)
                 {

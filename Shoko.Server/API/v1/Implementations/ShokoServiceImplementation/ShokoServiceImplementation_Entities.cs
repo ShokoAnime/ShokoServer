@@ -1012,7 +1012,7 @@ namespace Shoko.Server
 
             if (vl != null)
             {
-                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                 if (pl == null)
                 {
                     logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");

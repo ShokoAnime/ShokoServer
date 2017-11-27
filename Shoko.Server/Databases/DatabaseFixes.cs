@@ -8,6 +8,7 @@ using Pri.LongPath;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
+using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -139,13 +140,15 @@ namespace Shoko.Server.Databases
             var allstaff = RepoFactory.AniDB_Seiyuu.GetAll();
             var allanimecharacters = RepoFactory.AniDB_Anime_Character.GetAll().ToLookup(a => a.CharID, b => b);
             var allcharacterstaff = RepoFactory.AniDB_Character_Seiyuu.GetAll();
+            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
+            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
 
             var charstosave = allcharacters.Select(character => new AnimeCharacter
                 {
                     Name = character.CharName?.Replace("`", "'"),
                     AniDBID = character.CharID,
                     Description = character.CharDescription?.Replace("`", "'"),
-                    ImagePath = character.GetPosterPath()
+                    ImagePath = character.GetPosterPath()?.Replace(charBasePath, "")
                 }).ToList();
             RepoFactory.AnimeCharacter.Save(charstosave);
 
@@ -153,7 +156,7 @@ namespace Shoko.Server.Databases
                 {
                     Name = a.SeiyuuName?.Replace("`", "'"),
                     AniDBID = a.SeiyuuID,
-                    ImagePath = a.GetPosterPath()
+                    ImagePath = a.GetPosterPath()?.Replace(creatorBasePath, "")
                 }).ToList();
             RepoFactory.AnimeStaff.Save(stafftosave);
 
@@ -181,6 +184,27 @@ namespace Shoko.Server.Databases
             {
                 character.Description = character.Description.Replace("`", "'");
                 RepoFactory.AnimeCharacter.Save(character);
+            }
+        }
+
+        public static void RemoveBasePathsFromStaffAndCharacters()
+        {
+            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
+            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
+            var charactersList = RepoFactory.AnimeCharacter.GetAll()
+                .Where(a => a.ImagePath.StartsWith(charBasePath)).ToList();
+            foreach (var character in charactersList)
+            {
+                character.ImagePath = character.ImagePath.Replace(charBasePath, "");
+                RepoFactory.AnimeCharacter.Save(character);
+            }
+
+            var creatorsList = RepoFactory.AnimeStaff.GetAll()
+                .Where(a => a.ImagePath.StartsWith(creatorBasePath)).ToList();
+            foreach (var creator in creatorsList)
+            {
+                creator.ImagePath = creator.ImagePath.Replace(creatorBasePath, "");
+                RepoFactory.AnimeStaff.Save(creator);
             }
         }
 

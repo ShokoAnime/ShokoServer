@@ -191,9 +191,14 @@ namespace Shoko.Server.Models
             return file;
         }
 
-        public SVR_VideoLocal_Place GetBestVideoLocalPlace()
+        public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
         {
-            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
+            if (!resolve)
+                return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
+                    .FirstOrDefault();
+
+            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
+                .FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
         }
 
         public void SetResumePosition(long resumeposition, int userID)
@@ -413,9 +418,9 @@ namespace Shoko.Server.Models
             {
                 cl.IsWatched = 1;
                 cl.WatchedDate = userRecord.WatchedDate;
-            }
-            if (userRecord != null)
                 cl.ResumePosition = userRecord.ResumePosition;
+            }
+
             cl.Media = GetMediaFromUser(userID);
             return cl;
         }
@@ -437,10 +442,9 @@ namespace Shoko.Server.Models
 
         private static readonly Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
 
-        public Media GetMediaFromUser(int userID)
+        public Media GetMediaFromUser(int userID, bool populateIfNull = false)
         {
-            Media n;
-            if (Media == null)
+            if (Media == null && populateIfNull)
             {
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
                 if (pl?.FullServerPath != null)
@@ -453,8 +457,8 @@ namespace Shoko.Server.Models
                 }
             }
             if (Media == null) return null;
-            n = Media.DeepClone();
-            if (n?.Parts == null) return n;
+            var n = (Media) Media.Clone();
+            if (n.Parts == null) return n;
             foreach (Part p in n.Parts)
             {
                 string name = UrlSafe.Replace(Path.GetFileName(FileName), " ")

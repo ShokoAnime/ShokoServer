@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Shoko.Models.Server;
-using NHibernate.Util;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
+using Shoko.Commons.Extensions;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -232,7 +232,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || obj.Duration == 0)
             {
-                SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace(true);
                 place?.RefreshMediaInfo();
             }
         }
@@ -459,13 +459,10 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll()
-                    .Select(a => a.Hash));
-                HashSet<string> vlocals = new HashSet<string>(Cache.Values.Where(a => a.IsIgnored == 0)
-                    .Select(a => a.Hash));
-                return vlocals.Except(hashes)
-                    .SelectMany(a => Hashes.GetMultiple(a))
-                    .OrderBy(a => a.DateTimeCreated)
+                return Cache.Values
+                    .Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
+                    .SelectMany(a => Hashes.GetMultiple(a.Hash))
+                    .OrderByNatural(local => local.GetBestVideoLocalPlace()?.FilePath)
                     .ToList();
             }
         }

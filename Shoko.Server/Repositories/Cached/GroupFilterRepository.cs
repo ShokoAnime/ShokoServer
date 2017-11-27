@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using NHibernate;
 using Shoko.Models.Server;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -468,6 +469,38 @@ namespace Shoko.Server.Repositories.Cached
             foreach (var obj in objs)
             {
                 Save(obj);
+            }
+        }
+
+        public override void Delete(SVR_GroupFilter cr)
+        {
+            if (cr.FilterType == (int) GroupFilterType.Season)
+                logger.Warn($"Season filter {cr.GroupFilterName} is being deleted");
+            base.Delete(cr);
+        }
+
+        public override void Delete(int id)
+        {
+            var filter = GetByID(id);
+            if (filter.FilterType == (int) GroupFilterType.Season)
+                logger.Warn($"Season filter {filter.GroupFilterName} is being deleted by ID");
+            base.Delete(id);
+        }
+
+        public override void DeleteWithOpenTransaction(ISession session, SVR_GroupFilter cr)
+        {
+            if (cr.FilterType == (int) GroupFilterType.Season)
+                logger.Warn($"Season filter {cr.GroupFilterName} is being deleted with Open Transaction");
+            base.DeleteWithOpenTransaction(session, cr);
+        }
+
+        public override void Delete(IReadOnlyCollection<SVR_GroupFilter> objs)
+        {
+            foreach (var cr in objs)
+            {
+                if (cr.FilterType == (int) GroupFilterType.Season)
+                    logger.Warn($"Season filter {cr.GroupFilterName} is being deleted");
+                base.Delete(cr);
             }
         }
 
