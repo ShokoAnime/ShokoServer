@@ -2,14 +2,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using AniDBAPI;
-using Force.DeepCloner;
 using NHibernate;
 using NLog;
-using Shoko.Models;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
@@ -106,7 +102,7 @@ namespace Shoko.Server.Extensions
                 ED2K = v.ED2KHash
             };
             //Cleanup any File subtitles from media information.
-            Media m = v.Media.DeepClone();
+            Media m = (Media) v.Media.Clone();
             if (m.Parts != null && m.Parts.Count > 0)
             {
                 foreach (Part p in m.Parts)
