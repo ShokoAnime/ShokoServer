@@ -132,7 +132,11 @@ namespace Shoko.Server.Commands
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
             QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
 
-            if (QueueCount > 0) workerCommands.RunWorkerAsync();
+            if (QueueCount > 0 && !workerCommands.IsBusy)
+            {
+                processingCommands = true;
+                workerCommands.RunWorkerAsync();
+            }
         }
 
         public void Init()

@@ -145,7 +145,7 @@ namespace Shoko.Server.Commands
 
             QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
 
-            if (QueueCount > 0)
+            if (QueueCount > 0 && !workerCommands.IsBusy)
             {
                 processingCommands = true;
                 workerCommands.RunWorkerAsync();
