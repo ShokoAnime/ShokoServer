@@ -16,7 +16,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.LocalSpoiler).Not.Nullable();
             Map(x => x.Spoiler).Not.Nullable();
             Map(x => x.TagCount).Not.Nullable();
-            Map(x => x.TagDescription).Not.Nullable();
+            Map(x => x.TagDescription).Not.Nullable().CustomType("StringClob");
             Map(x => x.TagID).Not.Nullable();
             Map(x => x.TagName).Not.Nullable();
         }

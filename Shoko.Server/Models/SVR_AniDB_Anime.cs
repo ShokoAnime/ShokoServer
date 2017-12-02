@@ -1217,7 +1217,14 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<AniDB_Anime_Character> animeChars =
                 RepoFactory.AniDB_Anime_Character.GetByAnimeID(sessionWrapper, AnimeID);
 
-            RepoFactory.AniDB_Anime_Character.Delete(animeChars);
+            try
+            {
+                RepoFactory.AniDB_Anime_Character.Delete(animeChars);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Remove Characters for {MainTitle}: {ex}");
+            }
 
 
             List<AniDB_Character> chrsToSave = new List<AniDB_Character>();
@@ -1236,97 +1243,143 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 foreach (AniDB_Character_Seiyuu xref in allCharSei)
                     charSeiyuusToDelete.Add(xref);
             }
-            RepoFactory.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
+            try
+            {
+                RepoFactory.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Remove Seiyuus for {MainTitle}: {ex}");
+            }
 
             string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
             string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
             foreach (Raw_AniDB_Character rawchar in chars)
             {
-                AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharID) ??
-                                      new AniDB_Character();
-
-                if (!chr.PopulateFromHTTP(rawchar)) continue;
-                chrsToSave.Add(chr);
-
-                var character = RepoFactory.AnimeCharacter.GetByAniDBID(chr.CharID);
-                if (character == null)
+                try
                 {
-                    character = new AnimeCharacter
-                    {
-                        AniDBID = chr.CharID,
-                        Name = chr.CharName,
-                        AlternateName = rawchar.CharKanjiName,
-                        Description = chr.CharDescription,
-                        ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
-                    };
-                    // we need an ID for xref
-                    RepoFactory.AnimeCharacter.Save(character);
-                }
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharID) ??
+                                          new AniDB_Character();
 
-                // create cross ref's between anime and character, but don't actually download anything
-                AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
-                anime_char.Populate(rawchar);
-                xrefsToSave.Add(anime_char);
+                    if (!chr.PopulateFromHTTP(rawchar)) continue;
+                    chrsToSave.Add(chr);
 
-                foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
-                {
-                    // save the link between character and seiyuu
-                    AniDB_Character_Seiyuu acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(session,
-                        rawchar.CharID,
-                        rawSeiyuu.SeiyuuID);
-                    if (acc == null)
+                    var character = RepoFactory.AnimeCharacter.GetByAniDBID(chr.CharID);
+                    if (character == null)
                     {
-                        acc = new AniDB_Character_Seiyuu
+                        character = new AnimeCharacter
                         {
-                            CharID = chr.CharID,
-                            SeiyuuID = rawSeiyuu.SeiyuuID
-                        };
-                        seiyuuXrefToSave.Add(acc);
-                    }
-
-                    // save the seiyuu
-                    AniDB_Seiyuu seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session, rawSeiyuu.SeiyuuID);
-                    if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
-                    seiyuu.PicName = rawSeiyuu.PicName;
-                    seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
-                    seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
-                    seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
-
-                    var staff = RepoFactory.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
-                    if (staff == null)
-                    {
-                        staff = new AnimeStaff
-                        {
-                            // Unfortunately, most of the info is not provided
-                            AniDBID = seiyuu.SeiyuuID,
-                            Name = rawSeiyuu.SeiyuuName,
-                            ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
+                            AniDBID = chr.CharID,
+                            Name = chr.CharName,
+                            AlternateName = rawchar.CharKanjiName,
+                            Description = chr.CharDescription,
+                            ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
                         };
                         // we need an ID for xref
-                        RepoFactory.AnimeStaff.Save(staff);
+                        RepoFactory.AnimeCharacter.Save(character);
                     }
 
-                    var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
-                        staff.StaffID, StaffRoleType.Seiyuu);
-                    if (xrefAnimeStaff == null)
+                    // create cross ref's between anime and character, but don't actually download anything
+                    AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
+                    anime_char.Populate(rawchar);
+                    xrefsToSave.Add(anime_char);
+
+                    foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
                     {
-                        xrefAnimeStaff = new CrossRef_Anime_Staff
+                        try
                         {
-                            AniDB_AnimeID = AnimeID,
-                            Language = "Japanese",
-                            RoleType = (int) StaffRoleType.Seiyuu,
-                            Role = rawchar.CharType,
-                            RoleID = character.CharacterID,
-                            StaffID = staff.StaffID,
-                        };
-                        RepoFactory.CrossRef_Anime_Staff.Save(xrefAnimeStaff);
+                            // save the link between character and seiyuu
+                            AniDB_Character_Seiyuu acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(session,
+                                rawchar.CharID,
+                                rawSeiyuu.SeiyuuID);
+                            if (acc == null)
+                            {
+                                acc = new AniDB_Character_Seiyuu
+                                {
+                                    CharID = chr.CharID,
+                                    SeiyuuID = rawSeiyuu.SeiyuuID
+                                };
+                                seiyuuXrefToSave.Add(acc);
+                            }
+
+                            // save the seiyuu
+                            AniDB_Seiyuu seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session, rawSeiyuu.SeiyuuID);
+                            if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
+                            seiyuu.PicName = rawSeiyuu.PicName;
+                            seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
+                            seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
+                            seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
+
+                            var staff = RepoFactory.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
+                            if (staff == null)
+                            {
+                                staff = new AnimeStaff
+                                {
+                                    // Unfortunately, most of the info is not provided
+                                    AniDBID = seiyuu.SeiyuuID,
+                                    Name = rawSeiyuu.SeiyuuName,
+                                    ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
+                                };
+                                // we need an ID for xref
+                                RepoFactory.AnimeStaff.Save(staff);
+                            }
+
+                            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
+                                staff.StaffID, StaffRoleType.Seiyuu);
+                            if (xrefAnimeStaff == null)
+                            {
+                                xrefAnimeStaff = new CrossRef_Anime_Staff
+                                {
+                                    AniDB_AnimeID = AnimeID,
+                                    Language = "Japanese",
+                                    RoleType = (int) StaffRoleType.Seiyuu,
+                                    Role = rawchar.CharType,
+                                    RoleID = character.CharacterID,
+                                    StaffID = staff.StaffID,
+                                };
+                                RepoFactory.CrossRef_Anime_Staff.Save(xrefAnimeStaff);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            logger.Error($"Unable to Populate and Save Seiyuus for {MainTitle}: {e}");
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    logger.Error($"Unable to Populate and Save Characters for {MainTitle}: {ex}");
+                }
             }
-            RepoFactory.AniDB_Character.Save(chrsToSave);
-            RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
-            RepoFactory.AniDB_Seiyuu.Save(seiyuuToSave.Values.ToList());
-            RepoFactory.AniDB_Character_Seiyuu.Save(seiyuuXrefToSave);
+            try
+            {
+                foreach (var character in chrsToSave)
+                {
+                    if (character.CharName.Length >= 200)
+                    {
+                        logger.Error(
+                            $"A character ({character.CharName} from {MainTitle}) has a long name, and it's causing issues...");
+                        continue;
+                    }
+
+                    if (character.PicName.Length >= 100)
+                    {
+                        logger.Error(
+                            $"A character ({character.CharName} from {MainTitle}) has a long picname ({character.PicName}), and it's causing issues...");
+                        continue;
+                    }
+
+                    RepoFactory.AniDB_Character.Save(character);
+                }
+
+                RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
+                RepoFactory.AniDB_Seiyuu.Save(seiyuuToSave.Values.ToList());
+                RepoFactory.AniDB_Character_Seiyuu.Save(seiyuuXrefToSave);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Save Characters and Seiyuus for {MainTitle}: {ex}");
+            }
         }
 
         private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations)
