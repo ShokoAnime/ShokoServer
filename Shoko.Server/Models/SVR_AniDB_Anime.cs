@@ -1353,25 +1353,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
             try
             {
-                foreach (var character in chrsToSave)
-                {
-                    if (character.CharName.Length >= 200)
-                    {
-                        logger.Error(
-                            $"A character ({character.CharName} from {MainTitle}) has a long name, and it's causing issues...");
-                        continue;
-                    }
-
-                    if (character.PicName.Length >= 100)
-                    {
-                        logger.Error(
-                            $"A character ({character.CharName} from {MainTitle}) has a long picname ({character.PicName}), and it's causing issues...");
-                        continue;
-                    }
-
-                    RepoFactory.AniDB_Character.Save(character);
-                }
-
+                RepoFactory.AniDB_Character.Save(chrsToSave);
                 RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
                 RepoFactory.AniDB_Seiyuu.Save(seiyuuToSave.Values.ToList());
                 RepoFactory.AniDB_Character_Seiyuu.Save(seiyuuXrefToSave);
