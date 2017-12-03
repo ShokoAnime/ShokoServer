@@ -73,10 +73,11 @@ namespace Shoko.Server.Commands
                 foreach (Calendar cal in colCalendars.Calendars)
                 {
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
-                    if (anime != null)
+                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
+                    if (anime != null && update != null)
                     {
                         // don't update if the local data is less 2 days old
-                        TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                        TimeSpan ts = DateTime.Now - update.UpdatedAt;
                         if (ts.TotalDays >= 2)
                         {
                             CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true,

@@ -115,8 +115,10 @@ namespace Shoko.Server.Commands
 
                     logger.Info("Updating CommandRequest_GetUpdated: {0} ", animeID);
 
+                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+
                     // but only if it hasn't been recently updated
-                    TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
                     if (ts.TotalHours > 4)
                     {
                         CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false);

@@ -251,11 +251,12 @@ namespace Shoko.Server.Commands
 
                 // get from DB
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
                 bool animeRecentlyUpdated = false;
 
-                if (anime != null)
+                if (anime != null && update != null)
                 {
-                    TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
                     if (ts.TotalHours < 4) animeRecentlyUpdated = true;
                 }
                 else

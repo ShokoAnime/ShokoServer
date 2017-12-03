@@ -8,6 +8,8 @@ using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
 using Shoko.Server;
 using Shoko.Server.AniDB_API.Raws;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace AniDBAPI
 {
@@ -35,6 +37,15 @@ namespace AniDBAPI
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 rawXML = APIUtils.DownloadWebPage(uri);
+
+                // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
+                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                if (update == null)
+                    update = new AniDB_AnimeUpdate {AnimeID = animeID, UpdatedAt = DateTime.Now};
+                else
+                    update.UpdatedAt = DateTime.Now;
+                RepoFactory.AniDB_AnimeUpdate.Save(update);
+
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;
                 if (content.Length > 100) content = content.Substring(0, 100);

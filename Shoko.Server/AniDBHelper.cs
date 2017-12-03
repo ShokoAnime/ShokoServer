@@ -941,11 +941,12 @@ namespace Shoko.Server
             ISessionWrapper sessionWrapper = session.Wrap();
 
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
             bool skip = true;
             bool animeRecentlyUpdated = false;
-            if (anime != null)
+            if (anime != null && update != null)
             {
-                TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                TimeSpan ts = DateTime.Now - update.UpdatedAt;
                 if (ts.TotalHours < 4) animeRecentlyUpdated = true;
             }
             if (!animeRecentlyUpdated)
@@ -955,7 +956,7 @@ namespace Shoko.Server
                 else if (anime == null) skip = false;
             }
 
-            AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
+            AniDBHTTPCommand_GetFullAnime getAnimeCmd;
             lock (lockAniDBConnections)
             {
                 getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();

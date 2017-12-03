@@ -180,78 +180,6 @@ namespace Shoko.Server
                         .OrderBy(a => a.EpisodeType)
                         .ThenBy(a => a.EpisodeNumber)
                         .ToList();
-                /*
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-				AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-
-				// get all the data first
-				// we do this to reduce the amount of database calls, which makes it a lot faster
-				AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
-				if (series == null) return null;
-
-				//List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
-				List<AnimeEpisode> epList = new List<AnimeEpisode>();
-				Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
-				foreach (AnimeEpisode_User userRecord in repEpUser.GetByUserIDAndSeriesID(userID, animeSeriesID))
-					dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
-
-				foreach (AnimeEpisode animeep in repEps.GetBySeriesID(animeSeriesID))
-				{
-					if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
-					{
-						epList.Add(animeep);
-						continue;
-					}
-
-					AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
-					if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
-						epList.Add(animeep);
-				}
-
-				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-				List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
-				Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
-				foreach (AniDB_Episode aniep in aniEpList)
-					dictAniEps[aniep.EpisodeID] = aniep;
-
-				List<Contract_AnimeEpisode> candidateEps = new List<Contract_AnimeEpisode>();
-				foreach (AnimeEpisode ep in epList)
-				{
-					if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
-					{
-						AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
-						if (anidbep.EpisodeType == (int)enEpisodeType.Episode || anidbep.EpisodeType == (int)enEpisodeType.Special)
-						{
-							AnimeEpisode_User userRecord = null;
-							if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-								userRecord = dictEpUsers[ep.AnimeEpisodeID];
-                            if
-							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord, series.GetUserRecord(userID));
-							candidateEps.Add(epContract);
-						}
-					}
-				}
-
-				if (candidateEps.Count == 0) return null;
-
-				// sort by episode type and number to find the next episode
-				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-				candidateEps = Sorting.MultiSort<Contract_AnimeEpisode>(candidateEps, sortCriteria);
-
-				// this will generate a lot of queries when the user doesn have files
-				// for these episodes
-				foreach (Contract_AnimeEpisode canEp in candidateEps)
-				{
-					// now refresh from the database to get file count
-					AnimeEpisode epFresh = repEps.GetByID(canEp.AnimeEpisodeID);
-					if (epFresh.GetVideoLocals().Count > 0)
-						ret.Add(epFresh.ToContract(true, userID, null));
-				}
-
-				return ret;
-                */
             }
             catch (Exception ex)
             {
@@ -2176,7 +2104,7 @@ namespace Shoko.Server
                 ser.AnimeGroupID = newAnimeGroupID;
                 ser.DateTimeUpdated = DateTime.Now;
 
-                //				repSeries.Save(ser,false,false);
+                //              repSeries.Save(ser,false,false);
 
                 // update stats for new groups
                 //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
@@ -2304,73 +2232,75 @@ namespace Shoko.Server
             };
             try
             {
-                    if (animeGroupID.HasValue && animeGroupID.Value > 0)
+                if (animeGroupID.HasValue && animeGroupID.Value > 0)
+                {
+                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
+                    if (grp == null)
                     {
-                        SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
-                        if (grp == null)
-                        {
-                            response.ErrorMessage = "Could not find the specified group";
-                            return response;
-                        }
-                    }
-
-                    // make sure a series doesn't already exists for this anime
-                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    if (ser != null && !forceOverwrite)
-                    {
-                        response.ErrorMessage = "A series already exists for this anime";
+                        response.ErrorMessage = "Could not find the specified group";
                         return response;
                     }
+                }
 
-                    // make sure the anime exists first
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    bool animeRecentlyUpdated = false;
-
-                    if (anime != null)
-                    {
-                        TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
-                        if (ts.TotalHours < 4) animeRecentlyUpdated = true;
-                    }
-
-                    // even if we are missing episode info, don't get data  more than once every 4 hours
-                    // this is to prevent banning
-                    if (!animeRecentlyUpdated)
-                    {
-                        logger.Debug("Getting Anime record from AniDB....");
-                        anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                            ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
-                    }
-
-                    if (anime == null)
-                    {
-                        response.ErrorMessage = "Could not get anime information from AniDB";
-                        return response;
-                    }
-
-                    logger.Debug("Creating groups, series and episodes....");
-                    if (ser == null) ser = anime.CreateAnimeSeriesAndGroup(animeGroupID);
-
-                    ser.CreateAnimeEpisodes();
-
-                    // check if we have any group status data for this associated anime
-                    // if not we will download it now
-                    if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
-                    {
-                        CommandRequest_GetReleaseGroupStatus cmdStatus =
-                            new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                        cmdStatus.Save();
-                    }
-
-                    // update stats
-                    RepoFactory.AnimeSeries.Save(ser, false, false);
-
-                    foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                    {
-                        RepoFactory.AnimeGroup.Save(grp, true, false);
-                    }
-
-                    response.Result = ser.GetUserContract(userID);
+                // make sure a series doesn't already exists for this anime
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                if (ser != null && !forceOverwrite)
+                {
+                    response.ErrorMessage = "A series already exists for this anime";
                     return response;
+                }
+
+                // make sure the anime exists first
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+
+                AniDB_AnimeUpdate update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                bool animeRecentlyUpdated = false;
+
+                if (update != null)
+                {
+                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
+                    if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+                }
+
+                // even if we are missing episode info, don't get data  more than once every 4 hours
+                // this is to prevent banning
+                if (!animeRecentlyUpdated)
+                {
+                    logger.Debug("Getting Anime record from AniDB....");
+                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
+                        ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
+                }
+
+                if (anime == null)
+                {
+                    response.ErrorMessage = "Could not get anime information from AniDB";
+                    return response;
+                }
+
+                logger.Debug("Creating groups, series and episodes....");
+                if (ser == null) ser = anime.CreateAnimeSeriesAndGroup(animeGroupID);
+
+                ser.CreateAnimeEpisodes();
+
+                // check if we have any group status data for this associated anime
+                // if not we will download it now
+                if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                {
+                    CommandRequest_GetReleaseGroupStatus cmdStatus =
+                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+                    cmdStatus.Save();
+                }
+
+                // update stats
+                RepoFactory.AnimeSeries.Save(ser, false, false);
+
+                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
+                {
+                    RepoFactory.AnimeGroup.Save(grp, true, false);
+                }
+
+                response.Result = ser.GetUserContract(userID);
+                return response;
             }
             catch (Exception ex)
             {
@@ -2707,74 +2637,6 @@ namespace Shoko.Server
                 RatingCollectionState _collectionState = (RatingCollectionState) collectionState;
                 RatingWatchedState _watchedState = (RatingWatchedState) watchedState;
                 RatingVotedState _ratingVotedState = (RatingVotedState) ratingVotedState;
-
-                DateTime start = DateTime.Now;
-
-
-                /*
-				// build a dictionary of categories
-				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-				AniDB_Anime_CategoryRepository repAnimeCat = new AniDB_Anime_CategoryRepository();
-
-				List<AniDB_Category> allCatgeories = repCats.GetAll();
-				Dictionary<int, AniDB_Category> allCatgeoriesDict = new Dictionary<int, AniDB_Category>();
-				foreach (AniDB_Category cat in allCatgeories)
-					allCatgeoriesDict[cat.CategoryID] = cat;
-
-
-				List<AniDB_Anime_Category> allAnimeCatgeories = repAnimeCat.GetAll();
-				Dictionary<int, List<AniDB_Anime_Category>> allAnimeCatgeoriesDict = new Dictionary<int, List<AniDB_Anime_Category>>(); //
-				foreach (AniDB_Anime_Category aniCat in allAnimeCatgeories)
-				{
-					if (!allAnimeCatgeoriesDict.ContainsKey(aniCat.AnimeID))
-						allAnimeCatgeoriesDict[aniCat.AnimeID] = new List<AniDB_Anime_Category>();
-
-					allAnimeCatgeoriesDict[aniCat.AnimeID].Add(aniCat);
-				}
-
-				// build a dictionary of titles
-				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-
-
-				List<AniDB_Anime_Title> allTitles = repTitles.GetAll();
-				Dictionary<int, List<AniDB_Anime_Title>> allTitlesDict = new Dictionary<int, List<AniDB_Anime_Title>>();
-				foreach (AniDB_Anime_Title title in allTitles)
-				{
-					if (!allTitlesDict.ContainsKey(title.AnimeID))
-						allTitlesDict[title.AnimeID] = new List<AniDB_Anime_Title>();
-
-					allTitlesDict[title.AnimeID].Add(title);
-				}
-
-
-				// build a dictionary of tags
-				AniDB_TagRepository repTags = new AniDB_TagRepository();
-				AniDB_Anime_TagRepository repAnimeTag = new AniDB_Anime_TagRepository();
-
-				List<AniDB_Tag> allTags = repTags.GetAll();
-				Dictionary<int, AniDB_Tag> allTagsDict = new Dictionary<int, AniDB_Tag>();
-				foreach (AniDB_Tag tag in allTags)
-					allTagsDict[tag.TagID] = tag;
-
-
-				List<AniDB_Anime_Tag> allAnimeTags = repAnimeTag.GetAll();
-				Dictionary<int, List<AniDB_Anime_Tag>> allAnimeTagsDict = new Dictionary<int, List<AniDB_Anime_Tag>>(); //
-				foreach (AniDB_Anime_Tag aniTag in allAnimeTags)
-				{
-					if (!allAnimeTagsDict.ContainsKey(aniTag.AnimeID))
-						allAnimeTagsDict[aniTag.AnimeID] = new List<AniDB_Anime_Tag>();
-
-					allAnimeTagsDict[aniTag.AnimeID].Add(aniTag);
-				}
-
-				// build a dictionary of languages
-				AdhocRepository rep = new AdhocRepository();
-				Dictionary<int, LanguageStat> dictAudioStats = rep.GetAudioLanguageStatsForAnime();
-				Dictionary<int, LanguageStat> dictSubtitleStats = rep.GetSubtitleLanguageStatsForAnime();
-
-				Dictionary<int, string> dictAnimeVideoQualStats = rep.GetAllVideoQualityByAnime();
-				Dictionary<int, AnimeVideoQualityStat> dictAnimeEpisodeVideoQualStats = rep.GetEpisodeVideoQualityStatsByAnime();
-				 * */
 
                 IReadOnlyList<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
 

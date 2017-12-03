@@ -25,7 +25,7 @@ namespace Shoko.Server.Extensions
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static CL_AniDB_Anime ToClient(this AniDB_Anime anime)
+        public static CL_AniDB_Anime ToClient(this SVR_AniDB_Anime anime)
         {
             return new CL_AniDB_Anime
             {
@@ -51,7 +51,7 @@ namespace Shoko.Server.Extensions
                 TempVoteCount = anime.TempVoteCount,
                 AvgReviewRating = anime.AvgReviewRating,
                 ReviewCount = anime.ReviewCount,
-                DateTimeUpdated = anime.DateTimeUpdated,
+                DateTimeUpdated = anime.GetDateTimeUpdated(),
                 DateTimeDescUpdated = anime.DateTimeDescUpdated,
                 ImageEnabled = anime.ImageEnabled,
                 AwardList = anime.AwardList,

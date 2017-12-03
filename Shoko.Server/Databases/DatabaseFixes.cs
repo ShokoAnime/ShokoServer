@@ -241,6 +241,19 @@ namespace Shoko.Server.Databases
             }
         }
 
+        public static void MigrateAniDB_AnimeUpdates()
+        {
+            List<AniDB_AnimeUpdate> tosave = RepoFactory.AniDB_Anime.GetAll()
+                .Select(anime => new AniDB_AnimeUpdate
+                {
+                    AnimeID = anime.AnimeID,
+                    UpdatedAt = anime.DateTimeUpdated
+                })
+                .ToList();
+
+            RepoFactory.AniDB_AnimeUpdate.Save(tosave);
+        }
+
         public static void PopulateTagWeight()
         {
             try

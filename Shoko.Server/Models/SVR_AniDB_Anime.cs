@@ -911,8 +911,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             AvgReviewRating = animeInfo.AvgReviewRating;
             AwardList = animeInfo.AwardList;
             BeginYear = animeInfo.BeginYear;
+
             DateTimeDescUpdated = DateTime.Now;
             DateTimeUpdated = DateTime.Now;
+
             Description = animeInfo.Description ?? string.Empty;
             EndDate = animeInfo.EndDate;
             EndYear = animeInfo.EndYear;
@@ -1961,6 +1963,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 series.UpdateStats(true, true, false);
                 RepoFactory.AnimeSeries.Save(series, true, false, alsoupdateepisodes: true);
             }
+        }
+
+        public DateTime GetDateTimeUpdated()
+        {
+            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
+            return update.UpdatedAt;
         }
     }
 }

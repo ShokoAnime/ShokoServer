@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 75;
+        public int RequiredVersion { get; } = 76;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -591,6 +591,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(74, 2, Importer.UpdateAllStats),
             new DatabaseCommand(75, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+            new DatabaseCommand(76, 1, "CREATE TABLE `AniDB_AnimeUpdate` ( `AniDB_AnimeUpdateID` INT NOT NULL AUTOINCREMENT, `AnimeID` INTEGER NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_AnimeUpdateID`) )"),
+            new DatabaseCommand(76, 2, "ALTER TABLE `AniDB_AnimeUpdate` ADD INDEX `UIX_AniDB_AnimeUpdate` (`AnimeID` ASC) ;"),
+            new DatabaseCommand(76, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

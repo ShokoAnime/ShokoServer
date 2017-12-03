@@ -73,6 +73,7 @@ namespace Shoko.Server.Repositories
         public static FileNameHashRepository FileNameHash { get; } = FileNameHashRepository.Create();
         public static FileFfdshowPresetRepository FileFfdshowPreset { get; } = FileFfdshowPresetRepository.Create();
         public static DuplicateFileRepository DuplicateFile { get; } = DuplicateFileRepository.Create();
+        public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = AniDB_AnimeUpdateRepository.Create();
 
         public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } =
             CrossRef_Subtitles_AniDB_FileRepository.Create();
