@@ -61,6 +61,9 @@ namespace Shoko.Commons.Utils
 
         public static IQueryable<T> SortGroups<T>(this CL_GroupFilter gf, IQueryable<T> list) where T: CL_AnimeGroup_User
         {
+
+
+
             List<GroupFilterSortingCriteria> criterias = GroupFilterSortingCriteria.Create(gf.GroupFilterID, gf.SortingCriteria);
             foreach (GroupFilterSortingCriteria f in criterias)
             {

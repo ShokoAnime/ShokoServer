@@ -40,6 +40,15 @@ namespace Shoko.Commons.Utils
                     }
                 }
             }
+            else
+            {
+                GroupFilterSortingCriteria gfsc = new GroupFilterSortingCriteria
+                {
+                    GroupFilterID = GroupFilterID,
+                    SortType = GroupFilterSorting.GroupName,
+                    SortDirection = GroupFilterSortDirection.Asc,
+                };
+            }
             return ls;
         }
 
