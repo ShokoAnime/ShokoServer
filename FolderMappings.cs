@@ -65,7 +65,7 @@ namespace Shoko.Commons
             {
                 if (result == string.Empty && Directory.Exists(impfolder.ImportFolderLocation))
                 {
-                    string npath = Path.Combine(impfolder.ImportFolderLocation, path);
+                    string npath = CombineNoChecks(impfolder.ImportFolderLocation, path);
                     if (File.Exists(npath))
                         return npath;
                 }
@@ -86,7 +86,7 @@ namespace Shoko.Commons
             {
                 if (result == string.Empty && Directory.Exists(impfolder.ImportFolderLocation))
                 {
-                    string npath = Path.Combine(impfolder.ImportFolderLocation, path);
+                    string npath = CombineNoChecks(impfolder.ImportFolderLocation, path);
                     if (Directory.Exists(npath))
                         return npath;
                 }
@@ -98,6 +98,21 @@ namespace Shoko.Commons
             return result;
         }
 
+        public static string CombineNoChecks(string path1, string path2)
+        {
+            if (path2.StartsWith(Path.DirectorySeparatorChar.ToString()))
+                path2 = path2.Substring(1);
+            if (path2.Length == 0)
+                return path1;
+            if (path1.Length == 0)
+                return path2;
+            char ch = path1[path1.Length - 1];
+            if (ch != Path.DirectorySeparatorChar && ch != Path.AltDirectorySeparatorChar &&
+                ch != Path.VolumeSeparatorChar)
+                return path1 + Path.DirectorySeparatorChar + path2;
+            return path1 + path2;
+        }
+
         public string TranslateFile(int folderid, string path)
         {
             LoadCheck();
@@ -106,7 +121,7 @@ namespace Shoko.Commons
             if (_mappings == null) return string.Empty;
             if (!_mappings.ContainsKey(folderid) || string.IsNullOrEmpty(_mappings[folderid]))
                 return string.Empty;
-            string start = Path.Combine(_mappings[folderid], path);
+            string start = CombineNoChecks(_mappings[folderid], path);
             try
             {
                 if (File.Exists(start))
@@ -127,7 +142,7 @@ namespace Shoko.Commons
             if (_mappings == null) return string.Empty;
             if (!_mappings.ContainsKey(folderid) || string.IsNullOrEmpty(_mappings[folderid]))
                 return string.Empty;
-            string start = Path.Combine(_mappings[folderid], path);
+            string start = CombineNoChecks(_mappings[folderid], path);
             try
             {
                 if (Directory.Exists(start))
