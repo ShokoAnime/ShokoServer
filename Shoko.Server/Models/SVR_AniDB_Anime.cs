@@ -1254,8 +1254,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 logger.Error($"Unable to Remove Seiyuus for {MainTitle}: {ex}");
             }
 
-            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
-            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
+            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
+            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
             foreach (Raw_AniDB_Character rawchar in chars)
             {
                 try
