@@ -48,6 +48,7 @@ namespace Shoko.Commons.Utils
                     SortType = GroupFilterSorting.GroupName,
                     SortDirection = GroupFilterSortDirection.Asc,
                 };
+                ls.Add(gfsc);
             }
             return ls;
         }
