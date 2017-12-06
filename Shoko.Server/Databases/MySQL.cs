@@ -585,7 +585,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(70, 4, DatabaseFixes.PopulateCharactersAndStaff),
             new DatabaseCommand(71, 1, "ALTER TABLE `MovieDB_Movie` ADD `Rating` INT NOT NULL DEFAULT 0"),
             new DatabaseCommand(71, 2, "ALTER TABLE `TvDB_Series` ADD `Rating` INT NULL"),
-            new DatabaseCommand(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL DEFAULT ''"),
+            new DatabaseCommand(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL"),
             new DatabaseCommand(72, 2, DatabaseFixes.FixCharactersWithGrave),
             new DatabaseCommand(73, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
             new DatabaseCommand(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
