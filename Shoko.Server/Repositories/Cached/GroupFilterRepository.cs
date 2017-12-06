@@ -6,6 +6,7 @@ using NHibernate;
 using Shoko.Models.Server;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -556,34 +557,56 @@ namespace Shoko.Server.Repositories.Cached
         /// <param name="session">The NHibernate session.</param>
         /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public ILookup<int, int> CalculateAnimeSeriesPerTagGroupFilter(ISessionWrapper session)
+        public Dictionary<int, ILookup<int, int>> CalculateAnimeSeriesPerTagGroupFilter(ISessionWrapper session)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
 
             lock (globalDBLock)
             {
-                Dictionary<int, HashSet<int>> somethingDictionary = new Dictionary<int, HashSet<int>>();
+                Dictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary = new Dictionary<int, Dictionary<int, HashSet<int>>>();
                 var filters = GetAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+                List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
+                users.AddRange(RepoFactory.JMMUser.GetAll());
+
                 foreach (var series in RepoFactory.AnimeSeries.GetAll())
                 {
                     foreach (var tag in RepoFactory.AniDB_Tag.GetByAnimeID(series.AniDB_ID))
                     {
-                        var grpFilters = filters.Where(a =>
-                            a.GroupFilterName.Equals(tag.TagName, StringComparison.InvariantCultureIgnoreCase));
-                        foreach (var grpFilter in grpFilters)
+                        foreach (var user in users)
                         {
-                            if (somethingDictionary.ContainsKey(grpFilter.GroupFilterID))
-                                somethingDictionary[grpFilter.GroupFilterID].Add(series.AnimeSeriesID);
-                            else
-                                somethingDictionary.Add(grpFilter.GroupFilterID,
-                                    new HashSet<int> {series.AnimeSeriesID});
+                            if (user?.GetHideCategories().Contains(tag.TagName, StringComparer.OrdinalIgnoreCase) ??
+                                false) continue;
+                            var grpFilters = filters.Where(a =>
+                                a.GroupFilterName.Equals(tag.TagName, StringComparison.InvariantCultureIgnoreCase));
+                            foreach (var grpFilter in grpFilters)
+                            {
+                                if (somethingDictionary.ContainsKey(user?.JMMUserID ?? 0))
+                                {
+                                    if (somethingDictionary[user?.JMMUserID ?? 0].ContainsKey(grpFilter.GroupFilterID))
+                                        somethingDictionary[user?.JMMUserID ?? 0][grpFilter.GroupFilterID]
+                                            .Add(series.AnimeSeriesID);
+                                    else
+                                        somethingDictionary[user?.JMMUserID ?? 0].Add(grpFilter.GroupFilterID,
+                                            new HashSet<int> {series.AnimeSeriesID});
+                                }
+                                else
+                                {
+                                    somethingDictionary.Add(user?.JMMUserID ?? 0, new Dictionary<int, HashSet<int>>
+                                    {
+                                        {
+                                            grpFilter.GroupFilterID, new HashSet<int> {series.AnimeSeriesID}
+                                        }
+                                    });
+                                }
+                            }
                         }
                     }
                 }
-                return somethingDictionary
+
+                return somethingDictionary.Keys.ToDictionary(key => key, key => somethingDictionary[key]
                     .SelectMany(p => p.Value, Tuple.Create)
-                    .ToLookup(p => p.Item1.Key, p => p.Item2);
+                    .ToLookup(p => p.Item1.Key, p => p.Item2));
             }
         }
 
