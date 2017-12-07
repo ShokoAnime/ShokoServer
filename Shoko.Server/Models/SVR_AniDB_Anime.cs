@@ -1960,7 +1960,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (series != null)
             {
                 // Update more than just stats in case the xrefs have changed
-                series.UpdateStats(true, true, false);
+                series.UpdateStats(true, true, true);
                 RepoFactory.AnimeSeries.Save(series, true, false, alsoupdateepisodes: true);
             }
         }
