@@ -74,7 +74,7 @@ namespace Shoko.Commons.Utils
 
         public static IQueryable<T> GeneratePredicate<T>(this IQueryable<T> lst, GroupFilterSorting sortType, GroupFilterSortDirection sortDirection) where T : CL_AnimeGroup_User
         {
-            Expression<Func<T, dynamic>> selector;
+            Expression<Func<T, object>> selector;
 
             switch (sortType)
             {

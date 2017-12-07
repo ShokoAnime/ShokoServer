@@ -40,7 +40,7 @@ namespace Shoko.Commons.Utils
                     }
                 }
             }
-            else
+            if (ls.Count == 0)
             {
                 GroupFilterSortingCriteria gfsc = new GroupFilterSortingCriteria
                 {
@@ -53,6 +53,6 @@ namespace Shoko.Commons.Utils
             return ls;
         }
 
-       
+
     }
 }
