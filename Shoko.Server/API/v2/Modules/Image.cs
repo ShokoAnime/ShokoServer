@@ -326,7 +326,7 @@ namespace Shoko.Server.API.v2.Modules
                     AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(id);
                     if (character == null)
                         return null;
-                    path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator + character.ImagePath;
+                    path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath;
                     if (File.Exists(path))
                     {
                         return path;
@@ -335,7 +335,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         path = string.Empty;
                         logger.Trace("Could not find Character image: {0}",
-                            ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator + character.ImagePath);
+                            ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath);
                     }
                     break;
 
@@ -343,7 +343,7 @@ namespace Shoko.Server.API.v2.Modules
                     var staff = RepoFactory.AnimeStaff.GetByID(id);
                     if (staff == null)
                         return null;
-                    path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator + staff.ImagePath;
+                    path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
                     if (File.Exists(path))
                     {
                         return path;
@@ -352,7 +352,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         path = string.Empty;
                         logger.Trace("Could not find Staff image: {0}",
-                            ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator + staff.ImagePath);
+                            ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath);
                     }
                     break;
 

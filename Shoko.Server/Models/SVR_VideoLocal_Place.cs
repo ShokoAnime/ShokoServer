@@ -220,7 +220,7 @@ namespace Shoko.Server.Models
                             RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
                             CommandRequest_DeleteFileFromMyList cmdDel =
                                 new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                            cmdDel.Save(session);
+                            cmdDel.Save();
                         }
                         dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();

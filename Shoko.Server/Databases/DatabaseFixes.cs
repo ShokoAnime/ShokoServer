@@ -140,8 +140,8 @@ namespace Shoko.Server.Databases
             var allstaff = RepoFactory.AniDB_Seiyuu.GetAll();
             var allanimecharacters = RepoFactory.AniDB_Anime_Character.GetAll().ToLookup(a => a.CharID, b => b);
             var allcharacterstaff = RepoFactory.AniDB_Character_Seiyuu.GetAll();
-            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
-            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
+            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
+            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
 
             var charstosave = allcharacters.Select(character => new AnimeCharacter
                 {
@@ -189,13 +189,17 @@ namespace Shoko.Server.Databases
 
         public static void RemoveBasePathsFromStaffAndCharacters()
         {
-            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.PathSeparator;
-            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.PathSeparator;
+            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath();
+            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath();
             var charactersList = RepoFactory.AnimeCharacter.GetAll()
                 .Where(a => a.ImagePath.StartsWith(charBasePath)).ToList();
             foreach (var character in charactersList)
             {
                 character.ImagePath = character.ImagePath.Replace(charBasePath, "");
+                while (character.ImagePath.StartsWith("" + Path.DirectorySeparatorChar))
+                    character.ImagePath = character.ImagePath.Substring(1);
+                while (character.ImagePath.StartsWith("" + Path.AltDirectorySeparatorChar))
+                    character.ImagePath = character.ImagePath.Substring(1);
                 RepoFactory.AnimeCharacter.Save(character);
             }
 
@@ -204,6 +208,11 @@ namespace Shoko.Server.Databases
             foreach (var creator in creatorsList)
             {
                 creator.ImagePath = creator.ImagePath.Replace(creatorBasePath, "");
+                creator.ImagePath = creator.ImagePath.Replace(charBasePath, "");
+                while (creator.ImagePath.StartsWith("" + Path.DirectorySeparatorChar))
+                    creator.ImagePath = creator.ImagePath.Substring(1);
+                while (creator.ImagePath.StartsWith("" + Path.AltDirectorySeparatorChar))
+                    creator.ImagePath = creator.ImagePath.Substring(1);
                 RepoFactory.AnimeStaff.Save(creator);
             }
         }

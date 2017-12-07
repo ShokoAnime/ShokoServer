@@ -136,6 +136,13 @@ namespace Shoko.Server.Databases
             {
                 try
                 {
+                    string message = cmd.CommandName;
+                    if (message.Length > 42)
+                        message = message.Substring(0, 42) + "...";
+                    ServerState.Instance.CurrentSetupStatus = ServerState.Instance.CurrentSetupStatus =
+                        Commons.Properties.Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
+                        " - " + message;
+
                     cmd.DatabaseFix();
                     AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
                 }
@@ -163,9 +170,9 @@ namespace Shoko.Server.Databases
             string message = cmd.CommandName;
             if (message.Length > 42)
                 message = message.Substring(0, 42) + "...";
-            ServerState.Instance.CurrentSetupStatus = ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_ApplySchema, cmd.Version + "-" + cmd.Revision,
-                message);
+            ServerState.Instance.CurrentSetupStatus = ServerState.Instance.CurrentSetupStatus =
+                Commons.Properties.Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
+                " - " + message;
 
             switch (cmd.Type)
             {

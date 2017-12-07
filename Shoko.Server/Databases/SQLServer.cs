@@ -19,13 +19,13 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 71;
+        public int RequiredVersion { get; } = 72;
 
         public void BackupDatabase(string fullfilename)
         {
             fullfilename = Path.GetFileName(fullfilename) + ".bak";
-            //TODO We cannot write the backup anywere, because 
-            //1) The server could be elsewhere, 
+            //TODO We cannot write the backup anywere, because
+            //1) The server could be elsewhere,
             //2) The SqlServer running account should have read write access to our backup dir which is nono
             // So we backup in the default SQL SERVER BACKUP DIRECTORY.
 
@@ -559,6 +559,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(71, 1, "CREATE TABLE AniDB_AnimeUpdate ( AniDB_AnimeUpdateID INT IDENTITY(1,1) NOT NULL, AnimeID INT NOT NULL, UpdatedAt datetime NOT NULL )"),
             new DatabaseCommand(71, 2, "CREATE UNIQUE INDEX UIX_AniDB_AnimeUpdate ON AniDB_AnimeUpdate(AnimeID)"),
             new DatabaseCommand(71, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
+            new DatabaseCommand(72, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
