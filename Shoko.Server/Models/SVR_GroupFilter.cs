@@ -934,16 +934,22 @@ namespace Shoko.Server.Models
 
                     break;
                 case GroupFilterConditionType.Season:
-                    string[] paramStrings = gfc.ConditionParameter.Trim().Split(',');
+                    Tuple<AnimeSeason, int>[] paramStrings = gfc.ConditionParameter.Trim().Split(',').Select(a =>
+                    {
+                        var b = a.Trim().Split(' ');
+                        if (!Enum.TryParse(b[0], out AnimeSeason season)) return null;
+                        if (!int.TryParse(b[1], out int year)) return null;
+                        return Tuple.Create(season, year);
+                    }).Where(a => a != null).ToArray();
 
                     switch (gfc.GetConditionOperatorEnum())
                     {
                         case GroupFilterOperator.Include:
                         case GroupFilterOperator.In:
-                            return paramStrings.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllSeasons);
+                            return paramStrings.Any(a => contractSerie?.AniDBAnime?.IsInSeason(a.Item1, a.Item2) ?? false);
                         case GroupFilterOperator.Exclude:
                         case GroupFilterOperator.NotIn:
-                            return !paramStrings.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllSeasons);
+                            return !paramStrings.Any(a => contractSerie?.AniDBAnime?.IsInSeason(a.Item1, a.Item2) ?? false);
                     }
 
                     break;

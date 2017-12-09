@@ -391,7 +391,7 @@ namespace Shoko.Server.Repositories.Cached
                     allseasons = new SortedSet<string>(new SeasonComparator());
                     foreach (SVR_AnimeSeries ser in grps)
                     {
-                        if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0) ser?.UpdateContract();
+                        if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons?.Count ?? 0) == 0) ser?.UpdateContract();
                         if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons?.Count ?? 0) == 0) continue;
                         allseasons.UnionWith(ser.Contract.AniDBAnime.Stat_AllSeasons);
                     }

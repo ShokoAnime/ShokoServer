@@ -717,10 +717,7 @@ namespace Shoko.Server.Models
                 if (animeRec != null)
                 {
                     if (animeRec.Contract == null)
-                        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                        {
-                            animeRec.UpdateContractDetailed(session.Wrap());
-                        }
+                        RepoFactory.AniDB_Anime.Save(animeRec);
                     contract.AniDBAnime = animeRec.Contract.DeepClone();
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
