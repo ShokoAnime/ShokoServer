@@ -59,7 +59,7 @@ namespace Shoko.Commons.Extensions
         {
             if (anime.AirDate == null) return false;
             // If it isn't a normal series, then it won't adhere to standard airing norms
-            if (anime.AnimeType != (int) AnimeType.TVSeries) return false;
+            if (anime.AnimeType != (int) AnimeType.TVSeries && anime.AnimeType != (int) AnimeType.Web) return false;
             DateTime seasonStartBegin;
             DateTime seasonStartEnd;
             switch (season)
@@ -133,7 +133,7 @@ namespace Shoko.Commons.Extensions
         {
             if (anime.AirDate == null) return false;
             // If it isn't a normal series, then it won't adhere to standard airing norms
-            if (anime.AnimeType != (int) AnimeType.TVSeries) return false;
+            if (anime.AnimeType != (int) AnimeType.TVSeries && anime.AnimeType != (int) AnimeType.Web) return false;
             DateTime seasonStartBegin;
             DateTime seasonStartEnd;
             switch (season)
