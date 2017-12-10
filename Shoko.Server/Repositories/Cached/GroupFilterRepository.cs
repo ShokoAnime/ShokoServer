@@ -255,7 +255,7 @@ namespace Shoko.Server.Repositories.Cached
         }
 
         public void CreateOrVerifyDirectoryFilters(bool frominit = false, HashSet<string> tags = null,
-            HashSet<int> airdate = null, SortedSet<string> season = null)
+            HashSet<int> airdate = null, SortedSet<string> seasons = null)
         {
             const string t = "GroupFilter";
 
@@ -391,7 +391,7 @@ namespace Shoko.Server.Repositories.Cached
             if (seasonsdirectory != null)
             {
                 SortedSet<string> allseasons;
-                if (season == null)
+                if (seasons == null)
                 {
                     List<SVR_AnimeSeries> grps =
                         RepoFactory.AnimeSeries.GetAll().ToList();
@@ -406,7 +406,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 else
                 {
-                    allseasons = season;
+                    allseasons = seasons;
                 }
 
                 HashSet<string> notin =
@@ -417,19 +417,19 @@ namespace Shoko.Server.Repositories.Cached
                 allseasons.ExceptWith(notin);
                 int max = allseasons.Count;
                 int cnt = 0;
-                foreach (string s in allseasons)
+                foreach (string season in allseasons)
                 {
                     cnt++;
                     if (frominit)
                         ServerState.Instance.CurrentSetupStatus = string.Format(
                             Commons.Properties.Resources.Database_Validating, t,
                             Commons.Properties.Resources.Filter_CreatingSeason + " " +
-                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + season);
                     SVR_GroupFilter yf = new SVR_GroupFilter
                     {
                         ParentGroupFilterID = seasonsdirectory.GroupFilterID,
                         InvisibleInClients = 0,
-                        GroupFilterName = s,
+                        GroupFilterName = season,
                         BaseCondition = 1,
                         Locked = 1,
                         SortingCriteria = "5;1",
@@ -440,7 +440,7 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         ConditionType = (int) GroupFilterConditionType.Season,
                         ConditionOperator = (int) GroupFilterOperator.In,
-                        ConditionParameter = s,
+                        ConditionParameter = season,
                         GroupFilterID = yf.GroupFilterID
                     };
                     yf.Conditions.Add(gfc);

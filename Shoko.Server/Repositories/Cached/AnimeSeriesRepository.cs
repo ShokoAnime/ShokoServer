@@ -159,8 +159,17 @@ namespace Shoko.Server.Repositories.Cached
                     obj.Contract = null;
                     base.Save(obj);
                 }
+                var seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
+                if (seasons == null || seasons.Count == 0)
+                {
+                    var anime = obj.GetAnime();
+                    if (anime != null)
+                        RepoFactory.AniDB_Anime.Save(anime);
+                }
+
                 HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
                 base.Save(obj);
+                seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
 
                 if (updateGroups && !isMigrating)
                 {
@@ -187,16 +196,6 @@ namespace Shoko.Server.Repositories.Cached
                         allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
                             endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
                     }
-
-                    var seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
-                    if (seasons == null || seasons.Count == 0)
-                    {
-                        var anime = obj.GetAnime();
-                        if (anime != null)
-                            RepoFactory.AniDB_Anime.Save(anime);
-                    }
-
-                    seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
 
                     //This call will create extra years or tags if the Group have a new year or tag
                     RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
