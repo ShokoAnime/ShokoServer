@@ -182,6 +182,7 @@ namespace Shoko.Server.Repositories.Cached
                 gf.CalculateGroupsAndSeries();
                 Save(gf); //Get ID
             }
+
             //Create All filter
             SVR_GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
             if (allfilter == null)
@@ -198,6 +199,7 @@ namespace Shoko.Server.Repositories.Cached
                 gf.CalculateGroupsAndSeries();
                 Save(gf);
             }
+
             SVR_GroupFilter tagsdirec =
                 lockedGFs.FirstOrDefault(
                     a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
@@ -214,6 +216,7 @@ namespace Shoko.Server.Repositories.Cached
                 };
                 Save(tagsdirec);
             }
+
             SVR_GroupFilter yearsdirec =
                 lockedGFs.FirstOrDefault(
                     a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
@@ -230,6 +233,7 @@ namespace Shoko.Server.Repositories.Cached
                 };
                 Save(yearsdirec);
             }
+
             SVR_GroupFilter seasonsdirec =
                 lockedGFs.FirstOrDefault(
                     a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
@@ -246,6 +250,7 @@ namespace Shoko.Server.Repositories.Cached
                 };
                 Save(seasonsdirec);
             }
+
             CreateOrVerifyDirectoryFilters(true);
         }
 
@@ -313,6 +318,7 @@ namespace Shoko.Server.Repositories.Cached
                     Save(yf);
                 }
             }
+
             SVR_GroupFilter yearsdirec = lockedGFs.FirstOrDefault(
                 a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Year));
             if (yearsdirec != null)
@@ -339,6 +345,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     allyears = new HashSet<string>(airdate.Select(a => a.ToString()), StringComparer.Ordinal);
                 }
+
                 HashSet<string> notin =
                     new HashSet<string>(
                         lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Year)
@@ -378,6 +385,7 @@ namespace Shoko.Server.Repositories.Cached
                     Save(yf);
                 }
             }
+
             SVR_GroupFilter seasonsdirectory = lockedGFs.FirstOrDefault(
                 a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Season));
             if (seasonsdirectory != null)
@@ -400,6 +408,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     allseasons = season;
                 }
+
                 HashSet<string> notin =
                     new HashSet<string>(
                         lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Season)
@@ -439,6 +448,7 @@ namespace Shoko.Server.Repositories.Cached
                     Save(yf);
                 }
             }
+
             CleanUpEmptyDirectoryFilters();
         }
 
@@ -535,6 +545,27 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
+        public void BatchDelete(ISessionWrapper session, IEnumerable<SVR_GroupFilter> groupFilters)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groupFilters == null)
+                throw new ArgumentNullException(nameof(groupFilters));
+
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    foreach (SVR_GroupFilter groupFilter in groupFilters)
+                        lock (groupFilter)
+                        {
+                            session.Delete(groupFilter);
+                            Cache.Remove(groupFilter);
+                        }
+                }
+            }
+        }
+
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
             lock (Cache)
@@ -564,45 +595,59 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (globalDBLock)
             {
-                Dictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary = new Dictionary<int, Dictionary<int, HashSet<int>>>();
-                var filters = GetAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+                Dictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary =
+                    new Dictionary<int, Dictionary<int, HashSet<int>>>();
+                var filters = GetAll(session).Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
-                users.AddRange(RepoFactory.JMMUser.GetAll());
+                users.AddRange(RepoFactory.JMMUser.GetAll(session));
+                List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
 
-                foreach (var series in RepoFactory.AnimeSeries.GetAll())
+                foreach (var tag in RepoFactory.AniDB_Tag.GetAll(session).DistinctBy(a => a.TagName))
                 {
-                    foreach (var tag in RepoFactory.AniDB_Tag.GetByAnimeID(series.AniDB_ID))
+                    var grpFilters = filters.Where(a =>
+                        a.GroupFilterName.Equals(tag.TagName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                    var grpFilter = grpFilters.FirstOrDefault();
+                    if (grpFilter == null) goto NextTag;
+
+                    grpFilters.Remove(grpFilter);
+                    toRemove.AddRange(grpFilters);
+
+                    foreach (var user in users)
                     {
-                        foreach (var user in users)
+                        if (user?.GetHideCategories().Contains(tag.TagName, StringComparer.OrdinalIgnoreCase) ??
+                            false) continue;
+
+                        foreach (var series in RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(tag.TagID))
                         {
-                            if (user?.GetHideCategories().Contains(tag.TagName, StringComparer.OrdinalIgnoreCase) ??
-                                false) continue;
-                            var grpFilters = filters.Where(a =>
-                                a.GroupFilterName.Equals(tag.TagName, StringComparison.InvariantCultureIgnoreCase));
-                            foreach (var grpFilter in grpFilters)
+                            if (somethingDictionary.ContainsKey(user?.JMMUserID ?? 0))
                             {
-                                if (somethingDictionary.ContainsKey(user?.JMMUserID ?? 0))
+                                if (somethingDictionary[user?.JMMUserID ?? 0].ContainsKey(grpFilter.GroupFilterID))
                                 {
-                                    if (somethingDictionary[user?.JMMUserID ?? 0].ContainsKey(grpFilter.GroupFilterID))
-                                        somethingDictionary[user?.JMMUserID ?? 0][grpFilter.GroupFilterID]
-                                            .Add(series.AnimeSeriesID);
-                                    else
-                                        somethingDictionary[user?.JMMUserID ?? 0].Add(grpFilter.GroupFilterID,
-                                            new HashSet<int> {series.AnimeSeriesID});
+                                    somethingDictionary[user?.JMMUserID ?? 0][grpFilter.GroupFilterID]
+                                        .Add(series.AnimeSeriesID);
                                 }
                                 else
                                 {
-                                    somethingDictionary.Add(user?.JMMUserID ?? 0, new Dictionary<int, HashSet<int>>
-                                    {
-                                        {
-                                            grpFilter.GroupFilterID, new HashSet<int> {series.AnimeSeriesID}
-                                        }
-                                    });
+                                    somethingDictionary[user?.JMMUserID ?? 0].Add(grpFilter.GroupFilterID,
+                                        new HashSet<int> {series.AnimeSeriesID});
                                 }
+                            }
+                            else
+                            {
+                                somethingDictionary.Add(user?.JMMUserID ?? 0, new Dictionary<int, HashSet<int>>
+                                {
+                                    {
+                                        grpFilter.GroupFilterID, new HashSet<int> {series.AnimeSeriesID}
+                                    }
+                                });
                             }
                         }
                     }
+
+                    NextTag: continue;
                 }
+
+                BatchDelete(session, toRemove);
 
                 return somethingDictionary.Keys.ToDictionary(key => key, key => somethingDictionary[key]
                     .SelectMany(p => p.Value, Tuple.Create)

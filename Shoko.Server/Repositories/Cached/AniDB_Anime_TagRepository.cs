@@ -2,13 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Cached;
-using NHibernate;
-using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
@@ -71,6 +67,13 @@ namespace Shoko.Server.Repositories
             {
                 return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
             }
+        }
+
+        public List<SVR_AnimeSeries> GetAnimeWithTag(int TagID)
+        {
+            return GetAll().Where(a => a.TagID == TagID).Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
+                .Where(a => a != null)
+                .ToList();
         }
 
         /// <summary>

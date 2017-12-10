@@ -186,9 +186,10 @@ namespace Shoko.Server.Tasks
         private void UpdateGroupFilters(ISessionWrapper session)
         {
             _log.Info("Updating Group Filters");
-
-            IReadOnlyList<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session);
+            _log.Info("Calculating Tag Filters");
             Dictionary<int, ILookup<int, int>> seriesForTagGroupFilter = _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
+            _log.Info("Caculating All Other Filters");
+            IReadOnlyList<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session);
             IReadOnlyList<SVR_JMMUser> users = _userRepo.GetAll();
 
             // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
