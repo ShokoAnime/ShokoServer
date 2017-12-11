@@ -1968,7 +1968,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public DateTime GetDateTimeUpdated()
         {
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
-            return update.UpdatedAt;
+            return update?.UpdatedAt ?? DateTime.MinValue;
         }
     }
 }
