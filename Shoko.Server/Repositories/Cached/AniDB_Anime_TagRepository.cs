@@ -69,9 +69,10 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public List<SVR_AnimeSeries> GetAnimeWithTag(int TagID)
+        public List<SVR_AnimeSeries> GetAnimeWithTag(string tagName)
         {
-            return GetAll().Where(a => a.TagID == TagID).Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
+            return GetAll().Where(a => RepoFactory.AniDB_Tag.GetByName(tagName).Select(b => b.TagID).Contains(a.TagID))
+                .Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
                 .Where(a => a != null)
                 .ToList();
         }

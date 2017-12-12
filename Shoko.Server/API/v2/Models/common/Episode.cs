@@ -92,7 +92,8 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (tvep != null)
             {
-                ep.name = tvep.EpisodeName;
+                if (!string.IsNullOrEmpty(tvep.EpisodeName))
+                    ep.name = tvep.EpisodeName;
                 if (Misc.IsImageValid(tvep.GetFullImagePath()))
                     ep.art.thumb.Add(new Art
                     {

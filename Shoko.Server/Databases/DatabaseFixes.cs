@@ -268,10 +268,17 @@ namespace Shoko.Server.Databases
             var filters = RepoFactory.GroupFilter.GetAll();
             var seasons = filters.Where(a => a.FilterType == (int) GroupFilterType.Season).ToList();
             var tags = filters.Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+
             var tagsGrouping = tags.GroupBy(a => a.GroupFilterName).SelectMany(a => a.Skip(1)).ToList();
-            foreach (var tagFilter in tagsGrouping)
+
+            tagsGrouping.ForEach(RepoFactory.GroupFilter.Delete);
+
+            tags = filters.Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+
+            foreach (var filter in tags.Where(a => a.GroupConditions.Contains("`")))
             {
-                RepoFactory.GroupFilter.Delete(tagFilter);
+                filter.GroupConditions = filter.GroupConditions.Replace("`", "'");
+                RepoFactory.GroupFilter.Save(filter);
             }
 
             foreach (var seasonFilter in seasons)

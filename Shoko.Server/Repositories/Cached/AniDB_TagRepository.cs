@@ -11,10 +11,12 @@ namespace Shoko.Server.Repositories
     public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
     {
         private PocoIndex<int, AniDB_Tag, int> Tags;
+        private PocoIndex<int, AniDB_Tag, string> Names;
 
         public override void PopulateIndexes()
         {
             Tags = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
+            Names = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagName);
         }
 
         private AniDB_TagRepository()
@@ -67,6 +69,11 @@ namespace Shoko.Server.Repositories
             {
                 return Tags.GetOne(id);
             }
+        }
+
+        public List<AniDB_Tag> GetByName(string name)
+        {
+            return Names.GetMultiple(name);
         }
 
 

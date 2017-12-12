@@ -13,6 +13,7 @@ namespace Shoko.Server.Extensions
     {
         public static bool Contains(this string item, string other, StringComparison comparer)
         {
+            if (item == null || other == null) return false;
             return item.IndexOf(other, comparer) >= 0;
         }
 
@@ -31,6 +32,7 @@ namespace Shoko.Server.Extensions
 
         public static void AddRange<K, V>(this Dictionary<K, V> dict, Dictionary<K, V> otherdict)
         {
+            if (dict == null || otherdict == null) return;
             otherdict.ForEach(a =>
             {
                 if (!dict.ContainsKey(a.Key)) dict.Add(a.Key, a.Value);
@@ -39,6 +41,7 @@ namespace Shoko.Server.Extensions
 
         public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
         {
+            if (items == null || list == null) return false;
             // Trim, to lower in both lists, remove null and empty strings
             HashSet<string> listhash = list.Select(a => a.ToLowerInvariant().Trim())
                 .Where(a => !string.IsNullOrWhiteSpace(a))
@@ -51,6 +54,7 @@ namespace Shoko.Server.Extensions
 
         public static bool FindInEnumerable(this IEnumerable<int> items, IEnumerable<int> list)
         {
+            if (items == null || list == null) return false;
             return list.ToHashSet().Overlaps(items.ToHashSet());
         }
 

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using NHibernate;
 using Shoko.Models.Server;
 using NLog;
@@ -10,6 +12,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -310,7 +313,7 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         ConditionType = (int) GroupFilterConditionType.Tag,
                         ConditionOperator = (int) GroupFilterOperator.In,
-                        ConditionParameter = s,
+                        ConditionParameter = s.Replace("`", "'"),
                         GroupFilterID = yf.GroupFilterID
                     };
                     yf.Conditions.Add(gfc);
@@ -595,30 +598,32 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (globalDBLock)
             {
-                Dictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary =
-                    new Dictionary<int, Dictionary<int, HashSet<int>>>();
+                ConcurrentDictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary =
+                    new ConcurrentDictionary<int, Dictionary<int, HashSet<int>>>();
                 var filters = GetAll(session).Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
                 users.AddRange(RepoFactory.JMMUser.GetAll(session));
                 List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
 
-                foreach (var tag in RepoFactory.AniDB_Tag.GetAll(session).DistinctBy(a => a.TagName))
+                Parallel.ForEach(RepoFactory.AniDB_Tag.GetAll(session).DistinctBy(a => a.TagName), tag =>
                 {
+                    string tagName = tag.TagName;
                     var grpFilters = filters.Where(a =>
-                        a.GroupFilterName.Equals(tag.TagName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                        a.GroupFilterName.Equals(tagName, StringComparison.InvariantCultureIgnoreCase)).ToList();
                     var grpFilter = grpFilters.FirstOrDefault();
-                    if (grpFilter == null) goto NextTag;
+                    if (grpFilter == null) return;
 
                     grpFilters.Remove(grpFilter);
                     toRemove.AddRange(grpFilters);
 
-                    foreach (var user in users)
+                    foreach (var series in RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(tagName))
                     {
-                        if (user?.GetHideCategories().Contains(tag.TagName, StringComparer.OrdinalIgnoreCase) ??
-                            false) continue;
-
-                        foreach (var series in RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(tag.TagID))
+                        var seriesTags = series.GetAnime()?.GetAllTags();
+                        foreach (var user in users)
                         {
+                            if (user?.GetHideCategories().FindInEnumerable(seriesTags) ?? false)
+                                continue;
+
                             if (somethingDictionary.ContainsKey(user?.JMMUserID ?? 0))
                             {
                                 if (somethingDictionary[user?.JMMUserID ?? 0].ContainsKey(grpFilter.GroupFilterID))
@@ -634,18 +639,30 @@ namespace Shoko.Server.Repositories.Cached
                             }
                             else
                             {
-                                somethingDictionary.Add(user?.JMMUserID ?? 0, new Dictionary<int, HashSet<int>>
+                                somethingDictionary.AddOrUpdate(user?.JMMUserID ?? 0, new Dictionary<int, HashSet<int>>
                                 {
                                     {
                                         grpFilter.GroupFilterID, new HashSet<int> {series.AnimeSeriesID}
                                     }
+                                }, (i, value) =>
+                                {
+                                    if (value.ContainsKey(grpFilter.GroupFilterID))
+                                    {
+                                        value[grpFilter.GroupFilterID]
+                                            .Add(series.AnimeSeriesID);
+                                    }
+                                    else
+                                    {
+                                        value.Add(grpFilter.GroupFilterID,
+                                            new HashSet<int> {series.AnimeSeriesID});
+                                    }
+
+                                    return value;
                                 });
                             }
                         }
                     }
-
-                    NextTag: continue;
-                }
+                });
 
                 BatchDelete(session, toRemove);
 
