@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 72;
+        public int RequiredVersion { get; } = 73;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -560,6 +560,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(71, 2, "CREATE UNIQUE INDEX UIX_AniDB_AnimeUpdate ON AniDB_AnimeUpdate(AnimeID)"),
             new DatabaseCommand(71, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
             new DatabaseCommand(72, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+            new DatabaseCommand(73, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

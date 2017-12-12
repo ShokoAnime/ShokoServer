@@ -263,6 +263,24 @@ namespace Shoko.Server.Databases
             RepoFactory.AniDB_AnimeUpdate.Save(tosave);
         }
 
+        public static void FixDuplicateTagFiltersAndUpdateSeasons()
+        {
+            var filters = RepoFactory.GroupFilter.GetAll();
+            var seasons = filters.Where(a => a.FilterType == (int) GroupFilterType.Season).ToList();
+            var tags = filters.Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+            var tagsGrouping = tags.GroupBy(a => a.GroupFilterName).SelectMany(a => a.Skip(1)).ToList();
+            foreach (var tagFilter in tagsGrouping)
+            {
+                RepoFactory.GroupFilter.Delete(tagFilter);
+            }
+
+            foreach (var seasonFilter in seasons)
+            {
+                seasonFilter.CalculateGroupsAndSeries();
+                RepoFactory.GroupFilter.Save(seasonFilter);
+            }
+        }
+
         public static void PopulateTagWeight()
         {
             try
