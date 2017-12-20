@@ -218,12 +218,16 @@ namespace Shoko.Server.Models
                             seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                                 .Select(a => a.GetAnimeSeries()));
                             RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                            CommandRequest_DeleteFileFromMyList cmdDel =
-                                new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                            cmdDel.Save();
                         }
                         dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
+                    }
+
+                    if (v != null)
+                    {
+                        CommandRequest_DeleteFileFromMyList cmdDel =
+                            new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        cmdDel.Save();
                     }
                 }
                 else
@@ -276,11 +280,11 @@ namespace Shoko.Server.Models
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
                     dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                    cmdDel.Save(session);
                     transaction.Commit();
                 }
+                CommandRequest_DeleteFileFromMyList cmdDel =
+                    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                cmdDel.Save();
             }
             else
             {
