@@ -462,6 +462,8 @@ namespace Shoko.Server.Models
             if ((FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
                 return false;
 
+            if (contractGroup?.Stat_AllTags == null) return false;
+
             if (curUser?.GetHideCategories().FindInEnumerable(contractGroup.Stat_AllTags) ?? false) return false;
 
             // sub groups don't count
@@ -856,6 +858,8 @@ namespace Shoko.Server.Models
             //Directories don't count
             if ((FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
                 return false;
+
+            if (contractSerie?.AniDBAnime?.AniDBAnime == null) return false;
 
             if (curUser?.GetHideCategories().FindInEnumerable(contractSerie.AniDBAnime.AniDBAnime.GetAllTags()) ??
                 false)
