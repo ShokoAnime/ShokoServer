@@ -22,44 +22,39 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0?excludetags=" +
-                prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0");
         }
 
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Group + "/" + gid +
-                "?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Group + "/" + gid );
         }
 
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid +
-                "?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid 
+                );
         }
 
         public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) type + "/" + vid + "?excludetags=" +
-                prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) type + "/" + vid );
         }
 
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid +
-                "?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid );
         }
 
         public static string ConstructFakeIosThumb(this IProvider prov, int userid, string thumburl, string arturl)
         {
             string r = Helper.Base64EncodeUrl(thumburl + "|" + arturl);
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.FakeIosThumb + "/" + r +
-                "/0?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.FakeIosThumb + "/" + r );
 /*
 
             try
@@ -81,7 +76,7 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Filters/" + userid + "?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Filters/" + userid );
         }
 
         public static string ConstructSearchUrl(this IProvider prov, string userid, int limit, string query,
@@ -91,28 +86,26 @@ namespace Shoko.Server.PlexAndKodi
             {
                 return prov.ServerUrl(prov.ServicePort,
                     prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
-                    WebUtility.UrlEncode(query) + "?excludetags=" + prov.ExcludeTags);
+                    WebUtility.UrlEncode(query));
             }
             else
             {
                 return prov.ServerUrl(prov.ServicePort,
                     prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
-                    WebUtility.UrlEncode(query) + "?excludetags=" + prov.ExcludeTags);
+                    WebUtility.UrlEncode(query));
             }
         }
 
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Playlist + "/0?excludetags=" +
-                prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Playlist + "/0");
         }
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid +
-                "?excludetags=" + prov.ExcludeTags);
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid);
         }
 
         public static string GenPoster(this ImageDetails im, IProvider prov, string fallbackimage = "plex_404V.png")
@@ -269,6 +262,7 @@ namespace Shoko.Server.PlexAndKodi
                 m.Art = info.Art;
                 m.Title = info.Title;
             }
+
             l.Add(m);
         }
 
@@ -277,6 +271,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             m.ReplaceSchemeHost(prov);
             info?.Update(m).FillInfo(prov, m, noimage, true);
+
             l.Add(m);
         }
 
