@@ -562,8 +562,16 @@ namespace Shoko.Server.Repositories.Cached
                     foreach (SVR_GroupFilter groupFilter in groupFilters)
                         lock (groupFilter)
                         {
-                            session.Delete(groupFilter);
-                            Cache.Remove(groupFilter);
+                            try
+                            {
+                                session.Delete(groupFilter);
+                                Cache.Remove(groupFilter);
+                            }
+                            catch (Exception e)
+                            {
+                                logger.Error(
+                                    $"Unable to delete group filter: {groupFilter.GroupFilterName}|{groupFilter.GroupFilterID}");
+                            }
                         }
                 }
             }
@@ -605,18 +613,20 @@ namespace Shoko.Server.Repositories.Cached
                 users.AddRange(RepoFactory.JMMUser.GetAll(session));
                 List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
 
-                Parallel.ForEach(RepoFactory.AniDB_Tag.GetAll(session).DistinctBy(a => a.TagName), tag =>
+                Parallel.ForEach(RepoFactory.AniDB_Tag.GetAllTagNames(session), tag =>
                 {
-                    string tagName = tag.TagName;
                     var grpFilters = filters.Where(a =>
-                        a.GroupFilterName.Equals(tagName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                        a.GroupFilterName.Equals(tag, StringComparison.InvariantCultureIgnoreCase)).ToList();
                     var grpFilter = grpFilters.FirstOrDefault();
                     if (grpFilter == null) return;
 
                     grpFilters.Remove(grpFilter);
-                    toRemove.AddRange(grpFilters);
+                    lock (toRemove)
+                    {
+                        toRemove.AddRange(grpFilters);
+                    }
 
-                    foreach (var series in RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(tagName))
+                    foreach (var series in RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(tag))
                     {
                         var seriesTags = series.GetAnime()?.GetAllTags();
                         foreach (var user in users)

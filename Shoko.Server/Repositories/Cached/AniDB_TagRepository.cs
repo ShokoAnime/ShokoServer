@@ -76,6 +76,11 @@ namespace Shoko.Server.Repositories
             return Names.GetMultiple(name);
         }
 
+        public List<string> GetAllTagNames(ISessionWrapper session)
+        {
+            return session.CreateQuery("SELECT DISTINCT TagName FROM AniDB_Tag").List<string>().ToList();
+        }
+
 
         /// <summary>
         /// Gets all the tags, but only if we have the anime locally
