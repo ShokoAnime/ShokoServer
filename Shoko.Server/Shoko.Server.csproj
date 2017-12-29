@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
+    <Version>1.9.0.0</Version>
+    <Company>ShokoAnime</Company>
+    <Description>Shoko server is the core component of the Shoko suite and with it's client-server architecture which allows any program or plugin to access Shoko.</Description>
+    <Copyright>Copyright (c) 2017 Shoko Anime</Copyright>
+    <PackageProjectUrl></PackageProjectUrl>
+    <PackageIconUrl></PackageIconUrl>
+    <RepositoryUrl>https://github.com/shokoanime/ShokoServer</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Shoko Commons</PackageTags>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0'">
+    <DefineConstants>NETCORE;NETSTANDARD;NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net47'">
+    <DefineConstants>NET47;NETFULL;PRILONGPATH</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Databases\Extensions\**" />
+    <EmbeddedResource Remove="Databases\Extensions\**" />
+    <None Remove="Databases\Extensions\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DeepCloner" Version="0.10.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.0" />
+    <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.9-dmr" />
+    <PackageReference Include="NLog" Version="5.0.0-beta11" />
+    <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="API\Views\" />
+    <Folder Include="Migrations\" />
+    <Folder Include="Workers\WorkUnits\Import\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
+    <ProjectReference Include="..\Nancy.Rest\Nancy.Rest.Module\Nancy.Rest.Module.csproj" />
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
+    <ProjectReference Include="Shoko.Server.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+</Project>
