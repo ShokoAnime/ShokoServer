@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
 using Shoko.Server.Models;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 using Path = Pri.LongPath.Path;
-using File = Pri.LongPath.File;
 
 namespace Shoko.Server.FileHelper.Subtitles
 {

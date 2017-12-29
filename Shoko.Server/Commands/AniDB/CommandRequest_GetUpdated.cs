@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
-using Shoko.Commons.Utils;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -15,26 +10,17 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetUpdated : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_GetUpdated : CommandRequest_AniDBBase
     {
-        public bool ForceRefresh { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority4; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.GetUpdatedAnime,
-                    extraParams = new string[0]
-                };
-            }
-        }
+            queueState = QueueStateEnum.GetUpdatedAnime,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_GetUpdated()
         {
@@ -42,9 +28,9 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_GetUpdated(bool forced)
         {
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.AniDB_GetUpdated;
-            this.Priority = (int) DefaultPriority;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.AniDB_GetUpdated;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -95,8 +81,8 @@ namespace Shoko.Server.Commands
                     webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
                     DateTime timeNow = DateTime.Now.ToUniversalTime();
-                    logger.Info(string.Format("{0} since last UPDATED command",
-                        Utils.FormatSecondsToDisplayTime(int.Parse((webUpdateTimeNew - webUpdateTime).ToString()))));
+                    logger.Info(
+                        $"{Utils.FormatSecondsToDisplayTime(int.Parse((webUpdateTimeNew - webUpdateTime).ToString()))} since last UPDATED command");
                 }
 
                 // get a list of updates from AniDB
@@ -156,51 +142,35 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetUpdated: {0}", ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_GetUpdated: {0}", ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_GetUpdated");
+            CommandID = "CommandRequest_GetUpdated";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetUpdated", "ForceRefresh"));
+                ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetUpdated", "ForceRefresh"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -10,10 +10,6 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
-
-using System.Threading;
-using Shoko.Models.Server;
-
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;

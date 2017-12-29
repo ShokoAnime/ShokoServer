@@ -2,10 +2,8 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -210,7 +208,7 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                ICommandRequest icr = CommandHelper.GetCommand(crdb);
+                CommandRequest icr = CommandHelper.GetCommand(crdb);
                 if (icr == null)
                     return;
 

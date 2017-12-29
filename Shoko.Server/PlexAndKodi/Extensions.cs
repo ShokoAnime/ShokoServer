@@ -5,11 +5,9 @@ using System.Linq;
 using System.Net;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
-using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
 

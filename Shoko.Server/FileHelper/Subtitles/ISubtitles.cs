@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
 using NutzCode.CloudFileSystem;
 using Shoko.Server.Models;
 

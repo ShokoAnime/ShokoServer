@@ -3,39 +3,29 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.TvDB;
 
-namespace Shoko.Server.Commands.TvDB
+namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_LinkAniDBTvDB : CommandRequest
     {
-        public int animeID;
-        public EpisodeType aniEpType;
-        public int aniEpNumber;
-        public int tvDBID;
-        public int tvSeasonNumber;
-        public int tvEpNumber;
-        public bool excludeFromWebCache;
-        public bool additiveLink;
+        public virtual int animeID { get; set; }
+        public virtual EpisodeType aniEpType { get; set; }
+        public virtual int aniEpNumber { get; set; }
+        public virtual int tvDBID { get; set; }
+        public virtual int tvSeasonNumber { get; set; }
+        public virtual int tvEpNumber { get; set; }
+        public virtual bool excludeFromWebCache { get; set; }
+        public virtual bool additiveLink { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct
-                {
-                    queueState = QueueStateEnum.LinkAniDBTvDB,
-                    extraParams = new[] {animeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.LinkAniDBTvDB,
+            extraParams = new[] {animeID.ToString()}
+        };
 
         public CommandRequest_LinkAniDBTvDB()
         {
@@ -81,7 +71,7 @@ namespace Shoko.Server.Commands.TvDB
                 $"CommandRequest_LinkAniDBTvDB_{animeID}_{aniEpType}_{aniEpNumber}_{tvDBID}_{tvSeasonNumber}_{tvEpNumber}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -112,21 +102,6 @@ namespace Shoko.Server.Commands.TvDB
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

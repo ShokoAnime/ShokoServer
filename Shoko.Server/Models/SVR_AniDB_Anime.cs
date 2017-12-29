@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
@@ -38,6 +39,7 @@ namespace Shoko.Server.Models
 
         private CL_AniDB_AnimeDetailed _contract;
 
+        
         public virtual CL_AniDB_AnimeDetailed Contract
         {
             get
@@ -83,6 +85,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
 
         [XmlIgnore]
+        [NotMapped]
         public string PosterPath
         {
             get
@@ -323,7 +326,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public AniDB_Anime_DefaultImage GetDefaultPoster(ISessionWrapper criteriaFactory) => RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(criteriaFactory, AnimeID,
             (int) ImageSizeType.Poster);
-
+        [NotMapped]
         public string PosterPathNoDefault
         {
             get
@@ -1406,7 +1409,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return chars;
         }
 
-        public static void UpdateContractDetailedBatch(ISessionWrapper session,
+        public static void UpdateContractDetailedBatch(
             IReadOnlyCollection<SVR_AniDB_Anime> animeColl)
         {
             if (session == null)
@@ -1539,7 +1542,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public void UpdateContractDetailed(ISessionWrapper session)
+        public void UpdateContractDetailed()
         {
             List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed

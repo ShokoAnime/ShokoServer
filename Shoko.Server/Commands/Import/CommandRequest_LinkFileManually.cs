@@ -1,53 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Threading;
 using System.Xml;
-using AniDBAPI;
-using Shoko.Models.Server;
-using Shoko.Server.Commands.AniDB;
-using NutzCode.CloudFileSystem;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
-using Shoko.Server.Repositories;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_LinkFileManually : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_LinkFileManually : CommandRequest
     {
         private new static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public int VideoLocalID { get; set; }
-        public int EpisodeID { get; set; }
-        public int Percentage { get; set; }
+        public virtual int VideoLocalID { get; set; }
+        public virtual int EpisodeID { get; set; }
+        public virtual int Percentage { get; set; }
 
-        private SVR_AnimeEpisode episode = null;
-        private SVR_VideoLocal vlocal = null;
+        private SVR_AnimeEpisode episode;
+        private SVR_VideoLocal vlocal;
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription
         {
             get
             {
                 if (vlocal != null && episode != null)
-                    return new QueueStateStruct()
+                    return new QueueStateStruct
                     {
                         queueState = QueueStateEnum.LinkFileManually,
-                        extraParams = new string[] {vlocal.FileName, episode.AniDB_Episode.EnglishName}
+                        extraParams = new[] {vlocal.FileName, episode.AniDB_Episode.EnglishName}
                     };
-                else
-                    return new QueueStateStruct()
-                    {
-                        queueState = QueueStateEnum.LinkFileManually,
-                        extraParams = new string[] {VideoLocalID.ToString(), EpisodeID.ToString()}
-                    };
+                return new QueueStateStruct
+                {
+                    queueState = QueueStateEnum.LinkFileManually,
+                    extraParams = new[] {VideoLocalID.ToString(), EpisodeID.ToString()}
+                };
             }
         }
 
@@ -57,10 +50,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_LinkFileManually(int vidLocalID, int episodeID)
         {
-            this.VideoLocalID = vidLocalID;
-            this.EpisodeID = episodeID;
-            this.CommandType = (int) CommandRequestType.LinkFileManually;
-            this.Priority = (int) DefaultPriority;
+            VideoLocalID = vidLocalID;
+            EpisodeID = episodeID;
+            CommandType = (int) CommandRequestType.LinkFileManually;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -138,28 +131,28 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
+            CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
-                this.EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
-                this.Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
+                VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
+                EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
+                Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
                 vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (null==vlocal)
                 {
@@ -170,21 +163,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

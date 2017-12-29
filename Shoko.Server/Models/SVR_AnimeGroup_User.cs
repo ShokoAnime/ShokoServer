@@ -1,10 +1,8 @@
 ﻿using System.Collections.Generic;
 using NLog;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
@@ -17,6 +15,10 @@ namespace Shoko.Server.Models
         public SVR_AnimeGroup_User()
         {
         }
+
+        public int PlexContractVersion { get; set; }
+        public byte[] PlexContractBlob { get; set; }
+        public int PlexContractSize { get; set; }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 

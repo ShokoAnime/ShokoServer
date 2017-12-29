@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
+﻿using FluentNHibernate.Mapping;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings

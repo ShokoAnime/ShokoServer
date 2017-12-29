@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using System;
 using Shoko.Server.PlexAndKodi;
@@ -18,7 +16,9 @@ namespace Shoko.Server.Models
 
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract = null;
-
+        public int PlexContractVersion { get; set; }
+        public byte[] PlexContractBlob { get; set; }
+        public int PlexContractSize { get; set; }
         public virtual Video PlexContract
         {
             get

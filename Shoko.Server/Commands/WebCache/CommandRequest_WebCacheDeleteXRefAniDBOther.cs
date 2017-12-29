@@ -1,35 +1,24 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBOther : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_WebCacheDeleteXRefAniDBOther : CommandRequest
     {
-        public int AnimeID { get; set; }
-        public int CrossRefType { get; set; }
+        public virtual int AnimeID { get; set; }
+        public virtual int CrossRefType { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.WebCacheDeleteXRefAniDBOther,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.WebCacheDeleteXRefAniDBOther,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_WebCacheDeleteXRefAniDBOther()
         {
@@ -37,10 +26,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_WebCacheDeleteXRefAniDBOther(int animeID, CrossRefType xrefType)
         {
-            this.AnimeID = animeID;
-            this.CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBOther;
-            this.CrossRefType = (int) xrefType;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBOther;
+            CrossRefType = (int) xrefType;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -54,56 +43,39 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error(ex, 
-                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBOther: {0}" + ex.ToString());
-                return;
+                    "Error processing CommandRequest_WebCacheDeleteXRefAniDBOther: {0}" + ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBOther_{0}_{1}", AnimeID,
-                CrossRefType);
+            CommandID = $"CommandRequest_WebCacheDeleteXRefAniDBOther_{AnimeID}_{CrossRefType}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID =
+                AnimeID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "AnimeID"));
-                this.CrossRefType =
+                CrossRefType =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther",
                         "CrossRefType"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

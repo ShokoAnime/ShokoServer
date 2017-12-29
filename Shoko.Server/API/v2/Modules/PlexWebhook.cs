@@ -7,13 +7,12 @@ using Newtonsoft.Json.Serialization;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using Nancy.Security;
-using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Commands;
 using Shoko.Server.Providers.TraktTV;
 
 namespace Shoko.Server.API.v2.Modules

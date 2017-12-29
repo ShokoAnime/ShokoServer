@@ -1,22 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
-using Nancy.Routing.Trie.Nodes;
 using NLog;
-using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server.PlexAndKodi.Plex;
-using Shoko.Server.Repositories;
-using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.Plex
+namespace Shoko.Server.Commands
 {
     internal class PlexHelper
     {
@@ -55,7 +48,7 @@ namespace Shoko.Server.Commands.Plex
 
         private PlexHelper(JMMUser user)
         {
-            this._user = user;
+            _user = user;
         }
 
 
@@ -83,7 +76,7 @@ namespace Shoko.Server.Commands.Plex
                     $"http://{ServerSettings.Plex_Server}{key.Substring(0, key.Length - 9)}/allLeaves");
                 var files = doc.SelectNodes("/MediaContainer/Video");
 
-                PlexSeries series = new PlexSeries()
+                PlexSeries series = new PlexSeries
                 {
                     Episodes = new List<PlexEpisode>(),
                     Name = attributes?["title"].InnerText,
@@ -98,7 +91,7 @@ namespace Shoko.Server.Commands.Plex
                     int lastWatchedUnix = Convert.ToInt32(videoXml.Attributes?["lastViewedAt"]?.InnerText);
                     uint ratingKey = Convert.ToUInt32(videoXml.Attributes?["ratingKey"]?.InnerText);
 
-                    series.Episodes.Add(new PlexEpisode()
+                    series.Episodes.Add(new PlexEpisode
                     {
                         File = file,
                         Key = ratingKey,

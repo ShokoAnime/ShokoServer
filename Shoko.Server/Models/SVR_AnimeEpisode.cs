@@ -17,6 +17,11 @@ namespace Shoko.Server.Models
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract;
 
+
+        public int PlexContractVersion { get; set; }
+        public byte[] PlexContractBlob { get; set; }
+        public int PlexContractSize { get; set; }
+
         public virtual Video PlexContract
         {
             get
@@ -198,7 +203,7 @@ namespace Shoko.Server.Models
                 AnimeSeriesID = AnimeSeriesID,
                 JMMUserID = userid,
                 WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid))
-                    .FirstOrDefault(vid => vid.WatchedDate != null)?.WatchedDate
+                    .FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate
             };
             if (session != null)
                 RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);

@@ -1,31 +1,21 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSyncCollection : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TraktSyncCollection : CommandRequest
     {
-        public bool ForceRefresh { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription
-        {
-            get { return new QueueStateStruct() {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]}; }
-        }
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]};
 
         public CommandRequest_TraktSyncCollection()
         {
@@ -33,9 +23,9 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktSyncCollection(bool forced)
         {
-            this.CommandType = (int) CommandRequestType.Trakt_SyncCollection;
-            this.Priority = (int) DefaultPriority;
-            this.ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.Trakt_SyncCollection;
+            Priority = (int) DefaultPriority;
+            ForceRefresh = forced;
 
             GenerateCommandID();
         }
@@ -76,8 +66,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktSyncCollection: {0}", ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_TraktSyncCollection: {0}", ex);
             }
         }
 
@@ -87,45 +76,30 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TraktSyncCollection");
+            CommandID = "CommandRequest_TraktSyncCollection";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.ForceRefresh =
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSyncCollection", "ForceRefresh"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

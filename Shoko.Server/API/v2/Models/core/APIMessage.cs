@@ -1,28 +1,55 @@
-﻿using NLog;
+﻿using System.Collections.Generic;
+using Nancy;
 
 namespace Shoko.Server.API.v2.Models.core
 {
     public class APIMessage
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         public int code { get; set; }
         public string message { get; set; }
+        public (string, string) [] details { get; set; }
 
-        public APIMessage(int _code, string _message)
+        /// <summary>
+        /// An HTTP message with details about the result
+        /// </summary>
+        /// <param name="_code">The HTTP status code</param>
+        /// <param name="_message">A summary of the message</param>
+        public APIMessage(HttpStatusCode _code, string _message) : this((int) _code, _message)
+        {
+        }
+
+        /// <summary>
+        /// An HTTP message with details about the result
+        /// </summary>
+        /// <param name="_code">The HTTP status code</param>
+        /// <param name="_message">A summary of the message</param>
+        public APIMessage(int _code, string _message) : this(_code, _message,
+            new List<(string, string)> {(_message, string.Empty)})
+        {
+        }
+
+        /// <summary>
+        /// An HTTP message with details about the result
+        /// </summary>
+        /// <param name="_code">The HTTP status code</param>
+        /// <param name="_message">A summary of the message</param>
+        /// <param name="_details">A list of tuples, with the first item being the field the message relates to, and the second the message</param>
+        public APIMessage(HttpStatusCode _code, string _message, List<(string, string)> _details) : this((int) _code,
+            _message, _details)
+        {
+        }
+
+        /// <summary>
+        /// An HTTP message with details about the result
+        /// </summary>
+        /// <param name="_code">The HTTP status code</param>
+        /// <param name="_message">A summary of the message</param>
+        /// <param name="_details">A list of tuples, with the first item being the field the message relates to, and the second the message</param>
+        public APIMessage(int _code, string _message, List<(string, string)> _details)
         {
             code = _code;
             message = _message;
-            if (_code < 200 && _code > 299)
-            {
-                logger.Warn("Nancy >>> " + _code.ToString() + ":" + _message);
-            }
-            else
-            {
-#if DEBUG
-                logger.Debug("Nancy >>> " + _code.ToString() + ":" + _message);
-#endif
-            }
+            details = _details.ToArray();
         }
     }
 

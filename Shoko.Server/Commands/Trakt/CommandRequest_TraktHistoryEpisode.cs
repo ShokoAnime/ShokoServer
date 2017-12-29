@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -13,32 +9,20 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktHistoryEpisode : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TraktHistoryEpisode : CommandRequest
     {
-        public int AnimeEpisodeID { get; set; }
-        public int Action { get; set; }
+        public virtual int AnimeEpisodeID { get; set; }
+        public virtual int Action { get; set; }
 
-        public TraktSyncAction ActionEnum
-        {
-            get { return (TraktSyncAction) Action; }
-        }
+        public virtual TraktSyncAction ActionEnum => (TraktSyncAction) Action;
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.TraktAddHistory,
-                    extraParams = new string[] {AnimeEpisodeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.TraktAddHistory,
+            extraParams = new[] {AnimeEpisodeID.ToString()}
+        };
 
         public CommandRequest_TraktHistoryEpisode()
         {
@@ -46,10 +30,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktHistoryEpisode(int animeEpisodeID, TraktSyncAction action)
         {
-            this.AnimeEpisodeID = animeEpisodeID;
-            this.Action = (int) action;
-            this.CommandType = (int) CommandRequestType.Trakt_EpisodeHistory;
-            this.Priority = (int) DefaultPriority;
+            AnimeEpisodeID = animeEpisodeID;
+            Action = (int) action;
+            CommandType = (int) CommandRequestType.Trakt_EpisodeHistory;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -73,8 +57,7 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_TraktHistoryEpisode: {0} - {1}", AnimeEpisodeID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
@@ -84,46 +67,31 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TraktHistoryEpisode{0}-{1}", AnimeEpisodeID, Action);
+            CommandID = $"CommandRequest_TraktHistoryEpisode{AnimeEpisodeID}-{Action}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeEpisodeID =
+                AnimeEpisodeID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktHistoryEpisode", "AnimeEpisodeID"));
-                this.Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktHistoryEpisode", "Action"));
+                Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktHistoryEpisode", "Action"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

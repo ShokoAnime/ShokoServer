@@ -1,40 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Repositories;
 
-
-namespace Shoko.Server.Commands.MAL
+namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_MALUpdatedWatchedStatus : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_MALUpdatedWatchedStatus : CommandRequest
     {
-        public int AnimeID { get; set; }
+        public virtual int AnimeID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.UpdateMALWatched,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.UpdateMALWatched,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_MALUpdatedWatchedStatus()
         {
@@ -42,9 +29,9 @@ namespace Shoko.Server.Commands.MAL
 
         public CommandRequest_MALUpdatedWatchedStatus(int animeID)
         {
-            this.AnimeID = animeID;
-            this.CommandType = (int) CommandRequestType.MAL_UpdateStatus;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            CommandType = (int) CommandRequestType.MAL_UpdateStatus;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -71,8 +58,7 @@ namespace Shoko.Server.Commands.MAL
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_MALUpdatedWatchedStatus: {0} - {1}", AnimeID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
@@ -92,45 +78,30 @@ namespace Shoko.Server.Commands.MAL
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_MALUpdatedWatchedStatus_{0}", this.AnimeID);
+            CommandID = $"CommandRequest_MALUpdatedWatchedStatus_{AnimeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(
+                AnimeID = int.Parse(
                     TryGetProperty(docCreator, "CommandRequest_MALUpdatedWatchedStatus", "AnimeID"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

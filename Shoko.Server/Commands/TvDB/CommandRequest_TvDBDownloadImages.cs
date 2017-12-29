@@ -1,36 +1,24 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TvDBDownloadImages : CommandRequest_TvDBBase
     {
-        public int TvDBSeriesID { get; set; }
-        public bool ForceRefresh { get; set; }
+        public virtual int TvDBSeriesID { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.DownloadTvDBImages,
-                    extraParams = new string[] {TvDBSeriesID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.DownloadTvDBImages,
+            extraParams = new[] {TvDBSeriesID.ToString()}
+        };
 
 
         public CommandRequest_TvDBDownloadImages()
@@ -40,10 +28,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
         {
-            this.TvDBSeriesID = tvDBSeriesID;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.TvDB_DownloadImages;
-            this.Priority = (int) DefaultPriority;
+            TvDBSeriesID = tvDBSeriesID;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.TvDB_DownloadImages;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -60,54 +48,38 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_TvDBDownloadImages: {0} - {1}", TvDBSeriesID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_TvDBDownloadImages_{0}", this.TvDBSeriesID);
+            CommandID = $"CommandRequest_TvDBDownloadImages_{TvDBSeriesID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.TvDBSeriesID =
+                TvDBSeriesID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBDownloadImages", "TvDBSeriesID"));
-                this.ForceRefresh =
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBDownloadImages", "ForceRefresh"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
-using AniDBAPI;
-using Shoko.Models;
-using Shoko.Server.Repositories.Direct;
 using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -23,27 +18,18 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSearchAnime : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_TraktSearchAnime : CommandRequest
     {
-        public int AnimeID { get; set; }
-        public bool ForceRefresh { get; set; }
+        public virtual int AnimeID { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.SearchTrakt,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.SearchTrakt,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_TraktSearchAnime()
         {
@@ -51,10 +37,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktSearchAnime(int animeID, bool forced)
         {
-            this.AnimeID = animeID;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.Trakt_SearchAnime;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = animeID;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.Trakt_SearchAnime;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -188,8 +174,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
             }
         }
 
@@ -219,46 +204,31 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_TraktSearchAnime{AnimeID}";
+            CommandID = $"CommandRequest_TraktSearchAnime{AnimeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSearchAnime", "AnimeID"));
-                this.ForceRefresh =
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSearchAnime", "AnimeID"));
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSearchAnime", "ForceRefresh"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

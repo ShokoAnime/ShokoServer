@@ -22,17 +22,17 @@ using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_DownloadImage : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_DownloadImage : CommandRequest
     {
-        public int EntityID { get; set; }
-        public int EntityType { get; set; }
-        public bool ForceDownload { get; set; }
+        public virtual int EntityID { get; set; }
+        public virtual int EntityType { get; set; }
+        public virtual bool ForceDownload { get; set; }
 
-        public ImageEntityType EntityTypeEnum => (ImageEntityType) EntityType;
+        public virtual ImageEntityType EntityTypeEnum => (ImageEntityType) EntityType;
 
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription
         {
             get
             {
@@ -479,7 +479,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -502,21 +502,6 @@ namespace Shoko.Server.Commands
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

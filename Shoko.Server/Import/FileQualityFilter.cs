@@ -5,7 +5,6 @@ using Shoko.Models;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using static Shoko.Models.FileQualityPreferences;
 using static Shoko.Models.FileQualityFilter;
 
 namespace Shoko.Server

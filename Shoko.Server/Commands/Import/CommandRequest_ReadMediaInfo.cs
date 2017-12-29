@@ -1,35 +1,24 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Models;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_ReadMediaInfo : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_ReadMediaInfo : CommandRequest
     {
-        public int VideoLocalID { get; set; }
+        public virtual int VideoLocalID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority4; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.ReadingMedia,
-                    extraParams = new string[] {VideoLocalID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.ReadingMedia,
+            extraParams = new[] {VideoLocalID.ToString()}
+        };
 
         public CommandRequest_ReadMediaInfo()
         {
@@ -37,9 +26,9 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_ReadMediaInfo(int vidID)
         {
-            this.VideoLocalID = vidID;
-            this.CommandType = (int) CommandRequestType.ReadMediaInfo;
-            this.Priority = (int) DefaultPriority;
+            VideoLocalID = vidID;
+            CommandType = (int) CommandRequestType.ReadMediaInfo;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -63,8 +52,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_ReadMediaInfo: {0} - {1}", VideoLocalID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_ReadMediaInfo: {0} - {1}", VideoLocalID, ex);
             }
         }
 
@@ -75,45 +63,30 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_ReadMediaInfo_{this.VideoLocalID}";
+            CommandID = $"CommandRequest_ReadMediaInfo_{VideoLocalID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.VideoLocalID = int.Parse(
+                VideoLocalID = int.Parse(
                     TryGetProperty(docCreator, "CommandRequest_ReadMediaInfo", "VideoLocalID"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -1,25 +1,22 @@
-﻿using System;
-using System.Globalization;
-using System.Threading;
-using Shoko.Commons.Queue;
+﻿using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_RefreshAnime : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_RefreshAnime : CommandRequest
     {
-        public int AnimeID { get; set; }
+        public virtual int AnimeID { get; set; }
+
+        public override string CommandDetails => AnimeID.ToString();
 
         public CommandRequest_RefreshAnime(int animeID)
         {
             AnimeID = animeID;
 
-            this.CommandType = (int) CommandRequestType.Refresh_AnimeStats;
-            this.Priority = (int) DefaultPriority;
+            CommandType = (int) CommandRequestType.Refresh_AnimeStats;
+            Priority = (int) DefaultPriority;
             GenerateCommandID();
         }
 
@@ -28,60 +25,35 @@ namespace Shoko.Server.Commands
         }
 
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority5; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.Refresh,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.Refresh,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public override void ProcessCommand()
         {
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            if (ser != null)
-                ser.UpdateStats(true, true, true);
+            ser?.UpdateStats(true, true, true);
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_RefreshAnime_{0}", this.AnimeID);
+            CommandID = $"CommandRequest_RefreshAnime_{AnimeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
             AnimeID = int.Parse(cq.CommandDetails);
             return true;
-        }
-
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = AnimeID.ToString(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

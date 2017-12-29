@@ -9,7 +9,6 @@ using Nancy.Extensions;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
@@ -293,7 +292,16 @@ namespace Shoko.Server.Models
                 return null;
             return fobj.Result as IFile;
         }
-
+        public async Task<IFile> GetFileAsync()
+        {
+            IFileSystem fs = ImportFolder?.FileSystem;
+            if (fs == null)
+                return null;
+            FileSystemResult<IObject> fobj = await fs.ResolveAsync(FullServerPath);
+            if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory)
+                return null;
+            return fobj.Result as IFile;
+        }
         public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
         {
             info.VideoResolution = !string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height)

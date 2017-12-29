@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.Smo;
 using Nancy;
 using Nancy.ModelBinding;
@@ -285,8 +284,12 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("You may only do this before server init");
 
             Credentials cred = this.Bind();
-            if (string.IsNullOrEmpty(cred.login) || string.IsNullOrEmpty(cred.password))
-                return new APIMessage(400, "Login and Password missing");
+            var details = new List<(string, string)>();
+            if (string.IsNullOrEmpty(cred.login))
+                details.Add(("login", "Username missing"));
+            if (string.IsNullOrEmpty(cred.password))
+                details.Add(("password", "Password missing"));
+            if (details.Count > 0) return new APIMessage(400, "Login or Password missing", details);
 
             ServerSettings.AniDB_Username = cred.login;
             ServerSettings.AniDB_Password = cred.password;
@@ -397,9 +400,17 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("You must specify database type and use valid xml or json.");
             if (dbtype.Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
             {
-                if (string.IsNullOrEmpty(settings.mysql_hostname) || string.IsNullOrEmpty(settings.mysql_password) ||
-                    string.IsNullOrEmpty(settings.mysql_schemaname) || string.IsNullOrEmpty(settings.mysql_username))
-                    return APIStatus.BadRequest("An invalid setting was passed");
+                var details = new List<(string, string)>();
+                if (string.IsNullOrEmpty(settings.mysql_hostname))
+                    details.Add(("mysql_hostname", "Must not be empty"));
+                if(string.IsNullOrEmpty(settings.mysql_schemaname))
+                    details.Add(("mysql_schemaname", "Must not be empty"));
+                if(string.IsNullOrEmpty(settings.mysql_username))
+                    details.Add(("mysql_username", "Must not be empty"));
+                if(string.IsNullOrEmpty(settings.mysql_password))
+                    details.Add(("mysql_password", "Must not be empty"));
+                if (details.Count > 0)
+                    return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
                 ServerSettings.DatabaseType = Constants.DatabaseType.MySQL;
                 ServerSettings.MySQL_Hostname = settings.mysql_hostname;
                 ServerSettings.MySQL_Password = settings.mysql_password;
@@ -409,9 +420,17 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (dbtype.Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
             {
-                if (string.IsNullOrEmpty(settings.sqlserver_databasename) || string.IsNullOrEmpty(settings.sqlserver_databaseserver) ||
-                    string.IsNullOrEmpty(settings.sqlserver_password) || string.IsNullOrEmpty(settings.sqlserver_username))
-                    return APIStatus.BadRequest("An invalid setting was passed");
+                var details = new List<(string, string)>();
+                if (string.IsNullOrEmpty(settings.sqlserver_databaseserver))
+                    details.Add(("sqlserver_databaseserver", "Must not be empty"));
+                if(string.IsNullOrEmpty(settings.sqlserver_databasename))
+                    details.Add(("sqlserver_databaseserver", "Must not be empty"));
+                if(string.IsNullOrEmpty(settings.sqlserver_username))
+                    details.Add(("sqlserver_username", "Must not be empty"));
+                if(string.IsNullOrEmpty(settings.sqlserver_password))
+                    details.Add(("sqlserver_password", "Must not be empty"));
+                if (details.Count > 0)
+                    return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
                 ServerSettings.DatabaseType = Constants.DatabaseType.SqlServer;
                 ServerSettings.DatabaseServer = settings.sqlserver_databaseserver;
                 ServerSettings.DatabaseName = settings.sqlserver_databasename;

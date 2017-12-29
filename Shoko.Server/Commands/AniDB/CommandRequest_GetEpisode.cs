@@ -1,39 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands.AniDB
+namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetEpisode : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_GetEpisode : CommandRequest_AniDBBase
     {
-        public int EpisodeID { get; set; }
+        public virtual int EpisodeID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority4; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.GetEpisodeList,
-                    extraParams = new string[] {EpisodeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.GetEpisodeList,
+            extraParams = new[] {EpisodeID.ToString()}
+        };
 
         public CommandRequest_GetEpisode()
         {
@@ -41,9 +29,9 @@ namespace Shoko.Server.Commands.AniDB
 
         public CommandRequest_GetEpisode(int epID)
         {
-            this.EpisodeID = epID;
-            this.CommandType = (int) CommandRequestType.AniDB_GetEpisodeUDP;
-            this.Priority = (int) DefaultPriority;
+            EpisodeID = epID;
+            CommandType = (int) CommandRequestType.AniDB_GetEpisodeUDP;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -90,8 +78,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetEpisode: {0} - {1}", EpisodeID, ex.ToString());
-                return;
+                logger.Error("Error processing CommandRequest_GetEpisode: {0} - {1}", EpisodeID, ex);
             }
         }
 
@@ -101,44 +88,29 @@ namespace Shoko.Server.Commands.AniDB
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_GetEpisode_{0}", this.EpisodeID);
+            CommandID = $"CommandRequest_GetEpisode_{EpisodeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetEpisode", "EpisodeID"));
+                EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetEpisode", "EpisodeID"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

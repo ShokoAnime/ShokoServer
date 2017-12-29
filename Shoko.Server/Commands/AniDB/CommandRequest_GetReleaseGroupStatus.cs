@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -16,27 +12,18 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_GetReleaseGroupStatus : CommandRequest_AniDBBase
     {
-        public int AnimeID { get; set; }
-        public bool ForceRefresh { get; set; }
+        public virtual int AnimeID { get; set; }
+        public virtual bool ForceRefresh { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority5; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.GetReleaseGroup,
-                    extraParams = new string[] {AnimeID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.GetReleaseGroup,
+            extraParams = new[] {AnimeID.ToString()}
+        };
 
         public CommandRequest_GetReleaseGroupStatus()
         {
@@ -44,10 +31,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_GetReleaseGroupStatus(int aid, bool forced)
         {
-            this.AnimeID = aid;
-            this.ForceRefresh = forced;
-            this.CommandType = (int) CommandRequestType.AniDB_GetReleaseGroupStatus;
-            this.Priority = (int) DefaultPriority;
+            AnimeID = aid;
+            ForceRefresh = forced;
+            CommandType = (int) CommandRequestType.AniDB_GetReleaseGroupStatus;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -90,7 +77,7 @@ namespace Shoko.Server.Commands
 
                 if (skip)
                 {
-                    logger.Info("Skipping group status command because anime has already ended: {0}", anime.ToString());
+                    logger.Info("Skipping group status command because anime has already ended: {0}", anime);
                     return;
                 }
 
@@ -114,53 +101,37 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_GetReleaseGroupStatus: {0} - {1}", AnimeID,
-                    ex.ToString());
-                return;
+                    ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_GetReleaseGroupStatus_{0}", this.AnimeID);
+            CommandID = $"CommandRequest_GetReleaseGroupStatus_{AnimeID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroupStatus", "AnimeID"));
-                this.ForceRefresh =
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroupStatus", "AnimeID"));
+                ForceRefresh =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroupStatus", "ForceRefresh"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -2,7 +2,6 @@
 using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct

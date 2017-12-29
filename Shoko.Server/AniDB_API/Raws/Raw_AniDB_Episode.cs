@@ -5,7 +5,6 @@ using System.Web.Script.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
-using Shoko.Server;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 

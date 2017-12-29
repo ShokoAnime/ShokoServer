@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -11,26 +9,17 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequest
     {
-        public int CrossRef_AniDB_TvDBID { get; set; }
+        public virtual int CrossRef_AniDB_TvDBID { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.WebCacheSendXRefAniDBTvDB,
-                    extraParams = new string[] {CrossRef_AniDB_TvDBID.ToString()}
-                };
-            }
-        }
+            queueState = QueueStateEnum.WebCacheSendXRefAniDBTvDB,
+            extraParams = new[] {CrossRef_AniDB_TvDBID.ToString()}
+        };
 
         public CommandRequest_WebCacheSendXRefAniDBTvDB()
         {
@@ -38,9 +27,9 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_WebCacheSendXRefAniDBTvDB(int xrefID)
         {
-            this.CrossRef_AniDB_TvDBID = xrefID;
-            this.CommandType = (int) CommandRequestType.WebCache_SendXRefAniDBTvDB;
-            this.Priority = (int) DefaultPriority;
+            CrossRef_AniDB_TvDBID = xrefID;
+            CommandType = (int) CommandRequestType.WebCache_SendXRefAniDBTvDB;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -61,53 +50,37 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_WebCacheSendXRefAniDBTvDB: {0}" + ex.ToString());
-                return;
+                logger.Error(ex, "Error processing CommandRequest_WebCacheSendXRefAniDBTvDB: {0}" + ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_WebCacheSendXRefAniDBTvDB{0}", CrossRef_AniDB_TvDBID);
+            CommandID = $"CommandRequest_WebCacheSendXRefAniDBTvDB{CrossRef_AniDB_TvDBID}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.CrossRef_AniDB_TvDBID =
+                CrossRef_AniDB_TvDBID =
                     int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDBTvDB",
                         "CrossRef_AniDB_TvDBID"));
             }
 
             return true;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
         }
     }
 }

@@ -1,65 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
-using FileStream = System.IO.FileStream;
-using FileMode = System.IO.FileMode;
-using FileAccess = System.IO.FileAccess;
-using FileShare = System.IO.FileShare;
-using SeekOrigin = System.IO.SeekOrigin;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
-using Shoko.Models;
-using Shoko.Models.Azure;
-using Shoko.Server.Repositories.Direct;
-using Pri.LongPath;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
+using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using File = Pri.LongPath.File;
+using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_HashFile : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_HashFile : CommandRequest
     {
-        public string FileName { get; set; }
-        public bool ForceHash { get; set; }
+        public virtual string FileName { get; set; }
+        public virtual bool ForceHash { get; set; }
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority4; }
-        }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
-        public QueueStateStruct PrettyDescription
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            get
-            {
-                // return Checking File by default and change it later if we actually hash
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.CheckingFile,
-                    extraParams = new string[] {FileName}
-                };
-            }
-        }
+            queueState = QueueStateEnum.CheckingFile,
+            extraParams = new[] {FileName}
+        };
 
-        public QueueStateStruct PrettyDescriptionHashing
+        public virtual QueueStateStruct PrettyDescriptionHashing => new QueueStateStruct
         {
-            get
-            {
-                // return Checking File by default and change it later if we actually hash
-                return new QueueStateStruct()
-                {
-                    queueState = QueueStateEnum.HashingFile,
-                    extraParams = new string[] {FileName}
-                };
-            }
-        }
+            queueState = QueueStateEnum.HashingFile,
+            extraParams = new[] {FileName}
+        };
 
         public CommandRequest_HashFile()
         {
@@ -67,10 +45,10 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_HashFile(string filename, bool force)
         {
-            this.FileName = filename;
-            this.ForceHash = force;
-            this.CommandType = (int) CommandRequestType.HashFile;
-            this.Priority = (int) DefaultPriority;
+            FileName = filename;
+            ForceHash = force;
+            CommandType = (int) CommandRequestType.HashFile;
+            Priority = (int) DefaultPriority;
 
             GenerateCommandID();
         }
@@ -85,8 +63,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing file: {0}\n{1}", FileName, ex.ToString());
-                return;
+                logger.Error(ex, "Error processing file: {0}\n{1}", FileName, ex);
             }
         }
 
@@ -636,48 +613,32 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = $"CommandRequest_HashFile_{FileName}";
+            CommandID = $"CommandRequest_HashFile_{FileName}";
         }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
+        public override bool InitFromDB(CommandRequest cq)
         {
-            this.CommandID = cq.CommandID;
-            this.CommandRequestID = cq.CommandRequestID;
-            this.CommandType = cq.CommandType;
-            this.Priority = cq.Priority;
-            this.CommandDetails = cq.CommandDetails;
-            this.DateTimeUpdated = cq.DateTimeUpdated;
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (this.CommandDetails.Trim().Length > 0)
+            if (CommandDetails.Trim().Length > 0)
             {
                 XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(this.CommandDetails);
+                docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                this.FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
-                this.ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
+                FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
+                ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
             }
 
-            if (this.FileName.Trim().Length > 0)
+            if (FileName.Trim().Length > 0)
                 return true;
-            else
-                return false;
-        }
-
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = this.CommandID,
-                CommandType = this.CommandType,
-                Priority = this.Priority,
-                CommandDetails = this.ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
+            return false;
         }
     }
 }
