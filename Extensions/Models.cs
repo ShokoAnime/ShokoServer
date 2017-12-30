@@ -55,6 +55,36 @@ namespace Shoko.Commons.Extensions
             return false;
         }
 
+        public static bool IsInYear(this AniDB_Anime anime, int year)
+        {
+            if (anime.AirDate == null) return false;
+
+            var yearStartBegin = new DateTime(year - 1, 12, 16);
+            var yearStartEnd = new DateTime(year, 1, 15);
+
+            // Don't even count years that haven't happened yet
+            if (yearStartBegin > DateTime.Today) return false;
+
+            // If it starts in a year, then it is definitely going to be in it
+            if (anime.AirDate.Value >= yearStartBegin && anime.AirDate.Value <= yearStartEnd) return true;
+            // If it aired before the year, but hasn't finished by the year, count it.
+            if (anime.AirDate.Value < yearStartBegin)
+            {
+                // null EndDate means it's still airing now
+                if (anime.EndDate == null) return true;
+                // A season can run long, so don't count it unless it continues well into the year
+                yearStartBegin = new DateTime(year, 2, 1);
+
+                if (anime.EndDate.Value > yearStartBegin) return true;
+            }
+            return false;
+        }
+
+        public static bool IsInYear(this CL_AniDB_AnimeDetailed anime, int year)
+        {
+            return anime?.AniDBAnime?.IsInYear(year) ?? false;
+        }
+
         public static bool IsInSeason(this AniDB_Anime anime, AnimeSeason season, int year)
         {
             if (anime.AirDate == null) return false;
