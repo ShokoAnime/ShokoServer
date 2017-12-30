@@ -909,10 +909,6 @@ namespace Shoko.Server.Models
                          gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude) && tagsFound) return false;
                     break;
                 case GroupFilterConditionType.Year:
-                    int BeginYear = contractSerie.AniDBAnime.AniDBAnime.BeginYear;
-                    int EndYear = contractSerie.AniDBAnime.AniDBAnime.EndYear;
-                    if (BeginYear == 0) return false;
-                    if (EndYear == 0) EndYear = int.MaxValue;
                     HashSet<int> years = new HashSet<int>();
                     string[] parameterStrings = gfc.ConditionParameter.Trim().Split(',');
                     foreach (string yearString in parameterStrings)
@@ -926,12 +922,12 @@ namespace Shoko.Server.Models
                     {
                         case GroupFilterOperator.Include:
                         case GroupFilterOperator.In:
-                            if (years.Any(year => year >= BeginYear && year <= EndYear))
+                            if (years.Any(year => contractSerie.AniDBAnime.IsInYear(year)))
                                 return true;
                             return false;
                         case GroupFilterOperator.Exclude:
                         case GroupFilterOperator.NotIn:
-                            if (years.Any(year => year >= BeginYear && year <= EndYear))
+                            if (years.Any(year => contractSerie.AniDBAnime.IsInYear(year)))
                                 return false;
                             return true;
                     }

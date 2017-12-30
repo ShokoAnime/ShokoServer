@@ -893,7 +893,7 @@ namespace Shoko.Server.Models
                         if (endyear == 0) endyear = DateTime.Today.Year;
                         if (anime.BeginYear != 0)
                         {
-                            var years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1).ToList();
+                            var years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1).Where(anime.IsInYear).ToList();
                             allYears.UnionWith(years);
                             foreach (int year in years)
                             foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
