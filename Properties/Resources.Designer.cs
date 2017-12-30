@@ -19,7 +19,7 @@ namespace Shoko.Commons.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -8134,7 +8134,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MySQL is the mid-tier and recommended database type for Shoko users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using Shoko . It is easy to setup and using our guide you’ll be up and running in a matter of minutes..
+        ///   Looks up a localized string similar to MySQL is the mid-tier database option that allows users to further fine-tune their database to achieve quicker response times. MySQL is perfect for users with experience using MySQL or those looking for an alternative to SQLite and are not afraid to perform additional configuring..
         /// </summary>
         public static string MySQL_Info {
             get {
@@ -11627,7 +11627,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to While SQLite is the easiest of the three database types to setup with it&apos;s one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when Shoko attempts to access your collection via your SQLite database. In regards to how Shoko uses the database, it&apos;s simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations whic [rest of string was truncated]&quot;;.
+        ///   Looks up a localized string similar to SQLite is the easiest of the three database types to setup with its one-click setup, its designed for users who want to avoid additional database setup and are OK with the default database settings. The slow response times and problems with multiprocessing that are common with SQLite databases have been mitigated with the built-in cache system..
         /// </summary>
         public static string SQLite_Info {
             get {
@@ -11645,7 +11645,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fastest performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we&apos;ve created..
+        ///   Looks up a localized string similar to SQL Server is an advanced database option that allows users to further fine-tune their database to achieve quicker response times. Most users will not benefit from installing SQL Server so we recommend using SQLite or MySQL..
         /// </summary>
         public static string SQLServer_Info {
             get {

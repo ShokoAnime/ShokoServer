@@ -4754,9 +4754,6 @@ Mark Unknown - laat het bestand op uw lijst, maar wijzigt de status unkown.</val
   <data name="MySQL" xml:space="preserve">
     <value>MySQL</value>
   </data>
-  <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL is de aanbevolen databasetype voor Shoko gebruikers met reeds een grote collectie, die van plan zijn om een grote collectie te bouwen of gewoon een boost in snelheden en prestaties willen bij het gebruik van Shoko. Installatie van MySQL zit qua moeilijkheid tussen SQLLite en SQL Server in en is bij gebruik van onze handleiding in een kwestie van minuten opgezet.</value>
-  </data>
   <data name="Rename_Default" xml:space="preserve">
     <value>Standaard</value>
   </data>
@@ -4936,15 +4933,6 @@ Mark Unknown - laat het bestand op uw lijst, maar wijzigt de status unkown.</val
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
-  </data>
-  <data name="SQLite_Info" xml:space="preserve">
-    <value>Terwijl SQLite de eenvoudigste van de drie databasetypen Setup met het één-klik installatie is. Als uw collectie 200 of meer reeksen bevat, zult u beginnen te ervaren van een heleboel kwesties met inbegrip van trage reactietijden en programma lockups wanneer Shoko probeert te toegang tot uw collectie via uw SQLite database. Met betrekking tot hoe Shoko maakt gebruik van de database, het gewoon niet ontworpen voor grote verzamelingen. SQLite heeft ook moeite met het verwerken van meerdere bewerkingen die toeneemt de wachttijd tussen de operaties die algemeen verhogen uw wacht tijd bij het benaderen van uw collectie.</value>
-  </data>
-  <data name="SQLServer" xml:space="preserve">
-    <value>SQL Server</value>
-  </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server is bedoeld voor gebruikers met een grote collectie die meer dan 200 serie die ook willen dat de snelste prestaties mogelijk overschrijdt. Uit de drie types van beschikbare database, SQL Server wordt beschouwd als de meest moeilijke in het opzetten van maar kan worden ingesteld met gemak wanneer u volgen naar de gids die we hebben gemaakt.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server kan bij grote collecties veel werkgeheugen in gebruik nemen.</value>
@@ -5247,5 +5235,17 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   </data>
   <data name="Database_Validating" xml:space="preserve">
     <value>Database - valideren - {0} {1}...</value>
+  </data>
+  <data name="MySQL_Info" xml:space="preserve">
+    <value>MySQL is de mid-tier database-optie waarmee gebruikers hun database verder kunnen verfijnen om snellere reactietijden te bereiken. MySQL is perfect voor gebruikers met ervaring met MySQL of voor mensen die op zoek zijn naar een alternatief voor SQLite en niet bang zijn om aanvullende configuraties uit te voeren.!</value>
+  </data>
+  <data name="SQLite_Info" xml:space="preserve">
+    <value>SQLite is de eenvoudigste van de drie databasetypen die kunnen worden ingesteld met één klik, het is ontworpen voor gebruikers die extra database-instellingen willen vermijden en zijn OK met de standaard database-instellingen. De trage reactietijden en problemen met multiprocessing die vaak voorkomen in SQLite-databases zijn verzacht door het ingebouwde cachesysteem!</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server is een geavanceerde databaseoptie waarmee gebruikers hun database verder kunnen verfijnen om snellere reactietijden te bereiken. De meeste gebruikers zullen niet profiteren van het installeren van SQL Server, dus we raden aan om SQLite of MySQL te gebruiken.</value>
+  </data>
+  <data name="SQLServer" xml:space="preserve">
+    <value>SQL Server</value>
   </data>
 </root>

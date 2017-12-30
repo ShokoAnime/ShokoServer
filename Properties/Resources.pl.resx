@@ -4753,12 +4753,6 @@
   <data name="Migration_SettingsError" xml:space="preserve">
     <value>Błąd ładowania ustawień:</value>
   </data>
-  <data name="MySQL" xml:space="preserve">
-    <value>MySQL/MariaDB</value>
-  </data>
-  <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL/MariaDB jest typ bazy danych średniej klasy, a jego użycie zaleca się użytkownikom Shoko z dużą kolekcją. Operacje na dużych kolekcjach wykonywane są dużo szybciej i wydajniej niżeli na SQLite. Instalacja jest łatwa szczególnie dzięki korzystaniu z naszego poradnika.</value>
-  </data>
   <data name="Rename_Default" xml:space="preserve">
     <value>Domyślny</value>
   </data>
@@ -4938,15 +4932,6 @@
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
-  </data>
-  <data name="SQLite_Info" xml:space="preserve">
-    <value>Podczas gdy SQLite jest najprostszą z trzech dostępnych baz danych do instalacji, gdyż odbywa się poprzez jedno kliknięcie. Jeśli kolekcja zawiera 200 lub więcej serii możesz zacząć odczuwać spowolnienia w działaniu, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy Shoko próbuje uzyskać dostęp do bazy danych SQLite. Korzystanie z tego typu bazy danych nie jest zalecane w przypadku posiadania dużych kolekcji.</value>
-  </data>
-  <data name="SQLServer" xml:space="preserve">
-    <value>Microsoft SQL Server</value>
-  </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server jest przeznaczona dla użytkowników z dużą kolekcją, która przekracza ponad 200 serii, którzy również chcą możliwe największą wydajność. Spośród trzech typów dostępne bazy danych SQL Server jest uważany za najtrudniejszy w tworzeniu, ale to może być ustawiony z łatwością, jeśli możesz postępuj zgodnie z instrukcjami, które stworzyliśmy.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>Microsoft SQL Server można wykorzystywać dużo pamięci podręcznej</value>
@@ -5249,5 +5234,20 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   </data>
   <data name="Database_Validating" xml:space="preserve">
     <value>Bazy danych - sprawdzanie poprawności - {0} {1}...</value>
+  </data>
+  <data name="MySQL" xml:space="preserve">
+    <value>MySQL</value>
+  </data>
+  <data name="MySQL_Info" xml:space="preserve">
+    <value>MySQL to opcja pośredniej bazy danych, która pozwala użytkownikom na dokładniejsze dostrojenie bazy danych w celu uzyskania szybszego czasu reakcji. MySQL jest idealny dla użytkowników korzystających z MySQL lub tych, którzy szukają alternatywy dla SQLite i nie boją się wykonywać dodatkowych konfiguracji.</value>
+  </data>
+  <data name="SQLite_Info" xml:space="preserve">
+    <value>SQLite jest najłatwiejszym z trzech typów baz danych do skonfigurowania za pomocą konfiguracji jednym kliknięciem, przeznaczony dla użytkowników, którzy chcą uniknąć dodatkowej konfiguracji bazy danych i są w porządku z domyślnymi ustawieniami bazy danych. Powolne czasy odpowiedzi i problemy z wieloprocesowymi, które są wspólne dla baz danych SQLite zostały złagodzone dzięki wbudowanemu systemowi cache ,!</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server to zaawansowana opcja bazy danych, która pozwala użytkownikom na dokładniejsze dostrojenie bazy danych, aby uzyskać szybszy czas reakcji. Większość użytkowników nie będzie czerpać korzyści z instalacji SQL Server, więc zalecamy korzystanie z SQLite lub MySQL.!</value>
+  </data>
+  <data name="SQLServer" xml:space="preserve">
+    <value>SQL Server</value>
   </data>
 </root>

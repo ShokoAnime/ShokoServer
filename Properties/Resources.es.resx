@@ -4751,9 +4751,6 @@ Desconocido de la marca - deja el archivo en la lista, pero cambia el estado a d
   <data name="MySQL" xml:space="preserve">
     <value>MySQL</value>
   </data>
-  <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL es el tipo de base de datos intermedio y recomendado para usuarios Shoko con una gran colección, que pretende construir una gran colección o simplemente quiere un impulso de velocidad y el rendimiento al utilizar Shoko. Es fácil configuración usando a nuestra guía que estará arriba y funcionando en cuestión de minutos.</value>
-  </data>
   <data name="Rename_Default" xml:space="preserve">
     <value>Por defecto</value>
   </data>
@@ -4933,15 +4930,6 @@ Desconocido de la marca - deja el archivo en la lista, pero cambia el estado a d
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
-  </data>
-  <data name="SQLite_Info" xml:space="preserve">
-    <value>Mientras que SQLite es la más fácil de los tipos de tres bases de datos para configurar con la configuración de un solo clic. Si la colección contiene serie 200 o más, usted comenzará a experimentar un montón de cuestiones incluyendo tiempos de respuesta lentos y bloqueos de programa cuando Shoko intenta obtener acceso a su colección a través de su base de datos SQLite. En cuanto a cómo Shoko utiliza la base de datos, simplemente no está diseñado para grandes colecciones. SQLite también tiene dificultad con el manejo de varias operaciones que aumenta el tiempo de espera entre las operaciones que en general aumentar la espera tiempo al acceder a tu colección.</value>
-  </data>
-  <data name="SQLServer" xml:space="preserve">
-    <value>SQL Server</value>
-  </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server está diseñado para usuarios con una gran colección que supera los más de 200 series que también quieren las mejores prestaciones posibles. De los tres tipos de base de datos, SQL Server es considerada la más difícil en la creación, pero se puede configurar con facilidad si sigues a la guía que hemos creado.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server puede utilizar mucha memoria</value>
@@ -5247,5 +5235,17 @@ Por favor enlace a plex via Desktop bajo configuración-&gt; usuarios utilizar e
   </data>
   <data name="Database_Validating" xml:space="preserve">
     <value>Base de datos - validación - {0} {1}...</value>
+  </data>
+  <data name="MySQL_Info" xml:space="preserve">
+    <value>MySQL es la opción de base de datos de nivel medio que permite a los usuarios afinar aún más su base de datos para lograr tiempos de respuesta más rápidos. MySQL es perfecto para usuarios con experiencia en MySQL o aquellos que buscan una alternativa a SQLite y no tienen miedo de realizar configuraciones adicionales.</value>
+  </data>
+  <data name="SQLite_Info" xml:space="preserve">
+    <value>SQLite es el más fácil de los tres tipos de bases de datos para configurar con su configuración de un clic, está diseñado para usuarios que desean evitar la configuración adicional de la base de datos y que están de acuerdo con la configuración de base de datos predeterminada. ¡Los tiempos de respuesta lentos y los problemas de multiprocesamiento que son comunes con las bases de datos SQLite se han mitigado con el sistema de caché integrado!</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server es una opción de base de datos avanzada que permite a los usuarios ajustar aún más su base de datos para lograr tiempos de respuesta más rápidos. La mayoría de los usuarios no se beneficiarán de la instalación de SQL Server, por lo que recomendamos utilizar SQLite o MySQL.</value>
+  </data>
+  <data name="SQLServer" xml:space="preserve">
+    <value>SQL Server</value>
   </data>
 </root>

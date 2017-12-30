@@ -4754,9 +4754,6 @@
   <data name="MySQL" xml:space="preserve">
     <value>MySQL</value>
   </data>
-  <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL é o tipo de banco de dados intermediário e é recomendado para os usuários Shoko com grandes coleções, os que pretendem construir uma coleção grande ou os que simplesmente querem um aumento de velocidade e desempenho do Shoko. É de fácil instalação e usando nosso guia que você o terá funcionando em questão de minutos.</value>
-  </data>
   <data name="Rename_Default" xml:space="preserve">
     <value>Padrão</value>
   </data>
@@ -4936,15 +4933,6 @@
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
-  </data>
-  <data name="SQLite_Info" xml:space="preserve">
-    <value>O SQLite é o mais fácil de configurar dos três tipos de banco de dados e pode ser instalado com apenas um clique. Mas, se sua coleção contém 200 séries ou mais, você vai começar a experimentar muitos problemas, incluindo o tempo de resposta lento e travamentos do programa quando o Shoko tenta acessar sua coleção através do SQLite. A maneira como o Shoko usa este banco de dados, simplesmente não se destina a grandes coleções. O SQLite também tem dificuldade com a manipulação de várias operações, o que aumenta o tempo entre operações e que pode aumentar seu tempo de espera ao acessar sua coleção.</value>
-  </data>
-  <data name="SQLServer" xml:space="preserve">
-    <value>SQL Server</value>
-  </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server é destinado a usuários com uma grande coleção que ultrapassa mais de 200 séries que também querem o desempenho mais rápido possível. Fora os três tipos de bases de dados disponíveis, do SQL Server é considerado o mais difícil na criação, mas pode ser configurado com facilidade se você seguir o guia que criamos.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>O SQL Server pode usar muita memória</value>
@@ -5247,5 +5235,17 @@ Por favor link para plex através do Desktop em configurações-&gt; usuários p
   </data>
   <data name="Database_Validating" xml:space="preserve">
     <value>Banco de dados - validação - {0} {1}...</value>
+  </data>
+  <data name="MySQL_Info" xml:space="preserve">
+    <value>O MySQL é a opção de banco de dados de nível intermediário que permite aos usuários aprimorar a afinação de seu banco de dados para alcançar tempos de resposta mais rápidos. O MySQL é perfeito para usuários com experiência usando o MySQL ou aqueles que procuram uma alternativa ao SQLite e não têm medo de realizar configurações adicionais.</value>
+  </data>
+  <data name="SQLite_Info" xml:space="preserve">
+    <value>O SQLite é o mais fácil dos três tipos de banco de dados para configurar com sua configuração de um clique, é projetado para usuários que desejam evitar a configuração de banco de dados adicional e estão OK com as configurações padrão do banco de dados. Os tempos de resposta lentos e os problemas com o multiprocessamento que são comuns com os bancos de dados SQLite foram mitigados com o sistema de cache interno.</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>O SQL Server é uma opção de banco de dados avançada que permite aos usuários aprimorar a afinação de seu banco de dados para alcançar tempos de resposta mais rápidos. A maioria dos usuários não se beneficiará da instalação do SQL Server, por isso recomendamos o uso do SQLite ou do MySQL.</value>
+  </data>
+  <data name="SQLServer" xml:space="preserve">
+    <value>SQL Server</value>
   </data>
 </root>

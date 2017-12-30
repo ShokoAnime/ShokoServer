@@ -4754,9 +4754,6 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
   <data name="MySQL" xml:space="preserve">
     <value>MySQL</value>
   </data>
-  <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL ist der mittlere Rang und der empfohlene Datenbanktyp für Shoko-Nutzer mit einer großen Sammlung, die beabsichtigen, eine große Sammlung zu erstellen oder einfach nur eine Erhöhung der Geschwindigkeit und Leistung bei der Verwendung von Shoko wünschen. Es ist einfach einzurichten und mithilfe unserer Anleitung sollte dies nur eine Frage von Minuten sein.</value>
-  </data>
   <data name="Rename_Default" xml:space="preserve">
     <value>Standardpfad</value>
   </data>
@@ -4936,15 +4933,6 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
-  </data>
-  <data name="SQLite_Info" xml:space="preserve">
-    <value>SQLite ist von den drei Datenbanktypen am einfachste einzurichten durch seine One-Click Installation. Wenn die Sammlung allerdings 200 oder mehr Serien enthält, werden einige Problem auftreten, wie beispielsweise lange Reaktionszeiten und das Einfrieren des Programms, wenn Shoko versucht auf die Sammlung via SQL Datenbank zuzugreifen. So wie Shoko diese Datenbank verwendet, ist sie einfach nicht für größere Sammlungen gedacht. SQLite hat außerdem Schwierigkeiten mit der Handhabung mehrerer Operationen, was zur Erhöhung der Wartezeit zwischen Operationen führt und damit wiederum insgesamt die Wartezeit für den Zugriff auf die Sammlung erhöht.</value>
-  </data>
-  <data name="SQLServer" xml:space="preserve">
-    <value>SQLServer</value>
-  </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server richtet sich an Benutzer mit einer großen Sammlung, die mehr als 200 Serie überschreitet, die wollen auch die schnellste Leistung möglich. Aus den drei verfügbaren Datenbanktypen SQL Server gilt als das schwierigste bei der Einrichtung aber kann sein Setup mit Leichtigkeit, wenn Sie der Anleitung folgen, die wir erstellt haben.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server kann eine ganze Menge an Arbeitsspeicher belegen</value>
@@ -5247,5 +5235,17 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   </data>
   <data name="Database_Validating" xml:space="preserve">
     <value>Datenbank - Validierung - {0} {1}...</value>
+  </data>
+  <data name="MySQL_Info" xml:space="preserve">
+    <value>MySQL ist die Mid-Tier-Datenbankoption, mit der Benutzer ihre Datenbank weiter verfeinern können, um schnellere Antwortzeiten zu erreichen. MySQL ist perfekt für Benutzer mit Erfahrung in der Verwendung von MySQL oder denen, die nach einer Alternative zu SQLite suchen und keine Angst davor haben, zusätzliche Konfigurationen vorzunehmen.</value>
+  </data>
+  <data name="SQLite_Info" xml:space="preserve">
+    <value>SQLite ist der einfachste der drei zu konfigurierenden Datenbanktypen mit seiner Ein-Klick-Konfiguration. Er ist für Benutzer konzipiert, die eine zusätzliche Datenbankeinrichtung vermeiden möchten und mit den Standardeinstellungen der Datenbank in Ordnung sind. Die langsamen Antwortzeiten und Probleme mit Multiprocessing, die bei SQLite-Datenbanken üblich sind, wurden mit dem integrierten Cache-System gemildert!</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server ist eine erweiterte Datenbankoption, mit der Benutzer ihre Datenbank weiter optimieren können, um schnellere Antwortzeiten zu erzielen. Die meisten Benutzer werden nicht von der Installation von SQL Server profitieren, daher empfehlen wir die Verwendung von SQLite oder MySQL.</value>
+  </data>
+  <data name="SQLServer" xml:space="preserve">
+    <value>SQL Server</value>
   </data>
 </root>
