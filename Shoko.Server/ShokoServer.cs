@@ -1649,7 +1649,7 @@ namespace Shoko.Server
                 try
                 {
                     state.AutostartRegistryKey.SetValue(state.autostartKey,
-                        '"' + Assembly.GetEntryAssembly().Location + '"');
+                        "\"" + Assembly.GetEntryAssembly().Location + "\"");
                     state.LoadSettings();
                 }
                 catch (Exception ex)
@@ -1673,7 +1673,7 @@ namespace Shoko.Server
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
 
-                td.Actions.Add('"' + Assembly.GetEntryAssembly().Location + '"');
+                td.Actions.Add("\"" + Assembly.GetEntryAssembly().Location + "\"");
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();

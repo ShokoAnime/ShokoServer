@@ -44,6 +44,7 @@ namespace Shoko.Server.Models
             {
                 if ((_contract == null) && (ContractBlob != null) && (ContractBlob.Length > 0) && (ContractSize > 0))
                     _contract = CompressionHelper.DeserializeObject<CL_AnimeSeries_User>(ContractBlob, ContractSize);
+
                 return _contract;
             }
             set
@@ -306,7 +307,11 @@ namespace Shoko.Server.Models
 
         public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
-            CL_AnimeSeries_User contract = Contract.DeepClone();
+            CL_AnimeSeries_User contract = Contract?.DeepClone();
+            if (contract == null) RepoFactory.AnimeSeries.Save(this, false, false, true);
+            contract = Contract?.DeepClone();
+
+            if (contract == null) return null;
             SVR_AnimeSeries_User rr = GetUserRecord(userid);
             if (rr != null)
             {
