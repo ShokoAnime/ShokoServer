@@ -1003,11 +1003,10 @@ namespace Shoko.Server
                 return null;
             }
 
-            // Request an image download
-            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
-                ImageEntityType.AniDB_Cover,
-                false);
-            cmd.Save(session);
+            // All images from AniDB are downloaded in this
+            var cmd = new CommandRequest_DownloadAniDBImages(anime.AnimeID, false);
+            cmd.Save();
+
             // create AnimeEpisode records for all episodes in this anime only if we have a series
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             RepoFactory.AniDB_Anime.Save(anime);
@@ -1015,42 +1014,6 @@ namespace Shoko.Server
             {
                 ser.CreateAnimeEpisodes(session);
                 RepoFactory.AnimeSeries.Save(ser, true, false);
-            }
-
-            // download character images
-            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
-            {
-                AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
-                if (chr == null) continue;
-
-                if (ServerSettings.AniDB_DownloadCharacters)
-                {
-                    if (!string.IsNullOrEmpty(chr.GetPosterPath()) && !File.Exists(chr.GetPosterPath()))
-                    {
-                        logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName,
-                            chr.CharID,
-                            chr.GetPosterPath());
-                        cmd = new CommandRequest_DownloadImage(chr.CharID, ImageEntityType.AniDB_Character,
-                            false);
-                        cmd.Save();
-                    }
-                }
-
-                if (ServerSettings.AniDB_DownloadCreators)
-                {
-                    AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
-                    if (string.IsNullOrEmpty(seiyuu?.GetPosterPath())) continue;
-
-                    if (!File.Exists(seiyuu.GetPosterPath()))
-                    {
-                        logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle,
-                            seiyuu.SeiyuuName, seiyuu.SeiyuuID,
-                            seiyuu.GetPosterPath());
-                        cmd =
-                            new CommandRequest_DownloadImage(seiyuu.SeiyuuID, ImageEntityType.AniDB_Creator, false);
-                        cmd.Save();
-                    }
-                }
             }
 
             return anime;

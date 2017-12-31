@@ -361,6 +361,7 @@
     <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFileMyListStatus.cs" />
     <Compile Include="Commands\CommandRequest_Null.cs" />
+    <Compile Include="Commands\Import\CommandRequest_DownloadAniDBImages.cs" />
     <Compile Include="Commands\Import\CommandRequest_DownloadImage.cs" />
     <Compile Include="Commands\Import\CommandRequest_HashFile.cs" />
     <Compile Include="Commands\Import\CommandRequest_LinkFileManually.cs" />

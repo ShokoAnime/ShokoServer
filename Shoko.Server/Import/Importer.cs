@@ -468,9 +468,7 @@ namespace Shoko.Server
                 bool fileExists = File.Exists(anime.PosterPath);
                 if (!fileExists)
                 {
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
-                        ImageEntityType.AniDB_Cover,
-                        false);
+                    CommandRequest_DownloadAniDBImages cmd = new CommandRequest_DownloadAniDBImages(anime.AnimeID, false);
                     cmd.Save();
                 }
             }
@@ -725,9 +723,14 @@ namespace Shoko.Server
                     bool fileExists = File.Exists(chr.GetPosterPath());
                     if (!fileExists)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.CharID,
-                            ImageEntityType.AniDB_Character, false);
-                        cmd.Save();
+                        var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
+                            ?.AnimeID ?? 0;
+                        if (AnimeID != 0)
+                        {
+                            CommandRequest_DownloadAniDBImages cmd =
+                                new CommandRequest_DownloadAniDBImages(AnimeID, false);
+                            cmd.Save();
+                        }
                     }
                 }
             }
@@ -741,9 +744,18 @@ namespace Shoko.Server
                     bool fileExists = File.Exists(seiyuu.GetPosterPath());
                     if (!fileExists)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.SeiyuuID,
-                            ImageEntityType.AniDB_Creator, false);
-                        cmd.Save();
+                        var chr = RepoFactory.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID).FirstOrDefault();
+                        if (chr != null)
+                        {
+                            var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
+                                              ?.AnimeID ?? 0;
+                            if (AnimeID != 0)
+                            {
+                                CommandRequest_DownloadAniDBImages cmd =
+                                    new CommandRequest_DownloadAniDBImages(AnimeID, false);
+                                cmd.Save();
+                            }
+                        }
                     }
                 }
             }

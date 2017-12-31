@@ -24,7 +24,8 @@ namespace Shoko.Server.Commands
         //
         // Pri 1
         //------
-        // Reserved for commands user manually initiates from UI
+        // - This is here to force it to run before the next GetAnimeHTTP, so that we don't need to wait for images
+        // CommandRequest_DownloadAniDBImages
         //------
         // Pri 2
         //------

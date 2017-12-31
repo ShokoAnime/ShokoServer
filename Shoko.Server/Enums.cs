@@ -73,7 +73,8 @@ namespace Shoko.Server
         AniDB_GetMyListFile = 95,
         ValidateAllImages = 96,
         TvDB_UpdateEpisode = 97,
-        NullCommand = 98
+        NullCommand = 98,
+        DownloadAniDBImages = 99,
     }
 
     public enum CommandRequestPriority
