@@ -288,6 +288,26 @@ namespace Shoko.Server.Databases
             }
         }
 
+        public static void RecalculateYears()
+        {
+            try
+            {
+                var filters = RepoFactory.GroupFilter.GetAll();
+                if (filters.Count == 0) return;
+                foreach (SVR_GroupFilter gf in filters)
+                {
+                    if (gf.FilterType != (int) GroupFilterType.Year) continue;
+                    gf.CalculateGroupsAndSeries();
+                    RepoFactory.GroupFilter.Save(gf);
+                }
+                RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+            }
+        }
+
         public static void PopulateTagWeight()
         {
             try

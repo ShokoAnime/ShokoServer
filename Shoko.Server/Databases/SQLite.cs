@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 68;
+        public int RequiredVersion { get; } = 69;
 
 
         public void BackupDatabase(string fullfilename)
@@ -497,6 +497,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(66, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
             new DatabaseCommand(67, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
             new DatabaseCommand(68, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
+            new DatabaseCommand(69, 1, DatabaseFixes.RecalculateYears),
         };
 
 
