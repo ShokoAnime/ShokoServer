@@ -226,19 +226,11 @@ namespace Shoko.Server.API
         {
             if (!string.IsNullOrEmpty(path))
             {
-                if (!short_url)
-                {
-                    return ctx.Request.Url.Scheme + "://" + ctx.Request.Url.HostName + ":" + port + path;
-                }
-                else
-                {
-                    return path;
-                }
+                return !short_url
+                    ? ctx.Request.Url.Scheme + "://" + ctx.Request.Url.HostName + ":" + port + path
+                    : path;
             }
-            else
-            {
-                return string.Empty;
-            }
+            return string.Empty;
         }
     }
 }

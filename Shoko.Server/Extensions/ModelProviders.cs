@@ -623,11 +623,7 @@ namespace Shoko.Server.Extensions
 
         public static bool PopulateFromHTTP(this AniDB_Character character, Raw_AniDB_Character rawChar)
         {
-            if (character.CharID == 0) // a new object
-            {
-                return character.Populate(rawChar);
-            }
-            else
+            if (character.CharID != 0)
             {
                 // only update the fields that come from HTTP API
                 if (string.IsNullOrEmpty(rawChar?.CharName)) return false;
@@ -635,25 +631,30 @@ namespace Shoko.Server.Extensions
                 character.CharName = rawChar.CharName;
                 character.CreatorListRaw = rawChar.CreatorListRaw ?? string.Empty;
                 character.PicName = rawChar.PicName ?? string.Empty;
+
+                return true;
             }
-            return true;
+            
+            //a new object
+            return character.Populate(rawChar);
         }
 
         public static bool PopulateFromUDP(this AniDB_Character character, Raw_AniDB_Character rawChar)
         {
-            if (character.CharID == 0) // a new object
+            if (character.CharID != 0)
             {
-                return character.Populate(rawChar);
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(rawChar?.CharKanjiName) || string.IsNullOrEmpty(rawChar.CharName)) return false;
+                if (string.IsNullOrEmpty(rawChar?.CharKanjiName) || string.IsNullOrEmpty(rawChar.CharName))
+                    return false;
                 // only update the fields that com from UDP API
                 character.CharKanjiName = rawChar.CharKanjiName;
                 character.CharName = rawChar.CharName;
                 //this.CreatorListRaw = rawChar.CreatorListRaw;
+
+                return true;
             }
-            return true;
+            
+            //a new object
+            return character.Populate(rawChar);
         }
 
         public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session,

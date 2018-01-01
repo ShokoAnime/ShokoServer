@@ -606,10 +606,8 @@ namespace Shoko.Server
                     }
                 }
                 else
-                {
                     // create
                     script = new RenameScript();
-                }
 
                 if (string.IsNullOrEmpty(contract.ScriptName))
                 {
@@ -723,9 +721,7 @@ namespace Shoko.Server
                             res.AnimeSeriesName = anime.GetFormattedTitle();
                         }
                         else
-                        {
                             res.SeriesExists = false;
-                        }
                         retTitles.Add(res);
                     }
                 }
@@ -758,10 +754,7 @@ namespace Shoko.Server
                                 res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
                             }
                             else
-                            {
                                 res.SeriesExists = false;
-                            }
-
 
                             retTitles.Add(res);
                         }

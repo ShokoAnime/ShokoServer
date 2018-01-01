@@ -115,10 +115,9 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
 
         public override string ToString()
         {
-            if (ids != null)
-                return string.Format("{0}", ids.slug);
-            else
-                return string.Empty;
+            return ids != null 
+                ? string.Format("{0}", ids.slug) 
+                : string.Empty;
         }
     }
 

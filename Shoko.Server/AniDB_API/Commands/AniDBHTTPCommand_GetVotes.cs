@@ -62,10 +62,8 @@ namespace Shoko.Server.AniDB_API.Commands
                 myVotes = AniDBHTTPHelper.ProcessVotes(docAnime);
                 return enHelperActivityType.GotVotesHTTP;
             }
-            else
-            {
-                return enHelperActivityType.NoSuchAnime;
-            }
+            
+            return enHelperActivityType.NoSuchAnime;
         }
 
         public AniDBHTTPCommand_GetVotes()

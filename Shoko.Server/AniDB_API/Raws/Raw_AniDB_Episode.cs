@@ -246,18 +246,14 @@ namespace AniDBAPI
             if (epType > 1)
                 fldTemp = fld.Trim().Substring(1, fld.Trim().Length - 1);
 
-            if (int.TryParse(fldTemp, out int epno))
-            {
-                return epno;
-            }
-            else
+            if (!int.TryParse(fldTemp, out int epno))
             {
                 // if we couldn't convert to an int, it must mean it is a double episode
                 // we will just take the first ep as the episode number
                 string[] sDetails = fldTemp.Split('-');
                 epno = int.Parse(sDetails[0]);
-                return epno;
             }
+            return epno;
         }
 
         private int GetIsDoubleEpisode(string fld)
@@ -271,10 +267,9 @@ namespace AniDBAPI
             if (epType > 1)
                 fldTemp = fld.Trim().Substring(1, fld.Trim().Length - 1);
 
-            if (int.TryParse(fldTemp, out int epno))
-                return 0;
-            else
-                return 1;
+            return int.TryParse(fldTemp, out int epno) 
+                ? 0 
+                : 1;
         }
 
         private int GetEpisodeType(string fld)
@@ -287,31 +282,29 @@ namespace AniDBAPI
             {
                 return (int)Shoko.Models.Enums.EpisodeType.Episode;
             }
-            else
-            {
-                // the first character should contain the type of special episode
-                // S(special), C(credits), T(trailer), P(parody), O(other)
-                // we will just take this and store it in the database
-                // this will allow for the user customizing how it is displayed on screen later
-                epType = fld.Trim().Substring(0, 1).ToUpper();
+            
+            // the first character should contain the type of special episode
+            // S(special), C(credits), T(trailer), P(parody), O(other)
+            // we will just take this and store it in the database
+            // this will allow for the user customizing how it is displayed on screen later
+            epType = fld.Trim().Substring(0, 1).ToUpper();
 
-                switch (epType)
-                {
-                    case "":
-                        return (int)Shoko.Models.Enums.EpisodeType.Episode;
-                    case "C":
-                        return (int)Shoko.Models.Enums.EpisodeType.Credits;
-                    case "S":
-                        return (int)Shoko.Models.Enums.EpisodeType.Special;
-                    case "O":
-                        return (int)Shoko.Models.Enums.EpisodeType.Other;
-                    case "T":
-                        return (int)Shoko.Models.Enums.EpisodeType.Trailer;
-                    case "P":
-                        return (int)Shoko.Models.Enums.EpisodeType.Parody;
-                    default:
-                        return (int)Shoko.Models.Enums.EpisodeType.Episode;
-                }
+            switch (epType)
+            {
+                case "":
+                    return (int)Shoko.Models.Enums.EpisodeType.Episode;
+                case "C":
+                    return (int)Shoko.Models.Enums.EpisodeType.Credits;
+                case "S":
+                    return (int)Shoko.Models.Enums.EpisodeType.Special;
+                case "O":
+                    return (int)Shoko.Models.Enums.EpisodeType.Other;
+                case "T":
+                    return (int)Shoko.Models.Enums.EpisodeType.Trailer;
+                case "P":
+                    return (int)Shoko.Models.Enums.EpisodeType.Parody;
+                default:
+                    return (int)Shoko.Models.Enums.EpisodeType.Episode;
             }
         }
 

@@ -27,7 +27,6 @@ namespace Shoko.Server.Extensions
                         pid.GetSetMethod().Invoke(d, new[] {pis.GetGetMethod().Invoke(s, null)});
                 }
             }
-            ;
         }
 
         public static void AddRange<K, V>(this Dictionary<K, V> dict, Dictionary<K, V> otherdict)

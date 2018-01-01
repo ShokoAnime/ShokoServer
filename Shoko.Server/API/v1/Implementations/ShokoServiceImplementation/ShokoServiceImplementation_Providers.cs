@@ -1021,14 +1021,9 @@ namespace Shoko.Server
                             return Providers.TraktTV.TraktTVHelper.Scrobble(
                                 Providers.TraktTV.ScrobblePlayingType.episode,
                                 animeId.ToString(), statusTraktV2, progressTrakt);
-                        default:
-                            return 500;
                     }
                 }
-                else
-                {
-                    return 500;
-                }
+                return 500;
             }
             catch (Exception ex)
             {

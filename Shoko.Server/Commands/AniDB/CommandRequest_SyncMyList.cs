@@ -78,7 +78,6 @@ namespace Shoko.Server.Commands
                 int totalItems = 0;
                 int watchedItems = 0;
                 int modifiedItems = 0;
-                double pct = 0;
 
                 // Add missing files on AniDB
                 var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);

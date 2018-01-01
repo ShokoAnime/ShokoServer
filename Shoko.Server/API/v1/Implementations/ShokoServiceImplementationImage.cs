@@ -116,18 +116,19 @@ namespace Shoko.Server
         {
             if (string.IsNullOrEmpty(name))
                 return new MemoryStream();
+            
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
                 return new MemoryStream();
+            
             //Little hack
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
             if (!name.Contains("404") || (ratio == null || Math.Abs(ratio.Value) < 0.001D))
-            {
                 return new StreamWithResponse(ms, "image/png");
-            }
+            
             Image im = Image.FromStream(ms);
             float w = im.Width;
             float h = im.Height;
@@ -143,9 +144,7 @@ namespace Shoko.Server
                     nh = w / ratio.Value;
                 }
                 else
-                {
                     nh = h;
-                }
             }
             else
             {
@@ -156,9 +155,7 @@ namespace Shoko.Server
                     nw = w * ratio.Value;
                 }
                 else
-                {
                     nw = w;
-                }
             }
             nw = (float) Math.Round(nw);
             nh = (float) Math.Round(nh);
@@ -186,15 +183,12 @@ namespace Shoko.Server
         {
             using (Stream m = GetImage(imageId, imageType, false))
             {
-                if (m != null)
+                if (m == null) return new StreamWithResponse(HttpStatusCode.NotFound);
+                using (Image im = Image.FromStream(m))
                 {
-                    using (Image im = Image.FromStream(m))
-                    {
-                        return ResizeToRatio(im, ratio);
-                    }
+                    return ResizeToRatio(im, ratio);
                 }
             }
-            return new StreamWithResponse(HttpStatusCode.NotFound);
         }
 
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
@@ -290,11 +284,9 @@ namespace Shoko.Server
                         {
                             return fanart.GetFullThumbnailPath();
                         }
-                        else
-                        {
-                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                            return string.Empty;
-                        }
+                        
+                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
+                        return string.Empty;
                     }
                     else
                     {
@@ -302,11 +294,9 @@ namespace Shoko.Server
                         {
                             return fanart.GetFullImagePath();
                         }
-                        else
-                        {
-                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                            return string.Empty;
-                        }
+                        
+                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                        return string.Empty;
                     }
 
                 case ImageEntityType.MovieDB_Poster:

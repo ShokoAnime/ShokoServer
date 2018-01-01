@@ -299,23 +299,29 @@ namespace Shoko.Server.FileHelper.MediaInfo
             string title = m.Get(StreamKind.Audio, num, "Title");
             if (!string.IsNullOrEmpty(title))
                 s.Title = title;
+            
             s.StreamType = "2";
+            
             string lang = m.Get(StreamKind.Audio, num, "Language/String3");
             if (!string.IsNullOrEmpty(lang))
                 s.LanguageCode = PostTranslateCode3(lang);
-            ;
+            
             string lan = PostTranslateLan(GetLanguageFromCode3(lang, m.Get(StreamKind.Audio, num, "Language/String1")));
             if (!string.IsNullOrEmpty(lan))
                 s.Language = lan;
+            
             string duration = m.Get(StreamKind.Audio, num, "Duration");
             if (!string.IsNullOrEmpty(duration))
                 s.Duration = duration;
+            
             int brate = BiggerFromList(m.Get(StreamKind.Audio, num, "BitRate"));
             if (brate != 0)
                 s.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
+            
             int bitdepth = m.GetInt(StreamKind.Audio, num, "BitDepth");
             if (bitdepth != 0)
                 s.BitDepth = bitdepth.ToString(CultureInfo.InvariantCulture);
+            
             string fprofile = m.Get(StreamKind.Audio, num, "Format_Profile");
             if (!string.IsNullOrEmpty(fprofile))
             {

@@ -167,7 +167,7 @@ namespace Shoko.Server
             //Wait for process to finish
             pProcess.WaitForExit();
 
-            return strOutput; ;
+            return strOutput;
         }
     }
 }

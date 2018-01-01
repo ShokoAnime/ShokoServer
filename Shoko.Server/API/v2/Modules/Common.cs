@@ -2515,7 +2515,6 @@ namespace Shoko.Server.API.v2.Modules
                 return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
             return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
-            ;
         }
 
         #region internal function

@@ -25,13 +25,7 @@ namespace AniDBAPI
 
         public bool IsWatched
         {
-            get
-            {
-                if (this.ViewDateUDP > 0 || this.ViewDateHTTP.Trim().Length > 0)
-                    return true;
-                else
-                    return false;
-            }
+            get { return this.ViewDateUDP > 0 || this.ViewDateHTTP.Trim().Length > 0; }
         }
 
         // default constructor
