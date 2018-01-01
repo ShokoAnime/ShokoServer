@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Force.DeepCloner;
+using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -18,8 +19,10 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
+using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Models
 {
@@ -264,45 +267,65 @@ namespace Shoko.Server.Models
 
         public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
-            CL_AnimeSeries_User contract = Contract?.DeepClone();
-            if (contract == null)
+            try
             {
-                logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
-                RepoFactory.AnimeSeries.Save(this, false, false, true);
-                contract = _contract?.DeepClone();
-            }
+                CL_AnimeSeries_User contract = Contract?.DeepClone();
+                if (contract == null)
+                {
+                    logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
+                    RepoFactory.AnimeSeries.Save(this, false, false, true);
+                    contract = _contract?.DeepClone();
+                }
 
-            if (contract == null)
-            {
-                logger.Warn($"Series with ID [{AniDB_ID}] has a null contract even after updating");
-                return null;
-            }
-            SVR_AnimeSeries_User rr = GetUserRecord(userid);
-            if (rr != null)
-            {
-                contract.UnwatchedEpisodeCount = rr.UnwatchedEpisodeCount;
-                contract.WatchedEpisodeCount = rr.WatchedEpisodeCount;
-                contract.WatchedDate = rr.WatchedDate;
-                contract.PlayedCount = rr.PlayedCount;
-                contract.WatchedCount = rr.WatchedCount;
-                contract.StoppedCount = rr.StoppedCount;
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
+                if (contract == null)
+                {
+                    logger.Warn($"Series with ID [{AniDB_ID}] has a null contract even after updating");
+                    return null;
+                }
+
+                SVR_AnimeSeries_User rr = GetUserRecord(userid);
+                if (rr != null)
+                {
+                    contract.UnwatchedEpisodeCount = rr.UnwatchedEpisodeCount;
+                    contract.WatchedEpisodeCount = rr.WatchedEpisodeCount;
+                    contract.WatchedDate = rr.WatchedDate;
+                    contract.PlayedCount = rr.PlayedCount;
+                    contract.WatchedCount = rr.WatchedCount;
+                    contract.StoppedCount = rr.StoppedCount;
+                    contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
+                    return contract;
+                }
+
+                if (types != null)
+                {
+                    if (!types.Contains(GroupFilterConditionType.HasUnwatchedEpisodes))
+                        types.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
+                    if (!types.Contains(GroupFilterConditionType.EpisodeWatchedDate))
+                        types.Add(GroupFilterConditionType.EpisodeWatchedDate);
+                    if (!types.Contains(GroupFilterConditionType.HasWatchedEpisodes))
+                        types.Add(GroupFilterConditionType.HasWatchedEpisodes);
+                }
+
+                if (contract.AniDBAnime?.AniDBAnime != null)
+                    contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
+
                 return contract;
             }
-            if (types != null)
+            catch (Exception e)
             {
-                if (!types.Contains(GroupFilterConditionType.HasUnwatchedEpisodes))
-                    types.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
-                if (!types.Contains(GroupFilterConditionType.EpisodeWatchedDate))
-                    types.Add(GroupFilterConditionType.EpisodeWatchedDate);
-                if (!types.Contains(GroupFilterConditionType.HasWatchedEpisodes))
-                    types.Add(GroupFilterConditionType.HasWatchedEpisodes);
+                try
+                {
+                    logger.Error($"There was an error retrieving the contract for an AnimeSeries: {e.Message}. DUMPING IT!");
+                    string output = JsonConvert.SerializeObject(this, Formatting.Indented);
+                    logger.Error(output);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"There was an error dumping the AnimeSeries...: {ex}");
+                }
+
+                return null;
             }
-
-            if (contract.AniDBAnime?.AniDBAnime != null)
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
-
-            return contract;
         }
 
         public Video GetPlexContract(int userid)
