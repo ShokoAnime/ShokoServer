@@ -4,64 +4,70 @@ using Force.DeepCloner;
 
 namespace Shoko.Server.RepositoriesV2
 {
-    public class AtomicUpdateList<T,TT> : IAtomic<List<T>,TT> where T : class
+    public class AtomicUpdateList<T,TS, TT> : IAtomicList<T,TT> where T : class
     {
         private readonly BaseRepository<T,TS,TT> _repo;
-        public List<T> Updatable { get; }
+        public List<T> UpdatableList { get; }
         public List<T> Original => References.Values.ToList();
 
         private Dictionary<T,T> References { get; }
 
-        internal AtomicUpdateList<TS>(BaseRepository<T,TS,TT> repo, List<T> objs)
+         
+        internal AtomicUpdateList(BaseRepository<T, TS, TT> repo, List<T> objs)
         {
             _repo = repo;
-            References=new Dictionary<T, T>();
-            Updatable=new List<T>();
+            References = new Dictionary<T, T>();
+            UpdatableList = new List<T>();
             foreach (T t in objs)
             {
                 T n = t.DeepClone();
-                Updatable.Add(n);
+                UpdatableList.Add(n);
                 References.Add(n, t);
             }
         }
+
+
+
         public T GetOriginal(T obj)
         {
             if (References.ContainsKey(obj))
                 return References[obj];
             return null;
         }
+
+
+
+
+
         public void Dispose()
         {
             Release();
         }
 
-        
-        public void Commit(TT pars=default(TT))
+
+        public bool IsUpdate => true;
+
+        public void Commit(TT pars = default(TT))
         {
-            if (_repo.BeginSaveCallback != null)
+            Dictionary<T, object> savedObjects=new Dictionary<T, object>();
+            foreach (T t in UpdatableList)
             {
-                foreach (T t in Updatable)
-                {
-                    _repo.BeginSaveCallback(t, pars);
-                }
+                savedObjects[t]=_repo.BeginSave(t, GetOriginal(t),pars);
             }
             using (_repo.CacheLock.ReaderLock())
             {
-                foreach (T obj in Updatable)
+                foreach (T obj in UpdatableList)
                     _repo.Table.Attach(obj);
                 _repo.Context.SaveChanges();
                 if (_repo.IsCached)
                 {
                     Release();
-                    Updatable.ForEach(_repo.Cache.Update);
+                    UpdatableList.ForEach(_repo.Cache.Update);
                 }
             }
-            if (_repo.EndSaveCallback != null)
+            foreach (T t in UpdatableList)
             {
-                foreach (T t in Updatable)
-                {
-                    _repo.EndSaveCallback(t, pars);
-                }
+                _repo.EndSave(t, GetOriginal(t), savedObjects[t], pars);
             }
         }
 

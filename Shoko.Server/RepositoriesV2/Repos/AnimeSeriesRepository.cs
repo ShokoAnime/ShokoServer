@@ -14,48 +14,112 @@ using Shoko.Server.RepositoriesV2;
 
 namespace Shoko.Server.RepositoriesV2.Repos
 {
-    public class AnimeSeriesRepository : BaseRepository<SVR_AnimeSeries, int>
+    public class AnimeSeriesRepository : BaseRepository<SVR_AnimeSeries, int, (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes)>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private PocoIndex<int, SVR_AnimeSeries, int> AniDBIds;
         private PocoIndex<int, SVR_AnimeSeries, int> Groups;
 
-        private ChangeTracker<int> Changes = new ChangeTracker<int>();
+        private readonly ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        private AnimeSeriesRepository()
+
+        internal override object BeginSave(SVR_AnimeSeries entity, SVR_AnimeSeries original_entity,
+            (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
-            BeginDeleteCallback = (cr) =>
+            bool isMigrating = false;
+            bool newSeries = false;
+            AnimeGroup oldGroup = null;
+            if (original_entity != null)
             {
-                RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-                Changes.Remove(cr.AnimeSeriesID);
-            };
-            EndDeleteCallback = (cr) =>
-            {
-                cr.DeleteFromFilters();
-                if (cr.AnimeGroupID > 0)
+                // means we are moving series to a different group
+                if (original_entity.AnimeGroupID != entity.AnimeGroupID)
                 {
-                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",cr.AnimeGroupID);
-                    SVR_AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
-                    if (oldGroup != null)
-                        RepoFactory.AnimeGroup.Save(oldGroup, true, true);
+                    oldGroup = RepoFactory.AnimeGroup.GetByID(original_entity.AnimeGroupID);
+                    SVR_AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(entity.AnimeGroupID);
+                    if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
+                        isMigrating = true;
+                    newSeries = true;
                 }
-            };
+            }
+            else
+                newSeries = true;
+            HashSet<GroupFilterConditionType> types = entity.UpdateContract(parameters.onlyupdatestats);
+            if (newSeries && !isMigrating)
+                entity.Contract = null;
+            return (isMigrating, oldGroup, types);
         }
 
-        public static AnimeSeriesRepository Create()
+        internal override void EndSave(SVR_AnimeSeries entity, SVR_AnimeSeries original_entity, object returnFromBeginSave,
+            (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
-            return new AnimeSeriesRepository();
+            (bool isMigrating, SVR_AnimeGroup oldGroup, HashSet<GroupFilterConditionType> types) = ((bool isMigrating, SVR_AnimeGroup oldGroup, HashSet<GroupFilterConditionType> types))returnFromBeginSave;
+
+            if (parameters.updateGroups && !isMigrating)
+            {
+                logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", entity.AnimeSeriesID);
+                Repo.AnimeGroup.BeginUpdate(entity.AnimeGroupID)?.Commit((true, true, true));
+                if (oldGroup != null)
+                {
+                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",oldGroup.AnimeGroupID);
+                    Repo.AnimeGroup.BeginUpdate(oldGroup).Commit((true, true, true));
+                }
+            }
+            if (!parameters.skipgroupfilters && !isMigrating)
+            {
+                int endyear = entity.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
+                if (endyear == 0) endyear = DateTime.Today.Year;
+                HashSet<int> allyears = null;
+                if ((entity.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0) != 0)
+                {
+                    allyears = new HashSet<int>(Enumerable.Range(entity.Contract.AniDBAnime.AniDBAnime.BeginYear,
+                        endyear - entity.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
+                }
+                //This call will create extra years or tags if the Group have a new year or tag
+                Repo.GroupFilter.CreateOrVerifyDirectoryFilters(false,
+                    entity.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears,
+                    entity.Contract?.AniDBAnime?.Stat_AllSeasons);
+
+                // Update other existing filters
+                entity.UpdateGroupFilters(types, null);
+            }
+            lock (Changes)
+            {
+                Changes.AddOrUpdate(entity.AnimeSeriesID);
+            }
+            if (parameters.alsoupdateepisodes)
+            {
+                Repo.AnimeEpisode.BeginUpdate(Repo.AnimeEpisode.GetBySeriesID(entity.AnimeSeriesID))?.Commit();
+            }
         }
 
-        protected override int SelectKey(SVR_AnimeSeries entity)
+        internal override object BeginDelete(SVR_AnimeSeries entity,
+            (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
+        {
+            Repo.AnimeSeries_User.Delete(entity.AnimeSeriesID);
+            Changes.Remove(entity.AnimeSeriesID);
+            return null;
+        }
+
+        internal override void EndDelete(SVR_AnimeSeries entity, object returnFromBeginDelete,
+            (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
+        {
+            entity.DeleteFromFilters();
+            if (entity.AnimeGroupID != 0)
+            {
+                logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", entity.AnimeGroupID);
+                Repo.AnimeGroup.BeginUpdate(entity.AnimeGroupID)?.Commit((true, true, true));
+            }
+        }
+
+        internal override int SelectKey(SVR_AnimeSeries entity)
         {
             return entity.AnimeSeriesID;
         }
 
-        public override void PopulateIndexes()
+        internal override void PopulateIndexes()
         {
-            Changes.AddOrUpdateRange(Cache.Keys);
+
             AniDBIds = Cache.CreateIndex(a => a.AniDB_ID);
             Groups = Cache.CreateIndex(a => a.AnimeGroupID);
         }
@@ -66,47 +130,27 @@ namespace Shoko.Server.RepositoriesV2.Repos
             AniDBIds = null;
         }
 
-        public override void RegenerateDb()
+        public override void Init(IProgress<RegenerateProgress> progress, int batchSize)
         {
-            try
+            List<SVR_AnimeSeries> sers = Where(
+                    a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION ||
+                         a.Contract?.AniDBAnime?.AniDBAnime == null)
+                .ToList();
+            if (sers.Count == 0)
+                return;
+            RegenerateProgress regen = new RegenerateProgress();
+            regen.Title = string.Format(Commons.Properties.Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Regen");
+            regen.Step = 0;
+            regen.Total = sers.Count;
+            BatchAction(sers, batchSize, (s, original) =>
             {
-                int cnt = 0;
-                List<SVR_AnimeSeries> sers =
-                    Cache.Values.Where(
-                            a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION ||
-                                 a.Contract?.AniDBAnime?.AniDBAnime == null)
-                        .ToList();
-                int max = sers.Count;
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AnimeSeries).Name, " DbRegen");
-                if (max <= 0) return;
-                foreach (SVR_AnimeSeries s in sers)
-                {
-                    try
-                    {
-                        Save(s, false, false, true);
-                    }
-                    catch
-                    {
-                    }
+                regen.Step++;
+                progress.Report(regen);
+            }, (true, true, false, false));
 
-                    cnt++;
-                    if (cnt % 10 == 0)
-                    {
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, typeof(AnimeSeries).Name,
-                            " DbRegen - " + cnt + "/" + max);
-                    }
-                }
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AnimeSeries).Name,
-                    " DbRegen - " + max + "/" + max);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+            regen.Step = regen.Total;
+            progress.Report(regen);
+            Changes.AddOrUpdateRange(GetAll().Select(SelectKey));
         }
 
         public ChangeTracker<int> GetChangeTracker()
@@ -117,102 +161,7 @@ namespace Shoko.Server.RepositoriesV2.Repos
             }
         }
 
-        public override void Save(SVR_AnimeSeries obj)
-        {
-            Save(obj, false);
-        }
-
-        public void Save(SVR_AnimeSeries obj, bool onlyupdatestats)
-        {
-            Save(obj, true, onlyupdatestats);
-        }
-
-        public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false,
-            bool alsoupdateepisodes = false)
-        {
-            bool newSeries = false;
-            SVR_AnimeGroup oldGroup = null;
-            bool isMigrating = false;
-            lock (obj)
-            {
-                if (obj.AnimeSeriesID == 0)
-                    newSeries = true; // a new series
-                else
-                {
-                    // get the old version from the DB
-                    SVR_AnimeSeries oldSeries;
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                    {
-                        lock (globalDBLock)
-                        {
-                            oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
-                        }
-                    }
-                    if (oldSeries != null)
-                    {
-                        // means we are moving series to a different group
-                        if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
-                        {
-                            oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
-                            SVR_AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
-                            if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
-                                isMigrating = true;
-                            newSeries = true;
-                        }
-                    }
-                }
-                if (newSeries && !isMigrating)
-                {
-                    obj.Contract = null;
-                    base.Save(obj);
-                }
-                HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
-                base.Save(obj);
-
-                if (updateGroups && !isMigrating)
-                {
-                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
-                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
-                    if (grp != null)
-                        RepoFactory.AnimeGroup.Save(grp, true, true);
-
-                    if (oldGroup != null)
-                    {
-                        logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",
-                            oldGroup.AnimeGroupID);
-                        RepoFactory.AnimeGroup.Save(oldGroup, true, true);
-                    }
-                }
-                if (!skipgroupfilters && !isMigrating)
-                {
-                    int endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
-                    if (endyear == 0) endyear = DateTime.Today.Year;
-                    HashSet<int> allyears = null;
-                    if ((obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0) != 0)
-                    {
-                        allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
-                            endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
-                    }
-                    //This call will create extra years or tags if the Group have a new year or tag
-                    RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
-                        obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears,
-                        obj.Contract?.AniDBAnime?.Stat_AllSeasons);
-
-                    // Update other existing filters
-                    obj.UpdateGroupFilters(types, null);
-                }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(obj.AnimeSeriesID);
-                }
-            }
-            if (alsoupdateepisodes)
-            {
-                List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
-                RepoFactory.AnimeEpisode.Save(eps);
-            }
-        }
-
+        //TODO DBRefactor
         public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesBatch)
         {
             if (session == null)
@@ -253,30 +202,23 @@ namespace Shoko.Server.RepositoriesV2.Repos
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return Groups.GetMultiple(groupid);
+                if (IsCached)
+                    return Groups.GetMultiple(groupid);
+                return Table.Where(a => a.AnimeGroupID==groupid).ToList();
             }
         }
 
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            lock (Cache)
-            {
-                return
-                    Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
-                        .OrderByDescending(a => a.EpisodeAddedDate)
-                        .ToList();
-            }
+            return Where(a => a.MissingEpisodeCountGroups > 0).OrderByDescending(a => a.EpisodeAddedDate).ToList();
         }
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
-            lock (Cache)
-            {
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
-            }
+            return GetAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
         }
     }
 }

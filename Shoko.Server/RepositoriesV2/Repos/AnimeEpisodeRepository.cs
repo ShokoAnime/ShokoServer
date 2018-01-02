@@ -1,46 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Repositories.Cached
+namespace Shoko.Server.RepositoriesV2.Repos
 {
-    public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int>
+    public class AnimeEpisodeRepository : BaseRepository<SVR_AnimeEpisode, int>
     {
         private PocoIndex<int, SVR_AnimeEpisode, int> Series;
         private PocoIndex<int, SVR_AnimeEpisode, int> EpisodeIDs;
 
-        private AnimeEpisodeRepository()
+        internal override object BeginSave(SVR_AnimeEpisode entity, SVR_AnimeEpisode original_entity, object parameters)
         {
-            EndDeleteCallback = (cr) =>
-            {
-                RepoFactory.AnimeEpisode_User.Delete(
-                    RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
-            };
+            UpdatePlexContract(entity);
+            return null;
         }
 
-        public static AnimeEpisodeRepository Create()
+        internal override void EndDelete(SVR_AnimeEpisode entity, object returnFromBeginDelete, object parameters)
         {
-            return new AnimeEpisodeRepository();
+            Repo.AnimeEpisode_User.Delete(entity.AnimeEpisodeID);
         }
 
-        protected override int SelectKey(SVR_AnimeEpisode entity)
+        internal override int SelectKey(SVR_AnimeEpisode entity)
         {
             return entity.AnimeEpisodeID;
         }
 
-        public override void PopulateIndexes()
+        internal override void PopulateIndexes()
         {
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);
             EpisodeIDs = Cache.CreateIndex(a => a.AniDB_EpisodeID);
         }
 
-        public override void RegenerateDb()
+        internal override void ClearIndexes()
         {
+            Series = null;
+            EpisodeIDs = null;
         }
 
 
@@ -49,37 +50,33 @@ namespace Shoko.Server.Repositories.Cached
             e.PlexContract = Helper.GenerateVideoFromAnimeEpisode(e);
         }
 
-        public override void Save(SVR_AnimeEpisode obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisodeID == 0)
-                {
-                    obj.PlexContract = null;
-                    base.Save(obj);
-                }
-                UpdatePlexContract(obj);
-                base.Save(obj);
-            }
-        }
+
 
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return Series.GetMultiple(seriesid);
+                if (IsCached)
+                    return Series.GetMultiple(seriesid);
+                return Table.Where(a => a.AnimeSeriesID==seriesid).ToList();
             }
+
         }
 
 
-        public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
+        public List<SVR_AnimeEpisode> GetByAniDBEpisodeID(int epid)
         {
-            lock (Cache)
+            //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
+
+
+            using (CacheLock.ReaderLock())
             {
-                //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
-                return EpisodeIDs.GetOne(epid);
+                if (IsCached)
+                    return EpisodeIDs.GetMultiple(epid);
+                return Table.Where(a => a.AniDB_EpisodeID == epid).ToList();
             }
+
         }
 
 
@@ -90,7 +87,7 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns>the AnimeEpisode given the file information</returns>
         public SVR_AnimeEpisode GetByFilename(string name)
         {
-            return RepoFactory.VideoLocalPlace.GetAll()
+            return Repo.VideoLocalPlace.GetAll()
                 .Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                     StringComparison.InvariantCultureIgnoreCase))
                 .Select(a => a.VideoLocal.GetAnimeEpisodes())
@@ -109,12 +106,12 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns></returns>
         public List<SVR_AnimeEpisode> GetByHash(string hash)
         {
-            return RepoFactory.CrossRef_File_Episode.GetByHash(hash)
+            return Repo.CrossRef_File_Episode.GetByHash(hash)
                 .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
                 .Where(a => a != null)
                 .ToList();
         }
-
+        //TODO DBRefactor
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
             lock (globalDBLock)
@@ -136,7 +133,7 @@ namespace Shoko.Server.Repositories.Cached
         public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
         {
             List<int> eps =
-                RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid)
+                Repo.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid)
                     .Where(a => a.WatchedDate.HasValue)
                     .Select(a => a.AnimeEpisodeID)
                     .ToList();

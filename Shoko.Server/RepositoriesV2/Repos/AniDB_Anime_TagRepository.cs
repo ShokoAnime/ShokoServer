@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
@@ -32,7 +31,7 @@ namespace Shoko.Server.RepositoriesV2.Repos
                 return Table.FirstOrDefault(a => a.AnimeID == animeid && a.TagID == tagid);
             }
         }
-        public List<AniDB_Anime_Tag> GetByAnimeIDAsync(int id)
+        public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
             using (CacheLock.ReaderLock())
             {
@@ -61,7 +60,7 @@ namespace Shoko.Server.RepositoriesV2.Repos
         /// <returns></returns>
         public List<AniDB_Anime_Tag> GetAllForLocalSeries()
         {
-            return RepoFactory.AnimeSeries.GetAll()
+            return Repo.AnimeSeries.GetAll()
                 .SelectMany(a => GetByAnimeID(a.AniDB_ID))
                 .Where(a => a != null)
                 .Distinct()

@@ -21,33 +21,29 @@ namespace Shoko.Server.RepositoriesV2.Repos
             Tags = null;
         }
 
-        private AniDB_TagRepository()
-        {
-        }
 
 
         internal override int SelectKey(AniDB_Tag entity) => entity.TagID;
 
-        internal override void RegenerateDb(IProgress<RegenerateProgress> progress)
+        public override void Init(IProgress<RegenerateProgress> progress, int batchSize)
         {
             List<AniDB_Tag> tags=Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`')).ToList();
-            using (IAtomic<List<AniDB_Tag>,object> update = BeginAtomicBatchUpdate(tags))
+            if (tags.Count == 0)
+                return;
+            RegenerateProgress regen = new RegenerateProgress();
+            regen.Title = "Fixing Tag Names";
+            regen.Step = 0;
+            regen.Total = tags.Count;
+
+            BatchAction(tags, batchSize, (tag, original) =>
             {
-                RegenerateProgress regen = new RegenerateProgress();
-                regen.Title = "Fixing Tag Names";
-                regen.Step = 0;
-                regen.Total = update.Updatable.Count;
-                foreach (AniDB_Tag tag in update.Updatable)
-                {
-                    tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
-                    tag.TagName = tag.TagName.Replace('`', '\'');
-                    regen.Step++;
-                    progress.Report(regen);
-                }
-                update.Commit();
-                regen.Step = regen.Total;
+                tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
+                tag.TagName = tag.TagName.Replace('`', '\'');
+                regen.Step++;
                 progress.Report(regen);
-            }
+            });
+            regen.Step = regen.Total;
+            progress.Report(regen);
         }
 
 
@@ -55,7 +51,7 @@ namespace Shoko.Server.RepositoriesV2.Repos
 
         public List<AniDB_Tag> GetByAnimeID(int animeID)
         {
-            return RepoFactory.AniDB_Anime_Tag.GetByAnimeID(animeID)
+            return Repo.AniDB_Anime_Tag.GetByAnimeID(animeID)
                 .Select(a => GetByTagID(a.TagID))
                 .Where(a => a != null)
                 .ToList();
@@ -72,7 +68,7 @@ namespace Shoko.Server.RepositoriesV2.Repos
                 return EmptyLookup<int, AniDB_Tag>.Instance;
             }
 
-            return RepoFactory.AniDB_Anime_Tag.GetByAnimeIDs(ids).SelectMany(a => a.ToList())
+            return Repo.AniDB_Anime_Tag.GetByAnimeIDs(ids).SelectMany(a => a.ToList())
                 .ToLookup(t => t.AnimeID, t => GetByTagID(t.TagID));
         }
 
@@ -92,8 +88,8 @@ namespace Shoko.Server.RepositoriesV2.Repos
         /// <returns></returns>
         public List<AniDB_Tag> GetAllForLocalSeries()
         {
-            return RepoFactory.AnimeSeries.GetAll()
-                .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
+            return Repo.AnimeSeries.GetAll()
+                .SelectMany(a => Repo.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
                 .Where(a => a != null)
                 .Select(a => GetByTagID(a.TagID))
                 .Distinct()

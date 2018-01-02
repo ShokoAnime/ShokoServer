@@ -5,7 +5,7 @@ using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Repositories;
+
 
 namespace Shoko.Server.RepositoriesV2.Repos
 {
@@ -26,38 +26,25 @@ namespace Shoko.Server.RepositoriesV2.Repos
             EpisodesIds = null;
         }
 
-        private AniDB_EpisodeRepository()
-        {
-        }
-
-
-
         internal override int SelectKey(AniDB_Episode entity) => entity.AniDB_EpisodeID;
 
-        internal override void RegenerateDb(IProgress<RegenerateProgress> progress)
+        public override void Init(IProgress<RegenerateProgress> progress, int batchSize)
         {
-            List<AniDB_Episode> episodes;
-            using (CacheLock.ReaderLock())
+            List<AniDB_Episode> episodes = Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
+            RegenerateProgress regen = new RegenerateProgress();
+            regen.Title = "Fixing Episode Titles";
+            regen.Step = 0;
+            regen.Total = episodes.Count;
+            progress.Report(regen);
+            BatchAction(episodes, batchSize, (episode, original) =>
             {
-                episodes = IsCached ? Cache.Values.Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList() : Table.Where((episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`'))).ToList();
-            }
-            using (IAtomic<List<AniDB_Episode>,object> update = BeginAtomicBatchUpdate(episodes))
-            {
-                RegenerateProgress regen = new RegenerateProgress();
-                regen.Title = "Fixing Episode Titles";
-                regen.Step = 0;
-                regen.Total = update.Updatable.Count;
-                foreach (AniDB_Episode episode in update.Updatable)
-                {
-                    episode.EnglishName = episode.EnglishName.Replace('`', '\'');
-                    episode.RomajiName = episode.RomajiName.Replace('`', '\'');
-                    regen.Step++;
-                    progress.Report(regen);
-                }
-                update.Commit();
-                regen.Step = regen.Total;
+                episode.EnglishName = episode.EnglishName.Replace('`', '\'');
+                episode.RomajiName = episode.RomajiName.Replace('`', '\'');
+                regen.Step++;
                 progress.Report(regen);
-            }
+            });
+            regen.Step = regen.Total;
+            progress.Report(regen);
         }
 
 
@@ -104,7 +91,7 @@ namespace Shoko.Server.RepositoriesV2.Repos
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
         {
             return
-                RepoFactory.CrossRef_File_Episode.GetAll()
+                Repo.CrossRef_File_Episode.GetAll()
                     .GroupBy(a => a.EpisodeID)
                     .Where(a => a.Count() > 1)
                     .Select(a => GetByEpisodeID(a.Key))

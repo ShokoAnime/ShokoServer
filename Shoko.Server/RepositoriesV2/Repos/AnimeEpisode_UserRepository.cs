@@ -6,8 +6,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 
 namespace Shoko.Server.RepositoriesV2.Repos
@@ -20,8 +18,11 @@ namespace Shoko.Server.RepositoriesV2.Repos
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Episodes;
         private PocoIndex<int, SVR_AnimeEpisode_User, int, int> UsersSeries;
 
-        private AnimeEpisode_UserRepository()
+
+        internal override object BeginSave(SVR_AnimeEpisode_User entity, SVR_AnimeEpisode_User original_entity, object parameters)
         {
+            UpdateContract(entity);
+            return null;
         }
 
         internal override int SelectKey(SVR_AnimeEpisode_User entity) => entity.AnimeEpisode_UserID;
@@ -37,73 +38,62 @@ namespace Shoko.Server.RepositoriesV2.Repos
             UsersSeries = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeSeriesID);
         }
 
-        internal override void RegenerateDb(IProgress<RegenerateProgress> progress)
+        internal override void ClearIndexes()
         {
-            int cnt = 0;
+            Series = null;
+            UsersEpisodes = null;
+            Users = null;
+            Episodes = null;
+            UsersSeries = null;
+        }
+
+        public override void Init(IProgress<RegenerateProgress> progress, int batchSize)
+        {
             List<SVR_AnimeEpisode_User> sers = Where(a => a.ContractVersion < SVR_AnimeEpisode_User.CONTRACT_VERSION || a.AnimeEpisode_UserID == 0).ToList();
-            int max = sers.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
-                typeof(AnimeEpisode_User).Name, " DbRegen");
-            if (max <= 0) return;
-            foreach (SVR_AnimeEpisode_User g in sers)
+            if (sers.Count == 0)
+                return;
+            RegenerateProgress regen = new RegenerateProgress();
+            regen.Title = string.Format(Commons.Properties.Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Regen");
+            regen.Step = 0;
+            regen.Total = sers.Count;
+            BatchAction(sers, batchSize, (ser, original) =>
             {
-                
-                Save(g);
-                cnt++;
-                if (cnt % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AnimeEpisode_User).Name,
-                        " DbRegen - " + cnt + "/" + max);
-            }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
-                typeof(AnimeEpisode_User).Name,
-                " DbRegen - " + max + "/" + max);
-        }
-
-        public override void Save(SVR_AnimeEpisode_User obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisode_UserID == 0)
-                    base.Save(obj);
-                
-                base.Save(obj);
-            }
-        }
-
-        public override void SaveWithOpenTransaction(ISessionWrapper session, SVR_AnimeEpisode_User obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisode_UserID == 0)
-                    base.SaveWithOpenTransaction(session, obj);
-                UpdateContract(obj);
-                base.SaveWithOpenTransaction(session, obj);
-            }
+                //Empty change (update contract is called on save);
+                regen.Step++;
+                progress.Report(regen);
+            });
+            regen.Step = regen.Total;
+            progress.Report(regen);
         }
 
         public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return Series.GetMultiple(seriesid);
+                if (IsCached)
+                    return Series.GetMultiple(seriesid);
+                return Table.Where(a => a.AnimeSeriesID == seriesid).ToList();
             }
         }
 
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return UsersEpisodes.GetOne(userid, epid);
+                if (IsCached)
+                    return UsersEpisodes.GetOne(userid, epid);
+                return Table.FirstOrDefault(a => a.JMMUserID == userid && a.AnimeEpisodeID == epid);
             }
         }
 
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return Users.GetMultiple(userid);
+                if (IsCached)
+                    return Users.GetMultiple(userid);
+                return Table.Where(a => a.JMMUserID==userid).ToList();
             }
         }
 
@@ -116,43 +106,44 @@ namespace Shoko.Server.RepositoriesV2.Repos
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisode()
         {
-            lock (Cache)
-            {
-                return Cache.Values.Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
-                    .FirstOrDefault();
-            }
+            return Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate).FirstOrDefault();
         }
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return UsersSeries.GetMultiple(userid, seriesid).Where(a => a.WatchedCount > 0)
-                    .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
+                if (IsCached)
+                    return UsersSeries.GetMultiple(userid, seriesid).Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate).FirstOrDefault();
+                return Table.Where(a => a.JMMUserID == userid && a.AnimeSeriesID==seriesid).Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate).FirstOrDefault();
             }
         }
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return Episodes.GetMultiple(epid);
+                if (IsCached)
+                    return Episodes.GetMultiple(epid);
+                return Table.Where(a => a.AnimeEpisodeID==epid).ToList();
             }
         }
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return UsersSeries.GetMultiple(userid, seriesid);
+                if (IsCached)
+                    return UsersSeries.GetMultiple(userid, seriesid);
+                return Table.Where(a => a.JMMUserID==userid && a.AnimeSeriesID==seriesid).ToList();
             }
         }
 
 
         public void UpdateContract(SVR_AnimeEpisode_User aeu)
         {
-            Shoko.Models.Client.CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
-            SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
+            CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
+            SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
             if (ep == null)
                 return;
             AniDB_Episode aniEp = ep.AniDB_Episode;
