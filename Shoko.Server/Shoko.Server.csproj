@@ -47,7 +47,6 @@
     <ProjectReference Include="..\Nancy.Rest\Nancy.Rest.Module\Nancy.Rest.Module.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
-    <ProjectReference Include="Shoko.Server.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
