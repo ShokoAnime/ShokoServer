@@ -17,6 +17,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
+using Shoko.Server.Plex;
 
 namespace Shoko.Server
 {
@@ -821,7 +822,7 @@ namespace Shoko.Server
         public string LinkToPlex(int userID)
         {
             JMMUser user = RepoFactory.JMMUser.GetByID(userID);
-            return PlexHelper.GetForUser(user).Authenticate();
+            return PlexHelper.GetForUser(user).LoginUrl;
         }
 
         public bool IsPlexAuthenticated(int userID)

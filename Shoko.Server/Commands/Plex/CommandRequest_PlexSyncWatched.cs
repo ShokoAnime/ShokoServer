@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using Shoko.Commons.Plex.Libraries;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Plex;
+using Shoko.Server.Plex.Collection;
+using Shoko.Server.Plex.Libraries;
+using Shoko.Server.Plex.TVShow;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Plex
@@ -26,22 +31,24 @@ namespace Shoko.Server.Commands.Plex
 
         public override void ProcessCommand()
         {
-            foreach (int section in ServerSettings.Plex_Libraries)
+            foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories().Where(d => ServerSettings.Plex_Libraries.Contains(d.Key)))
             {
-                var allSeries = PlexHelper.GetForUser(_jmmuser).GetPlexSeries(section);
-                foreach (PlexSeries series in allSeries)
+                var allSeries = ((SVR_Directory)section).GetShows();
+                foreach (var series in allSeries)
                 {
-                    foreach (PlexEpisode episode in series.Episodes)
+                    foreach (var ep in ((SVR_PlexLibrary)series).GetEpisodes())
                     {
+                        var episode = (SVR_Episode) ep;
+
                         var animeEpisode = episode.AnimeEpisode;
                         var userRecord = animeEpisode.GetUserRecord(_jmmuser.JMMUserID);
-                        var isWatched = episode.WatchCount > 0;
+                        var isWatched = episode.ViewCount > 0;
                         var lastWatched = userRecord.WatchedDate;
-                        if (userRecord.WatchedCount == 0 && isWatched)
+                        if (userRecord.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
                         {
-                            lastWatched = FromUnixTime(episode.LastWatched);
+                            lastWatched = FromUnixTime((long) episode.LastViewedAt);
                         }
-                        SVR_VideoLocal video = animeEpisode?.GetVideoLocals()?.FirstOrDefault();
+                        SVR_VideoLocal video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
                             .Where(x => x.GetAniDBFile() != null)
@@ -96,7 +103,7 @@ namespace Shoko.Server.Commands.Plex
             return cq;
         }
 
-        public DateTime FromUnixTime(long unixTime)
+        private DateTime FromUnixTime(long unixTime)
         {
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 .AddSeconds(unixTime);

@@ -46,7 +46,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
-    <LangVersion>default</LangVersion>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -59,7 +59,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
-    <LangVersion>default</LangVersion>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
@@ -370,7 +370,6 @@
     <Compile Include="Commands\Import\CommandRequest_ValidateAllImages.cs" />
     <Compile Include="Commands\MovieDB\CommandRequest_MovieDBSearchAnime.cs" />
     <Compile Include="Commands\Plex\CommandRequest_PlexSyncWatched.cs" />
-    <Compile Include="Commands\Plex\PlexHelper.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateEpisode.cs" />
     <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
     <Compile Include="Extensions\ModelDatabase.cs" />
@@ -404,6 +403,11 @@
     <Compile Include="Mappings\AnimeStaffMap.cs" />
     <Compile Include="Models\AniDB_AnimeUpdate.cs" />
     <Compile Include="Models\SVR_Scan.cs" />
+    <Compile Include="Plex\TVShow\SVR_Episode.cs" />
+    <Compile Include="Plex\PlexConverter.cs" />
+    <Compile Include="Plex\PlexHelper.cs" />
+    <Compile Include="Plex\Libraries\SVR_Directory.cs" />
+    <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="Renamer\IRenamer.cs" />

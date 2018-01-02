@@ -16,6 +16,8 @@ using Nancy.Security;
 using NLog;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Plex;
+using Shoko.Server.Plex.Libraries;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -218,7 +220,8 @@ namespace Shoko.Server.API.v2.Modules
         public PlexWebhookAuthenticated() : base("/plex")
         {
             this.RequiresAuthentication();
-            Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
+            //Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
+            Get["/loginurl"] = o => CallPlexHelper(h => h.LoginUrl);
             Get["/pin/authenticated"] = o => $"{CallPlexHelper(h => h.IsAuthenticated)}";
             Get["/token/invalidate"] = o => CallPlexHelper(h =>
             {
@@ -245,8 +248,10 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.OK();
             });
 #if DEBUG
-            Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id)));
-            Get["/test/libs"] = o => Response.AsJson(CallPlexHelper(h => h.GetLibraries()));
+            Get["/test/dir"] = o => Response.AsJson(CallPlexHelper(h => h.GetDirectories()));
+            Get["/test/lib/{id}"] = o =>
+                Response.AsJson(CallPlexHelper(h =>
+                    ((SVR_Directory) h.GetDirectories().FirstOrDefault(d => d.Key == (int) o.id))?.GetShows()));
 #endif
         }
 
