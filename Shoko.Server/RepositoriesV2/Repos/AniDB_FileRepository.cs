@@ -6,7 +6,8 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.RepositoriesV2.Repos
 {
-    public class AniDB_FileRepository : BaseRepository<SVR_AniDB_File, int,bool>
+    public class AniDB_FileRepository : BaseRepository<SVR_AniDB_File, int,bool> 
+        //The bool parameter indicates if we should updateTheAnimeStats on Save/Delete
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -18,24 +19,21 @@ namespace Shoko.Server.RepositoriesV2.Repos
         private PocoIndex<int, SVR_AniDB_File, string> Resolutions;
         private PocoIndex<int, SVR_AniDB_File, int> InternalVersions;
 
-        private AniDB_FileRepository()
+        internal override object BeginSave(SVR_AniDB_File entity, SVR_AniDB_File original_entity, bool parameters)
         {
-            BeginSaveCallback = (cr, pars) =>
+            if (parameters) //UpdateStats
             {
-                if (pars) //UpdateStats
-                {
-                    logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", cr.Hash);
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);
-                }
-            };
-            EndDeleteCallback = (cr,pars) =>
-            {
-                if (cr.AnimeID > 0)
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);
-            };
+                logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", entity.Hash);
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.AnimeID);
+            }
+            return null;
         }
 
-
+        internal override void EndDelete(SVR_AniDB_File entity, object returnFromBeginDelete, bool parameters)
+        {
+            if (entity.AnimeID != 0)
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.AnimeID);
+        }
 
         internal override int SelectKey(SVR_AniDB_File entity)
         {

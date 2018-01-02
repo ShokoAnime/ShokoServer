@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Force.DeepCloner;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Nito.AsyncEx;
 using NutzCode.InMemoryIndex;
@@ -12,6 +12,7 @@ namespace Shoko.Server.RepositoriesV2
 {
     public abstract class BaseRepository<T, TS> : BaseRepository<T, TS, object> where T : class
     {
+
     }
 
     public abstract class BaseRepository<T,TS,TT> : IRepository<T, TS, TT> where T : class 
@@ -74,7 +75,7 @@ namespace Shoko.Server.RepositoriesV2
         {
             if (obj == null)
                 return;
-            BeginDeleteCallback?.Invoke(obj,pars);
+            object ret=BeginDelete(obj,pars);
             using (CacheLock.ReaderLock())
             {
                 Table.Remove(obj);
@@ -82,7 +83,7 @@ namespace Shoko.Server.RepositoriesV2
                 if (IsCached)
                     Cache.Remove(obj);
             }
-            EndDeleteCallback?.Invoke(obj,pars);
+            EndDelete(obj,ret, pars);
         }
 
   
@@ -93,11 +94,9 @@ namespace Shoko.Server.RepositoriesV2
             List<T> listed = objs.ToList();
             if (listed.Count == 0)
                 return;
-            if (BeginDeleteCallback != null)
-            {
-                foreach (T e in listed)
-                    BeginDeleteCallback(e, pars);
-            }
+            Dictionary<T,object> savedobjects=new Dictionary<T, object>();
+            foreach (T e in listed)
+                savedobjects[e]=BeginDelete(e, pars);
             using (CacheLock.ReaderLock())
             {
                 Table.RemoveRange(listed);
@@ -105,110 +104,99 @@ namespace Shoko.Server.RepositoriesV2
                 if (IsCached)
                     listed.ForEach(Cache.Remove);
             }
-            if (EndDeleteCallback != null)
-            {
-                foreach (T e in listed)
-                    EndDeleteCallback(e, pars);
-            }
-        }
-        public void Add(T obj,TT pars=default(TT))
-        {
-            if (obj == null)
-                throw new ArgumentException("Unable to add a null value");
-            BeginSaveCallback?.Invoke(obj,pars);
-            using (CacheLock.ReaderLock())
-            {
-                Table.Add(obj);
-                Context.SaveChanges();
-                if (IsCached)
-                    Cache.Update(obj);
-            }
-            EndSaveCallback?.Invoke(obj,pars);
-        }
-  
-        public void Add(IEnumerable<T> objs, TT pars = default(TT))
-        {
-            if (objs == null)
-                throw new ArgumentException("Unable to add a null value");
-            List<T> listed = objs.ToList();
-            if (listed.Count == 0)
-                return;
-            if (BeginSaveCallback != null)
-            {
-                foreach (T n in listed)
-                    BeginSaveCallback(n, pars);
-            }
-            using (CacheLock.ReaderLock())
-            {
-                Table.AddRange(listed);
-                Context.SaveChanges();
-                if (IsCached)
-                    listed.ForEach(Cache.Update);
-            }
-            if (EndSaveCallback != null)
-            {
-                foreach (T n in listed)
-                    EndSaveCallback(n, pars);
-            }
+            foreach (T e in listed)
+                EndDelete(e, savedobjects[e], pars);
         }
 
-        public IAtomic<T,TT> BeginAtomicUpdate(T obj)
+
+
+        private int IntAutoGen = -1;
+        private readonly object IntAutoLock = new object();
+        private int GetNextAutoGen(PropertyInfo prop)
         {
-            using (CacheLock.ReaderLock())
-                return new AtomicUpdate<T,TS,TT>(this, obj.DeepClone());
+            lock (IntAutoLock)
+            {
+                if (IntAutoGen == -1)
+                {
+
+                    IntAutoGen = (int) Table.Max(a=>prop.GetValue(a,null));
+                }
+                IntAutoGen++;
+            }
+            return IntAutoGen;
         }
 
-        public IAtomic<T,TT> BeginAtomicUpdate(TS key)
+        
+        public IAtomic<T, TT> BeginAdd()
+        {
+            AtomicUpdate<T, TS, TT> upd = new AtomicUpdate<T, TS, TT>(this, null);
+            Context.SetLocalKey(upd.Updatable,GetNextAutoGen);
+            return upd;
+        }       
+        public IAtomic<T,TT> BeginUpdate(T obj)
+        {
+            using (CacheLock.ReaderLock())
+                return new AtomicUpdate<T,TS,TT>(this, obj);
+        }
+
+        public IAtomic<T, TT> BeginAddOrUpdate(TS id)
+        {
+            IAtomic<T, TT> update = BeginUpdate(id);
+            if (update == null)
+            {
+                update = BeginAdd();
+                List<PropertyInfo> props = Context.GetPrimaries<T>();
+                PropertyInfo n = props.FirstOrDefault(a => a.PropertyType == typeof(TS));
+                n.SetValue(update.Updatable,id);
+            }
+
+            return update;
+        }
+
+        public IAtomic<T,TT> BeginUpdate(TS key)
         {
             using (CacheLock.ReaderLock())
             {
                 T obj = InternalGetByID(key);
                 if (obj == null)
                     return null;
-                return new AtomicUpdate<T, TS,TT>(this, obj.DeepClone());
+                return new AtomicUpdate<T, TS,TT>(this, obj);
             }
         }
 
 
 
-        public IAtomic<List<T>,TT> BeginAtomicBatchUpdate(IEnumerable<T> objs)
+        public IAtomicList<T,TT> BeginUpdate(IEnumerable<T> objs)
         {
             if (objs == null)
                 throw new ArgumentException("Unable to add a null value");
             using (CacheLock.ReaderLock())
             {
-                List<T> newobjs = new List<T>();
-                foreach (T obj in objs)
-                    newobjs.Add(obj.DeepClone());
-                if (newobjs.Count == 0)
-                    return null;
-                return new AtomicUpdateList<T, TS,TT>(this, newobjs);
+                return new AtomicUpdateList<T, TS,TT>(this, objs.ToList());
             }
         }
 
-        public AtomicUpdateList<T, TS, TT> BeginAtomicBatchUpdate(IEnumerable<TS> ids)
+        public IAtomicList<T, TT> BeginUpdate(IEnumerable<TS> ids)
         {
             if (ids == null)
                 throw new ArgumentException("Unable to add a null value");
             using (CacheLock.ReaderLock())
                 return new AtomicUpdateList<T, TS, TT>(this, GetMany(ids));
         }
-
-        internal void BatchAction(IEnumerable<T> items, int batchSize, Action<T, T> peritemaction,Action<IAtomic<List<T>, TT>> perbatchaction)
+        
+        internal void BatchAction(IEnumerable<T> items, int batchSize, Action<T, T> peritemaction, TT pars=default(TT))
         {
             foreach (T[] batch in items.Batch(batchSize))
             {
-                using (IAtomic<List<T>, TT> update = BeginAtomicBatchUpdate(batch))
+                using (IAtomicList<T, TT> update = BeginUpdate(batch))
                 {
-                    foreach(T t in update.UpdateAble)
-                    {
-                        peritemaction(t,update.G)
-                    }
-                    action(update);
+                    foreach(T t in update.UpdatableList)
+                        peritemaction(t, update.GetOriginal(t));
+                    update.Commit(pars);
                 }
             }
         }
-
+        
         public virtual void PopulateCache()
         {
             Cache = new PocoCache<TS, T>(Table, SelectKey);
@@ -253,20 +241,43 @@ namespace Shoko.Server.RepositoriesV2
 
         internal abstract void ClearIndexes();
 
-        internal virtual void RegenerateDb(IProgress<RegenerateProgress> progress, int batchsize=10)
-        {
-           
-        }
+
 
         internal virtual void PostProcess()
         {
            
         }
 
-    
-        internal Action<T, TT> EndSaveCallback { get; set; }
-        internal Action<T, TT> BeginDeleteCallback { get; set; }
-        internal Action<T, TT> EndDeleteCallback { get; set; }
-        internal Action<T, TT> BeginSaveCallback { get; set; }
+        internal virtual object BeginSave(T entity, T original_entity, TT parameters)
+        {
+            return null;
+        }
+
+        internal virtual void EndSave(T entity, T original_entity, object returnFromBeginSave, TT parameters)
+        {
+
+        }
+
+        internal virtual object BeginDelete(T entity, TT parameters)
+        {
+            return null;
+        }
+
+        internal virtual void EndDelete(T entity, object returnFromBeginDelete, TT parameters)
+        {
+        }
+
+        public void SetContext(ShokoContext db, DbSet<T> table)
+        {
+            Context = db;
+            Table = table;
+        }
+
+        public virtual void Init(IProgress<RegenerateProgress> progress, int batchSize)
+        {
+            
+        }
+
+        public string Name => Table.GetName();
     }
 }

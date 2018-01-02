@@ -25,32 +25,25 @@ namespace Shoko.Server.RepositoriesV2.Repos
 
         internal override int SelectKey(AniDB_Anime_Title entity) => entity.AniDB_Anime_TitleID;
 
-        internal override void RegenerateDb(IProgress<RegenerateProgress> progress,int batchSize)
+        public override void Init(IProgress<RegenerateProgress> progress,int batchSize)
         {
             //TODO Do we still need to run this every time?
             List<AniDB_Anime_Title> titles = GetTitleContains("`");
             if (titles.Count == 0)
                 return;
-            BatchAction(titles,batchSize, (update) =>
+            RegenerateProgress regen = new RegenerateProgress();
+            regen.Title = "Fixing Anime Titles";
+            regen.Step = 0;
+            regen.Total = titles.Count;
+            progress.Report(regen);
+            BatchAction(titles,batchSize, (update,original) =>
             {
-                RegenerateProgress regen = new RegenerateProgress();
-                regen.Title = "Fixing Anime Titles";
-                regen.Step = 0;
-                regen.Total = update.Updatable.Count;
-                foreach (AniDB_Anime_Title title in update.Updatable)
-                {
-                    title.Title = title.Title.Replace('`', '\'');
-                    regen.Step++;
-                    progress.Report(regen);
-                }
-                update.Commit();
-                regen.Step = regen.Total;
+                update.Title = update.Title.Replace('`', '\'');
+                regen.Step++;
                 progress.Report(regen);
-            });
-            using (IAtomic<List<AniDB_Anime_Title>,object> update = BeginAtomicBatchUpdate(titles))
-            {
-
-            }
+            },null);
+            regen.Step = regen.Total;
+            progress.Report(regen);
         }
 
 

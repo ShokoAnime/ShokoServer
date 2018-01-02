@@ -6,6 +6,9 @@ namespace Shoko.Server.Databases
 {
     public class ShokoContext : DbContext
     {
+        //TODO DBContext is not be thread safe, and we might have concurrency or locking problems, 
+        //We may need to change it to support one different context per thread, and InBetween Factory might be created to support this.
+
         private readonly string _connectionString;
         private readonly DatabaseTypes _type;
         public ShokoContext(DatabaseTypes type, string connectionstring)

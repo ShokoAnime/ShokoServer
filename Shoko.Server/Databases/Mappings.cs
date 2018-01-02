@@ -45,7 +45,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Character_AnimeID");
                 model.HasIndex(x => x.CharID).HasName("IX_AniDB_Anime_Character_CharID");
                 model.HasIndex(x => new {x.AnimeID, x.CharID}).IsUnique().HasName("UIX_AniDB_Anime_Character_AnimeID_CharID");
-                model.Property(x => x.AniDB_Anime_CharacterID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_CharacterID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.CharID).IsRequired();
                 model.Property(x => x.CharType).IsRequired().HasMaxLength(100);
@@ -55,7 +55,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AniDB_Anime_DefaultImage").HasKey(x => x.AniDB_Anime_DefaultImageID);
                 model.HasIndex(x => x.AniDB_Anime_DefaultImageID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_DefaultImage");
                 model.HasIndex(x => new { x.AnimeID, x.ImageType }).IsUnique().HasName("UIX_AniDB_Anime_DefaultImage_ImageType");
-                model.Property(x => x.AniDB_Anime_DefaultImageID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_DefaultImageID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.ImageParentID).IsRequired();
                 model.Property(x => x.ImageParentType).IsRequired();
@@ -67,7 +67,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_Anime_RelationID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Relation");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Relation_AnimeID");
                 model.HasIndex(x => new { x.AnimeID, x.RelatedAnimeID }).IsUnique().HasName("UIX_AniDB_Anime_Relation_AnimeID_RelatedAnimeID");
-                model.Property(x => x.AniDB_Anime_RelationID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_RelationID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.RelatedAnimeID).IsRequired();
                 model.Property(x => x.RelationType).IsRequired().HasMaxLength(100);
@@ -78,7 +78,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_Anime_ReviewID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Review");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Review_AnimeID");
                 model.HasIndex(x => new { x.AnimeID, x.ReviewID }).IsUnique().HasName("UIX_AniDB_Anime_Review_AnimeID_ReviewID");
-                model.Property(x => x.AniDB_Anime_ReviewID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_ReviewID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.ReviewID).IsRequired();
             }
@@ -88,7 +88,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_Anime_SimilarID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Similar");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Similar_AnimeID");
                 model.HasIndex(x => new { x.AnimeID, x.SimilarAnimeID }).IsUnique().HasName("UIX_AniDB_Anime_Similar_AnimeID_SimilarAnimeID");
-                model.Property(x => x.AniDB_Anime_SimilarID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_SimilarID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.SimilarAnimeID).IsRequired();
                 model.Property(x => x.Approval).IsRequired();
@@ -100,7 +100,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_Anime_TagID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Tag");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Tag_AnimeID");
                 model.HasIndex(x => new { x.AnimeID, x.TagID }).IsUnique().HasName("UIX_AniDB_Anime_Tag_AnimeID_TagID");
-                model.Property(x => x.AniDB_Anime_TagID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_TagID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.TagID).IsRequired();
                 model.Property(x => x.Approval).IsRequired();
@@ -110,7 +110,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AniDB_Anime_Title").HasKey(x => x.AniDB_Anime_TitleID);
                 model.HasIndex(x => x.AniDB_Anime_TitleID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Title");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Title_AnimeID");
-                model.Property(x => x.AniDB_Anime_TitleID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Anime_TitleID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.TitleType).IsRequired().HasMaxLength(50);
                 model.Property(x => x.Language).IsRequired().HasMaxLength(50);
@@ -122,7 +122,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_Character_SeiyuuID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Character_Seiyuu");
                 model.HasIndex(x => x.CharID).HasName("IX_AniDB_Character_Seiyuu_CharID");
                 model.HasIndex(x => new {x.CharID, x.SeiyuuID}).IsUnique().HasName("UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID");
-                model.Property(x => x.AniDB_Character_SeiyuuID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_Character_SeiyuuID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.CharID).IsRequired();
                 model.Property(x => x.SeiyuuID).IsRequired();
             }
@@ -143,7 +143,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Episode");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Episode_AnimeID");
                 model.HasIndex(x => x.EpisodeID).IsUnique().HasName("UIX_AniDB_Episode_EpisodeID");
-                model.Property(x => x.AniDB_EpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.EpisodeID).IsRequired();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.LengthSeconds).IsRequired();
@@ -197,7 +197,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AniDB_GroupStatusID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_GroupStatus");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_GroupStatus_AnimeID");
                 model.HasIndex(x => new { x.AnimeID, x.GroupID}).IsUnique().HasName("UIX_AniDB_GroupStatus_AnimeID_GroupID");
-                model.Property(x => x.AniDB_GroupStatusID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_GroupStatusID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.GroupID).IsRequired();
                 model.Property(x => x.GroupName).IsRequired().HasMaxLength(200);
@@ -211,7 +211,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<AniDB_MylistStats>();
                 model.ToTable("AniDB_MylistStats").HasKey(x => x.AniDB_MylistStatsID);
                 model.HasIndex(x => x.AniDB_MylistStatsID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_MylistStats");
-                model.Property(x => x.AniDB_MylistStatsID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_MylistStatsID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Animes).IsRequired();
                 model.Property(x => x.Episodes).IsRequired();
                 model.Property(x => x.Files).IsRequired();
@@ -235,7 +235,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AniDB_Recommendation").HasKey(x => x.AniDB_RecommendationID);
                 model.HasIndex(x => x.AniDB_RecommendationID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Recommendation");
                 model.HasIndex(x => new { x.AnimeID, x.UserID}).IsUnique().HasName("UIX_AniDB_Recommendation");
-                model.Property(x => x.AniDB_RecommendationID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_RecommendationID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.UserID).IsRequired();
                 model.Property(x => x.RecommendationType).IsRequired();
@@ -245,7 +245,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AniDB_ReleaseGroup").HasKey(x => x.AniDB_ReleaseGroupID);
                 model.HasIndex(x => x.AniDB_ReleaseGroupID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_ReleaseGroup");
                 model.HasIndex(x => x.GroupID).IsUnique().HasName("UIX_AniDB_ReleaseGroup_GroupID");
-                model.Property(x => x.AniDB_ReleaseGroupID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_ReleaseGroupID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.GroupID).IsRequired();
                 model.Property(x => x.Rating).IsRequired();
                 model.Property(x => x.Votes).IsRequired();
@@ -297,7 +297,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<AniDB_Vote>();
                 model.ToTable("AniDB_Vote").HasKey(x => x.AniDB_VoteID);
                 model.HasIndex(x => x.AniDB_VoteID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Vote");
-                model.Property(x => x.AniDB_VoteID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AniDB_VoteID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.EntityID).IsRequired();
                 model.Property(x => x.VoteValue).IsRequired();
                 model.Property(x => x.VoteType).IsRequired();
@@ -308,7 +308,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AnimeEpisode_UserID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeEpisode_User");
                 model.HasIndex(x => new { x.JMMUserID, x.AnimeSeriesID}).HasName("IX_AnimeEpisode_User_User_AnimeSeriesID");
                 model.HasIndex(x => new { x.JMMUserID, x.AnimeEpisodeID}).IsUnique().HasName("UIX_AnimeEpisode_User_User_EpisodeID");
-                model.Property(x => x.AnimeEpisode_UserID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AnimeEpisode_UserID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.JMMUserID).IsRequired();
                 model.Property(x => x.AnimeEpisodeID).IsRequired();
                 model.Property(x => x.AnimeSeriesID).IsRequired();
@@ -324,7 +324,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AnimeEpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeEpisode");
                 model.HasIndex(x => x.AnimeSeriesID).HasName("IX_AnimeEpisode_AnimeSeriesID");
                 model.HasIndex(x => x.AniDB_EpisodeID).IsUnique().HasName("UIX_AnimeEpisode_AniDB_EpisodeID");
-                model.Property(x => x.AnimeEpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AnimeEpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeSeriesID).IsRequired();
                 model.Property(x => x.AniDB_EpisodeID).IsRequired();
                 model.Property(x => x.DateTimeUpdated).IsRequired();
@@ -338,7 +338,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AnimeGroup_UserID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeGroup_User");
                 model.HasIndex(x => new { x.JMMUserID, x.AnimeGroupID}).IsUnique().HasName("UIX_AnimeGroup_User_User_GroupID");
                 model.ToTable("AnimeGroup_User").HasKey(x => x.AnimeGroup_UserID);
-                model.Property(x => x.AnimeGroup_UserID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AnimeGroup_UserID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.JMMUserID).IsRequired();
                 model.Property(x => x.AnimeGroupID).IsRequired();
                 model.Property(x => x.IsFave).IsRequired();
@@ -355,7 +355,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AnimeGroup").HasKey(x => x.AnimeGroupID);
                 model.HasIndex(x => x.AnimeGroupID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeGroup");
                 model.HasIndex(x => x.AnimeGroupParentID).HasName("IX_AnimeGroup_AnimeGroupParentID");
-                model.Property(x => x.AnimeGroupID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AnimeGroupID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.GroupName).IsRequired();
                 model.Property(x => x.IsManuallyNamed).IsRequired();
                 model.Property(x => x.DateTimeUpdated).IsRequired();
@@ -372,7 +372,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AnimeSeries_User").HasKey(x => x.AnimeSeries_UserID);
                 model.HasIndex(x => x.AnimeSeries_UserID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeSeries_User");
                 model.HasIndex(x => new { x.JMMUserID, x.AnimeSeriesID}).IsUnique().HasName("UIX_AnimeSeries_User_User_SeriesID");
-                model.Property(x => x.AnimeSeries_UserID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AnimeSeries_UserID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.JMMUserID).IsRequired();
                 model.Property(x => x.AnimeSeriesID).IsRequired();
                 model.Property(x => x.UnwatchedEpisodeCount).IsRequired();
@@ -389,7 +389,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.AnimeSeriesID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeSeries");
                 model.HasIndex(x => x.AnimeGroupID).HasName("IX_AnimeSeries_AnimeGroupID");
                 model.HasIndex(x => x.AniDB_ID).IsUnique().HasName("UIX_AnimeSeries_AniDB_ID");
-                model.Property(x => x.AnimeSeriesID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AnimeSeriesID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeGroupID).IsRequired();
                 model.Property(x => x.AniDB_ID).IsRequired();
                 model.Property(x => x.DateTimeUpdated).IsRequired();
@@ -407,7 +407,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("AuthTokens").HasKey(x => new { x.AuthID, x.UserID, x.DeviceName, x.Token });
                 model.HasIndex(x => new { x.AuthID, x.UserID, x.DeviceName, x.Token}).IsUnique().ForSqlServerIsClustered().HasName("PK_AuthTokens");
                 model.HasIndex(x => x.Token).HasName("IX_AuthTokens_Token");
-                model.Property(x => x.AuthID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.AuthID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.UserID).IsRequired();
                 model.Property(x => x.DeviceName).IsRequired();
                 model.Property(x => x.Token).IsRequired();
@@ -418,7 +418,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("BookmarkedAnime").HasKey(x => x.BookmarkedAnimeID);
                 model.HasIndex(x => x.BookmarkedAnimeID).IsUnique().ForSqlServerIsClustered().HasName("PK_BookmarkedAnime");
                 model.HasIndex(x => x.AnimeID).HasName("IX_BookmarkedAnime_AnimeID");
-                model.Property(x => x.BookmarkedAnimeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.BookmarkedAnimeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.Priority).IsRequired();
                 model.Property(x => x.Downloading).IsRequired();
@@ -428,7 +428,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<CloudAccount>();
                 model.ToTable("CloudAccount").HasKey(x => x.CloudID);
                 model.HasIndex(x => x.CloudID).IsUnique().ForSqlServerIsClustered().HasName("PK_CloudAccount");
-                model.Property(x => x.CloudID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CloudID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.ConnectionString).IsRequired();
                 model.Property(x => x.Provider).IsRequired();
                 model.Property(x => x.Name).IsRequired();
@@ -437,7 +437,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<CommandRequest>();
                 model.ToTable("CommandRequest").HasKey(x => x.CommandRequestID);
                 model.HasIndex(x => x.CommandRequestID).IsUnique().ForSqlServerIsClustered().HasName("PK_CommandRequest");
-                model.Property(x => x.CommandRequestID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CommandRequestID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Priority).IsRequired();
                 model.Property(x => x.CommandType).IsRequired();
                 model.Property(x => x.CommandID).IsRequired();
@@ -450,7 +450,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.CrossRef_AniDB_MALID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_MAL");
                 model.HasIndex(x => new { x.AnimeID, x.StartEpisodeType, x.StartEpisodeNumber }).IsUnique().HasName("UIX_CrossRef_AniDB_MAL_Anime");
                 model.HasIndex(x => x.MALID).IsUnique().HasName("UIX_CrossRef_AniDB_MAL_MALID");
-                model.Property(x => x.CrossRef_AniDB_MALID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_AniDB_MALID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.MALID).IsRequired();
                 model.Property(x => x.MALTitle).HasMaxLength(500);
@@ -463,7 +463,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_AniDB_Other").HasKey(x => x.CrossRef_AniDB_OtherID);
                 model.HasIndex(x => x.CrossRef_AniDB_OtherID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_Other");
                 model.HasIndex(x => new { x.AnimeID, x.CrossRefID, x.CrossRefSource, x.CrossRefType}).IsUnique().HasName("UIX_CrossRef_AniDB_Other");
-                model.Property(x => x.CrossRef_AniDB_OtherID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_AniDB_OtherID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.CrossRefID).IsRequired().HasMaxLength(500);
                 model.Property(x => x.CrossRefSource).IsRequired();
@@ -474,7 +474,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_AniDB_Trakt_Episode").HasKey(x => x.CrossRef_AniDB_Trakt_EpisodeID);
                 model.HasIndex(x => x.CrossRef_AniDB_Trakt_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_Trakt_Episode");
                 model.HasIndex(x => x.AniDBEpisodeID).IsUnique().HasName("UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID");
-                model.Property(x => x.CrossRef_AniDB_Trakt_EpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_AniDB_Trakt_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.AniDBEpisodeID).IsRequired();
                 model.Property(x => x.TraktID).HasMaxLength(500);
@@ -486,7 +486,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_AniDB_TraktV2").HasKey(x => x.CrossRef_AniDB_TraktV2ID);
                 model.HasIndex(x => x.CrossRef_AniDB_TraktV2ID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TraktV2");
                 model.HasIndex(x => new { x.AnimeID, x.TraktSeasonNumber, x.TraktStartEpisodeNumber, x.AniDBStartEpisodeType, x.AniDBStartEpisodeNumber}).IsUnique().HasName("UIX_CrossRef_AniDB_TraktV2");
-                model.Property(x => x.CrossRef_AniDB_TraktV2ID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_AniDB_TraktV2ID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.AniDBStartEpisodeType).IsRequired();
                 model.Property(x => x.AniDBStartEpisodeNumber).IsRequired();
@@ -500,7 +500,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_AniDB_TvDB_Episode").HasKey(x => x.CrossRef_AniDB_TvDB_EpisodeID);
                 model.HasIndex(x => x.CrossRef_AniDB_TvDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TvDB_Episode");
                 model.HasIndex(x => x.AniDBEpisodeID).IsUnique().HasName("UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID");
-                model.Property(x => x.CrossRef_AniDB_TvDB_EpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_AniDB_TvDB_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.AniDBEpisodeID).IsRequired();
                 model.Property(x => x.TvDBEpisodeID).IsRequired();
@@ -510,7 +510,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_AniDB_TvDBV2").HasKey(x => x.CrossRef_AniDB_TvDBV2ID);
                 model.HasIndex(x => x.CrossRef_AniDB_TvDBV2ID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TvDBV2");
                 model.HasIndex(x => new { x.AnimeID, x.TvDBID, x.TvDBSeasonNumber, x.TvDBStartEpisodeNumber, x.AniDBStartEpisodeType, x.AniDBStartEpisodeNumber}).IsUnique().HasName("UIX_CrossRef_AniDB_TvDBV2");
-                model.Property(x => x.CrossRef_AniDB_TvDBV2ID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_AniDB_TvDBV2ID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.AniDBStartEpisodeType).IsRequired();
                 model.Property(x => x.AniDBStartEpisodeNumber).IsRequired();
@@ -524,7 +524,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_CustomTag").HasKey(x => x.CrossRef_CustomTagID);
                 model.HasIndex(x => x.CrossRef_CustomTagID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_CustomTag");
                 model.HasIndex(x => x.CustomTagID).HasName("IX_CrossRef_CustomTag");
-                model.Property(x => x.CrossRef_CustomTagID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_CustomTagID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.CustomTagID).IsRequired();
                 model.Property(x => x.CrossRefID).IsRequired();
                 model.Property(x => x.CrossRefType).IsRequired();
@@ -534,7 +534,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("CrossRef_File_Episode").HasKey(x => x.CrossRef_File_EpisodeID);
                 model.HasIndex(x => x.CrossRef_File_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_File_Episode");
                 model.HasIndex(x => new { x.Hash, x.EpisodeID}).IsUnique().HasName("UIX_CrossRef_File_Episode_Hash_EpisodeID");
-                model.Property(x => x.CrossRef_File_EpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_File_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Hash).HasMaxLength(50);
                 model.Property(x => x.FileName).IsRequired().HasMaxLength(500);
                 model.Property(x => x.FileSize).IsRequired();
@@ -550,7 +550,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.CrossRef_Languages_AniDB_FileID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_Languages_AniDB_File");
                 model.HasIndex(x => x.FileID).HasName("IX_CrossRef_Languages_AniDB_File_FileID");
                 model.HasIndex(x => x.LanguageID).HasName("IX_CrossRef_Languages_AniDB_File_LanguageID");
-                model.Property(x => x.CrossRef_Languages_AniDB_FileID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_Languages_AniDB_FileID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.FileID).IsRequired();
                 model.Property(x => x.LanguageID).IsRequired();
             }
@@ -560,7 +560,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.CrossRef_Subtitles_AniDB_FileID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_Subtitles_AniDB_File");
                 model.HasIndex(x => x.FileID).HasName("IX_CrossRef_Subtitles_AniDB_File_FileID");
                 model.HasIndex(x => x.LanguageID).HasName("IX_CrossRef_Subtitles_AniDB_File_LanguageID");
-                model.Property(x => x.CrossRef_Subtitles_AniDB_FileID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CrossRef_Subtitles_AniDB_FileID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.FileID).IsRequired();
                 model.Property(x => x.LanguageID).IsRequired();
             }
@@ -568,14 +568,14 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<CustomTag>();
                 model.ToTable("CustomTag").HasKey(x => x.CustomTagID);
                 model.HasIndex(x => x.CustomTagID).IsUnique().ForSqlServerIsClustered().HasName("PK_CustomTag");
-                model.Property(x => x.CustomTagID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.CustomTagID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.TagName).HasMaxLength(500);
             }
             {
                 var model = builder.Entity<DuplicateFile>();
                 model.ToTable("DuplicateFile").HasKey(x => x.DuplicateFileID);
                 model.HasIndex(x => x.DuplicateFileID).IsUnique().ForSqlServerIsClustered().HasName("PK_DuplicateFile");
-                model.Property(x => x.DuplicateFileID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.DuplicateFileID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.FilePathFile1).IsRequired();
                 model.Property(x => x.FilePathFile2).IsRequired();
                 model.Property(x => x.ImportFolderIDFile1).IsRequired();
@@ -589,7 +589,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("FileFfdshowPreset").HasKey(x => x.FileFfdshowPresetID);
                 model.HasIndex(x => x.FileFfdshowPresetID).IsUnique().ForSqlServerIsClustered().HasName("PK_FileFfdshowPreset");
                 model.HasIndex(x => new { x.Hash, x.FileSize}).IsUnique().HasName("UIX_FileFfdshowPreset_Hash");
-                model.Property(x => x.FileFfdshowPresetID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.FileFfdshowPresetID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Hash).IsRequired().HasMaxLength(50);
                 model.Property(x => x.FileSize).IsRequired();
 
@@ -599,7 +599,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("FileNameHash").HasKey(x => x.FileNameHashID);
                 model.HasIndex(x => x.FileNameHashID).IsUnique().ForSqlServerIsClustered().HasName("PK_FileNameHash");
                 model.HasIndex(x => new { x.FileName, x.FileSize, x.Hash}).IsUnique().HasName("UIX_FileNameHash");
-                model.Property(x => x.FileNameHashID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.FileNameHashID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.FileName).IsRequired().HasMaxLength(500);
                 model.Property(x => x.FileSize).IsRequired();
                 model.Property(x => x.Hash).IsRequired().HasMaxLength(50);
@@ -611,7 +611,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("GroupFilter").HasKey(x => x.GroupFilterID);
                 model.HasIndex(x => x.GroupFilterID).IsUnique().ForSqlServerIsClustered().HasName("PK_GroupFilter");
                 model.HasIndex(x => x.ParentGroupFilterID).HasName("IX_GroupFilter_ParentGroupFilterID");
-                model.Property(x => x.GroupFilterID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.GroupFilterID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.GroupFilterName).IsRequired();
                 model.Property(x => x.ApplyToSeries).IsRequired();
                 model.Property(x => x.BaseCondition).IsRequired();
@@ -626,7 +626,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("IgnoreAnime").HasKey(x => x.IgnoreAnimeID);
                 model.HasIndex(x => x.IgnoreAnimeID).IsUnique().ForSqlServerIsClustered().HasName("PK_IgnoreAnime");
                 model.HasIndex(x => new { x.JMMUserID, x.AnimeID, x.IgnoreType}).IsUnique().HasName("UIX_IgnoreAnime_User_AnimeID");
-                model.Property(x => x.IgnoreAnimeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.IgnoreAnimeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.JMMUserID).IsRequired();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.IgnoreType).IsRequired();
@@ -636,7 +636,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<SVR_ImportFolder>();
                 model.ToTable("ImportFolder").HasKey(x => x.ImportFolderID);
                 model.HasIndex(x => x.ImportFolderID).IsUnique().ForSqlServerIsClustered().HasName("PK_ImportFolder");
-                model.Property(x => x.ImportFolderID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.ImportFolderID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.ImportFolderType).IsRequired();
                 model.Property(x => x.ImportFolderName).IsRequired();
                 model.Property(x => x.ImportFolderLocation).IsRequired();
@@ -649,7 +649,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<SVR_JMMUser>();
                 model.ToTable("JMMUser").HasKey(x => x.JMMUserID);
                 model.HasIndex(x => x.JMMUserID).IsUnique().ForSqlServerIsClustered().HasName("PK_JMMUser");
-                model.Property(x => x.JMMUserID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.JMMUserID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Username).HasMaxLength(100);
                 model.Property(x => x.Password).HasMaxLength(150);
                 model.Property(x => x.IsAdmin).IsRequired();
@@ -663,7 +663,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("Language").HasKey(x => x.LanguageID);
                 model.HasIndex(x => x.LanguageID).IsUnique().ForSqlServerIsClustered().HasName("PK_Language");
                 model.HasIndex(x => x.LanguageName).IsUnique().HasName("UIX_Language_LanguageName");
-                model.Property(x => x.LanguageID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.LanguageID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.LanguageName).IsRequired().HasMaxLength(100);
 
             }
@@ -671,7 +671,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<MovieDB_Fanart>();
                 model.ToTable("MovieDB_Fanart").HasKey(x => x.MovieDB_FanartID);
                 model.HasIndex(x => x.MovieDB_FanartID).IsUnique().ForSqlServerIsClustered().HasName("PK_MovieDB_Fanart");
-                model.Property(x => x.MovieDB_FanartID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.MovieDB_FanartID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.ImageID).HasMaxLength(100);
                 model.Property(x => x.MovieId).IsRequired();
                 model.Property(x => x.ImageType).HasMaxLength(100);
@@ -686,14 +686,14 @@ namespace Shoko.Server.Databases
                 model.ToTable("MovieDB_Movie").HasKey(x => x.MovieDB_MovieID);
                 model.HasIndex(x => x.MovieDB_MovieID).IsUnique().ForSqlServerIsClustered().HasName("PK_MovieDB_Movie");
                 model.HasIndex(x => x.MovieId).IsUnique().HasName("UIX_MovieDB_Movie_Id");
-                model.Property(x => x.MovieDB_MovieID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.MovieDB_MovieID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.MovieId).IsRequired();
             }
             {
                 var model = builder.Entity<MovieDB_Poster>();
                 model.ToTable("MovieDB_Poster").HasKey(x => x.MovieDB_PosterID);
                 model.HasIndex(x => x.MovieDB_PosterID).IsUnique().ForSqlServerIsClustered().HasName("PK_MovieDB_Poster");
-                model.Property(x => x.MovieDB_PosterID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.MovieDB_PosterID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.ImageID).HasMaxLength(100);
                 model.Property(x => x.MovieId).IsRequired();
                 model.Property(x => x.ImageType).HasMaxLength(100);
@@ -706,7 +706,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<Playlist>();
                 model.ToTable("Playlist").HasKey(x => x.PlaylistID);
                 model.HasIndex(x => x.PlaylistID).IsUnique().ForSqlServerIsClustered().HasName("PK_Playlist");
-                model.Property(x => x.PlaylistID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.PlaylistID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.DefaultPlayOrder).IsRequired();
                 model.Property(x => x.PlayWatched).IsRequired();
                 model.Property(x => x.PlayUnwatched).IsRequired();
@@ -715,7 +715,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<RenameScript>();
                 model.ToTable("RenameScript").HasKey(x => x.RenameScriptID);
                 model.HasIndex(x => x.RenameScriptID).IsUnique().ForSqlServerIsClustered().HasName("PK_RenameScript");
-                model.Property(x => x.RenameScriptID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.RenameScriptID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.IsEnabledOnImport).IsRequired();
                 model.Property(x => x.RenamerType).IsRequired().HasDefaultValue("Legacy");
             }
@@ -724,7 +724,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("ScanFile").HasKey(x => new { x.ScanFileID, x.ScanID, x.ImportFolderID, x.VideoLocal_Place_ID, x.FullName, x.FileSize, x.Status, x.Hash });
                 model.HasIndex(x => x.ScanFileID).IsUnique().ForSqlServerIsClustered().HasName("PK_ScanFile");
                 model.HasIndex(x => new { x.ScanID,  x.Status}).HasName("IX_ScanFileStatus");
-                model.Property(x => x.ScanFileID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.ScanFileID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.ScanID).IsRequired();
                 model.Property(x => x.ImportFolderID).IsRequired();
                 model.Property(x => x.VideoLocal_Place_ID).IsRequired();
@@ -739,7 +739,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<SVR_Scan>();
                 model.ToTable("Scan").HasKey(x => new { x.ScanID, x.CreationTime, x.ImportFolders, x.Status });
                 model.HasIndex(x => new { x.ScanID, x.CreationTime , x.ImportFolders, x.Status }).IsUnique().ForSqlServerIsClustered().HasName("PK_Scan");
-                model.Property(x => x.ScanID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.ScanID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.CreationTime).IsRequired();
                 model.Property(x => x.ImportFolders).IsRequired();
                 model.Property(x => x.Status).IsRequired();
@@ -749,7 +749,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("ScheduledUpdate").HasKey(x => x.ScheduledUpdateID);
                 model.HasIndex(x => x.ScheduledUpdateID).IsUnique().ForSqlServerIsClustered().HasName("PK_ScheduledUpdate");
                 model.HasIndex(x => x.UpdateType).IsUnique().HasName("UIX_ScheduledUpdate_Type");
-                model.Property(x => x.ScheduledUpdateID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.ScheduledUpdateID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.UpdateType).IsRequired();
                 model.Property(x => x.LastUpdate).IsRequired();
                 model.Property(x => x.UpdateDetails).IsRequired();
@@ -759,7 +759,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<Trakt_Episode>();
                 model.ToTable("Trakt_Episode").HasKey(x => x.Trakt_EpisodeID);
                 model.HasIndex(x => x.Trakt_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_Trakt_Episode");
-                model.Property(x => x.Trakt_EpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.Trakt_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Trakt_ShowID).IsRequired();
                 model.Property(x => x.Season).IsRequired();
                 model.Property(x => x.EpisodeNumber).IsRequired();
@@ -770,7 +770,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("Trakt_Friend").HasKey(x => x.Trakt_FriendID);
                 model.HasIndex(x => x.Trakt_FriendID).IsUnique().ForSqlServerIsClustered().HasName("PK_Trakt_Friend");
                 model.HasIndex(x => x.Username).IsUnique().HasName("UIX_Trakt_Friend_Username");
-                model.Property(x => x.Trakt_FriendID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.Trakt_FriendID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Username).IsRequired().HasMaxLength(100);
                 model.Property(x => x.FullName).HasMaxLength(100);
                 model.Property(x => x.Gender).HasMaxLength(100);
@@ -784,7 +784,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<Trakt_Season>();
                 model.ToTable("Trakt_Season").HasKey(x => x.Trakt_SeasonID);
                 model.HasIndex(x => x.Trakt_SeasonID).IsUnique().ForSqlServerIsClustered().HasName("PK_Trakt_Season");
-                model.Property(x => x.Trakt_SeasonID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.Trakt_SeasonID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Trakt_ShowID).IsRequired();
                 model.Property(x => x.Season).IsRequired();
                 model.Property(x => x.URL).HasMaxLength(500);
@@ -793,7 +793,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<Trakt_Show>();
                 model.ToTable("Trakt_Show").HasKey(x => x.Trakt_ShowID);
                 model.HasIndex(x => x.Trakt_ShowID).IsUnique().ForSqlServerIsClustered().HasName("PK_Trakt_Show");
-                model.Property(x => x.Trakt_ShowID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.Trakt_ShowID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.TraktID).HasMaxLength(500);
                 model.Property(x => x.Year).HasMaxLength(500);
                 model.Property(x => x.URL).HasMaxLength(500);
@@ -803,7 +803,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("TvDB_Episode").HasKey(x => x.TvDB_EpisodeID);
                 model.HasIndex(x => x.TvDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_TvDB_Episode");
                 model.HasIndex(x => x.Id).IsUnique().HasName("UIX_TvDB_Episode_Id");
-                model.Property(x => x.TvDB_EpisodeID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.TvDB_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Id).IsRequired();
                 model.Property(x => x.SeriesID).IsRequired();
                 model.Property(x => x.SeasonID).IsRequired();
@@ -817,7 +817,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("TvDB_ImageFanart").HasKey(x => x.TvDB_ImageFanartID);
                 model.HasIndex(x => x.TvDB_ImageFanartID).IsUnique().ForSqlServerIsClustered().HasName("PK_TvDB_ImageFanart");
                 model.HasIndex(x => x.Id).IsUnique().HasName("UIX_TvDB_ImageFanart_Id");
-                model.Property(x => x.TvDB_ImageFanartID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.TvDB_ImageFanartID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Id).IsRequired();
                 model.Property(x => x.SeriesID).IsRequired();
                 model.Property(x => x.Enabled).IsRequired();
@@ -829,7 +829,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.TvDB_ImagePosterID).IsUnique().ForSqlServerIsClustered().HasName("PK_TvDB_ImagePoster");
                 model.HasIndex(x => x.Id).IsUnique().HasName("UIX_TvDB_ImagePoster_Id");
 
-                model.Property(x => x.TvDB_ImagePosterID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.TvDB_ImagePosterID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Id).IsRequired();
                 model.Property(x => x.SeriesID).IsRequired();
                 model.Property(x => x.Enabled).IsRequired();
@@ -841,7 +841,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.TvDB_ImageWideBannerID).IsUnique().ForSqlServerIsClustered().HasName("PK_TvDB_ImageWideBanner");
                 model.HasIndex(x => x.Id).IsUnique().HasName("UIX_TvDB_ImageWideBanner_Id");
 
-                model.Property(x => x.TvDB_ImageWideBannerID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.TvDB_ImageWideBannerID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Id).IsRequired();
                 model.Property(x => x.SeriesID).IsRequired();
                 model.Property(x => x.Enabled).IsRequired();
@@ -853,7 +853,7 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.TvDB_SeriesID).IsUnique().ForSqlServerIsClustered().HasName("PK_TvDB_Series");
                 model.HasIndex(x => x.SeriesID).IsUnique().HasName("UIX_TvDB_Series_SeriesID");
 
-                model.Property(x => x.TvDB_SeriesID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.TvDB_SeriesID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.SeriesID).IsRequired();
                 model.Property(x => x.Status).HasMaxLength(100);
                 model.Property(x => x.Banner).HasMaxLength(100);
@@ -865,7 +865,7 @@ namespace Shoko.Server.Databases
                 var model = builder.Entity<VideoLocal_Place>();
                 model.ToTable("VideoLocal_Place").HasKey(x => x.VideoLocal_Place_ID);
                 model.HasIndex(x => x.VideoLocal_Place_ID).IsUnique().ForSqlServerIsClustered().HasName("PK_VideoLocal_Place");
-                model.Property(x => x.VideoLocal_Place_ID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.VideoLocal_Place_ID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.VideoLocalID).IsRequired();
                 model.Property(x => x.FilePath).IsRequired();
                 model.Property(x => x.ImportFolderID).IsRequired();
@@ -876,7 +876,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("VideoLocal_User").HasKey(x => x.VideoLocal_UserID);
                 model.HasIndex(x => x.VideoLocal_UserID).IsUnique().ForSqlServerIsClustered().HasName("PK_VideoLocal_User");
                 model.HasIndex(x => new { x.JMMUserID, x.VideoLocalID}).IsUnique().HasName("UIX_VideoLocal_User_User_VideoLocalID");
-                model.Property(x => x.VideoLocal_UserID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.VideoLocal_UserID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.JMMUserID).IsRequired();
                 model.Property(x => x.VideoLocalID).IsRequired();
                 model.Property(x => x.ResumePosition).IsRequired().HasDefaultValue(0);
@@ -886,7 +886,7 @@ namespace Shoko.Server.Databases
                 model.ToTable("VideoLocal").HasKey(x => x.VideoLocalID);
                 model.HasIndex(x => x.VideoLocalID).IsUnique().ForSqlServerIsClustered().HasName("PK_VideoLocal");
                 model.HasIndex(x => x.Hash).IsUnique().HasName("UIX_IX_VideoLocal_Hash");
-                model.Property(x => x.VideoLocalID).IsRequired().ValueGeneratedOnAdd();
+                model.Property(x => x.VideoLocalID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Hash).IsRequired().HasMaxLength(50);
                 model.Property(x => x.CRC32).HasMaxLength(50);
                 model.Property(x => x.MD5).HasMaxLength(50);

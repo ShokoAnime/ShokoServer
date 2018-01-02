@@ -31,11 +31,12 @@ namespace Shoko.Server.RepositoriesV2
         }
 
 
-        public bool IsUpdate { get; private set; }
+        public bool IsUpdate { get;  }
 
-        public void Commit(TT pars=default(TT))
+        public void Commit(TT pars=default(TT)) 
+        // Pars are the extra parameters send to the save and delete callbacks, in this way we can forward behaviors to the callbacks
         {
-            _repo.BeginSaveCallback?.Invoke(Updatable,pars);
+            object obj=_repo.BeginSave(Updatable,Original, pars);
             using (_repo.CacheLock.ReaderLock())
             {
                 _repo.Table.Attach(Updatable);
@@ -46,7 +47,7 @@ namespace Shoko.Server.RepositoriesV2
                     _repo.Cache.Update(Updatable);
                 }
             }
-            _repo.EndSaveCallback?.Invoke(Updatable,pars);
+            _repo.EndSave(Updatable,Original, obj, pars);
         }
 
        
