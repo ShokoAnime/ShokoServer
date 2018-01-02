@@ -700,5 +700,11 @@ namespace Shoko.Commons.Utils
 
             return ImageFormatEnum.unknown;
         }
+
+        public static void Deconstruct<T, T1>(this KeyValuePair<T, T1> kvp, out T key, out T1 value)
+        {
+            key = kvp.Key;
+            value = kvp.Value;
+        }
     }
 }
