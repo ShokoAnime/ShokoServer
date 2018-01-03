@@ -42,6 +42,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Diagnostics.Contracts" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ValueTuple.4.4.0\lib\net461\System.ValueTuple.dll</HintPath>
     </Reference>
@@ -70,27 +71,6 @@
     <Compile Include="Languages\EnumTranslator.cs" />
     <Compile Include="Notification\INotifyPropertyChangedExt.cs" />
     <Compile Include="Notification\INotifyPropertyChangedExtensions.cs" />
-    <Compile Include="Plex\Connections\Connection.cs" />
-    <Compile Include="Plex\Libraries\Directory.cs" />
-    <Compile Include="Plex\Libraries\Location.cs" />
-    <Compile Include="Plex\Libraries\MediaContainer.cs" />
-    <Compile Include="Plex\Collection\MediaContainer.cs" />
-    <Compile Include="Plex\PlexType.cs" />
-    <Compile Include="Plex\TVShow\MediaContainer.cs" />
-    <Compile Include="Plex\TVShow\Episode.cs" />
-    <Compile Include="Plex\Login\Location.cs" />
-    <Compile Include="Plex\TVShow\Media.cs" />
-    <Compile Include="Plex\MediaContainer.cs" />
-    <Compile Include="Plex\Connections\MediaDevice.cs" />
-    <Compile Include="Plex\TVShow\Part.cs" />
-    <Compile Include="Plex\Login\PlexAccount.cs" />
-    <Compile Include="Plex\Login\PlexKey.cs" />
-    <Compile Include="Plex\Collection\PlexLibrary.cs" />
-    <Compile Include="Plex\Connections\MediaContainer.cs" />
-    <Compile Include="Plex\Login\Roles.cs" />
-    <Compile Include="Plex\Login\Subscription.cs" />
-    <Compile Include="Plex\TagHolder.cs" />
-    <Compile Include="Plex\User.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.de.Designer.cs">
       <AutoGen>True</AutoGen>
