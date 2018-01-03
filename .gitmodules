@@ -6,7 +6,7 @@
 	url = https://github.com/maxpiva/Nancy.Rest.Annotations
 [submodule "Nancy.Rest/Nancy.Rest.Module"]
 	path = Nancy.Rest/Nancy.Rest.Module
-	url = https://github.com/maxpiva/Nancy.Rest.Rest.Module
+	url = https://github.com/maxpiva/Nancy.Rest.Module
 [submodule "CloudFileSystem"]
 	path = CloudFileSystem
 	url = https://github.com/maxpiva/CloudFileSystem
