@@ -5202,9 +5202,6 @@
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - MovieDB Fanarts</value>
   </data>
-  <data name="Plex_UsageMessage" xml:space="preserve">
-    <value>Нажмите кнопку «Ссылка», затем введите предоставленный вывод в http://plex.tv/pin!</value>
-  </data>
   <data name="DeleteFile_Confirm" xml:space="preserve">
     <value>Выберите поставщиков для удаления файла с.!</value>
   </data>

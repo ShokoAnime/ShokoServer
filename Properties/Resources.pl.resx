@@ -5201,9 +5201,6 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - Autora MovieDB</value>
   </data>
-  <data name="Plex_UsageMessage" xml:space="preserve">
-    <value>Naciśnij przycisk &amp;quot;Link&amp;quot;, a następnie podaj podany stempel pod adresem http://plex.tv/pin!</value>
-  </data>
   <data name="DeleteFile_Confirm" xml:space="preserve">
     <value>Wybierz dostawców, aby usunąć plik.!</value>
   </data>

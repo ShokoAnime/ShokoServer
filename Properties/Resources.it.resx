@@ -5202,9 +5202,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - MovieDB Fanarts</value>
   </data>
-  <data name="Plex_UsageMessage" xml:space="preserve">
-    <value>Premere il tasto &amp;quot;Link&amp;quot;, quindi inserire il pin indicato all&amp;#39;indirizzo http://plex.tv/pin!</value>
-  </data>
   <data name="DeleteFile_Confirm" xml:space="preserve">
     <value>Selezionare i provider di eliminare il file da.!</value>
   </data>

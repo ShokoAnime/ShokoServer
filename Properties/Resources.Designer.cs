@@ -8558,7 +8558,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Press &quot;Link&quot; button, then enter the provided pin at http://plex.tv/pin.
+        ///   Looks up a localized string similar to Press &quot;Link&quot; button, then log into plex using the provided link.
         /// </summary>
         public static string Plex_UsageMessage {
             get {

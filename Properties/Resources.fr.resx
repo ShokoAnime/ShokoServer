@@ -5202,9 +5202,6 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - Fanarts MovieDB</value>
   </data>
-  <data name="Plex_UsageMessage" xml:space="preserve">
-    <value>Appuyez sur le bouton &amp;quot;Link&amp;quot;, puis entrez la broche fournie à http://plex.tv/pin!</value>
-  </data>
   <data name="DeleteFile_Confirm" xml:space="preserve">
     <value>Sélectionner les fournisseurs de supprimer le fichier de. !</value>
   </data>

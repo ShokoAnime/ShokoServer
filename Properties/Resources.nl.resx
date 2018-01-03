@@ -5202,9 +5202,6 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
   <data name="Command_ValidateAllImages_MovieDBFanarts" xml:space="preserve">
     <value> - MovieDB Fanarts</value>
   </data>
-  <data name="Plex_UsageMessage" xml:space="preserve">
-    <value>Druk op de knop &amp;quot;Link&amp;quot; en voer de meegeleverde pin in op http://plex.tv/pin!</value>
-  </data>
   <data name="DeleteFile_Confirm" xml:space="preserve">
     <value>Selecteer de providers voor wegvagen naar de vijl van.!</value>
   </data>
