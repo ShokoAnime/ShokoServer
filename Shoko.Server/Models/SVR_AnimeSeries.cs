@@ -311,19 +311,8 @@ namespace Shoko.Server.Models
 
                 return contract;
             }
-            catch (Exception e)
+            catch
             {
-                try
-                {
-                    logger.Error($"There was an error retrieving the contract for an AnimeSeries: {e.Message}. DUMPING IT!");
-                    string output = JsonConvert.SerializeObject(this, Formatting.Indented);
-                    logger.Error(output);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error($"There was an error dumping the AnimeSeries...: {ex}");
-                }
-
                 return null;
             }
         }
