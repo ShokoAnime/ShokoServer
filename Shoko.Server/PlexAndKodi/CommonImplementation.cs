@@ -19,11 +19,14 @@ using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using NLog;
+using Shoko.Models.Plex.Connections;
+using Shoko.Server.Plex;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi.Plex;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
+using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -1193,5 +1196,24 @@ namespace Shoko.Server.PlexAndKodi
                 return new MediaContainer() {ErrorString = "System Error, see JMMServer logs for more information"};
             }
         }
+
+        public void UseDirectories(int userId, Shoko.Models.Plex.Libraries.Directory[] directories)
+        {
+            if (directories == null)
+            {
+                ServerSettings.Plex_Libraries = new int[0];
+                return;
+            }
+
+            ServerSettings.Plex_Libraries = directories.Select(s => s.Key).ToArray();
+        }
+
+        public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).GetDirectories();
+
+        public void UseDevice(int userId, MediaDevice server) =>
+            PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).UseServer(server);
+
+        public MediaDevice[] AvailableDevices(int userId) =>
+            PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).GetPlexDevices();
     }
 }

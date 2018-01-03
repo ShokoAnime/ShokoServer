@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json;
-using Shoko.Commons.Plex;
-using Shoko.Commons.Plex.Libraries;
+using Shoko.Models.Plex;
+using Shoko.Models.Plex.Libraries;
+using Shoko.Models.Plex.Collection;
+using MediaContainer = Shoko.Models.Plex.Collection.MediaContainer;
 
 namespace Shoko.Server.Plex.Libraries
 {
@@ -13,12 +15,12 @@ namespace Shoko.Server.Plex.Libraries
 
         private PlexHelper Helper { get; }
 
-        public Commons.Plex.Collection.PlexLibrary[] GetShows()
+        public PlexLibrary[] GetShows()
         {
             var (_, json) = Helper.RequestFromPlexAsync($"/library/sections/{Key}/all").ConfigureAwait(false)
                 .GetAwaiter().GetResult();
             return JsonConvert
-                .DeserializeObject<MediaContainer<Commons.Plex.Collection.MediaContainer>>(json, Helper.SerializerSettings)
+                .DeserializeObject<MediaContainer<MediaContainer>>(json, Helper.SerializerSettings)
                 .Container.Metadata;
         }
     }

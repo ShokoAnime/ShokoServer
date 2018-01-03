@@ -819,7 +819,7 @@ namespace Shoko.Server
 
         #region Plex
 
-        public string LinkToPlex(int userID)
+        public string LoginUrl(int userID)
         {
             JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).LoginUrl;

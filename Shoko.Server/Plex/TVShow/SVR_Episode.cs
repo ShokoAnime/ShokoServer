@@ -1,5 +1,5 @@
 ﻿using System.IO;
-using Shoko.Commons.Plex.TVShow;
+using Shoko.Models.Plex.TVShow;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 

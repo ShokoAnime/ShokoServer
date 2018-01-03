@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using Shoko.Commons.Utils;
+using Shoko.Models.Plex.Connections;
 using Shoko.Models.Server;
 
 namespace Shoko.Server.Plex
@@ -32,10 +33,10 @@ namespace Shoko.Server.Plex
         }
 
 
-        private Commons.Plex.Connections.MediaDevice _mediaDevice;
+        private Shoko.Models.Plex.Connections.MediaDevice _mediaDevice;
         private DateTime _lastMediaCacheTime = DateTime.MinValue;
 
-        private Commons.Plex.Connections.MediaDevice ServerCache
+        private Shoko.Models.Plex.Connections.MediaDevice ServerCache
         {
             get
             {
@@ -60,7 +61,7 @@ namespace Shoko.Server.Plex
             }
         }
 
-        private Commons.Plex.Connections.Connection ConnectionCache
+        private Shoko.Models.Plex.Connections.Connection ConnectionCache
         {
             get
             {
@@ -90,7 +91,7 @@ namespace Shoko.Server.Plex
             }
         }
 
-        private Commons.Plex.Connections.Connection _cachedConnection;
+        private Shoko.Models.Plex.Connections.Connection _cachedConnection;
         private DateTime _lastCacheTime = DateTime.MinValue;
 
         private Dictionary<string, string> AuthenticationHeaders => new Dictionary<string, string>()
@@ -122,12 +123,12 @@ namespace Shoko.Server.Plex
                                   $"&context%5Bdevice%5D%5BplatformVersion%5D={WebUtility.UrlEncode(Environment.OSVersion.VersionString)}" +
                                   $"&context%5Bdevice%5D%5Bversion%5D={WebUtility.UrlEncode(Assembly.GetEntryAssembly().GetName().Version.ToString())}";
 
-        private Commons.Plex.Login.PlexKey GetPlexKey()
+        private Shoko.Models.Plex.Login.PlexKey GetPlexKey()
         {
             if (_key != null) return _key;
 
             var (_, content) = RequestAsync("https://plex.tv/api/v2/pins?strong=true", HttpMethod.Post).Result;
-            _key = JsonConvert.DeserializeObject<Commons.Plex.Login.PlexKey>(content);
+            _key = JsonConvert.DeserializeObject<Shoko.Models.Plex.Login.PlexKey>(content);
             return _key;
         }
 
@@ -141,7 +142,7 @@ namespace Shoko.Server.Plex
             if (_key.AuthToken != null) return _key?.AuthToken;
 
             var (_, content) = RequestAsync($"https://plex.tv/api/v2/pins/{_key.Id}", HttpMethod.Get).Result;
-            _key = JsonConvert.DeserializeObject<Commons.Plex.Login.PlexKey>(content);
+            _key = JsonConvert.DeserializeObject<Shoko.Models.Plex.Login.PlexKey>(content);
             if (_key == null) return null;
             _user.PlexToken = _key.AuthToken;
 
@@ -151,7 +152,7 @@ namespace Shoko.Server.Plex
 
 
         //private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private Commons.Plex.Login.PlexKey _key;
+        private Shoko.Models.Plex.Login.PlexKey _key;
         private const string ClientIdentifier = "d14f0724-a4e8-498a-bb67-add795b38331";
         private static readonly Dictionary<int, PlexHelper> Cache = new Dictionary<int, PlexHelper>();
         internal readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings();
@@ -194,19 +195,19 @@ namespace Shoko.Server.Plex
             return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
 
-        private List<Commons.Plex.Connections.MediaDevice> GetPlexDevices()
+        public Shoko.Models.Plex.Connections.MediaDevice[] GetPlexDevices()
         {
             var (_, content) = RequestAsync("https://plex.tv/api/resources?includeHttps=1", HttpMethod.Get,
                 AuthenticationHeaders).Result;
-            XmlSerializer serializer = new XmlSerializer(typeof(Commons.Plex.Connections.MediaContainer));
+            XmlSerializer serializer = new XmlSerializer(typeof(Shoko.Models.Plex.Connections.MediaContainer));
             using (TextReader reader = new StringReader(content))
-                return ((Commons.Plex.Connections.MediaContainer) serializer.Deserialize(reader)).Device;
+                return ((Shoko.Models.Plex.Connections.MediaContainer) serializer.Deserialize(reader)).Device;
         }
 
-        private List<Commons.Plex.Connections.MediaDevice> GetPlexServers() =>
+        private List<Shoko.Models.Plex.Connections.MediaDevice> GetPlexServers() =>
             GetPlexDevices().Where(d => d.Provides.Split(',').Contains("server")).ToList();
 
-        public void UseServer(Commons.Plex.Connections.MediaDevice server)
+        public void UseServer(Shoko.Models.Plex.Connections.MediaDevice server)
         {
             if (!server.Provides.Split(',').Contains("server")) return; //not allowed.
 
@@ -214,23 +215,23 @@ namespace Shoko.Server.Plex
             ServerCache = server;
         }
 
-        public Commons.Plex.Login.User GetAccount()
+        public Shoko.Models.Plex.Login.User GetAccount()
         {
             //https://plex.tv/users/account.json
             var (resp, data) =
                 RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get, headers: AuthenticationHeaders)
                     .ConfigureAwait(false).GetAwaiter().GetResult();
             if (resp != HttpStatusCode.OK) return null;
-            return JsonConvert.DeserializeObject<Commons.Plex.Login.PlexAccount>(data).User;
+            return JsonConvert.DeserializeObject<Shoko.Models.Plex.Login.PlexAccount>(data).User;
         }
 
 
-        public Commons.Plex.Libraries.Directory[] GetDirectories()
+        public Shoko.Models.Plex.Libraries.Directory[] GetDirectories()
         {
             if (ServerCache == null) return null;
             var (_, data) = RequestFromPlexAsync("/library/sections").Result;
             return JsonConvert
-                .DeserializeObject<Commons.Plex.MediaContainer<Commons.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
+                .DeserializeObject<Shoko.Models.Plex.MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
                 .Container.Directory;
         }
 

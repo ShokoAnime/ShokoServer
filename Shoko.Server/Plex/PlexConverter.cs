@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Shoko.Models.Plex.Collection;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
@@ -24,11 +25,11 @@ namespace Shoko.Server.Plex
             JsonSerializer serializer)
         {
             object instance = null;
-            if (objectType == typeof(Commons.Plex.Libraries.Directory))
+            if (objectType == typeof(Shoko.Models.Plex.Libraries.Directory))
                 instance = new SVR_Directory(_helper);
-            else if (objectType == typeof(Commons.Plex.TVShow.Episode))
+            else if (objectType == typeof(Shoko.Models.Plex.TVShow.Episode))
                 instance = new SVR_Episode(_helper);
-            else if (objectType == typeof(Commons.Plex.Collection.PlexLibrary))
+            else if (objectType == typeof(PlexLibrary))
                 instance = new SVR_PlexLibrary(_helper);
 
             //var instance = objectType.GetConstructor(new[] { typeof(PlexHelper) })?.Invoke(new object[] { _helper });
@@ -37,7 +38,7 @@ namespace Shoko.Server.Plex
         }
 
         public override bool CanConvert(Type objectType) =>
-            objectType == typeof(Commons.Plex.Libraries.Directory) || objectType == typeof(Commons.Plex.TVShow.Episode) ||
-            objectType == typeof(Commons.Plex.Collection.PlexLibrary);
+            objectType == typeof(Shoko.Models.Plex.Libraries.Directory) || objectType == typeof(Shoko.Models.Plex.TVShow.Episode) ||
+            objectType == typeof(PlexLibrary);
     }
 }
