@@ -209,6 +209,7 @@ namespace Shoko.Server.Models
 
         public bool UpdateGroupFilterFromSeries(CL_AnimeSeries_User ser, JMMUser user)
         {
+            if (ser == null) return false;
             bool result;
             if (ApplyToSeries == 1)
             {
@@ -258,6 +259,7 @@ namespace Shoko.Server.Models
 
         public bool UpdateGroupFilterFromGroup(CL_AnimeGroup_User grp, JMMUser user)
         {
+            if (grp == null) return false;
             bool result;
             if (ApplyToSeries == 1)
             {
@@ -298,6 +300,8 @@ namespace Shoko.Server.Models
 
         private bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user)
         {
+            if (ser == null) return false;
+
             bool change = false;
 
             SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out HashSet<int> seriesIds);
@@ -326,6 +330,7 @@ namespace Shoko.Server.Models
 
         private bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user)
         {
+            if (grp == null) return false;
             bool change = false;
 
             GroupsIds.TryGetValue(user?.JMMUserID ?? 0, out HashSet<int> groupIds);
