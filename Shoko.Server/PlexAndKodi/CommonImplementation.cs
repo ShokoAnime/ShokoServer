@@ -1215,5 +1215,8 @@ namespace Shoko.Server.PlexAndKodi
 
         public MediaDevice[] AvailableDevices(int userId) =>
             PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).GetPlexServers().ToArray();
+
+        public MediaDevice CurrentDevice(int userId) =>
+            PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).ServerCache;
     }
 }
