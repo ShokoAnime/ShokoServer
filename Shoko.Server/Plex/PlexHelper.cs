@@ -36,7 +36,7 @@ namespace Shoko.Server.Plex
         private Shoko.Models.Plex.Connections.MediaDevice _mediaDevice;
         private DateTime _lastMediaCacheTime = DateTime.MinValue;
 
-        private Shoko.Models.Plex.Connections.MediaDevice ServerCache
+        public Shoko.Models.Plex.Connections.MediaDevice ServerCache
         {
             get
             {
@@ -54,7 +54,7 @@ namespace Shoko.Server.Plex
                 ServerSettings.Plex_Server = _mediaDevice.ClientIdentifier;
                 return _mediaDevice;
             }
-            set
+            private set
             {
                 _mediaDevice = value;
                 _lastMediaCacheTime = DateTime.Now;
@@ -204,11 +204,17 @@ namespace Shoko.Server.Plex
                 return ((Shoko.Models.Plex.Connections.MediaContainer) serializer.Deserialize(reader)).Device;
         }
 
-        private List<Shoko.Models.Plex.Connections.MediaDevice> GetPlexServers() =>
+        public List<Shoko.Models.Plex.Connections.MediaDevice> GetPlexServers() =>
             GetPlexDevices().Where(d => d.Provides.Split(',').Contains("server")).ToList();
 
         public void UseServer(Shoko.Models.Plex.Connections.MediaDevice server)
         {
+            if (server == null)
+            {
+                ServerSettings.Plex_Server = null;
+                return;
+            }
+
             if (!server.Provides.Split(',').Contains("server")) return; //not allowed.
 
             ServerSettings.Plex_Server = server.ClientIdentifier;

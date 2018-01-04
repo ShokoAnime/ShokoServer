@@ -50,6 +50,8 @@ namespace Shoko.Server.API.v1.Implementations
                 votetype);
         }
 
+        public MediaDevice CurrentDevice(int userId) => _impl.CurrentDevice(userId);
+
         public void UseDirectories(int userId, Shoko.Models.Plex.Libraries.Directory[] directories) =>
             _impl.UseDirectories(userId, directories);
 
