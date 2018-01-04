@@ -35,6 +35,9 @@ namespace Shoko.Models.Interfaces
 
         #region Plex Linking
 
+        [Rest("Linking/Devices/Current/{userId}", Verbs.Get)]
+        MediaDevice CurrentDevice(int userId);
+
         [Rest("Linking/Directories/{userId}", Verbs.Post)]
         void UseDirectories(int userId, Plex.Libraries.Directory[] directories);
 
