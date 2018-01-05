@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Windows;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -85,15 +86,33 @@ namespace Shoko.UI.Forms
         {
             if (comboProvider.SelectedIndex == 0)
             {
-                System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
-
-                if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) &&
-                    Directory.Exists(txtImportFolderLocation.Text))
-                    dialog.SelectedPath = txtImportFolderLocation.Text;
-
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                //needed check, 
+                if (CommonFileDialog.IsPlatformSupported)
                 {
-                    txtImportFolderLocation.Text = dialog.SelectedPath;
+                    var dialog = new CommonOpenFileDialog();
+                    dialog.IsFolderPicker = true;
+
+                    if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) &&
+                        Directory.Exists(txtImportFolderLocation.Text))
+                        dialog.InitialDirectory = txtImportFolderLocation.Text;
+                    if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                    {
+                        txtImportFolderLocation.Text = dialog.FileName;
+                    }
+
+                }
+                else
+                {
+                    System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+
+                    if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) &&
+                        Directory.Exists(txtImportFolderLocation.Text))
+                        dialog.SelectedPath = txtImportFolderLocation.Text;
+
+                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    {
+                        txtImportFolderLocation.Text = dialog.SelectedPath;
+                    }
                 }
             }
             else
