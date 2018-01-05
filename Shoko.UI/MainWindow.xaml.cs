@@ -18,6 +18,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server;
@@ -563,10 +564,24 @@ namespace Shoko.UI
 
         void btnChooseImagesFolder_Click(object sender, RoutedEventArgs e)
         {
-            FolderBrowserDialog dialog = new FolderBrowserDialog();
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            //needed check, 
+            if (CommonFileDialog.IsPlatformSupported)
             {
-                ServerSettings.ImagesPath = dialog.SelectedPath;
+                var dialog = new CommonOpenFileDialog();
+                dialog.IsFolderPicker = true;
+                //CommonFileDialogResult result = dialog.ShowDialog();
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    ServerSettings.ImagesPath = dialog.FileName;
+                }
+            }
+            else
+            {
+                System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    ServerSettings.ImagesPath = dialog.SelectedPath;
+                }
             }
         }
 
