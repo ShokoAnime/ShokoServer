@@ -64,7 +64,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case AniDBFileDeleteType.MarkDeleted:
-                        if (FileID < 0)
+                        if (FileID > 0)
                         {
                             ShokoService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
                             logger.Info("Marking file as deleted from list: {0}_{1}", Hash, FileID);
@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case AniDBFileDeleteType.MarkUnknown:
-                        if (FileID < 0)
+                        if (FileID > 0)
                         {
                             ShokoService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
                             logger.Info("Marking file as unknown: {0}_{1}", Hash, FileID);
@@ -85,7 +85,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     default:
-                        if (FileID < 0)
+                        if (FileID > 0)
                         {
                             ShokoService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
                             logger.Info("Moving file to external storage: {0}_{1}", Hash, FileID);
