@@ -598,7 +598,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(78, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
             new DatabaseCommand(79, 1, DatabaseFixes.RecalculateYears),
             new DatabaseCommand(80, 1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
-            new DatabaseCommand(80, 2, "ALTER TABLE `AniDB_Anime` ADD `Site_JP` text character set utf8 null, `Site_EN` text character set utf8 null, `Wikipedia_ID` text character set utf8 null, `WikipediaJP_ID` text character set utf8 null, `SyoboiID` INT NULL, `AnisonID` INT NULL, `CrunchyrollID` text character set utf8 null;"),
+            new DatabaseCommand(80, 2, "ALTER TABLE `AniDB_Anime` ADD ( `Site_JP` text character set utf8 null, `Site_EN` text character set utf8 null, `Wikipedia_ID` text character set utf8 null, `WikipediaJP_ID` text character set utf8 null, `SyoboiID` INT NULL, `AnisonID` INT NULL, `CrunchyrollID` text character set utf8 null );"),
             new DatabaseCommand(80, 3, DatabaseFixes.PopulateResourceLinks),
         };
 
