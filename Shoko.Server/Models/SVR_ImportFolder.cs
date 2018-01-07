@@ -1,23 +1,22 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Web.Script.Serialization;
 using System.Xml.Serialization;
+using Nancy.Json;
 using Newtonsoft.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
-using Pri.LongPath;
 
 namespace Shoko.Server.Models
 {
     public class SVR_ImportFolder : ImportFolder, INotifyPropertyChangedExt
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
         public new int IsWatched
         {
             get { return base.IsWatched; }
@@ -28,13 +27,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        public void Bass<T>(Expression<Func<T, int>> step, int value)
-        {
-        }
-
-        public void Bass2<T>(Func<int> test, int value)
-        {
-        }
 
         public new int IsDropSource
         {
@@ -94,19 +86,19 @@ namespace Shoko.Server.Models
                 {
                     if (CloudID != null)
                     {
-                        SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(CloudID.Value);
+                        SVR_CloudAccount cl = Repo.CloudAccount.GetByID(CloudID.Value);
                         if (cl == null)
                             throw new Exception("Cloud Account Not Found");
                         _filesystem = cl.FileSystem;
                     }
                     else
                     {
-                        FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
+                        IFileSystem ff = CloudFileSystemPluginFactory.Instance.List
                             .FirstOrDefault(a => a.Name == "Local File System")
                             ?.Init("", null, null);
-                        if (ff == null || !ff.IsOk)
+                        if (ff.Status!=Status.Ok)
                             throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
-                        _filesystem = ff.Result;
+                        _filesystem = ff;
                     }
                 }
 
@@ -142,24 +134,18 @@ namespace Shoko.Server.Models
         {
             get
             {
-                FileSystemResult<IObject> fr = FileSystem.Resolve(ImportFolderLocation);
+                IObject fr = FileSystem.Resolve(ImportFolderLocation);
 
-                if (fr != null && fr.IsOk && fr.Result is IDirectory)
-                    return (IDirectory) fr.Result;
+                if (fr.Status==Status.Ok && fr is IDirectory)
+                    return (IDirectory) fr;
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
             }
         }
 
-        public SVR_CloudAccount CloudAccount
-        {
-            get { return CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null; }
-        }
+        public SVR_CloudAccount CloudAccount => CloudID.HasValue ? Repo.CloudAccount.GetByID(CloudID.Value) : null;
 
 
-        public string CloudAccountName
-        {
-            get { return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem"; }
-        }
+        public string CloudAccountName => CloudID.HasValue ? CloudAccount.Name : "Local FileSystem";
 
         [ScriptIgnore]
         [JsonIgnore]

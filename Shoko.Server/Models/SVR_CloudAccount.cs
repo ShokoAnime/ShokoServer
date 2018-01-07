@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Web.Script.Serialization;
+
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
@@ -29,18 +30,18 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
+        [NotMapped]
         public byte[] Bitmap => _plugin?.Icon;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
+        [NotMapped]
         public byte[] Icon => _plugin?.Icon;
         private ICloudPlugin _plugin;
 
-        [ScriptIgnore]
+        [NotMapped]
         [JsonIgnore]
         [XmlIgnore]
         public IFileSystem FileSystem
@@ -51,7 +52,7 @@ namespace Shoko.Server.Models
                 {
                     ServerState.Instance.ConnectedFileSystems[Name] = Connect();
                     if (NeedSave)
-                        RepoFactory.CloudAccount.Save(this);
+                        Repo.CloudAccount.BeginUpdate(this).Commit();
                 }
                 return ServerState.Instance.ConnectedFileSystems[Name];
             }
@@ -63,13 +64,10 @@ namespace Shoko.Server.Models
                     ServerState.Instance.ConnectedFileSystems.Remove(Name);
             }
         }
+        [NotMapped]
+        public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
 
-        public bool IsConnected
-        {
-            get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
-        }
-
-        [ScriptIgnore]
+        [NotMapped]
         [JsonIgnore]
         [XmlIgnore]
         internal bool NeedSave { get; set; } = false;

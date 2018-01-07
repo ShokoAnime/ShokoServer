@@ -30,13 +30,16 @@ namespace Shoko.Server.Databases
             {
 
                 PropertyInfo prop = typeof(T).GetProperty(p.Name);
-                if (p.ClrType == typeof(int))
+                if (prop != null)
                 {
-                    prop.SetValue(nw, intGenerator(prop));
-                }
-                else if (p.ClrType == typeof(Guid))
-                {
-                    prop.SetValue(nw, Guid.NewGuid());
+                    if (p.ClrType == typeof(int))
+                    {
+                        prop.SetValue(nw, intGenerator(prop));
+                    }
+                    else if (p.ClrType == typeof(Guid))
+                    {
+                        prop.SetValue(nw, Guid.NewGuid());
+                    }
                 }
             }
         }

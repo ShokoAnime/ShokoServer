@@ -19,9 +19,18 @@
     <DefineConstants>NET47;NETFULL;PRILONGPATH</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="DatabasesOld\**" />
     <Compile Remove="Databases\Extensions\**" />
+    <Compile Remove="RepositoriesOld\**" />
+    <EmbeddedResource Remove="DatabasesOld\**" />
     <EmbeddedResource Remove="Databases\Extensions\**" />
+    <EmbeddedResource Remove="RepositoriesOld\**" />
+    <None Remove="DatabasesOld\**" />
     <None Remove="Databases\Extensions\**" />
+    <None Remove="RepositoriesOld\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Repositories\Repos\AniDB_MylistStatsRepository.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.1" />
@@ -29,6 +38,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.0" />
     <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.9-dmr" />
+    <PackageReference Include="Nancy" Version="2.0.0-clinteastwood" />
     <PackageReference Include="NLog" Version="5.0.0-beta11" />
     <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
   </ItemGroup>

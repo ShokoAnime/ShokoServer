@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
-using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using System;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
@@ -20,10 +18,10 @@ namespace Shoko.Server.Models
         public byte[] PlexContractBlob { get; set; }
         public int PlexContractSize { get; set; }
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        //private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract = null;
+        private Video _plexContract ;
 
         public virtual Video PlexContract
         {
@@ -32,7 +30,7 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var group = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+                    var group = Repo.AnimeGroup.GetByID(AnimeGroupID);
                     return _plexContract = Helper.GenerateFromAnimeGroup(group, JMMUserID, group.GetAllSeries());
                 }
                 return _plexContract;
@@ -63,8 +61,7 @@ namespace Shoko.Server.Models
             StoppedCount = 0;
         }
 
-        public static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract,
-            SVR_AnimeGroup_User newcontract)
+        public static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract, SVR_AnimeGroup_User newcontract)
         {
             HashSet<GroupFilterConditionType> h = new HashSet<GroupFilterConditionType>();
 
@@ -83,37 +80,37 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
-            SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
-            SVR_JMMUser usr = RepoFactory.JMMUser.GetByID(JMMUserID);
+            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(AnimeGroupID);
+            SVR_JMMUser usr = Repo.JMMUser.GetByID(JMMUserID);
             if (grp != null && usr != null)
                 grp.UpdateGroupFilters(types, usr);
         }
 
         public void DeleteFromFilters()
         {
-            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
+            foreach (SVR_GroupFilter gf in Repo.GroupFilter.GetAll())
             {
-                bool change = false;
                 if (gf.GroupsIds.ContainsKey(JMMUserID))
                 {
                     if (gf.GroupsIds[JMMUserID].Contains(AnimeGroupID))
                     {
-                        gf.GroupsIds[JMMUserID].Remove(AnimeGroupID);
-                        change = true;
+                        using (var upd = Repo.GroupFilter.BeginUpdate(gf))
+                        {
+                            upd.Entity.GroupsIds[JMMUserID].Remove(AnimeGroupID);
+                            upd.Commit();
+                        }
                     }
                 }
-                if (change)
-                    RepoFactory.GroupFilter.Save(gf);
             }
         }
 
-        public void UpdatePlexKodiContracts(ISessionWrapper session = null)
+        public void UpdatePlexKodiContracts()
         {
-            SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(AnimeGroupID);
             if (grp == null)
                 return;
             List<SVR_AnimeSeries> series = grp.GetAllSeries();
-            PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series, session);
+            PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series);
         }
     }
 }
