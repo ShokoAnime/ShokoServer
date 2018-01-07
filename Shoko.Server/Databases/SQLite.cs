@@ -499,8 +499,14 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(68, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
             new DatabaseCommand(69, 1, DatabaseFixes.RecalculateYears),
             new DatabaseCommand(70, 1, "DROP INDEX UIX_CrossRef_AniDB_MAL_Anime;"),
-            new DatabaseCommand(70, 2, "ALTER TABLE AniDB_Anime ADD Site_JP TEXT NULL, Site_EN TEXT NULL, Wikipedia_ID TEXT NULL, WikipediaJP_ID TEXT NULL, SyoboiID INT NULL, AnisonID INT NULL, CrunchyrollID TEXT NULL"),
-            new DatabaseCommand(70, 3, DatabaseFixes.PopulateResourceLinks),
+            new DatabaseCommand(70, 2, "ALTER TABLE AniDB_Anime ADD Site_JP TEXT NULL"),
+            new DatabaseCommand(70, 3, "ALTER TABLE AniDB_Anime ADD Site_EN TEXT NULL"),
+            new DatabaseCommand(70, 4, "ALTER TABLE AniDB_Anime ADD Wikipedia_ID TEXT NULL"),
+            new DatabaseCommand(70, 5, "ALTER TABLE AniDB_Anime ADD WikipediaJP_ID TEXT NULL"),
+            new DatabaseCommand(70, 6, "ALTER TABLE AniDB_Anime ADD SyoboiID INT NULL"),
+            new DatabaseCommand(70, 7, "ALTER TABLE AniDB_Anime ADD AnisonID INT NULL"),
+            new DatabaseCommand(70, 8, "ALTER TABLE AniDB_Anime CrunchyrollID TEXT NULL"),
+            new DatabaseCommand(70, 9, DatabaseFixes.PopulateResourceLinks),
         };
 
 
