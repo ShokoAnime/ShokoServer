@@ -5,12 +5,14 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using NLog;
 using Pri.LongPath;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Databases
 {
@@ -305,6 +307,59 @@ namespace Shoko.Server.Databases
             catch (Exception e)
             {
                 logger.Error(e);
+            }
+        }
+
+        public static void PopulateResourceLinks()
+        {
+            int i = 0;
+            var animes = RepoFactory.AniDB_Anime.GetAll().ToList();
+            foreach (var anime in animes)
+            {
+                if (i % 10 == 0)
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Commons.Properties.Resources.Database_Validating, "Populating Resource Links from Cache",
+                        $" {i}/{animes.Count}");
+                i++;
+                try
+                {
+                    var xmlDocument = APIUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+                    if (xmlDocument == null) continue;
+                    var resourceLinks = AniDBHTTPHelper.ProcessResources(xmlDocument, anime.AnimeID);
+                    anime.CreateResources(resourceLinks);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(
+                        $"There was an error Populating Resource Links for AniDB_Anime {anime.AnimeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
+                }
+            }
+
+
+            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            {
+                i = 0;
+                var batches = animes.Batch(50).ToList();
+                foreach (var animeBatch in batches)
+                {
+                    i++;
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+                        "Saving AniDB_Anime batch ", $"{i}/{batches.Count}");
+                    try
+                    {
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            foreach (var anime in animeBatch)
+                                RepoFactory.AniDB_Anime.SaveWithOpenTransaction(session.Wrap(), anime);
+                            transaction.Commit();
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error($"There was an error saving anime while Populating Resource Links: {e}");
+                    }
+                }
             }
         }
 

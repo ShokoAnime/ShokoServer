@@ -1003,6 +1003,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public bool PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
             List<Raw_AniDB_Anime_Title> titles,
             List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
+            List<Raw_AniDB_ResourceLink> resources,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
         {
@@ -1045,6 +1046,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CreateCharacters(session, chars);
             taskTimer.Stop();
             logger.Trace("CreateCharacters in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateResources(resources);
+            taskTimer.Stop();
+            logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
 
             CreateRelations(session, rels, downloadRelations);
@@ -1364,6 +1370,86 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             {
                 logger.Error($"Unable to Save Characters and Seiyuus for {MainTitle}: {ex}");
             }
+        }
+
+        public void CreateResources(List<Raw_AniDB_ResourceLink> resources)
+        {
+            if (resources == null) return;
+            List<CrossRef_AniDB_MAL> malLinks = new List<CrossRef_AniDB_MAL>();
+            foreach (Raw_AniDB_ResourceLink resource in resources)
+            {
+                switch (resource.Type)
+                {
+                    case AniDB_ResourceLinkType.ANN:
+                    {
+                        this.ANNID = resource.ID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.ALLCinema:
+                    {
+                        this.AllCinemaID = resource.ID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.AnimeNFO:
+                    {
+                        this.AnimeNfo = resource.ID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Site_JP:
+                    {
+                        this.Site_JP = resource.RawID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Site_EN:
+                    {
+                        this.Site_EN = resource.RawID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Wiki_EN:
+                    {
+                        this.Wikipedia_ID = resource.RawID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Wiki_JP:
+                    {
+                        this.WikipediaJP_ID = resource.RawID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Syoboi:
+                    {
+                        this.SyoboiID = resource.ID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Anison:
+                    {
+                        this.AnisonID = resource.ID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.Crunchyroll:
+                    {
+                        this.CrunchyrollID = resource.RawID;
+                        break;
+                    }
+                    case AniDB_ResourceLinkType.MAL:
+                    {
+                        int id = resource.ID;
+                        if (id == 0) break;
+                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id) != null) break;
+                        CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
+                        {
+                            AnimeID = AnimeID,
+                            CrossRefSource = (int) CrossRefSource.AniDB,
+                            MALID = id,
+                            StartEpisodeNumber = 1,
+                            StartEpisodeType = 1
+                        };
+
+                        malLinks.Add(xref);
+                        break;
+                    }
+                }
+            }
+            RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
         }
 
         private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations)

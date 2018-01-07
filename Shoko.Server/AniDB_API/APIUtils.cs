@@ -2,14 +2,16 @@
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Xml;
 using NLog;
+using Shoko.Server;
 using Shoko.Server.AniDB_API;
 
 namespace AniDBAPI
 {
-    public class APIUtils
+    public static class APIUtils
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public const int LastYear = 2050;
 
@@ -72,6 +74,59 @@ namespace AniDBAPI
             {
                 logger.Error(ex, "Error in APIUtils.DownloadWebBinary: {0}");
                 return null;
+            }
+        }
+
+        public static XmlDocument LoadAnimeHTTPFromFile(int animeID)
+        {
+            string filePath = ServerSettings.AnimeXmlDirectory;
+
+
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
+
+            string fileName = $"AnimeDoc_{animeID}.xml";
+            string fileNameWithPath = Path.Combine(filePath, fileName);
+
+            if (!File.Exists(fileNameWithPath)) return null;
+            using (StreamReader re = File.OpenText(fileNameWithPath))
+            {
+                string rawXML = re.ReadToEnd();
+
+                var docAnime = new XmlDocument();
+                docAnime.LoadXml(rawXML);
+                return docAnime;
+            }
+        }
+
+        public static void WriteAnimeHTTPToFile(int animeID, string xml)
+        {
+            try
+            {
+                string filePath = ServerSettings.AnimeXmlDirectory;
+
+                if (!Directory.Exists(filePath))
+                    Directory.CreateDirectory(filePath);
+
+                string fileName = $"AnimeDoc_{animeID}.xml";
+                string fileNameWithPath = Path.Combine(filePath, fileName);
+
+                // First check to make sure we not rights issue
+                if (!Utils.IsDirectoryWritable(filePath))
+                    Utils.GrantAccess(filePath);
+
+                // Check again and only if write-able we create it
+                if (Utils.IsDirectoryWritable(filePath))
+                {
+                    using (var sw = File.CreateText(fileNameWithPath))
+                    {
+                        sw.Write(xml);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error occurred during WriteAnimeHTTPToFile(): {ex}");
             }
         }
     }

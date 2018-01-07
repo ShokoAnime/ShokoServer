@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 74;
+        public int RequiredVersion { get; } = 75;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -562,6 +562,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(72, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
             new DatabaseCommand(73, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
             new DatabaseCommand(74, 1, DatabaseFixes.RecalculateYears),
+            new DatabaseCommand(75, 1, "DROP INDEX UIX_CrossRef_AniDB_MAL_Anime ON CrossRef_AniDB_MAL;"),
+            new DatabaseCommand(75, 2, "ALTER TABLE AniDB_Anime ADD Site_JP nvarchar(max), Site_EN nvarchar(max), Wikipedia_ID nvarchar(max), WikipediaJP_ID nvarchar(max), SyoboiID int, AnisonID int, CrunchyrollID nvarchar(max)"),
+            new DatabaseCommand(75, 3, DatabaseFixes.PopulateResourceLinks),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

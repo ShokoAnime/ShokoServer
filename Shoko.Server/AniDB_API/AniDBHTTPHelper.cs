@@ -257,6 +257,33 @@ namespace AniDBAPI
             return anime;
         }
 
+        public static List<Raw_AniDB_ResourceLink> ProcessResources(XmlDocument docAnime, int animeID)
+        {
+            List<Raw_AniDB_ResourceLink> result = new List<Raw_AniDB_ResourceLink>();
+
+            XmlNodeList items = docAnime?["anime"]?["resources"]?.GetElementsByTagName("resource");
+            if (items == null) return result;
+            foreach (XmlNode node in items) // each resource
+            {
+                try
+                {
+                    foreach (XmlNode child in node.ChildNodes) // each externalentity
+                    {
+                        Raw_AniDB_ResourceLink resource = new Raw_AniDB_ResourceLink();
+                        resource.ProcessFromHTTPResult(node, animeID);
+                        resource.RawID = child["identifier"]?.InnerText ?? child["url"]?.InnerText;
+                        result.Add(resource);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessResources: {ex}");
+                }
+            }
+
+            return result;
+        }
+
         public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)
         {
             string xmlResult = string.Empty;

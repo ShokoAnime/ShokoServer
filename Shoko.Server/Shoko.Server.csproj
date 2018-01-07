@@ -305,6 +305,7 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyMessage.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Recommendation.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_RelatedAnime.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_ResourceLink.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Review.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Seiyuu.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_SimilarAnime.cs" />
@@ -312,7 +313,7 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote_HTTP.cs" />
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
-    <Compile Include="AniDB_API\Utils.cs" />
+    <Compile Include="AniDB_API\APIUtils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\APIHelper.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationKodi.cs" />
