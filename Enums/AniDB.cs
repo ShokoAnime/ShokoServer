@@ -48,6 +48,21 @@ namespace Shoko.Models.Enums
         Episode = 4
     }
 
+    public enum AniDB_ResourceLinkType
+    {
+        ANN = 1,
+        MAL = 2, // MAL ID, there may be more than one
+        AnimeNFO = 3,
+        Site_JP = 4, // Official Japanese Site
+        Site_EN = 5, // Official English Site
+        Wiki_EN = 6, // wikipedia.com
+        Wiki_JP = 7, // wikipedia.jp
+        Syoboi = 8, // Airing Schedule (Japanese site)
+        ALLCinema = 9,
+        Anison = 10,
+        Crunchyroll = 28 // Series page, not episodes
+    }
+
     public enum AnimeType
     {
         Movie = 0,

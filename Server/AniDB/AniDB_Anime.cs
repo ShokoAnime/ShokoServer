@@ -39,6 +39,13 @@ namespace Shoko.Models.Server
         public int? ANNID { get; set; }
         public int? AllCinemaID { get; set; }
         public int? AnimeNfo { get; set; }
+        public int? AnisonID { get; set; }
+        public int? SyoboiID { get; set; }
+        public string Site_JP { get; set; }
+        public string Site_EN { get; set; }
+        public string Wikipedia_ID { get; set; }
+        public string WikipediaJP_ID { get; set; }
+        public string CrunchyrollID { get; set; }
         public int? LatestEpisodeNumber { get; set; }
         public int DisableExternalLinksFlag { get; set; }
 
