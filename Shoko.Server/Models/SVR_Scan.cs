@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Pri.LongPath;
 using Shoko.Commons.Extensions;
@@ -16,7 +17,7 @@ namespace Shoko.Server.Models
             {
                 return CreationTime.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
                            this.GetImportFolderList()
-                               .Select(a => RepoFactory.ImportFolder.GetByID(a))
+                               .Select(a => Repo.ImportFolder.GetByID(a))
                                .Where(a => a != null)
                                .Select(a => a.ImportFolderLocation
                                    .Split(

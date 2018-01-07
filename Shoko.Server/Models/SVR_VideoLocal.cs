@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web.Script.Serialization;
-using FluentNHibernate.Utils;
+using Force.DeepCloner;
+using Nancy.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Pri.LongPath;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
@@ -18,7 +19,8 @@ using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Repos;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
 {
@@ -35,9 +37,7 @@ namespace Shoko.Server.Models
         #endregion
 
 
-        [ScriptIgnore]
-        public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
-
+    
 
         public const int MEDIA_VERSION = 3;
 
@@ -62,7 +62,7 @@ namespace Shoko.Server.Models
         }
 
 
-        public List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+        public List<SVR_VideoLocal_Place> Places => Repo.VideoLocal_Place.GetByVideoLocal(VideoLocalID);
 
 
         public void CollectContractMemory()
@@ -75,9 +75,6 @@ namespace Shoko.Server.Models
             StringBuilder sb = new StringBuilder("");
             sb.Append(Environment.NewLine);
             sb.Append("VideoLocalID: " + VideoLocalID);
-
-            sb.Append(Environment.NewLine);
-            sb.Append("FileName: " + FileName);
             sb.Append(Environment.NewLine);
             sb.Append("Hash: " + Hash);
             sb.Append(Environment.NewLine);
@@ -87,25 +84,22 @@ namespace Shoko.Server.Models
         }
 
         [ScriptIgnore]
+        [NotMapped]
         public string ED2KHash
         {
             get => Hash;
             set => Hash = value;
         }
 
-
-        public SVR_AniDB_File GetAniDBFile()
-        {
-            return RepoFactory.AniDB_File.GetByHash(Hash);
-        }
+        public string Info => Path.GetFileName(GetBestVideoLocalPlace().FilePath ?? string.Empty);
 
 
-        public VideoLocal_User GetUserRecord(int userID)
-        {
-            return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
-        }
+        public SVR_AniDB_File GetAniDBFile() => Repo.AniDB_File.GetByHash(Hash);
 
 
+        public VideoLocal_User GetUserRecord(int userID) => Repo.VideoLocal_User.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
+
+        [NotMapped]
         internal AniDB_ReleaseGroup ReleaseGroup
         {
             get
@@ -113,23 +107,20 @@ namespace Shoko.Server.Models
                 SVR_AniDB_File anifile = GetAniDBFile();
                 if (anifile == null) return null;
 
-                return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
+                return Repo.AniDB_ReleaseGroup.GetByID(anifile.GroupID);
             }
         }
 
-        public List<SVR_AnimeEpisode> GetAnimeEpisodes()
-        {
-            return RepoFactory.AnimeEpisode.GetByHash(Hash);
-        }
+        public List<SVR_AnimeEpisode> GetAnimeEpisodes() => Repo.AnimeEpisode.GetByHash(Hash);
 
-
+        [NotMapped]
         public List<CrossRef_File_Episode> EpisodeCrossRefs
         {
             get
             {
                 if (Hash.Length == 0) return new List<CrossRef_File_Episode>();
 
-                return RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+                return Repo.CrossRef_File_Episode.GetByHash(Hash);
             }
         }
 
@@ -138,38 +129,32 @@ namespace Shoko.Server.Models
             VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
-                if (vidUserRecord == null)
-                    vidUserRecord = new VideoLocal_User();
-                vidUserRecord.WatchedDate = DateTime.Now;
-                vidUserRecord.JMMUserID = userID;
-                vidUserRecord.VideoLocalID = VideoLocalID;
-
-                if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
-
-                RepoFactory.VideoLocalUser.Save(vidUserRecord);
-            }
-            else
-            {
-                if (vidUserRecord != null)
+                using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(() => vidUserRecord))
                 {
-                    vidUserRecord.WatchedDate = null;
-                    RepoFactory.VideoLocalUser.Save(vidUserRecord);
+                    upd.Entity.WatchedDate = DateTime.Now;
+                    upd.Entity.JMMUserID = userID;
+                    upd.Entity.VideoLocalID = VideoLocalID;
+                    if (watchedDate.HasValue && updateWatchedDate)
+                        upd.Entity.WatchedDate = watchedDate.Value;
+                    upd.Commit();
                 }
             }
+            else if (vidUserRecord != null)
+                Repo.VideoLocal_User.Delete(vidUserRecord);
         }
 
         public static IFile ResolveFile(string fullname)
         {
             if (string.IsNullOrEmpty(fullname)) return null;
-            Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-            IFileSystem fs = tup?.Item1?.FileSystem;
+            (SVR_ImportFolder, string) tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+            IFileSystem fs = tup.Item1?.FileSystem;
             if (fs == null)
                 return null;
             try
             {
-                FileSystemResult<IObject> fobj = fs.Resolve(fullname);
-                if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory) return null;
-                return fobj.Result as IFile;
+                IObject fobj = fs.Resolve(fullname);
+                if (fobj.Status!=Status.Ok || fobj is IDirectory) return null;
+                return fobj as IFile;
             }
             catch (Exception)
             {
@@ -190,24 +175,17 @@ namespace Shoko.Server.Models
             return file;
         }
 
-        public SVR_VideoLocal_Place GetBestVideoLocalPlace()
-        {
-            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
-        }
+        public SVR_VideoLocal_Place GetBestVideoLocalPlace() => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
 
         public void SetResumePosition(long resumeposition, int userID)
         {
-            VideoLocal_User vuser = GetUserRecord(userID);
-            if (vuser == null)
-                vuser = new VideoLocal_User
-                {
-                    JMMUserID = userID,
-                    VideoLocalID = VideoLocalID,
-                    ResumePosition = resumeposition
-                };
-            else
-                vuser.ResumePosition = resumeposition;
-            RepoFactory.VideoLocalUser.Save(vuser);
+            using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(() => GetUserRecord(userID)))
+            {
+                upd.Entity.JMMUserID = userID;
+                upd.Entity.VideoLocalID = VideoLocalID;
+                upd.Entity.ResumePosition = resumeposition;
+                upd.Commit();
+            }
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
@@ -218,10 +196,10 @@ namespace Shoko.Server.Models
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
             bool syncTrakt, bool updateWatchedDate)
         {
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(userID);
             if (user == null) return;
 
-            List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+            List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
 
             // update the video file to watched
             int mywatched = watched ? 1 : 0;
@@ -237,18 +215,18 @@ namespace Shoko.Server.Models
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(Hash);
+                SVR_AniDB_File aniFile = Repo.AniDB_File.GetByHash(Hash);
                 if (aniFile != null)
                 {
-                    aniFile.IsWatched = mywatched;
-
-                    if (watched)
-                        aniFile.WatchedDate = watchedDate ?? DateTime.Now;
-                    else
-                        aniFile.WatchedDate = null;
-
-
-                    RepoFactory.AniDB_File.Save(aniFile, false);
+                    using (var anupd = Repo.AniDB_File.BeginUpdate(aniFile))
+                    {
+                        anupd.Entity.IsWatched = mywatched;
+                        if (watched)
+                            anupd.Entity.WatchedDate = watchedDate ?? DateTime.Now;
+                        else
+                            anupd.Entity.WatchedDate = null;
+                        anupd.Commit();
+                    }
                 }
 
                 if (updateOnline)
@@ -269,7 +247,7 @@ namespace Shoko.Server.Models
 
             SVR_AnimeSeries ser = null;
             // get all files associated with this episode
-            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+            List<CrossRef_File_Episode> xrefs = Repo.CrossRef_File_Episode.GetByHash(Hash);
             Dictionary<int, SVR_AnimeSeries> toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
             if (watched)
             {
@@ -280,44 +258,46 @@ namespace Shoko.Server.Models
                 foreach (CrossRef_File_Episode xref in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
-                    // get all the files for this episode
-                    int epPercentWatched = 0;
-                    foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+                    foreach (SVR_AnimeEpisode ep in Repo.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
                     {
-                        VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser?.WatchedDate != null)
-                            epPercentWatched += filexref.Percentage;
-
-                        if (epPercentWatched > 95) break;
-                    }
-
-                    if (epPercentWatched > 95)
-                    {
-                        ser = ep.GetAnimeSeries();
-                        if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
-                            toUpdateSeries.Add(ser.AnimeSeriesID, ser);
-                        if (user.IsAniDBUser == 0)
-                            ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
-                        else
-                            foreach (SVR_JMMUser juser in aniDBUsers)
-                                if (juser.IsAniDBUser == 1)
-                                    ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
-
-                        if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
-                            !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                        // get all the files for this episode
+                        int epPercentWatched = 0;
+                        foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                         {
-                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                                new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
-                            cmdSyncTrakt.Save();
+                            VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+                            if (vidUser?.WatchedDate != null)
+                                epPercentWatched += filexref.Percentage;
+
+                            if (epPercentWatched > 95) break;
                         }
 
-                        if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                            !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                        if (epPercentWatched > 95)
                         {
-                            CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                                new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-                            cmdMAL.Save();
+                            ser = ep.GetAnimeSeries();
+                            if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
+                                toUpdateSeries.Add(ser.AnimeSeriesID, ser);
+                            if (user.IsAniDBUser == 0)
+                                ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
+                            else
+                                foreach (SVR_JMMUser juser in aniDBUsers)
+                                    if (juser.IsAniDBUser == 1)
+                                        ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
+
+                            if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
+                                !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                            {
+                                CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
+                                    new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
+                                cmdSyncTrakt.Save();
+                            }
+
+                            if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
+                                !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                            {
+                                CommandRequest_MALUpdatedWatchedStatus cmdMAL =
+                                    new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+                                cmdMAL.Save();
+                            }
                         }
                     }
                 }
@@ -328,36 +308,38 @@ namespace Shoko.Server.Models
                 foreach (CrossRef_File_Episode xrefEp in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
-                    ser = ep.GetAnimeSeries();
-                    if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
-                        toUpdateSeries.Add(ser.AnimeSeriesID, ser);
-                    // get all the files for this episode
-                    int epPercentWatched = 0;
-                    foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+                    foreach(SVR_AnimeEpisode ep in Repo.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID))
                     {
-                        VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser?.WatchedDate != null)
-                            epPercentWatched += filexref.Percentage;
-
-                        if (epPercentWatched > 95) break;
-                    }
-
-                    if (epPercentWatched < 95)
-                    {
-                        if (user.IsAniDBUser == 0)
-                            ep.SaveWatchedStatus(false, userID, watchedDate, true);
-                        else
-                            foreach (SVR_JMMUser juser in aniDBUsers)
-                                if (juser.IsAniDBUser == 1)
-                                    ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
-
-                        if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
-                            !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                        ser = ep.GetAnimeSeries();
+                        if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
+                            toUpdateSeries.Add(ser.AnimeSeriesID, ser);
+                        // get all the files for this episode
+                        int epPercentWatched = 0;
+                        foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                         {
-                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                                new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);
-                            cmdSyncTrakt.Save();
+                            VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+                            if (vidUser?.WatchedDate != null)
+                                epPercentWatched += filexref.Percentage;
+
+                            if (epPercentWatched > 95) break;
+                        }
+
+                        if (epPercentWatched < 95)
+                        {
+                            if (user.IsAniDBUser == 0)
+                                ep.SaveWatchedStatus(false, userID, watchedDate, true);
+                            else
+                                foreach (SVR_JMMUser juser in aniDBUsers)
+                                    if (juser.IsAniDBUser == 1)
+                                        ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
+
+                            if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
+                                !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                            {
+                                CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
+                                    new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);
+                                cmdSyncTrakt.Save();
+                            }
                         }
                     }
                 }
@@ -380,7 +362,7 @@ namespace Shoko.Server.Models
 
         public override string ToString()
         {
-            return $"{FileName} --- {Hash}";
+            return $"{Hash}";
         }
 
 
@@ -390,7 +372,6 @@ namespace Shoko.Server.Models
             {
                 CRC32 = CRC32,
                 DateTimeUpdated = DateTimeUpdated,
-                FileName = FileName,
                 FileSize = FileSize,
                 Hash = Hash,
                 HashSource = HashSource,
@@ -426,7 +407,6 @@ namespace Shoko.Server.Models
             if (!string.IsNullOrEmpty(MD5)) return false;
             if (!string.IsNullOrEmpty(CRC32)) return false;
             if (!string.IsNullOrEmpty(SHA1)) return false;
-            if (!string.IsNullOrEmpty(FileName)) return false;
             if (FileSize > 0) return false;
             return true;
         }
@@ -439,16 +419,21 @@ namespace Shoko.Server.Models
         public Media GetMediaFromUser(int userID)
         {
             Media n;
+            string FileName = string.Empty;
             if (Media == null)
             {
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
                 if (pl?.FullServerPath != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
-                    FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
-                    if (src != null && src.IsOk && src.Result is IFile)
+                    IObject src = f?.Resolve(pl.FullServerPath);
+                    if (src.Status == Status.Ok && src is IFile)
+                    {
                         if (pl.RefreshMediaInfo())
-                            RepoFactory.VideoLocal.Save(pl.VideoLocal, true);
+                            Repo.VideoLocal.BeginUpdate(pl.VideoLocal).Commit(true);
+                    }
+
+                    FileName = Path.GetFileName(pl.FullServerPath);
                 }
             }
             if (Media == null) return null;
@@ -496,7 +481,6 @@ namespace Shoko.Server.Models
             cl.CrossRefSource = xrefs[0].CrossRefSource;
             cl.AnimeEpisodeID = xrefs[0].EpisodeID;
 
-            cl.VideoLocal_FileName = FileName;
             cl.VideoLocal_Hash = Hash;
             cl.VideoLocal_FileSize = FileSize;
             cl.VideoLocalID = VideoLocalID;
@@ -597,7 +581,6 @@ namespace Shoko.Server.Models
             {
                 CRC32 = CRC32,
                 DateTimeUpdated = DateTimeUpdated,
-                FileName = FileName,
                 FileSize = FileSize,
                 Hash = Hash,
                 HashSource = HashSource,

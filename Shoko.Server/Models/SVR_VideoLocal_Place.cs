@@ -6,22 +6,20 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nancy.Extensions;
-using NHibernate;
+using Nancy.Session;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper.MediaInfo;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Repositories.Repos;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
@@ -35,7 +33,7 @@ namespace Shoko.Server.Models
 
     public class SVR_VideoLocal_Place : VideoLocal_Place
     {
-        internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
+        internal SVR_ImportFolder ImportFolder => Repo.ImportFolder.GetByID(ImportFolderID);
 
         public string FullServerPath
         {
@@ -47,7 +45,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -94,13 +92,12 @@ namespace Shoko.Server.Models
                 return false;
             }
 
-            FileSystemResult<IObject> re = filesys.Resolve(fullFileName);
-            if ((re == null) || (!re.IsOk))
+            IObject file = filesys.Resolve(fullFileName);
+            if (file.Status!=Status.Ok)
             {
                 logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
                 return false;
             }
-            IObject file = re.Result;
             // actually rename the file
             string path = Path.GetDirectoryName(fullFileName);
             string newFullName = (path == null ? null : Path.Combine(path, renamed));
@@ -115,8 +112,8 @@ namespace Shoko.Server.Models
                     return true;
                 }
 
-                FileSystemResult r = file?.FileSystem?.Resolve(newFullName);
-                if (r != null && r.IsOk)
+                IObject r = file?.FileSystem?.Resolve(newFullName);
+                if (r.Status==Status.Ok)
                 {
                     logger.Info($"Renaming file SKIPPED! Destination Exists ({newFullName})");
                     return true;
@@ -124,8 +121,8 @@ namespace Shoko.Server.Models
 
                 ShokoServer.StopWatchingFiles();
 
-                r = file.Rename(renamed);
-                if (r == null || !r.IsOk)
+                FileSystemResult resu = file.Rename(renamed);
+                if (resu.Status!=Status.Ok)
                 {
                     logger.Info(
                         $"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r?.Error ?? "Result is null"}");
@@ -134,8 +131,8 @@ namespace Shoko.Server.Models
                 }
 
                 logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
-                Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                if (tup == null)
+                (SVR_ImportFolder, string) tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+                if (tup.Item1 == null)
                 {
                     logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
                     ShokoServer.StartWatchingFiles(false);
@@ -143,28 +140,33 @@ namespace Shoko.Server.Models
                 }
 
                 // Before we change all references, remap Duplicate Files
-                List<DuplicateFile> dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                List<DuplicateFile> dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
                 if (dups != null && dups.Count > 0)
                 {
                     foreach (var dup in dups)
                     {
-                        bool dupchanged = false;
-                        if (dup.FilePathFile1.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                            dup.ImportFolderIDFile1 == ImportFolderID)
+                        using (var upd = Repo.DuplicateFile.BeginUpdate(dup))
                         {
-                            dup.FilePathFile1 = tup.Item2;
-                            dupchanged = true;
+                            bool dupchanged = false;
+                            if (upd.Entity.FilePathFile1.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                upd.Entity.ImportFolderIDFile1 == ImportFolderID)
+                            {
+                                upd.Entity.FilePathFile1 = tup.Item2;
+                                dupchanged = true;
+                            }
+                            else if (upd.Entity.FilePathFile2.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
+                                     upd.Entity.ImportFolderIDFile2 == ImportFolderID)
+                            {
+                                upd.Entity.FilePathFile2 = tup.Item2;
+                                dupchanged = true;
+                            }
+
+                            if (dupchanged)
+                                upd.Commit();
                         }
-                        else if (dup.FilePathFile2.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                 dup.ImportFolderIDFile2 == ImportFolderID)
-                        {
-                            dup.FilePathFile2 = tup.Item2;
-                            dupchanged = true;
-                        }
-                        if (dupchanged) RepoFactory.DuplicateFile.Save(dup);
                     }
                 }
-                var filename_hash = RepoFactory.FileNameHash.GetByHash(VideoLocal.Hash);
+                var filename_hash = Repo.FileNameHash.GetByHash(VideoLocal.Hash);
                 if (!filename_hash.Any(a => a.FileName.Equals(renamed)))
                 {
                     FileNameHash fnhash = new FileNameHash
@@ -174,11 +176,14 @@ namespace Shoko.Server.Models
                         FileSize = VideoLocal.FileSize,
                         Hash = VideoLocal.Hash
                     };
-                    RepoFactory.FileNameHash.Save(fnhash);
+                    Repo.FileNameHash.BeginAdd(fnhash).Commit();
                 }
 
-                FilePath = tup.Item2;
-                RepoFactory.VideoLocalPlace.Save(this);
+                using (var vupd = Repo.VideoLocal_Place.BeginUpdate(this))
+                {
+                    vupd.Entity.FilePath = tup.Item2;
+                    vupd.Commit();
+                }
             }
             catch (Exception ex)
             {

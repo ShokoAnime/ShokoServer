@@ -1,31 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
-using NHibernate;
-using Shoko.Server.Repositories.NHibernate;
-
-// ReSharper disable InconsistentNaming
+using Microsoft.EntityFrameworkCore;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories
 {
-    public interface IRepository<T, S>
+    public interface IRepository<T,S,TT> : IRepository<T> where T : class
     {
         T GetByID(S id);
-        T GetByID(ISession session, S id);
-        T GetByID(ISessionWrapper session, S id);
-        IReadOnlyList<T> GetAll();
-        IReadOnlyList<T> GetAll(ISession session);
-        IReadOnlyList<T> GetAll(ISessionWrapper session);
-        void Delete(S id);
-        void Delete(T cr);
-        void Delete(IReadOnlyCollection<T> objs);
-        void Save(T obj);
-        void Save(IReadOnlyCollection<T> objs);
+        List<T> GetAll();
+        List<T> GetMany(IEnumerable<S> ids);
+        void Delete(S id, TT pars);
+        void Delete(T obj, TT pars);
+        void Delete(IEnumerable<T> objs, TT pars);
+        IAtomic<T, TT> BeginAdd();
+        IAtomic<T, TT> BeginAdd(T obj);
+        IAtomicList<T, TT> BeginAdd(IEnumerable<T> objs);
+        IAtomic<T,TT> BeginAddOrUpdate(S id);
+        IAtomic<T, TT> BeginAddOrUpdate(Func<T> id);
+        IAtomic<T, TT> BeginUpdate(T obj);
+        IAtomicList<T, TT> BeginUpdate(IEnumerable<T> objs);
+        IAtomicList<T, TT> BeginUpdate(IEnumerable<S> ids);
+        IBatchAtomic<T,TT> BeginBatchUpdate(IEnumerable<S> ids);
 
-        Action<T> BeginDeleteCallback { get; set; }
-        Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
-        Action<T> EndDeleteCallback { get; set; }
-        Action<T> BeginSaveCallback { get; set; }
-        Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
-        Action<T> EndSaveCallback { get; set; }
+    }
+    public interface IRepository
+    {
+        void PreInit(IProgress<InitProgress> progress, int batchSize);
+        void PostInit(IProgress<InitProgress> progress, int batchSize);
+        string Name { get; }
+        void SwitchCache(bool cache);
+
+    }
+
+    public interface IRepository<T> : IRepository where T: class
+    {
+        void SetContext(ShokoContext db, DbSet<T> table);
     }
 }

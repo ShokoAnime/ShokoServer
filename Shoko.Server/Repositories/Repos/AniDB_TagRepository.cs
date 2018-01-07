@@ -1,0 +1,73 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Shoko.Models.Server;
+using Shoko.Server.Models;
+
+namespace Shoko.Server.Repositories.Repos
+{
+    public class AniDB_TagRepository : BaseRepository<AniDB_Tag, int>
+    {
+
+        internal override void PopulateIndexes()
+        {
+        }
+
+        internal override void ClearIndexes()
+        {
+        }
+
+
+
+        internal override int SelectKey(AniDB_Tag entity) => entity.TagID;
+
+        public override void PreInit(IProgress<InitProgress> progress, int batchSize)
+        {
+            List<AniDB_Tag> tags=Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`')).ToList();
+            if (tags.Count == 0)
+                return;
+            InitProgress regen = new InitProgress();
+            regen.Title = "Fixing Tag Names";
+            regen.Step = 0;
+            regen.Total = tags.Count;
+
+            BatchAction(tags, batchSize, (tag, original) =>
+            {
+                tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
+                tag.TagName = tag.TagName.Replace('`', '\'');
+                regen.Step++;
+                progress.Report(regen);
+            });
+            regen.Step = regen.Total;
+            progress.Report(regen);
+        }
+
+
+
+
+        public List<AniDB_Tag> GetByAnimeID(int animeID)
+        {
+            return GetMany(Enumerable.Select<AniDB_Anime_Tag, int>(Repo.AniDB_Anime_Tag.GetByAnimeID(animeID), a => a.TagID).ToList());
+        }
+
+
+
+        public Dictionary<int, List<AniDB_Tag>> GetByAnimeIDs(IEnumerable<int> ids)
+        {
+            if (ids == null)
+                throw new ArgumentNullException(nameof(ids));
+
+            return Enumerable.ToDictionary<KeyValuePair<int, List<int>>, int, List<AniDB_Tag>>(Repo.AniDB_Anime_Tag.GetTagsIdByAnimeIDs(ids), a => a.Key, a => GetMany(a.Value));
+        }
+
+
+        /// <summary>
+        /// Gets all the tags, but only if we have the anime locally
+        /// </summary>
+        /// <returns></returns>
+        public List<AniDB_Tag> GetAllForLocalSeries()
+        {
+            return GetMany(GetByAnimeIDs(Queryable.Select<SVR_AnimeSeries, int>(Repo.AnimeSeries.WhereAll(), a=>a.AniDB_ID).Distinct()).SelectMany(a=>a.Value).Select(a=>a.TagID));
+        }
+    }
+}
