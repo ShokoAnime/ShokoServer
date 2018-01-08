@@ -108,7 +108,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
         {
             return
-                Queryable.GroupBy<CrossRef_File_Episode, int>(Repo.CrossRef_File_Episode.WhereAll(), a => a.EpisodeID)
+                Repo.CrossRef_File_Episode.WhereAll().GroupBy(a => a.EpisodeID)
                     .Where(a => a.Count() > 1)
                     .Select(a => GetByEpisodeID(a.Key))
                     .ToList();

@@ -2,10 +2,10 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using System.IO;
 
 namespace Shoko.Server.Models
 {

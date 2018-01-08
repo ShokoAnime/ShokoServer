@@ -11,12 +11,17 @@ namespace Shoko.Server.Models
 {
     public class SVR_JMMUser : JMMUser
     {
-        public SVR_JMMUser()
-        {
-        }
+
+        // IUserIdentity implementation
+        [NotMapped]
+        public string UserName => Username;
+
+        [NotMapped]
+        [ScriptIgnore]
+        public IEnumerable<string> Claims { get; set; }
 
         /// <summary>
-        /// Returns whether a user is allowed to view this series
+        ///     Returns whether a user is allowed to view this series
         /// </summary>
         /// <param name="ser"></param>
         /// <returns></returns>
@@ -28,9 +33,9 @@ namespace Shoko.Server.Models
         }
 
         /// <summary>
-        /// Returns whether a user is allowed to view this anime
+        ///     Returns whether a user is allowed to view this anime
         /// </summary>
-        /// <param name="ser"></param>
+        /// <param name="anime"></param>
         /// <returns></returns>
         public bool AllowedAnime(SVR_AniDB_Anime anime)
         {
@@ -65,29 +70,20 @@ namespace Shoko.Server.Models
                     bool change = false;
                     foreach (SVR_AnimeGroup grp in allGrps)
                     {
-                        CL_AnimeGroup_User cgrp = grp.GetUserContract(this.JMMUserID);
-                        change |= gf.CalculateGroupFilterGroups(cgrp, this, JMMUserID);
+                        CL_AnimeGroup_User cgrp = grp.GetUserContract(JMMUserID);
+                        change |= gf.CalculateGroupFilterGroups_RA(cgrp, this, JMMUserID);
                     }
+
                     foreach (SVR_AnimeSeries ser in allSeries)
                     {
-                        CL_AnimeSeries_User cser = ser.GetUserContract(this.JMMUserID);
-                        change |= gf.CalculateGroupFilterSeries(cser, this, JMMUserID);
+                        CL_AnimeSeries_User cser = ser.GetUserContract(JMMUserID);
+                        change |= gf.CalculateGroupFilterSeries_RA(cser, this, JMMUserID);
                     }
+
                     if (change)
                         upd.Commit();
                 }
             }
         }
-
-        // IUserIdentity implementation
-        [NotMapped]
-        public string UserName => Username;
-
-        [NotMapped]
-        [ScriptIgnore]
-        public IEnumerable<string> Claims { get; set; }
-
-
-       
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
@@ -35,15 +34,7 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        /// <summary>
-        /// Gets other cross references by anime ID.
-        /// </summary>
-        /// <param name="session">The NHibernate session.</param>
-        /// <param name="animeIds">An optional list of anime IDs whose cross references are to be retrieved.
-        /// Can be <c>null</c> to get cross references for ALL anime.</param>
-        /// <param name="xrefTypes">The types of cross references to find.</param>
-        /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps anime ID to their associated other cross references.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+
         public Dictionary<int, List<CrossRef_AniDB_Other>> GetByAnimeIDsAndTypes(IEnumerable<int> animeIds, params CrossRefType[] xrefTypes)
         {
             if (xrefTypes == null || xrefTypes.Length == 0 || animeIds == null)

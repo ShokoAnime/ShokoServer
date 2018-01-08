@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Linq;s
+using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 

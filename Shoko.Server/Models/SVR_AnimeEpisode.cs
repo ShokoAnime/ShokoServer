@@ -17,11 +17,17 @@ namespace Shoko.Server.Models
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract;
 
+        private TvDB_Episode tvDbEpisode;
 
+
+        [NotMapped]
         public int PlexContractVersion { get; set; }
+        [NotMapped]
         public byte[] PlexContractBlob { get; set; }
+        [NotMapped]
         public int PlexContractSize { get; set; }
 
+        [NotMapped]
         public virtual Video PlexContract
         {
             get
@@ -31,6 +37,7 @@ namespace Shoko.Server.Models
                     _lastPlexRegen = DateTime.Now;
                     return _plexContract = Helper.GenerateVideoFromAnimeEpisode(this);
                 }
+
                 return _plexContract;
             }
             set
@@ -40,28 +47,15 @@ namespace Shoko.Server.Models
             }
         }
 
-        public void CollectContractMemory()
-        {
-            _plexContract = null;
-        }
-
-
+        [NotMapped]
         public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 
+        [NotMapped]
         public AniDB_Episode AniDB_Episode => Repo.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-        public SVR_AnimeEpisode_User GetUserRecord(int userID) => Repo.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
-
-        /// <summary>
-        /// Gets the AnimeSeries this episode belongs to
-        /// </summary>
-        public SVR_AnimeSeries GetAnimeSeries() => Repo.AnimeSeries.GetByID(AnimeSeriesID);
-
-        public List<SVR_VideoLocal> GetVideoLocals() => Repo.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
-
+        [NotMapped]
         public List<CrossRef_File_Episode> FileCrossRefs => Repo.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-        private TvDB_Episode tvDbEpisode;
         [NotMapped]
         public TvDB_Episode TvDBEpisode
         {
@@ -70,8 +64,7 @@ namespace Shoko.Server.Models
                 if (tvDbEpisode != null) return tvDbEpisode;
                 AniDB_Episode aep = AniDB_Episode;
 
-                List<CrossRef_AniDB_TvDBV2> xref_tvdb = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
-                        aep.EpisodeNumber);
+                List<CrossRef_AniDB_TvDBV2> xref_tvdb = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType, aep.EpisodeNumber);
                 TvDB_Episode tvep;
 
                 if (aep.EpisodeType == (int) EpisodeType.Episode && xref_tvdb.Count <= 0)
@@ -87,8 +80,7 @@ namespace Shoko.Server.Models
                         if (tvep != null) return tvDbEpisode = tvep;
                     }
 
-                int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
-                               (xref_tvdb2.AniDBStartEpisodeNumber - 1);
+                int epnumber = aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1 - (xref_tvdb2.AniDBStartEpisodeNumber - 1);
                 int season = xref_tvdb2.TvDBSeasonNumber;
                 tvep = Repo.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref_tvdb2.TvDBID, season, epnumber);
                 if (tvep != null) return tvDbEpisode = tvep;
@@ -97,7 +89,7 @@ namespace Shoko.Server.Models
                 int previousSeasonsCount = 0;
                 // we checked once, so increment the season
                 season++;
-                previousSeasonsCount +=Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
+                previousSeasonsCount += Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
                 do
                 {
                     if (season == 0) break; // Specials will often be wrong
@@ -111,10 +103,12 @@ namespace Shoko.Server.Models
                     previousSeasonsCount += Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
                     season++;
                 } while (true);
+
                 return tvDbEpisode = tvep;
             }
             set => tvDbEpisode = value;
         }
+
         [NotMapped]
         public double UserRating
         {
@@ -126,17 +120,28 @@ namespace Shoko.Server.Models
             }
         }
 
+        public void CollectContractMemory()
+        {
+            _plexContract = null;
+        }
+
+        public SVR_AnimeEpisode_User GetUserRecord(int userID) => Repo.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
+
+        /// <summary>
+        ///     Gets the AnimeSeries this episode belongs to
+        /// </summary>
+        public SVR_AnimeSeries GetAnimeSeries() => Repo.AnimeSeries.GetByID(AnimeSeriesID);
+
+        public List<SVR_VideoLocal> GetVideoLocals() => Repo.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
+
         public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
-            
             SVR_AnimeEpisode_User epUserRecord = GetUserRecord(userID);
 
             if (watched)
             {
                 // lets check if an update is actually required
-                if (epUserRecord?.WatchedDate != null && watchedDate != null &&
-                    epUserRecord.WatchedDate.Equals(watchedDate.Value) ||
-                    (epUserRecord?.WatchedDate == null && watchedDate == null))
+                if (epUserRecord?.WatchedDate != null && watchedDate != null && epUserRecord.WatchedDate.Equals(watchedDate.Value) || epUserRecord?.WatchedDate == null && watchedDate == null)
                     return;
                 using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => epUserRecord))
                 {
@@ -165,11 +170,7 @@ namespace Shoko.Server.Models
         }
 
 
-        public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
-        {
-            // get all the cross refs
-            return FileCrossRefs.Select(xref => Repo.VideoLocal.GetByHash(xref.Hash)).Where(v => v != null).Select(v => v.ToClientDetailed(userID)).ToList();
-        }
+        public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID) => FileCrossRefs.Select(xref => Repo.VideoLocal.GetByHash(xref.Hash)).Where(v => v != null).Select(v => v.ToClientDetailed(userID)).ToList();
 
         public CL_AnimeEpisode_User GetUserContract(int userid)
         {
@@ -184,11 +185,11 @@ namespace Shoko.Server.Models
                     upd.Entity.AnimeEpisodeID = AnimeEpisodeID;
                     upd.Entity.AnimeSeriesID = AnimeSeriesID;
                     upd.Entity.JMMUserID = userid;
-                    upd.Entity.WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid))
-                        .FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate;
+                    upd.Entity.WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid)).FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate;
                     rr = upd.Commit();
                 }
             }
+
             return rr.Contract;
         }
 

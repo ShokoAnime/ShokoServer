@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using System;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
@@ -10,15 +11,31 @@ namespace Shoko.Server.Models
 {
     public class SVR_AnimeSeries_User : AnimeSeries_User
     {
+        private DateTime _lastPlexRegen = DateTime.MinValue;
+        private Video _plexContract;
+
         public SVR_AnimeSeries_User()
         {
         }
 
-        private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract ;
+        public SVR_AnimeSeries_User(int userID, int seriesID)
+        {
+            JMMUserID = userID;
+            AnimeSeriesID = seriesID;
+            UnwatchedEpisodeCount = 0;
+            WatchedEpisodeCount = 0;
+            WatchedDate = null;
+            PlayedCount = 0;
+            WatchedCount = 0;
+            StoppedCount = 0;
+        }
+        [NotMapped]
         public int PlexContractVersion { get; set; }
+        [NotMapped]
         public byte[] PlexContractBlob { get; set; }
+        [NotMapped]
         public int PlexContractSize { get; set; }
+
         public virtual Video PlexContract
         {
             get
@@ -27,9 +44,9 @@ namespace Shoko.Server.Models
                 {
                     _lastPlexRegen = DateTime.Now;
                     var series = Repo.AnimeSeries.GetByID(AnimeSeriesID);
-                    return _plexContract = Helper.GenerateFromSeries(series.GetUserContract(JMMUserID), series,
-                        series.GetAnime(), JMMUserID);
+                    return _plexContract = Helper.GenerateFromSeries(series.GetUserContract(JMMUserID), series, series.GetAnime(), JMMUserID);
                 }
+
                 return _plexContract;
             }
             set
@@ -48,8 +65,7 @@ namespace Shoko.Server.Models
         {
             HashSet<GroupFilterConditionType> h = new HashSet<GroupFilterConditionType>();
 
-            if (oldcontract == null ||
-                oldcontract.UnwatchedEpisodeCount > 0 != newcontract.UnwatchedEpisodeCount > 0)
+            if (oldcontract == null || oldcontract.UnwatchedEpisodeCount > 0 != newcontract.UnwatchedEpisodeCount > 0)
                 h.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
             if (oldcontract == null || oldcontract.WatchedDate != newcontract.WatchedDate)
                 h.Add(GroupFilterConditionType.EpisodeWatchedDate);
@@ -82,18 +98,6 @@ namespace Shoko.Server.Models
                     }
                 }
             }
-        }
-
-        public SVR_AnimeSeries_User(int userID, int seriesID)
-        {
-            JMMUserID = userID;
-            AnimeSeriesID = seriesID;
-            UnwatchedEpisodeCount = 0;
-            WatchedEpisodeCount = 0;
-            WatchedDate = null;
-            PlayedCount = 0;
-            WatchedCount = 0;
-            StoppedCount = 0;
         }
     }
 }

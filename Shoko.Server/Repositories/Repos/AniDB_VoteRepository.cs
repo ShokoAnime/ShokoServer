@@ -22,7 +22,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             EntityIDs = null;
         }
-        internal override void EndSave(AniDB_Vote entity, AniDB_Vote original_entity, object returnFromBeginSave, object parameters)
+        internal override void EndSave(AniDB_Vote entity, object returnFromBeginSave, object parameters)
         {
             switch (entity.VoteType)
             {

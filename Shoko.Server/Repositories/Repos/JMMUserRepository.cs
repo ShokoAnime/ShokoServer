@@ -31,7 +31,7 @@ namespace Shoko.Server.Repositories.Repos
             return ret;
         }
 
-        internal override void EndSave(SVR_JMMUser entity, SVR_JMMUser original_entity, object returnFromBeginSave, bool parameters)
+        internal override void EndSave(SVR_JMMUser entity, object returnFromBeginSave, bool parameters)
         {
             bool ret = (bool) returnFromBeginSave;
             if (ret)
