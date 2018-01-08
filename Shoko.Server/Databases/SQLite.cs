@@ -505,7 +505,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(70, 5, "ALTER TABLE AniDB_Anime ADD WikipediaJP_ID TEXT NULL"),
             new DatabaseCommand(70, 6, "ALTER TABLE AniDB_Anime ADD SyoboiID INT NULL"),
             new DatabaseCommand(70, 7, "ALTER TABLE AniDB_Anime ADD AnisonID INT NULL"),
-            new DatabaseCommand(70, 8, "ALTER TABLE AniDB_Anime CrunchyrollID TEXT NULL"),
+            new DatabaseCommand(70, 8, "ALTER TABLE AniDB_Anime ADD CrunchyrollID TEXT NULL"),
             new DatabaseCommand(70, 9, DatabaseFixes.PopulateResourceLinks),
         };
 
