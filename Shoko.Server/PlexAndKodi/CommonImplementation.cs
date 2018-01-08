@@ -1197,7 +1197,7 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
 
-        public void UseDirectories(int userId, Shoko.Models.Plex.Libraries.Directory[] directories)
+        public void UseDirectories(int userId, List<Shoko.Models.Plex.Libraries.Directory> directories)
         {
             if (directories == null)
             {

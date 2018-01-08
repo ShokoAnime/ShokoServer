@@ -1,4 +1,5 @@
-﻿using Nancy.Rest.Module;
+﻿using System.Collections.Generic;
+using Nancy.Rest.Module;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.PlexAndKodi;
@@ -52,7 +53,7 @@ namespace Shoko.Server.API.v1.Implementations
 
         public MediaDevice CurrentDevice(int userId) => _impl.CurrentDevice(userId);
 
-        public void UseDirectories(int userId, Shoko.Models.Plex.Libraries.Directory[] directories) =>
+        public void UseDirectories(int userId, List<Shoko.Models.Plex.Libraries.Directory> directories) =>
             _impl.UseDirectories(userId, directories);
 
         public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => _impl.Directories(userId);
