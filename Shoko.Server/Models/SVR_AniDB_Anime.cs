@@ -1488,7 +1488,7 @@ namespace Shoko.Server.Models
             // Create a new AnimeSeries record
             using (var serupd = Repo.AnimeSeries.BeginAdd())
             {
-                serupd.Entity.Populate(this);
+                serupd.Entity.Populate_RA(this);
                 if (existingGroupID == null)
                 {
                     SVR_AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(serupd.Entity);

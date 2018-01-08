@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using Nito.AsyncEx;
 using NutzCode.InMemoryIndex;
@@ -26,7 +27,7 @@ namespace Shoko.Server.Repositories
         internal PocoCache<TS, T> Cache;
         internal DbSet<T> Table;
         internal ShokoContext Context;
-        internal AsyncReaderWriterLock CacheLock=new AsyncReaderWriterLock();
+        internal ReaderWriterLockSlim CacheLock=new ReaderWriterLockSlim();
         
         public static TU Create<TU>(ShokoContext context,DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()
         {
@@ -327,7 +328,7 @@ namespace Shoko.Server.Repositories
             return null;
         }
 
-        internal virtual void EndSave(T entity, T original_entity, object returnFromBeginSave, TT parameters)
+        internal virtual void EndSave(T entity, object returnFromBeginSave, TT parameters)
         {
 
         }
@@ -356,5 +357,121 @@ namespace Shoko.Server.Repositories
 
         }
         public string Name => Table.GetName();
+    }
+    public static class ReaderWriterLockSlimExtension
+    {
+        /// &lt;summary&gt;
+        /// Obtains a Read lock on the ReaderWriterLockSlim object
+        /// &lt;/summary&gt;
+        /// &lt;param name="readerWriterLock"&gt;The reader writer lock.&lt;/param&gt;
+        /// &lt;returns&gt;An IDisposable object that will release the lock on disposal&lt;/returns&gt;
+        public static IDisposable ReaderLock(this ReaderWriterLockSlim readerWriterLock)
+        {
+            return new DisposableLockWrapper(readerWriterLock, LockType.Read);
+        }
+
+        /// &lt;summary&gt;
+        /// Obtains an Upgradeable Read lock on the ReaderWriterLockSlim object
+        /// &lt;/summary&gt;
+        /// &lt;param name="readerWriterLock"&gt;The reader writer lock.&lt;/param&gt;
+        /// &lt;returns&gt;An IDisposable object that will release the lock on disposal&lt;/returns&gt;
+        public static IDisposable UpgradeableReaderLock(this ReaderWriterLockSlim readerWriterLock)
+        {
+            return new DisposableLockWrapper(readerWriterLock, LockType.UpgradeableRead);
+        }
+
+        /// &lt;summary&gt;
+        /// Obtains a Write Lock on the ReaderWriterLockSlim object
+        /// &lt;/summary&gt;
+        /// &lt;param name="readerWriterLock"&gt;The reader writer lock.&lt;/param&gt;
+        /// &lt;returns&gt;An IDisposable object that will release the lock on disposal&lt;/returns&gt;
+        public static IDisposable WriterLock(this ReaderWriterLockSlim readerWriterLock)
+        {
+            return new DisposableLockWrapper(readerWriterLock, LockType.Write);
+        }
+    }
+    /// &lt;summary&gt;Type of lock operation&lt;/summary&gt;
+    public enum LockType
+    {
+        /// &lt;summary&gt;A read lock, allowing multiple simultaneous reads&lt;/summary&gt;
+        Read,
+
+        /// &lt;summary&gt;An upgradeable read, allowing multiple simultaneous reads, but with the potential that ths may be upgraded to a Write lock &lt;/summary&gt;
+        UpgradeableRead,
+
+        /// &lt;summary&gt;A blocking Write lock&lt;/summary&gt;
+        Write
+    }
+
+    /// &lt;summary&gt;Wrapper for the ReaderWriterLockSlim which allows callers to dispose the object to remove the lock &lt;/summary&gt;
+    public class DisposableLockWrapper : IDisposable
+    {
+        /// &lt;summary&gt;The lock object being wrapped&lt;/summary&gt;
+        private readonly ReaderWriterLockSlim readerWriterLock;
+
+        /// &lt;summary&gt;The lock type&lt;/summary&gt;
+        private readonly LockType lockType;
+
+        /// &lt;summary&gt;
+        /// Initializes a new instance of the &lt;see cref="DisposableLockWrapper"/&gt; class.
+        /// &lt;/summary&gt;
+        /// &lt;param name="readerWriterLock"&gt;The reader writer lock.&lt;/param&gt;
+        /// &lt;param name="lockType"&gt;Type of the lock.&lt;/param&gt;
+        public DisposableLockWrapper(ReaderWriterLockSlim readerWriterLock, LockType lockType)
+        {
+            this.readerWriterLock = readerWriterLock;
+            this.lockType = lockType;
+
+            switch (this.lockType)
+            {
+                case LockType.Read:
+                    this.readerWriterLock.EnterReadLock();
+                    break;
+
+                case LockType.UpgradeableRead:
+                    this.readerWriterLock.EnterUpgradeableReadLock();
+                    break;
+
+                case LockType.Write:
+                    this.readerWriterLock.EnterWriteLock();
+                    break;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// &lt;/summary&gt;
+        /// &lt;filterpriority&gt;2&lt;/filterpriority&gt;
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// &lt;summary&gt;
+        /// Releases unmanaged and - optionally - managed resources
+        /// &lt;/summary&gt;
+        /// &lt;param name="disposing"&gt;&lt;c&gt;true&lt;/c&gt; to release both managed and unmanaged resources; &lt;c&gt;false&lt;/c&gt; to release only unmanaged resources.&lt;/param&gt;
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // dispose managed objects
+                switch (this.lockType)
+                {
+                    case LockType.Read:
+                        this.readerWriterLock.ExitReadLock();
+                        break;
+
+                    case LockType.UpgradeableRead:
+                        this.readerWriterLock.ExitUpgradeableReadLock();
+                        break;
+
+                    case LockType.Write:
+                        this.readerWriterLock.ExitWriteLock();
+                        break;
+                }
+            }
+        }
     }
 }

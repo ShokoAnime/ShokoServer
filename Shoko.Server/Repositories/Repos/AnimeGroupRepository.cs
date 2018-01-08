@@ -23,7 +23,7 @@ namespace Shoko.Server.Repositories.Repos
             return entity.UpdateContract(parameters.updategrpcontractstats);
         }
 
-        internal override void EndSave(SVR_AnimeGroup entity, SVR_AnimeGroup original_entity, object returnFromBeginSave,
+        internal override void EndSave(SVR_AnimeGroup entity, object returnFromBeginSave,
             (bool updategrpcontractstats, bool recursive, bool verifylockedFilters) parameters)
         {
             HashSet<GroupFilterConditionType> types = (HashSet<GroupFilterConditionType>)returnFromBeginSave;
@@ -37,7 +37,7 @@ namespace Shoko.Server.Repositories.Repos
                 Repo.GroupFilter.CreateOrVerifyDirectoryFilters(null, false, entity.Contract.Stat_AllTags,
                     entity.Contract.Stat_AllYears, entity.Contract.Stat_AllSeasons);
                 //This call will create extra years or tags if the Group have a new year or tag
-                entity.UpdateGroupFilters(types, null);
+                entity.UpdateGroupFilters(types);
             }
             if (entity.AnimeGroupParentID.HasValue && parameters.recursive)
             {

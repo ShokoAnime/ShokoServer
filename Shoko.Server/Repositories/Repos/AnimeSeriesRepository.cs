@@ -46,7 +46,7 @@ namespace Shoko.Server.Repositories.Repos
             return (isMigrating, oldGroup, types);
         }
 
-        internal override void EndSave(SVR_AnimeSeries entity, SVR_AnimeSeries original_entity, object returnFromBeginSave,
+        internal override void EndSave(SVR_AnimeSeries entity, object returnFromBeginSave,
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
             (bool isMigrating, SVR_AnimeGroup oldGroup, HashSet<GroupFilterConditionType> types) = ((bool isMigrating, SVR_AnimeGroup oldGroup, HashSet<GroupFilterConditionType> types))returnFromBeginSave;
@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories.Repos
                 int endyear = entity.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
                 if (endyear == 0) endyear = DateTime.Today.Year;
                 HashSet<int> allyears = null;
-                if ((entity.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0) != 0)
+                if (entity.Contract?.AniDBAnime?.AniDBAnime != null && entity.Contract.AniDBAnime.AniDBAnime.BeginYear != 0)
                 {
                     allyears = new HashSet<int>(Enumerable.Range(entity.Contract.AniDBAnime.AniDBAnime.BeginYear,
                         endyear - entity.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
@@ -77,7 +77,7 @@ namespace Shoko.Server.Repositories.Repos
                     entity.Contract?.AniDBAnime?.Stat_AllSeasons);
 
                 // Update other existing filters
-                entity.UpdateGroupFilters(types, null);
+                entity.UpdateGroupFilters(types);
             }
             lock (Changes)
             {
@@ -93,7 +93,8 @@ namespace Shoko.Server.Repositories.Repos
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
             Repo.AnimeSeries_User.Delete(entity.AnimeSeriesID);
-            Changes.Remove(entity.AnimeSeriesID);
+            lock(Changes)
+                Changes.Remove(entity.AnimeSeriesID);
             return null;
         }
 

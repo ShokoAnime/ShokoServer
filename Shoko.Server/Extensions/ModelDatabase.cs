@@ -56,7 +56,7 @@ namespace Shoko.Server.Extensions
             return null;
         }
 
-        public static void CreateAnimeEpisode(this AniDB_Episode episode, ISession session, int animeSeriesID)
+        public static void CreateAnimeEpisode(this AniDB_Episode episode, int animeSeriesID)
         {
             // check if there is an existing episode for this EpisodeID
             SVR_AnimeEpisode existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);

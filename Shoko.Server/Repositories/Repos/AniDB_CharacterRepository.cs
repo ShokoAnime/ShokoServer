@@ -31,7 +31,7 @@ namespace Shoko.Server.Repositories.Repos
             Dictionary<int, AniDB_Character> chars = GetMany(charids).ToDictionary(a => a.CharID, a => a);
             Dictionary<int, List<int>> charseiyuus = Repo.AniDB_Character_Seiyuu.GetSeiyuusFromCharIds(chars.Keys);
             List<int> seyuuids = charseiyuus.Values.SelectMany(a => a).Distinct().ToList();
-            Dictionary<int, AniDB_Seiyuu> seiyuus=Enumerable.ToDictionary<AniDB_Seiyuu, int, AniDB_Seiyuu>(Repo.AniDB_Seiyuu.GetMany(seyuuids), a=> a.SeiyuuID,a=>a);
+            Dictionary<int, AniDB_Seiyuu> seiyuus=Repo.AniDB_Seiyuu.GetMany(seyuuids).ToDictionary(a=> a.SeiyuuID,a=>a);
             List<AnimeCharacterAndSeiyuu> ls=new List<AnimeCharacterAndSeiyuu>();
             foreach (int animeid in animechars.Keys)
             {

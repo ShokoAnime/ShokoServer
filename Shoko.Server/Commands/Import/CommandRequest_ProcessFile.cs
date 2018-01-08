@@ -119,7 +119,7 @@ namespace Shoko.Server.Commands
                         Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                         if (fileInfo != null)
                         {
-                            SVR_AniDB_File.Populate(aniFile, fileInfo);
+                            aniFile.Populate_RA(fileInfo);
                             if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
                             {
                                 string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');

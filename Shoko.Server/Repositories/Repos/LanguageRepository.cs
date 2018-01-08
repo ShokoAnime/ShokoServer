@@ -6,7 +6,7 @@ namespace Shoko.Server.Repositories.Repos
 {
     public class LanguageRepository : BaseRepository<Language, int>
     {
-        {
+
         private PocoIndex<int, Language, string> LanguageNames;
        
         internal override int SelectKey(Language entity) => entity.LanguageID;

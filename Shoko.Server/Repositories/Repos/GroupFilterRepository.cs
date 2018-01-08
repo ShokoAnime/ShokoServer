@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Utils;
 using Shoko.Models;
@@ -16,25 +15,25 @@ namespace Shoko.Server.Repositories.Repos
     public class GroupFilterRepository : BaseRepository<SVR_GroupFilter, int, bool>
     {
        
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        //private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private PocoIndex<int, SVR_GroupFilter, int> Parents;
 
         private BiDictionaryManyToMany<int, GroupFilterConditionType> Types;
 
-        private readonly Repositories.ChangeTracker<int> Changes = new Repositories.ChangeTracker<int>();
+        private readonly ChangeTracker<int> Changes = new ChangeTracker<int>();
 
         public List<SVR_GroupFilter> PostProcessFilters { get; set; } = new List<SVR_GroupFilter>();
         internal override object BeginSave(SVR_GroupFilter entity, SVR_GroupFilter original_entity, bool onlyconditions)
         {
             if (!onlyconditions)
-                entity.UpdateEntityReferenceStrings();
+                entity.UpdateEntityReferenceStrings_RA();
             entity.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(entity._conditions);
             entity.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
             return null;
         }
 
-        internal override void EndSave(SVR_GroupFilter entity, SVR_GroupFilter original_entity, object returnFromBeginSave, bool onlyconditions)
+        internal override void EndSave(SVR_GroupFilter entity, object returnFromBeginSave, bool onlyconditions)
         {
             lock (Types)
             {
@@ -104,7 +103,7 @@ namespace Shoko.Server.Repositories.Repos
                     gf.CalculateGroupsAndSeries();
 
                 progress.Report(regen);
-            }, false);
+            });
             regen.Total = PostProcessFilters.Count;
             regen.Title = string.Format(Commons.Properties.Resources.Database_Validating,t," " + Commons.Properties.Resources.GroupFilter_Cleanup);
 
@@ -119,33 +118,6 @@ namespace Shoko.Server.Repositories.Repos
                 Changes.AddOrUpdateRange(Cache.Keys);
             }
         }
-
-
-
-        public override void PreInit(IProgress<InitProgress> progress, int batchSize)
-        {
-            
-
-            string t = typeof(GroupFilter).Name;
-            PostProcessFilters = new List<SVR_GroupFilter>();
-            InitProgress regen = new InitProgress();
-            List<SVR_GroupFilter> filters= Where(a => a.GroupFilterID != 0 && a.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
-                                                      a.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION).ToList();
-            if (filters.Count == 0)
-                return;
-            regen.Step = 0;
-            regen.Total = filters.Count;
-            regen.Title = string.Format(Commons.Properties.Resources.Database_Validating, t, " Regen");
-            progress.Report(regen);
-            BatchAction(filters, batchSize, (gf, original) =>
-            {
-                if (gf.GroupConditionsVersion == 0)
-                    gf.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(gf.GroupFilterID);
-                PostProcessFilters.Add(gf);
-                progress.Report(regen);
-            }, true);
-        }
-
 
 
 
@@ -291,7 +263,7 @@ namespace Shoko.Server.Repositories.Repos
                 HashSet<string> alltags;
                 if (tags == null)
                     alltags = new HashSet<string>(
-                        Enumerable.Select<AniDB_Tag, string>(Repo.AniDB_Tag.GetAll(), a => a.TagName)
+                        Repo.AniDB_Tag.GetAll().Select(a => a.TagName)
                             .Distinct(StringComparer.InvariantCultureIgnoreCase),
                         StringComparer.InvariantCultureIgnoreCase);
                 else
@@ -354,7 +326,7 @@ namespace Shoko.Server.Repositories.Repos
                 HashSet<string> allyears;
                 if (airdate == null || airdate.Count == 0)
                 {
-                    List<CL_AnimeSeries_User> grps = Enumerable.Select<SVR_AnimeSeries, CL_AnimeSeries_User>(Repo.AnimeSeries.GetAll(), a => a.Contract).Where(a => a != null).ToList();
+                    List<CL_AnimeSeries_User> grps = Repo.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
 
                     allyears = new HashSet<string>(StringComparer.Ordinal);
                     foreach (CL_AnimeSeries_User ser in grps)
@@ -428,7 +400,7 @@ namespace Shoko.Server.Repositories.Repos
                 SortedSet<string> allseasons;
                 if (season == null)
                 {
-                    List<SVR_AnimeSeries> grps = Enumerable.ToList<SVR_AnimeSeries>(Repo.AnimeSeries.GetAll());
+                    List<SVR_AnimeSeries> grps = Repo.AnimeSeries.GetAll().ToList();
 
                     allseasons = new SortedSet<string>(new SeasonComparator());
                     foreach (SVR_AnimeSeries ser in grps)
@@ -437,7 +409,8 @@ namespace Shoko.Server.Repositories.Repos
                         {
                             ser.UpdateContract();
                         }
-                        if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0) continue;
+                        if (ser.Contract?.AniDBAnime?.Stat_AllSeasons == null || ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count==0) 
+                            continue;
                         allseasons.UnionWith(ser.Contract.AniDBAnime.Stat_AllSeasons);
                     }
                 }
@@ -551,14 +524,12 @@ namespace Shoko.Server.Repositories.Repos
         /// <summary>
         /// Calculates what groups should belong to tag related group filters.
         /// </summary>
-        /// <param name="session">The NHibernate session.</param>
-        /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+        /// <returns>A <see cref="Dictionary{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
         public Dictionary<int, List<int>> CalculateAnimeGroupsPerTagGroupFilter()
         {
-            Dictionary<string, List<int>> alltags = Queryable.GroupBy<AniDB_Tag, string>(Repo.AniDB_Tag.WhereAll(), a => a.TagName).ToDictionary(a => a.Key, a => a.Select(b => b.TagID).ToList());
-            Dictionary<int, List<int>> allanimetags = Queryable.GroupBy<AniDB_Anime_Tag, int>(Repo.AniDB_Anime_Tag.WhereAll(), a => a.TagID).ToDictionary(a => a.Key, a => a.Select(b => b.AnimeID).ToList());
-            Dictionary<int, List<int>> allgroups = Queryable.GroupBy<SVR_AnimeSeries, int>(Repo.AnimeSeries.WhereAll(), a=>a.AniDB_ID).ToDictionary(a=>a.Key,a=>a.Select(b=>b.AnimeGroupID).ToList());
+            Dictionary<string, List<int>> alltags = Repo.AniDB_Tag.WhereAll().GroupBy(a => a.TagName).ToDictionary(a => a.Key, a => a.Select(b => b.TagID).ToList());
+            Dictionary<int, List<int>> allanimetags = Repo.AniDB_Anime_Tag.WhereAll().GroupBy(a => a.TagID).ToDictionary(a => a.Key, a => a.Select(b => b.AnimeID).ToList());
+            Dictionary<int, List<int>> allgroups = Repo.AnimeSeries.WhereAll().GroupBy(a=>a.AniDB_ID).ToDictionary(a=>a.Key,a=>a.Select(b=>b.AnimeGroupID).ToList());
             Dictionary<int, string> filters = WhereAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToDictionary(a => a.GroupFilterID, a => a.GroupFilterName);
             return filters.ToDictionary(a => a.Key, a => alltags.SafeGetList(a.Value).SelectMany(b => allanimetags.SafeGetList(b).SelectMany(c => allgroups.SafeGetList(c))).ToList());
         }
@@ -584,7 +555,7 @@ namespace Shoko.Server.Repositories.Repos
             return filters.Select(a => Cache.Get(a)).ToList();
         }
 
-        public Repositories.ChangeTracker<int> GetChangeTracker()
+        public ChangeTracker<int> GetChangeTracker()
         {
 
             //This lock ensures.....?

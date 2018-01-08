@@ -3000,7 +3000,7 @@ namespace Shoko.Server
                 }
             }
 
-            gf = SVR_GroupFilter.FromClient(contract);
+            gf = SVR_GroupFilter.FromClient_RA(contract);
 
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);

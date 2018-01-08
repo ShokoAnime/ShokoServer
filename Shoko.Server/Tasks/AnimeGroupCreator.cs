@@ -211,7 +211,7 @@ namespace Shoko.Server.Tasks
                         filter.CalculateGroupsAndSeries();
                     }
 
-                    filter.UpdateEntityReferenceStrings(updateGroups: true, updateSeries: false);
+                    filter.UpdateEntityReferenceStrings_RA(updateGroups: true, updateSeries: false);
                 });
 
             _groupFilterRepo.BatchUpdate(session, grpFilters);

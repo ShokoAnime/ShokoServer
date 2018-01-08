@@ -25,7 +25,7 @@ namespace Shoko.Server.Repositories.Repos
             return SVR_AnimeGroup_User.GetConditionTypesChanged(original_entity, entity);
         }
 
-        internal override void EndSave(SVR_AnimeGroup_User entity, SVR_AnimeGroup_User original_entity, object returnFromBeginSave,
+        internal override void EndSave(SVR_AnimeGroup_User entity, object returnFromBeginSave,
             object parameters)
         {
             HashSet<GroupFilterConditionType> types = (HashSet<GroupFilterConditionType>)returnFromBeginSave;

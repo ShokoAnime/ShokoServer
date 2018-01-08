@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Force.DeepCloner;
-using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories
@@ -22,9 +21,9 @@ namespace Shoko.Server.Repositories
 
 
 
-        internal AtomicBatchUpdate(BaseRepository<T, TS, TT> repo, List<TS> originalsKeys)
+        internal AtomicBatchUpdate(BaseRepository<T, TS, TT> repo, List<TS> originalsKeys=null)
         {
-            _originalsKeys = originalsKeys;
+            _originalsKeys = originalsKeys ?? new List<TS>();
             _repo = repo;
         }
         //The first parameter, have the find function, this function might return an item from the db, or null in case it dosnt exists.
@@ -71,31 +70,44 @@ namespace Shoko.Server.Repositories
                 foreach (T e in listed)
                     _repo.EndDelete(e, savedobjects[e], pars);
             }
+            List<T> returns = new List<T>();
 
             if (References.Count > 0)
             {
-                savedobjects = new Dictionary<T, object>();
-                foreach (KeyValuePair<T, T> t in References)
+                Dictionary<T, object> savedObjects = new Dictionary<T, object>();
+                foreach (T t in EntityList)
                 {
-                    savedobjects[t.Key] = _repo.BeginSave(t.Key, t.Value, pars);
+                    savedObjects[t] = _repo.BeginSave(t, References[t], pars);
                 }
-                using (_repo.CacheLock.ReaderLock())
+                var updates = References.Where(a => a.Value != null).ToList();
+                var creates = References.Where(a => a.Value == null).ToList();
+                using (_repo.CacheLock.WriterLock())
                 {
-                    foreach (KeyValuePair<T, T> t in References)
-                        _repo.Table.Attach(t.Key);
-                    _repo.Context.SaveChanges();
-                    if (_repo.IsCached)
+                    foreach (KeyValuePair<T, T> r in updates)
                     {
-                        Release();
-                        References.ForEach(a => _repo.Cache.Update(a.Key));
+
+                        r.Key.DeepCloneTo(r.Value); //Tried to be 100% atomic and failed miserably, so is 99%. 
+                                                    //If we replace Original with Entity in cache (updating with 'this' as the model to update, will not get the changes).
+                                                    //So this is the best effort
+                        returns.Add(r.Value);
                     }
+                    foreach (KeyValuePair<T, T> r in creates)
+                    {
+                        _repo.Table.Add(r.Key);
+                        returns.Add(r.Key);
+                    }
+                    if (_repo.IsCached)
+                        returns.ForEach(_repo.Cache.Update);
                 }
-                foreach (KeyValuePair<T, T> t in References)
+                _repo.Context.SaveChanges();
+                foreach (T t in returns)
                 {
-                    _repo.EndSave(t.Key, t.Value, savedobjects[t.Key], pars);
+                    _repo.EndSave(t, savedObjects[t], pars);
                 }
             }
-            return References.Keys.ToList();
+            Release();
+
+            return returns;
         }
 
         public void Dispose()
@@ -104,7 +116,8 @@ namespace Shoko.Server.Repositories
 
         private void Release()
         {
-
+            References.Clear();
+            _originalsKeys.Clear();
         }
 
 

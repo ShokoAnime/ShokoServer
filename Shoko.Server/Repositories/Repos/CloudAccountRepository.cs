@@ -5,7 +5,7 @@ namespace Shoko.Server.Repositories.Repos
     public class CloudAccountRepository : BaseRepository<SVR_CloudAccount, int>
     {
 
-        internal override void EndSave(SVR_CloudAccount entity, SVR_CloudAccount original_entity, object returnFromBeginSave, object parameters)
+        internal override void EndSave(SVR_CloudAccount entity,  object returnFromBeginSave, object parameters)
         {
             entity.NeedSave = false;
         }

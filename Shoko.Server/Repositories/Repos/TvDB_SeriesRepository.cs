@@ -41,12 +41,12 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => ids.Contains(a.SeriesID)).ToDictionary(a => a.SeriesID, a => a);
             }
         }
-        public Dictionary<int, (CrossRef_AniDB_TvDBV2, TvDB_Series)> GetByAnimeIDsV2(IEnumerable<int> animeIds)
+        public Dictionary<int, List<(CrossRef_AniDB_TvDBV2, TvDB_Series)>> GetByAnimeIDsV2(IEnumerable<int> animeIds)
         {
             if (animeIds == null)
-                return new Dictionary<int, (CrossRef_AniDB_TvDBV2, TvDB_Series)>();
-            Dictionary<int, CrossRef_AniDB_TvDBV2> animetvdb = Enumerable.ToDictionary<KeyValuePair<int, List<CrossRef_AniDB_TvDBV2>>, int, CrossRef_AniDB_TvDBV2>(Repo.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(animeIds), a=>a.Key,a=>Enumerable.First<CrossRef_AniDB_TvDBV2>(a.Value));
-            return animetvdb.ToDictionary(a => a.Key, a => (a.Value, GetByTvDBID(a.Value.TvDBID)));
+                return new Dictionary<int, List<(CrossRef_AniDB_TvDBV2, TvDB_Series)>>();
+            Dictionary<int, List<CrossRef_AniDB_TvDBV2>> animetvdb = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(animeIds).ToDictionary(a=>a.Key,a=>a.Value);
+            return animetvdb.ToDictionary(a => a.Key, a => a.Value.Select(b => (b, GetByTvDBID(b.TvDBID))).ToList());
         }
 
 

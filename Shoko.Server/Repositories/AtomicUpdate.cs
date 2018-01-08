@@ -5,8 +5,8 @@ namespace Shoko.Server.Repositories
     public class AtomicUpdate<T,TS,TT> : IAtomic<T,TT> where T : class, new()
     {
         private readonly BaseRepository<T,TS,TT> _repo;
-        public T Entity { get; }
-        public T Original { get; }
+        public T Entity { get; private set; }
+        public T Original { get; private set; }
 
         internal AtomicUpdate(BaseRepository<T, TS,TT> repo, T obj=null, bool isupdate=true)
         {
@@ -39,26 +39,37 @@ namespace Shoko.Server.Repositories
         public T Commit(TT pars=default(TT)) 
         // Pars are the extra parameters send to the save and delete callbacks, in this way we can forward behaviors to the callbacks
         {
-            object obj=_repo.BeginSave(Entity,Original, pars);
-            using (_repo.CacheLock.ReaderLock())
+            object obj=_repo.BeginSave(Entity, Original, pars);
+            T ret;
+            using (_repo.CacheLock.WriterLock())
             {
-                _repo.Table.Attach(Entity);
-                _repo.Context.SaveChanges();
-                if (_repo.IsCached)
+                if (Original == null)
                 {
-                    Release();
-                    _repo.Cache.Update(Entity);
+                    ret = Entity;
+                    _repo.Table.Add(Entity);
                 }
+                else
+                {
+                    ret = Original;
+                    Entity.DeepCloneTo(Original); //Tried to be 100% atomic and failed miserably, so is 99%. 
+                                                  //If we replace Original with Entity in cache (updating with 'this' as the model to update will not get the changes).
+                                                  //So this is the best effort
+                }
+                Release();
+                if (_repo.IsCached)
+                    _repo.Cache.Update(ret);
             }
-            _repo.EndSave(Entity,Original, obj, pars);
-            return Entity;
+            _repo.Context.SaveChanges();
+            _repo.EndSave(ret, obj, pars);
+            return ret;
         }
 
        
 
         private void Release()
         {
-
+            Entity = null;
+            Original = null;
         }
 
     }
