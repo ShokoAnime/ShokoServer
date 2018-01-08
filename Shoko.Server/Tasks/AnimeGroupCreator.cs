@@ -389,10 +389,11 @@ namespace Shoko.Server.Tasks
                 IReadOnlyList<int> grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
                 // Try to find an existing AnimeGroup to add the series to
                 // We basically pick the first group that any of the related series belongs to already
-                animeGroup = grpAnimeIds.Select(id => RepoFactory.AnimeSeries.GetByAnimeID(id))
+                animeGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
+                    .Select(id => RepoFactory.AnimeSeries.GetByAnimeID(id))
                     .Where(s => s != null)
                     .Select(s => RepoFactory.AnimeGroup.GetByID(s.AnimeGroupID))
-                    .FirstOrDefault();
+                    .FirstOrDefault(s => s != null);
 
                 if (animeGroup == null)
                 {
