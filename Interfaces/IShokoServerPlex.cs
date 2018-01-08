@@ -1,4 +1,5 @@
-﻿using Nancy.Rest.Annotations.Atributes;
+﻿using System.Collections.Generic;
+using Nancy.Rest.Annotations.Atributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.PlexAndKodi;
@@ -39,7 +40,7 @@ namespace Shoko.Models.Interfaces
         MediaDevice CurrentDevice(int userId);
 
         [Rest("Linking/Directories/{userId}", Verbs.Post)]
-        void UseDirectories(int userId, Plex.Libraries.Directory[] directories);
+        void UseDirectories(int userId, List<Plex.Libraries.Directory> directories);
 
         [Rest("Linking/Directories/{userId}", Verbs.Get)]
         Plex.Libraries.Directory[] Directories(int userId);
