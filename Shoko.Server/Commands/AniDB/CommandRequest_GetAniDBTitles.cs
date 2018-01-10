@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Xml;
-using ICSharpCode.SharpZipLib.GZip;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -51,8 +51,7 @@ namespace Shoko.Server.Commands
                 byte[] data = new byte[bytes]; //USE OF BYTES LENGTH VALUES FOR DATA SIZE
                 StringBuilder b = new StringBuilder();
                 UTF8Encoding enc = new UTF8Encoding();
-
-                GZipInputStream zis = new GZipInputStream(s);
+                GZipStream zis = new GZipStream(s,CompressionMode.Decompress);
 
                 while ((bytes = zis.Read(data, 0, data.Length)) > 0)
                     b.Append(enc.GetString(data, 0, bytes));

@@ -49,83 +49,81 @@ namespace Shoko.Server.Commands
 
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                // first check if the user wants to use the web cache
+                if (ServerSettings.WebCache_TvDB_Get)
                 {
-                    // first check if the user wants to use the web cache
-                    if (ServerSettings.WebCache_TvDB_Get)
+                    try
                     {
-                        try
+                        List<Azure_CrossRef_AniDB_TvDB> cacheResults =
+                            AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
+                        if (cacheResults != null && cacheResults.Count > 0)
                         {
-                            List<Azure_CrossRef_AniDB_TvDB> cacheResults =
-                                AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
-                            if (cacheResults != null && cacheResults.Count > 0)
-                            {
-                                // check again to see if there are any links, user may have manually added links while
-                                // this command was in the queue
-                                List<CrossRef_AniDB_TvDBV2> xrefTemp =
-                                    RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
-                                if (xrefTemp != null && xrefTemp.Count > 0) return;
+                            // check again to see if there are any links, user may have manually added links while
+                            // this command was in the queue
+                            List<CrossRef_AniDB_TvDBV2> xrefTemp =
+                                Repo.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+                            if (xrefTemp != null && xrefTemp.Count > 0) return;
 
-                                foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
+                            foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
+                            {
+                                TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
+                                if (tvser != null)
                                 {
-                                    TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
-                                    if (tvser != null)
-                                    {
-                                        logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
-                                        TvDBApiHelper.LinkAniDBTvDB(AnimeID,
-                                            (EpisodeType) xref.AniDBStartEpisodeType,
-                                            xref.AniDBStartEpisodeNumber,
-                                            xref.TvDBID, xref.TvDBSeasonNumber,
-                                            xref.TvDBStartEpisodeNumber, true, true);
-                                    }
+                                    logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
+                                    TvDBApiHelper.LinkAniDBTvDB(AnimeID,
+                                        (EpisodeType) xref.AniDBStartEpisodeType,
+                                        xref.AniDBStartEpisodeNumber,
+                                        xref.TvDBID, xref.TvDBSeasonNumber,
+                                        xref.TvDBStartEpisodeNumber, true, true);
                                 }
-                                return;
                             }
-                        }
-                        catch (Exception)
-                        {
+                            return;
                         }
                     }
-
-                    if (!ServerSettings.TvDB_AutoLink) return;
-
-                    string searchCriteria = string.Empty;
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
-                    if (anime == null) return;
-
-                    searchCriteria = anime.MainTitle;
-
-                    // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
-                    logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
-                    if (ProcessSearchResults(results, searchCriteria)) return;
-
-
-                    if (results.Count == 0)
+                    catch (Exception)
                     {
-                        bool foundResult = false;
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
-                        {
-                            if (!title.TitleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
-                                continue;
-                            if (!title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
-                                    StringComparison.InvariantCultureIgnoreCase) &&
-                                !title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
-                                    StringComparison.InvariantCultureIgnoreCase))
-                                continue;
-
-                            if (searchCriteria.Equals(title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
-
-                            searchCriteria = title.Title;
-                            results = TvDBApiHelper.SearchSeries(searchCriteria);
-                            if (results.Count > 0) foundResult = true;
-                            logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
-                            if (ProcessSearchResults(results, title.Title)) return;
-                        }
-                        if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
                     }
                 }
+
+                if (!ServerSettings.TvDB_AutoLink) return;
+
+                string searchCriteria = string.Empty;
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                if (anime == null) return;
+
+                searchCriteria = anime.MainTitle;
+
+                // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+                List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
+                logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
+                if (ProcessSearchResults(results, searchCriteria)) return;
+
+
+                if (results.Count == 0)
+                {
+                    bool foundResult = false;
+                    foreach (AniDB_Anime_Title title in anime.GetTitles())
+                    {
+                        if (!title.TitleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                            continue;
+                        if (!title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
+                                StringComparison.InvariantCultureIgnoreCase) &&
+                            !title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
+                                StringComparison.InvariantCultureIgnoreCase))
+                            continue;
+
+                        if (searchCriteria.Equals(title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
+
+                        searchCriteria = title.Title;
+                        results = TvDBApiHelper.SearchSeries(searchCriteria);
+                        if (results.Count > 0) foundResult = true;
+                        logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
+                        if (ProcessSearchResults(results, title.Title)) return;
+                    }
+                    if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
+                }
             }
+
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
@@ -144,11 +142,11 @@ namespace Shoko.Server.Commands
                 TvDBApiHelper.LinkAniDBTvDB(AnimeID, EpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
 
                 // add links for multiple seasons (for long shows)
-                List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
+                List<int> seasons = Repo.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
                 foreach (int season in seasons)
                 {
                     if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
-                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(results[0].SeriesID, season, 1);
+                    TvDB_Episode ep = Repo.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(results[0].SeriesID, season, 1);
                     if (ep?.AbsoluteNumber != null)
                     {
                         AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
@@ -173,11 +171,11 @@ namespace Shoko.Server.Commands
                     TvDBApiHelper.LinkAniDBTvDB(AnimeID, EpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
 
                     // add links for multiple seasons (for long shows)
-                    List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
+                    List<int> seasons = Repo.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
                     foreach (int season in seasons)
                     {
                         if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
-                        TvDB_Episode ep = RepoFactory.TvDB_Episode
+                        TvDB_Episode ep = Repo.TvDB_Episode
                             .GetBySeriesIDSeasonNumberAndEpisode(results[0].SeriesID, season, 1);
                         if (ep?.AbsoluteNumber != null)
                         {
@@ -196,24 +194,20 @@ namespace Shoko.Server.Commands
         private static void AddCrossRef_AniDB_TvDBV2(int animeID, int anistart, int tvdbID, int tvdbSeason,
             string title)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            CrossRef_AniDB_TvDBV2 xref =
+                Repo.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvdbID, tvdbSeason, 1, animeID,
+                    (int) EpisodeType.Episode, anistart);
+            if (xref != null) return;
+            using (var upd = Repo.CrossRef_AniDB_TvDBV2.BeginAdd())
             {
-                CrossRef_AniDB_TvDBV2 xref =
-                    RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvdbID, tvdbSeason, 1, animeID,
-                        (int) EpisodeType.Episode, anistart);
-                if (xref != null) return;
-                xref = new CrossRef_AniDB_TvDBV2
-                {
-                    AnimeID = animeID,
-                    AniDBStartEpisodeType = (int)EpisodeType.Episode,
-                    AniDBStartEpisodeNumber = anistart,
-
-                    TvDBID = tvdbID,
-                    TvDBSeasonNumber = tvdbSeason,
-                    TvDBStartEpisodeNumber = 1,
-                    TvDBTitle = title
-                };
-                RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
+                upd.Entity.AnimeID = animeID;
+                upd.Entity.AniDBStartEpisodeType = (int) EpisodeType.Episode;
+                upd.Entity.AniDBStartEpisodeNumber = anistart;
+                upd.Entity.TvDBID = tvdbID;
+                upd.Entity.TvDBSeasonNumber = tvdbSeason;
+                upd.Entity.TvDBStartEpisodeNumber = 1;
+                upd.Entity.TvDBTitle = title;
+                upd.Commit();
             }
         }
 

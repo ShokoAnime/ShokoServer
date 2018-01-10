@@ -17,7 +17,11 @@ namespace Shoko.Server.Repositories
         IAtomic<T, TT> BeginAdd(T obj);
         IAtomicList<T, TT> BeginAdd(IEnumerable<T> objs);
         IAtomic<T,TT> BeginAddOrUpdate(S id);
-        IAtomic<T, TT> BeginAddOrUpdate(Func<T> id);
+
+        IAtomic<T, TT> BeginAddOrUpdateWithLock(Func<T> find_function); //This method applies a lock on the repository
+                                                                        //The find_function is called inside the lock, the lock is mantained, till the IAtomic is commited or released.
+                                                                        //So, it mantain atomicity, on Find, Update, Commit.
+                                                                       
         IAtomic<T, TT> BeginUpdate(T obj);
         IAtomicList<T, TT> BeginUpdate(IEnumerable<T> objs);
         IAtomicList<T, TT> BeginUpdate(IEnumerable<S> ids);

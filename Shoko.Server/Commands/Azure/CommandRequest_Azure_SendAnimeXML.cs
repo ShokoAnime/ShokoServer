@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
 
                 if (!process) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 string filePath = ServerSettings.AnimeXmlDirectory;

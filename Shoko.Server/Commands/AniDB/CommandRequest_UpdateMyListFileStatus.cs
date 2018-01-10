@@ -43,7 +43,7 @@ namespace Shoko.Server.Commands
             WatchedDateAsSecs = watchedDateSecs;
 
             GenerateCommandID();
-            FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
+            FullFileName = Repo.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
         public override void ProcessCommand()
@@ -54,7 +54,7 @@ namespace Shoko.Server.Commands
             try
             {
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByHash(Hash);
                 if (vid != null)
                 {
                     bool isManualLink = false;
@@ -83,7 +83,7 @@ namespace Shoko.Server.Commands
                     if (UpdateSeriesStats)
                     {
                         // update watched stats
-                        List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
+                        List<SVR_AnimeEpisode> eps = Repo.AnimeEpisode.GetByHash(vid.ED2KHash);
                         if (eps.Count > 0)
                         {
                             // all the eps should belong to the same anime
@@ -138,7 +138,7 @@ namespace Shoko.Server.Commands
                         TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
                         out int dateSecs))
                     WatchedDateAsSecs = dateSecs;
-                FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
+                FullFileName = Repo.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
             }
 
             if (Hash.Trim().Length > 0)

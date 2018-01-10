@@ -1,4 +1,5 @@
-﻿using Force.DeepCloner;
+﻿using System;
+using Force.DeepCloner;
 
 namespace Shoko.Server.Repositories
 {
@@ -7,6 +8,7 @@ namespace Shoko.Server.Repositories
         private readonly BaseRepository<T,TS,TT> _repo;
         public T Entity { get; private set; }
         public T Original { get; private set; }
+
 
         internal AtomicUpdate(BaseRepository<T, TS,TT> repo, T obj=null, bool isupdate=true)
         {

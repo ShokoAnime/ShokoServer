@@ -21,10 +21,10 @@ namespace Shoko.Server.FileHelper.Subtitles
             List<Stream> streams = new List<Stream>();
             if (File.Exists(basename + ".idx") && File.Exists(basename + ".sub"))
             {
-                FileSystemResult<IObject> r = vplace.ImportFolder.FileSystem.Resolve(basename + ".sub");
-                if (r != null && r.IsOk && r.Result is IFile)
+                IObject r = vplace.ImportFolder.FileSystem.Resolve(basename + ".sub");
+                if (r.Status==Status.Ok && r is IFile)
                 {
-                    List<Stream> ss = GetStreams((IFile) r.Result);
+                    List<Stream> ss = GetStreams((IFile) r);
                     if ((ss != null) && (ss.Count > 0))
                         streams.AddRange(ss);
                 }
@@ -39,11 +39,11 @@ namespace Shoko.Server.FileHelper.Subtitles
             if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
                 return null;
             string basename = Path.Combine(dirname, fname);
-            FileSystemResult<IObject> r = file.FileSystem.Resolve(basename + ".idx");
-            if (r == null || !r.IsOk || r.Result is IDirectory)
+            IObject r = file.FileSystem.Resolve(basename + ".idx");
+            if (r.Status!=Status.Ok || r is IDirectory)
                 return null;
-            FileSystemResult<System.IO.Stream> res = ((IFile) r.Result).OpenRead();
-            if (res == null || !res.IsOk)
+            FileSystemResult<System.IO.Stream> res = ((IFile) r).OpenRead();
+            if (res.Status!=Status.Ok)
                 return null;
             StreamReader reader = new StreamReader(res.Result);
             string bing = reader.ReadToEnd();

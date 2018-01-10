@@ -40,15 +40,20 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                SVR_VideoLocal vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
                 SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace();
                 if (place == null)
                 {
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
                     return;
                 }
-                if (place.RefreshMediaInfo())
-                    RepoFactory.VideoLocal.Save(place.VideoLocal, true);
+
+                using (var upd = Repo.VideoLocal.BeginUpdate(place.VideoLocal))
+                {
+                    if (place.RefreshMediaInfo(upd.Entity))
+                        upd.Commit(true);
+                }
+
             }
             catch (Exception ex)
             {

@@ -918,7 +918,7 @@ namespace Shoko.Server
 
                             try
                             {
-                                xref.PopulateManually(vid, epAnime);
+                                xref.PopulateManually_RA(vid, epAnime);
                             }
                             catch (Exception ex)
                             {

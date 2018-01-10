@@ -38,17 +38,8 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.TraktSync,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
+                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
+                if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
 
@@ -59,9 +50,14 @@ namespace Shoko.Server.Commands
                         if (!ForceRefresh) return;
                     }
                 }
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
 
+                using (var usch = Repo.ScheduledUpdate.BeginUpdate(sched))
+                {
+                    usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktSync;
+                    usch.Entity.UpdateDetails = string.Empty;
+                    usch.Entity.LastUpdate = DateTime.Now;
+                    usch.Commit();
+                }
                 TraktTVHelper.SyncCollectionToTrakt();
             }
             catch (Exception ex)

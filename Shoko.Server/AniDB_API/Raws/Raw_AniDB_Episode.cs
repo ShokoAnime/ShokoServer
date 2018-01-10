@@ -1,9 +1,9 @@
 using System;
 using System.Globalization;
 using System.Text;
-using System.Web.Script.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
+using Nancy.Json;
 using Newtonsoft.Json;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;

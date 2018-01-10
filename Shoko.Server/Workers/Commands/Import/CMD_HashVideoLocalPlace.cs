@@ -1,25 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using NHibernate.Hql.Ast.ANTLR.Tree;
 using NLog;
-using NutzCode.CloudFileSystem;
-using Shoko.Models.Azure;
-using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.FileHelper;
-using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Workers.Commands.Hashing;
 using Shoko.Server.Workers.WorkUnits.Hashing;
-using File = Pri.LongPath.File;
+
 
 
 namespace Shoko.Server.Workers.Commands.Import

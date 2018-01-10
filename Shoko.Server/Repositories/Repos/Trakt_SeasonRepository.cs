@@ -33,13 +33,13 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        public List<Trakt_Season> GetByShowIDAndSeason(int showID, int seasonNumber)
+        public Trakt_Season GetByShowIDAndSeason(int showID, int seasonNumber)
         {
             using (CacheLock.ReaderLock())
             {
                 if (IsCached)
-                    return ShowsSeasons.GetMultiple(showID, seasonNumber);
-                return Table.Where(a => a.Trakt_ShowID == showID && a.Season == seasonNumber).ToList();
+                    return ShowsSeasons.GetOne(showID, seasonNumber);
+                return Table.FirstOrDefault(a => a.Trakt_ShowID == showID && a.Season == seasonNumber);
             }
         }
 

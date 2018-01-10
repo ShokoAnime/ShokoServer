@@ -23,10 +23,10 @@ namespace Shoko.Server.FileHelper.Subtitles
             foreach (string n in extensions)
             {
                 string newname = basename + "." + n;
-                FileSystemResult<IObject> r = vplace.ImportFolder.FileSystem.Resolve(newname);
-                if (r != null && r.IsOk && r.Result is IFile)
+                IObject r = vplace.ImportFolder.FileSystem.Resolve(newname);
+                if (r.Status==Status.Ok && r is IFile)
                 {
-                    List<Stream> ss = GetStreams((IFile) r.Result);
+                    List<Stream> ss = GetStreams((IFile) r);
                     if ((ss != null) && (ss.Count > 0))
                         streams.AddRange(ss);
                 }
@@ -74,7 +74,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             if ((ext == "txt") || (ext == "sub"))
             {
                 FileSystemResult<System.IO.Stream> res = file.OpenRead();
-                if (res == null || !res.IsOk)
+                if (res.Status!=Status.Ok)
                     return sts;
                 List<string> lines = new List<string>();
                 StreamReader reader = new StreamReader(res.Result);

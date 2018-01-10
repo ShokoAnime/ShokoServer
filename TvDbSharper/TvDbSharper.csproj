@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>TvDbSharper is fully featured modern REST client for the TheTVDB API v2</Description>
+    <VersionPrefix>1.0.1</VersionPrefix>
+    <Authors>HristoKolev</Authors>
+    <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>TvDbSharper</AssemblyName>
+    <PackageId>TvDbSharper</PackageId>
+    <PackageTags>thetvdb</PackageTags>
+    <PackageProjectUrl>https://github.com/HristoKolev/TvDbSharper</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/HristoKolev/TvDbSharper/blob/master/LICENSE</PackageLicenseUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>git://github.com/HristoKolev/TvDbSharper</RepositoryUrl>    
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0'">
+    <DefineConstants>NETCORE;NETSTANDARD;NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net47'">
+    <DefineConstants>NET47;NETFULL</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="System.Net.Requests" Version="4.3.0" />
+  </ItemGroup>
+
+</Project>

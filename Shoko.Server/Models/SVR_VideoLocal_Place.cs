@@ -49,6 +49,9 @@ namespace Shoko.Server.Models
         }
 
         [NotMapped]
+        public string FileName => Path.GetFileName(FilePath.Replace("\\", Path.DirectorySeparatorChar.ToString()).Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+        [NotMapped]
         public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
 
         // returns false if we should try again after the timer

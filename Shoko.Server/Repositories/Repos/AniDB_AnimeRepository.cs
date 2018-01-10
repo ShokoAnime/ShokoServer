@@ -78,8 +78,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            return Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate)
-                .ToList();
+            return Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
         }
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
@@ -141,6 +140,17 @@ namespace Shoko.Server.Repositories.Repos
             }
             return defImagesByAnime;
         }
+
+        public Dictionary<int, (int type, string title, DateTime? airdate)> GetRelationInfo()
+        {
+            using (CacheLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Cache.Values.ToDictionary(a => a.AnimeID, a => (a.AnimeType, a.MainTitle, a.AirDate));
+                return Table.ToDictionary(a => a.AnimeID, a => (a.AnimeType, a.MainTitle, a.AirDate));
+            }
+        }
+
     }
 
     public class DefaultAnimeImages

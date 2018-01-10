@@ -27,7 +27,7 @@ namespace Shoko.Server.Repositories
         internal PocoCache<TS, T> Cache;
         internal DbSet<T> Table;
         internal ShokoContext Context;
-        internal ReaderWriterLockSlim CacheLock=new ReaderWriterLockSlim();
+        internal ReaderWriterLockSlim CacheLock=new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         
         public static TU Create<TU>(ShokoContext context,DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()
         {
@@ -140,7 +140,13 @@ namespace Shoko.Server.Repositories
             AtomicUpdate<T, TS, TT> upd = new AtomicUpdate<T, TS, TT>(this);
             Context.SetLocalKey(upd.Entity,GetNextAutoGen);
             return upd;
-        }       
+        }
+
+        public IAtomic<T, TT> BeginAddOrUpdateWithLock(Func<T> find_function, T default_value=null)
+        {
+            return new AtomicLockUpdate<T,TS,TT>(this,find_function,default_value);
+        }
+
         public IAtomic<T,TT> BeginUpdate(T obj)
         {
             using (CacheLock.ReaderLock())
@@ -283,33 +289,24 @@ namespace Shoko.Server.Repositories
                 ClearCache();
             }
         }
-
-        public IQueryable<T> Where(Expression<Func<T, bool>> predicate)
+        
+        protected IQueryable<T> Where(Expression<Func<T, bool>> predicate)
         {
-            using (CacheLock.ReaderLock())
-            {
-                if (IsCached)
-                    return Cache.Values.Where(predicate.Compile()).AsQueryable();
-                return Table.Where(predicate);
-            }
+            if (IsCached)
+                return Cache.Values.Where(predicate.Compile()).AsQueryable();
+            return Table.Where(predicate);
         }
 
-        public IQueryable<T> WhereAll()
+        protected IQueryable<T> WhereAll()
         {
-            using (CacheLock.ReaderLock())
-            {
-                if (IsCached)
-                    return Cache.Values.AsQueryable();
-                return Table;
-            }
+            if (IsCached)
+                return Cache.Values.AsQueryable();
+            return Table;
         }
-        public IQueryable<T> WhereMany(IEnumerable<TS> ids)
+        protected IQueryable<T> WhereMany(IEnumerable<TS> ids)
         {
-            using (CacheLock.ReaderLock())
-            {
-                List<TS> ls = ids.ToList();
-                return IsCached ? Cache.GetMany(ls).AsQueryable() : Table.Where(a => ls.Contains(SelectKey(a)));
-            }
+            List<TS> ls = ids.ToList();
+            return IsCached ? Cache.GetMany(ls).AsQueryable() : Table.Where(a => ls.Contains(SelectKey(a)));
         }
 
         internal abstract void PopulateIndexes();
@@ -400,7 +397,9 @@ namespace Shoko.Server.Repositories
         UpgradeableRead,
 
         /// &lt;summary&gt;A blocking Write lock&lt;/summary&gt;
-        Write
+        Write,
+
+        Bypass
     }
 
     /// &lt;summary&gt;Wrapper for the ReaderWriterLockSlim which allows callers to dispose the object to remove the lock &lt;/summary&gt;
@@ -419,6 +418,7 @@ namespace Shoko.Server.Repositories
         /// &lt;param name="lockType"&gt;Type of the lock.&lt;/param&gt;
         public DisposableLockWrapper(ReaderWriterLockSlim readerWriterLock, LockType lockType)
         {
+
             this.readerWriterLock = readerWriterLock;
             this.lockType = lockType;
 

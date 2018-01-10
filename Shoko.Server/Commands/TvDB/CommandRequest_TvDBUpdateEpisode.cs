@@ -48,20 +48,23 @@ namespace Shoko.Server.Commands
             try
             {
                 TvDBApiHelper.UpdateEpisode(TvDBEpisodeID, DownloadImages, ForceRefresh);
-                var ep = RepoFactory.TvDB_Episode.GetByTvDBID(TvDBEpisodeID);
-                var xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AnimeID);
+                var ep = Repo.TvDB_Episode.GetByTvDBID(TvDBEpisodeID);
+                var xref = Repo.CrossRef_AniDB_TvDBV2.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AnimeID);
                 if (xref == null) return;
                 foreach (var crossRefAniDbTvDbv2 in xref)
                 {
-                    var anime = RepoFactory.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AnimeID);
+                    var anime = Repo.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AnimeID);
                     if (anime == null) continue;
-                    var episodes = RepoFactory.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
+                    var episodes = Repo.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
                     foreach (SVR_AnimeEpisode episode in episodes)
                     {
                         // Save
                         if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
-                        episode.TvDBEpisode = null;
-                        RepoFactory.AnimeEpisode.Save(episode);
+                        using (var upd = Repo.AnimeEpisode.BeginUpdate(episode))
+                        {
+                            upd.Entity.TvDBEpisode = null;
+                            upd.Commit();
+                        }
                     }
                     anime.QueueUpdateStats();
                 }

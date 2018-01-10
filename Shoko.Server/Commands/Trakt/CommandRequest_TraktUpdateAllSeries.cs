@@ -36,17 +36,8 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.TraktUpdate,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
+                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
+                if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
 
@@ -57,8 +48,13 @@ namespace Shoko.Server.Commands
                         if (!ForceRefresh) return;
                     }
                 }
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
+                using (var usch = Repo.ScheduledUpdate.BeginUpdate(sched))
+                {
+                    usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktUpdate;
+                    usch.Entity.UpdateDetails = string.Empty;
+                    usch.Entity.LastUpdate = DateTime.Now;
+                    usch.Commit();
+                }
 
                 // update all info
                 TraktTVHelper.UpdateAllInfo();

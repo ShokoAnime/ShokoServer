@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NutzCode.CloudFileSystem;
-using Pri.LongPath;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Repositories;
 using static Shoko.Models.Constants;
 
 namespace Shoko.Server.Renamer
@@ -1321,7 +1321,7 @@ namespace Shoko.Server.Renamer
 
                 episodes.Add(animeEps[0].AniDB_Episode);
 
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
             else
@@ -1329,7 +1329,7 @@ namespace Shoko.Server.Renamer
                 episodes = aniFile.Episodes;
                 if (episodes.Count == 0) return "*Error: Unable to get episode for file";
 
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
 
@@ -2008,24 +2008,24 @@ namespace Shoko.Server.Renamer
 
         public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
         {
-            if (!(video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result is IFile sourceFile))
+            if (!(video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath) is IFile sourceFile))
                 return (null, "File is null");
 
             ImportFolder destFolder = null;
-            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
+            foreach (SVR_ImportFolder fldr in Repo.ImportFolder.GetAll()
                 .Where(a => a != null && a.CloudID == video.ImportFolder.CloudID).ToList())
             {
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
                 IFileSystem fs = fldr.FileSystem;
-                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
-                if (fsresult == null || !fsresult.IsOk) continue;
+                IObject fsresult = fs?.Resolve(fldr.ImportFolderLocation);
+                if (fsresult.Status!=Status.Ok) continue;
 
                 // Continue if on a separate drive and there's no space
                 if (!fldr.CloudID.HasValue && !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
                     var fsresultquota = fldr.BaseDirectory.Quota();
-                    if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                    if (fsresultquota.Status==Status.Ok && fsresultquota.AvailableSize < sourceFile.Size) continue;
                 }
 
                 destFolder = fldr;
@@ -2037,7 +2037,7 @@ namespace Shoko.Server.Renamer
             CrossRef_File_Episode xref = xrefs[0];
 
             // find the series associated with this episode
-            SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
             if (series == null) return (null, "Series not Found");
 
             // sort the episodes by air date, so that we will move the file to the location of the latest episode
@@ -2050,7 +2050,7 @@ namespace Shoko.Server.Renamer
                 // check if this episode belongs to more than one anime
                 // if it does we will ignore it
                 List<CrossRef_File_Episode> fileEpXrefs =
-                    RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
+                    Repo.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
                 int? animeID = null;
                 bool crossOver = false;
                 foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
@@ -2077,10 +2077,10 @@ namespace Shoko.Server.Renamer
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
 
-                    FileSystemResult<IObject> dir =
+                    IObject dir =
                         place.ImportFolder?.FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
                             folderName));
-                    if (dir == null || !dir.IsOk) continue;
+                    if (dir.Status!=Status.Ok) continue;
                     // ensure we aren't moving to the current directory
                     if (Path.Combine(place.ImportFolder.ImportFolderLocation,
                         folderName).Equals(Path.Combine(video.ImportFolder.ImportFolderLocation,
@@ -2090,7 +2090,7 @@ namespace Shoko.Server.Renamer
                         continue;
                     }
                     // Not a directory
-                    if (!(dir.Result is IDirectory)) continue;
+                    if (!(dir is IDirectory)) continue;
                     destFolder = place.ImportFolder;
 
                     return (destFolder, folderName);

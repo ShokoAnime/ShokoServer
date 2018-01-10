@@ -2,11 +2,10 @@
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Repos;
 
 namespace Shoko.Server.Commands
 {
@@ -55,7 +54,7 @@ namespace Shoko.Server.Commands
         {
         }
 
-        public virtual bool InitFromDB(CommandRequest cq)
+        public virtual bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             return false;
         }
@@ -77,57 +76,34 @@ namespace Shoko.Server.Commands
             return sb.ToString();
         }
 
-        public virtual void Save(ISession session)
-        {
-            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
-            if (crTemp != null)
-            {
-                // we will always mylist watched state changes
-                // this is because the user may be toggling the status in the client, and we need to process
-                // them all in the order they were requested
-                if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
-                    RepoFactory.CommandRequest.Delete(crTemp);
-                else
-                    return;
-            }
-
-            CommandDetails = ToXML();
-            DateTimeUpdated = DateTime.Now;
-            RepoFactory.CommandRequest.SaveWithOpenTransaction(session, this);
-
-            switch (CommandRequestRepository.GetQueueIndex(this))
-            {
-                case 0:
-                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
-                    break;
-                case 1:
-                    ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
-                    break;
-                case 2:
-                    ShokoService.CmdProcessorImages.NotifyOfNewCommand();
-                    break;
-            }
-        }
+      
 
         public virtual void Save()
         {
-            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
+            Shoko.Models.Server.CommandRequest crTemp = Repo.CommandRequest.GetByCommandID(CommandID);
             if (crTemp != null)
             {
                 // we will always mylist watched state changes
                 // this is because the user may be toggling the status in the client, and we need to process
                 // them all in the order they were requested
                 if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
-                    RepoFactory.CommandRequest.Delete(crTemp);
+                    Repo.CommandRequest.Delete(crTemp);
                 else
                     return;
             }
 
             CommandDetails = ToXML();
             DateTimeUpdated = DateTime.Now;
-            RepoFactory.CommandRequest.Save(this);
+            crTemp=new Shoko.Models.Server.CommandRequest();
+            crTemp.CommandDetails = CommandDetails;
+            crTemp.CommandID = CommandID;
+            crTemp.CommandRequestID = CommandRequestID;
+            crTemp.CommandType = CommandType;
+            crTemp.DateTimeUpdated = DateTimeUpdated;
+            crTemp.Priority = Priority;
+            Repo.CommandRequest.BeginAdd(crTemp).Commit();
 
-            switch (CommandRequestRepository.GetQueueIndex(this))
+            switch (CommandRequestRepository.GetQueueIndex(crTemp))
             {
                 case 0:
                     ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();

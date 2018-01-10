@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -41,12 +43,20 @@ namespace Shoko.Server.Commands
 
             try
             {
-                AniDB_ReleaseGroup relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
+                AniDB_ReleaseGroup relGroup = Repo.AniDB_ReleaseGroup.GetByID(GroupID);
 
                 if (ForceRefresh || relGroup == null)
                 {
                     // redownload anime details from http ap so we can get an update character list
-                    ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
+                    Raw_AniDB_Group raw=ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
+                    if (raw != null)
+                    {
+                        using (var upd = Repo.AniDB_ReleaseGroup.BeginUpdate(relGroup))
+                        {
+                            upd.Entity.Populate_RA(raw);
+                            upd.Commit();
+                        }
+                    }
                 }
             }
             catch (Exception ex)

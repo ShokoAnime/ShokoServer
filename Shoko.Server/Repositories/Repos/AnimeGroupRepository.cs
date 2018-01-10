@@ -246,7 +246,25 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => !a.AnimeGroupParentID.HasValue || a.AnimeGroupParentID.Value == 0).ToList();
             }
         }
+        public void KillEmAllExceptGrimorieOfZero()
+        {
+            using (CacheLock.ReaderLock())
+            {
 
+                if (IsCached)
+                {
+                    foreach (SVR_AnimeGroup s in Cache.Values.Where(a=>a.AnimeGroupID!=0))
+                        Table.Remove(s);
+                    Cache = null;
+                    ClearIndexes();
+                }
+                else
+                {
+                    Table.RemoveRange(Table.Where(a => a.AnimeGroupID != 0));
+                }
+                Context.SaveChanges();
+            }
+        }
         public ChangeTracker<int> GetChangeTracker()
         {
             lock (Changes)

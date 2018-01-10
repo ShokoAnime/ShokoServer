@@ -5,10 +5,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
 using CL_AniDB_Anime_Relation = Shoko.Models.Client.CL_AniDB_Anime_Relation;
 using CL_AniDB_Anime_Similar = Shoko.Models.Client.CL_AniDB_Anime_Similar;
@@ -29,7 +27,6 @@ namespace Shoko.Server.Extensions
         {
             return new CL_AniDB_Anime
             {
-                AniDB_AnimeID = anime.AniDB_AnimeID,
                 AnimeID = anime.AnimeID,
                 Description = anime.Description,
                 EpisodeCount = anime.EpisodeCount,
@@ -86,7 +83,6 @@ namespace Shoko.Server.Extensions
         {
             return new CL_AniDB_Character
             {
-                AniDB_CharacterID = c.AniDB_CharacterID,
                 CharID = c.CharID,
                 PicName = c.PicName,
                 CreatorListRaw = c.CreatorListRaw,
@@ -170,7 +166,7 @@ namespace Shoko.Server.Extensions
                 AnimeID = i.AnimeID,
                 IgnoreType = i.IgnoreType
             };
-            c.Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient();
+            c.Anime = Repo.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient();
             return c;
         }
 
@@ -202,8 +198,7 @@ namespace Shoko.Server.Extensions
         }
 
 
-        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage,
-            ISessionWrapper session)
+        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage)
         {
             ImageEntityType imgType = (ImageEntityType) defaultImage.ImageParentType;
             IImageEntity parentImage = null;
@@ -211,32 +206,26 @@ namespace Shoko.Server.Extensions
             switch (imgType)
             {
                 case ImageEntityType.TvDB_Banner:
-                    parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = Repo.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_Cover:
-                    parentImage = RepoFactory.TvDB_ImagePoster.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = Repo.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_FanArt:
-                    parentImage = RepoFactory.TvDB_ImageFanart.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = Repo.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_Poster:
-                    parentImage = RepoFactory.MovieDB_Poster.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = Repo.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_FanArt:
-                    parentImage = RepoFactory.MovieDB_Fanart.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = Repo.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
                     break;
             }
 
             return defaultImage.ToClient(parentImage);
         }
 
-        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return defaultimage.ToClient(session.Wrap());
-            }
-        }
+
 
 
         public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage,
@@ -312,14 +301,13 @@ namespace Shoko.Server.Extensions
         {
             CL_BookmarkedAnime cl = new CL_BookmarkedAnime
             {
-                BookmarkedAnimeID = bookmarkedanime.BookmarkedAnimeID,
                 AnimeID = bookmarkedanime.AnimeID,
                 Priority = bookmarkedanime.Priority,
                 Notes = bookmarkedanime.Notes,
                 Downloading = bookmarkedanime.Downloading
             };
             cl.Anime = null;
-            SVR_AniDB_Anime an = RepoFactory.AniDB_Anime.GetByAnimeID(bookmarkedanime.AnimeID);
+            SVR_AniDB_Anime an = Repo.AniDB_Anime.GetByAnimeID(bookmarkedanime.AnimeID);
             if (an != null)
                 cl.Anime = an.Contract.AniDBAnime;
 
@@ -336,8 +324,8 @@ namespace Shoko.Server.Extensions
                 Hash = duplicatefile.Hash,
                 ImportFolderIDFile1 = duplicatefile.ImportFolderIDFile1,
                 ImportFolderIDFile2 = duplicatefile.ImportFolderIDFile2,
-                ImportFolder1 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
-                ImportFolder2 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
+                ImportFolder1 = Repo.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
+                ImportFolder2 = Repo.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
                 DateTimeUpdated = duplicatefile.DateTimeUpdated
             };
             if (duplicatefile.GetAniDBFile() != null)
@@ -349,7 +337,7 @@ namespace Shoko.Server.Extensions
                     cl.EpisodeType = eps[0].EpisodeType;
                     cl.EpisodeName = eps[0].RomajiName;
                     cl.AnimeID = eps[0].AnimeID;
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
                     if (anime != null)
                         cl.AnimeName = anime.MainTitle;
                 }

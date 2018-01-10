@@ -97,7 +97,7 @@ namespace Shoko.Server.Models
         }
 
         [NotMapped]
-        public string Info => Path.GetFileName(GetBestVideoLocalPlace().FilePath ?? string.Empty);
+        public string Info => FileName ?? string.Empty;
 
 
         public void CollectContractMemory()
@@ -177,7 +177,9 @@ namespace Shoko.Server.Models
 
             return file;
         }
-
+        [NotMapped]
+        public string FileName => GetBestVideoLocalPlace().FileName;
+        
         public SVR_VideoLocal_Place GetBestVideoLocalPlace() => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType).FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
 
         public void SetResumePosition(long resumeposition, int userID)
@@ -591,7 +593,7 @@ namespace Shoko.Server.Models
             return cl;
         }
 
-        public bool MergeInfoFrom(VideoLocal vl)
+        public bool MergeInfoFrom_RA(VideoLocal vl)
         {
             bool changed = false;
             if (string.IsNullOrEmpty(Hash) && !string.IsNullOrEmpty(vl.Hash))
@@ -620,7 +622,64 @@ namespace Shoko.Server.Models
 
             return changed;
         }
+        public bool ForceMergeInfoFrom_RA(VideoLocal vl)
+        {
+            bool changed = false;
+            if (!string.IsNullOrEmpty(vl.Hash))
+            {
+                Hash = vl.Hash;
+                changed = true;
+            }
 
+            if (!string.IsNullOrEmpty(vl.CRC32))
+            {
+                CRC32 = vl.CRC32;
+                changed = true;
+            }
+
+            if (!string.IsNullOrEmpty(vl.MD5))
+            {
+                MD5 = vl.MD5;
+                changed = true;
+            }
+
+            if (!string.IsNullOrEmpty(vl.SHA1))
+            {
+                SHA1 = vl.SHA1;
+                changed = true;
+            }
+
+            return changed;
+        }
+        public bool MergeInfoTo(VideoLocal vl_ra)
+        {
+            bool changed = false;
+            if (string.IsNullOrEmpty(vl_ra.Hash) && !string.IsNullOrEmpty(Hash))
+            {
+                vl_ra.Hash = Hash;
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(vl_ra.CRC32) && !string.IsNullOrEmpty(CRC32))
+            {
+                vl_ra.CRC32 = CRC32;
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(vl_ra.MD5) && !string.IsNullOrEmpty(MD5))
+            {
+                vl_ra.MD5 = MD5;
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(vl_ra.SHA1) && !string.IsNullOrEmpty(SHA1))
+            {
+                vl_ra.SHA1 = SHA1;
+                changed = true;
+            }
+
+            return changed;
+        }
 
     }
 

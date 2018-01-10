@@ -80,7 +80,7 @@ namespace Shoko.Server.Commands
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
-            _jmmuser = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+            _jmmuser = Repo.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
             return true;
         }
 

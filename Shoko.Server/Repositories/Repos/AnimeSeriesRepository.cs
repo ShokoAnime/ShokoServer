@@ -89,6 +89,27 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
+        public void CleanAnimeGroups()
+        {
+            using (CacheLock.ReaderLock())
+            {
+                //In the future we can do Bulk Updates, but they seems to be married with the sql provider of choice, 
+                //or using them under the hood. So to keep us clear of problems in the future, chose not to use bulk providers.
+                if (IsCached)
+                {
+                    foreach (SVR_AnimeSeries s in Cache.Values)
+                        s.AnimeGroupID = 0;
+                    Context.SaveChanges();
+                }
+                else
+                {
+                    foreach (SVR_AnimeSeries s in Table)
+                        s.AnimeGroupID = 0;
+                    Context.SaveChanges();
+
+                }
+            }
+        }
         internal override object BeginDelete(SVR_AnimeSeries entity,
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
@@ -184,9 +205,11 @@ namespace Shoko.Server.Repositories.Repos
         */
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            lock (Cache)
+            using (CacheLock.ReaderLock())
             {
-                return AniDBIds.GetOne(id);
+                if (IsCached)
+                    return AniDBIds.GetOne(id);
+                return Table.FirstOrDefault(a => a.AniDB_ID == id);
             }
         }
 

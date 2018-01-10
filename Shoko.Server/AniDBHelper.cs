@@ -736,7 +736,7 @@ namespace Shoko.Server
             return anime;
         }
 
-        public AniDB_Character GetCharacterInfoUDP(int charID)
+        public Raw_AniDB_Character GetCharacterInfoUDP(int charID)
         {
             if (!Login()) return null;
 
@@ -751,23 +751,17 @@ namespace Shoko.Server
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
-
-            AniDB_Character chr = null;
             if (ev == enHelperActivityType.GotCharInfo && getCharCmd.CharInfo != null)
             {
-                chr = RepoFactory.AniDB_Character.GetByCharID(charID);
-                if (chr == null) chr = new AniDB_Character();
-
-                chr.PopulateFromUDP(getCharCmd.CharInfo);
-                RepoFactory.AniDB_Character.Save(chr);
+                return getCharCmd.CharInfo;
             }
 
-            return chr;
+            return null;
         }
 
-        public void GetReleaseGroupUDP(int groupID)
+        public Raw_AniDB_Group GetReleaseGroupUDP(int groupID)
         {
-            if (!Login()) return;
+            if (!Login()) return null;
 
             enHelperActivityType ev;
             AniDBCommand_GetGroup getCmd;
@@ -780,11 +774,8 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
-            var relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID) ?? new AniDB_ReleaseGroup();
-
-            relGroup.Populate(getCmd.Group);
-            RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
+            if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return null;
+            return getCmd.Group;
         }
 
         public GroupStatusCollection GetReleaseGroupStatusUDP(int animeID)

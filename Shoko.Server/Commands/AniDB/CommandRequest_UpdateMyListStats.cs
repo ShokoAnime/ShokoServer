@@ -41,8 +41,7 @@ namespace Shoko.Server.Commands
             {
                 // we will always assume that an anime was downloaded via http first
 
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate
@@ -63,14 +62,19 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
+                using (var upd = Repo.ScheduledUpdate.BeginUpdate(sched))
+                {
+                    upd.Entity.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
+                    upd.Entity.UpdateDetails = string.Empty;
+                    upd.Entity.LastUpdate = DateTime.Now;
+                    upd.Commit();
 
+                }
                 ShokoService.AnidbProcessor.UpdateMyListStats();
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_UpdateMylistStats: {0}", ex);
+                logger.Error($"Error processing CommandRequest_UpdateMylistStats: {ex}");
             }
         }
 

@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+                SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)
                 {
                     logger.Error("Could not find anime series: {0}", AnimeSeriesID);

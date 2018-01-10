@@ -71,7 +71,7 @@ namespace Shoko.Server.Commands
                 if (!ServerSettings.MAL_AutoLink) return;
 
                 string searchCriteria = string.Empty;
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 searchCriteria = anime.MainTitle;

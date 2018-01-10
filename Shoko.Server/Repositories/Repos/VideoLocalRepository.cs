@@ -153,7 +153,15 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.FirstOrDefault(a => a.Hash == hash);
             }
         }
-
+        public List<SVR_VideoLocal> GetByHashAndNotId(string hash, int id)
+        {
+            using (CacheLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Hashes.GetMultiple(hash).Where(a=>a.VideoLocalID!=id).ToList();
+                return Table.Where(a => a.Hash == hash && a.VideoLocalID!=id).ToList();
+            }
+        }
         public SVR_VideoLocal GetByMD5(string hash)
         {
             using (CacheLock.ReaderLock())

@@ -453,7 +453,7 @@ namespace Shoko.Server.Models
         }
 
 
-        public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(List<SVR_AnimeSeries> seriesBatch, bool onlyStats = false)
+        public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(ICollection<SVR_AnimeSeries> seriesBatch, bool onlyStats = false)
         {
             if (seriesBatch == null)
                 throw new ArgumentNullException(nameof(seriesBatch));

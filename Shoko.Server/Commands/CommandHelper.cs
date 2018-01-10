@@ -95,7 +95,7 @@
         // Pri 11
         //------
 
-        public static CommandRequest GetCommand(CommandRequest crdb)
+        public static CommandRequest GetCommand(Shoko.Models.Server.CommandRequest crdb)
         {
             CommandRequestType crt = (CommandRequestType) crdb.CommandType;
             switch (crt)

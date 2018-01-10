@@ -239,6 +239,27 @@ namespace Shoko.Server.Repositories.Repos
             }
 
         }
+        public void KillEmAll()
+        {
+            using (CacheLock.ReaderLock())
+            {
+
+                if (IsCached)
+                {
+                    foreach (SVR_AnimeGroup_User s in Cache.Values)
+                    {
+                        Table.Remove(s);
+                    }
+                    Cache = null;
+                    ClearIndexes();
+                }
+                else
+                {
+                    Table.RemoveRange(Table);
+                }
+                Context.SaveChanges();
+            }
+        }
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {

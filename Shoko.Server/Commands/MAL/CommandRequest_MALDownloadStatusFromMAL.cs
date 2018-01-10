@@ -47,7 +47,7 @@ namespace Shoko.Server.Commands
 
 
                 // find the anidb user
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
                 if (aniDBUsers.Count == 0) return;
 
                 SVR_JMMUser user = aniDBUsers[0];
@@ -56,7 +56,7 @@ namespace Shoko.Server.Commands
                 foreach (myanimelistAnime malAnime in mal.anime)
                 {
                     // look up the anime
-                    CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malAnime.series_animedb_id);
+                    CrossRef_AniDB_MAL xref = Repo.CrossRef_AniDB_MAL.GetByID(malAnime.series_animedb_id);
                     if (xref == null) continue;
 
                     if (malAnime.series_animedb_id == 8107 || malAnime.series_animedb_id == 10737)
@@ -65,41 +65,43 @@ namespace Shoko.Server.Commands
                     }
 
                     // check if this anime has any other links
-                    List<CrossRef_AniDB_MAL> allXrefs = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(xref.AnimeID);
+                    List<CrossRef_AniDB_MAL> allXrefs = Repo.CrossRef_AniDB_MAL.GetByAnimeID(xref.AnimeID);
                     if (allXrefs.Count == 0) continue;
 
                     // find the range of watched episodes that this applies to
                     int startEpNumber = xref.StartEpisodeNumber;
                     int endEpNumber = GetUpperEpisodeLimit(allXrefs, xref);
 
-                    List<AniDB_Episode> aniEps = RepoFactory.AniDB_Episode.GetByAnimeID(xref.AnimeID);
+                    List<AniDB_Episode> aniEps = Repo.AniDB_Episode.GetByAnimeID(xref.AnimeID);
                     foreach (AniDB_Episode aniep in aniEps)
                     {
                         if (aniep.EpisodeType != xref.StartEpisodeType) continue;
 
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
-                        if (ep == null) continue;
-
-                        int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;
-                        int epNum = aniep.EpisodeNumber;
-
-                        if (epNum < startEpNumber || epNum > endEpNumber) continue;
-
-                        SVR_AnimeEpisode_User usrRec = ep.GetUserRecord(user.JMMUserID);
-
-                        if (epNum <= adjustedWatchedEps)
+                        foreach (SVR_AnimeEpisode ep in Repo.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID))
                         {
-                            // update if the user doesn't have a record (means not watched)
-                            // or it is currently un-watched
-                            bool update = false;
-                            if (usrRec == null) update = true;
-                            else if (!usrRec.WatchedDate.HasValue) update = true;
 
-                            if (update) ep.ToggleWatchedStatus(true, true, DateTime.Now, user.JMMUserID, false);
-                        }
-                        else
-                        {
-                            if (usrRec != null && usrRec.WatchedDate.HasValue) ep.ToggleWatchedStatus(false, true, DateTime.Now, user.JMMUserID, false);
+                            int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;
+                            int epNum = aniep.EpisodeNumber;
+
+                            if (epNum < startEpNumber || epNum > endEpNumber) continue;
+
+                            SVR_AnimeEpisode_User usrRec = ep.GetUserRecord(user.JMMUserID);
+
+                            if (epNum <= adjustedWatchedEps)
+                            {
+                                // update if the user doesn't have a record (means not watched)
+                                // or it is currently un-watched
+                                bool update = false;
+                                if (usrRec == null) update = true;
+                                else if (!usrRec.WatchedDate.HasValue)
+                                    update = true;
+
+                                if (update) ep.ToggleWatchedStatus(true, true, DateTime.Now, user.JMMUserID, false);
+                            }
+                            else
+                            {
+                                if (usrRec != null && usrRec.WatchedDate.HasValue) ep.ToggleWatchedStatus(false, true, DateTime.Now, user.JMMUserID, false);
+                            }
                         }
                     }
                 }

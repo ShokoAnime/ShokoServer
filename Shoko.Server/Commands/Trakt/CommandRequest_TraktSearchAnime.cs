@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
-using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Commands
 {
@@ -52,125 +49,119 @@ namespace Shoko.Server.Commands
 
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+
+                bool doReturn = false;
+
+                // first check if the user wants to use the web cache
+                if (ServerSettings.WebCache_Trakt_Get)
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    bool doReturn = false;
-
-                    // first check if the user wants to use the web cache
-                    if (ServerSettings.WebCache_Trakt_Get)
+                    try
                     {
-                        try
-                        {
-                            List<Azure_CrossRef_AniDB_Trakt> contracts =
-                                new List<Azure_CrossRef_AniDB_Trakt>();
+                        List<Azure_CrossRef_AniDB_Trakt> contracts =
+                            new List<Azure_CrossRef_AniDB_Trakt>();
 
-                            List<Azure_CrossRef_AniDB_Trakt> resultsCache =
-                                AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
-                            if (resultsCache != null && resultsCache.Count > 0)
+                        List<Azure_CrossRef_AniDB_Trakt> resultsCache =
+                            AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
+                        if (resultsCache != null && resultsCache.Count > 0)
+                        {
+                            foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
                             {
-                                foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
-                                {
-                                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
-                                    if (showInfo == null) continue;
+                                TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
+                                if (showInfo == null) continue;
 
-                                    logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
-                                        showInfo.title);
-                                    TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                        (EpisodeType) xref.AniDBStartEpisodeType,
-                                        xref.AniDBStartEpisodeNumber,
-                                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
-                                    doReturn = true;
-                                }
-                                if (doReturn) return;
+                                logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
+                                    showInfo.title);
+                                TraktTVHelper.LinkAniDBTrakt(AnimeID,
+                                    (EpisodeType) xref.AniDBStartEpisodeType,
+                                    xref.AniDBStartEpisodeNumber,
+                                    xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
+                                doReturn = true;
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, ex.ToString());
+                            if (doReturn) return;
                         }
                     }
-
-
-                    // lets try to see locally if we have a tvDB link for this anime
-                    // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
-                    if (xrefTvDBs != null && xrefTvDBs.Count > 0)
+                    catch (Exception ex)
                     {
-                        foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                        logger.Error(ex, ex.ToString());
+                    }
+                }
+
+
+                // lets try to see locally if we have a tvDB link for this anime
+                // Trakt allows the use of TvDB ID's or their own Trakt ID's
+                List<CrossRef_AniDB_TvDBV2> xrefTvDBs = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+                if (xrefTvDBs != null && xrefTvDBs.Count > 0)
+                {
+                    foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                    {
+                        // first search for this show by the TvDB ID
+                        List<TraktV2SearchTvDBIDShowResult> searchResults =
+                            TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,
+                                tvXRef.TvDBID.ToString());
+                        if (searchResults == null || searchResults.Count <= 0) continue;
+                        // since we are searching by ID, there will only be one 'show' result
+                        TraktV2Show resShow = null;
+                        foreach (TraktV2SearchTvDBIDShowResult res in searchResults)
                         {
-                            // first search for this show by the TvDB ID
-                            List<TraktV2SearchTvDBIDShowResult> searchResults =
-                                TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,
-                                    tvXRef.TvDBID.ToString());
-                            if (searchResults == null || searchResults.Count <= 0) continue;
-                            // since we are searching by ID, there will only be one 'show' result
-                            TraktV2Show resShow = null;
-                            foreach (TraktV2SearchTvDBIDShowResult res in searchResults)
-                            {
-                                if (res.ResultType != SearchIDType.Show) continue;
-                                resShow = res.show;
-                                break;
-                            }
+                            if (res.ResultType != SearchIDType.Show) continue;
+                            resShow = res.show;
+                            break;
+                        }
 
-                            if (resShow == null) continue;
+                        if (resShow == null) continue;
 
-                            TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(resShow.ids.slug);
-                            if (showInfo?.ids == null) continue;
+                        TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(resShow.ids.slug);
+                        if (showInfo?.ids == null) continue;
 
-                            // make sure the season specified by TvDB also exists on Trakt
-                            Trakt_Show traktShow =
-                                RepoFactory.Trakt_Show.GetByTraktSlug(session, showInfo.ids.slug);
-                            if (traktShow == null) continue;
-
-                            Trakt_Season traktSeason = RepoFactory.Trakt_Season.GetByShowIDAndSeason(
-                                session,
-                                traktShow.Trakt_ShowID,
-                                tvXRef.TvDBSeasonNumber);
-                            if (traktSeason == null) continue;
-
+                        // make sure the season specified by TvDB also exists on Trakt
+                        Trakt_Show traktShow =
+                            Repo.Trakt_Show.GetByTraktSlug(showInfo.ids.slug);
+                        if (traktShow == null) continue;
+                        foreach (Trakt_Season traktSeason in Repo.Trakt_Season.GetByShowIDAndSeason(traktShow.Trakt_ShowID, tvXRef.TvDBSeasonNumber))
+                        {
                             logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
                                 AnimeID, showInfo.title);
                             TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                (EpisodeType) tvXRef.AniDBStartEpisodeType,
+                                (EpisodeType)tvXRef.AniDBStartEpisodeType,
                                 tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
                                 tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
                                 true);
-                            doReturn = true;
                         }
-                        if (doReturn) return;
+                        doReturn = true;
                     }
-
-                    // Use TvDB setting due to similarity
-                    if (!ServerSettings.TvDB_AutoLink) return;
-
-                    // finally lets try searching Trakt directly
-                    string searchCriteria = string.Empty;
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
-                    if (anime == null) return;
-
-                    searchCriteria = anime.MainTitle;
-
-                    // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
-                    logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
-                    if (ProcessSearchResults(session, results, searchCriteria)) return;
-
-
-                    if (results.Count != 0) return;
-
-                    foreach (AniDB_Anime_Title title in anime.GetTitles())
-                    {
-                        if (!string.Equals(title.TitleType, Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
-                            continue;
-
-                        if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
-
-                        results = TraktTVHelper.SearchShowV2(searchCriteria);
-                        logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
-                        if (ProcessSearchResults(session, results, title.Title)) return;
-                    }
+                    if (doReturn) return;
                 }
+
+                // Use TvDB setting due to similarity
+                if (!ServerSettings.TvDB_AutoLink) return;
+
+                // finally lets try searching Trakt directly
+                string searchCriteria = string.Empty;
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                if (anime == null) return;
+
+                searchCriteria = anime.MainTitle;
+
+                // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+                List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
+                logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
+                if (ProcessSearchResults(results, searchCriteria)) return;
+
+
+                if (results.Count != 0) return;
+
+                foreach (AniDB_Anime_Title title in anime.GetTitles())
+                {
+                    if (!string.Equals(title.TitleType, Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                        continue;
+
+                    if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
+
+                    results = TraktTVHelper.SearchShowV2(searchCriteria);
+                    logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
+                    if (ProcessSearchResults(results, title.Title)) return;
+                }
+
             }
             catch (Exception ex)
             {
@@ -178,7 +169,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private bool ProcessSearchResults(ISession session, List<TraktV2SearchShowResult> results,
+        private bool ProcessSearchResults( List<TraktV2SearchShowResult> results,
             string searchCriteria)
         {
             if (results.Count == 1)
@@ -191,7 +182,7 @@ namespace Shoko.Server.Commands
                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)
                     {
-                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, EpisodeType.Episode, 1,
+                        TraktTVHelper.LinkAniDBTrakt(AnimeID, EpisodeType.Episode, 1,
                             results[0].show.ids.slug, 1, 1,
                             true);
                         return true;
