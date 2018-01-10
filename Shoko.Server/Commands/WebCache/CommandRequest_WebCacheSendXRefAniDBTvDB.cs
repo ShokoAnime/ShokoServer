@@ -40,10 +40,10 @@ namespace Shoko.Server.Commands
             {
                 //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
+                CrossRef_AniDB_TvDBV2 xref = Repo.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
                 AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);

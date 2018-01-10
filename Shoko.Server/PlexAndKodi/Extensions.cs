@@ -208,7 +208,7 @@ namespace Shoko.Server.PlexAndKodi
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                     if (v.Medias != null)
                     {
-                        VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(int.Parse(a.Id)))
+                        VideoLocal_User vl = v.Medias.Select(a => Repo.VideoLocal.GetByID(int.Parse(a.Id)))
                             .Where(a => a != null)
                             .Select(a => a.GetUserRecord(userid))
                             .Where(a => a != null)
@@ -224,7 +224,7 @@ namespace Shoko.Server.PlexAndKodi
                     break;
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
                     int vid = int.Parse(v.Id); //This suxx, but adding regeneration at videolocal_user is worst.
-                    VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(vid)?.GetUserRecord(userid);
+                    VideoLocal_User vl2 = Repo.VideoLocal.GetByID(vid)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
                         v.ViewOffset = vl2.ResumePosition.ToString();

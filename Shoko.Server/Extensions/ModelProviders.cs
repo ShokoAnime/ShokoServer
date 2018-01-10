@@ -5,7 +5,6 @@ using System.Linq;
 using System.Xml;
 using AniDBAPI;
 using Force.DeepCloner;
-using NHibernate;
 using NLog;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -228,88 +227,87 @@ namespace Shoko.Server.Extensions
             };
         }
 
-        public static void Populate(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
+        public static void Populate_RA(this MovieDB_Fanart m_ra, MovieDB_Image_Result result, int movieID)
         {
-            m.MovieId = movieID;
-            m.ImageID = result.ImageID;
-            m.ImageType = result.ImageType;
-            m.ImageSize = result.ImageSize;
-            m.ImageWidth = result.ImageWidth;
-            m.ImageHeight = result.ImageHeight;
-            m.Enabled = 1;
+            m_ra.MovieId = movieID;
+            m_ra.ImageType = result.ImageType;
+            m_ra.ImageSize = result.ImageSize;
+            m_ra.ImageWidth = result.ImageWidth;
+            m_ra.ImageHeight = result.ImageHeight;
+            m_ra.Enabled = 1;
         }
 
-        public static void Populate(this MovieDB_Movie m, MovieDB_Movie_Result result)
+        public static void Populate_RA(this MovieDB_Movie m_ra, MovieDB_Movie_Result result)
         {
-            m.MovieId = result.MovieID;
-            m.MovieName = result.MovieName;
-            m.OriginalName = result.OriginalName;
-            m.Overview = result.Overview;
+            m_ra.MovieId = result.MovieID;
+            m_ra.MovieName = result.MovieName;
+            m_ra.OriginalName = result.OriginalName;
+            m_ra.Overview = result.Overview;
         }
 
-        public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
+        public static void Populate_RA(this MovieDB_Poster m_ra, MovieDB_Image_Result result, int movieID)
         {
-            m.MovieId = movieID;
-            m.ImageID = result.ImageID;
-            m.ImageType = result.ImageType;
-            m.ImageSize = result.ImageSize;
-            m.URL = result.URL;
-            m.ImageWidth = result.ImageWidth;
-            m.ImageHeight = result.ImageHeight;
-            m.Enabled = 1;
+            m_ra.MovieId = movieID;
+            m_ra.ImageID = result.ImageID;
+            m_ra.ImageType = result.ImageType;
+            m_ra.ImageSize = result.ImageSize;
+            m_ra.URL = result.URL;
+            m_ra.ImageWidth = result.ImageWidth;
+            m_ra.ImageHeight = result.ImageHeight;
+            m_ra.Enabled = 1;
         }
 
-        public static void Populate(this Trakt_Friend friend, TraktV2User user)
+        public static void Populate_RA(this Trakt_Friend friend_ra, TraktV2User user)
         {
-            friend.Username = user.username;
-            friend.FullName = user.name;
-            friend.LastAvatarUpdate = DateTime.Now;
+            friend_ra.Username = user.username;
+            friend_ra.FullName = user.name;
+            friend_ra.LastAvatarUpdate = DateTime.Now;
         }
 
-        public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvshow)
+        public static void Populate_RA(this Trakt_Show show_ra, TraktV2ShowExtended tvshow)
         {
-            show.Overview = tvshow.overview;
-            show.Title = tvshow.title;
-            show.TraktID = tvshow.ids.slug;
-            show.TvDB_ID = tvshow.ids.tvdb;
-            show.URL = tvshow.ShowURL;
-            show.Year = tvshow.year.ToString();
+            show_ra.Overview = tvshow.overview;
+            show_ra.Title = tvshow.title;
+            show_ra.TraktID = tvshow.ids.slug;
+            show_ra.TvDB_ID = tvshow.ids.tvdb;
+            show_ra.URL = tvshow.ShowURL;
+            show_ra.Year = tvshow.year.ToString();
         }
 
-        public static void Populate(this Trakt_Show show, TraktV2Show tvshow)
+        public static void Populate_RA(this Trakt_Show show_ra, TraktV2Show tvshow)
         {
-            show.Overview = tvshow.Overview;
-            show.Title = tvshow.Title;
-            show.TraktID = tvshow.ids.slug;
-            show.TvDB_ID = tvshow.ids.tvdb;
-            show.URL = tvshow.ShowURL;
-            show.Year = tvshow.Year.ToString();
+            show_ra.Overview = tvshow.Overview;
+            show_ra.Title = tvshow.Title;
+            show_ra.TraktID = tvshow.ids.slug;
+            show_ra.TvDB_ID = tvshow.ids.tvdb;
+            show_ra.URL = tvshow.ShowURL;
+            show_ra.Year = tvshow.Year.ToString();
         }
 
-        public static void Populate(this TvDB_Episode episode, TvDbSharper.Dto.EpisodeRecord apiEpisode)
+        public static void Populate_RA(this TvDB_Episode episode_ra, TvDbSharper.Dto.EpisodeRecord apiEpisode)
         {
-            episode.Id = apiEpisode.Id;
-            episode.SeriesID = int.Parse(apiEpisode.SeriesId);
-            episode.SeasonID = 0;
-            episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
-            episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
+            episode_ra.Id = apiEpisode.Id;
+            episode_ra.SeriesID = int.Parse(apiEpisode.SeriesId);
+            episode_ra.SeasonID = 0;
+            episode_ra.SeasonNumber = apiEpisode.AiredSeason ?? 0;
+            episode_ra.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
 
             int flag = 0;
             if (apiEpisode.Filename != string.Empty)
                 flag = 1;
 
-            episode.EpImgFlag = flag;
-            episode.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
-            episode.EpisodeName = apiEpisode.EpisodeName ?? string.Empty;
-            episode.Overview = apiEpisode.Overview;
-            episode.Filename = apiEpisode.Filename ?? string.Empty;
-            episode.AirsAfterSeason = apiEpisode.AirsAfterSeason;
-            episode.AirsBeforeEpisode = apiEpisode.AirsBeforeEpisode;
-            episode.AirsBeforeSeason = apiEpisode.AirsBeforeSeason;
-            if (apiEpisode.SiteRating != null) episode.Rating = (int) Math.Round(apiEpisode.SiteRating.Value);
+            episode_ra.EpImgFlag = flag;
+            episode_ra.AbsoluteNumber = apiEpisode.AbsoluteNumber ?? 0;
+            episode_ra.EpisodeName = apiEpisode.EpisodeName ?? string.Empty;
+            episode_ra.Overview = apiEpisode.Overview;
+            episode_ra.Filename = apiEpisode.Filename ?? string.Empty;
+            episode_ra.AirsAfterSeason = apiEpisode.AirsAfterSeason;
+            episode_ra.AirsBeforeEpisode = apiEpisode.AirsBeforeEpisode;
+            episode_ra.AirsBeforeSeason = apiEpisode.AirsBeforeSeason;
+            if (apiEpisode.SiteRating != null) episode_ra.Rating = (int) Math.Round(apiEpisode.SiteRating.Value);
             if (!string.IsNullOrEmpty(apiEpisode.FirstAired))
             {
-                episode.AirDate = DateTime.ParseExact(apiEpisode.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo);
+                episode_ra.AirDate = DateTime.ParseExact(apiEpisode.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo);
             }
         }
 
@@ -381,7 +379,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate_RA(this TvDB_ImageFanart fanart_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null) {
                 logger.Error("Error in TvDB_ImageFanart.Populate, image.Id is null, series: {0}",seriesID);
@@ -389,13 +387,13 @@ namespace Shoko.Server.Extensions
             }
             try
             {
-                fanart.SeriesID = seriesID;
-                fanart.Id = image.Id ?? 0;
-                fanart.BannerPath = image.FileName;
-                fanart.BannerType2 = image.Resolution;
-                fanart.Colors = string.Empty;
-                fanart.ThumbnailPath = image.Thumbnail;
-                fanart.VignettePath = string.Empty;
+                fanart_ra.SeriesID = seriesID;
+                fanart_ra.Id = image.Id ?? 0;
+                fanart_ra.BannerPath = image.FileName;
+                fanart_ra.BannerType2 = image.Resolution;
+                fanart_ra.Colors = string.Empty;
+                fanart_ra.ThumbnailPath = image.Thumbnail;
+                fanart_ra.VignettePath = string.Empty;
                 return true;
             }
             catch (Exception ex)
@@ -405,7 +403,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate_RA(this TvDB_ImagePoster poster_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -414,12 +412,12 @@ namespace Shoko.Server.Extensions
             }
             try
             {
-                poster.SeriesID = seriesID;
-                poster.SeasonNumber = null;
-                poster.Id = image.Id ?? 0;
-                poster.BannerPath = image.FileName;
-                poster.BannerType = image.KeyType;
-                poster.BannerType2 = image.Resolution;
+                poster_ra.SeriesID = seriesID;
+                poster_ra.SeasonNumber = null;
+                poster_ra.Id = image.Id ?? 0;
+                poster_ra.BannerPath = image.FileName;
+                poster_ra.BannerType = image.KeyType;
+                poster_ra.BannerType2 = image.Resolution;
                 return true;
             }
             catch (Exception ex)
@@ -429,7 +427,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate_RA(this TvDB_ImageWideBanner poster_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -438,20 +436,20 @@ namespace Shoko.Server.Extensions
             }
             try
             {
-                poster.SeriesID = seriesID;
+                poster_ra.SeriesID = seriesID;
                 try
                 {
-                    poster.SeasonNumber = int.Parse(image.SubKey);
+                    poster_ra.SeasonNumber = int.Parse(image.SubKey);
                 }
                 catch (FormatException)
                 {
-                    poster.SeasonNumber = null;
+                    poster_ra.SeasonNumber = null;
                 }
 
-                poster.Id = image.Id ?? 0;
-                poster.BannerPath = image.FileName;
-                poster.BannerType = image.KeyType;
-                poster.BannerType2 = image.Resolution;
+                poster_ra.Id = image.Id ?? 0;
+                poster_ra.BannerPath = image.FileName;
+                poster_ra.BannerType = image.KeyType;
+                poster_ra.BannerType2 = image.Resolution;
                 return true;
             }
             catch (Exception ex)
@@ -499,23 +497,23 @@ namespace Shoko.Server.Extensions
             series.Poster = TryGetSeriesProperty(doc, "poster");
         }
 
-        public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Dto.Series apiSeries)
+        public static void PopulateFromSeriesInfo_RA(this TvDB_Series series_ra, TvDbSharper.Dto.Series apiSeries)
         {
-            series.SeriesID = 0;
-            series.Overview = string.Empty;
-            series.SeriesName = string.Empty;
-            series.Status = string.Empty;
-            series.Banner = string.Empty;
-            series.Fanart = string.Empty;
-            series.Lastupdated = string.Empty;
-            series.Poster = string.Empty;
+            series_ra.SeriesID = 0;
+            series_ra.Overview = string.Empty;
+            series_ra.SeriesName = string.Empty;
+            series_ra.Status = string.Empty;
+            series_ra.Banner = string.Empty;
+            series_ra.Fanart = string.Empty;
+            series_ra.Lastupdated = string.Empty;
+            series_ra.Poster = string.Empty;
 
-            series.SeriesID = apiSeries.Id;
-            series.SeriesName = apiSeries.SeriesName;
-            series.Overview = apiSeries.Overview;
-            series.Banner = apiSeries.Banner;
-            series.Status = apiSeries.Status;
-            series.Lastupdated = apiSeries.LastUpdated.ToString();
+            series_ra.SeriesID = apiSeries.Id;
+            series_ra.SeriesName = apiSeries.SeriesName;
+            series_ra.Overview = apiSeries.Overview;
+            series_ra.Banner = apiSeries.Banner;
+            series_ra.Status = apiSeries.Status;
+            series_ra.Lastupdated = apiSeries.LastUpdated.ToString();
         }
 
         [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
@@ -655,12 +653,10 @@ namespace Shoko.Server.Extensions
             return true;
         }
 
-        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session,
-            AniDB_Anime_Character charRel)
+        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, AniDB_Anime_Character charRel)
         {
             Metro_AniDB_Character contract = new Metro_AniDB_Character
             {
-                AniDB_CharacterID = character.AniDB_CharacterID,
                 CharID = character.CharID,
                 CharName = character.CharName,
                 CharKanjiName = character.CharKanjiName,
@@ -669,15 +665,15 @@ namespace Shoko.Server.Extensions
                 CharType = charRel.CharType,
 
                 ImageType = (int)ImageEntityType.AniDB_Character,
-                ImageID = character.AniDB_CharacterID
+                ImageID = character.CharID
             };
-            AniDB_Seiyuu seiyuu = character.GetSeiyuu(session);
+            AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
-                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuID = seiyuu.SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
                 contract.SeiyuuImageType = (int) ImageEntityType.AniDB_Creator;
-                contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuImageID = seiyuu.SeiyuuID;
             }
 
             return contract;
@@ -698,7 +694,7 @@ namespace Shoko.Server.Extensions
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
-                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuID = seiyuu.SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
                 contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
             }
@@ -772,7 +768,7 @@ namespace Shoko.Server.Extensions
                 recommendation.RecommendationType = (int) AniDBRecommendationType.MustSee;
         }
 
-        public static void Populate(this AniDB_ReleaseGroup releasegroup, Raw_AniDB_Group raw)
+        public static void Populate_RA(this AniDB_ReleaseGroup releasegroup, Raw_AniDB_Group raw)
         {
             releasegroup.GroupID = raw.GroupID;
             releasegroup.Rating = raw.Rating;
@@ -815,7 +811,7 @@ namespace Shoko.Server.Extensions
             return true;
         }
 
-        public static void PopulateManually(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
+        public static void PopulateManually_RA(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
         {
             cross.Hash = vid.ED2KHash;
             cross.FileName = vid.FileName;
@@ -848,11 +844,11 @@ namespace Shoko.Server.Extensions
             agroup.DateTimeCreated = now;
         }
 
-        public static void Populate(this SVR_AnimeEpisode animeep, AniDB_Episode anidbEp)
+        public static void Populate_RA(this SVR_AnimeEpisode animeep_ra, AniDB_Episode anidbEp)
         {
-            animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
-            animeep.DateTimeUpdated = DateTime.Now;
-            animeep.DateTimeCreated = DateTime.Now;
+            animeep_ra.AniDB_EpisodeID = anidbEp.EpisodeID;
+            animeep_ra.DateTimeUpdated = DateTime.Now;
+            animeep_ra.DateTimeCreated = DateTime.Now;
         }
     }
 }

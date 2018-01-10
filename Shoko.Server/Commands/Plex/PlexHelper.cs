@@ -272,7 +272,7 @@ namespace Shoko.Server.Commands
         public string File { get; set; }
         internal PlexHelper Helper { get; set; }
 
-        public SVR_AnimeEpisode AnimeEpisode => RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(File));
+        public SVR_AnimeEpisode AnimeEpisode => Repo.AnimeEpisode.GetByFilename(Path.GetFileName(File));
 
         public void Unscrobble()
         {

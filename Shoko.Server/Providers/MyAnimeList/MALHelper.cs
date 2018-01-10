@@ -9,6 +9,7 @@ using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using AniDBAPI;
+using Nancy.Helpers;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -252,29 +253,29 @@ namespace Shoko.Server.Providers.MyAnimeList
         public static void LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber,
             bool fromWebCache)
         {
-            CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
-            if (xrefTemp != null)
+            List<CrossRef_AniDB_MAL> crosses = Repo.CrossRef_AniDB_MAL.GetByMALID(malID);
+            if (crosses.Count!=0)
             {
                 string msg = string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1}", malID,
-                    xrefTemp.AnimeID);
+                    crosses[0].AnimeID);
                 logger.Warn(msg);
                 return;
             }
 
-            CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
+            CrossRef_AniDB_MAL xref;
+            using (var upd = Repo.CrossRef_AniDB_MAL.BeginAdd())
             {
-                AnimeID = animeID,
-                MALID = malID,
-                MALTitle = malTitle,
-                StartEpisodeType = epType,
-                StartEpisodeNumber = epNumber
-            };
-            if (fromWebCache)
-                xref.CrossRefSource = (int) CrossRefSource.WebCache;
-            else
-                xref.CrossRefSource = (int) CrossRefSource.User;
-
-            RepoFactory.CrossRef_AniDB_MAL.Save(xref);
+                upd.Entity.AnimeID = animeID;
+                upd.Entity.MALID = malID;
+                upd.Entity.MALTitle = malTitle;
+                upd.Entity.StartEpisodeType = epType;
+                upd.Entity.StartEpisodeNumber = epNumber;
+                if (fromWebCache)
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.WebCache;
+                else
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.User;
+                xref = upd.Commit();
+            }
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
 
@@ -290,10 +291,10 @@ namespace Shoko.Server.Providers.MyAnimeList
 
         public static void RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
         {
-            CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
+            CrossRef_AniDB_MAL xref = Repo.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
             if (xref == null) return;
 
-            RepoFactory.CrossRef_AniDB_MAL.Delete(xref.CrossRef_AniDB_MALID);
+            Repo.CrossRef_AniDB_MAL.Delete(xref.CrossRef_AniDB_MALID);
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -311,7 +312,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                 return;
             }
 
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {
@@ -425,7 +426,7 @@ namespace Shoko.Server.Providers.MyAnimeList
                 List<SVR_AnimeEpisode> eps = ser.GetAnimeEpisodes();
 
                 // find the anidb user
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
                 if (aniDBUsers.Count == 0) return;
 
                 SVR_JMMUser user = aniDBUsers[0];

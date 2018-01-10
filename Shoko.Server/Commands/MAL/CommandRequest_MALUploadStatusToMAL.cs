@@ -39,7 +39,7 @@ namespace Shoko.Server.Commands
                     return;
 
                 // find the latest eps to update
-                IReadOnlyList<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
+                IReadOnlyList<SVR_AniDB_Anime> animes = Repo.AniDB_Anime.GetAll();
 
                 foreach (SVR_AniDB_Anime anime in animes)
                 {

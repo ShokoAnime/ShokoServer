@@ -595,7 +595,7 @@ namespace Shoko.Server.Providers.Azure
                         StreamReader Reader = new StreamReader(responseStream, encoding);
 
                         string output = Reader.ReadToEnd();
-                        output = HttpUtility.HtmlDecode(output);
+                        output = WebUtility.HtmlDecode(output);
 
                         return output;
                     }
@@ -635,7 +635,7 @@ namespace Shoko.Server.Providers.Azure
                         StreamReader Reader = new StreamReader(responseStream, encoding);
 
                         string output = Reader.ReadToEnd();
-                        output = HttpUtility.HtmlDecode(output);
+                        output = WebUtility.HtmlDecode(output);
 
                         return output;
                     }
@@ -679,7 +679,7 @@ namespace Shoko.Server.Providers.Azure
                         StreamReader Reader = new StreamReader(responseStream, encoding);
 
                         string output = Reader.ReadToEnd();
-                        output = HttpUtility.HtmlDecode(output);
+                        output = WebUtility.HtmlDecode(output);
 
                         return output;
                     }
@@ -733,11 +733,11 @@ namespace Shoko.Server.Providers.Azure
                 // this field is not actually used
                 uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
 
-                uinfo.LocalUserCount = (int) RepoFactory.JMMUser.GetTotalRecordCount();
+                uinfo.LocalUserCount = (int) Repo.JMMUser.GetTotalRecordCount();
 
-                uinfo.FileCount = RepoFactory.VideoLocal.GetTotalRecordCount();
+                uinfo.FileCount = Repo.VideoLocal.GetTotalRecordCount();
 
-                SVR_AnimeEpisode_User rec = RepoFactory.AnimeEpisode_User.GetLastWatchedEpisode();
+                SVR_AnimeEpisode_User rec = Repo.AnimeEpisode_User.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
                 if (rec != null)
                     uinfo.LastEpisodeWatched = AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);

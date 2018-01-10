@@ -37,7 +37,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
+                CrossRef_AniDB_Other xref = Repo.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
                 if (xref == null) return;
 
                 AzureWebAPI.Send_CrossRefAniDBOther(xref);

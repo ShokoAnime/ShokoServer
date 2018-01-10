@@ -34,7 +34,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDBV2 = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+                crossRefTvDBV2 = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {

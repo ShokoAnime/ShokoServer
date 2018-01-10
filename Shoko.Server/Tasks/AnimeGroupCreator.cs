@@ -2,18 +2,16 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel.PeerResolvers;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Repositories.Repos;
 
 namespace Shoko.Server.Tasks
 {
@@ -23,12 +21,6 @@ namespace Shoko.Server.Tasks
         private const int DefaultBatchSize = 50;
         public const string TempGroupName = "AAA Migrating Groups AAA";
         private static readonly Regex _truncateYearRegex = new Regex(@"\s*\(\d{4}\)$");
-        private readonly AniDB_AnimeRepository _aniDbAnimeRepo = RepoFactory.AniDB_Anime;
-        private readonly AnimeSeriesRepository _animeSeriesRepo = RepoFactory.AnimeSeries;
-        private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
-        private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
-        private readonly GroupFilterRepository _groupFilterRepo = RepoFactory.GroupFilter;
-        private readonly JMMUserRepository _userRepo = RepoFactory.JMMUser;
         private readonly bool _autoGroupSeries;
 
         /// <summary>
@@ -57,51 +49,21 @@ namespace Shoko.Server.Tasks
         /// </summary>
         /// <param name="session">The NHibernate session.</param>
         /// <returns>The temporary <see cref="SVR_AnimeGroup"/>.</returns>
-        private SVR_AnimeGroup CreateTempAnimeGroup(ISessionWrapper session)
+        private SVR_AnimeGroup CreateTempAnimeGroup()
         {
             DateTime now = DateTime.Now;
-
-            var tempGroup = new SVR_AnimeGroup
+            using (var upd = Repo.AnimeGroup.BeginAddOrUpdateWithLock(() => Repo.AnimeGroup.GetByID(0)))
             {
-                GroupName = TempGroupName,
-                Description = TempGroupName,
-                SortName = TempGroupName,
-                DateTimeUpdated = now,
-                DateTimeCreated = now
-            };
-
-            // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
-            session.Insert(tempGroup);
-            lock (RepoFactory.AnimeGroup.Cache)
-            {
-                RepoFactory.AnimeGroup.Cache.Update(tempGroup);
+                upd.Entity.GroupName = TempGroupName;
+                upd.Entity.Description = TempGroupName;
+                upd.Entity.SortName = TempGroupName;
+                upd.Entity.DateTimeUpdated = now;
+                upd.Entity.DateTimeCreated = now;
+                return upd.Commit();
             }
-
-            return tempGroup;
         }
 
-        /// <summary>
-        /// Deletes the anime groups and user mappings as well as resetting group filters and moves all anime series into the specified group.
-        /// </summary>
-        /// <param name="session">The NHibernate session.</param>
-        /// <param name="tempGroupId">The ID of the temporary anime group to use for migration.</param>
-        private void ClearGroupsAndDependencies(ISessionWrapper session, int tempGroupId)
-        {
-            _log.Info("Removing existing AnimeGroups and resetting GroupFilters");
 
-            _animeGroupUserRepo.DeleteAll(session);
-            _animeGroupRepo.DeleteAll(session, tempGroupId);
-            session.CreateSQLQuery(@"
-                UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;
-                UPDATE GroupFilter SET GroupsIdsString = '{}';")
-                .SetInt32("tempGroupId", tempGroupId)
-                .ExecuteUpdate();
-
-            // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
-            _animeSeriesRepo.ClearCache();
-            _groupFilterRepo.ClearCache();
-            _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
-        }
 
         private void UpdateAnimeSeriesContractsAndSave(ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeSeries> series)
@@ -110,14 +72,13 @@ namespace Shoko.Server.Tasks
 
             // Update batches of AnimeSeries contracts in parallel. Each parallel branch requires it's own session since NHibernate sessions aren't thread safe.
             // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
-            Parallel.ForEach(series.Batch(DefaultBatchSize), new ParallelOptions {MaxDegreeOfParallelism = 4},
-                localInit: () => DatabaseFactory.SessionFactory.OpenStatelessSession(),
-                body: (seriesBatch, state, localSession) =>
-                {
-                    SVR_AnimeSeries.BatchUpdateContracts(localSession.Wrap(), seriesBatch);
-                    return localSession;
-                },
-                localFinally: localSession => { localSession.Dispose(); });
+            Parallel.ForEach(series.Batch(DefaultBatchSize), new ParallelOptions {MaxDegreeOfParallelism = 4}, body: (seriesBatch, state) =>
+            {
+                using (var upd=PeerReferralPolicy.)
+                SVR_AnimeSeries.BatchUpdateContracts(seriesBatch);
+                return localSession;
+            });
+               
 
             _animeSeriesRepo.UpdateBatch(session, series);
             _log.Info("AnimeSeries contracts have been updated");
@@ -344,7 +305,7 @@ namespace Shoko.Server.Tasks
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
-                SVR_AniDB_Anime mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
+                SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByAnimeID(mainAnimeId);
 
                 animeGroup.Populate(mainAnime, now);
                 groupName = mainAnime.GetFormattedTitle();
@@ -411,10 +372,9 @@ namespace Shoko.Server.Tasks
         /// </summary>
         /// <param name="session">The NHibernate session.</param>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public void RecreateAllGroups(ISessionWrapper session)
+        public void RecreateAllGroups()
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
+
 
             bool cmdProcGeneralPaused = ShokoService.CmdProcessorGeneral.Paused;
             bool cmdProcHasherPaused = ShokoService.CmdProcessorHasher.Paused;
@@ -429,26 +389,28 @@ namespace Shoko.Server.Tasks
 
                 _log.Info("Beginning re-creation of all groups");
 
-                IReadOnlyList<SVR_AnimeSeries> animeSeries = RepoFactory.AnimeSeries.GetAll();
+
+
+                IReadOnlyList<SVR_AnimeSeries> animeSeries = Repo.AnimeSeries.GetAll();
                 IReadOnlyCollection<SVR_AnimeGroup> createdGroups = null;
                 SVR_AnimeGroup tempGroup = null;
 
-                using (ITransaction trans = session.BeginTransaction())
-                {
-                    tempGroup = CreateTempAnimeGroup(session);
-                    ClearGroupsAndDependencies(session, tempGroup.AnimeGroupID);
-                    trans.Commit();
-                }
+                tempGroup = CreateTempAnimeGroup();
+                _log.Info("Resetting AnimeSeries to an Empty Group");
+                Repo.AnimeSeries.CleanAnimeGroups();
+                _log.Info("Removing existing AnimeGroups and resetting GroupFilters");
+                Repo.AnimeGroup_User.KillEmAll();
+                Repo.AnimeGroup.KillEmAllExceptGrimorieOfZero();
+                Repo.GroupFilter.CleanUpAllgroupsIds();
+                _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
 
                 if (_autoGroupSeries)
                 {
-                    createdGroups = AutoCreateGroupsWithRelatedSeries(session, animeSeries)
-                        .AsReadOnlyCollection();
+                    createdGroups = AutoCreateGroupsWithRelatedSeries(animeSeries)
                 }
                 else // Standard group re-create
                 {
-                    createdGroups = CreateGroupPerSeries(session, animeSeries)
-                        .AsReadOnlyCollection();
+                    createdGroups = CreateGroupPerSeries(animeSeries)
                 }
 
                 using (ITransaction trans = session.BeginTransaction())
@@ -510,12 +472,6 @@ namespace Shoko.Server.Tasks
             }
         }
 
-        public void RecreateAllGroups()
-        {
-            using (IStatelessSession session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-            {
-                RecreateAllGroups(session.Wrap());
-            }
-        }
+
     }
 }

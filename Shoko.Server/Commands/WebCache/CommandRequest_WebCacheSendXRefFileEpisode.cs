@@ -37,7 +37,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                CrossRef_File_Episode xref = RepoFactory.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
+                CrossRef_File_Episode xref = Repo.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
                 if (xref == null) return;
 
                 AzureWebAPI.Send_CrossRefFileEpisode(xref);

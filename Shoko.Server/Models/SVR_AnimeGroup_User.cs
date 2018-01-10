@@ -109,6 +109,7 @@ namespace Shoko.Server.Models
             }
         }
 
+
         public void UpdatePlexKodiContracts()
         {
             SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(AnimeGroupID);

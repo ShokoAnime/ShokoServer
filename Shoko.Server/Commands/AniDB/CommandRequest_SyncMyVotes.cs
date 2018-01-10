@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
                 {
                     foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
                     {
-                        List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
+                        List<AniDB_Vote> dbVotes = Repo.AniDB_Vote.GetByEntity(myVote.EntityID);
                         AniDB_Vote thisVote = null;
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
@@ -65,17 +65,13 @@ namespace Shoko.Server.Commands
                             }
                         }
 
-                        if (thisVote == null)
+                        using (var upd = Repo.AniDB_Vote.BeginUpdate(thisVote))
                         {
-                            thisVote = new AniDB_Vote
-                            {
-                                EntityID = myVote.EntityID
-                            };
+                            upd.Entity.EntityID = myVote.EntityID;
+                            upd.Entity.VoteType = (int)myVote.VoteType;
+                            upd.Entity.VoteValue = myVote.VoteValue;
+                            upd.Commit();
                         }
-                        thisVote.VoteType = (int) myVote.VoteType;
-                        thisVote.VoteValue = myVote.VoteValue;
-
-                        RepoFactory.AniDB_Vote.Save(thisVote);
 
                         if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                         {

@@ -30,18 +30,21 @@
     <None Remove="RepositoriesOld\**" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />
     <Compile Remove="Repositories\Repos\AniDB_MylistStatsRepository.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DeepCloner" Version="0.10.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.0" />
+    <PackageReference Include="DeepCloner" Version="0.10.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.1" />
     <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.9-dmr" />
     <PackageReference Include="Nancy" Version="2.0.0-clinteastwood" />
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
     <PackageReference Include="NLog" Version="5.0.0-beta11" />
     <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
+    <PackageReference Include="System.ServiceModel.Web" Version="1.0.0" />
+    <PackageReference Include="TMDbLib" Version="1.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="API\Views\" />
@@ -58,6 +61,12 @@
     <ProjectReference Include="..\Nancy.Rest\Nancy.Rest.Module\Nancy.Rest.Module.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
+    <ProjectReference Include="..\TvDbSharper\TvDbSharper.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.ServiceModel">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7\System.ServiceModel.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />

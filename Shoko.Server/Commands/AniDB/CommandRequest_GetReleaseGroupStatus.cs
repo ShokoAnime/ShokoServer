@@ -46,10 +46,10 @@ namespace Shoko.Server.Commands
             try
             {
                 // only get group status if we have an associated series
-                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago
@@ -65,7 +65,7 @@ namespace Shoko.Server.Commands
                             {
                                 // don't skip if we have never downloaded this info before
                                 List<AniDB_GroupStatus> grpStatuses =
-                                    RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
+                                    Repo.AniDB_GroupStatus.GetByAnimeID(AnimeID);
                                 if (grpStatuses != null && grpStatuses.Count > 0)
                                 {
                                     skip = true;
@@ -87,14 +87,10 @@ namespace Shoko.Server.Commands
                     grpCol.Groups.Count > 0)
                 {
                     // save in bulk to improve performance
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
                     {
-                        foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
-                        {
-                            CommandRequest_GetReleaseGroup cmdRelgrp =
-                                new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-                            cmdRelgrp.Save(session);
-                        }
+                        CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
+                        cmdRelgrp.Save();
                     }
                 }
             }

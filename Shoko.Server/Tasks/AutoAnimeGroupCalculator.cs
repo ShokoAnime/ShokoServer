@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using NHibernate;
 using Shoko.Models.Enums;
-using Shoko.Server.Repositories.NHibernate;
+using Shoko.Models.Server;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Tasks
 {
@@ -62,7 +62,7 @@ namespace Shoko.Server.Tasks
         /// <param name="session">The NHibernate session.</param>
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public static AutoAnimeGroupCalculator CreateFromServerSettings(ISessionWrapper session)
+        public static AutoAnimeGroupCalculator CreateFromServerSettings()
         {
             string exclusionsSetting = ServerSettings.AutoGroupSeriesRelationExclusions;
             AutoGroupExclude exclusions = AutoGroupExclude.None;
@@ -96,9 +96,9 @@ namespace Shoko.Server.Tasks
                 }
             }
 
-            return Create(session, exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
+            return Create(exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
         }
-
+        
         /// <summary>
         /// Creates a new <see cref="AutoAnimeGroupCalculator"/> using relationships stored in the database.
         /// </summary>
@@ -110,95 +110,60 @@ namespace Shoko.Server.Tasks
         /// for representing the group.</param>
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public static AutoAnimeGroupCalculator Create(ISessionWrapper session,
-            AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
+        public static AutoAnimeGroupCalculator Create(AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
             AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
             MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
 
-            var relationshipMap = session.CreateSQLQuery(@"
-                SELECT    fromAnime.AnimeID AS fromAnimeId
-                        , toAnime.AnimeID AS toAnimeId
-                        , fromAnime.AnimeType AS fromAnimeType
-                        , toAnime.AnimeType AS toAnimeType
-                        , fromAnime.MainTitle AS fromMainTitle
-                        , toAnime.MainTitle AS toMainTitle
-                        , fromAnime.AirDate AS fromAirDate
-                        , toAnime.AirDate AS toAirDate
-                        , rel.RelationType AS relationType
-                    FROM AniDB_Anime_Relation rel
-                        INNER JOIN AniDB_Anime fromAnime
-                            ON fromAnime.AnimeID = rel.AnimeID
-                        INNER JOIN AniDB_Anime toAnime
-                            ON toAnime.AnimeID = rel.RelatedAnimeID")
-                .AddScalar("fromAnimeId", NHibernateUtil.Int32)
-                .AddScalar("toAnimeId", NHibernateUtil.Int32)
-                .AddScalar("fromAnimeType", NHibernateUtil.Int32)
-                .AddScalar("toAnimeType", NHibernateUtil.Int32)
-                .AddScalar("fromMainTitle", NHibernateUtil.String)
-                .AddScalar("toMainTitle", NHibernateUtil.String)
-                .AddScalar("fromAirDate", NHibernateUtil.DateTime)
-                .AddScalar("toAirDate", NHibernateUtil.DateTime)
-                .AddScalar("relationType", NHibernateUtil.String)
-                .List<object[]>()
-                .Select(r =>
+            Dictionary<int, (int type, string title, DateTime? airdate)> animes = Repo.AniDB_Anime.GetRelationInfo();
+            Dictionary<int, (int fromType, string fromTitle, DateTime? fromAirDate, int toAnimeID, int toType, string toTitle, DateTime? toAirDate, AnimeRelationType  relation)> relations=new Dictionary<int, (int fromType, string fromTitle, DateTime? fromAirDate, int toAnimeID, int toType, string toTitle, DateTime? toAirDate, AnimeRelationType relation)>();
+            foreach (AniDB_Anime_Relation rel in Repo.AniDB_Anime_Relation.GetAll())
+            {
+                (int type, string title, DateTime? airdate) from = animes.ContainsKey(rel.AnimeID) ? animes[rel.AnimeID] : (0, null, null);
+                (int type, string title, DateTime? airdate) to = animes.ContainsKey(rel.RelatedAnimeID) ? animes[rel.RelatedAnimeID] : (0, null, null);
+                if (from.title != null && to.title != null)
                 {
-                    var relation = new AnimeRelation
-                    {
-                        FromId = (int) r[0],
-                        ToId = (int) r[1],
-                        FromType = (AnimeType) r[2],
-                        ToType = (AnimeType) r[3],
-                        FromMainTitle = (string) r[4],
-                        ToMainTitle = (string) r[5],
-                        FromAirDate = (DateTime?) r[6],
-                        ToAirDate = (DateTime?) r[7]
-                    };
-
-                    switch (((string) r[8]).ToLowerInvariant())
+                    AnimeRelationType relt;
+                    switch (rel.RelationType.ToLowerInvariant())
                     {
                         case "full story":
-                            relation.RelationType = AnimeRelationType.FullStory;
+                            relt = AnimeRelationType.FullStory;
                             break;
                         case "summary":
-                            relation.RelationType = AnimeRelationType.Summary;
+                            relt = AnimeRelationType.Summary;
                             break;
                         case "parent story":
-                            relation.RelationType = AnimeRelationType.ParentStory;
+                            relt = AnimeRelationType.ParentStory;
                             break;
                         case "side story":
-                            relation.RelationType = AnimeRelationType.SideStory;
+                            relt = AnimeRelationType.SideStory;
                             break;
                         case "prequel":
-                            relation.RelationType = AnimeRelationType.Prequel;
+                            relt = AnimeRelationType.Prequel;
                             break;
                         case "sequel":
-                            relation.RelationType = AnimeRelationType.Sequel;
+                            relt = AnimeRelationType.Sequel;
                             break;
                         case "alternative setting":
-                            relation.RelationType = AnimeRelationType.AlternateSetting;
+                            relt = AnimeRelationType.AlternateSetting;
                             break;
                         case "alternative version":
-                            relation.RelationType = AnimeRelationType.AlternateVersion;
+                            relt = AnimeRelationType.AlternateVersion;
                             break;
                         case "same setting":
-                            relation.RelationType = AnimeRelationType.SameSetting;
+                            relt = AnimeRelationType.SameSetting;
                             break;
                         case "character":
-                            relation.RelationType = AnimeRelationType.Character;
+                            relt = AnimeRelationType.Character;
                             break;
                         default:
-                            relation.RelationType = AnimeRelationType.Other;
+                            relt = AnimeRelationType.Other;
                             break;
                     }
 
-                    return relation;
-                })
-                .ToLookup(k => k.FromId);
-
-            return new AutoAnimeGroupCalculator(relationshipMap, exclusions, relationsToFuzzyTitleTest,
+                    relations.Add(rel.AnimeID,(from.type, from.title,from.airdate, rel.RelatedAnimeID,to.type,to.title,to.airdate,relt));
+                }
+            return new AutoAnimeGroupCalculator(relations, exclusions, relationsToFuzzyTitleTest,
                 mainAnimeSelectionStrategy);
         }
 

@@ -37,7 +37,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByID(CrossRef_AniDB_MALID);
+                CrossRef_AniDB_MAL xref = Repo.CrossRef_AniDB_MAL.GetByID(CrossRef_AniDB_MALID);
                 if (xref == null) return;
 
 

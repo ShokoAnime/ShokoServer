@@ -35,7 +35,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(AnimeID);
             ser?.UpdateStats(true, true, true);
         }
 
@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_RefreshAnime_{AnimeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
@@ -8,6 +9,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+
 
 namespace Shoko.Server.Commands
 {
@@ -29,7 +31,7 @@ namespace Shoko.Server.Commands
                     return new QueueStateStruct
                     {
                         queueState = QueueStateEnum.AniDB_MyListAdd,
-                        extraParams = new[] {vid.FileName}
+                        extraParams = new[] { vid.FileName}
                     };
                 return new QueueStateStruct
                 {
@@ -54,7 +56,8 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info($"Processing CommandRequest_AddFileToMyList: {vid.FileName} - {vid.Hash}");
+            string fname = vid.FileName;
+            logger.Info($"Processing CommandRequest_AddFileToMyList: {fname} - {vid.Hash}");
 
 
             try
@@ -83,7 +86,7 @@ namespace Shoko.Server.Commands
                     newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
 
                 // do for all AniDB users
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
 
 
                 if (aniDBUsers.Count > 0)
@@ -91,7 +94,7 @@ namespace Shoko.Server.Commands
                     string datemessage = watchedDate?.ToShortDateString() ?? "Not Watched";
                     if (watchedDate?.Equals(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime()) ?? false)
                         datemessage = "No Watch Date Specified";
-                    logger.Info($"Adding file to list: {vid.FileName} - {datemessage}");
+                    logger.Info($"Adding file to list: {fname} - {datemessage}");
                     bool watched = watchedDate != null;
                     if (newWatchedStatus != null) watched = newWatchedStatus.Value;
 
@@ -162,7 +165,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_AddFileToMyList_{Hash}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -182,7 +185,7 @@ namespace Shoko.Server.Commands
             }
 
             if (Hash.Trim().Length <= 0) return false;
-            vid = RepoFactory.VideoLocal.GetByHash(Hash);
+            vid = Repo.VideoLocal.GetByHash(Hash);
             return true;
         }
     }

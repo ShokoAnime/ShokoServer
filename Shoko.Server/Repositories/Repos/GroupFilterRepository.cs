@@ -119,7 +119,24 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-
+        public void CleanUpAllgroupsIds()
+        {
+            using (CacheLock.ReaderLock())
+            {
+                if (IsCached)
+                {
+                    foreach (SVR_GroupFilter gf in Cache.Values)
+                        gf.GroupsIdsString = null;
+                    Context.SaveChanges();
+                }
+                else
+                {
+                    foreach (SVR_GroupFilter gf in Table)
+                        gf.GroupsIdsString = null;
+                    Context.SaveChanges();
+                }
+            }
+        }
 
         public void CleanUpEmptyDirectoryFilters()
         {
@@ -536,12 +553,12 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()
         {
-            return GetAll().Where(a => a.Locked == 1).ToList();
+            return Where(a => a.Locked == 1).ToList();
         }
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            HashSet<int> filters = new HashSet<int>(GetAll().Where(a => a.FilterType == (int) GroupFilterType.All).Select(a => a.GroupFilterID));
+            HashSet<int> filters = new HashSet<int>(Where(a => a.FilterType == (int) GroupFilterType.All).Select(a => a.GroupFilterID));
             foreach (GroupFilterConditionType t in types)
                 filters.UnionWith(Types.FindInverse(t));
             return filters.Select(a => Cache.Get(a)).ToList();

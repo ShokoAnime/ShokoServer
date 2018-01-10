@@ -32,7 +32,6 @@ namespace Shoko.Server.Commands
             EpisodeID = epID;
             CommandType = (int) CommandRequestType.AniDB_GetEpisodeUDP;
             Priority = (int) DefaultPriority;
-
             GenerateCommandID();
         }
 
@@ -48,7 +47,7 @@ namespace Shoko.Server.Commands
                 // and we only use it for the "Other Episodes" section of the FILE command
                 // because that field doesn't tell you what anime it belongs to
 
-                List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
+                List<CrossRef_File_Episode> xrefs = Repo.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
                 if (xrefs.Count == 0) return;
 
                 Raw_AniDB_Episode epInfo = ShokoService.AnidbProcessor.GetEpisodeInfo(EpisodeID);
@@ -57,22 +56,26 @@ namespace Shoko.Server.Commands
                 {
                     //Change, AniDB_File do not create Series Episodes does.
 
+                    List<int> oldanimes=new List<int>();
                     foreach (CrossRef_File_Episode xref in xrefs)
                     {
-                        int oldAnimeID = xref.AnimeID;
-                        xref.AnimeID = epInfo.AnimeID;
-                        RepoFactory.CrossRef_File_Episode.Save(xref);
+                        if (xref.AnimeID != epInfo.AnimeID)
+                        {
+                            if (!oldanimes.Contains(xref.AnimeID))
+                                oldanimes.Add(xref.AnimeID);
+                            using (var upd = Repo.CrossRef_File_Episode.BeginUpdate(xref))
+                            {
+                                upd.Entity.AnimeID = epInfo.AnimeID;
+                                upd.Commit();
+                            }
+                        }
+                    }
 
-
-                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(oldAnimeID);
-                        if (ser != null)
-                            ser.QueueUpdateStats();
-                        //StatsCache.Instance.UpdateUsingAnime(oldAnimeID);
-
-                        ser = RepoFactory.AnimeSeries.GetByAnimeID(epInfo.AnimeID);
-                        if (ser != null)
-                            ser.QueueUpdateStats();
-                        //StatsCache.Instance.UpdateUsingAnime(epInfo.AnimeID);
+                    if (oldanimes.Count > 0)
+                    {
+                        foreach (int x in oldanimes)
+                            Repo.AnimeSeries.GetByAnimeID(x)?.QueueUpdateStats();
+                        Repo.AnimeSeries.GetByAnimeID(epInfo.AnimeID)?.QueueUpdateStats();
                     }
                 }
             }

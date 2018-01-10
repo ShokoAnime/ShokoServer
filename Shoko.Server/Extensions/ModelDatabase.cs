@@ -1,56 +1,43 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using NHibernate;
+using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Extensions
 {
     public static class ModelDatabase
     {
+
+
         public static AniDB_Character GetCharacter(this AniDB_Anime_Character character)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return character.GetCharacter(session.Wrap());
-            }
-        }
-
-        public static AniDB_Character GetCharacter(this AniDB_Anime_Character character, ISessionWrapper session)
-        {
-            return RepoFactory.AniDB_Character.GetByCharID(session, character.CharID);
+            return Repo.AniDB_Character.GetByID(character.CharID);
         }
 
 
-        public static List<Trakt_Episode> GetEpisodes(this Trakt_Season season) => RepoFactory.Trakt_Episode
+        public static List<Trakt_Episode> GetEpisodes(this Trakt_Season season) => Repo.Trakt_Episode
             .GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
 
         public static List<Trakt_Season> GetSeasons(this Trakt_Show show)
         {
-            return RepoFactory.Trakt_Season.GetByShowID(show.Trakt_ShowID);
+            return Repo.Trakt_Season.GetByShowID(show.Trakt_ShowID);
         }
+
+
 
         public static AniDB_Seiyuu GetSeiyuu(this AniDB_Character character)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return character.GetSeiyuu(session);
-            }
-        }
-
-        public static AniDB_Seiyuu GetSeiyuu(this AniDB_Character character, ISession session)
-        {
             List<AniDB_Character_Seiyuu> charSeiyuus =
-                RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, character.CharID);
+                Repo.AniDB_Character_Seiyuu.GetByCharID(character.CharID);
 
             if (charSeiyuus.Count > 0)
             {
                 // just use the first creator
-                return RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session, charSeiyuus[0].SeiyuuID);
+                return Repo.AniDB_Seiyuu.GetByID(charSeiyuus[0].SeiyuuID);
             }
 
             return null;
@@ -59,58 +46,45 @@ namespace Shoko.Server.Extensions
         public static void CreateAnimeEpisode(this AniDB_Episode episode, int animeSeriesID)
         {
             // check if there is an existing episode for this EpisodeID
-            SVR_AnimeEpisode existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
 
-            if (existingEp == null)
+            if (Repo.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID).Count==0)
             {
-                SVR_AnimeEpisode animeEp = new SVR_AnimeEpisode();
-                animeEp.Populate(episode);
-                animeEp.AnimeSeriesID = animeSeriesID;
-                RepoFactory.AnimeEpisode.Save(animeEp);
+                using (var upd = Repo.AnimeEpisode.BeginAdd())
+                {
+                    upd.Entity.Populate_RA(episode);
+                    upd.Entity.AnimeSeriesID = animeSeriesID;
+                    upd.Commit();
+                }
             }
         }
+
+
 
         public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return cross.GetMovieDB_Movie(session.Wrap());
-            }
-        }
-
-        public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross, ISessionWrapper session)
-        {
             if (cross.CrossRefType != (int) CrossRefType.MovieDB)
                 return null;
-            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
+            return Repo.MovieDb_Movie.GetByMovieID(int.Parse(cross.CrossRefID)).FirstOrDefault();
         }
 
         public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return cross.GetByTraktShow(session);
-            }
-        }
-
-        public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross, ISession session)
-        {
-            return RepoFactory.Trakt_Show.GetByTraktSlug(session, cross.TraktID);
+            return Repo.Trakt_Show.GetByTraktSlug(cross.TraktID);
         }
 
         public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDBV2 cross)
         {
-            return RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
+            return Repo.TvDB_Series.GetByTvDBID(cross.TvDBID);
         }
 
         public static AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)
         {
-            return RepoFactory.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
+            return Repo.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
         }
 
         public static VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
         {
-            SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(cross.Hash);
+            SVR_VideoLocal vid = Repo.VideoLocal.GetByHash(cross.Hash);
             if (vid != null)
             {
                 VideoLocal_User vidUser = vid.GetUserRecord(userID);
@@ -120,19 +94,19 @@ namespace Shoko.Server.Extensions
             return null;
         }
 
-        public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder
+        public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => Repo.ImportFolder
             .GetByID(duplicatefile.ImportFolderIDFile1);
 
         public static string GetFullServerPath1(this DuplicateFile duplicatefile) => Path.Combine(
             duplicatefile.GetImportFolder1().ImportFolderLocation, duplicatefile.FilePathFile1);
 
-        public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder
+        public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile) => Repo.ImportFolder
             .GetByID(duplicatefile.ImportFolderIDFile2);
 
         public static string GetFullServerPath2(this DuplicateFile duplicatefile) => Path.Combine(
             duplicatefile.GetImportFolder2().ImportFolderLocation, duplicatefile.FilePathFile2);
 
-        public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => RepoFactory.AniDB_File.GetByHash(
+        public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => Repo.AniDB_File.GetByHash(
             duplicatefile.Hash);
     }
 }

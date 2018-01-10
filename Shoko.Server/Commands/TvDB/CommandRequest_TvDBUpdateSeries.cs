@@ -32,7 +32,7 @@ namespace Shoko.Server.Commands
             ForceRefresh = forced;
             CommandType = (int) CommandRequestType.TvDB_UpdateSeries;
             Priority = (int) DefaultPriority;
-            SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
+            SeriesTitle = Repo.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
 
             GenerateCommandID();
         }
@@ -83,7 +83,7 @@ namespace Shoko.Server.Commands
                         "SeriesTitle");
                 if (string.IsNullOrEmpty(SeriesTitle))
                 {
-                    SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
+                    SeriesTitle = Repo.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
                                        string.Intern("Name not Available");
                 }
             }

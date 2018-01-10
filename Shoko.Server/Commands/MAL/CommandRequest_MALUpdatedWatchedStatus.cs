@@ -43,14 +43,14 @@ namespace Shoko.Server.Commands
             try
             {
                 // find the latest eps to update
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 List<CrossRef_AniDB_MAL> crossRefs = anime.GetCrossRefMAL();
                 if (crossRefs == null || crossRefs.Count == 0)
                     return;
 
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(AnimeID);
                 if (ser == null) return;
 
                 MALHelper.UpdateMALSeries(ser);

@@ -46,7 +46,7 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(AnimeEpisodeID);
                 if (ep != null)
                 {
                     TraktSyncType syncType = TraktSyncType.HistoryAdd;

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Server", "Shoko.Server\Shoko.Server.csproj", "{5EA7792E-B1CA-4CEF-97A0-8E69C4836326}"
 EndProject
@@ -26,6 +26,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nancy.Rest.Module", "Nancy.Rest\Nancy.Rest.Module\Nancy.Rest.Module.csproj", "{8A0AB5A3-C1EC-4DB0-B4BC-3749FA69BDDB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nancy.Rest.Annotations", "Nancy.Rest.Annotations\Nancy.Rest.Annotations.csproj", "{99751ADD-7F90-4E23-8451-A8BBF447621E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TvDbSharper", "TvDbSharper\TvDbSharper.csproj", "{D79CA228-20D3-417E-83B3-494274AE51C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -77,6 +79,10 @@ Global
 		{99751ADD-7F90-4E23-8451-A8BBF447621E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99751ADD-7F90-4E23-8451-A8BBF447621E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99751ADD-7F90-4E23-8451-A8BBF447621E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D79CA228-20D3-417E-83B3-494274AE51C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D79CA228-20D3-417E-83B3-494274AE51C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D79CA228-20D3-417E-83B3-494274AE51C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D79CA228-20D3-417E-83B3-494274AE51C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

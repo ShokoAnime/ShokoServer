@@ -68,7 +68,7 @@ namespace Shoko.Server.Workers.Commands.Hashing
                 if (workunit.File == null)
                     return new WorkResult<HashFile>(WorkResultStatus.Error, "File not found");
                 FileSystemResult<Stream> fs = await workunit.File.OpenReadAsync();
-                if (!fs.IsOk)
+                if (fs.Status!=Status.Ok)
                     return new WorkResult<HashFile>(WorkResultStatus.Error, fs.Error);
                 BasicWorkProgress<HashFile> progressdata = new BasicWorkProgress<HashFile>
                 {
@@ -212,13 +212,12 @@ namespace Shoko.Server.Workers.Commands.Hashing
             if (!string.IsNullOrEmpty(str))
             {
                 InternalSerialize hf = JsonConvert.DeserializeObject<InternalSerialize>(str);
-                IFileSystem fs = RepoFactory.ImportFolder.GetAll().FirstOrDefault(a => a.FileSystem.Name == hf.FileSystemName)?.FileSystem;
+                IFileSystem fs = Repo.ImportFolder.GetAll().FirstOrDefault(a => a.FileSystem.Name == hf.FileSystemName)?.FileSystem;
                 if (fs != null)
                 {
-                    FileSystemResult<IObject> obj = await fs.ResolveAsync(hf.FullName);
-                    if (obj.IsOk)
-                        if (obj.Result is IFile file)
-                            ret = new HashFile(file, hf.Type,hf.Force);
+                    IObject obj = await fs.ResolveAsync(hf.FullName);
+                    if (obj.Status==Status.Ok && obj is IFile file)
+                        ret = new HashFile(file, hf.Type,hf.Force);
                 }
             }
             //TODO add Logging on errors;

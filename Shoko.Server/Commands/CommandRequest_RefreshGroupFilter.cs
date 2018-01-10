@@ -35,10 +35,9 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
+            SVR_GroupFilter gf = Repo.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
             gf.CalculateGroupsAndSeries();
-            RepoFactory.GroupFilter.Save(gf);
         }
 
         public override void GenerateCommandID()
@@ -46,7 +45,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_RefreshGroupFilter_{GroupFilterID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

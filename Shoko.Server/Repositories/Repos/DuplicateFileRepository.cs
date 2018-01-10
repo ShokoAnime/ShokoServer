@@ -30,8 +30,7 @@ namespace Shoko.Server.Repositories.Repos
             Folder2 = null;
         }
 
-        public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1,
-            int folderID2)
+        public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1, int folderID2)
         {
             using (CacheLock.ReaderLock())
             {
@@ -40,7 +39,15 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => a.FilePathFile1 == filePath1 && a.ImportFolderIDFile1==folderID1 && a.FilePathFile2 == filePath2 && a.ImportFolderIDFile2 == folderID2).ToList();
             }
         }
-
+        public List<DuplicateFile> GetByFilePathsAndImportFolderCheckBoth(string filePath1, string filePath2, int folderID1, int folderID2)
+        {
+            using (CacheLock.ReaderLock())
+            {
+                if (IsCached)
+                    return FileImport1.GetMultiple(filePath1, folderID1).Where(a => a.FilePathFile2 == filePath2 && a.ImportFolderIDFile2 == folderID2).Union(FileImport1.GetMultiple(filePath2, folderID2).Where(a => a.FilePathFile2 == filePath1 && a.ImportFolderIDFile2 == folderID1)).ToList();
+                return Table.Where(a => (a.FilePathFile1 == filePath1 && a.ImportFolderIDFile1 == folderID1 && a.FilePathFile2 == filePath2 && a.ImportFolderIDFile2 == folderID2) || (a.FilePathFile1 == filePath2 && a.ImportFolderIDFile1 == folderID2 && a.FilePathFile2 == filePath1 && a.ImportFolderIDFile2 == folderID1)).ToList();
+            }
+        }
         public List<DuplicateFile> GetByFilePathAndImportFolder(string filePath, int folderID)
         {
             using (CacheLock.ReaderLock())
