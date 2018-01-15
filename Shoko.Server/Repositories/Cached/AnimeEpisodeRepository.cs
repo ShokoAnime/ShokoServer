@@ -96,6 +96,7 @@ namespace Shoko.Server.Repositories.Cached
             return RepoFactory.VideoLocalPlace.GetAll()
                 .Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                     StringComparison.InvariantCultureIgnoreCase))
+                .Where(a => a.VideoLocal != null)
                 .Select(a => a.VideoLocal.GetAnimeEpisodes())
                 .FirstOrDefault()
                 ?.FirstOrDefault();

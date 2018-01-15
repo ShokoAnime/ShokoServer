@@ -36,6 +36,7 @@ namespace Shoko.Server.Commands.Plex
                 var allSeries = ((SVR_Directory)section).GetShows();
                 foreach (var series in allSeries)
                 {
+                    if (series == null) continue; //I don't know why this occurs.
                     foreach (var ep in ((SVR_PlexLibrary)series).GetEpisodes())
                     {
                         var episode = (SVR_Episode) ep;
@@ -56,6 +57,7 @@ namespace Shoko.Server.Commands.Plex
 
                         if (alreadyWatched && !isWatched)
                             episode.Scrobble();
+
                         if (isWatched && !alreadyWatched)
                             video.ToggleWatchedStatus(true, true, lastWatched, true,
                                 _jmmuser.JMMUserID, true, true);

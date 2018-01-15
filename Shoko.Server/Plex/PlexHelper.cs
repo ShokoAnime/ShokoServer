@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
+using NLog;
 using Shoko.Commons.Utils;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Server;
@@ -151,7 +152,7 @@ namespace Shoko.Server.Plex
         }
 
 
-        //private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private Shoko.Models.Plex.Login.PlexKey _key;
         private const string ClientIdentifier = "d14f0724-a4e8-498a-bb67-add795b38331";
         private static readonly Dictionary<int, PlexHelper> Cache = new Dictionary<int, PlexHelper>();
@@ -176,6 +177,7 @@ namespace Shoko.Server.Plex
             Action<HttpRequestMessage> configureRequest = null)
         {
             //headers["Accept"] = xml ? "application/xml" : "application/json";
+            Logger.Trace($"Requesting from plex: {method.Method} {url}");
 
             var req = new HttpRequestMessage(method, url);
             if (method == HttpMethod.Post) req.Content = new StringContent(content ?? "");
@@ -192,6 +194,7 @@ namespace Shoko.Server.Plex
             configureRequest?.Invoke(req);
 
             var resp = await HttpClient.SendAsync(req).ConfigureAwait(false);
+            Logger.Trace($"Got response: {resp.StatusCode.}");
             return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
 
