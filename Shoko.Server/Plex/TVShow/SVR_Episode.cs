@@ -19,13 +19,13 @@ namespace Shoko.Server.Plex.TVShow
 
         public void Unscrobble()
         {
-            Helper.RequestFromPlexAsync($"/:/unscrobble?identifier=com.plexapp.plugins.library&key={Key}")
+            Helper.RequestFromPlexAsync($"/:/unscrobble?identifier=com.plexapp.plugins.library&key={RatingKey}")
                 .GetAwaiter().GetResult();
         }
 
         public void Scrobble()
         {
-            Helper.RequestFromPlexAsync($"/:/scrobble?identifier=com.plexapp.plugins.library&key={Key}")
+            Helper.RequestFromPlexAsync($"/:/scrobble?identifier=com.plexapp.plugins.library&key={RatingKey}")
                 .GetAwaiter().GetResult();
         }
     }
