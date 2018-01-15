@@ -42,6 +42,7 @@ namespace Shoko.Server.Commands.Plex
                         var episode = (SVR_Episode) ep;
 
                         var animeEpisode = episode.AnimeEpisode;
+                        if (animeEpisode == null) continue;
                         var userRecord = animeEpisode.GetUserRecord(_jmmuser.JMMUserID);
                         var isWatched = episode.ViewCount > 0;
                         var lastWatched = userRecord.WatchedDate;
