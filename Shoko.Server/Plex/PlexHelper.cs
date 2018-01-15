@@ -194,7 +194,7 @@ namespace Shoko.Server.Plex
             configureRequest?.Invoke(req);
 
             var resp = await HttpClient.SendAsync(req).ConfigureAwait(false);
-            Logger.Trace($"Got response: {resp.StatusCode.}");
+            Logger.Trace($"Got response: {resp.StatusCode}");
             return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
 
