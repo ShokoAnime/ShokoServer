@@ -36,8 +36,9 @@ namespace Shoko.Server.Commands.Plex
                 var allSeries = ((SVR_Directory)section).GetShows();
                 foreach (var series in allSeries)
                 {
-                    if (series == null) continue; //I don't know why this occurs.
-                    foreach (var ep in ((SVR_PlexLibrary)series).GetEpisodes())
+                    var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes();
+                    if (episodes == null) continue;
+                    foreach (var ep in episodes)
                     {
                         var episode = (SVR_Episode) ep;
 
