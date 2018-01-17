@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NLog;
+using Shoko.Commons.Utils;
 using Shoko.Models.Plex;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Login;
