@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +27,7 @@ namespace Shoko.Server.Plex
         private static readonly HttpClient HttpClient = new HttpClient();
 
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly Dictionary<int, PlexHelper> Cache = new Dictionary<int, PlexHelper>();
+        private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new ConcurrentDictionary<int, PlexHelper>();
         private readonly JMMUser _user;
         internal readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings();
 
@@ -174,12 +175,7 @@ namespace Shoko.Server.Plex
             return _user.PlexToken;
         }
 
-        public static PlexHelper GetForUser(JMMUser user)
-        {
-            if (Cache.TryGetValue(user.JMMUserID, out var helper)) return helper;
-            Cache.Add(user.JMMUserID, helper = new PlexHelper(user));
-            return helper;
-        }
+        public static PlexHelper GetForUser(JMMUser user) => Cache.GetOrAdd(user.JMMUserID, u => new PlexHelper(user));
 
         private async Task<(HttpStatusCode status, string content)> RequestAsync(string url, HttpMethod method,
             IDictionary<string, string> headers = default, string content = null, bool xml = false,
