@@ -53,6 +53,14 @@ namespace Shoko.Server.API.v2.Models.common
             return sr;
         }
 
+        public static Serie GenerateFromAniDB_Anime(NancyContext ctx, SVR_AniDB_Anime anime, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+        {
+            Serie sr;
+            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) ?? anime.CreateAnimeSeriesAndGroup();
+            sr = GenerateFromAnimeSeries(ctx, ser, uid, nocast, notag, level, all, allpics, pic, tagfilter);
+            return sr;
+        }
+
         public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter  tagfilter)
         {
             Serie sr = new Serie();

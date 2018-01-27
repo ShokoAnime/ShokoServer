@@ -143,6 +143,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
             Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
             Get["/serie/today", true] = async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct);
+            Get["/serie/soon", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct);
 
             #endregion
 
@@ -1605,6 +1606,53 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
+        /// Handle /api/serie/soon
+        /// </summary>
+        /// <returns>Group</returns>
+        private object SeriesSoon()
+        {
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            
+            ParallelQuery<SVR_AniDB_Anime> allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel().Where(a => !a.Contract.AniDBAnime.AllTags.Split('|').FindInEnumerable(user.GetHideCategories()));
+            DateTime now = DateTime.Now;
+            List<Serie> result = allSeries.Where(ser =>
+            {
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AnimeID);
+                if (ser == null) { return false; }
+                if (anime.AirDate != null)
+                {
+                    if (now > anime.AirDate.Value) return false;
+                }
+                else
+                {
+                    return false;
+                }
+                return true;
+            }).Select(ser => Serie.GenerateFromAniDB_Anime(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).OrderBy(a => a.name).ToList();
+
+            // custom sort by Air date
+            result.Sort(delegate (Serie x, Serie y)
+            {
+                if (x.air == null && y.air == null) return 0;
+                else if (x.air == null) return -1;
+                else if (y.air == null) return 1;
+                else return x.air.CompareTo(y.air);
+            });
+
+            Group group = new Group
+            {
+                id = 0,
+                name = "Airing Soon",
+                series = result,
+                size = result.Count,
+                summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
+                url = Request.Url
+            };
+            return group;
+        }
+
+        /// <summary>
         /// Handle /api/serie/byfolder
         /// </summary>
         /// <returns>List<Serie> or APIStatus</returns>
@@ -2872,5 +2920,6 @@ namespace Shoko.Server.API.v2.Modules
 
             return links;
         }
+        
     }
 }
