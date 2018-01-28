@@ -21,20 +21,21 @@ namespace Shoko.Commons.Extensions
             }
         }
 
-        public static IEnumerable<T> OrderByNatural<T>(this IEnumerable<T> items, Func<T, string> selector, StringComparer stringComparer = null)
+        public static IOrderedEnumerable<TSource> OrderByNatural<TSource>(this IEnumerable<TSource> items, Func<TSource, string> selector, StringComparer stringComparer = null)
         {
             var regex = new Regex(@"\d+", RegexOptions.Compiled);
-            // all not null selected items
-            var result = items.Where(i => selector(i) != null);
 
-            // process numbers
-            int maxDigits = result.SelectMany(i => regex.Matches(selector(i)).Cast<Match>().Select(digitChunk => (int?)digitChunk.Value.Length))
-                                .Max() ?? 0;
+            var maxDigits = (items.Select(selector)
+                    .Where(sel => sel != null)
+                    .SelectMany(sel => regex.Matches(sel).Cast<Match>(), (sel, match) => match?.Value?.Length ?? 0))
+                .Concat(new[] {0}).Max();
 
-            // pad numbers, order by, then concatenate the null selected items to the end
-            return result
-                .OrderBy(i => regex.Replace(selector(i), match => match.Value.PadLeft(maxDigits, '0')),
-                    stringComparer ?? StringComparer.CurrentCulture).Concat(items.Where(i => selector(i) == null));
+            return items.OrderBy(i => selector(i) != null).ThenBy(i =>
+                {
+                    string sel = selector(i);
+                    if (sel == null) return null;
+                    return regex.Replace(selector(i), match => match.Value.PadLeft(maxDigits, '0'));
+                }, stringComparer ?? StringComparer.CurrentCulture);
         }
 
         public static string ToRanges(this List<int> ints) {
