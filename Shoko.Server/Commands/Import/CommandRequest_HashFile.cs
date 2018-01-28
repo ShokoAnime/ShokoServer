@@ -154,28 +154,33 @@ namespace Shoko.Server.Commands
             if (vlocalplace != null)
             {
                 vlocal = vlocalplace.VideoLocal;
-                logger.Trace("VideoLocal record found in database: {0}", FileName);
+                if (vlocal != null)
+                {
+                    logger.Trace("VideoLocal record found in database: {0}", FileName);
 
-                if (vlocalplace.FullServerPath == null)
-                {
-                    if (vlocal.Places.Count == 1)
+                    if (vlocalplace.FullServerPath == null)
                     {
-                        RepoFactory.VideoLocal.Delete(vlocal);
-                        vlocal = null;
+                        if (vlocal.Places.Count == 1)
+                        {
+                            RepoFactory.VideoLocal.Delete(vlocal);
+                            vlocal = null;
+                        }
+
+                        RepoFactory.VideoLocalPlace.Delete(vlocalplace);
+                        vlocalplace = null;
                     }
-                    RepoFactory.VideoLocalPlace.Delete(vlocalplace);
-                    vlocalplace = null;
-                }
-                if (vlocal != null && ForceHash)
-                {
-                    vlocal.FileSize = filesize;
-                    vlocal.DateTimeUpdated = DateTime.Now;
+
+                    if (vlocal != null && ForceHash)
+                    {
+                        vlocal.FileSize = filesize;
+                        vlocal.DateTimeUpdated = DateTime.Now;
+                    }
                 }
             }
 
             if (vlocal == null)
             {
-                logger.Trace("VideoLocal, creating temporary record");
+                logger.Trace("No existing VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal
                 {
                     DateTimeUpdated = DateTime.Now,
@@ -193,6 +198,7 @@ namespace Shoko.Server.Commands
 
             if (vlocalplace == null)
             {
+                logger.Trace("No existing VideoLocal_Place, creating a new record");
                 vlocalplace = new SVR_VideoLocal_Place
                 {
                     FilePath = filePath,
@@ -206,6 +212,7 @@ namespace Shoko.Server.Commands
             // check if we need to get a hash this file
             if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
             {
+                logger.Trace("No existing hash in VideoLocal, checking XRefs");
                 // try getting the hash from the CrossRef
                 if (!ForceHash)
                 {
@@ -264,7 +271,6 @@ namespace Shoko.Server.Commands
                     logger.Info("Hashing File: {0}", FileName);
                     ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
                     DateTime start = DateTime.Now;
-                    logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
                     var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                         true, true, true);
@@ -287,6 +293,7 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
+                    logger.Trace("Found existing VideoLocal with hash, merging info from it");
                     // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
                     changed = tlocal.MergeInfoFrom(vlocal);
                     vlocal = tlocal;
@@ -317,7 +324,6 @@ namespace Shoko.Server.Commands
 
                     if (dupPlace != null)
                     {
-                        // delete the VideoLocal record
                         logger.Warn("Found Duplicate File");
                         logger.Warn("---------------------------------------------");
                         logger.Warn($"New File: {vlocalplace.FullServerPath}");
