@@ -462,7 +462,7 @@ namespace Shoko.Server.Repositories.Cached
                 return Cache.Values
                     .Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
                     .SelectMany(a => Hashes.GetMultiple(a.Hash))
-                    .OrderByNatural(local => local.GetBestVideoLocalPlace()?.FilePath)
+                    .OrderByNatural(local => local?.GetBestVideoLocalPlace()?.FilePath)
                     .ToList();
             }
         }
