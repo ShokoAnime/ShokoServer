@@ -511,9 +511,8 @@ namespace Shoko.Server
                 CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(link.TvDBID,
                     link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, link.AnimeID, link.AniDBStartEpisodeType,
                     link.AniDBStartEpisodeNumber);
-                bool additive = link.CrossRef_AniDB_TvDBV2ID != 0;
 
-                if (xref != null && !additive)
+                if (xref != null && link.IsAdditive)
                 {
                     string msg = $"You have already linked Anime ID {xref.AnimeID} to this TvDB show/season/ep";
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
@@ -526,7 +525,7 @@ namespace Shoko.Server
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
                 CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(link.AnimeID,
                     (EpisodeType) link.AniDBStartEpisodeType, link.AniDBStartEpisodeNumber, link.TvDBID,
-                    link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, false, additive);
+                    link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, false, link.IsAdditive);
                 cmdRequest.Save();
 
                 return string.Empty;

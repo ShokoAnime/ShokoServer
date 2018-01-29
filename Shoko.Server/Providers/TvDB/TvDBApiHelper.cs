@@ -175,7 +175,7 @@ namespace Shoko.Server.Providers.TvDB
             }
             else
             {
-                tvSeries = GetSeriesInfoOnline(tvDBID, true);
+                tvSeries = GetSeriesInfoOnlineAsync(tvDBID, true).Result;
             }
 
             CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber,
