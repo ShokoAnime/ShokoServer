@@ -147,7 +147,7 @@ namespace Shoko.Server
                 c.Filters = new CL_Changes<CL_GroupFilter>
                 {
                     ChangedItems = changes[0]
-                    .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToClient())
+                    .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a)?.ToClient())
                     .Where(a => a != null)
                     .ToList(),
                     RemovedItems = changes[0].RemovedItems.ToList(),
@@ -166,7 +166,7 @@ namespace Shoko.Server
                         if (!c.Filters.ChangedItems.Any(a => a.GroupFilterID == ag.ParentGroupFilterID.Value))
                         {
                             end = false;
-                            CL_GroupFilter cag = RepoFactory.GroupFilter.GetByID(ag.ParentGroupFilterID.Value)
+                            CL_GroupFilter cag = RepoFactory.GroupFilter.GetByID(ag.ParentGroupFilterID.Value)?
                                 .ToClient();
                             if (cag != null)
                                 c.Filters.ChangedItems.Add(cag);
