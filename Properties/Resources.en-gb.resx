@@ -5248,4 +5248,7 @@ Please link to plex via Desktop under settings -&gt;users to use this.!</value>
   <data name="SQLServer" xml:space="preserve">
     <value>server</value>
   </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Replace All Links</value>
+  </data>
 </root>

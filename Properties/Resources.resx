@@ -5250,4 +5250,7 @@ Please link to plex via Desktop under settings -&gt;users to use this.</value>
   <data name="Database_Validating" xml:space="preserve">
     <value>Database - Validating - {0}{1}...</value>
   </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Replace All Links</value>
+  </data>
 </root>

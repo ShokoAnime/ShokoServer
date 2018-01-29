@@ -5245,4 +5245,10 @@ Por favor link para plex através do Desktop em configurações-&gt; usuários p
   <data name="SQLServer" xml:space="preserve">
     <value>SQL Server</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Pressione o botão "Link" e, em seguida, entrar no plex usando o link fornecido</value>
+  </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Substituir todos os Links</value>
+  </data>
 </root>

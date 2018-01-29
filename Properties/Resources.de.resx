@@ -5245,4 +5245,10 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   <data name="SQLServer" xml:space="preserve">
     <value>SQL Server</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Drücken Sie "Link" Taste, dann melden Sie sich über den bereitgestellten Link plex</value>
+  </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Alle Links zu ersetzen</value>
+  </data>
 </root>

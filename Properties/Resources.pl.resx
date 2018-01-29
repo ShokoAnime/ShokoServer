@@ -5247,4 +5247,10 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   <data name="SQLServer" xml:space="preserve">
     <value>SQL Server</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Naciśnij przycisk "Połącz", a następnie zalogować się do obiektu typu plex, korzystając z podanego linku</value>
+  </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Wymień wszystkie linki</value>
+  </data>
 </root>

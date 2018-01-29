@@ -5245,4 +5245,10 @@ S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilis
   <data name="SQLServer" xml:space="preserve">
     <value>Serveur SQL</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>Appuyez sur le bouton « Lien », puis connectez-vous à plex en utilisant le lien fourni</value>
+  </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Remplacer tous les liens</value>
+  </data>
 </root>

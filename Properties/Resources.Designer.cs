@@ -9818,6 +9818,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Replace All Links.
+        /// </summary>
+        public static string ReplaceAllLinks {
+            get {
+                return ResourceManager.GetString("ReplaceAllLinks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Rescan All.
         /// </summary>
         public static string RescanAll {

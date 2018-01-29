@@ -5245,4 +5245,10 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   <data name="SQLServer" xml:space="preserve">
     <value>SQL Server</value>
   </data>
+  <data name="Plex_UsageMessage" xml:space="preserve">
+    <value>"Link" knop druk op inloggen plex met behulp van de link</value>
+  </data>
+  <data name="ReplaceAllLinks" xml:space="preserve">
+    <value>Alle koppelingen vervangen</value>
+  </data>
 </root>
