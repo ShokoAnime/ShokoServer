@@ -20,7 +20,6 @@ using Nancy.Hosting.Self;
 using Nancy.Json;
 using NHibernate;
 using NLog;
-using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -526,18 +525,12 @@ namespace Shoko.Server
                             // else it was deleted before we got here
                         }
                     }
-                    if (queueFileEvents.Contains(evt))
-                    {
-                        queueFileEvents.Remove(evt);
-                    }
+                    queueFileEvents.Remove(evt);
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex);
-                    if (queueFileEvents.Contains(evt))
-                    {
-                        queueFileEvents.Remove(evt);
-                    }
+                    queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
                 }
             }
@@ -1313,13 +1306,14 @@ namespace Shoko.Server
 
         public static void StopWatchingFiles()
         {
-            if (watcherVids == null) return;
-
+            if (watcherVids == null)
+                return;
             foreach (RecoveringFileSystemWatcher fsw in watcherVids)
             {
                 fsw.EnableRaisingEvents = false;
+                fsw.Dispose();
             }
-            StopCloudWatchTimer();
+            watcherVids.Clear();
         }
 
         static void Fsw_CreateHandler(object sender, FileSystemEventArgs e)
