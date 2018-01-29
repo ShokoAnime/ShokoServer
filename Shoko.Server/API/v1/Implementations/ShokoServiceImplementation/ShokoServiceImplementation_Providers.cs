@@ -1211,17 +1211,8 @@ namespace Shoko.Server
                     catch
                     {
                     }
-                    return string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1} ({2})",
-                        malID,
-                        xrefTemp.AnimeID, animeName);
-                }
-
-                xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
-                if (xrefTemp != null)
-                {
-                    // delete the link first because we are over-writing it
-                    RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
-                    //return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1}/{2}/{3} ({4})", animeID, xrefTemp.MALID, epType, epNumber, xrefTemp.MALTitle);
+                    return
+                        $"Not using MAL link as this MAL ID ({malID}) is already in use by {xrefTemp.AnimeID} ({animeName})";
                 }
 
                 MALHelper.LinkAniDBMAL(animeID, malID, malTitle, epType, epNumber, false);
@@ -1240,10 +1231,10 @@ namespace Shoko.Server
         {
             try
             {
-                CrossRef_AniDB_MAL xrefTemp =
-                    RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, oldEpType, oldEpNumber);
+                CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL
+                    .GetByAnimeConstraint(animeID, oldEpType, oldEpNumber).FirstOrDefault(a => a.MALID != malID);
                 if (xrefTemp == null)
-                    return string.Format("Could not find MAL link ({0}/{1}/{2})", animeID, oldEpType, oldEpNumber);
+                    return $"Could not find MAL link ({animeID}/{oldEpType}/{oldEpNumber})";
 
                 RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
 
@@ -1257,11 +1248,11 @@ namespace Shoko.Server
         }
 
 
-        public string RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
+        public string RemoveLinkAniDBMAL(int animeID, int malID, int epType, int epNumber)
         {
             try
             {
-                MALHelper.RemoveLinkAniDBMAL(animeID, epType, epNumber);
+                MALHelper.RemoveLinkAniDBMAL(animeID, malID, epType, epNumber);
 
                 return string.Empty;
             }

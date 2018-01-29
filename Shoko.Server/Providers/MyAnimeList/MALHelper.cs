@@ -292,10 +292,11 @@ namespace Shoko.Server.Providers.MyAnimeList
             req.Save();
         }
 
-        public static void RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
+        public static void RemoveLinkAniDBMAL(int animeID, int malID, int epType, int epNumber)
         {
-            CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
-            if (xref == null) return;
+            CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
+            if (xref == null || xref.AnimeID != animeID || xref.StartEpisodeType != epType ||
+                xref.StartEpisodeNumber != epNumber) return;
 
             RepoFactory.CrossRef_AniDB_MAL.Delete(xref.CrossRef_AniDB_MALID);
 
