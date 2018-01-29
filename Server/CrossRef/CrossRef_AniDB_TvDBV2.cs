@@ -12,6 +12,7 @@
         public string TvDBTitle { get; set; }
 
         public int CrossRefSource { get; set; }
+        public bool IsAdditive { get; set; }
 
         public CrossRef_AniDB_TvDBV2()
         {
