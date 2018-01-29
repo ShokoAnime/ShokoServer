@@ -689,8 +689,8 @@ namespace Shoko.Models.Interfaces
         [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Post)]
         string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
 
-        [Rest("MAL/CrossRef/{animeID}/{epType}/{epNumber}", Verbs.Delete)]
-        string RemoveLinkAniDBMAL(int animeID, int epType, int epNumber);
+        [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Delete)]
+        string RemoveLinkAniDBMAL(int animeID, int malID, int epType, int epNumber);
 
         [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{oldEpType}/{oldEpNumber}/{newEpType}/{newEpNumber}", Verbs.Patch)]
         string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
