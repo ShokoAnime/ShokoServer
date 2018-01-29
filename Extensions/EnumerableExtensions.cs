@@ -34,7 +34,7 @@ namespace Shoko.Commons.Extensions
                 {
                     string sel = selector(i);
                     if (sel == null) return null;
-                    return regex.Replace(selector(i), match => match.Value.PadLeft(maxDigits, '0'));
+                    return regex.Replace(sel, match => match.Value.PadLeft(maxDigits, '0'));
                 }, stringComparer ?? StringComparer.CurrentCulture);
         }
 
