@@ -1231,11 +1231,11 @@ namespace Shoko.Server
             try
             {
                 CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL
-                    .GetByAnimeConstraint(animeID, oldEpType, oldEpNumber).FirstOrDefault(a => a.MALID != malID);
+                    .GetByAnimeConstraint(animeID, oldEpType, oldEpNumber).FirstOrDefault(a => a.MALID == malID);
                 if (xrefTemp == null)
                     return $"Could not find MAL link ({animeID}/{oldEpType}/{oldEpNumber})";
 
-                RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
+                RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp);
 
                 return LinkAniDBMAL(animeID, malID, malTitle, newEpType, newEpNumber);
             }

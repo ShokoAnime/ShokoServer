@@ -78,7 +78,8 @@ namespace Shoko.Server.Repositories.Direct
                     cr.Remove(xref);
                     cr.ForEach(Delete);
                 }
-                return xref;
+
+                return xref ?? cr.FirstOrDefault();
             }
         }
 

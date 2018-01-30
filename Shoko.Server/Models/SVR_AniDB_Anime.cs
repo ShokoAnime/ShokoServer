@@ -1434,7 +1434,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     {
                         int id = resource.ID;
                         if (id == 0) break;
-                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id) != null) break;
+                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id) != null) continue;
                         CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
                         {
                             AnimeID = AnimeID,
