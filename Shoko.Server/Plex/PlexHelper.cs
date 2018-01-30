@@ -167,7 +167,15 @@ namespace Shoko.Server.Plex
             if (_key.AuthToken != null) return _key?.AuthToken;
 
             var (_, content) = RequestAsync($"https://plex.tv/api/v2/pins/{_key.Id}", HttpMethod.Get).Result;
-            _key = JsonConvert.DeserializeObject<PlexKey>(content);
+            try
+            {
+                _key = JsonConvert.DeserializeObject<PlexKey>(content);
+            }
+            catch
+            {
+                Logger.Trace($"Unable to deserialize Plex Key from server. Response was \n{content}");
+            }
+
             if (_key == null) return null;
             _user.PlexToken = _key.AuthToken;
 
@@ -205,17 +213,27 @@ namespace Shoko.Server.Plex
 
         private MediaDevice[] GetPlexDevices()
         {
+            if (string.IsNullOrEmpty(_user?.PlexToken)) return new MediaDevice[0];
             var (_, content) = RequestAsync("https://plex.tv/api/resources?includeHttps=1", HttpMethod.Get,
                 AuthenticationHeaders).Result;
             var serializer = new XmlSerializer(typeof(MediaContainer));
             using (TextReader reader = new StringReader(content))
             {
-                return ((MediaContainer) serializer.Deserialize(reader)).Device;
+                try
+                {
+                    return ((MediaContainer) serializer.Deserialize(reader)).Device;
+                }
+                catch
+                {
+                    Logger.Trace($"Unable to deserialize Plex Devices from server. Response was \n{reader}");
+                    return new MediaDevice[0];
+                }
             }
         }
 
         public List<MediaDevice> GetPlexServers()
         {
+            if (string.IsNullOrEmpty(_user?.PlexToken)) return new List<MediaDevice>();
             return GetPlexDevices().Where(d => d.Provides.Split(',').Contains("server")).ToList();
         }
 
