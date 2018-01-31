@@ -85,7 +85,7 @@ namespace Shoko.Server
                     // Trakt
 
 
-                    foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2())
+                    foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2(session))
                     {
                         result.CrossRef_AniDB_Trakt.Add(xref);
 
@@ -96,10 +96,7 @@ namespace Shoko.Server
 
                     // MovieDB
                     CrossRef_AniDB_Other xrefMovie = anime.GetCrossRefMovieDB();
-                    if (xrefMovie == null)
-                        result.CrossRef_AniDB_MovieDB = null;
-                    else
-                        result.CrossRef_AniDB_MovieDB = xrefMovie;
+                    result.CrossRef_AniDB_MovieDB = xrefMovie;
 
 
                     result.MovieDBMovie = anime.GetMovieDBMovie();
@@ -125,7 +122,7 @@ namespace Shoko.Server
                         result.CrossRef_AniDB_MAL = null;
                     else
                     {
-                        result.CrossRef_AniDB_MAL = new List<Shoko.Models.Server.CrossRef_AniDB_MAL>();
+                        result.CrossRef_AniDB_MAL = new List<CrossRef_AniDB_MAL>();
                         foreach (CrossRef_AniDB_MAL xrefTemp in xrefMAL)
                             result.CrossRef_AniDB_MAL.Add(xrefTemp);
                     }
