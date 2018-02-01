@@ -1523,7 +1523,7 @@ namespace Shoko.Server.Renamer
                         break;
                 }
 
-                int zeroPadding = epCount.ToString().Length;
+                int zeroPadding = Math.Max(epCount.ToString().Length, 2);
 
                 // normal episode
                 string episodeNumber = prefix + episodes[0].EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
